@@ -1,0 +1,209 @@
+{
+  "head": "3e9e4da80f8ad946901dd654f9484a8afea02d8d",
+  "merge": "eaca532ce05fcda4338836bf037600106c8fc986",
+  "merged": "2026-05-27T18:25:28Z",
+  "missing_roots": 0,
+  "number": 47,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "TelemetryHandler.start_inference() no longer exists, so this call will raise AttributeError at runtime (and will fail the experimental async streaming tests). Use telemetry_handler.inference(...) and then stop()/fail() the returned invocation when the async generator completes.",
+      "created": "2026-05-19T20:14:34Z",
+      "hunk": "@@ -1249,90 +1139,99 @@ async def instrumented_generate_content_stream(\n         helper = _GenerateContentInstrumentationHelper(\n             self,\n             otel_wrapper,\n+            telemetry_handler,\n             model,\n-            completion_hook,\n             generate_content_config_key_allowlist=generate_content_config_key_allowlist,\n             is_async=True,\n         )\n-        request_attributes = _create_request_attributes(\n-            config,\n-            helper._generate_content_config_key_allowlist,\n+        extra_attributes = (\n+            _get_extra_generate_content_attributes()\n+            | _create_request_attributes(\n+                config,\n+                helper._generate_content_config_key_allowlist,\n+            )\n         )\n-        with helper.start_span_as_current_span(\n-            model,\n-            \"google.genai.AsyncModels.generate_content_stream\",\n-            end_on_exit=False,\n-        ) as span:\n-            extra_attributes = _get_extra_generate_content_attributes()\n-            span.set_attributes(extra_attributes | request_attributes)\n-            if not helper.experimental_sem_convs_enabled:\n-                helper.process_request(contents, config, span)\n-            try:\n-                response_async_generator = await wrapped_func(\n-                    self,\n-                    model=model,\n-                    contents=contents,\n-                    config=helper.wrapped_config(config),\n-                    **kwargs,\n-                )\n-            except Exception as error:  # pylint: disable=broad-exception-caught\n-                helper.process_error(error)\n-                helper._record_token_usage_metric()\n-                final_attributes = helper.create_final_attributes()\n-                span.set_attributes(final_attributes)\n-                maybe_tool_definitions = (\n-                    await helper._maybe_get_tool_definitions_async(config)\n-                )\n-                helper._maybe_log_completion_details(\n-                    extra_attributes,\n-                    request_attributes,\n-                    final_attributes,\n-                    contents,\n-                    [],\n-                    config,\n-                    maybe_tool_definitions,\n+        if helper.experimental_sem_convs_enabled:\n+            invocation = telemetry_handler.start_inference(\n+                provider=helper._genai_system,\n+                request_model=model,\n+                operation_name=\"generate_content\",\n+            )",
+      "id": "PRRT_kwDOSbspP86DSAWM",
+      "opened": "2026-05-19T20:14:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "763ca1cd6504c9d3ed651788cbccaaa2934e5caf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3269336758"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the experimental async streaming path, input_messages/system_instruction are built unconditionally. Other paths guard this behind _content_recording_enabled to avoid capturing potentially sensitive content and doing unnecessary work when content capture is disabled. Align this branch with the same conditional behavior.\n",
+      "created": "2026-05-19T20:14:34Z",
+      "hunk": "@@ -1249,90 +1139,99 @@ async def instrumented_generate_content_stream(\n         helper = _GenerateContentInstrumentationHelper(\n             self,\n             otel_wrapper,\n+            telemetry_handler,\n             model,\n-            completion_hook,\n             generate_content_config_key_allowlist=generate_content_config_key_allowlist,\n             is_async=True,\n         )\n-        request_attributes = _create_request_attributes(\n-            config,\n-            helper._generate_content_config_key_allowlist,\n+        extra_attributes = (\n+            _get_extra_generate_content_attributes()\n+            | _create_request_attributes(\n+                config,\n+                helper._generate_content_config_key_allowlist,\n+            )\n         )\n-        with helper.start_span_as_current_span(\n-            model,\n-            \"google.genai.AsyncModels.generate_content_stream\",\n-            end_on_exit=False,\n-        ) as span:\n-            extra_attributes = _get_extra_generate_content_attributes()\n-            span.set_attributes(extra_attributes | request_attributes)\n-            if not helper.experimental_sem_convs_enabled:\n-                helper.process_request(contents, config, span)\n-            try:\n-                response_async_generator = await wrapped_func(\n-                    self,\n-                    model=model,\n-                    contents=contents,\n-                    config=helper.wrapped_config(config),\n-                    **kwargs,\n-                )\n-            except Exception as error:  # pylint: disable=broad-exception-caught\n-                helper.process_error(error)\n-                helper._record_token_usage_metric()\n-                final_attributes = helper.create_final_attributes()\n-                span.set_attributes(final_attributes)\n-                maybe_tool_definitions = (\n-                    await helper._maybe_get_tool_definitions_async(config)\n-                )\n-                helper._maybe_log_completion_details(\n-                    extra_attributes,\n-                    request_attributes,\n-                    final_attributes,\n-                    contents,\n-                    [],\n-                    config,\n-                    maybe_tool_definitions,\n+        if helper.experimental_sem_convs_enabled:\n+            invocation = telemetry_handler.start_inference(\n+                provider=helper._genai_system,\n+                request_model=model,\n+                operation_name=\"generate_content\",\n+            )\n+            invocation.attributes.update(extra_attributes)\n+            invocation.tool_definitions = (\n+                await helper._maybe_get_tool_definitions_async(config)\n+            )\n+            invocation.input_messages = to_input_messages(\n+                contents=transformers.t_contents(contents)\n+            )\n+            if system_content := _config_to_system_instruction(config):\n+                invocation.system_instruction = to_system_instructions(\n+                    content=transformers.t_contents(system_content)[0]\n                 )",
+      "id": "PRRT_kwDOSbspP86DSAWg",
+      "opened": "2026-05-19T20:14:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "763ca1cd6504c9d3ed651788cbccaaa2934e5caf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3269336791"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Setting OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT in-process mutates global environment and overrides user configuration for the whole application (and any other instrumentations). Prefer relying on opentelemetry-util-genai's default emit-event behavior (derived from content capture mode), or make event emission an explicit option rather than force-setting an env var here.\n",
+      "created": "2026-05-19T20:14:35Z",
+      "hunk": "@@ -1355,29 +1254,31 @@ def instrument_generate_content(\n         _StabilityMode.DEFAULT,\n     ):\n         raise ValueError(f\"Sem Conv opt in mode {opt_in_mode} not supported.\")\n+    if opt_in_mode == _StabilityMode.GEN_AI_LATEST_EXPERIMENTAL:\n+        os.environ[\"OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT\"] = \"true\"",
+      "id": "PRRT_kwDOSbspP86DSAWu",
+      "opened": "2026-05-19T20:14:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "763ca1cd6504c9d3ed651788cbccaaa2934e5caf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3269336814"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Arguments/result are serialized after the tool executes. This means arguments won't be recorded on exceptions, and it does extra json.dumps work even when content capture is disabled. Consider setting tool_invocation.arguments before invoking the tool (so failures still have args) and only computing/setting arguments/result when tool_invocation.should_capture_content_on_span is true.\n\nThis issue also appears on line 96 of the same file.",
+      "created": "2026-05-19T20:14:35Z",
+      "hunk": "@@ -50,180 +38,93 @@ def _to_otel_value(python_value):\n     return repr(python_value)\n \n \n-def _is_homogenous_primitive_list(value):\n-    if not isinstance(value, list):\n-        return False\n-    if not value:\n-        return True\n-    if not _is_primitive(value[0]):\n-        return False\n-    first_type = type(value[0])\n-    for entry in value[1:]:\n-        if not isinstance(entry, first_type):\n-            return False\n-    return True\n-\n-\n-def _to_otel_attribute(python_value):\n-    otel_value = _to_otel_value(python_value)\n-    if _is_primitive(otel_value) or _is_homogenous_primitive_list(otel_value):\n-        return otel_value\n-    return json.dumps(otel_value)\n-\n-\n-def _is_capture_content_enabled() -> bool:\n-    if (\n-        _OpenTelemetrySemanticConventionStability._get_opentelemetry_stability_opt_in_mode(\n-            _OpenTelemetryStabilitySignalType.GEN_AI\n-        )\n-        == _StabilityMode.GEN_AI_LATEST_EXPERIMENTAL\n-    ):\n-        return is_content_recording_enabled(True) in [\n-            ContentCapturingMode.SPAN_ONLY,\n-            ContentCapturingMode.SPAN_AND_EVENT,\n-        ]\n-    return bool(is_content_recording_enabled(False))\n-\n-\n-def _create_function_span_name(wrapped_function):\n-    \"\"\"Constructs the span name for a given local function tool call.\"\"\"\n-    function_name = wrapped_function.__name__\n-    return f\"execute_tool {function_name}\"\n-\n-\n-def _create_function_span_attributes(\n-    wrapped_function, function_args, function_kwargs, extra_span_attributes\n-):\n-    \"\"\"Creates the attributes for a tool call function span.\"\"\"\n-    result = {}\n-    if extra_span_attributes:\n-        result.update(extra_span_attributes)\n-    result[\"gen_ai.operation.name\"] = \"execute_tool\"\n-    result[\"gen_ai.tool.name\"] = wrapped_function.__name__\n-    if wrapped_function.__doc__:\n-        result[\"gen_ai.tool.description\"] = wrapped_function.__doc__\n-    result[code_attributes.CODE_FUNCTION_NAME] = wrapped_function.__name__\n-    result[\"code.module\"] = wrapped_function.__module__\n-    result[\"code.args.positional.count\"] = len(function_args)\n-    result[\"code.args.keyword.count\"] = len(function_kwargs)\n-    return result\n-\n-\n-def _record_function_call_argument(\n-    span, param_name, param_value, include_values\n-):\n-    attribute_prefix = f\"code.function.parameters.{param_name}\"\n-    type_attribute = f\"{attribute_prefix}.type\"\n-    span.set_attribute(type_attribute, type(param_value).__name__)\n-    if include_values:\n-        value_attribute = f\"{attribute_prefix}.value\"\n-        span.set_attribute(value_attribute, _to_otel_attribute(param_value))\n-\n-\n-def _record_function_call_arguments(\n-    otel_wrapper, wrapped_function, function_args, function_kwargs\n-):\n+# There is non canonical way to serialize a Python object to a span attribute value.\n+# Span attribute values currently most be one of the primitive types, or a homogeneous list of primitive types.\n+# In the future the value will be expanded to include None, a heterogeneous lists of primitive types, and a Map of these types.\n+# See https://github.com/open-telemetry/opentelemetry-specification/pull/4485\n+def _get_function_args(wrapped_function, function_args, function_kwargs):\n     \"\"\"Records the details about a function invocation as span attributes.\"\"\"\n-    include_values = _is_capture_content_enabled()\n-    span = trace.get_current_span()\n+    function_arg_attr = {}\n     signature = inspect.signature(wrapped_function)\n     params = list(signature.parameters.values())\n     for index, entry in enumerate(function_args):\n         param_name = f\"args[{index}]\"\n         if index < len(params):\n             param_name = params[index].name\n-        _record_function_call_argument(span, param_name, entry, include_values)\n+        function_arg_attr[f\"code.function.parameters.{param_name}.type\"] = (\n+            type(entry).__name__\n+        )\n+        function_arg_attr[f\"code.function.parameters.{param_name}.value\"] = (\n+            _to_otel_value(entry)\n+        )\n     for key, value in function_kwargs.items():\n-        _record_function_call_argument(span, key, value, include_values)\n-\n-\n-def _record_function_call_result(otel_wrapper, wrapped_function, result):\n-    \"\"\"Records the details about a function result as span attributes.\"\"\"\n-    include_values = _is_capture_content_enabled()\n-    span = trace.get_current_span()\n-    span.set_attribute(\"code.function.return.type\", type(result).__name__)\n-    if include_values:\n-        span.set_attribute(\n-            \"code.function.return.value\", _to_otel_attribute(result)\n+        function_arg_attr[f\"code.function.parameters.{key}.type\"] = type(\n+            value\n+        ).__name__\n+        function_arg_attr[f\"code.function.parameters.{key}.value\"] = (\n+            _to_otel_value(value)\n         )\n+    return function_arg_attr\n \n \n-def _wrap_sync_tool_function(\n+def _wrap_tool_function(\n     tool_function: ToolFunction,\n-    otel_wrapper: OTelWrapper,\n-    extra_span_attributes: Optional[dict[str, str]] = None,\n-    **unused_kwargs,\n+    telemetry_handler: TelemetryHandler,\n ):\n-    @functools.wraps(tool_function)\n-    def wrapped_function(*args, **kwargs):\n-        span_name = _create_function_span_name(tool_function)\n-        attributes = _create_function_span_attributes(\n-            tool_function, args, kwargs, extra_span_attributes\n-        )\n-        with otel_wrapper.start_as_current_span(\n-            span_name, attributes=attributes\n-        ):\n-            _record_function_call_arguments(\n-                otel_wrapper, tool_function, args, kwargs\n-            )\n-            result = tool_function(*args, **kwargs)\n-            _record_function_call_result(otel_wrapper, tool_function, result)\n-            return result\n-\n-    return wrapped_function\n-\n+    if inspect.iscoroutinefunction(tool_function):\n \n-def _wrap_async_tool_function(\n-    tool_function: ToolFunction,\n-    otel_wrapper: OTelWrapper,\n-    extra_span_attributes: Optional[dict[str, str]] = None,\n-    **unused_kwargs,\n-):\n-    @functools.wraps(tool_function)\n-    async def wrapped_function(*args, **kwargs):\n-        span_name = _create_function_span_name(tool_function)\n-        attributes = _create_function_span_attributes(\n-            tool_function, args, kwargs, extra_span_attributes\n-        )\n-        with otel_wrapper.start_as_current_span(\n-            span_name, attributes=attributes\n-        ):\n-            _record_function_call_arguments(\n-                otel_wrapper, tool_function, args, kwargs\n-            )\n-            result = await tool_function(*args, **kwargs)\n-            _record_function_call_result(otel_wrapper, tool_function, result)\n+        @functools.wraps(tool_function)\n+        async def wrapped_function(*args, **kwargs):\n+            with telemetry_handler.tool(\n+                tool_function.__name__, tool_description=tool_function.__doc__\n+            ) as tool_invocation:\n+                result = await tool_function(*args, **kwargs)\n+                # Always json.dumps. First we convert args / result to something that we can serialize, then we serialize.\n+                # The return value of _to_otel_value could be a dict, which currently cannot be a span attribute..\n+                # In the future that could change (see https://github.com/open-telemetry/opentelemetry-specification/pull/4485), and we could possibly stop using json.dumps here.\n+                tool_invocation.arguments = json.dumps(\n+                    _get_function_args(tool_function, args, kwargs)\n+                )\n+                tool_invocation.tool_result = json.dumps(\n+                    _to_otel_value(result)\n+                )",
+      "id": "PRRT_kwDOSbspP86DSAXH",
+      "opened": "2026-05-19T20:14:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/tool_call_wrapper.py",
+      "replies": [],
+      "reviewed": "763ca1cd6504c9d3ed651788cbccaaa2934e5caf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3269336847"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Spelling/grammar in this comment block: \"There is non canonical\" -> \"There is no canonical\", \"most be\" -> \"must be\", and \"a heterogeneous lists\" -> \"heterogeneous lists\".\n",
+      "created": "2026-05-19T20:14:35Z",
+      "hunk": "@@ -50,180 +38,93 @@ def _to_otel_value(python_value):\n     return repr(python_value)\n \n \n-def _is_homogenous_primitive_list(value):\n-    if not isinstance(value, list):\n-        return False\n-    if not value:\n-        return True\n-    if not _is_primitive(value[0]):\n-        return False\n-    first_type = type(value[0])\n-    for entry in value[1:]:\n-        if not isinstance(entry, first_type):\n-            return False\n-    return True\n-\n-\n-def _to_otel_attribute(python_value):\n-    otel_value = _to_otel_value(python_value)\n-    if _is_primitive(otel_value) or _is_homogenous_primitive_list(otel_value):\n-        return otel_value\n-    return json.dumps(otel_value)\n-\n-\n-def _is_capture_content_enabled() -> bool:\n-    if (\n-        _OpenTelemetrySemanticConventionStability._get_opentelemetry_stability_opt_in_mode(\n-            _OpenTelemetryStabilitySignalType.GEN_AI\n-        )\n-        == _StabilityMode.GEN_AI_LATEST_EXPERIMENTAL\n-    ):\n-        return is_content_recording_enabled(True) in [\n-            ContentCapturingMode.SPAN_ONLY,\n-            ContentCapturingMode.SPAN_AND_EVENT,\n-        ]\n-    return bool(is_content_recording_enabled(False))\n-\n-\n-def _create_function_span_name(wrapped_function):\n-    \"\"\"Constructs the span name for a given local function tool call.\"\"\"\n-    function_name = wrapped_function.__name__\n-    return f\"execute_tool {function_name}\"\n-\n-\n-def _create_function_span_attributes(\n-    wrapped_function, function_args, function_kwargs, extra_span_attributes\n-):\n-    \"\"\"Creates the attributes for a tool call function span.\"\"\"\n-    result = {}\n-    if extra_span_attributes:\n-        result.update(extra_span_attributes)\n-    result[\"gen_ai.operation.name\"] = \"execute_tool\"\n-    result[\"gen_ai.tool.name\"] = wrapped_function.__name__\n-    if wrapped_function.__doc__:\n-        result[\"gen_ai.tool.description\"] = wrapped_function.__doc__\n-    result[code_attributes.CODE_FUNCTION_NAME] = wrapped_function.__name__\n-    result[\"code.module\"] = wrapped_function.__module__\n-    result[\"code.args.positional.count\"] = len(function_args)\n-    result[\"code.args.keyword.count\"] = len(function_kwargs)\n-    return result\n-\n-\n-def _record_function_call_argument(\n-    span, param_name, param_value, include_values\n-):\n-    attribute_prefix = f\"code.function.parameters.{param_name}\"\n-    type_attribute = f\"{attribute_prefix}.type\"\n-    span.set_attribute(type_attribute, type(param_value).__name__)\n-    if include_values:\n-        value_attribute = f\"{attribute_prefix}.value\"\n-        span.set_attribute(value_attribute, _to_otel_attribute(param_value))\n-\n-\n-def _record_function_call_arguments(\n-    otel_wrapper, wrapped_function, function_args, function_kwargs\n-):\n+# There is non canonical way to serialize a Python object to a span attribute value.\n+# Span attribute values currently most be one of the primitive types, or a homogeneous list of primitive types.\n+# In the future the value will be expanded to include None, a heterogeneous lists of primitive types, and a Map of these types.",
+      "id": "PRRT_kwDOSbspP86DSAXs",
+      "opened": "2026-05-19T20:14:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/tool_call_wrapper.py",
+      "replies": [],
+      "reviewed": "763ca1cd6504c9d3ed651788cbccaaa2934e5caf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3269336893"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test calls self.setUp()/self.tearDown() manually inside the loop, but TestCase doesn't define tearDown(), so the installed OTelMocker providers are never restored between iterations. This can leak global OTel state across subtests. Consider adding a tearDown that calls self._otel.uninstall(), and in this test explicitly uninstall/reinstall (or refactor to construct a fresh OTelMocker/TelemetryHandler without calling setUp directly).",
+      "created": "2026-05-19T20:14:35Z",
+      "hunk": "@@ -163,138 +136,116 @@ def somefunction():\n             \"An example tool call function.\",\n         )\n \n-    def test_handles_primitive_int_arg(self):\n-        def somefunction(arg=None):\n+    @patch.dict(\n+        \"os.environ\",\n+        {\n+            \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": \"true\",\n+            \"OTEL_SEMCONV_STABILITY_OPT_IN\": \"default\",\n+        },\n+    )\n+    def test_handles_various_arg_types(self):\n+        def somefunction(\n+            primitive_int=None,\n+            dict_arg=None,\n+            list_arg=None,\n+            heterogenous_list_arg=None,\n+        ):\n             pass\n \n+        _OpenTelemetrySemanticConventionStability._initialized = False\n+        _OpenTelemetrySemanticConventionStability._initialize()\n         wrapped_somefunction = self.wrap(somefunction)\n         self.otel.assert_does_not_have_span_named(\"execute_tool somefunction\")\n         somefunction(12345)\n         self.otel.assert_does_not_have_span_named(\"execute_tool somefunction\")\n-        wrapped_somefunction(12345)\n+        wrapped_somefunction(12345, {\"key\": \"value\"}, [1, 2, 3], [123, \"abc\"])\n         self.otel.assert_has_span_named(\"execute_tool somefunction\")\n         span = self.otel.get_span_named(\"execute_tool somefunction\")\n+        arguments = json.loads(span.attributes[\"gen_ai.tool.call.arguments\"])\n         self.assertEqual(\n-            span.attributes[\"code.function.parameters.arg.type\"], \"int\"\n+            arguments[\"code.function.parameters.primitive_int.type\"], \"int\"\n         )\n         self.assertEqual(\n-            span.attributes[\"code.function.parameters.arg.value\"], 12345\n+            arguments[\"code.function.parameters.primitive_int.value\"], 12345\n         )\n-\n-    def test_handles_primitive_string_arg(self):\n-        def somefunction(arg=None):\n-            pass\n-\n-        wrapped_somefunction = self.wrap(somefunction)\n-        self.otel.assert_does_not_have_span_named(\"execute_tool somefunction\")\n-        somefunction(\"a string value\")\n-        self.otel.assert_does_not_have_span_named(\"execute_tool somefunction\")\n-        wrapped_somefunction(\"a string value\")\n-        self.otel.assert_has_span_named(\"execute_tool somefunction\")\n-        span = self.otel.get_span_named(\"execute_tool somefunction\")\n         self.assertEqual(\n-            span.attributes[\"code.function.parameters.arg.type\"], \"str\"\n+            arguments[\"code.function.parameters.dict_arg.type\"], \"dict\"\n         )\n         self.assertEqual(\n-            span.attributes[\"code.function.parameters.arg.value\"],\n-            \"a string value\",\n+            arguments[\"code.function.parameters.dict_arg.value\"],\n+            {\"key\": \"value\"},\n         )\n-\n-    def test_handles_dict_arg(self):\n-        def somefunction(arg=None):\n-            pass\n-\n-        wrapped_somefunction = self.wrap(somefunction)\n-        self.otel.assert_does_not_have_span_named(\"execute_tool somefunction\")\n-        somefunction({\"key\": \"value\"})\n-        self.otel.assert_does_not_have_span_named(\"execute_tool somefunction\")\n-        wrapped_somefunction({\"key\": \"value\"})\n-        self.otel.assert_has_span_named(\"execute_tool somefunction\")\n-        span = self.otel.get_span_named(\"execute_tool somefunction\")\n         self.assertEqual(\n-            span.attributes[\"code.function.parameters.arg.type\"], \"dict\"\n+            arguments[\"code.function.parameters.list_arg.type\"], \"list\"\n         )\n         self.assertEqual(\n-            span.attributes[\"code.function.parameters.arg.value\"],\n-            '{\"key\": \"value\"}',\n+            arguments[\"code.function.parameters.list_arg.value\"], [1, 2, 3]\n         )\n-\n-    def test_handles_primitive_list_arg(self):\n-        def somefunction(arg=None):\n-            pass\n-\n-        wrapped_somefunction = self.wrap(somefunction)\n-        self.otel.assert_does_not_have_span_named(\"execute_tool somefunction\")\n-        somefunction([1, 2, 3])\n-        self.otel.assert_does_not_have_span_named(\"execute_tool somefunction\")\n-        wrapped_somefunction([1, 2, 3])\n-        self.otel.assert_has_span_named(\"execute_tool somefunction\")\n-        span = self.otel.get_span_named(\"execute_tool somefunction\")\n         self.assertEqual(\n-            span.attributes[\"code.function.parameters.arg.type\"], \"list\"\n+            arguments[\"code.function.parameters.heterogenous_list_arg.type\"],\n+            \"list\",\n         )\n-        # A conversion is required here, because the Open Telemetry code converts the\n-        # list into a tuple. (But this conversion isn't happening in \"tool_call_wrapper.py\").\n         self.assertEqual(\n-            list(span.attributes[\"code.function.parameters.arg.value\"]),\n-            [1, 2, 3],\n+            arguments[\"code.function.parameters.heterogenous_list_arg.value\"],\n+            [123, \"abc\"],\n         )\n \n-    def test_handles_heterogenous_list_arg(self):\n+    def test_handle_with_different_capture_content_on_span_config(self):\n         def somefunction(arg=None):\n-            pass\n-\n-        wrapped_somefunction = self.wrap(somefunction)\n-        self.otel.assert_does_not_have_span_named(\"execute_tool somefunction\")\n-        somefunction([123, \"abc\"])\n-        self.otel.assert_does_not_have_span_named(\"execute_tool somefunction\")\n-        wrapped_somefunction([123, \"abc\"])\n-        self.otel.assert_has_span_named(\"execute_tool somefunction\")\n-        span = self.otel.get_span_named(\"execute_tool somefunction\")\n-        self.assertEqual(\n-            span.attributes[\"code.function.parameters.arg.type\"], \"list\"\n-        )\n-        self.assertEqual(\n-            span.attributes[\"code.function.parameters.arg.value\"],\n-            '[123, \"abc\"]',\n-        )\n-\n-    def test_handle_with_new_sem_conv(self):\n-        def somefunction(arg=None):\n-            pass\n-\n-        for mode in ContentCapturingMode:\n-            with self.subTest(f\"mode: {mode}\"):\n+            return arg\n+\n+        for capture_content_on_span in [\"SPAN_AND_EVENT\", \"NO_CONTENT\"]:\n+            patched_environ = patch.dict(\n+                \"os.environ\",\n+                {\n+                    \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": capture_content_on_span,\n+                    \"OTEL_SEMCONV_STABILITY_OPT_IN\": \"gen_ai_latest_experimental\",\n+                },\n+            )\n+            with patched_environ:\n+                _OpenTelemetrySemanticConventionStability._initialized = False\n+                _OpenTelemetrySemanticConventionStability._initialize()\n                 self.setUp()\n-                with patch.dict(\n-                    \"os.environ\",\n-                    {\n-                        \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": mode.name,\n-                        \"OTEL_SEMCONV_STABILITY_OPT_IN\": \"gen_ai_latest_experimental\",\n-                    },\n-                ):\n-                    _OpenTelemetrySemanticConventionStability._initialized = (\n-                        False\n+                wrapped_somefunction = self.wrap(somefunction)\n+                wrapped_somefunction(\"a string value\")\n+                span = self.otel.get_span_named(\"execute_tool somefunction\")\n+                self.assertEqual(\n+                    span.attributes[\"gen_ai.tool.name\"], \"somefunction\"\n+                )\n+\n+                if capture_content_on_span == \"NO_CONTENT\":\n+                    self.assertNotIn(\n+                        \"gen_ai.tool.call.arguments\",\n+                        span.attributes,\n                     )\n-                    _OpenTelemetrySemanticConventionStability._initialize()\n-                    wrapped_somefunction = self.wrap(somefunction)\n-                    wrapped_somefunction(12345)\n-\n-                    span = self.otel.get_span_named(\n-                        \"execute_tool somefunction\"\n+                    self.assertNotIn(\n+                        \"gen_ai.tool.call.result\",\n+                        span.attributes,\n+                    )\n+                else:\n+                    self.assertEqual(\n+                        span.attributes[\"gen_ai.tool.call.result\"],\n+                        '\"a string value\"',\n+                    )\n+                    arguments = json.loads(\n+                        span.attributes[\"gen_ai.tool.call.arguments\"]\n+                    )\n+                    self.assertEqual(\n+                        arguments[\"code.function.parameters.arg.type\"], \"str\"\n                     )\n+                    self.assertEqual(\n+                        arguments[\"code.function.parameters.arg.value\"],\n+                        \"a string value\",\n+                    )\n+                self.tearDown()\n+",
+      "id": "PRRT_kwDOSbspP86DSAYH",
+      "opened": "2026-05-19T20:14:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/utils/test_tool_call_wrapper.py",
+      "replies": [],
+      "reviewed": "763ca1cd6504c9d3ed651788cbccaaa2934e5caf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3269336931"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog entry states that gen_ai.provider.name is added with value \"vertex_ai\", but the instrumentation sets provider from the resolved system (e.g. \"gemini\" or \"vertex_ai\" depending on configuration) and the updated tests assert \"gemini\" in the non-vertex case. Please update this entry to reflect the actual attribute value(s) and avoid stating a single fixed value if it depends on configuration.\n",
+      "created": "2026-05-19T20:14:36Z",
+      "hunk": "@@ -0,0 +1 @@\n+Refactor code to make use of the shared GenAi Utils package `opentelemetry-util-genai`. This shared package is used by multiple GenAI instrumentations, and ensures sem convs are followed and up to date. This does result in some span attributes on the `execute_tool` span being removed (`code.function.parameters.someparam.type`, `code.function.parameters.someparam.value` etc.), and other sem conv compliant attributes being added to the span (specifically: `gen_ai.tool.call.arguments`, `gen_ai.tool.call.result`), it also correctly changes the `SpanKind` from `INTERNAL` to `CLIENT`. The `generate_content` span also is switched to `SpanKind` `CLIENT`, and the `gen_ai.provider.name` attribute which was missing has been added, it's value is `vertex_ai`. The `InstrumentationScope` of the log and trace will also change, as the `TelemetryHandler` class in the utils package is now used to write the logs and traces.",
+      "id": "PRRT_kwDOSbspP86DSAYg",
+      "opened": "2026-05-19T20:14:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/.changelog/10.changed",
+      "replies": [],
+      "reviewed": "763ca1cd6504c9d3ed651788cbccaaa2934e5caf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3269336968"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this should not be a start argument - it's expensive to obtain and should not be captured if content is disabled",
+      "created": "2026-05-21T18:07:47Z",
+      "hunk": "@@ -75,16 +75,17 @@ def _wrap_tool_function(\n \n         @functools.wraps(tool_function)\n         async def wrapped_function(*args, **kwargs):\n+            # Always json.dumps. First we convert args / result to something that we can serialize, then we serialize.\n+            # The return value of _to_otel_value could be a dict, which currently cannot be a span attribute..\n+            # In the future that could change (see https://github.com/open-telemetry/opentelemetry-specification/pull/4485), and we could possibly stop using json.dumps here.\n             with telemetry_handler.tool(\n-                tool_function.__name__, tool_description=tool_function.__doc__\n+                tool_function.__name__,\n+                tool_description=tool_function.__doc__,\n+                arguments=json.dumps(",
+      "id": "PRRT_kwDOSbspP86D5I8B",
+      "opened": "2026-05-21T18:10:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/tool_call_wrapper.py",
+      "replies": [
+        {
+          "at": "2026-05-21T18:20:29Z",
+          "body": "The utils library will not add them to the span unless content captured is enabled, so we are covered there.\r\n\r\nThe problem with adding arguments after the function has been executed is that is if the execute tool call fails, arguments would then be missing",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3283429783"
+        },
+        {
+          "at": "2026-05-21T19:47:52Z",
+          "body": "I mean from perf-standpoint - they should not be provided at start time, we should not serialize them just to drop them later if content is disabled. \r\n\r\nwe can do \r\n```\r\n            with telemetry_handler.tool(\r\n                tool_function.__name__,\r\n                tool_description=tool_function.__doc__\r\n            ) as tool_invocation:\r\n              if handler.content_enabled:\r\n                tool_invocation.arguments=json.dumps( \r\n                    _get_function_args(tool_function, args, kwargs)\r\n                ),\r\n```\r\n\r\narguments should not even be settable in the `tool` factory (it's not sampling-relevant attribute according to conventions), but it's not something introduced in your PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3283901436"
+        },
+        {
+          "at": "2026-05-21T20:48:01Z",
+          "body": "Ah ok didn't realize that.. That was something I added myself just the other day so I could do this.. I've now reverted that change in this PR..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3284243904"
+        }
+      ],
+      "reviewed": "2c53174d9ebd1655d1a33fdde9e3ae98f0d46fa2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3283360003"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit, it seems it's not applicable to util package - the change is on the instrumentation packages",
+      "created": "2026-05-22T16:22:07Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove remaining usages of and references to deprecated functions",
+      "id": "PRRT_kwDOSbspP86EK6Ck",
+      "opened": "2026-05-22T16:22:07Z",
+      "path": "util/opentelemetry-util-genai/.changelog/47.removed",
+      "replies": [
+        {
+          "at": "2026-05-26T14:15:35Z",
+          "body": "I just updated a changelog in 1 of the packages I made changes in to save time, if you think it's important to update all changelogs please unresolved this and I'll do it..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3304362065"
+        }
+      ],
+      "reviewed": "c6c1ba76955d0fd3ba3679d7c744c0a5340baeb2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3289778992"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Update the docstring?",
+      "created": "2026-05-26T15:11:25Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86E1ixf",
+      "opened": "2026-05-26T15:11:25Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [
+        {
+          "at": "2026-05-26T18:27:51Z",
+          "body": "Ah missed that one.. fixed thanks",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3305991016"
+        }
+      ],
+      "reviewed": "893d079c73ffa1f4982d32838299ff59a4c38626",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3304797089"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "What's this change for?",
+      "created": "2026-05-26T15:12:39Z",
+      "hunk": "@@ -208,7 +206,6 @@ def start_tool(\n         self,\n         name: str,\n         *,\n-        arguments: AttributeValue | None = None,",
+      "id": "PRRT_kwDOSbspP86E1kea",
+      "opened": "2026-05-26T15:12:39Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-05-26T18:30:54Z",
+          "body": "Arguments can be expensive to serialize and aren't supposed to be used as part of the span sampling decision according to Ludmilla, so we don't want them passed at the start.. I had added arguments as a parameter to start_tool in a previous PR and that hasn't been released yet.. So this change shouldn't break anyone",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3306007670"
+        }
+      ],
+      "reviewed": "893d079c73ffa1f4982d32838299ff59a4c38626",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/47#discussion_r3304806351"
+    }
+  ]
+}

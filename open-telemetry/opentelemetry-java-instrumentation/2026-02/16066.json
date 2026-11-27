@@ -1,0 +1,25 @@
+{
+  "head": "0374d1693e4c04f1ac5c4581bf8dfb3a5b0f6c14",
+  "merge": "2ed8df2ac18a156975a0dacbf0836f7ebcf208fb",
+  "merged": "2026-02-05T01:18:11Z",
+  "missing_roots": 0,
+  "number": 16066,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "removed this line because inherited from `withType<Test>()` above",
+      "created": "2026-01-31T17:35:41Z",
+      "hunk": "@@ -31,9 +31,8 @@ tasks {\n   val testStableSemconv by registering(Test::class) {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n-    systemProperty(\"collectMetadata\", collectMetadata)",
+      "id": "PRRT_kwDODJKVX85sBD5S",
+      "opened": "2026-01-31T17:35:41Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "0374d1693e4c04f1ac5c4581bf8dfb3a5b0f6c14",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16066#discussion_r2749773644"
+    }
+  ]
+}

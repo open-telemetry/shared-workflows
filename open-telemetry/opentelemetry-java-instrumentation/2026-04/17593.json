@@ -1,0 +1,25 @@
+{
+  "head": "e7f1731edc6ffb7cc9857349166e3b484ef2ea70",
+  "merge": "c8a5413f9fda651ca1068a58b0171dd65002920c",
+  "merged": "2026-04-06T15:25:42Z",
+  "missing_roots": 0,
+  "number": 17593,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "This change looks correct to me. Description of the metric.\n> The maximum number of open connections allowed.\n\n`connectionPool.getMaxPoolSize()`\n> Gets the maximum number of connections that the connection pool maintains.\n\n`connectionPool.getStatistics().getPeakConnectionsCount()`\n>  Gets the maximum number of connections that the connection pool has reached during the life of the pool.",
+      "created": "2026-04-06T06:59:55Z",
+      "hunk": "@@ -48,8 +48,7 @@ private static BatchCallback createMeters(\n               connectionPool.getBorrowedConnectionsCount(), usedConnectionsAttributes);\n           connections.record(\n               connectionPool.getAvailableConnectionsCount(), idleConnectionsAttributes);\n-          maxConnections.record(\n-              connectionPool.getStatistics().getPeakConnectionsCount(), attributes);\n+          maxConnections.record(connectionPool.getMaxPoolSize(), attributes);",
+      "id": "PRRT_kwDODJKVX854-NJp",
+      "opened": "2026-04-06T06:59:55Z",
+      "path": "instrumentation/oracle-ucp-11.2/library/src/main/java/io/opentelemetry/instrumentation/oracleucp/v11_2/ConnectionPoolMetrics.java",
+      "replies": [],
+      "reviewed": "e7f1731edc6ffb7cc9857349166e3b484ef2ea70",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17593#discussion_r3038297712"
+    }
+  ]
+}

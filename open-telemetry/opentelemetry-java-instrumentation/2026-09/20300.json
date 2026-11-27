@@ -1,0 +1,25 @@
+{
+  "head": "af419d0ec51a2fbd52a79272b97ec0b7ea9542eb",
+  "merge": "d40b28be81c55fcf46a89516ae8ba67cefdf8fed",
+  "merged": "2026-09-28T15:19:31Z",
+  "missing_roots": 0,
+  "number": 20300,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think we could set this to 21 since testing with unsupported non lts versions isn't really needed. Also I think we can remove\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/847f6bfa0582da8bd99ad3ad508ce44aff011d8b/instrumentation/hbase/hbase-client-1.4/javaagent/build.gradle.kts#L62-L64 since that only made the test work on jdk23",
+      "created": "2026-09-28T11:11:14Z",
+      "hunk": "@@ -3,8 +3,8 @@ plugins {\n }\n \n otelJava {\n-  // HBase 1.4.x test stack uses Subject.getSubject(), which is unsupported on JDK 24+.\n-  maxJavaVersionForTests.set(JavaVersion.VERSION_23)\n+  // HBase 1.4.x test stack uses Subject.getSubject(), which is unsupported on JDK 23+.\n+  maxJavaVersionForTests.set(JavaVersion.VERSION_22)",
+      "id": "PRRT_kwDODJKVX86mpb0r",
+      "opened": "2026-09-28T11:11:13Z",
+      "path": "instrumentation/hbase/hbase-client-1.4/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "8f0e894cfd64cde0202c9f93bb1afa7ec74482f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20300#discussion_r4121440471"
+    }
+  ]
+}

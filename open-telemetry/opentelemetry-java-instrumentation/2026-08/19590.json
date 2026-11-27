@@ -1,0 +1,115 @@
+{
+  "head": "e6640412c69341f60e3eda3c3b195755eabcfecd",
+  "merge": "7ca683081247c8185d9771acabf54a0cd3a8b674",
+  "merged": "2026-08-16T15:09:34Z",
+  "missing_roots": 0,
+  "number": 19590,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`updateSettings(...)` returns immediately with an `ActionFuture`, while `waitForTraces(1)` can return as soon as the enclosing `setup` root span is exported. The update-settings span can therefore finish after the extension's first `beforeEach` clear and leak into the first test. Await the future before closing the setup span so this wait actually drains all setup work.",
+      "created": "2026-08-14T19:11:14Z",
+      "hunk": "@@ -86,7 +86,6 @@ void setUp(@TempDir File esWorkingDir) {\n                               \"cluster.routing.allocation.disk.threshold_enabled\", false)));",
+      "id": "PRRT_kwDODJKVX86ZY7i1",
+      "opened": "2026-08-14T19:11:16Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-transport-6.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v6_0/AbstractElasticsearch6TransportClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-14T20:07:43Z",
+          "body": "Addressed in e6640412c69341f60e3eda3c3b195755eabcfecd.\n\nAnalysis: Each updateSettings call returns an ActionFuture, so the setup root span can close before the settings update and its instrumented request complete. Waiting with actionGet(TIMEOUT) inside runWithSpan keeps the update in the setup trace and makes the following waitForTraces(1) drain all setup telemetry.\n\nUpsides: Prevents late update-settings spans from leaking into the first test while preserving the deterministic single setup trace.\n\nDownsides: Setup now blocks for the settings update and can take up to the existing timeout if Elasticsearch does not respond.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19590#discussion_r3786845555"
+        }
+      ],
+      "reviewed": "08df3ea6c6b98e5e23cc0d414198b85afdb4debb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19590#discussion_r3786508956"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`updateSettings(...)` returns immediately with an `ActionFuture`, while `waitForTraces(1)` can return as soon as the enclosing `setup` root span is exported. The update-settings span can therefore finish after the extension's first `beforeEach` clear and leak into the first test. Await the future before closing the setup span so this wait actually drains all setup work.",
+      "created": "2026-08-14T19:11:15Z",
+      "hunk": "@@ -72,7 +72,6 @@ void setUp(@TempDir File esWorkingDir) {\n                               \"cluster.routing.allocation.disk.threshold_enabled\", false)));",
+      "id": "PRRT_kwDODJKVX86ZY7jl",
+      "opened": "2026-08-14T19:11:16Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-transport-6.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v6_0/AbstractElasticsearch6NodeClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-14T20:07:45Z",
+          "body": "Addressed in e6640412c69341f60e3eda3c3b195755eabcfecd.\n\nAnalysis: Each updateSettings call returns an ActionFuture, so the setup root span can close before the settings update and its instrumented request complete. Waiting with actionGet(TIMEOUT) inside runWithSpan keeps the update in the setup trace and makes the following waitForTraces(1) drain all setup telemetry.\n\nUpsides: Prevents late update-settings spans from leaking into the first test while preserving the deterministic single setup trace.\n\nDownsides: Setup now blocks for the settings update and can take up to the existing timeout if Elasticsearch does not respond.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19590#discussion_r3786845726"
+        }
+      ],
+      "reviewed": "08df3ea6c6b98e5e23cc0d414198b85afdb4debb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19590#discussion_r3786509025"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`updateSettings(...)` returns immediately with an `ActionFuture`, while `waitForTraces(1)` can return as soon as the enclosing `setup` root span is exported. The update-settings span can therefore finish after the extension's first `beforeEach` clear and leak into the first test. Await the future before closing the setup span so this wait actually drains all setup work.",
+      "created": "2026-08-14T19:11:15Z",
+      "hunk": "@@ -91,7 +91,6 @@ static void setUp(@TempDir File esWorkingDir) {\n                               \"cluster.routing.allocation.disk.threshold_enabled\", false)));",
+      "id": "PRRT_kwDODJKVX86ZY7k6",
+      "opened": "2026-08-14T19:11:16Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-transport-5.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_3/Elasticsearch53TransportClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-14T20:07:49Z",
+          "body": "Addressed in e6640412c69341f60e3eda3c3b195755eabcfecd.\n\nAnalysis: Each updateSettings call returns an ActionFuture, so the setup root span can close before the settings update and its instrumented request complete. Waiting with actionGet(TIMEOUT) inside runWithSpan keeps the update in the setup trace and makes the following waitForTraces(1) drain all setup telemetry.\n\nUpsides: Prevents late update-settings spans from leaking into the first test while preserving the deterministic single setup trace.\n\nDownsides: Setup now blocks for the settings update and can take up to the existing timeout if Elasticsearch does not respond.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19590#discussion_r3786846075"
+        }
+      ],
+      "reviewed": "08df3ea6c6b98e5e23cc0d414198b85afdb4debb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19590#discussion_r3786509124"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`updateSettings(...)` returns immediately with an `ActionFuture`, while `waitForTraces(1)` can return as soon as the enclosing `setup` root span is exported. The update-settings span can therefore finish after the extension's first `beforeEach` clear and leak into the first test. Await the future before closing the setup span so this wait actually drains all setup work.",
+      "created": "2026-08-14T19:11:15Z",
+      "hunk": "@@ -144,7 +144,6 @@ static void setUp(@TempDir File esWorkingDir) {\n                               \"cluster.routing.allocation.disk.threshold_enabled\", false)));",
+      "id": "PRRT_kwDODJKVX86ZY7kY",
+      "opened": "2026-08-14T19:11:16Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-transport-5.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_3/springdata/Elasticsearch53SpringTemplateTest.java",
+      "replies": [
+        {
+          "at": "2026-08-14T20:07:47Z",
+          "body": "Addressed in e6640412c69341f60e3eda3c3b195755eabcfecd.\n\nAnalysis: Each updateSettings call returns an ActionFuture, so the setup root span can close before the settings update and its instrumented request complete. Waiting with actionGet(TIMEOUT) inside runWithSpan keeps the update in the setup trace and makes the following waitForTraces(1) drain all setup telemetry.\n\nUpsides: Prevents late update-settings spans from leaking into the first test while preserving the deterministic single setup trace.\n\nDownsides: Setup now blocks for the settings update and can take up to the existing timeout if Elasticsearch does not respond.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19590#discussion_r3786845869"
+        }
+      ],
+      "reviewed": "08df3ea6c6b98e5e23cc0d414198b85afdb4debb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19590#discussion_r3786509080"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`updateSettings(...)` returns immediately with an `ActionFuture`, while `waitForTraces(1)` can return as soon as the enclosing `setup` root span is exported. The update-settings span can therefore finish after the extension's first `beforeEach` clear and leak into the first test. Await the future before closing the setup span so this wait actually drains all setup work.",
+      "created": "2026-08-14T19:11:16Z",
+      "hunk": "@@ -79,7 +79,6 @@ static void setUp(@TempDir File esWorkingDir) {\n                               \"cluster.routing.allocation.disk.threshold_enabled\", false)));",
+      "id": "PRRT_kwDODJKVX86ZY7lU",
+      "opened": "2026-08-14T19:11:16Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-transport-5.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_3/Elasticsearch53NodeClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-14T20:07:51Z",
+          "body": "Addressed in e6640412c69341f60e3eda3c3b195755eabcfecd.\n\nAnalysis: Each updateSettings call returns an ActionFuture, so the setup root span can close before the settings update and its instrumented request complete. Waiting with actionGet(TIMEOUT) inside runWithSpan keeps the update in the setup trace and makes the following waitForTraces(1) drain all setup telemetry.\n\nUpsides: Prevents late update-settings spans from leaking into the first test while preserving the deterministic single setup trace.\n\nDownsides: Setup now blocks for the settings update and can take up to the existing timeout if Elasticsearch does not respond.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19590#discussion_r3786846215"
+        }
+      ],
+      "reviewed": "08df3ea6c6b98e5e23cc0d414198b85afdb4debb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19590#discussion_r3786509163"
+    }
+  ]
+}

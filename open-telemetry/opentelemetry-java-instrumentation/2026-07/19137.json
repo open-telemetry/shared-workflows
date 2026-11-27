@@ -1,0 +1,25 @@
+{
+  "head": "b09895b58d7d0d5bab0c25ab6b40f49c1a9c7423",
+  "merge": "645ed53a55fe012ce8c5a12649ed13864e865121",
+  "merged": "2026-07-08T17:50:14Z",
+  "missing_roots": 0,
+  "number": 19137,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`CassandraContainer` already sets `-Dcassandra.skip_wait_for_gossip_to_settle=0 -Dcassandra.initial_token=0`. `MAX_HEAP_SIZE` defaults to 1024 set to 128 to match other tests.",
+      "created": "2026-07-07T12:54:01Z",
+      "hunk": "@@ -57,7 +57,9 @@ class CassandraTest extends AbstractHttpServerUsingTest<ConfigurableApplicationC\n \n   @Container\n   private static final CassandraContainer cassandra =\n-      new CassandraContainer(\"cassandra:3.11.2\").withExposedPorts(9042);\n+      new CassandraContainer(\"cassandra:3.11.2\")\n+          .withEnv(\"MAX_HEAP_SIZE\", \"128M\")",
+      "id": "PRRT_kwDODJKVX86O6p5d",
+      "opened": "2026-07-07T12:54:01Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/decorators/CassandraTest.java",
+      "replies": [],
+      "reviewed": "b09895b58d7d0d5bab0c25ab6b40f49c1a9c7423",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19137#discussion_r3536571462"
+    }
+  ]
+}

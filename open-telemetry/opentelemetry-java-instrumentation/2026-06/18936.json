@@ -1,0 +1,31 @@
+{
+  "head": "35c4697fa325daa738edf95eaeb2c8fe1f6078fa",
+  "merge": "5ae3062f3deb5c1c6dae8146db690c77b51f02d9",
+  "merged": "2026-06-09T06:43:12Z",
+  "missing_roots": 0,
+  "number": 18936,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`resolveV3Preview` is only used within `SemconvStability`, so it should be `private` to follow least-visibility and avoid exposing an internal helper as package API.",
+      "created": "2026-06-08T20:59:33Z",
+      "hunk": "@@ -64,6 +64,15 @@ public final class SemconvStability {\n     emitStableMessagingSemconv = shouldEmitStable(\"messaging\", false, previewValues);\n   }\n \n+  @SuppressWarnings(\"deprecation\") // using deprecated config property fallback\n+  static boolean resolveV3Preview(OpenTelemetry openTelemetry) {\n+    Boolean value = getInstrumentationConfig(openTelemetry, \"common\").getBoolean(\"v3_preview\");",
+      "id": "PRRT_kwDODJKVX86H9mrx",
+      "opened": "2026-06-08T20:59:34Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+      "replies": [
+        {
+          "at": "2026-06-08T22:06:09Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18936/commits/35c4697fa325daa738edf95eaeb2c8fe1f6078fa",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18936#discussion_r3376630552"
+        }
+      ],
+      "reviewed": "455e2709f15c02503eda658f9d82545f5ab62da9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18936#discussion_r3376331417"
+    }
+  ]
+}

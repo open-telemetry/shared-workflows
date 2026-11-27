@@ -1,0 +1,291 @@
+{
+  "head": "becb15fbef09d36289a261e7a51842b2214b4569",
+  "merge": "69e74ca8c5fc8301814aab3b9966bd26210ba03c",
+  "merged": "2026-06-12T04:26:29Z",
+  "missing_roots": 0,
+  "number": 18851,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "don't know whether declarative config or properties were used",
+      "created": "2026-05-26T12:25:22Z",
+      "hunk": "@@ -88,15 +90,60 @@ public CommonConfig(OpenTelemetry openTelemetry) {\n             .get(\"server\")\n             .getBoolean(\"emit_experimental_telemetry/development\", false);\n     enduserConfig = new EnduserConfig(commonConfig);\n+    DeclarativeConfigProperties logging = commonConfig.get(\"logging\");\n     loggingTraceIdKey =\n-        commonConfig.get(\"logging\").getString(\"trace_id\", LoggingContextConstants.TRACE_ID);\n+        getConfig(\n+            logging,\n+            \"trace_id_key\",\n+            \"trace_id\",\n+            \"instrumentation/development: java: common: logging: trace_id_key\",\n+            \"instrumentation/development: java: common: logging: trace_id\",\n+            LoggingContextConstants.TRACE_ID);\n     loggingSpanIdKey =\n-        commonConfig.get(\"logging\").getString(\"span_id\", LoggingContextConstants.SPAN_ID);\n+        getConfig(\n+            logging,\n+            \"span_id_key\",\n+            \"span_id\",\n+            \"instrumentation/development: java: common: logging: span_id_key\",\n+            \"instrumentation/development: java: common: logging: span_id\",\n+            LoggingContextConstants.SPAN_ID);\n     loggingTraceFlagsKey =\n-        commonConfig.get(\"logging\").getString(\"trace_flags\", LoggingContextConstants.TRACE_FLAGS);\n+        getConfig(\n+            logging,\n+            \"trace_flags_key\",\n+            \"trace_flags\",\n+            \"instrumentation/development: java: common: logging: trace_flags_key\",\n+            \"instrumentation/development: java: common: logging: trace_flags\",\n+            LoggingContextConstants.TRACE_FLAGS);\n     v3Preview = commonConfig.getBoolean(\"v3_preview\", false);\n   }\n \n+  @SuppressWarnings(\"deprecation\") // using deprecated config property\n+  private static String getConfig(\n+      DeclarativeConfigProperties config,\n+      String newDeclarativeKey,\n+      String oldDeclarativeKey,\n+      String newDeclarativeProperty,\n+      String oldDeclarativeProperty,\n+      String defaultValue) {\n+    String value = config.getString(newDeclarativeKey);\n+    if (value != null) {\n+      return value;\n+    }\n+    value = config.getString(oldDeclarativeKey);\n+    if (value != null) {\n+      logger.warning(\n+          \"The '\"\n+              + oldDeclarativeProperty\n+              + \"' declarative configuration is deprecated\"",
+      "id": "PRRT_kwDODJKVX86EyMUH",
+      "opened": "2026-05-26T12:25:22Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+      "replies": [],
+      "reviewed": "0094ff7146e83d0c5eca3fe9c5210ba8e6c84197",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3303604566"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Within the `log4j-context-data-2.17` configurations block, only the trace-id property was renamed, but the following entries for span id and trace flags remain on the old names (`otel.instrumentation.common.logging.span-id` / `trace-flags`) and old declarative names (`java.common.logging.span_id` / `trace_flags`). Please rename those to the new `*-key` / `*_key` forms as well so the docs stay consistent.",
+      "created": "2026-05-26T17:23:50Z",
+      "hunk": "@@ -9675,8 +9675,8 @@ libraries:\n       Enables adding baggage entries to the Log4j ThreadContext, prefixed with \"baggage.\".\n     type: boolean\n     default: false\n-  - name: otel.instrumentation.common.logging.trace-id\n-    declarative_name: java.common.logging.trace_id\n+  - name: otel.instrumentation.common.logging.trace-id-key\n+    declarative_name: java.common.logging.trace_id_key\n     description: |\n       Specifies the key name used to store the trace ID in the logging context.\n     type: string",
+      "id": "PRRT_kwDODJKVX86E32XT",
+      "opened": "2026-05-26T17:23:51Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "3fe18aa809466f367dfbc2a970e09a5ffe742e8d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3305624923"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`@SuppressWarnings(\"deprecation\")` on `create(...)` looks unnecessary because the deprecated API usage (`ConfigPropertiesUtil`) happens inside `getConfig(...)`. Consider removing the suppression from `create` and keeping it scoped to `getConfig` (and updating the comment to reflect suppressing deprecated API usage, not a \"deprecated config property\").",
+      "created": "2026-05-26T17:23:51Z",
+      "hunk": "@@ -25,20 +27,79 @@ public final class ContextDataKeys {\n   public static ContextDataKeys create(OpenTelemetry openTelemetry) {",
+      "id": "PRRT_kwDODJKVX86E32X-",
+      "opened": "2026-05-26T17:23:51Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+      "replies": [],
+      "reviewed": "3fe18aa809466f367dfbc2a970e09a5ffe742e8d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3305624988"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There are still Gradle test JVM args using the deprecated logging key properties (e.g., in `instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/build.gradle.kts`), so tests will continue to exercise only the old names and will now also emit the new deprecation warnings. It would be better to update those JVM args to the new `*-key` property names so the test suite validates the renamed configuration too.",
+      "created": "2026-06-06T22:56:09Z",
+      "hunk": "@@ -10,35 +10,87 @@\n import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n import io.opentelemetry.instrumentation.api.incubator.log.LoggingContextConstants;\n import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;\n+import java.util.logging.Logger;\n \n /**\n  * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n  * any time.\n  */\n public final class ContextDataKeys {\n+  private static final Logger logger = Logger.getLogger(ContextDataKeys.class.getName());\n \n   private final String traceIdKey;\n   private final String spanIdKey;\n   private final String traceFlags;\n \n-  @SuppressWarnings(\"deprecation\") // using deprecated config property\n   public static ContextDataKeys create(OpenTelemetry openTelemetry) {\n     DeclarativeConfigProperties logging =\n         DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"logging\");\n-    return new ContextDataKeys(\n-        logging.getString(\n+    String traceIdKey =\n+        getConfig(\n+            logging,\n+            \"trace_id_key\",\n             \"trace_id\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.trace-id\", LoggingContextConstants.TRACE_ID)),\n-        logging.getString(\n+            \"otel.instrumentation.common.logging.trace-id-key\",\n+            \"otel.instrumentation.common.logging.trace-id\",\n+            LoggingContextConstants.TRACE_ID);\n+    String spanIdKey =\n+        getConfig(",
+      "id": "PRRT_kwDODJKVX86HnHVP",
+      "opened": "2026-06-06T22:56:09Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+      "replies": [
+        {
+          "at": "2026-06-06T23:08:57Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/18d9f421c73337994d0e850eb049ab44bc147eb4.\n\nUpdated the log4j context-data test JVM args to use the renamed common logging *-key properties.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3368420881"
+        }
+      ],
+      "reviewed": "84263f4ad83b840dcbe4151f581e604de2cf3796",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3368406583"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In declarative config mode (EarlyConfig.isDeclarativeConfig), boolean properties are translated to the `otel.instrumentation/development.java.*` namespace via evaluateBooleanProperty(), but the renamed logging key string properties are read directly without any translation. As a result, setting these keys via declarative-config-style property names won’t be picked up during ApplicationEnvironmentPreparedEvent, even though this class otherwise supports declarative config.",
+      "created": "2026-06-06T23:13:03Z",
+      "hunk": "@@ -217,31 +219,53 @@ private static void initializeMdcAppenderFromProperties(\n     }\n \n     String traceIdKey =\n-        applicationEnvironmentPreparedEvent\n-            .getEnvironment()\n-            .getProperty(\"otel.instrumentation.common.logging.trace-id\", String.class);\n+        getLoggingProperty(\n+            applicationEnvironmentPreparedEvent.getEnvironment(),\n+            \"otel.instrumentation.common.logging.trace-id-key\",\n+            \"otel.instrumentation.common.logging.trace-id\");\n     if (traceIdKey != null) {\n       openTelemetryAppender.setTraceIdKey(traceIdKey);\n     }\n \n     String spanIdKey =\n-        applicationEnvironmentPreparedEvent\n-            .getEnvironment()\n-            .getProperty(\"otel.instrumentation.common.logging.span-id\", String.class);\n+        getLoggingProperty(\n+            applicationEnvironmentPreparedEvent.getEnvironment(),\n+            \"otel.instrumentation.common.logging.span-id-key\",\n+            \"otel.instrumentation.common.logging.span-id\");\n     if (spanIdKey != null) {\n       openTelemetryAppender.setSpanIdKey(spanIdKey);\n     }\n \n     String traceFlagsKey =\n-        applicationEnvironmentPreparedEvent\n-            .getEnvironment()\n-            .getProperty(\"otel.instrumentation.common.logging.trace-flags\", String.class);\n+        getLoggingProperty(\n+            applicationEnvironmentPreparedEvent.getEnvironment(),\n+            \"otel.instrumentation.common.logging.trace-flags-key\",\n+            \"otel.instrumentation.common.logging.trace-flags\");\n     if (traceFlagsKey != null) {\n       openTelemetryAppender.setTraceFlagsKey(traceFlagsKey);\n     }\n   }\n \n+  @Nullable\n+  private static String getLoggingProperty(\n+      ConfigurableEnvironment environment, String newProperty, String oldProperty) {\n+    String value = environment.getProperty(newProperty, String.class);\n+    if (value != null) {\n+      return value;\n+    }\n+    value = environment.getProperty(oldProperty, String.class);\n+    if (value != null) {\n+      logger.warn(\n+          \"The '{}' property is deprecated and will be removed in 3.0. Use '{}' instead.\",\n+          oldProperty,\n+          newProperty);\n+      return value;\n+    }\n+    return null;\n+  }",
+      "id": "PRRT_kwDODJKVX86HnLE0",
+      "opened": "2026-06-06T23:13:03Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+      "replies": [
+        {
+          "at": "2026-06-07T04:03:24Z",
+          "body": "sent https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18924, since this points to a pre-existing and broader bug",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3368720266"
+        },
+        {
+          "at": "2026-06-07T23:56:46Z",
+          "body": "This should be resolved now after #18924 was merged to main and main was merged into this PR.\r\n\r\nI re-checked the merged state: the string logging key properties now go through `getLoggingProperty(...)`, which delegates to `getEnvironmentPropertyName(...)`, so they get the same declarative-config name translation as the boolean properties. The declarative MDC key case is also covered by `LogbackAppenderTest.mdcAppender(true)` using `otel.instrumentation/development.java.common.logging.trace_id_key`, `span_id_key`, and `trace_flags_key`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370307485"
+        }
+      ],
+      "reviewed": "18d9f421c73337994d0e850eb049ab44bc147eb4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3368425543"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The local variable name `traceFlagsKey` is inconsistent with the stored field/getter (`traceFlags` / `getTraceFlags()`), which makes it harder to follow what value is being passed into `ContextDataKeys`. Consider naming the local variable consistently with the rest of the class (or renaming the field/getter everywhere if you prefer the `*Key` terminology).",
+      "created": "2026-06-08T00:01:33Z",
+      "hunk": "@@ -10,35 +10,87 @@\n import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n import io.opentelemetry.instrumentation.api.incubator.log.LoggingContextConstants;\n import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;\n+import java.util.logging.Logger;\n \n /**\n  * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n  * any time.\n  */\n public final class ContextDataKeys {\n+  private static final Logger logger = Logger.getLogger(ContextDataKeys.class.getName());\n \n   private final String traceIdKey;\n   private final String spanIdKey;\n   private final String traceFlags;\n \n-  @SuppressWarnings(\"deprecation\") // using deprecated config property\n   public static ContextDataKeys create(OpenTelemetry openTelemetry) {\n     DeclarativeConfigProperties logging =\n         DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"logging\");\n-    return new ContextDataKeys(\n-        logging.getString(\n+    String traceIdKey =\n+        getConfig(\n+            logging,\n+            \"trace_id_key\",\n             \"trace_id\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.trace-id\", LoggingContextConstants.TRACE_ID)),\n-        logging.getString(\n+            \"otel.instrumentation.common.logging.trace-id-key\",\n+            \"otel.instrumentation.common.logging.trace-id\",\n+            LoggingContextConstants.TRACE_ID);\n+    String spanIdKey =\n+        getConfig(\n+            logging,\n+            \"span_id_key\",\n             \"span_id\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.span-id\", LoggingContextConstants.SPAN_ID)),\n-        logging.getString(\n+            \"otel.instrumentation.common.logging.span-id-key\",\n+            \"otel.instrumentation.common.logging.span-id\",\n+            LoggingContextConstants.SPAN_ID);\n+    String traceFlagsKey =\n+        getConfig(\n+            logging,\n+            \"trace_flags_key\",\n             \"trace_flags\",",
+      "id": "PRRT_kwDODJKVX86HsuIA",
+      "opened": "2026-06-08T00:01:33Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+      "replies": [
+        {
+          "at": "2026-06-08T00:24:16Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/94706b7a6548394a9be70cba1e7335c22640cf85.\n\nKept the `traceFlagsKey` terminology and renamed the stored field/getter to match it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370342644"
+        }
+      ],
+      "reviewed": "2231fe064b9e3b438bb8d5822baba869cc2595c8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370313456"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`CommonConfig` logs a deprecation warning every time it is constructed with a deprecated declarative logging key present (e.g., `trace_id`). Since `CommonConfig` is instantiated from multiple builder utilities, this can lead to repeated warnings and log noise. Consider deduplicating these warnings (e.g., using a static `warnedDeprecatedProperties` set like `DbConfig` does in the same package).",
+      "created": "2026-06-08T00:01:33Z",
+      "hunk": "@@ -88,15 +90,59 @@ public CommonConfig(OpenTelemetry openTelemetry) {\n             .get(\"server\")\n             .getBoolean(\"emit_experimental_telemetry/development\", false);\n     enduserConfig = new EnduserConfig(commonConfig);\n+    DeclarativeConfigProperties logging = commonConfig.get(\"logging\");\n     loggingTraceIdKey =\n-        commonConfig.get(\"logging\").getString(\"trace_id\", LoggingContextConstants.TRACE_ID);\n+        getConfig(\n+            logging,\n+            \"trace_id_key\",\n+            \"trace_id\",\n+            \"otel.instrumentation.common.logging.trace-id-key\",\n+            \"otel.instrumentation.common.logging.trace-id\",\n+            LoggingContextConstants.TRACE_ID);\n     loggingSpanIdKey =\n-        commonConfig.get(\"logging\").getString(\"span_id\", LoggingContextConstants.SPAN_ID);\n+        getConfig(\n+            logging,\n+            \"span_id_key\",\n+            \"span_id\",\n+            \"otel.instrumentation.common.logging.span-id-key\",\n+            \"otel.instrumentation.common.logging.span-id\",\n+            LoggingContextConstants.SPAN_ID);\n     loggingTraceFlagsKey =\n-        commonConfig.get(\"logging\").getString(\"trace_flags\", LoggingContextConstants.TRACE_FLAGS);\n+        getConfig(\n+            logging,\n+            \"trace_flags_key\",\n+            \"trace_flags\",\n+            \"otel.instrumentation.common.logging.trace-flags-key\",\n+            \"otel.instrumentation.common.logging.trace-flags\",\n+            LoggingContextConstants.TRACE_FLAGS);\n     v3Preview = commonConfig.getBoolean(\"v3_preview\", false);\n   }\n \n+  private static String getConfig(\n+      DeclarativeConfigProperties config,\n+      String newDeclarativeKey,\n+      String oldDeclarativeKey,\n+      String newProperty,\n+      String oldProperty,\n+      String defaultValue) {\n+    String value = config.getString(newDeclarativeKey);\n+    if (value != null) {\n+      return value;\n+    }\n+    value = config.getString(oldDeclarativeKey);\n+    if (value != null) {\n+      logger.warning(\n+          \"The \"\n+              + oldProperty\n+              + \" setting and the equivalent declarative configuration property\"\n+              + \" are deprecated and will be removed in 3.0. Use \"\n+              + newProperty\n+              + \" or equivalent declarative configuration instead.\");",
+      "id": "PRRT_kwDODJKVX86HsuIH",
+      "opened": "2026-06-08T00:01:33Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+      "replies": [
+        {
+          "at": "2026-06-08T00:24:18Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9f536275f41c4b6c41df10990b76e38588494f5d.\n\nDeduplicated deprecated logging-key warnings using the existing `DbConfig` static warning-set pattern.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370342687"
+        }
+      ],
+      "reviewed": "2231fe064b9e3b438bb8d5822baba869cc2595c8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370313465"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ContextDataKeys` renamed `getTraceFlags()` to `getTraceFlagsKey()`, but there are still in-repo callers using the old getter (e.g., `instrumentation/log4j/log4j-appender-2.17/.../OpenTelemetryAppender` calls `contextDataKeys.getTraceFlags()`). Since this class is shared across modules, removing the old getter breaks those consumers. Consider keeping `getTraceFlags()` as a deprecated alias that returns `traceFlagsKey` (until all callers are migrated).",
+      "created": "2026-06-08T00:29:08Z",
+      "hunk": "@@ -55,7 +107,7 @@ public String getSpanIdKey() {\n     return spanIdKey;\n   }\n \n-  public String getTraceFlags() {\n-    return traceFlags;\n+  public String getTraceFlagsKey() {\n+    return traceFlagsKey;\n   }\n }",
+      "id": "PRRT_kwDODJKVX86Hs0xB",
+      "opened": "2026-06-08T00:29:08Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+      "replies": [
+        {
+          "at": "2026-06-08T03:03:17Z",
+          "body": "785c1ecff9a5f338b7b575ddb3aea9de46be85b4",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370629107"
+        }
+      ],
+      "reviewed": "9f536275f41c4b6c41df10990b76e38588494f5d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370348722"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ContextDataKeys.create(...)` is called on the hot path (e.g., once per log event in the Log4j appender). If a deprecated logging key setting is used, the current implementation will emit a deprecation warning every time `getConfig(...)` runs, which can flood logs. Consider tracking which deprecated properties have already been warned and only logging once per property.",
+      "created": "2026-06-08T03:08:22Z",
+      "hunk": "@@ -10,41 +10,93 @@\n import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n import io.opentelemetry.instrumentation.api.incubator.log.LoggingContextConstants;\n import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;\n+import java.util.logging.Logger;\n \n /**\n  * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n  * any time.\n  */\n public final class ContextDataKeys {\n+  private static final Logger logger = Logger.getLogger(ContextDataKeys.class.getName());",
+      "id": "PRRT_kwDODJKVX86HtobS",
+      "opened": "2026-06-08T03:08:23Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+      "replies": [
+        {
+          "at": "2026-06-08T03:15:56Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c0ffb4878c496003025c3327b7fd562af843d622.\n\nDeprecated logging key warnings are now guarded by a concurrent per-property set, so each deprecated property logs at most once.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370651593"
+        }
+      ],
+      "reviewed": "785c1ecff9a5f338b7b575ddb3aea9de46be85b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370638045"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This deprecation warning can be triggered on the hot path (e.g., per log event) when the old declarative key / equivalent setting is used. Please guard it so it only logs once per deprecated property (e.g., via a `warnedDeprecatedProperties` set).",
+      "created": "2026-06-08T03:08:22Z",
+      "hunk": "@@ -10,41 +10,93 @@\n import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n import io.opentelemetry.instrumentation.api.incubator.log.LoggingContextConstants;\n import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;\n+import java.util.logging.Logger;\n \n /**\n  * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n  * any time.\n  */\n public final class ContextDataKeys {\n+  private static final Logger logger = Logger.getLogger(ContextDataKeys.class.getName());\n \n   private final String traceIdKey;\n   private final String spanIdKey;\n-  private final String traceFlags;\n+  private final String traceFlagsKey;\n \n-  @SuppressWarnings(\"deprecation\") // using deprecated config property\n   public static ContextDataKeys create(OpenTelemetry openTelemetry) {\n     DeclarativeConfigProperties logging =\n         DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"logging\");\n-    return new ContextDataKeys(\n-        logging.getString(\n+    String traceIdKey =\n+        getConfig(\n+            logging,\n+            \"trace_id_key\",\n             \"trace_id\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.trace-id\", LoggingContextConstants.TRACE_ID)),\n-        logging.getString(\n+            \"otel.instrumentation.common.logging.trace-id-key\",\n+            \"otel.instrumentation.common.logging.trace-id\",\n+            LoggingContextConstants.TRACE_ID);\n+    String spanIdKey =\n+        getConfig(\n+            logging,\n+            \"span_id_key\",\n             \"span_id\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.span-id\", LoggingContextConstants.SPAN_ID)),\n-        logging.getString(\n+            \"otel.instrumentation.common.logging.span-id-key\",\n+            \"otel.instrumentation.common.logging.span-id\",\n+            LoggingContextConstants.SPAN_ID);\n+    String traceFlagsKey =\n+        getConfig(\n+            logging,\n+            \"trace_flags_key\",\n             \"trace_flags\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.trace-flags\",\n-                LoggingContextConstants.TRACE_FLAGS)));\n+            \"otel.instrumentation.common.logging.trace-flags-key\",\n+            \"otel.instrumentation.common.logging.trace-flags\",\n+            LoggingContextConstants.TRACE_FLAGS);\n+    return new ContextDataKeys(traceIdKey, spanIdKey, traceFlagsKey);\n   }\n \n-  private ContextDataKeys(String traceIdKey, String spanIdKey, String traceFlags) {\n+  @SuppressWarnings(\"deprecation\") // using deprecated ConfigPropertiesUtil\n+  private static String getConfig(\n+      DeclarativeConfigProperties config,\n+      String newDeclarativeKey,\n+      String oldDeclarativeKey,\n+      String newProperty,\n+      String oldProperty,\n+      String defaultValue) {\n+    String value = config.getString(newDeclarativeKey);\n+    if (value != null) {\n+      return value;\n+    }\n+    value = config.getString(oldDeclarativeKey);\n+    if (value != null) {\n+      logger.warning(\n+          \"The \"\n+              + oldProperty\n+              + \" setting and the equivalent declarative configuration property\"\n+              + \" are deprecated and will be removed in 3.0. Use \"",
+      "id": "PRRT_kwDODJKVX86HtobZ",
+      "opened": "2026-06-08T03:08:23Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+      "replies": [
+        {
+          "at": "2026-06-08T03:15:58Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c0ffb4878c496003025c3327b7fd562af843d622.\n\nThis duplicate declarative-key warning path is covered by the same one-time deprecation warning guard.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370651621"
+        }
+      ],
+      "reviewed": "785c1ecff9a5f338b7b575ddb3aea9de46be85b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370638058"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This deprecation warning can be triggered on the hot path (e.g., per log event) when the old system property is used. Please guard it so it only logs once per deprecated property (e.g., via a `warnedDeprecatedProperties` set).",
+      "created": "2026-06-08T03:08:22Z",
+      "hunk": "@@ -10,41 +10,93 @@\n import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n import io.opentelemetry.instrumentation.api.incubator.log.LoggingContextConstants;\n import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;\n+import java.util.logging.Logger;\n \n /**\n  * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n  * any time.\n  */\n public final class ContextDataKeys {\n+  private static final Logger logger = Logger.getLogger(ContextDataKeys.class.getName());\n \n   private final String traceIdKey;\n   private final String spanIdKey;\n-  private final String traceFlags;\n+  private final String traceFlagsKey;\n \n-  @SuppressWarnings(\"deprecation\") // using deprecated config property\n   public static ContextDataKeys create(OpenTelemetry openTelemetry) {\n     DeclarativeConfigProperties logging =\n         DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"logging\");\n-    return new ContextDataKeys(\n-        logging.getString(\n+    String traceIdKey =\n+        getConfig(\n+            logging,\n+            \"trace_id_key\",\n             \"trace_id\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.trace-id\", LoggingContextConstants.TRACE_ID)),\n-        logging.getString(\n+            \"otel.instrumentation.common.logging.trace-id-key\",\n+            \"otel.instrumentation.common.logging.trace-id\",\n+            LoggingContextConstants.TRACE_ID);\n+    String spanIdKey =\n+        getConfig(\n+            logging,\n+            \"span_id_key\",\n             \"span_id\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.span-id\", LoggingContextConstants.SPAN_ID)),\n-        logging.getString(\n+            \"otel.instrumentation.common.logging.span-id-key\",\n+            \"otel.instrumentation.common.logging.span-id\",\n+            LoggingContextConstants.SPAN_ID);\n+    String traceFlagsKey =\n+        getConfig(\n+            logging,\n+            \"trace_flags_key\",\n             \"trace_flags\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.trace-flags\",\n-                LoggingContextConstants.TRACE_FLAGS)));\n+            \"otel.instrumentation.common.logging.trace-flags-key\",\n+            \"otel.instrumentation.common.logging.trace-flags\",\n+            LoggingContextConstants.TRACE_FLAGS);\n+    return new ContextDataKeys(traceIdKey, spanIdKey, traceFlagsKey);\n   }\n \n-  private ContextDataKeys(String traceIdKey, String spanIdKey, String traceFlags) {\n+  @SuppressWarnings(\"deprecation\") // using deprecated ConfigPropertiesUtil\n+  private static String getConfig(\n+      DeclarativeConfigProperties config,\n+      String newDeclarativeKey,\n+      String oldDeclarativeKey,\n+      String newProperty,\n+      String oldProperty,\n+      String defaultValue) {\n+    String value = config.getString(newDeclarativeKey);\n+    if (value != null) {\n+      return value;\n+    }\n+    value = config.getString(oldDeclarativeKey);\n+    if (value != null) {\n+      logger.warning(\n+          \"The \"\n+              + oldProperty\n+              + \" setting and the equivalent declarative configuration property\"\n+              + \" are deprecated and will be removed in 3.0. Use \"\n+              + newProperty\n+              + \" or equivalent declarative configuration instead.\");\n+      return value;\n+    }\n+    value = ConfigPropertiesUtil.getString(newProperty);\n+    if (value != null) {\n+      return value;\n+    }\n+    value = ConfigPropertiesUtil.getString(oldProperty);\n+    if (value != null) {\n+      logger.warning(\n+          \"The '\"\n+              + oldProperty\n+              + \"' system property is deprecated and will be removed in 3.0. Use '\"\n+              + newProperty",
+      "id": "PRRT_kwDODJKVX86Htobd",
+      "opened": "2026-06-08T03:08:23Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+      "replies": [
+        {
+          "at": "2026-06-08T03:16:00Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c0ffb4878c496003025c3327b7fd562af843d622.\n\nThis duplicate system-property warning path is covered by the same one-time deprecation warning guard.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370651666"
+        }
+      ],
+      "reviewed": "785c1ecff9a5f338b7b575ddb3aea9de46be85b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370638064"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Maintainability] Adding a class-level SLF4J logger named `logger` now shadows multiple existing local variables also named `logger` (of type `ch.qos.logback.classic.Logger`) in this class. This makes it harder to tell which logger is being referenced in different methods and increases the chance of mistakes during future edits. Consider renaming the SLF4J field (e.g., to `log`) to avoid the name collision.",
+      "created": "2026-06-08T03:21:00Z",
+      "hunk": "@@ -21,6 +21,7 @@\n import org.springframework.core.env.ConfigurableEnvironment;\n \n class LogbackAppenderInstaller {\n+  private static final Logger logger = LoggerFactory.getLogger(LogbackAppenderInstaller.class);\n ",
+      "id": "PRRT_kwDODJKVX86HtsdI",
+      "opened": "2026-06-08T03:21:00Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+      "replies": [
+        {
+          "at": "2026-06-08T03:32:10Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1afd9c9083cfa78303125bb1e9d7c099f47b0bb6.\n\nKept the static SLF4J field named `logger` to match repository convention and renamed the concrete Logback locals to `logbackLogger`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370681746"
+        }
+      ],
+      "reviewed": "c0ffb4878c496003025c3327b7fd562af843d622",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370660374"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Performance] `ContextDataKeys.create(...)` is invoked on the Log4j appender emit path (see `OpenTelemetryAppender.emit(...)`), and `getConfig(...)` may do multiple `ConfigPropertiesUtil.getString(...)` lookups when declarative config keys are not set. Because this can run per log event, repeated property lookups add overhead. Consider caching the resolved `ContextDataKeys` (e.g., once per `OpenTelemetry`/appender instance) so the system-property/declarative lookups and deprecated-name fallbacks are not performed on every log emission.",
+      "created": "2026-06-08T03:21:00Z",
+      "hunk": "@@ -10,41 +10,104 @@\n import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n import io.opentelemetry.instrumentation.api.incubator.log.LoggingContextConstants;\n import io.opentelemetry.instrumentation.api.internal.ConfigPropertiesUtil;\n+import java.util.Set;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.logging.Logger;\n \n /**\n  * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n  * any time.\n  */\n public final class ContextDataKeys {\n+  private static final Logger logger = Logger.getLogger(ContextDataKeys.class.getName());\n+  private static final Set<String> warnedDeprecatedProperties = ConcurrentHashMap.newKeySet();\n \n   private final String traceIdKey;\n   private final String spanIdKey;\n-  private final String traceFlags;\n+  private final String traceFlagsKey;\n \n-  @SuppressWarnings(\"deprecation\") // using deprecated config property\n   public static ContextDataKeys create(OpenTelemetry openTelemetry) {\n     DeclarativeConfigProperties logging =\n         DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"logging\");\n-    return new ContextDataKeys(\n-        logging.getString(\n+    String traceIdKey =\n+        getConfig(\n+            logging,\n+            \"trace_id_key\",\n             \"trace_id\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.trace-id\", LoggingContextConstants.TRACE_ID)),\n-        logging.getString(\n+            \"otel.instrumentation.common.logging.trace-id-key\",\n+            \"otel.instrumentation.common.logging.trace-id\",\n+            LoggingContextConstants.TRACE_ID);\n+    String spanIdKey =\n+        getConfig(\n+            logging,\n+            \"span_id_key\",\n             \"span_id\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.span-id\", LoggingContextConstants.SPAN_ID)),\n-        logging.getString(\n+            \"otel.instrumentation.common.logging.span-id-key\",\n+            \"otel.instrumentation.common.logging.span-id\",\n+            LoggingContextConstants.SPAN_ID);\n+    String traceFlagsKey =\n+        getConfig(\n+            logging,\n+            \"trace_flags_key\",\n             \"trace_flags\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.common.logging.trace-flags\",\n-                LoggingContextConstants.TRACE_FLAGS)));\n+            \"otel.instrumentation.common.logging.trace-flags-key\",\n+            \"otel.instrumentation.common.logging.trace-flags\",\n+            LoggingContextConstants.TRACE_FLAGS);\n+    return new ContextDataKeys(traceIdKey, spanIdKey, traceFlagsKey);\n   }\n \n-  private ContextDataKeys(String traceIdKey, String spanIdKey, String traceFlags) {\n+  @SuppressWarnings(\"deprecation\") // using deprecated ConfigPropertiesUtil\n+  private static String getConfig(\n+      DeclarativeConfigProperties config,\n+      String newDeclarativeKey,\n+      String oldDeclarativeKey,\n+      String newProperty,\n+      String oldProperty,\n+      String defaultValue) {\n+    String value = config.getString(newDeclarativeKey);\n+    if (value != null) {\n+      return value;\n+    }\n+    value = config.getString(oldDeclarativeKey);\n+    if (value != null) {\n+      logDeprecationWarning(\n+          oldProperty,\n+          \"The \"\n+              + oldProperty\n+              + \" setting and the equivalent declarative configuration property\"\n+              + \" are deprecated and will be removed in 3.0. Use \"\n+              + newProperty\n+              + \" or equivalent declarative configuration instead.\");\n+      return value;\n+    }\n+    value = ConfigPropertiesUtil.getString(newProperty);\n+    if (value != null) {\n+      return value;\n+    }\n+    value = ConfigPropertiesUtil.getString(oldProperty);\n+    if (value != null) {\n+      logDeprecationWarning(\n+          oldProperty,\n+          \"The '\"\n+              + oldProperty\n+              + \"' system property is deprecated and will be removed in 3.0. Use '\"\n+              + newProperty\n+              + \"' instead.\");\n+      return value;\n+    }\n+    return defaultValue;\n+  }",
+      "id": "PRRT_kwDODJKVX86HtsdW",
+      "opened": "2026-06-08T03:21:00Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+      "replies": [
+        {
+          "at": "2026-06-09T00:59:24Z",
+          "body": "this led me down another rabbit hole: #18937",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3377207707"
+        }
+      ],
+      "reviewed": "c0ffb4878c496003025c3327b7fd562af843d622",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3370660389"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Spring Boot additional configuration metadata was updated to only list the new `*-key` property names, but the code still supports (and warns on) the old `otel.instrumentation.common.logging.*` names for backward compatibility. Keeping deprecated keys in this metadata (with a deprecation note in the description) helps IDE auto-completion and reduces confusion for users migrating configs.",
+      "created": "2026-06-12T03:02:16Z",
+      "hunk": "@@ -498,19 +498,19 @@\n       \"defaultValue\": false\n     },\n     {\n-      \"name\": \"otel.instrumentation.common.logging.trace-id\",\n+      \"name\": \"otel.instrumentation.common.logging.trace-id-key\",\n       \"type\": \"java.lang.String\",\n       \"description\": \"Customize MDC key name for the trace id.\",\n       \"defaultValue\": \"trace_id\"",
+      "id": "PRRT_kwDODJKVX86I__4c",
+      "opened": "2026-06-12T03:02:17Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+      "replies": [
+        {
+          "at": "2026-06-12T03:08:27Z",
+          "body": "I think ok to go straight to new property names in this file",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3400399063"
+        }
+      ],
+      "reviewed": "becb15fbef09d36289a261e7a51842b2214b4569",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18851#discussion_r3400382319"
+    }
+  ]
+}

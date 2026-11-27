@@ -1,0 +1,67 @@
+{
+  "head": "a745fd0414e384e457eba108051a8059cb143bd2",
+  "merge": "31188f0f8190356f8b943c81a0c8c51e9a45e6c4",
+  "merged": "2026-04-22T19:23:14Z",
+  "missing_roots": 0,
+  "number": 18112,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "With indy, this will invoke the `ReflectionHelper.filterInterfaces` method using invokedynamic. If I'm understanding this correctly we have to do this because the ReflectionInstrumentationModule is loaded in its own classloader and is thus not directly accessible to the instrumented class which is in the bootstrap CL. It could be worth adding some javadoc/comments to clarify this for future reference.",
+      "created": "2026-04-22T14:02:45Z",
+      "hunk": "@@ -92,12 +97,21 @@ public void visitMethodInsn(\n                         && \"java/lang/J9VMInternals\".equals(owner)\n                         && \"(Ljava/lang/Class;)[Ljava/lang/Class;\".equals(descriptor))) {\n                   super.visitVarInsn(Opcodes.ALOAD, 0);\n-                  super.visitMethodInsn(\n-                      Opcodes.INVOKESTATIC,\n-                      Type.getInternalName(ReflectionHelper.class),\n-                      \"filterInterfaces\",\n-                      \"([Ljava/lang/Class;Ljava/lang/Class;)[Ljava/lang/Class;\",\n-                      false);\n+                  if (isIndy) {\n+                    IndyBootstrap.invokeStatic(",
+      "id": "PRRT_kwDODJKVX858z329",
+      "opened": "2026-04-22T14:11:46Z",
+      "path": "instrumentation/internal/internal-reflection/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/reflection/ClassInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-04-22T17:46:35Z",
+          "body": "Your understanding is correct. Added a comment. In boot loader we can't use `exposedClassNames` to make the helper class accessible. An alternative would be to use inline advice in this module.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18112#discussion_r3125874431"
+        }
+      ],
+      "reviewed": "d42e6e9ada97480e3797b2e9e75b6bf7439ed6db",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18112#discussion_r3124503466"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      Class<?> instrumentationModuleClass,\n      String adviceClassName) {\n```",
+      "created": "2026-04-22T16:36:54Z",
+      "hunk": "@@ -227,86 +209,28 @@ static Advice.BootstrapArgumentResolver.Factory getAdviceBootstrapArguments(\n     return (adviceMethod, exit) ->\n         (instrumentedType, instrumentedMethod) ->\n             asList(\n-                JavaConstant.Simple.ofLoaded(BOOTSTRAP_KIND_ADVICE),\n                 JavaConstant.Simple.ofLoaded(moduleName),\n                 JavaConstant.Simple.ofLoaded(adviceMethod.getDescriptor()),\n                 JavaConstant.Simple.ofLoaded(adviceMethod.getDeclaringType().getName()));\n   }\n \n-  private static ConstantCallSite bootstrapProxyMethod(\n-      MethodHandles.Lookup lookup,\n-      String proxyMethodName,\n-      MethodType expectedMethodType,\n-      String moduleClassName,\n-      String proxyClassName,\n-      String methodKind)\n-      throws NoSuchMethodException, IllegalAccessException, ClassNotFoundException {\n-    InstrumentationModuleClassLoader instrumentationClassloader =\n-        IndyModuleRegistry.getInstrumentationClassLoader(\n-            moduleClassName, lookup.lookupClass().getClassLoader());\n-\n-    Class<?> proxiedClass = instrumentationClassloader.loadClass(proxyClassName);\n-\n-    MethodHandle target;\n-    switch (methodKind) {\n-      case PROXY_KIND_STATIC:\n-        target =\n-            MethodHandles.publicLookup()\n-                .findStatic(proxiedClass, proxyMethodName, expectedMethodType);\n-        break;\n-      case PROXY_KIND_CONSTRUCTOR:\n-        target =\n-            MethodHandles.publicLookup()\n-                .findConstructor(proxiedClass, expectedMethodType.changeReturnType(void.class))\n-                .asType(expectedMethodType); // return type is the proxied class, but proxies expect\n-        // Object\n-        break;\n-      case PROXY_KIND_VIRTUAL:\n-        target =\n-            MethodHandles.publicLookup()\n-                .findVirtual(\n-                    proxiedClass, proxyMethodName, expectedMethodType.dropParameterTypes(0, 1))\n-                .asType(\n-                    expectedMethodType); // first argument type is the proxied class, but proxies\n-        // expect Object\n-        break;\n-      default:\n-        throw new IllegalStateException(\"unknown proxy method kind: \" + methodKind);\n-    }\n-    return new ConstantCallSite(target);\n-  }\n-\n-  /**\n-   * Creates a proxy factory for generating proxies for classes which are loaded by an {@link\n-   * InstrumentationModuleClassLoader} for the provided {@link InstrumentationModule}.\n-   *\n-   * @param instrumentationModule the instrumentation module used to load the proxied target classes\n-   * @return a factory for generating proxy classes\n-   */\n-  public static IndyProxyFactory getProxyFactory(InstrumentationModule instrumentationModule) {\n-    String moduleName = instrumentationModule.getClass().getName();\n-    return new IndyProxyFactory(\n-        getIndyBootstrapMethod(),\n-        (proxiedType, proxiedMethod) -> {\n-          String methodKind;\n-          if (proxiedMethod.isConstructor()) {\n-            methodKind = PROXY_KIND_CONSTRUCTOR;\n-          } else if (proxiedMethod.isMethod()) {\n-            if (proxiedMethod.isStatic()) {\n-              methodKind = PROXY_KIND_STATIC;\n-            } else {\n-              methodKind = PROXY_KIND_VIRTUAL;\n-            }\n-          } else {\n-            throw new IllegalArgumentException(\n-                \"Unknown type of method: \" + proxiedMethod.getName());\n-          }\n-\n-          return asList(\n-              JavaConstant.Simple.ofLoaded(BOOTSTRAP_KIND_PROXY),\n-              JavaConstant.Simple.ofLoaded(moduleName),\n-              JavaConstant.Simple.ofLoaded(proxiedType.getName()),\n-              JavaConstant.Simple.ofLoaded(methodKind));\n-        });\n+  public static void invokeStatic(\n+      MethodVisitor mv,\n+      String name,\n+      String descriptor,\n+      Class<?> instrumentationModule,\n+      String ownerDotName) {",
+      "id": "PRRT_kwDODJKVX8582soE",
+      "opened": "2026-04-22T16:40:37Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyBootstrap.java",
+      "replies": [
+        {
+          "at": "2026-04-22T17:24:32Z",
+          "body": "the class doesn't have to be an advice class, any helper class should work",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18112#discussion_r3125756684"
+        }
+      ],
+      "reviewed": "d42e6e9ada97480e3797b2e9e75b6bf7439ed6db",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18112#discussion_r3125488649"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(just to avoid confusion due to `visitInvokeDynamicInsn` call below)\n```suggestion\n  public static void emitIndyStaticCall(\n```",
+      "created": "2026-04-22T16:37:47Z",
+      "hunk": "@@ -227,86 +209,28 @@ static Advice.BootstrapArgumentResolver.Factory getAdviceBootstrapArguments(\n     return (adviceMethod, exit) ->\n         (instrumentedType, instrumentedMethod) ->\n             asList(\n-                JavaConstant.Simple.ofLoaded(BOOTSTRAP_KIND_ADVICE),\n                 JavaConstant.Simple.ofLoaded(moduleName),\n                 JavaConstant.Simple.ofLoaded(adviceMethod.getDescriptor()),\n                 JavaConstant.Simple.ofLoaded(adviceMethod.getDeclaringType().getName()));\n   }\n \n-  private static ConstantCallSite bootstrapProxyMethod(\n-      MethodHandles.Lookup lookup,\n-      String proxyMethodName,\n-      MethodType expectedMethodType,\n-      String moduleClassName,\n-      String proxyClassName,\n-      String methodKind)\n-      throws NoSuchMethodException, IllegalAccessException, ClassNotFoundException {\n-    InstrumentationModuleClassLoader instrumentationClassloader =\n-        IndyModuleRegistry.getInstrumentationClassLoader(\n-            moduleClassName, lookup.lookupClass().getClassLoader());\n-\n-    Class<?> proxiedClass = instrumentationClassloader.loadClass(proxyClassName);\n-\n-    MethodHandle target;\n-    switch (methodKind) {\n-      case PROXY_KIND_STATIC:\n-        target =\n-            MethodHandles.publicLookup()\n-                .findStatic(proxiedClass, proxyMethodName, expectedMethodType);\n-        break;\n-      case PROXY_KIND_CONSTRUCTOR:\n-        target =\n-            MethodHandles.publicLookup()\n-                .findConstructor(proxiedClass, expectedMethodType.changeReturnType(void.class))\n-                .asType(expectedMethodType); // return type is the proxied class, but proxies expect\n-        // Object\n-        break;\n-      case PROXY_KIND_VIRTUAL:\n-        target =\n-            MethodHandles.publicLookup()\n-                .findVirtual(\n-                    proxiedClass, proxyMethodName, expectedMethodType.dropParameterTypes(0, 1))\n-                .asType(\n-                    expectedMethodType); // first argument type is the proxied class, but proxies\n-        // expect Object\n-        break;\n-      default:\n-        throw new IllegalStateException(\"unknown proxy method kind: \" + methodKind);\n-    }\n-    return new ConstantCallSite(target);\n-  }\n-\n-  /**\n-   * Creates a proxy factory for generating proxies for classes which are loaded by an {@link\n-   * InstrumentationModuleClassLoader} for the provided {@link InstrumentationModule}.\n-   *\n-   * @param instrumentationModule the instrumentation module used to load the proxied target classes\n-   * @return a factory for generating proxy classes\n-   */\n-  public static IndyProxyFactory getProxyFactory(InstrumentationModule instrumentationModule) {\n-    String moduleName = instrumentationModule.getClass().getName();\n-    return new IndyProxyFactory(\n-        getIndyBootstrapMethod(),\n-        (proxiedType, proxiedMethod) -> {\n-          String methodKind;\n-          if (proxiedMethod.isConstructor()) {\n-            methodKind = PROXY_KIND_CONSTRUCTOR;\n-          } else if (proxiedMethod.isMethod()) {\n-            if (proxiedMethod.isStatic()) {\n-              methodKind = PROXY_KIND_STATIC;\n-            } else {\n-              methodKind = PROXY_KIND_VIRTUAL;\n-            }\n-          } else {\n-            throw new IllegalArgumentException(\n-                \"Unknown type of method: \" + proxiedMethod.getName());\n-          }\n-\n-          return asList(\n-              JavaConstant.Simple.ofLoaded(BOOTSTRAP_KIND_PROXY),\n-              JavaConstant.Simple.ofLoaded(moduleName),\n-              JavaConstant.Simple.ofLoaded(proxiedType.getName()),\n-              JavaConstant.Simple.ofLoaded(methodKind));\n-        });\n+  public static void invokeStatic(",
+      "id": "PRRT_kwDODJKVX8582teb",
+      "opened": "2026-04-22T16:40:37Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyBootstrap.java",
+      "replies": [],
+      "reviewed": "d42e6e9ada97480e3797b2e9e75b6bf7439ed6db",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18112#discussion_r3125493271"
+    }
+  ]
+}

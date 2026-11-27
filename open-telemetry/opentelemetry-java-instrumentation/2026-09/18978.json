@@ -1,0 +1,1176 @@
+{
+  "head": "70d6e6e379dd4151e675a6c8ab0269f4b8e92025",
+  "merge": "3ec93d6ddb2af4facbed7cc87f9a7884833435e4",
+  "merged": "2026-09-30T16:45:22Z",
+  "missing_roots": 0,
+  "number": 18978,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "As implemented, metrics that are registered before `clusterId` is resolved may never get upgraded to include `messaging.kafka.cluster.id` if Kafka never calls `metricChange()` for them again (many metrics are added once and remain stable). To ensure the attribute is applied consistently after `onUpdate`, consider re-registering existing metrics/instruments when `clusterId` is set the first time (e.g., track the current `KafkaMetric`s from `init(...)`, then recreate observables or force a refresh once the cluster id is known).",
+      "created": "2026-06-12T15:50:10Z",
+      "hunk": "@@ -86,7 +90,7 @@ public void metricChange(KafkaMetric metric) {\n     }\n \n     RegisteredObservable registeredObservable =\n-        KafkaMetricRegistry.getRegisteredObservable(currentMeter, metric);\n+        KafkaMetricRegistry.getRegisteredObservable(currentMeter, metric, clusterId);",
+      "id": "PRRT_kwDODJKVX86JLhy-",
+      "opened": "2026-06-12T15:50:12Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/OpenTelemetryMetricsReporter.java",
+      "replies": [
+        {
+          "at": "2026-07-03T11:06:55Z",
+          "body": "The instruments are registered through `getRegisteredObservable()` with a `() -> clusterId` Supplier lambda, not a static String. The OTel SDK calls the Supplier each time it collects the observable gauge, so any instrument registered before `onUpdate()` fires will automatically include the cluster id on the next collection cycle — no re-registration is needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3519440517"
+        }
+      ],
+      "reviewed": "ebf6399209a74bec5fd1ac9428fe084c96838261",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3404576167"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "As implemented, metrics that are registered before `clusterId` is resolved may never get upgraded to include `messaging.kafka.cluster.id` if Kafka never calls `metricChange()` for them again (many metrics are added once and remain stable). To ensure the attribute is applied consistently after `onUpdate`, consider re-registering existing metrics/instruments when `clusterId` is set the first time (e.g., track the current `KafkaMetric`s from `init(...)`, then recreate observables or force a refresh once the cluster id is known).",
+      "created": "2026-06-12T15:50:10Z",
+      "hunk": "@@ -139,6 +143,20 @@ public void close() {\n     closeAllInstruments();\n   }\n \n+  // Kafka invokes this once the cluster metadata is first resolved (KIP-78). The id is read from\n+  // the client's own metadata, so no extra broker connection is opened. Metrics registered after\n+  // this point carry messaging.kafka.cluster.id; the existing higher-dimension replacement logic in\n+  // metricChange upgrades instruments that are re-reported afterwards.\n+  @Override\n+  public void onUpdate(ClusterResource clusterResource) {\n+    if (clusterResource != null) {\n+      String id = clusterResource.clusterId();\n+      if (id != null && !id.isEmpty()) {\n+        clusterId = id;\n+      }\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86JLhzr",
+      "opened": "2026-06-12T15:50:12Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/OpenTelemetryMetricsReporter.java",
+      "replies": [
+        {
+          "at": "2026-07-03T11:06:56Z",
+          "body": "The instruments are registered through `getRegisteredObservable()` with a `() -> clusterId` Supplier lambda, not a static String. The OTel SDK calls the Supplier each time it collects the observable gauge, so any instrument registered before `onUpdate()` fires will automatically include the cluster id on the next collection cycle — no re-registration is needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3519440648"
+        }
+      ],
+      "reviewed": "ebf6399209a74bec5fd1ac9428fe084c96838261",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3404576222"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using `VirtualField.find(Consumer.class, String.class)` / `VirtualField.find(Producer.class, String.class)` risks collisions with any other instrumentation that also attaches a `String` virtual field to those same target classes (VirtualField is keyed by target + value type). To avoid accidental sharing/overwrites, use a dedicated value holder type (e.g., an internal `ClusterIdHolder` class) or a small context object instead of `String`.",
+      "created": "2026-06-12T15:50:11Z",
+      "hunk": "@@ -37,6 +38,14 @@ public final class KafkaUtil {\n   private static final VirtualField<Consumer<?, ?>, Map<String, String>> consumerInfoField =\n       VirtualField.find(Consumer.class, Map.class);\n \n+  // The cluster id is resolved from the client's own already-fetched metadata, so it only becomes\n+  // available after the first metadata refresh. Cache it per-instance once resolved (non-null) to\n+  // avoid repeating the reflective walk on every span; a null result is retried on the next call.\n+  private static final VirtualField<Consumer<?, ?>, String> consumerClusterIdField =\n+      VirtualField.find(Consumer.class, String.class);\n+  private static final VirtualField<Producer<?, ?>, String> producerClusterIdField =\n+      VirtualField.find(Producer.class, String.class);",
+      "id": "PRRT_kwDODJKVX86JLh0G",
+      "opened": "2026-06-12T15:50:12Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [],
+      "reviewed": "ebf6399209a74bec5fd1ac9428fe084c96838261",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3404576259"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "All reflection failures are swallowed silently, which makes it hard to diagnose why `messaging.kafka.cluster.id` is missing (and can also mask repeated failures that become a performance issue). Consider logging a single debug-level message once per class (or behind an existing 'debug' flag) when reflection fails, while still returning `null` to keep behavior non-fatal.",
+      "created": "2026-06-12T15:50:11Z",
+      "hunk": "@@ -144,5 +153,123 @@ public static String extractBootstrapServers(@Nullable List<String> serversConfi\n     return serversConfig.stream().map(Object::toString).collect(joining(\",\"));\n   }\n \n+  /**\n+   * Returns the Kafka cluster id (KIP-78) for the given producer, or {@code null} if it has not yet\n+   * been resolved. The id is read from the producer's own already-fetched {@code Metadata}, so no\n+   * extra broker connection is opened and the existing client's security (SSL/SASL) settings are\n+   * reused implicitly.\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Producer<?, ?> producer) {\n+    if (producer == null) {\n+      return null;\n+    }\n+    String cached = producerClusterIdField.get(producer);\n+    if (cached != null) {\n+      return cached;\n+    }\n+    // KafkaProducer holds the `metadata` field directly across all supported versions.\n+    String clusterId =\n+        KafkaProducer.class.isInstance(producer) ? clusterIdFromMetadataHolder(producer) : null;\n+    if (clusterId != null) {\n+      producerClusterIdField.set(producer, clusterId);\n+    }\n+    return clusterId;\n+  }\n+\n+  /**\n+   * Returns the Kafka cluster id (KIP-78) for the given consumer, or {@code null} if it has not yet\n+   * been resolved. Handles both pre-3.7 consumers (which hold {@code metadata} directly) and Kafka\n+   * 3.7+ consumers (which delegate to an internal consumer that holds {@code metadata}).\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Consumer<?, ?> consumer) {\n+    if (consumer == null || !KafkaConsumer.class.isInstance(consumer)) {\n+      return null;\n+    }\n+    String cached = consumerClusterIdField.get(consumer);\n+    if (cached != null) {\n+      return cached;\n+    }\n+    String clusterId = clusterIdFromMetadataHolder(resolveMetadataHolder(consumer));\n+    if (clusterId != null) {\n+      consumerClusterIdField.set(consumer, clusterId);\n+    }\n+    return clusterId;\n+  }\n+\n+  /**\n+   * Returns the object that owns the {@code metadata} field. For Kafka 3.7+ the public {@link\n+   * KafkaConsumer} is a thin wrapper that delegates to an internal consumer (held in a {@code\n+   * delegate} field) which owns {@code metadata}; for earlier versions the consumer owns it\n+   * directly.\n+   */\n+  private static Object resolveMetadataHolder(Consumer<?, ?> consumer) {\n+    Field delegateField = findFieldInHierarchy(consumer.getClass(), \"delegate\");\n+    if (delegateField != null) {\n+      try {\n+        delegateField.setAccessible(true);\n+        Object delegate = delegateField.get(consumer);\n+        if (delegate != null) {\n+          return delegate;\n+        }\n+      } catch (IllegalAccessException | RuntimeException ignored) {\n+        // fall through to the consumer itself\n+      }\n+    }\n+    return consumer;\n+  }\n+\n+  /**\n+   * Walks {@code metadata.fetch().clusterResource().clusterId()} reflectively on the given holder.\n+   * All steps are public Kafka API; reflection is used only to reach the private {@code metadata}\n+   * field without compile-time coupling to internal classes. Returns {@code null} on any failure or\n+   * if the cluster id has not been populated yet.\n+   */\n+  @Nullable\n+  private static String clusterIdFromMetadataHolder(@Nullable Object holder) {\n+    if (holder == null) {\n+      return null;\n+    }\n+    try {\n+      Field metadataField = findFieldInHierarchy(holder.getClass(), \"metadata\");\n+      if (metadataField == null) {\n+        return null;\n+      }\n+      metadataField.setAccessible(true);\n+      Object metadata = metadataField.get(holder);\n+      if (metadata == null) {\n+        return null;\n+      }\n+      Object cluster = metadata.getClass().getMethod(\"fetch\").invoke(metadata);\n+      if (cluster == null) {\n+        return null;\n+      }\n+      Object clusterResource = cluster.getClass().getMethod(\"clusterResource\").invoke(cluster);\n+      if (clusterResource == null) {\n+        return null;\n+      }\n+      Object clusterId = clusterResource.getClass().getMethod(\"clusterId\").invoke(clusterResource);\n+      if (clusterId instanceof String && !((String) clusterId).isEmpty()) {\n+        return (String) clusterId;\n+      }\n+      return null;\n+    } catch (ReflectiveOperationException | RuntimeException ignored) {\n+      return null;\n+    }",
+      "id": "PRRT_kwDODJKVX86JLh0_",
+      "opened": "2026-06-12T15:50:12Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [],
+      "reviewed": "ebf6399209a74bec5fd1ac9428fe084c96838261",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3404576330"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "On the common path where cluster id is not available yet (or reflection fails due to JPMS access restrictions / field name changes), this will retry the full reflective walk on every call, potentially once per span. Consider adding a negative-cache strategy (e.g., store a sentinel plus a 'last attempted' timestamp/backoff) and/or caching reflective lookups (Fields/Methods/MethodHandles) per holder class so repeated failures don't become a hot-path cost.",
+      "created": "2026-06-12T15:50:11Z",
+      "hunk": "@@ -144,5 +153,123 @@ public static String extractBootstrapServers(@Nullable List<String> serversConfi\n     return serversConfig.stream().map(Object::toString).collect(joining(\",\"));\n   }\n \n+  /**\n+   * Returns the Kafka cluster id (KIP-78) for the given producer, or {@code null} if it has not yet\n+   * been resolved. The id is read from the producer's own already-fetched {@code Metadata}, so no\n+   * extra broker connection is opened and the existing client's security (SSL/SASL) settings are\n+   * reused implicitly.\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Producer<?, ?> producer) {\n+    if (producer == null) {\n+      return null;\n+    }\n+    String cached = producerClusterIdField.get(producer);\n+    if (cached != null) {\n+      return cached;\n+    }\n+    // KafkaProducer holds the `metadata` field directly across all supported versions.\n+    String clusterId =\n+        KafkaProducer.class.isInstance(producer) ? clusterIdFromMetadataHolder(producer) : null;\n+    if (clusterId != null) {\n+      producerClusterIdField.set(producer, clusterId);\n+    }\n+    return clusterId;\n+  }",
+      "id": "PRRT_kwDODJKVX86JLh0d",
+      "opened": "2026-06-12T15:50:12Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [
+        {
+          "at": "2026-07-03T11:06:59Z",
+          "body": "Both concerns are already addressed:\n\n1. **Negative-cache / sentinel**: When the `metadata` field cannot be found or made accessible, `KafkaClusterId.UNAVAILABLE` (`new KafkaClusterId(null)`) is stored in the VirtualField. Subsequent calls check `cached == KafkaClusterId.UNAVAILABLE` and return `null` immediately without retrying reflection.\n\n2. **Field caching**: `ClassValue<Optional<Field>> metadataFieldCache` runs `getDeclaredField(\"metadata\")` exactly once per holder class (thread-safe, GC-friendly). All subsequent spans use the cached `Optional<Field>` — no repeated reflective lookups.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3519440858"
+        }
+      ],
+      "reviewed": "ebf6399209a74bec5fd1ac9428fe084c96838261",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3404576287"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "On the common path where cluster id is not available yet (or reflection fails due to JPMS access restrictions / field name changes), this will retry the full reflective walk on every call, potentially once per span. Consider adding a negative-cache strategy (e.g., store a sentinel plus a 'last attempted' timestamp/backoff) and/or caching reflective lookups (Fields/Methods/MethodHandles) per holder class so repeated failures don't become a hot-path cost.",
+      "created": "2026-06-12T15:50:11Z",
+      "hunk": "@@ -144,5 +153,123 @@ public static String extractBootstrapServers(@Nullable List<String> serversConfi\n     return serversConfig.stream().map(Object::toString).collect(joining(\",\"));\n   }\n \n+  /**\n+   * Returns the Kafka cluster id (KIP-78) for the given producer, or {@code null} if it has not yet\n+   * been resolved. The id is read from the producer's own already-fetched {@code Metadata}, so no\n+   * extra broker connection is opened and the existing client's security (SSL/SASL) settings are\n+   * reused implicitly.\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Producer<?, ?> producer) {\n+    if (producer == null) {\n+      return null;\n+    }\n+    String cached = producerClusterIdField.get(producer);\n+    if (cached != null) {\n+      return cached;\n+    }\n+    // KafkaProducer holds the `metadata` field directly across all supported versions.\n+    String clusterId =\n+        KafkaProducer.class.isInstance(producer) ? clusterIdFromMetadataHolder(producer) : null;\n+    if (clusterId != null) {\n+      producerClusterIdField.set(producer, clusterId);\n+    }\n+    return clusterId;\n+  }\n+\n+  /**\n+   * Returns the Kafka cluster id (KIP-78) for the given consumer, or {@code null} if it has not yet\n+   * been resolved. Handles both pre-3.7 consumers (which hold {@code metadata} directly) and Kafka\n+   * 3.7+ consumers (which delegate to an internal consumer that holds {@code metadata}).\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Consumer<?, ?> consumer) {\n+    if (consumer == null || !KafkaConsumer.class.isInstance(consumer)) {\n+      return null;\n+    }\n+    String cached = consumerClusterIdField.get(consumer);\n+    if (cached != null) {\n+      return cached;\n+    }\n+    String clusterId = clusterIdFromMetadataHolder(resolveMetadataHolder(consumer));\n+    if (clusterId != null) {\n+      consumerClusterIdField.set(consumer, clusterId);\n+    }\n+    return clusterId;\n+  }",
+      "id": "PRRT_kwDODJKVX86JLh0x",
+      "opened": "2026-06-12T15:50:12Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [
+        {
+          "at": "2026-07-03T11:07:00Z",
+          "body": "Both concerns are already addressed:\n\n1. **Negative-cache / sentinel**: When the `metadata` field cannot be found or made accessible, `KafkaClusterId.UNAVAILABLE` (`new KafkaClusterId(null)`) is stored in the VirtualField. Subsequent calls check `cached == KafkaClusterId.UNAVAILABLE` and return `null` immediately without retrying reflection.\n\n2. **Field caching**: `ClassValue<Optional<Field>> metadataFieldCache` runs `getDeclaredField(\"metadata\")` exactly once per holder class (thread-safe, GC-friendly). All subsequent spans use the cached `Optional<Field>` — no repeated reflective lookups.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3519441013"
+        }
+      ],
+      "reviewed": "ebf6399209a74bec5fd1ac9428fe084c96838261",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3404576310"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `messaging.kafka.cluster.id` `AttributeKey` constant is duplicated across multiple extractors and `KafkaMetricRegistry`. Consider centralizing it in a shared internal constants class (e.g., `KafkaAttributes` or similar) to avoid drift and ensure consistent key usage across spans and metrics.",
+      "created": "2026-06-12T15:50:12Z",
+      "hunk": "@@ -29,6 +29,8 @@ final class KafkaProducerAttributesExtractor\n       AttributeKey.longKey(\"messaging.kafka.offset\");\n   private static final AttributeKey<Boolean> MESSAGING_KAFKA_MESSAGE_TOMBSTONE =\n       AttributeKey.booleanKey(\"messaging.kafka.message.tombstone\");\n+  private static final AttributeKey<String> MESSAGING_KAFKA_CLUSTER_ID =\n+      AttributeKey.stringKey(\"messaging.kafka.cluster.id\");",
+      "id": "PRRT_kwDODJKVX86JLh1L",
+      "opened": "2026-06-12T15:50:12Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "ebf6399209a74bec5fd1ac9428fe084c96838261",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3404576348"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "why do you need this? can the cluster id change?",
+      "created": "2026-07-01T11:23:49Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Holds the resolved Kafka cluster id (KIP-78) for a single producer/consumer instance, and the\n+ * shared {@code messaging.cluster.id} attribute key.\n+ *\n+ * <p>Used as a dedicated {@code VirtualField} value type (rather than {@code String}) so the\n+ * per-instance cache cannot collide with other instrumentations that may attach a String-typed\n+ * {@code VirtualField} to the same {@code Producer}/{@code Consumer} classes — {@code VirtualField}\n+ * is keyed by target type + value type.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+final class KafkaClusterId {\n+\n+  static final AttributeKey<String> ATTRIBUTE_KEY =\n+      AttributeKey.stringKey(\"messaging.cluster.id\");\n+\n+  private static final long TTL_MS = 60L * 60 * 1000;\n+\n+  /**\n+   * Sentinel cached for clients that can never resolve a cluster id (wrong client type, or no\n+   * {@code metadata} field), so the reflective walk is not retried on every span.\n+   */\n+  static final KafkaClusterId UNAVAILABLE = new KafkaClusterId(null, 0L);\n+\n+  @Nullable final String value;\n+  final long fetchedAt; // System.currentTimeMillis() at cache time; 0 for UNAVAILABLE\n+\n+  private KafkaClusterId(@Nullable String value, long fetchedAt) {\n+    this.value = value;\n+    this.fetchedAt = fetchedAt;\n+  }\n+\n+  static KafkaClusterId of(String value) {\n+    return new KafkaClusterId(value, System.currentTimeMillis());\n+  }\n+\n+  /** Returns true when the cached value is stale. UNAVAILABLE never expires. */\n+  boolean isExpired() {",
+      "id": "PRRT_kwDODJKVX86NkAf-",
+      "opened": "2026-07-01T11:23:49Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaClusterId.java",
+      "replies": [
+        {
+          "at": "2026-07-01T17:48:26Z",
+          "body": "Hi @laurit, thanks for reviewing the PR. The cluster ID remains constant as long as a cluster is active. However, there are cases where a Kafka cluster might be deleted and recreated with a new cluster UUID while keeping the same broker endpoints. If we don't handle this, it will always pick up the stale UUID, which is why I added this logic.\r\n\r\nThat said, I discovered that the kafka cluster UUID is already present in the producer and consumer client metadata. I'm going to implement it that way instead, so I will refactor this approach to fetch the cluster UUID from the metadata response.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3508022158"
+        }
+      ],
+      "reviewed": "862832a52a3546dbb9996fab47581c8b165a1321",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3505437339"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "are there existing virtual field that would collide with it or is this just in case another virtual field is added?",
+      "created": "2026-07-01T11:25:33Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Holds the resolved Kafka cluster id (KIP-78) for a single producer/consumer instance, and the\n+ * shared {@code messaging.cluster.id} attribute key.\n+ *\n+ * <p>Used as a dedicated {@code VirtualField} value type (rather than {@code String}) so the\n+ * per-instance cache cannot collide with other instrumentations that may attach a String-typed",
+      "id": "PRRT_kwDODJKVX86NkCfG",
+      "opened": "2026-07-01T11:25:33Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaClusterId.java",
+      "replies": [
+        {
+          "at": "2026-07-03T11:07:04Z",
+          "body": "There are no existing virtual fields that would collide today, but a String-typed VirtualField on `KafkaConsumer`/`KafkaProducer` would be unsafe regardless: any other instrumentation that attaches a `String` to those same classes would share (and potentially overwrite) the field. More importantly, `KafkaClusterId` stores a live `Metadata` reference — not a String — so a `String`-typed field is not usable here at all. The dedicated holder type is both a correctness requirement and a guard against future collisions.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3519441346"
+        }
+      ],
+      "reviewed": "862832a52a3546dbb9996fab47581c8b165a1321",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3505448370"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "ClassValue is usually better for caches like this",
+      "created": "2026-07-01T11:28:13Z",
+      "hunk": "@@ -144,5 +180,223 @@ public static String extractBootstrapServers(@Nullable List<String> serversConfi\n     return serversConfig.stream().map(Object::toString).collect(joining(\",\"));\n   }\n \n+  /**\n+   * Returns the Kafka cluster id (KIP-78) for the given producer, or {@code null} if it has not yet\n+   * been resolved. The id is read from the producer's own already-fetched {@code Metadata}, so no\n+   * extra broker connection is opened and the existing client's security (SSL/SASL) settings are\n+   * reused implicitly.\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Producer<?, ?> producer) {\n+    if (producer == null) {\n+      return null;\n+    }\n+    KafkaClusterId cached = producerClusterIdField.get(producer);\n+    if (cached != null) {\n+      if (cached.isExpired()) {\n+        // TTL expired: clear so resolveAndCache re-reads from live metadata.\n+        producerClusterIdField.set(producer, null);\n+      } else {\n+        return cached.value;\n+      }\n+    }\n+    // KafkaProducer holds the `metadata` field directly across all supported versions.\n+    if (!KafkaProducer.class.isInstance(producer)) {\n+      producerClusterIdField.set(producer, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    return resolveAndCache(producer, producerClusterIdField, producer);\n+  }\n+\n+  /**\n+   * Returns the Kafka cluster id (KIP-78) for the given consumer, or {@code null} if it has not yet\n+   * been resolved. Handles both pre-3.7 consumers (which hold {@code metadata} directly) and Kafka\n+   * 3.7+ consumers (which delegate to an internal consumer that holds {@code metadata}).\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Consumer<?, ?> consumer) {\n+    if (consumer == null || !KafkaConsumer.class.isInstance(consumer)) {\n+      return null;\n+    }\n+    KafkaClusterId cached = consumerClusterIdField.get(consumer);\n+    if (cached != null) {\n+      if (cached.isExpired()) {\n+        // TTL expired: clear so resolveAndCache re-reads from live metadata.\n+        consumerClusterIdField.set(consumer, null);\n+      } else {\n+        return cached.value;\n+      }\n+    }\n+    return resolveAndCache(consumer, consumerClusterIdField, resolveMetadataHolder(consumer));\n+  }\n+\n+  /**\n+   * Resolves the cluster id from {@code holder}'s metadata and caches the result on {@code client}.\n+   * A resolved id is cached permanently. If the holder has no {@code metadata} field at all, or if\n+   * a reflection error occurs that indicates the walk will never succeed, the client is marked\n+   * {@link KafkaClusterId#UNAVAILABLE} so the walk is not retried on subsequent spans. A transient\n+   * {@code null} result (metadata present but cluster id not yet populated by the broker) is left\n+   * uncached so it is retried on the next span; the cached reflective handles make the retry cheap.\n+   */\n+  @Nullable\n+  private static <T> String resolveAndCache(\n+      T client, VirtualField<T, KafkaClusterId> field, @Nullable Object holder) {\n+    if (holder == null) {\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    Field metadataField = metadataField(holder.getClass());\n+    if (metadataField == null) {\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    String clusterId = clusterIdFromMetadata(holder, metadataField);\n+    if (clusterId != null) {\n+      field.set(client, KafkaClusterId.of(clusterId));\n+      return clusterId;\n+    }\n+    // null: either transient (broker hasn't sent the cluster id yet — retry next span) or\n+    // permanent (clusterIdFromMetadata poisoned metadataFieldCache on reflection failure).\n+    // Check the cache: if it now holds empty, metadataField() will return null on the next\n+    // call and resolveAndCache will mark the client UNAVAILABLE then.\n+    return null;\n+  }\n+\n+  /**\n+   * Returns the object that owns the {@code metadata} field. For Kafka 3.7+ the public {@link\n+   * KafkaConsumer} is a thin wrapper that delegates to an internal consumer (held in a {@code\n+   * delegate} field) which owns {@code metadata}; for earlier versions the consumer owns it\n+   * directly. Walks the delegate chain to any depth, with cycle detection.\n+   */\n+  private static Object resolveMetadataHolder(Consumer<?, ?> consumer) {\n+    Set<Object> visited = Collections.newSetFromMap(new IdentityHashMap<>());\n+    Object current = consumer;\n+    while (current != null && visited.add(current)) {\n+      Field delegateField = findFieldInHierarchy(current.getClass(), \"delegate\");\n+      if (delegateField == null) {\n+        break;\n+      }\n+      try {\n+        delegateField.setAccessible(true);\n+        Object delegate = delegateField.get(current);\n+        if (delegate == null) {\n+          break;\n+        }\n+        current = delegate;\n+      } catch (IllegalAccessException | RuntimeException ignored) {\n+        break;\n+      }\n+    }\n+    return current != null ? current : consumer;\n+  }\n+\n+  /** Returns the (cached, accessible) {@code metadata} field for the holder class, or null. */\n+  @Nullable\n+  private static Field metadataField(Class<?> holderClass) {\n+    Optional<Field> cached = metadataFieldCache.get(holderClass);",
+      "id": "PRRT_kwDODJKVX86NkFhB",
+      "opened": "2026-07-01T11:28:13Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [
+        {
+          "at": "2026-08-02T08:46:31Z",
+          "body": "Done — `metadataFieldCache` is now implemented as a `ClassValue<Optional<Field>>`. `computeValue()` runs at most once per class (thread-safe, JVM-managed cache keyed on the ClassLoader), and stores `Optional.empty()` as a negative-cache sentinel so inaccessible or missing fields are never looked up again.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3698447639"
+        }
+      ],
+      "reviewed": "862832a52a3546dbb9996fab47581c8b165a1321",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3505465482"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "in the versions I checked `metadata` field was always in KafkaProducer/KafkaConsumer is the hierarch check necessary?",
+      "created": "2026-07-01T11:29:04Z",
+      "hunk": "@@ -144,5 +180,223 @@ public static String extractBootstrapServers(@Nullable List<String> serversConfi\n     return serversConfig.stream().map(Object::toString).collect(joining(\",\"));\n   }\n \n+  /**\n+   * Returns the Kafka cluster id (KIP-78) for the given producer, or {@code null} if it has not yet\n+   * been resolved. The id is read from the producer's own already-fetched {@code Metadata}, so no\n+   * extra broker connection is opened and the existing client's security (SSL/SASL) settings are\n+   * reused implicitly.\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Producer<?, ?> producer) {\n+    if (producer == null) {\n+      return null;\n+    }\n+    KafkaClusterId cached = producerClusterIdField.get(producer);\n+    if (cached != null) {\n+      if (cached.isExpired()) {\n+        // TTL expired: clear so resolveAndCache re-reads from live metadata.\n+        producerClusterIdField.set(producer, null);\n+      } else {\n+        return cached.value;\n+      }\n+    }\n+    // KafkaProducer holds the `metadata` field directly across all supported versions.\n+    if (!KafkaProducer.class.isInstance(producer)) {\n+      producerClusterIdField.set(producer, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    return resolveAndCache(producer, producerClusterIdField, producer);\n+  }\n+\n+  /**\n+   * Returns the Kafka cluster id (KIP-78) for the given consumer, or {@code null} if it has not yet\n+   * been resolved. Handles both pre-3.7 consumers (which hold {@code metadata} directly) and Kafka\n+   * 3.7+ consumers (which delegate to an internal consumer that holds {@code metadata}).\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Consumer<?, ?> consumer) {\n+    if (consumer == null || !KafkaConsumer.class.isInstance(consumer)) {\n+      return null;\n+    }\n+    KafkaClusterId cached = consumerClusterIdField.get(consumer);\n+    if (cached != null) {\n+      if (cached.isExpired()) {\n+        // TTL expired: clear so resolveAndCache re-reads from live metadata.\n+        consumerClusterIdField.set(consumer, null);\n+      } else {\n+        return cached.value;\n+      }\n+    }\n+    return resolveAndCache(consumer, consumerClusterIdField, resolveMetadataHolder(consumer));\n+  }\n+\n+  /**\n+   * Resolves the cluster id from {@code holder}'s metadata and caches the result on {@code client}.\n+   * A resolved id is cached permanently. If the holder has no {@code metadata} field at all, or if\n+   * a reflection error occurs that indicates the walk will never succeed, the client is marked\n+   * {@link KafkaClusterId#UNAVAILABLE} so the walk is not retried on subsequent spans. A transient\n+   * {@code null} result (metadata present but cluster id not yet populated by the broker) is left\n+   * uncached so it is retried on the next span; the cached reflective handles make the retry cheap.\n+   */\n+  @Nullable\n+  private static <T> String resolveAndCache(\n+      T client, VirtualField<T, KafkaClusterId> field, @Nullable Object holder) {\n+    if (holder == null) {\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    Field metadataField = metadataField(holder.getClass());\n+    if (metadataField == null) {\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    String clusterId = clusterIdFromMetadata(holder, metadataField);\n+    if (clusterId != null) {\n+      field.set(client, KafkaClusterId.of(clusterId));\n+      return clusterId;\n+    }\n+    // null: either transient (broker hasn't sent the cluster id yet — retry next span) or\n+    // permanent (clusterIdFromMetadata poisoned metadataFieldCache on reflection failure).\n+    // Check the cache: if it now holds empty, metadataField() will return null on the next\n+    // call and resolveAndCache will mark the client UNAVAILABLE then.\n+    return null;\n+  }\n+\n+  /**\n+   * Returns the object that owns the {@code metadata} field. For Kafka 3.7+ the public {@link\n+   * KafkaConsumer} is a thin wrapper that delegates to an internal consumer (held in a {@code\n+   * delegate} field) which owns {@code metadata}; for earlier versions the consumer owns it\n+   * directly. Walks the delegate chain to any depth, with cycle detection.\n+   */\n+  private static Object resolveMetadataHolder(Consumer<?, ?> consumer) {\n+    Set<Object> visited = Collections.newSetFromMap(new IdentityHashMap<>());\n+    Object current = consumer;\n+    while (current != null && visited.add(current)) {\n+      Field delegateField = findFieldInHierarchy(current.getClass(), \"delegate\");\n+      if (delegateField == null) {\n+        break;\n+      }\n+      try {\n+        delegateField.setAccessible(true);\n+        Object delegate = delegateField.get(current);\n+        if (delegate == null) {\n+          break;\n+        }\n+        current = delegate;\n+      } catch (IllegalAccessException | RuntimeException ignored) {\n+        break;\n+      }\n+    }\n+    return current != null ? current : consumer;\n+  }\n+\n+  /** Returns the (cached, accessible) {@code metadata} field for the holder class, or null. */\n+  @Nullable\n+  private static Field metadataField(Class<?> holderClass) {\n+    Optional<Field> cached = metadataFieldCache.get(holderClass);\n+    if (cached != null) {\n+      return cached.orElse(null);\n+    }\n+    Field field = findFieldInHierarchy(holderClass, \"metadata\");",
+      "id": "PRRT_kwDODJKVX86NkGaW",
+      "opened": "2026-07-01T11:29:04Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [
+        {
+          "at": "2026-07-03T11:07:08Z",
+          "body": "You're right that in all current Kafka versions `metadata` lives directly on `KafkaProducer`/`KafkaConsumer`, so the loop exits on the first iteration. The `ClassValue` computes this walk only once per holder class, so there's no per-span cost. It's kept as a defensive measure in case a future Kafka refactor extracts `metadata` into a base class — since the cost is paid exactly once, there's no runtime penalty to keep it. Happy to drop it to a direct `getDeclaredField` call if you'd prefer the simpler form.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3519441721"
+        },
+        {
+          "at": "2026-07-03T11:55:33Z",
+          "body": "I'd drop it",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3519674521"
+        }
+      ],
+      "reviewed": "862832a52a3546dbb9996fab47581c8b165a1321",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3505470737"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "isn't this a public method why do you need to use reflection here?",
+      "created": "2026-07-01T11:34:43Z",
+      "hunk": "@@ -144,5 +180,223 @@ public static String extractBootstrapServers(@Nullable List<String> serversConfi\n     return serversConfig.stream().map(Object::toString).collect(joining(\",\"));\n   }\n \n+  /**\n+   * Returns the Kafka cluster id (KIP-78) for the given producer, or {@code null} if it has not yet\n+   * been resolved. The id is read from the producer's own already-fetched {@code Metadata}, so no\n+   * extra broker connection is opened and the existing client's security (SSL/SASL) settings are\n+   * reused implicitly.\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Producer<?, ?> producer) {\n+    if (producer == null) {\n+      return null;\n+    }\n+    KafkaClusterId cached = producerClusterIdField.get(producer);\n+    if (cached != null) {\n+      if (cached.isExpired()) {\n+        // TTL expired: clear so resolveAndCache re-reads from live metadata.\n+        producerClusterIdField.set(producer, null);\n+      } else {\n+        return cached.value;\n+      }\n+    }\n+    // KafkaProducer holds the `metadata` field directly across all supported versions.\n+    if (!KafkaProducer.class.isInstance(producer)) {\n+      producerClusterIdField.set(producer, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    return resolveAndCache(producer, producerClusterIdField, producer);\n+  }\n+\n+  /**\n+   * Returns the Kafka cluster id (KIP-78) for the given consumer, or {@code null} if it has not yet\n+   * been resolved. Handles both pre-3.7 consumers (which hold {@code metadata} directly) and Kafka\n+   * 3.7+ consumers (which delegate to an internal consumer that holds {@code metadata}).\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Consumer<?, ?> consumer) {\n+    if (consumer == null || !KafkaConsumer.class.isInstance(consumer)) {\n+      return null;\n+    }\n+    KafkaClusterId cached = consumerClusterIdField.get(consumer);\n+    if (cached != null) {\n+      if (cached.isExpired()) {\n+        // TTL expired: clear so resolveAndCache re-reads from live metadata.\n+        consumerClusterIdField.set(consumer, null);\n+      } else {\n+        return cached.value;\n+      }\n+    }\n+    return resolveAndCache(consumer, consumerClusterIdField, resolveMetadataHolder(consumer));\n+  }\n+\n+  /**\n+   * Resolves the cluster id from {@code holder}'s metadata and caches the result on {@code client}.\n+   * A resolved id is cached permanently. If the holder has no {@code metadata} field at all, or if\n+   * a reflection error occurs that indicates the walk will never succeed, the client is marked\n+   * {@link KafkaClusterId#UNAVAILABLE} so the walk is not retried on subsequent spans. A transient\n+   * {@code null} result (metadata present but cluster id not yet populated by the broker) is left\n+   * uncached so it is retried on the next span; the cached reflective handles make the retry cheap.\n+   */\n+  @Nullable\n+  private static <T> String resolveAndCache(\n+      T client, VirtualField<T, KafkaClusterId> field, @Nullable Object holder) {\n+    if (holder == null) {\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    Field metadataField = metadataField(holder.getClass());\n+    if (metadataField == null) {\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    String clusterId = clusterIdFromMetadata(holder, metadataField);\n+    if (clusterId != null) {\n+      field.set(client, KafkaClusterId.of(clusterId));\n+      return clusterId;\n+    }\n+    // null: either transient (broker hasn't sent the cluster id yet — retry next span) or\n+    // permanent (clusterIdFromMetadata poisoned metadataFieldCache on reflection failure).\n+    // Check the cache: if it now holds empty, metadataField() will return null on the next\n+    // call and resolveAndCache will mark the client UNAVAILABLE then.\n+    return null;\n+  }\n+\n+  /**\n+   * Returns the object that owns the {@code metadata} field. For Kafka 3.7+ the public {@link\n+   * KafkaConsumer} is a thin wrapper that delegates to an internal consumer (held in a {@code\n+   * delegate} field) which owns {@code metadata}; for earlier versions the consumer owns it\n+   * directly. Walks the delegate chain to any depth, with cycle detection.\n+   */\n+  private static Object resolveMetadataHolder(Consumer<?, ?> consumer) {\n+    Set<Object> visited = Collections.newSetFromMap(new IdentityHashMap<>());\n+    Object current = consumer;\n+    while (current != null && visited.add(current)) {\n+      Field delegateField = findFieldInHierarchy(current.getClass(), \"delegate\");\n+      if (delegateField == null) {\n+        break;\n+      }\n+      try {\n+        delegateField.setAccessible(true);\n+        Object delegate = delegateField.get(current);\n+        if (delegate == null) {\n+          break;\n+        }\n+        current = delegate;\n+      } catch (IllegalAccessException | RuntimeException ignored) {\n+        break;\n+      }\n+    }\n+    return current != null ? current : consumer;\n+  }\n+\n+  /** Returns the (cached, accessible) {@code metadata} field for the holder class, or null. */\n+  @Nullable\n+  private static Field metadataField(Class<?> holderClass) {\n+    Optional<Field> cached = metadataFieldCache.get(holderClass);\n+    if (cached != null) {\n+      return cached.orElse(null);\n+    }\n+    Field field = findFieldInHierarchy(holderClass, \"metadata\");\n+    if (field == null) {\n+      logReflectionFailureOnce(holderClass, \"no 'metadata' field found\");\n+      metadataFieldCache.put(holderClass, Optional.empty());\n+      return null;\n+    }\n+    try {\n+      field.setAccessible(true);\n+    } catch (RuntimeException e) {\n+      logReflectionFailureOnce(holderClass, e.toString());\n+      metadataFieldCache.put(holderClass, Optional.empty());\n+      return null;\n+    }\n+    // Use putIfAbsent to avoid overwriting a poison entry written by a concurrent\n+    // clusterIdFromMetadata() call that caught a runtime reflection failure.\n+    Optional<Field> prev = metadataFieldCache.putIfAbsent(holderClass, Optional.of(field));\n+    return prev != null ? prev.orElse(null) : field;\n+  }\n+\n+  /** Returns the named method from {@code cache}, looking it up on {@code clazz} on first call. */\n+  @Nullable\n+  private static Method resolveMethod(\n+      ConcurrentHashMap<Class<?>, Method> cache, Class<?> clazz, String methodName)\n+      throws NoSuchMethodException {\n+    Method m = cache.get(clazz);\n+    if (m != null) {\n+      return m;\n+    }\n+    m = clazz.getMethod(methodName);\n+    cache.putIfAbsent(clazz, m);\n+    return cache.get(clazz);\n+  }\n+\n+  /**\n+   * Walks {@code metadata.fetch().clusterResource().clusterId()} on the given holder, reusing\n+   * cached reflective handles. All steps are public Kafka API; reflection is used only to reach the\n+   * private {@code metadata} field without compile-time coupling to internal classes. Returns the\n+   * cluster-id string when resolved, or {@code null} if not yet available (transient) or on\n+   * permanent failure; permanent failures also poison {@link #metadataFieldCache} so that\n+   * subsequent calls via {@link #resolveAndCache} mark the client {@link KafkaClusterId#UNAVAILABLE}\n+   * and stop retrying.\n+   */\n+  @Nullable\n+  private static String clusterIdFromMetadata(Object holder, Field metadataField) {\n+    try {\n+      Object metadata = metadataField.get(holder);\n+      if (metadata == null) {\n+        return null; // transient: metadata not yet initialised\n+      }\n+      Method fetch = resolveMethod(fetchMethodCache, metadata.getClass(), \"fetch\");",
+      "id": "PRRT_kwDODJKVX86NkM2A",
+      "opened": "2026-07-01T11:34:43Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [
+        {
+          "at": "2026-08-02T08:46:41Z",
+          "body": "The reflection is for the `delegate` field on `KafkaConsumer`, introduced in Kafka 3.7+ as a private implementation field holding the internal `LegacyKafkaConsumer`. There is no public API to retrieve it. Reflection is required because both `delegate` on `KafkaConsumer` and `metadata` on the delegate class are private fields with no public accessor.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3698448112"
+        }
+      ],
+      "reviewed": "862832a52a3546dbb9996fab47581c8b165a1321",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3505507311"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "As far as I know the idea behind higher-dimension replacement is that kafka reports the same metric in multiple configurations and we wish to retain only the one with the most attributes. Here I think you are essentially building all the instruments, then when cluster id is received you rebuild all of them. Since the cluster id actually needed only when the metrics are reported I guess you could pass a Supplier instead of the actual cluster id so it would be picked up once it is available. Or we could update the attributes associated with the metric once the cluster id is available.",
+      "created": "2026-07-01T11:54:56Z",
+      "hunk": "@@ -139,7 +151,34 @@ public void close() {\n     closeAllInstruments();\n   }\n \n+  // Kafka invokes this once the cluster metadata is first resolved (KIP-78). The id is read from\n+  // the client's own metadata, so no extra broker connection is opened.\n+  @Override\n+  public void onUpdate(ClusterResource clusterResource) {\n+    if (clusterResource == null) {\n+      return;\n+    }\n+    String id = clusterResource.clusterId();\n+    if (id == null || id.isEmpty()) {\n+      return;\n+    }\n+    synchronized (lock) {\n+      if (id.equals(clusterId)) {\n+        return;\n+      }\n+      clusterId = id;\n+    }\n+    // Re-register the metrics reported so far so instruments registered before the cluster id was",
+      "id": "PRRT_kwDODJKVX86Nkj0y",
+      "opened": "2026-07-01T11:54:56Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/OpenTelemetryMetricsReporter.java",
+      "replies": [],
+      "reviewed": "862832a52a3546dbb9996fab47581c8b165a1321",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3505638733"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "our convention is that non spec attributes are not emitted by default, for example see `KafkaProducerExperimentalAttributesExtractor`",
+      "created": "2026-07-01T11:59:04Z",
+      "hunk": "@@ -55,6 +55,11 @@ public void onStart(\n     }\n \n     attributes.put(MESSAGING_KAFKA_CONSUMER_GROUP, request.getConsumerGroup());\n+\n+    String clusterId = request.getClusterId();\n+    if (clusterId != null) {\n+      attributes.put(KafkaClusterId.ATTRIBUTE_KEY, clusterId);",
+      "id": "PRRT_kwDODJKVX86NkoeA",
+      "opened": "2026-07-01T11:59:04Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaConsumerAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-07-03T11:07:09Z",
+          "body": "Fixed — `messaging.kafka.cluster.id` is now emitted only from `KafkaProducerExperimentalAttributesExtractor`, `KafkaConsumerExperimentalAttributesExtractor`, and the new `KafkaReceiveExperimentalAttributesExtractor`. It is no longer present in the non-experimental extractors.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3519442002"
+        }
+      ],
+      "reviewed": "862832a52a3546dbb9996fab47581c8b165a1321",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3505665595"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is this needed?",
+      "created": "2026-07-03T07:15:12Z",
+      "hunk": "@@ -1,4 +1,5 @@\n import io.opentelemetry.javaagent.muzzle.AcceptableVersions\n+import io.opentelemetry.javaagent.muzzle.MuzzleDirective",
+      "id": "PRRT_kwDODJKVX86OHTTU",
+      "opened": "2026-07-03T07:15:12Z",
+      "path": "conventions/src/main/kotlin/otel.resolve-latest-dep-versions.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-07-03T11:07:11Z",
+          "body": "No, it wasn't needed - it was accidentally included, while testing someother approach. Removed in the latest push.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3519442197"
+        }
+      ],
+      "reviewed": "df520fab7c7d95cb5c1c074697fe07b790ec49c4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3518122047"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This factory now obtains the client ID through `producer.metrics()` on every send (`KafkaProducerRequest.extractClientId`), replacing the previous direct `@Advice.FieldValue(\"clientId\")` access. That adds a map lookup/traversal to the producer hot path. Keep the field advice and add a request factory that accepts both the already-read client ID and the producer needed for the cluster-ID retry.",
+      "created": "2026-07-10T17:57:55Z",
+      "hunk": "@@ -113,7 +114,7 @@ public static Object[] onEnter(\n           KafkaUtil.extractBootstrapServers(\n               producerConfig.getList(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));\n       KafkaProducerRequest request =\n-          KafkaProducerRequest.create(record, clientId, bootstrapServers);\n+          KafkaProducerRequest.create(record, producer, bootstrapServers);",
+      "id": "PRRT_kwDODJKVX86P-IHx",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaclients/v0_11/KafkaProducerInstrumentation.java",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990418"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Preserve the existing higher-dimension replacement logic when adding the cluster-ID supplier. Without the removed descriptor/superset check, Kafka's aggregate and more-specific metrics remain registered under the same OpenTelemetry instrument, producing extra lower-dimensional series and changing the metric bridge's established cardinality behavior. The dynamic cluster attribute is not part of `RegisteredObservable.getAttributes()`, so the old comparison can continue using the static Kafka tags unchanged.",
+      "created": "2026-07-10T17:57:55Z",
+      "hunk": "@@ -86,33 +89,19 @@ public void metricChange(KafkaMetric metric) {\n     }\n \n     RegisteredObservable registeredObservable =\n-        KafkaMetricRegistry.getRegisteredObservable(currentMeter, metric);\n+        KafkaMetricRegistry.getRegisteredObservable(currentMeter, metric, () -> clusterId);",
+      "id": "PRRT_kwDODJKVX86P-IID",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/OpenTelemetryMetricsReporter.java",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990454"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Add a metrics-reporter test that registers an observable, invokes `onUpdate` with a cluster ID, collects it, and asserts `messaging.kafka.cluster.id` on the point. The existing changes only assert span attributes, so the PR's metric-bridge behavior—especially updating observables registered before metadata resolves—is currently unverified.",
+      "created": "2026-07-10T17:57:56Z",
+      "hunk": "@@ -117,11 +126,21 @@ private static Attributes toAttributes(Map<String, String> tags) {\n \n   private static AutoCloseable createObservable(\n       Meter meter,\n-      Attributes attributes,\n+      Attributes staticAttributes,\n       InstrumentDescriptor instrumentDescriptor,\n-      KafkaMetric kafkaMetric) {\n+      KafkaMetric kafkaMetric,\n+      Supplier<String> clusterIdSupplier) {\n     Consumer<ObservableDoubleMeasurement> callback =\n-        observableMeasurement -> observableMeasurement.record(value(kafkaMetric), attributes);\n+        observableMeasurement -> {\n+          String clusterId = clusterIdSupplier.get();\n+          Attributes attrs =\n+              clusterId == null\n+                  ? staticAttributes\n+                  : staticAttributes.toBuilder()\n+                      .put(KafkaClusterId.ATTRIBUTE_KEY, clusterId)\n+                      .build();",
+      "id": "PRRT_kwDODJKVX86P-IIa",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaMetricRegistry.java",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990490"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] `AttributesBuilder.put` already ignores null values, so this guard and temporary are redundant.",
+      "created": "2026-07-10T17:57:56Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n+\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import javax.annotation.Nullable;\n+\n+final class KafkaReceiveExperimentalAttributesExtractor\n+    implements AttributesExtractor<KafkaReceiveRequest, Void> {\n+\n+  @Override\n+  public void onStart(\n+      AttributesBuilder attributes, Context parentContext, KafkaReceiveRequest request) {\n+    String clusterId = request.getClusterId();\n+    if (clusterId != null) {\n+      attributes.put(KafkaClusterId.ATTRIBUTE_KEY, clusterId);\n+    }",
+      "id": "PRRT_kwDODJKVX86P-IIz",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaReceiveExperimentalAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990533"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] `AttributesBuilder.put` already ignores null values, so this guard and temporary are redundant.",
+      "created": "2026-07-10T17:57:56Z",
+      "hunk": "@@ -22,6 +22,11 @@ final class KafkaProducerExperimentalAttributesExtractor\n   public void onStart(\n       AttributesBuilder attributes, Context parentContext, KafkaProducerRequest request) {\n     attributes.put(MESSAGING_KAFKA_BOOTSTRAP_SERVERS, request.getBootstrapServers());\n+\n+    String clusterId = request.getClusterId();\n+    if (clusterId != null) {\n+      attributes.put(KafkaClusterId.ATTRIBUTE_KEY, clusterId);\n+    }",
+      "id": "PRRT_kwDODJKVX86P-IJU",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerExperimentalAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990573"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Keep the outer retry condition, but pass the lookup result directly because `AttributesBuilder.put` is already a no-op for null values.",
+      "created": "2026-07-10T17:57:57Z",
+      "hunk": "@@ -30,5 +35,14 @@ public void onEnd(\n       Context context,\n       KafkaProducerRequest request,\n       @Nullable RecordMetadata recordMetadata,\n-      @Nullable Throwable error) {}\n+      @Nullable Throwable error) {\n+    // KafkaProducer fetches metadata lazily on the first send(). If cluster id was null at span\n+    // start (before send() ran), retry here — send() will have populated metadata by now.\n+    if (request.getClusterId() == null) {\n+      String clusterId = KafkaUtil.getClusterId(request.getProducer());\n+      if (clusterId != null) {\n+        attributes.put(KafkaClusterId.ATTRIBUTE_KEY, clusterId);\n+      }",
+      "id": "PRRT_kwDODJKVX86P-IJu",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerExperimentalAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990608"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] This exception is intentionally unused, so the catch variable should be named `ignored`.",
+      "created": "2026-07-10T17:57:57Z",
+      "hunk": "@@ -31,25 +40,71 @@\n  */\n public final class KafkaUtil {\n \n+  private static final Logger logger = Logger.getLogger(KafkaUtil.class.getName());\n+\n   private static final String CONSUMER_GROUP = \"consumer_group\";\n   private static final String CLIENT_ID = \"client_id\";\n \n   private static final VirtualField<Consumer<?, ?>, Map<String, String>> consumerInfoField =\n       VirtualField.find(Consumer.class, Map.class);\n \n+  // The cluster id is resolved from the client's own already-fetched metadata, so it only becomes\n+  // available after the first metadata refresh. It is cached per-instance: once resolved (or once\n+  // determined to be permanently unavailable) the reflective walk is not repeated. A dedicated\n+  // holder type is used as the VirtualField value (rather than String) to avoid colliding with\n+  // other instrumentations that may attach a String-typed VirtualField to the same client classes.\n+  private static final VirtualField<Consumer<?, ?>, KafkaClusterId> consumerClusterIdField =\n+      VirtualField.find(Consumer.class, KafkaClusterId.class);\n+  private static final VirtualField<Producer<?, ?>, KafkaClusterId> producerClusterIdField =\n+      VirtualField.find(Producer.class, KafkaClusterId.class);\n+\n+  // ClassValue caches the reflective Field for each holder class. computeValue() runs at most once\n+  // per class — thread-safe and GC-friendly (entry is released when the ClassLoader is collected).\n+  // Optional.empty() is stored when the field is absent or inaccessible, preventing repeated\n+  // lookups.\n+  private static final ClassValue<Optional<Field>> metadataFieldCache =\n+      new ClassValue<Optional<Field>>() {\n+        @Override\n+        protected Optional<Field> computeValue(Class<?> holderClass) {\n+          try {\n+            Field field = holderClass.getDeclaredField(\"metadata\");\n+            try {\n+              field.setAccessible(true);\n+            } catch (RuntimeException e) {\n+              logReflectionFailureOnce(holderClass, e.toString());\n+              return Optional.empty();\n+            }\n+            return Optional.of(field);\n+          } catch (NoSuchFieldException e) {",
+      "id": "PRRT_kwDODJKVX86P-IK6",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990711"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] `AttributesBuilder.put` already ignores null values, so this guard and temporary are redundant.",
+      "created": "2026-07-10T17:57:57Z",
+      "hunk": "@@ -34,6 +34,11 @@ public void onStart(\n       attributes.put(\n           KAFKA_RECORD_QUEUE_TIME_MS, Math.max(0L, System.currentTimeMillis() - produceTime));\n     }\n+\n+    String clusterId = request.getClusterId();\n+    if (clusterId != null) {\n+      attributes.put(KafkaClusterId.ATTRIBUTE_KEY, clusterId);\n+    }",
+      "id": "PRRT_kwDODJKVX86P-IKQ",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaConsumerExperimentalAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990656"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The documented attribute key is missing the Kafka namespace; the constant below correctly uses `messaging.kafka.cluster.id`.",
+      "created": "2026-07-10T17:57:58Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Holds the resolved Kafka cluster id (KIP-78) for a single producer/consumer instance, and the\n+ * shared {@code messaging.cluster.id} attribute key.",
+      "id": "PRRT_kwDODJKVX86P-ILe",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaClusterId.java",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990758"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This generated Kotlin daemon error log is unrelated to the Kafka cluster-ID feature and should not be committed. Remove it from the pull request.",
+      "created": "2026-07-10T17:57:58Z",
+      "hunk": "@@ -0,0 +1,3 @@\n+kotlin version: 2.3.21\n+error message: Failed connecting to the daemon in 4 retries",
+      "id": "PRRT_kwDODJKVX86P-IMA",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "gradle-plugins/.kotlin/errors/errors-1783098996771.log",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990803"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This generated Kotlin daemon error log is unrelated to the Kafka cluster-ID feature and should not be committed. Remove it from the pull request.",
+      "created": "2026-07-10T17:57:58Z",
+      "hunk": "@@ -0,0 +1,3 @@\n+kotlin version: 2.3.21\n+error message: Daemon compilation failed",
+      "id": "PRRT_kwDODJKVX86P-IMf",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "gradle-plugins/.kotlin/errors/errors-1783080639073.log",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990844"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This generated Kotlin daemon error log is unrelated to the Kafka cluster-ID feature and should not be committed. Remove it from the pull request.",
+      "created": "2026-07-10T17:57:59Z",
+      "hunk": "@@ -0,0 +1,3 @@\n+kotlin version: 2.3.21\n+error message: Daemon compilation failed",
+      "id": "PRRT_kwDODJKVX86P-IM8",
+      "opened": "2026-07-10T17:57:59Z",
+      "path": "gradle-plugins/.kotlin/errors/errors-1783080630009.log",
+      "replies": [],
+      "reviewed": "1055e2a5a4e5acc0d933c6c1add3729291def798",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3560990886"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Nothing calls the two-arg overload any more — `OpenTelemetryMetricsReporter.metricChange()` is the only caller and it now uses the three-arg form. This is an `.internal` class (\"APIs are unstable and can change at any time\"), so there is no need to keep a `null`-delegating shim around.\n\n```suggestion\n  @Nullable\n```",
+      "created": "2026-07-29T19:56:24Z",
+      "hunk": "@@ -60,6 +61,12 @@ final class KafkaMetricRegistry {\n \n   @Nullable\n   static RegisteredObservable getRegisteredObservable(Meter meter, KafkaMetric kafkaMetric) {\n+    return getRegisteredObservable(meter, kafkaMetric, () -> null);\n+  }\n+\n+  @Nullable",
+      "id": "PRRT_kwDODJKVX86U5BY9",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaMetricRegistry.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:31:27Z",
+          "body": "Will remove the dead two-arg overload.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692568279"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653059"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Two problems in this block:\n\n1. `create(record, clientId, bootstrapServers)` has no callers left after this PR — `KafkaProducerTelemetry` and `KafkaProducerInstrumentation` both pass a cluster id now.\n2. The `String clusterId` and `Metadata kafkaMetadata` overloads differ only in the type of the last argument. `create(record, clientId, servers, null)` doesn't compile (ambiguous), and the two call sites read identically, which is easy to get wrong later.\n\nThe `Metadata` variant only exists because `KafkaUtil.clusterIdFromMetadata` is package-private. Making that method public (see the comment on `KafkaUtil`) lets the advice resolve the id itself and collapses this down to one factory. The `org.apache.kafka.clients.Metadata` import added on line 11 then becomes unused and should go too.\n\n```suggestion\n  public static KafkaProducerRequest create(\n      ProducerRecord<?, ?> record,\n      @Nullable String clientId,\n      @Nullable String bootstrapServers,\n      @Nullable String clusterId) {\n    return new KafkaProducerRequest(record, clientId, bootstrapServers, clusterId);\n  }\n```",
+      "created": "2026-07-29T19:56:24Z",
+      "hunk": "@@ -22,22 +23,48 @@ public final class KafkaProducerRequest {\n   private final ProducerRecord<?, ?> record;\n   @Nullable private final String clientId;\n   @Nullable private final String bootstrapServers;\n+  @Nullable private final String clusterId;\n \n   public static KafkaProducerRequest create(\n       ProducerRecord<?, ?> record, Producer<?, ?> producer, @Nullable String bootstrapServers) {\n-    return create(record, extractClientId(producer), bootstrapServers);\n+    return new KafkaProducerRequest(\n+        record,\n+        extractClientId(producer),\n+        bootstrapServers,\n+        KafkaUtil.clusterIdFromMetadata(KafkaUtil.extractProducerMetadata(producer)));\n   }\n \n   public static KafkaProducerRequest create(\n       ProducerRecord<?, ?> record, @Nullable String clientId, @Nullable String bootstrapServers) {\n-    return new KafkaProducerRequest(record, clientId, bootstrapServers);\n+    return new KafkaProducerRequest(record, clientId, bootstrapServers, null);\n+  }\n+\n+  public static KafkaProducerRequest create(\n+      ProducerRecord<?, ?> record,\n+      @Nullable String clientId,\n+      @Nullable String bootstrapServers,\n+      @Nullable String clusterId) {\n+    return new KafkaProducerRequest(record, clientId, bootstrapServers, clusterId);\n+  }\n+\n+  public static KafkaProducerRequest create(\n+      ProducerRecord<?, ?> record,\n+      @Nullable String clientId,\n+      @Nullable String bootstrapServers,\n+      @Nullable Metadata kafkaMetadata) {\n+    return new KafkaProducerRequest(\n+        record, clientId, bootstrapServers, KafkaUtil.clusterIdFromMetadata(kafkaMetadata));\n   }",
+      "id": "PRRT_kwDODJKVX86U5BZF",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerRequest.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:33:25Z",
+          "body": "Good catch. Will make `clusterIdFromMetadata` public, resolve the id to a `String` in the advice, and remove both the dead 3-arg form and the Metadata 4-arg form.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692581819"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653069"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Companion to the `KafkaProducerRequest` comment: making this `public` lets `KafkaProducerInstrumentation` (different package) convert the `@Advice.FieldValue`-injected `Metadata` itself, so the `create(..., Metadata)` overload that currently collides with `create(..., String clusterId)` can be dropped.\n\n```suggestion\n  public static String clusterIdFromMetadata(@Nullable Metadata metadata) {\n```",
+      "created": "2026-07-29T19:56:24Z",
+      "hunk": "@@ -144,5 +202,131 @@ public static String extractBootstrapServers(@Nullable List<String> serversConfi\n     return serversConfig.stream().map(Object::toString).collect(joining(\",\"));\n   }\n \n+  /**\n+   * Reads cluster id from the consumer's already-fetched {@code Metadata}. Handles pre-3.7\n+   * consumers (own {@code metadata} field) and Kafka 3.7+ (delegate holds {@code metadata}).\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Consumer<?, ?> consumer) {\n+    if (consumer == null || !KafkaConsumer.class.isInstance(consumer)) {\n+      return null;\n+    }\n+    KafkaClusterId cached = consumerClusterIdField.get(consumer);\n+    if (cached != null) {\n+      if (cached == KafkaClusterId.UNAVAILABLE) {\n+        return null;\n+      }\n+      return clusterIdFromMetadata(cached.metadata);\n+    }\n+    return resolveAndCache(consumer, consumerClusterIdField, resolveMetadataHolder(consumer));\n+  }\n+\n+  /**\n+   * Once resolved, subsequent spans skip reflection entirely. On any failure the client is marked\n+   * {@link KafkaClusterId#UNAVAILABLE} so the walk is not retried.\n+   */\n+  @Nullable\n+  private static <T> String resolveAndCache(\n+      T client, VirtualField<T, KafkaClusterId> field, @Nullable Object holder) {\n+    if (holder == null) {\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    Field metadataField = metadataField(holder.getClass());\n+    if (metadataField == null) {\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    try {\n+      Metadata metadata = (Metadata) metadataField.get(holder);\n+      if (metadata == null) {\n+        // Transient: field not yet initialised (shouldn't happen after construction, but be safe).\n+        return null;\n+      }\n+      // Cache the live Metadata reference. Subsequent spans read cluster id directly from it\n+      // without any more reflection, and always see the current cluster (correct after cluster\n+      // replacement at the same broker addresses).\n+      field.set(client, KafkaClusterId.of(metadata));\n+      return clusterIdFromMetadata(metadata);\n+    } catch (IllegalAccessException | ClassCastException e) {\n+      logReflectionFailureOnce(holder.getClass(), e.toString());\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+  }\n+\n+  /**\n+   * Returns the object that owns the {@code metadata} field. For Kafka 3.7+ the public {@link\n+   * KafkaConsumer} wraps an internal delegate (held in the {@code delegate} field); for earlier\n+   * versions the consumer owns {@code metadata} directly.\n+   */\n+  private static Object resolveMetadataHolder(Consumer<?, ?> consumer) {\n+    if (DELEGATE_FIELD == null) {\n+      return consumer;\n+    }\n+    try {\n+      Object delegate = DELEGATE_FIELD.get(consumer);\n+      return delegate != null ? delegate : consumer;\n+    } catch (IllegalAccessException | RuntimeException ignored) {\n+      return consumer;\n+    }\n+  }\n+\n+  @Nullable\n+  private static Field metadataField(Class<?> holderClass) {\n+    return metadataFieldCache.get(holderClass).orElse(null);\n+  }\n+\n+  @Nullable\n+  static String clusterIdFromMetadata(@Nullable Metadata metadata) {",
+      "id": "PRRT_kwDODJKVX86U5BZK",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:33:25Z",
+          "body": "Will do, as part of the overload cleanup.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692581815"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653078"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Companion to the `KafkaProducerRequest` comment — resolving the id here removes the need for the ambiguous `create(..., Metadata)` overload.\n\n```suggestion\n      KafkaProducerRequest request =\n          KafkaProducerRequest.create(\n              record,\n              clientId,\n              bootstrapServers,\n              KafkaUtil.clusterIdFromMetadata(kafkaProducerMetadata));\n```",
+      "created": "2026-07-29T19:56:24Z",
+      "hunk": "@@ -113,7 +115,7 @@ public static Object[] onEnter(\n           KafkaUtil.extractBootstrapServers(\n               producerConfig.getList(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));\n       KafkaProducerRequest request =\n-          KafkaProducerRequest.create(record, clientId, bootstrapServers);\n+          KafkaProducerRequest.create(record, clientId, bootstrapServers, kafkaProducerMetadata);",
+      "id": "PRRT_kwDODJKVX86U5BZO",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaclients/v0_11/KafkaProducerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:33:25Z",
+          "body": "Will resolve `clusterId` to a `String` in the advice once `clusterIdFromMetadata` is public, and call the String 4-arg overload.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692581822"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653082"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Neither the three-arg `create` nor the three-arg public constructor has a caller after this PR — `KafkaBatchProcessSpanLinksExtractor` was the last one and it now passes the cluster id. Same reasoning as the other `.internal` request classes: no need for `null`-delegating shims.\n\n```suggestion\n  public static KafkaProcessRequest create(\n      ConsumerRecord<?, ?> record,\n      @Nullable String consumerGroup,\n      @Nullable String clientId,\n      @Nullable String clusterId) {\n    return new KafkaProcessRequest(record, consumerGroup, clientId, clusterId);\n  }\n```",
+      "created": "2026-07-29T19:56:24Z",
+      "hunk": "@@ -19,22 +19,46 @@ public class KafkaProcessRequest extends AbstractKafkaConsumerRequest {\n \n   public static KafkaProcessRequest create(\n       ConsumerRecord<?, ?> record, @Nullable Consumer<?, ?> consumer) {\n-    return create(record, KafkaUtil.getConsumerGroup(consumer), KafkaUtil.getClientId(consumer));\n+    return new KafkaProcessRequest(\n+        record,\n+        KafkaUtil.getConsumerGroup(consumer),\n+        KafkaUtil.getClientId(consumer),\n+        KafkaUtil.getClusterId(consumer));\n   }\n \n   public static KafkaProcessRequest create(\n       KafkaConsumerContext consumerContext, ConsumerRecord<?, ?> record) {\n-    return create(record, consumerContext.getConsumerGroup(), consumerContext.getClientId());\n+    return new KafkaProcessRequest(\n+        record,\n+        consumerContext.getConsumerGroup(),\n+        consumerContext.getClientId(),\n+        consumerContext.getClusterId());\n   }\n \n   public static KafkaProcessRequest create(\n       ConsumerRecord<?, ?> record, @Nullable String consumerGroup, @Nullable String clientId) {\n-    return new KafkaProcessRequest(record, consumerGroup, clientId);\n+    return new KafkaProcessRequest(record, consumerGroup, clientId, null);\n+  }\n+\n+  public static KafkaProcessRequest create(\n+      ConsumerRecord<?, ?> record,\n+      @Nullable String consumerGroup,\n+      @Nullable String clientId,\n+      @Nullable String clusterId) {\n+    return new KafkaProcessRequest(record, consumerGroup, clientId, clusterId);\n   }\n \n   public KafkaProcessRequest(\n       ConsumerRecord<?, ?> record, @Nullable String consumerGroup, @Nullable String clientId) {\n-    super(consumerGroup, clientId);\n+    this(record, consumerGroup, clientId, null);\n+  }",
+      "id": "PRRT_kwDODJKVX86U5BZT",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProcessRequest.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:33:25Z",
+          "body": "Will remove the dead 3-arg form.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692581821"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653087"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] `hasAttributesSatisfyingExactly` is order-independent, so the explicit index `3` implies an ordering that doesn't exist. Since position doesn't matter, the `new ArrayList<>` wrapper isn't needed either — adding the assertion inline keeps the diff smaller:\n\n```suggestion\n    List<AttributeAssertion> processAttributes =\n        asList(\n            equalTo(MESSAGING_SYSTEM, \"kafka\"),\n            equalTo(MESSAGING_DESTINATION_NAME, \"testSingleTopic\"),\n            equalTo(MESSAGING_OPERATION, \"process\"),\n            satisfies(stringKey(\"messaging.kafka.cluster.id\"), val -> val.isNotEmpty()),\n            satisfies(MESSAGING_MESSAGE_BODY_SIZE, AbstractLongAssert::isNotNegative),\n            satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty),\n            satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative),\n            equalTo(MESSAGING_KAFKA_MESSAGE_KEY, \"10\"),\n            equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, \"testSingleListener\"),\n            satisfies(stringKey(\"messaging.client_id\"), val -> val.startsWith(\"consumer\")));\n```\n\nSame at lines 309–321. The `ArrayList` import stays needed because of the usage on line 143.",
+      "created": "2026-07-29T19:56:25Z",
+      "hunk": "@@ -116,16 +122,19 @@ void shouldHandleFailureInKafkaListener() {\n             });\n \n     List<AttributeAssertion> processAttributes =\n-        asList(\n-            equalTo(MESSAGING_SYSTEM, \"kafka\"),\n-            equalTo(MESSAGING_DESTINATION_NAME, \"testSingleTopic\"),\n-            equalTo(MESSAGING_OPERATION, \"process\"),\n-            satisfies(MESSAGING_MESSAGE_BODY_SIZE, AbstractLongAssert::isNotNegative),\n-            satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty),\n-            satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative),\n-            equalTo(MESSAGING_KAFKA_MESSAGE_KEY, \"10\"),\n-            equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, \"testSingleListener\"),\n-            satisfies(stringKey(\"messaging.client_id\"), val -> val.startsWith(\"consumer\")));\n+        new ArrayList<>(\n+            asList(\n+                equalTo(MESSAGING_SYSTEM, \"kafka\"),\n+                equalTo(MESSAGING_DESTINATION_NAME, \"testSingleTopic\"),\n+                equalTo(MESSAGING_OPERATION, \"process\"),\n+                satisfies(MESSAGING_MESSAGE_BODY_SIZE, AbstractLongAssert::isNotNegative),\n+                satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty),\n+                satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative),\n+                equalTo(MESSAGING_KAFKA_MESSAGE_KEY, \"10\"),\n+                equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, \"testSingleListener\"),\n+                satisfies(stringKey(\"messaging.client_id\"), val -> val.startsWith(\"consumer\"))));\n+    processAttributes.add(\n+        3, satisfies(stringKey(\"messaging.kafka.cluster.id\"), val -> val.isNotEmpty()));",
+      "id": "PRRT_kwDODJKVX86U5BZ5",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/testing/src/main/java/io/opentelemetry/testing/AbstractSpringKafkaNoReceiveTelemetryTest.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:35:29Z",
+          "body": "Will inline the assertions directly without the `ArrayList` wrapper.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692594174"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653144"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] No callers left — `KafkaConsumerTelemetry` now uses the four-arg form.\n\n```suggestion\n  public static KafkaReceiveRequest create(\n```",
+      "created": "2026-07-29T19:56:25Z",
+      "hunk": "@@ -19,22 +19,41 @@ public class KafkaReceiveRequest extends AbstractKafkaConsumerRequest {\n \n   public static KafkaReceiveRequest create(\n       ConsumerRecords<?, ?> records, @Nullable Consumer<?, ?> consumer) {\n-    return create(records, KafkaUtil.getConsumerGroup(consumer), KafkaUtil.getClientId(consumer));\n+    return new KafkaReceiveRequest(\n+        records,\n+        KafkaUtil.getConsumerGroup(consumer),\n+        KafkaUtil.getClientId(consumer),\n+        KafkaUtil.getClusterId(consumer));\n   }\n \n   public static KafkaReceiveRequest create(\n       KafkaConsumerContext consumerContext, ConsumerRecords<?, ?> records) {\n-    return create(records, consumerContext.getConsumerGroup(), consumerContext.getClientId());\n+    return new KafkaReceiveRequest(\n+        records,\n+        consumerContext.getConsumerGroup(),\n+        consumerContext.getClientId(),\n+        consumerContext.getClusterId());\n   }\n \n   public static KafkaReceiveRequest create(\n       ConsumerRecords<?, ?> records, @Nullable String consumerGroup, @Nullable String clientId) {\n-    return new KafkaReceiveRequest(records, consumerGroup, clientId);\n+    return new KafkaReceiveRequest(records, consumerGroup, clientId, null);\n+  }\n+\n+  public static KafkaReceiveRequest create(",
+      "id": "PRRT_kwDODJKVX86U5BZW",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaReceiveRequest.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:33:25Z",
+          "body": "Will remove.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692581798"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653094"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] No callers left — `OpenTelemetryConsumerInterceptor` now passes the cluster id.\n\n```suggestion\n  public static KafkaConsumerContext create(\n```",
+      "created": "2026-07-29T19:56:25Z",
+      "hunk": "@@ -32,71 +32,112 @@ public static KafkaConsumerContext get(ConsumerRecord<?, ?> records) {\n     Context receiveContext = recordContextField.get(records);\n     String consumerGroup = null;\n     String clientId = null;\n+    String clusterId = null;\n     String[] consumerInfo = recordConsumerInfoField.get(records);\n     if (consumerInfo != null) {\n       consumerGroup = consumerInfo[0];\n       clientId = consumerInfo[1];\n+      clusterId = consumerInfo.length > 2 ? consumerInfo[2] : null;\n     }\n-    return create(receiveContext, consumerGroup, clientId);\n+    return create(receiveContext, consumerGroup, clientId, clusterId);\n   }\n \n   public static KafkaConsumerContext get(ConsumerRecords<?, ?> records) {\n     Context receiveContext = recordsContextField.get(records);\n     String consumerGroup = null;\n     String clientId = null;\n+    String clusterId = null;\n     String[] consumerInfo = recordsConsumerInfoField.get(records);\n     if (consumerInfo != null) {\n       consumerGroup = consumerInfo[0];\n       clientId = consumerInfo[1];\n+      clusterId = consumerInfo.length > 2 ? consumerInfo[2] : null;\n     }\n-    return create(receiveContext, consumerGroup, clientId);\n+    return create(receiveContext, consumerGroup, clientId, clusterId);\n   }\n \n   public static KafkaConsumerContext create(@Nullable Context context, Consumer<?, ?> consumer) {\n-    return create(context, KafkaUtil.getConsumerGroup(consumer), KafkaUtil.getClientId(consumer));\n+    return create(\n+        context,\n+        KafkaUtil.getConsumerGroup(consumer),\n+        KafkaUtil.getClientId(consumer),\n+        KafkaUtil.getClusterId(consumer));\n   }\n \n   public static KafkaConsumerContext create(\n       @Nullable Context context, @Nullable String consumerGroup, @Nullable String clientId) {\n-    return KafkaConsumerContext.create(context, consumerGroup, clientId);\n+    return create(context, consumerGroup, clientId, null);\n+  }\n+\n+  public static KafkaConsumerContext create(",
+      "id": "PRRT_kwDODJKVX86U5BZb",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaConsumerContextUtil.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:33:42Z",
+          "body": "Will remove the dead 3-arg `create`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692583401"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653102"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This four-arg `set(ConsumerRecord, ...)` and its `set(ConsumerRecords, ...)` twin (line 130) also have no callers after this PR — `set(record, context, consumer)` and `set(record, consumerContext)` both call the five-arg version directly. Worth removing them together with the other shims rather than growing the surface of this internal class.",
+      "created": "2026-07-29T19:56:25Z",
+      "hunk": "@@ -32,71 +32,112 @@ public static KafkaConsumerContext get(ConsumerRecord<?, ?> records) {\n     Context receiveContext = recordContextField.get(records);\n     String consumerGroup = null;\n     String clientId = null;\n+    String clusterId = null;\n     String[] consumerInfo = recordConsumerInfoField.get(records);\n     if (consumerInfo != null) {\n       consumerGroup = consumerInfo[0];\n       clientId = consumerInfo[1];\n+      clusterId = consumerInfo.length > 2 ? consumerInfo[2] : null;\n     }\n-    return create(receiveContext, consumerGroup, clientId);\n+    return create(receiveContext, consumerGroup, clientId, clusterId);\n   }\n \n   public static KafkaConsumerContext get(ConsumerRecords<?, ?> records) {\n     Context receiveContext = recordsContextField.get(records);\n     String consumerGroup = null;\n     String clientId = null;\n+    String clusterId = null;\n     String[] consumerInfo = recordsConsumerInfoField.get(records);\n     if (consumerInfo != null) {\n       consumerGroup = consumerInfo[0];\n       clientId = consumerInfo[1];\n+      clusterId = consumerInfo.length > 2 ? consumerInfo[2] : null;\n     }\n-    return create(receiveContext, consumerGroup, clientId);\n+    return create(receiveContext, consumerGroup, clientId, clusterId);\n   }\n \n   public static KafkaConsumerContext create(@Nullable Context context, Consumer<?, ?> consumer) {\n-    return create(context, KafkaUtil.getConsumerGroup(consumer), KafkaUtil.getClientId(consumer));\n+    return create(\n+        context,\n+        KafkaUtil.getConsumerGroup(consumer),\n+        KafkaUtil.getClientId(consumer),\n+        KafkaUtil.getClusterId(consumer));\n   }\n \n   public static KafkaConsumerContext create(\n       @Nullable Context context, @Nullable String consumerGroup, @Nullable String clientId) {\n-    return KafkaConsumerContext.create(context, consumerGroup, clientId);\n+    return create(context, consumerGroup, clientId, null);\n+  }\n+\n+  public static KafkaConsumerContext create(\n+      @Nullable Context context,\n+      @Nullable String consumerGroup,\n+      @Nullable String clientId,\n+      @Nullable String clusterId) {\n+    return KafkaConsumerContext.create(context, consumerGroup, clientId, clusterId);\n   }\n \n   public static void set(ConsumerRecord<?, ?> record, Context context, Consumer<?, ?> consumer) {\n-    String consumerGroup = KafkaUtil.getConsumerGroup(consumer);\n-    String clientId = KafkaUtil.getClientId(consumer);\n-    set(record, context, consumerGroup, clientId);\n+    set(\n+        record,\n+        context,\n+        KafkaUtil.getConsumerGroup(consumer),\n+        KafkaUtil.getClientId(consumer),\n+        KafkaUtil.getClusterId(consumer));\n   }\n \n   public static void set(ConsumerRecord<?, ?> record, KafkaConsumerContext consumerContext) {\n     set(\n         record,\n         consumerContext.getContext(),\n         consumerContext.getConsumerGroup(),\n-        consumerContext.getClientId());\n+        consumerContext.getClientId(),\n+        consumerContext.getClusterId());\n   }\n \n   public static void set(\n       ConsumerRecord<?, ?> record,\n       @Nullable Context context,\n       @Nullable String consumerGroup,\n       @Nullable String clientId) {\n+    set(record, context, consumerGroup, clientId, null);",
+      "id": "PRRT_kwDODJKVX86U5BZf",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaConsumerContextUtil.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:33:42Z",
+          "body": "Will remove both dead `set` overloads.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692583407"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653107"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] `Metadata.fetch()` is `synchronized` on every Kafka version this instrumentation supports, up to ~3.8 (`public synchronized Cluster fetch()`; it only became lock-free later). Because the design deliberately re-reads the id from the live `Metadata` on every span instead of caching the `String`, each producer `send()` and each consumer receive/process now acquires the client's `Metadata` monitor — the same lock the `Sender` / `ConsumerNetworkClient` threads hold while applying metadata updates.\n\nThat seems like a steep hot-path cost to pay for the \"cluster deleted and recreated behind the same broker addresses\" case. Caching the resolved `String` in the `VirtualField` the first time it is non-null keeps the per-span path lock-free, and is consistent with what the metric path already does via `ClusterResourceListener.onUpdate`.",
+      "created": "2026-07-29T19:56:25Z",
+      "hunk": "@@ -144,5 +202,131 @@ public static String extractBootstrapServers(@Nullable List<String> serversConfi\n     return serversConfig.stream().map(Object::toString).collect(joining(\",\"));\n   }\n \n+  /**\n+   * Reads cluster id from the consumer's already-fetched {@code Metadata}. Handles pre-3.7\n+   * consumers (own {@code metadata} field) and Kafka 3.7+ (delegate holds {@code metadata}).\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Consumer<?, ?> consumer) {\n+    if (consumer == null || !KafkaConsumer.class.isInstance(consumer)) {\n+      return null;\n+    }\n+    KafkaClusterId cached = consumerClusterIdField.get(consumer);\n+    if (cached != null) {\n+      if (cached == KafkaClusterId.UNAVAILABLE) {\n+        return null;\n+      }\n+      return clusterIdFromMetadata(cached.metadata);\n+    }\n+    return resolveAndCache(consumer, consumerClusterIdField, resolveMetadataHolder(consumer));\n+  }\n+\n+  /**\n+   * Once resolved, subsequent spans skip reflection entirely. On any failure the client is marked\n+   * {@link KafkaClusterId#UNAVAILABLE} so the walk is not retried.\n+   */\n+  @Nullable\n+  private static <T> String resolveAndCache(\n+      T client, VirtualField<T, KafkaClusterId> field, @Nullable Object holder) {\n+    if (holder == null) {\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    Field metadataField = metadataField(holder.getClass());\n+    if (metadataField == null) {\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+    try {\n+      Metadata metadata = (Metadata) metadataField.get(holder);\n+      if (metadata == null) {\n+        // Transient: field not yet initialised (shouldn't happen after construction, but be safe).\n+        return null;\n+      }\n+      // Cache the live Metadata reference. Subsequent spans read cluster id directly from it\n+      // without any more reflection, and always see the current cluster (correct after cluster\n+      // replacement at the same broker addresses).\n+      field.set(client, KafkaClusterId.of(metadata));\n+      return clusterIdFromMetadata(metadata);\n+    } catch (IllegalAccessException | ClassCastException e) {\n+      logReflectionFailureOnce(holder.getClass(), e.toString());\n+      field.set(client, KafkaClusterId.UNAVAILABLE);\n+      return null;\n+    }\n+  }\n+\n+  /**\n+   * Returns the object that owns the {@code metadata} field. For Kafka 3.7+ the public {@link\n+   * KafkaConsumer} wraps an internal delegate (held in the {@code delegate} field); for earlier\n+   * versions the consumer owns {@code metadata} directly.\n+   */\n+  private static Object resolveMetadataHolder(Consumer<?, ?> consumer) {\n+    if (DELEGATE_FIELD == null) {\n+      return consumer;\n+    }\n+    try {\n+      Object delegate = DELEGATE_FIELD.get(consumer);\n+      return delegate != null ? delegate : consumer;\n+    } catch (IllegalAccessException | RuntimeException ignored) {\n+      return consumer;\n+    }\n+  }\n+\n+  @Nullable\n+  private static Field metadataField(Class<?> holderClass) {\n+    return metadataFieldCache.get(holderClass).orElse(null);\n+  }\n+\n+  @Nullable\n+  static String clusterIdFromMetadata(@Nullable Metadata metadata) {\n+    if (metadata == null) {\n+      return null;\n+    }\n+    try {\n+      Cluster cluster = metadata.fetch();",
+      "id": "PRRT_kwDODJKVX86U5BZi",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:33:42Z",
+          "body": "Good point — `Metadata.fetch()` holds a lock on every call, so the producer hot path pays that cost on every span. Will cache the resolved `String` in the `VirtualField` on first non-null resolution, the same pattern used for the consumer side.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692583437"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653111"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `instanceof` already covers the null case and reads better than `Class.isInstance`. Same shape on line 307 for `KafkaProducer`.\n\n```suggestion\n    if (!(consumer instanceof KafkaConsumer)) {\n```",
+      "created": "2026-07-29T19:56:25Z",
+      "hunk": "@@ -144,5 +202,131 @@ public static String extractBootstrapServers(@Nullable List<String> serversConfi\n     return serversConfig.stream().map(Object::toString).collect(joining(\",\"));\n   }\n \n+  /**\n+   * Reads cluster id from the consumer's already-fetched {@code Metadata}. Handles pre-3.7\n+   * consumers (own {@code metadata} field) and Kafka 3.7+ (delegate holds {@code metadata}).\n+   */\n+  @Nullable\n+  public static String getClusterId(@Nullable Consumer<?, ?> consumer) {\n+    if (consumer == null || !KafkaConsumer.class.isInstance(consumer)) {",
+      "id": "PRRT_kwDODJKVX86U5BZk",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:33:42Z",
+          "body": "Will switch to `instanceof`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692583416"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653114"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] Making the assertion conditional on the attribute already being present means `hasAttributesSatisfyingExactly` passes whether or not the attribute was emitted, so this can never fail and will silently tolerate a regression that drops it entirely.\n\nIt also highlights a real gap: elsewhere in this PR the test producer is primed with `partitionsFor(...)` so the id is resolved before the first send, but the Streams-internal producer is created by `KafkaStreams` and cannot be primed that way, so it genuinely may not carry the attribute. Either make it deterministic and assert unconditionally, or leave it out and document the limitation — the conditional form gives neither.\n\n```suggestion\n                processedPublishAttrs.add(\n                    satisfies(stringKey(\"messaging.kafka.cluster.id\"), val -> val.isNotEmpty()));\n```",
+      "created": "2026-07-29T19:56:25Z",
+      "hunk": "@@ -184,25 +190,35 @@ void testKafkaProduceAndConsumeWithStreamsInBetween() throws Exception {\n                     .hasAttributesSatisfyingExactly(assertions);\n               },\n               // kafka-clients PRODUCER\n-              span ->\n-                  span.hasName(STREAM_PROCESSED + \" publish\")\n-                      .hasKind(SpanKind.PRODUCER)\n-                      .hasParent(trace.getSpan(1))\n-                      .hasTraceId(receivedContext.getTraceId())\n-                      .hasSpanId(receivedContext.getSpanId())\n-                      .hasAttributesSatisfyingExactly(\n-                          equalTo(MESSAGING_SYSTEM, KAFKA),\n-                          equalTo(MESSAGING_DESTINATION_NAME, STREAM_PROCESSED),\n-                          equalTo(MESSAGING_OPERATION, \"publish\"),\n-                          satisfies(\n-                              stringKey(\"messaging.client_id\"), val -> val.endsWith(\"producer\")),\n-                          satisfies(\n-                              MESSAGING_DESTINATION_PARTITION_ID,\n-                              val -> val.isInstanceOf(String.class)),\n-                          equalTo(MESSAGING_KAFKA_MESSAGE_OFFSET, 0),\n-                          equalTo(\n-                              stringKey(\"messaging.kafka.bootstrap.servers\"),\n-                              EXPERIMENTAL_ATTRIBUTES ? kafka.getBootstrapServers() : null)));\n+              span -> {\n+                List<AttributeAssertion> processedPublishAttrs =\n+                    new ArrayList<>(\n+                        asList(\n+                            equalTo(MESSAGING_SYSTEM, KAFKA),\n+                            equalTo(MESSAGING_DESTINATION_NAME, STREAM_PROCESSED),\n+                            equalTo(MESSAGING_OPERATION, \"publish\"),\n+                            satisfies(\n+                                stringKey(\"messaging.client_id\"), val -> val.endsWith(\"producer\")),\n+                            satisfies(\n+                                MESSAGING_DESTINATION_PARTITION_ID,\n+                                val -> val.isInstanceOf(String.class)),\n+                            equalTo(MESSAGING_KAFKA_MESSAGE_OFFSET, 0),\n+                            equalTo(\n+                                stringKey(\"messaging.kafka.bootstrap.servers\"),\n+                                EXPERIMENTAL_ATTRIBUTES ? kafka.getBootstrapServers() : null)));\n+                // cluster.id: best-effort; Streams internal producer may lack it on first send.\n+                if (trace.getSpan(2).getAttributes().get(stringKey(\"messaging.kafka.cluster.id\"))\n+                    != null) {\n+                  processedPublishAttrs.add(\n+                      satisfies(stringKey(\"messaging.kafka.cluster.id\"), val -> val.isNotEmpty()));\n+                }",
+      "id": "PRRT_kwDODJKVX86U5BZn",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsDefaultTest.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:33:42Z",
+          "body": "Agreed — this check reads from the actual span attributes, so the inner assertion is never exercised when cluster id is absent. For the Streams internal producer the attribute can genuinely be absent on early spans. Will convert to an unconditional optional check outside the `hasAttributesSatisfyingExactly` list.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692583404"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653117"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] Same as in `KafkaStreamsDefaultTest` — the conditional makes the exact-attribute check pass either way, so it never actually verifies `messaging.kafka.cluster.id`.\n\n```suggestion\n                  processedPublishAttrs.add(\n                      satisfies(stringKey(\"messaging.kafka.cluster.id\"), val -> val.isNotEmpty()));\n```",
+      "created": "2026-07-29T19:56:25Z",
+      "hunk": "@@ -149,25 +154,35 @@ void testKafkaProduceAndConsumeWithStreamsInBetween() throws Exception {\n                 // kafka-clients PRODUCER\n                 span -> {\n                   streamSendSpanRef.set(trace.getSpan(2));\n+                  List<AttributeAssertion> processedPublishAttrs =\n+                      new ArrayList<>(\n+                          asList(\n+                              equalTo(MESSAGING_SYSTEM, KAFKA),\n+                              equalTo(MESSAGING_DESTINATION_NAME, STREAM_PROCESSED),\n+                              equalTo(MESSAGING_OPERATION, \"publish\"),\n+                              satisfies(\n+                                  stringKey(\"messaging.client_id\"),\n+                                  val -> val.isInstanceOf(String.class)),\n+                              satisfies(\n+                                  MESSAGING_DESTINATION_PARTITION_ID,\n+                                  val -> val.isInstanceOf(String.class)),\n+                              equalTo(MESSAGING_KAFKA_MESSAGE_OFFSET, 0),\n+                              equalTo(\n+                                  stringKey(\"messaging.kafka.bootstrap.servers\"),\n+                                  EXPERIMENTAL_ATTRIBUTES ? kafka.getBootstrapServers() : null)));\n+                  // cluster.id: best-effort; Streams internal producer may lack it on first send.\n+                  if (trace.getSpan(2).getAttributes().get(stringKey(\"messaging.kafka.cluster.id\"))\n+                      != null) {\n+                    processedPublishAttrs.add(\n+                        satisfies(\n+                            stringKey(\"messaging.kafka.cluster.id\"), val -> val.isNotEmpty()));\n+                  }",
+      "id": "PRRT_kwDODJKVX86U5BZs",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsSuppressReceiveSpansTest.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:35:29Z",
+          "body": "Same issue — the conditional can never fail since we're reading from the actual span. Will fix the same way.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692594157"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653126"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] `.as(...)` descriptions aren't used in this repo's tests, and `assertThat(stream.anyMatch(...)).isTrue()` reduces a failure to \"expected true but was false\". `anySatisfy` keeps the offending points in the failure output:\n\n```suggestion\n      List<MetricData> metrics = testing().metrics();\n      assertThat(metrics)\n          .anySatisfy(\n              metric ->\n                  assertThat(metric.getData().getPoints())\n                      .anySatisfy(\n                          point -> {\n                            String id = point.getAttributes().get(KafkaClusterId.ATTRIBUTE_KEY);\n                            if (expectedClusterId != null) {\n                              assertThat(id).isEqualTo(expectedClusterId);\n                            } else {\n                              assertThat(id).isNotEmpty();\n                            }\n                          }));\n```\n\nTwo more things about this test: because it branches on `metricsReporters.isEmpty()`, in javaagent mode it never exercises `onUpdate` at all despite the name, and only checks that *some* point happens to carry a non-empty id. And `testProducer` is created for its observables, but the reporter that receives `onUpdate` is `metricsReporters.get(size - 1)`, which isn't guaranteed to be the one belonging to that producer.",
+      "created": "2026-07-29T19:56:25Z",
+      "hunk": "@@ -386,6 +392,48 @@ void observeMetrics() {\n     printMappingTable();\n   }\n \n+  @Test\n+  void metricsIncludeClusterIdAfterOnUpdate() {\n+    // Create a fresh producer so its reporter has active observables.\n+    KafkaProducer<byte[], byte[]> testProducer = new KafkaProducer<>(producerConfig());\n+    try {\n+      String expectedClusterId;\n+      if (!metricsReporters.isEmpty()) {\n+        // Library mode: the reporter is added to metricsReporters via the static listener;\n+        // inject a deterministic cluster id so the assertion is precise.\n+        OpenTelemetryMetricsReporter reporter = metricsReporters.get(metricsReporters.size() - 1);\n+        reporter.onUpdate(new ClusterResource(\"test-cluster-id\"));\n+        expectedClusterId = \"test-cluster-id\";\n+      } else {\n+        // Javaagent mode: the reporter is injected by the agent into a different classloader, so\n+        // the static listener is never triggered and metricsReporters stays empty. The real Kafka\n+        // broker fires onUpdate with its own cluster id — accept any non-empty value.\n+        expectedClusterId = null;\n+      }\n+\n+      List<MetricData> metrics = testing().metrics();\n+      assertThat(\n+              metrics.stream()\n+                  .flatMap(m -> m.getData().getPoints().stream())\n+                  .anyMatch(\n+                      p -> {\n+                        String id = p.getAttributes().get(KafkaClusterId.ATTRIBUTE_KEY);\n+                        return expectedClusterId != null\n+                            ? expectedClusterId.equals(id)\n+                            : (id != null && !id.isEmpty());\n+                      }))\n+          .as(\n+              expectedClusterId != null\n+                  ? \"Expected a metric point with messaging.kafka.cluster.id = '\"\n+                      + expectedClusterId\n+                      + \"'\"\n+                  : \"Expected a metric point with a non-empty messaging.kafka.cluster.id\")\n+          .isTrue();",
+      "id": "PRRT_kwDODJKVX86U5BZy",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/testing/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/AbstractOpenTelemetryMetricsReporterTest.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:35:29Z",
+          "body": "Will switch to `anySatisfy`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692594150"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653132"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Reordering the parameter rows looks unrelated to the cluster id change. If test execution order matters here that's worth a comment (and worth understanding, since it would mean the new attribute is order-sensitive); otherwise this looks like leftover debugging.\n\n```suggestion\n    \"true, true\",\n    \"false, false\",\n```",
+      "created": "2026-07-29T19:56:25Z",
+      "hunk": "@@ -31,8 +31,8 @@ abstract class AbstractWrapperTest extends KafkaClientBaseTest {\n \n   @ParameterizedTest\n   @CsvSource({\n-    \"true, true\",\n     \"false, false\",\n+    \"true, true\",",
+      "id": "PRRT_kwDODJKVX86U5BaE",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/AbstractWrapperTest.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:35:29Z",
+          "body": "Leftover from debugging — will revert.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692594161"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653158"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Is this related to the cluster id change, or an unrelated test-stability fix that got picked up along the way?",
+      "created": "2026-07-29T19:56:25Z",
+      "hunk": "@@ -75,6 +75,7 @@ void testKafkaProduceAndConsumeWithStreamsInBetween() throws Exception {\n     String greeting = \"TESTING TESTING 123!\";\n     producer.send(new ProducerRecord<>(STREAM_PENDING, 10, greeting));\n \n+    awaitUntilConsumerIsReady();",
+      "id": "PRRT_kwDODJKVX86U5BaM",
+      "opened": "2026-07-29T20:02:44Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsSuppressReceiveSpansTest.java",
+      "replies": [
+        {
+          "at": "2026-07-31T18:35:29Z",
+          "body": "`awaitUntilConsumerIsReady()` was added here because without it the test was flaky after the cluster id assertions were added — the consumer needs to complete its first metadata fetch before cluster id is populated. So this is directly related to the cluster id change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3692594167"
+        }
+      ],
+      "reviewed": "455e6fa3ab92d9f6a5cabd218411ea8e5d295055",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3677653170"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`LegacyKafkaConsumer` is in `org.apache.kafka.clients.consumer.internals`, not `org.apache.kafka.clients.consumer`, so this entry never matches any class. The 3.7+ delegate `AsyncKafkaConsumer` is missing too, and in Kafka 4 the legacy delegate was renamed `ClassicKafkaConsumer`. As written, native-image users get no consumer cluster id on exactly the versions the delegate lookup was added for.\n\n```suggestion\n  {\n    \"name\": \"org.apache.kafka.clients.consumer.internals.LegacyKafkaConsumer\",\n    \"condition\": {\n      \"typeReachable\": \"org.apache.kafka.clients.consumer.internals.LegacyKafkaConsumer\"\n    },\n    \"allDeclaredFields\": true\n  },\n  {\n    \"name\": \"org.apache.kafka.clients.consumer.internals.ClassicKafkaConsumer\",\n    \"condition\": {\n      \"typeReachable\": \"org.apache.kafka.clients.consumer.internals.ClassicKafkaConsumer\"\n    },\n    \"allDeclaredFields\": true\n  },\n  {\n    \"name\": \"org.apache.kafka.clients.consumer.internals.AsyncKafkaConsumer\",\n    \"condition\": {\n      \"typeReachable\": \"org.apache.kafka.clients.consumer.internals.AsyncKafkaConsumer\"\n    },\n    \"allDeclaredFields\": true\n  },\n```",
+      "created": "2026-08-02T20:20:32Z",
+      "hunk": "@@ -0,0 +1,23 @@\n+[\n+  {\n+    \"name\": \"org.apache.kafka.clients.consumer.KafkaConsumer\",\n+    \"condition\": {\n+      \"typeReachable\": \"org.apache.kafka.clients.consumer.KafkaConsumer\"\n+    },\n+    \"allDeclaredFields\": true\n+  },\n+  {\n+    \"name\": \"org.apache.kafka.clients.consumer.LegacyKafkaConsumer\",\n+    \"condition\": {\n+      \"typeReachable\": \"org.apache.kafka.clients.consumer.LegacyKafkaConsumer\"\n+    },\n+    \"allDeclaredFields\": true\n+  },",
+      "id": "PRRT_kwDODJKVX86V0KXP",
+      "opened": "2026-08-02T23:23:35Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/resources/META-INF/native-image/io.opentelemetry.instrumentation/opentelemetry-kafka-clients-common-0.11/reflect-config.json",
+      "replies": [
+        {
+          "at": "2026-08-03T14:03:51Z",
+          "body": "Good catch — the package is wrong and the `AsyncKafkaConsumer`/`ClassicKafkaConsumer` entries are missing. Applying your suggestion (all three entries with the correct `internals` package).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3704610548"
+        }
+      ],
+      "reviewed": "a5911c0f3449451a8e5a9dd6d4e66120da0c4df3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3700211621"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The \"Producer spans\" part of the PR description doesn't describe this code. There's no `ProducerCallback.onCompletion()` retry — `KafkaProducerRequest` only carries a `String clusterId`, never a `Metadata` — and the javaagent path uses `@Advice.This`, not `@Advice.FieldValue`. What actually happens is that an unresolved id is cached as a pending `KafkaClusterId` on the producer and retried on the *next* span, which is also why the tests need the `partitionsFor(...)` priming calls. Please update the description to match, so reviewers aren't checking against a design that isn't here.",
+      "created": "2026-08-02T20:20:32Z",
+      "hunk": "@@ -113,7 +115,8 @@ public static Object[] onEnter(\n           KafkaUtil.extractBootstrapServers(\n               producerConfig.getList(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));\n       KafkaProducerRequest request =\n-          KafkaProducerRequest.create(record, clientId, bootstrapServers);\n+          KafkaProducerRequest.create(\n+              record, clientId, bootstrapServers, KafkaUtil.getClusterId(producer));",
+      "id": "PRRT_kwDODJKVX86V0KXT",
+      "opened": "2026-08-02T23:23:35Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaclients/v0_11/KafkaProducerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-03T14:04:13Z",
+          "body": "You're right, the description is stale. The javaagent producer path uses `@Advice.This` to get the `KafkaProducer` instance, resolves the cluster id to a `String` immediately (or caches a pending `KafkaClusterId` if the broker hasn't responded yet and retries on the next span), and `KafkaProducerRequest` never holds a `Metadata` reference. Updating the description to reflect what the code actually does.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3704613597"
+        }
+      ],
+      "reviewed": "a5911c0f3449451a8e5a9dd6d4e66120da0c4df3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3700211627"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Since the attribute only shows up once cluster metadata resolves, metric points emitted before the first metadata response won't carry it. That's user-visible, and the metrics README is the natural place to say so: `instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/README.md` already documents this same genre of attribute-set subtlety in its `Usage (Metrics)` section (the note about Kafka reporting metrics at multiple attribute granularities).\r\n\r\nSuggest a sentence right after that existing note, along the lines of: \"`messaging.kafka.cluster.id` is added to these metrics once the client resolves cluster metadata, so data points emitted before the first metadata response are reported without it.\"",
+      "created": "2026-08-03T20:27:25Z",
+      "hunk": "@@ -139,6 +144,25 @@ public void close() {\n     closeAllInstruments();\n   }\n \n+  // Kafka invokes this once the cluster metadata is first resolved (KIP-78). The id is read from\n+  // the client's own metadata, so no extra broker connection is opened.\n+  @Override\n+  public void onUpdate(ClusterResource clusterResource) {",
+      "id": "PRRT_kwDODJKVX86WHMQp",
+      "opened": "2026-08-03T20:29:35Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/OpenTelemetryMetricsReporter.java",
+      "replies": [
+        {
+          "at": "2026-08-04T06:48:32Z",
+          "body": "Done — added a sentence to the metrics README right after the attribute-granularity note: `messaging.kafka.cluster.id` is added once the client resolves cluster metadata, so data points emitted before the first metadata response are reported without it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3710083689"
+        }
+      ],
+      "reviewed": "e108e1d066d23202984cabc65e3c0ff0dbf71ece",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3707431332"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The README covers this, but it'd help to note it here too. Re-reading the cluster id on every collection means a metric goes out without `messaging.kafka.cluster.id` first and with it afterwards, so one metric becomes two series and delta readers treat the second as new. That's a deliberate tradeoff, but nothing in this file says so.\n\n```suggestion\n    // The cluster id is not known until the first metadata response, so early data points are\n    // recorded without it and the metric changes attribute set mid-stream. See the library README.\n    Consumer<ObservableDoubleMeasurement> callback =\n```",
+      "created": "2026-08-04T15:44:26Z",
+      "hunk": "@@ -117,11 +121,21 @@ private static Attributes toAttributes(Map<String, String> tags) {\n \n   private static AutoCloseable createObservable(\n       Meter meter,\n-      Attributes attributes,\n+      Attributes staticAttributes,\n       InstrumentDescriptor instrumentDescriptor,\n-      KafkaMetric kafkaMetric) {\n+      KafkaMetric kafkaMetric,\n+      Supplier<String> clusterIdSupplier) {\n     Consumer<ObservableDoubleMeasurement> callback =",
+      "id": "PRRT_kwDODJKVX86WYgjK",
+      "opened": "2026-08-04T15:51:46Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaMetricRegistry.java",
+      "replies": [],
+      "reviewed": "c61b3146c4b3331e3ece60165c09a3cbc447d22b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3714038589"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `AttributesBuilder.put` already ignores nulls, so the inner guard isn't needed — `onStart` just above already relies on that. Keeping the outer check makes sense, since it avoids the reflection lookup when the id is already known.\n\n```suggestion\n    if (request.getClusterId() == null) {\n      attributes.put(KafkaClusterId.ATTRIBUTE_KEY, KafkaUtil.getClusterId(request.getProducer()));\n    }\n```",
+      "created": "2026-08-04T15:44:26Z",
+      "hunk": "@@ -57,6 +58,13 @@ public void onEnd(\n       @Nullable RecordMetadata recordMetadata,\n       @Nullable Throwable error) {\n \n+    if (request.getClusterId() == null) {\n+      String resolved = KafkaUtil.getClusterId(request.getProducer());\n+      if (resolved != null) {\n+        attributes.put(KafkaClusterId.ATTRIBUTE_KEY, resolved);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86WYgjV",
+      "opened": "2026-08-04T15:51:46Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "c61b3146c4b3331e3ece60165c09a3cbc447d22b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3714038601"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] These `static final VirtualField` handles must use `SCREAMING_SNAKE_CASE` under the repository's VirtualField naming rule. Please rename them (and their references) to `CONSUMER_CLUSTER_ID_FIELD` and `PRODUCER_CLUSTER_ID_FIELD`.",
+      "created": "2026-08-28T15:08:42Z",
+      "hunk": "@@ -32,25 +41,66 @@\n  */\n public final class KafkaUtil {\n \n+  private static final Logger logger = Logger.getLogger(KafkaUtil.class.getName());\n+\n   private static final String CONSUMER_GROUP = \"consumer_group\";\n   private static final String CLIENT_ID = \"client_id\";\n \n   private static final VirtualField<Consumer<?, ?>, Map<String, String>> CONSUMER_INFO =\n       VirtualField.find(Consumer.class, Map.class);\n \n+  // Cached per-instance; resolved lazily after the first metadata refresh.\n+  private static final VirtualField<Consumer<?, ?>, KafkaClusterId> consumerClusterIdField =\n+      VirtualField.find(Consumer.class, KafkaClusterId.class);\n+\n+  private static final VirtualField<Producer<?, ?>, KafkaClusterId> producerClusterIdField =\n+      VirtualField.find(Producer.class, KafkaClusterId.class);",
+      "id": "PRRT_kwDODJKVX86dNfUU",
+      "opened": "2026-08-28T15:08:42Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [],
+      "reviewed": "8846d53c9d1ed539d516d5b2a1e435059c5cf81d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3881688931"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Class.getDeclaredField()` can itself throw `SecurityException`, but only `setAccessible()` is protected by the `RuntimeException` catch. In a restricted runtime this exception escapes `ClassValue.computeValue()` into the library wrapper's send/poll path, so enabling instrumentation can break the Kafka operation instead of simply omitting the attribute. Catch runtime access failures around both reflective operations and negative-cache the lookup.",
+      "created": "2026-09-03T13:25:04Z",
+      "hunk": "@@ -32,25 +41,66 @@\n  */\n public final class KafkaUtil {\n \n+  private static final Logger logger = Logger.getLogger(KafkaUtil.class.getName());\n+\n   private static final String CONSUMER_GROUP = \"consumer_group\";\n   private static final String CLIENT_ID = \"client_id\";\n \n   private static final VirtualField<Consumer<?, ?>, Map<String, String>> CONSUMER_INFO =\n       VirtualField.find(Consumer.class, Map.class);\n \n+  // Cached per-instance; resolved lazily after the first metadata refresh.\n+  private static final VirtualField<Consumer<?, ?>, KafkaClusterId> CONSUMER_CLUSTER_ID_FIELD =\n+      VirtualField.find(Consumer.class, KafkaClusterId.class);\n+\n+  private static final VirtualField<Producer<?, ?>, KafkaClusterId> PRODUCER_CLUSTER_ID_FIELD =\n+      VirtualField.find(Producer.class, KafkaClusterId.class);\n+\n+  // ClassValue: thread-safe per-class cache; Optional.empty() prevents repeated failed lookups.\n+  // Superclass walk needed: Kafka 3.7+ delegate classes may inherit 'metadata' from a parent.\n+  private static final ClassValue<Optional<Field>> metadataFieldCache =\n+      new ClassValue<Optional<Field>>() {\n+        @Override\n+        protected Optional<Field> computeValue(Class<?> holderClass) {\n+          for (Class<?> cls = holderClass; cls != null; cls = cls.getSuperclass()) {\n+            try {\n+              Field field = cls.getDeclaredField(\"metadata\");\n+              try {\n+                field.setAccessible(true);\n+              } catch (RuntimeException e) {\n+                logReflectionFailureOnce(holderClass, e.toString());\n+                return Optional.empty();\n+              }\n+              return Optional.of(field);\n+            } catch (NoSuchFieldException ignored) {\n+              // 'metadata' not declared on this class; check superclass\n+            }\n+          }",
+      "id": "PRRT_kwDODJKVX86e7rwO",
+      "opened": "2026-09-03T13:25:05Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [],
+      "reviewed": "d0da378a1a4955d747f9d09a2cc4ee3a2cb939e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3925013262"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This fixed attempt limit can permanently suppress the attribute before metadata arrives. Each producer span can consume the budget twice (at start and again at end), and concurrent sends can exhaust all 10 attempts while the initial metadata request is still in flight; the `VirtualField` is then replaced with `UNAVAILABLE`, so a later broker response can never self-heal as promised. Please keep the pending state retryable, for example by rate-limiting metadata reads with time-based backoff rather than converting a delayed response into a terminal state.",
+      "created": "2026-09-08T22:43:17Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import javax.annotation.Nullable;\n+import org.apache.kafka.clients.Metadata;\n+\n+/**\n+ * Dedicated {@code VirtualField} value type (rather than {@code String}) so the per-instance cache\n+ * cannot collide with other instrumentations that attach a {@code String}-typed {@code\n+ * VirtualField} to the same {@code Producer}/{@code Consumer} classes — {@code VirtualField} is\n+ * keyed by target type + value type.\n+ *\n+ * <p>Lifecycle: {@link #UNAVAILABLE} (reflection failed, or the broker never reported an id) →\n+ * {@link #of(Metadata)} (pending: broker response not yet received) → {@link #resolved(String)}\n+ * (cluster id known; hot path returns it directly without acquiring the Metadata lock).\n+ */\n+final class KafkaClusterId {\n+\n+  // copied from MessagingIncubatingAttributes\n+  static final AttributeKey<String> ATTRIBUTE_KEY =\n+      AttributeKey.stringKey(\"messaging.kafka.cluster.id\");\n+\n+  // Prevents retrying reflection on clients that can't provide a cluster id.\n+  static final KafkaClusterId UNAVAILABLE = new KafkaClusterId(null, null);\n+\n+  // Caps how many spans may re-read a pending client's metadata. Metadata.fetch() synchronizes on\n+  // the Metadata instance shared with the Kafka network thread, so retrying forever would put every\n+  // span behind that lock on a client whose broker never reports a cluster id.\n+  private static final int MAX_PENDING_ATTEMPTS = 10;\n+\n+  @Nullable final Metadata metadata;\n+  @Nullable final String clusterId;\n+  // Non-null only in the pending state.\n+  @Nullable private final AtomicInteger pendingAttempts;\n+\n+  private KafkaClusterId(\n+      @Nullable Metadata metadata,\n+      @Nullable String clusterId,\n+      @Nullable AtomicInteger pendingAttempts) {\n+    this.metadata = metadata;\n+    this.clusterId = clusterId;\n+    this.pendingAttempts = pendingAttempts;\n+  }\n+\n+  private KafkaClusterId(@Nullable Metadata metadata, @Nullable String clusterId) {\n+    this(metadata, clusterId, null);\n+  }\n+\n+  static KafkaClusterId of(Metadata metadata) {\n+    return new KafkaClusterId(metadata, null, new AtomicInteger());\n+  }\n+\n+  static KafkaClusterId resolved(String clusterId) {\n+    return new KafkaClusterId(null, clusterId);\n+  }\n+\n+  /** Returns true once this pending entry has used up its retry budget. */\n+  boolean pendingAttemptsExhausted() {\n+    return pendingAttempts != null && pendingAttempts.incrementAndGet() >= MAX_PENDING_ATTEMPTS;",
+      "id": "PRRT_kwDODJKVX86gb9wb",
+      "opened": "2026-09-08T22:43:18Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaClusterId.java",
+      "replies": [],
+      "reviewed": "f218dfcf4aff019e18879fbf4a5a001eaf345368",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3962927269"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The lifecycle is not `UNAVAILABLE → pending → resolved`: `UNAVAILABLE` is a terminal alternative used when reflection fails, while only a pending entry can transition to resolved. Please describe these as separate initial states so this class-level contract matches `shouldReadMetadataNow()` and the cache logic.",
+      "created": "2026-09-09T08:08:49Z",
+      "hunk": "@@ -0,0 +1,80 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n+\n+import static java.util.concurrent.TimeUnit.MILLISECONDS;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import java.util.concurrent.atomic.AtomicLong;\n+import javax.annotation.Nullable;\n+import org.apache.kafka.clients.Metadata;\n+\n+/**\n+ * Dedicated {@code VirtualField} value type (rather than {@code String}) so the per-instance cache\n+ * cannot collide with other instrumentations that attach a {@code String}-typed {@code\n+ * VirtualField} to the same {@code Producer}/{@code Consumer} classes — {@code VirtualField} is\n+ * keyed by target type + value type.\n+ *\n+ * <p>Lifecycle: {@link #UNAVAILABLE} (reflection cannot reach the metadata at all) → {@link\n+ * #of(Metadata)} (pending: broker response not yet received) → {@link #resolved(String)} (cluster\n+ * id known; hot path returns it directly without acquiring the Metadata lock). The pending state is\n+ * never converted to {@link #UNAVAILABLE}: a slow broker must not permanently suppress the\n+ * attribute, so pending reads are rate limited instead of capped.",
+      "id": "PRRT_kwDODJKVX86gjzts",
+      "opened": "2026-09-09T08:08:49Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaClusterId.java",
+      "replies": [],
+      "reviewed": "623c84fbc8822ffe251fd4242ced319c32e09e48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3966072392"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This adds an AssertJ description even though the repository's Java test rules prohibit assertion descriptions when the direct failure already reports the actual value. Keep this as a direct boolean assertion.",
+      "created": "2026-09-09T08:08:49Z",
+      "hunk": "@@ -0,0 +1,217 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.emptySet;\n+import static java.util.concurrent.TimeUnit.NANOSECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import java.io.ByteArrayOutputStream;\n+import java.io.IOException;\n+import java.io.InputStream;\n+import org.apache.kafka.clients.Metadata;\n+import org.apache.kafka.common.Cluster;\n+import org.junit.jupiter.api.Test;\n+\n+class KafkaUtilTest {\n+\n+  @Test\n+  void clusterIdFromMetadata_null_returnsNull() {\n+    assertThat(KafkaUtil.clusterIdFromMetadata(null)).isNull();\n+  }\n+\n+  @Test\n+  void clusterIdFromMetadata_validId_returnsId() {\n+    Metadata metadata = new Metadata(0, Long.MAX_VALUE, false);\n+    metadata.update(\n+        new Cluster(\"test-cluster\", emptyList(), emptyList(), emptySet(), emptySet()),\n+        emptySet(),\n+        0);\n+    assertThat(KafkaUtil.clusterIdFromMetadata(metadata)).isEqualTo(\"test-cluster\");\n+  }\n+\n+  @Test\n+  void clusterIdFromMetadata_emptyId_returnsNull() {\n+    Metadata metadata = new Metadata(0, Long.MAX_VALUE, false);\n+    metadata.update(\n+        new Cluster(\"\", emptyList(), emptyList(), emptySet(), emptySet()), emptySet(), 0);\n+    assertThat(KafkaUtil.clusterIdFromMetadata(metadata)).isNull();\n+  }\n+\n+  @Test\n+  void clusterIdFromMetadata_noClusterId_returnsNull() {\n+    // Fresh Metadata with no update — fetch() returns Cluster.empty(), whose clusterId is null.\n+    Metadata metadata = new Metadata(0, Long.MAX_VALUE, false);\n+    assertThat(KafkaUtil.clusterIdFromMetadata(metadata)).isNull();\n+  }\n+\n+  @Test\n+  void pendingClusterId_throttlesMetadataReads() {\n+    // Metadata.fetch() locks the instance shared with the Kafka network thread, so only one span\n+    // per interval may read it; the spans queued behind it must be turned away.\n+    KafkaClusterId pending = KafkaClusterId.of(new Metadata(0, Long.MAX_VALUE, false));\n+\n+    assertThat(pending.shouldReadMetadataNow()).isTrue();\n+    for (int i = 0; i < 100; i++) {\n+      assertThat(pending.shouldReadMetadataNow()).isFalse();\n+    }\n+  }\n+\n+  @Test\n+  void pendingClusterId_neverBecomesTerminal() throws InterruptedException {\n+    // A burst of concurrent sends at startup asks far more often than any fixed attempt budget\n+    // would allow, and each producer span asks twice (at span start and again at span end). None of\n+    // that may latch the entry closed, or a client whose broker is merely slow would lose the\n+    // attribute for its whole lifetime.\n+    KafkaClusterId pending = KafkaClusterId.of(new Metadata(0, Long.MAX_VALUE, false));\n+    for (int i = 0; i < 1000; i++) {\n+      pending.shouldReadMetadataNow();\n+    }\n+\n+    Thread.sleep(NANOSECONDS.toMillis(KafkaClusterId.RETRY_INTERVAL_NANOS) + 50);\n+\n+    assertThat(pending.shouldReadMetadataNow())\n+        .describedAs(\"pending entry stopped reading metadata permanently\")\n+        .isTrue();",
+      "id": "PRRT_kwDODJKVX86gjzuV",
+      "opened": "2026-09-09T08:08:49Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtilTest.java",
+      "replies": [
+        {
+          "at": "2026-09-11T12:06:23Z",
+          "body": "Good catch, removed in 3ab021b.\n\nYou're right that the rule exists — `.github/instructions/java-tests.instructions.md` asks for direct assertions without `.as(...)` descriptions, and `describedAs(...)` is the same AssertJ API under a different name. I'd looked in CONTRIBUTING.md and `docs/contributing/style-guide.md` and wrongly concluded there was no such rule.\n\nNothing is lost by dropping it: the comment above the loop already records why a pending entry must stay readable, and the test name carries the intent.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3988947080"
+        }
+      ],
+      "reviewed": "623c84fbc8822ffe251fd4242ced319c32e09e48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3966072455"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Concurrent first sends can all observe an empty `VirtualField`, then each `set` and read back its own holder before the next thread writes. That allows every thread to enter the synchronized `Metadata.fetch()` despite the per-holder throttle, and a late initializer can also replace a holder that another thread already resolved. Make publication atomic per client by rechecking and setting while holding a per-client initialization lock (or use an equivalent CAS-capable registry).",
+      "created": "2026-09-14T06:34:47Z",
+      "hunk": "@@ -145,6 +209,134 @@ public static String extractBootstrapServers(@Nullable List<String> serversConfi\n     return serversConfig.stream().map(Object::toString).collect(joining(\",\"));\n   }\n \n+  /** Pre-3.7: reads consumer's own {@code metadata} field; Kafka 3.7+: reads via delegate. */\n+  @Nullable\n+  public static String getClusterId(@Nullable Consumer<?, ?> consumer) {\n+    if (consumer == null || !(consumer instanceof KafkaConsumer)) {\n+      return null;\n+    }\n+    KafkaClusterId cached = CONSUMER_CLUSTER_ID_FIELD.get(consumer);\n+    if (cached == null) {\n+      cached =\n+          initializeClusterId(consumer, CONSUMER_CLUSTER_ID_FIELD, resolveMetadataHolder(consumer));\n+    }\n+    return readClusterId(cached);\n+  }\n+\n+  @Nullable\n+  public static String getClusterId(@Nullable Producer<?, ?> producer) {\n+    if (producer == null || !(producer instanceof KafkaProducer)) {\n+      return null;\n+    }\n+    KafkaClusterId cached = PRODUCER_CLUSTER_ID_FIELD.get(producer);\n+    if (cached == null) {\n+      cached = initializeClusterId(producer, PRODUCER_CLUSTER_ID_FIELD, producer);\n+    }\n+    return readClusterId(cached);\n+  }\n+\n+  /**\n+   * Publishes this client's holder before any metadata is read, so concurrent first sends throttle\n+   * against one holder rather than each entering {@code Metadata.fetch()}.\n+   */\n+  static <T> KafkaClusterId initializeClusterId(\n+      T client, VirtualField<T, KafkaClusterId> field, @Nullable Object holder) {\n+    Metadata metadata = extractMetadataFromHolder(holder);\n+    KafkaClusterId created =\n+        metadata == null ? KafkaClusterId.UNAVAILABLE : KafkaClusterId.of(metadata);\n+    field.set(client, created);\n+    // VirtualField has no compare-and-set: read back and defer to the holder that was published.\n+    KafkaClusterId published = field.get(client);\n+    return published != null ? published : created;",
+      "id": "PRRT_kwDODJKVX86iApNR",
+      "opened": "2026-09-14T06:34:47Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [],
+      "reviewed": "b775fdfb8af51c7efcd95dd5c1ab783537472422",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4002723441"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The current semconv 1.44 test dependency already provides `MessagingIncubatingAttributes.MESSAGING_KAFKA_CLUSTER_ID`. Test code is required to import semconv constants directly rather than recreate semantic-convention keys with `stringKey(...)`; please use that constant for all added assertions in this file.",
+      "created": "2026-09-24T15:54:14Z",
+      "hunk": "@@ -208,6 +212,8 @@ protected static List<AttributeAssertion> sendAttributes(\n     if (testHeaders) {\n       assertions.add(equalTo(headerAttributeKey(\"Test-Message-Header\"), singletonList(\"test\")));\n     }\n+    assertions.add(\n+        satisfies(stringKey(\"messaging.kafka.cluster.id\"), AbstractStringAssert::isNotEmpty));",
+      "id": "PRRT_kwDODJKVX86lqMmM",
+      "opened": "2026-09-24T15:54:18Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/testing/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaClientBaseTest.java",
+      "replies": [],
+      "reviewed": "90566dd49fb43cf3e015248ffc6d59d8083d5b26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4095619869"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The current semconv 1.44 test dependency already provides `MessagingIncubatingAttributes.MESSAGING_KAFKA_CLUSTER_ID`. Test code is required to import semconv constants directly rather than recreate semantic-convention keys with `stringKey(...)`; please use that constant for all added assertions in this file.",
+      "created": "2026-09-24T15:54:14Z",
+      "hunk": "@@ -257,6 +257,8 @@ private static List<AttributeAssertion> publishAttributes(boolean experimental)\n                       }\n                     })));\n     addClientIdAssertions(assertions, \"producer\");\n+    assertions.add(\n+        satisfies(stringKey(\"messaging.kafka.cluster.id\"), AbstractStringAssert::isNotEmpty));",
+      "id": "PRRT_kwDODJKVX86lqMnD",
+      "opened": "2026-09-24T15:54:18Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/AbstractInterceptorsTest.java",
+      "replies": [],
+      "reviewed": "90566dd49fb43cf3e015248ffc6d59d8083d5b26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4095619961"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The current semconv 1.44 test dependency already provides `MessagingIncubatingAttributes.MESSAGING_KAFKA_CLUSTER_ID`. Test code is required to import semconv constants directly rather than recreate semantic-convention keys with `stringKey(...)`; please use that constant for all added assertions in this file.",
+      "created": "2026-09-24T15:54:15Z",
+      "hunk": "@@ -99,6 +99,8 @@ private static List<AttributeAssertion> sendAttributes() {\n                 equalTo(MESSAGING_OPERATION_NAME, emitStableMessagingSemconv() ? \"send\" : null),\n                 equalTo(MESSAGING_OPERATION_TYPE, emitStableMessagingSemconv() ? \"send\" : null)));\n     addClientIdAssertion(assertions, \"producer\");\n+    assertions.add(\n+        satisfies(stringKey(\"messaging.kafka.cluster.id\"), AbstractStringAssert::isNotEmpty));",
+      "id": "PRRT_kwDODJKVX86lqMnv",
+      "opened": "2026-09-24T15:54:18Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/InterceptorsSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "90566dd49fb43cf3e015248ffc6d59d8083d5b26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4095620031"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The current semconv 1.44 test dependency already provides `MessagingIncubatingAttributes.MESSAGING_KAFKA_CLUSTER_ID`. Test code is required to import semconv constants directly rather than recreate semantic-convention keys with `stringKey(...)`; please use that constant for all added assertions in this file.",
+      "created": "2026-09-24T15:54:15Z",
+      "hunk": "@@ -119,11 +119,16 @@ void testKafkaProduceAndConsumeWithStreamsInBetween() throws Exception {\n           trace -> {\n             trace.hasSpansSatisfyingExactly(\n                 // kafka-clients PRODUCER\n-                span ->\n-                    span.hasName(\"send \" + STREAM_PENDING)\n-                        .hasKind(SpanKind.PRODUCER)\n-                        .hasNoParent()\n-                        .hasAttributesSatisfyingExactly(producerAttributes(STREAM_PENDING, true)),\n+                span -> {\n+                  List<AttributeAssertion> producerPendingAssertions =\n+                      new ArrayList<>(producerAttributes(STREAM_PENDING, true));\n+                  producerPendingAssertions.add(\n+                      satisfies(stringKey(\"messaging.kafka.cluster.id\"), val -> val.isNotEmpty()));",
+      "id": "PRRT_kwDODJKVX86lqMo6",
+      "opened": "2026-09-24T15:54:18Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsDefaultTest.java",
+      "replies": [],
+      "reviewed": "90566dd49fb43cf3e015248ffc6d59d8083d5b26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4095620157"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The current semconv 1.44 test dependency already provides `MessagingIncubatingAttributes.MESSAGING_KAFKA_CLUSTER_ID`. Test code is required to import semconv constants directly rather than recreate semantic-convention keys with `stringKey(...)`; please use that constant for all added assertions in this file.",
+      "created": "2026-09-24T15:54:15Z",
+      "hunk": "@@ -185,6 +185,8 @@ protected static List<AttributeAssertion> sendAttributes(\n           equalTo(\n               MessageHeaderUtil.headerAttributeKey(\"Test-Message-Header\"), singletonList(\"test\")));\n     }\n+    assertions.add(\n+        satisfies(stringKey(\"messaging.kafka.cluster.id\"), AbstractStringAssert::isNotEmpty));",
+      "id": "PRRT_kwDODJKVX86lqMoa",
+      "opened": "2026-09-24T15:54:18Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/WrapperTest.java",
+      "replies": [],
+      "reviewed": "90566dd49fb43cf3e015248ffc6d59d8083d5b26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4095620104"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The current semconv 1.44 test dependency already provides `MessagingIncubatingAttributes.MESSAGING_KAFKA_CLUSTER_ID`. Test code is required to import semconv constants directly rather than recreate semantic-convention keys with `stringKey(...)`; please use that constant for all added assertions in this file.",
+      "created": "2026-09-24T15:54:16Z",
+      "hunk": "@@ -107,13 +108,19 @@ void testKafkaProduceAndConsumeWithStreamsInBetween() throws Exception {\n           trace ->\n               trace.hasSpansSatisfyingExactly(\n                   // kafka-clients PRODUCER\n-                  span ->\n-                      span.hasName(\"send \" + STREAM_PENDING)\n-                          .hasKind(SpanKind.PRODUCER)\n-                          .hasNoParent()\n-                          .hasAttributesSatisfyingExactly(\n-                              producerAttributes(\n-                                  STREAM_PENDING, val -> val.isEqualTo(\"producer-1\"), true)),\n+                  span -> {\n+                    List<AttributeAssertion> pendingProducerAttrs =\n+                        new ArrayList<>(\n+                            producerAttributes(\n+                                STREAM_PENDING, val -> val.isEqualTo(\"producer-1\"), true));\n+                    pendingProducerAttrs.add(\n+                        satisfies(\n+                            stringKey(\"messaging.kafka.cluster.id\"), val -> val.isNotEmpty()));",
+      "id": "PRRT_kwDODJKVX86lqMpp",
+      "opened": "2026-09-24T15:54:18Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/v0_11/KafkaStreamsSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "90566dd49fb43cf3e015248ffc6d59d8083d5b26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4095620224"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The current semconv 1.44 test dependency already provides `MessagingIncubatingAttributes.MESSAGING_KAFKA_CLUSTER_ID`. Test code is required to import semconv constants directly rather than recreate semantic-convention keys with `stringKey(...)`; please use that constant for all added assertions in this file.",
+      "created": "2026-09-24T15:54:16Z",
+      "hunk": "@@ -295,6 +295,7 @@ private static List<AttributeAssertion> sendAttributes(ProducerRecord<String, St\n         messagingAttributes(record.topic(), \"publish\", \"send\", \"send\", \"producer\");\n     assertions.add(satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty));\n     addOffsetAssertion(assertions);\n+    assertions.add(satisfies(stringKey(\"messaging.kafka.cluster.id\"), val -> val.isNotEmpty()));",
+      "id": "PRRT_kwDODJKVX86lqMqO",
+      "opened": "2026-09-24T15:54:18Z",
+      "path": "instrumentation/reactor/reactor-kafka-1.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/kafka/v1_0/AbstractReactorKafkaTest.java",
+      "replies": [],
+      "reviewed": "90566dd49fb43cf3e015248ffc6d59d8083d5b26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4095620285"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The current semconv 1.44 test dependency already provides `MessagingIncubatingAttributes.MESSAGING_KAFKA_CLUSTER_ID`. Test code is required to import semconv constants directly rather than recreate semantic-convention keys with `stringKey(...)`; please use that constant for all added assertions in this file.",
+      "created": "2026-09-24T15:54:17Z",
+      "hunk": "@@ -778,6 +778,8 @@ private static List<AttributeAssertion> producerAttributes(String topic, String\n     assertions.add(satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty));\n     addOffsetAssertion(assertions);\n     assertions.add(equalTo(MESSAGING_KAFKA_MESSAGE_KEY, messageKey));\n+    assertions.add(\n+        satisfies(stringKey(\"messaging.kafka.cluster.id\"), AbstractStringAssert::isNotEmpty));",
+      "id": "PRRT_kwDODJKVX86lqMrC",
+      "opened": "2026-09-24T15:54:18Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/kafka/v2_7/SpringKafkaTest.java",
+      "replies": [],
+      "reviewed": "90566dd49fb43cf3e015248ffc6d59d8083d5b26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4095620358"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The current semconv 1.44 test dependency already provides `MessagingIncubatingAttributes.MESSAGING_KAFKA_CLUSTER_ID`. Test code is required to import semconv constants directly rather than recreate semantic-convention keys with `stringKey(...)`; please use that constant for all added assertions in this file.",
+      "created": "2026-09-24T15:54:17Z",
+      "hunk": "@@ -183,6 +183,8 @@ protected static List<AttributeAssertion> sendAttributes(\n         messagingAttributes(record.topic(), \"publish\", \"send\", \"send\", \"producer\");\n     assertions.add(satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty));\n     addOffsetAssertion(assertions);\n+    assertions.add(\n+        satisfies(stringKey(\"messaging.kafka.cluster.id\"), AbstractStringAssert::isNotEmpty));",
+      "id": "PRRT_kwDODJKVX86lqMs7",
+      "opened": "2026-09-24T15:54:18Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractVertxKafkaTest.java",
+      "replies": [],
+      "reviewed": "90566dd49fb43cf3e015248ffc6d59d8083d5b26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4095620536"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The current semconv 1.44 test dependency already provides `MessagingIncubatingAttributes.MESSAGING_KAFKA_CLUSTER_ID`. Test code is required to import semconv constants directly rather than recreate semantic-convention keys with `stringKey(...)`; please use that constant for all added assertions in this file.",
+      "created": "2026-09-24T15:54:17Z",
+      "hunk": "@@ -358,6 +358,8 @@ private static List<AttributeAssertion> sendAttributes(String topic, String mess\n         messagingAttributes(topic, \"publish\", \"send\", \"send\", \"producer\");\n     assertions.add(satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty));\n     addOffsetAssertion(assertions);\n+    assertions.add(\n+        satisfies(stringKey(\"messaging.kafka.cluster.id\"), AbstractStringAssert::isNotEmpty));",
+      "id": "PRRT_kwDODJKVX86lqMsH",
+      "opened": "2026-09-24T15:54:18Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/testing/src/main/java/io/opentelemetry/testing/AbstractSpringKafkaNoReceiveTelemetryTest.java",
+      "replies": [],
+      "reviewed": "90566dd49fb43cf3e015248ffc6d59d8083d5b26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4095620455"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The current semconv 1.44 test dependency already provides `MessagingIncubatingAttributes.MESSAGING_KAFKA_CLUSTER_ID`. Test code is required to import semconv constants directly rather than recreate semantic-convention keys with `stringKey(...)`; please use that constant for the added assertion(s) in this file.",
+      "created": "2026-09-24T15:54:18Z",
+      "hunk": "@@ -80,7 +80,10 @@ void shouldInstrumentProducerAndConsumer() {\n                                   satisfies(\n                                       MESSAGING_KAFKA_MESSAGE_OFFSET,\n                                       AbstractLongAssert::isNotNegative),\n-                                  equalTo(MESSAGING_KAFKA_MESSAGE_KEY, \"10\")),\n+                                  equalTo(MESSAGING_KAFKA_MESSAGE_KEY, \"10\"),\n+                                  satisfies(\n+                                      stringKey(\"messaging.kafka.cluster.id\"),",
+      "id": "PRRT_kwDODJKVX86lqMtt",
+      "opened": "2026-09-24T15:54:18Z",
+      "path": "smoke-tests-otel-starter/spring-boot-common/src/main/java/io/opentelemetry/spring/smoketest/AbstractKafkaSpringStarterSmokeTest.java",
+      "replies": [],
+      "reviewed": "90566dd49fb43cf3e015248ffc6d59d8083d5b26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r4095620607"
+    }
+  ]
+}

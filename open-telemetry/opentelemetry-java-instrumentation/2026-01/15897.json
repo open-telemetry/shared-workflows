@@ -1,0 +1,175 @@
+{
+  "head": "65d5beda7444af8e03c97b1249eafde5207060f5",
+  "merge": "4e0c0ae753a4a178e24681b3d3aeab519101e2ce",
+  "merged": "2026-01-18T18:28:51Z",
+  "missing_roots": 0,
+  "number": 15897,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\r\n```",
+      "created": "2026-01-17T20:37:06Z",
+      "hunk": "@@ -29,10 +39,11 @@\n import org.junit.jupiter.params.provider.MethodSource;\n import org.springframework.data.couchbase.core.CouchbaseTemplate;\n \n+@SuppressWarnings(\"deprecation\")\n public abstract class AbstractCouchbaseSpringTemplateTest extends AbstractCouchbaseTest {\n \n   @RegisterExtension\n-  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+  protected static final InstrumentationExtension testing = AgentInstrumentationExtension.create();",
+      "id": "PRRT_kwDODJKVX85p2QMI",
+      "opened": "2026-01-17T20:38:19Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/springdata/AbstractCouchbaseSpringTemplateTest.java",
+      "replies": [],
+      "reviewed": "29fe9f9e6321bb6fdc924491824d117f73b0fc94",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15897#discussion_r2701513912"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\r\n```",
+      "created": "2026-01-17T20:37:30Z",
+      "hunk": "@@ -25,15 +36,17 @@\n import org.springframework.context.ConfigurableApplicationContext;\n import org.springframework.context.annotation.AnnotationConfigApplicationContext;\n \n+@SuppressWarnings(\"deprecation\")\n public abstract class AbstractCouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {\n \n   @RegisterExtension\n-  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+  protected static final InstrumentationExtension testing = AgentInstrumentationExtension.create();",
+      "id": "PRRT_kwDODJKVX85p2QSX",
+      "opened": "2026-01-17T20:38:19Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/springdata/AbstractCouchbaseSpringRepositoryTest.java",
+      "replies": [],
+      "reviewed": "29fe9f9e6321bb6fdc924491824d117f73b0fc94",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15897#discussion_r2701514561"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n  @RegisterExtension static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\r\n```",
+      "created": "2026-01-17T20:37:39Z",
+      "hunk": "@@ -25,15 +36,17 @@\n import org.springframework.context.ConfigurableApplicationContext;\n import org.springframework.context.annotation.AnnotationConfigApplicationContext;\n \n+@SuppressWarnings(\"deprecation\")\n public abstract class AbstractCouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {\n \n   @RegisterExtension\n-  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+  protected static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n \n-  @RegisterExtension static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+  @RegisterExtension\n+  protected static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();",
+      "id": "PRRT_kwDODJKVX85p2QWi",
+      "opened": "2026-01-17T20:38:19Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/springdata/AbstractCouchbaseSpringRepositoryTest.java",
+      "replies": [],
+      "reviewed": "29fe9f9e6321bb6fdc924491824d117f73b0fc94",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15897#discussion_r2701514921"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n  private TestRepository repository;\r\n```",
+      "created": "2026-01-17T20:37:49Z",
+      "hunk": "@@ -25,15 +36,17 @@\n import org.springframework.context.ConfigurableApplicationContext;\n import org.springframework.context.annotation.AnnotationConfigApplicationContext;\n \n+@SuppressWarnings(\"deprecation\")\n public abstract class AbstractCouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {\n \n   @RegisterExtension\n-  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+  protected static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n \n-  @RegisterExtension static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+  @RegisterExtension\n+  protected static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n \n   private ConfigurableApplicationContext applicationContext;\n-  private TestRepository repository;\n+  protected TestRepository repository;",
+      "id": "PRRT_kwDODJKVX85p2QY7",
+      "opened": "2026-01-17T20:38:19Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/springdata/AbstractCouchbaseSpringRepositoryTest.java",
+      "replies": [],
+      "reviewed": "29fe9f9e6321bb6fdc924491824d117f73b0fc94",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15897#discussion_r2701515133"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n  private void cleanUpTest() {\r\n```",
+      "created": "2026-01-17T20:37:55Z",
+      "hunk": "@@ -66,7 +79,7 @@ void setUp() {\n     repository = applicationContext.getBean(TestRepository.class);\n   }\n \n-  private void cleanUpTest() {\n+  protected void cleanUpTest() {",
+      "id": "PRRT_kwDODJKVX85p2QbE",
+      "opened": "2026-01-17T20:38:19Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/springdata/AbstractCouchbaseSpringRepositoryTest.java",
+      "replies": [],
+      "reviewed": "29fe9f9e6321bb6fdc924491824d117f73b0fc94",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15897#discussion_r2701515332"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n  private static final int TIMEOUT_SECONDS = 10;\r\n```",
+      "created": "2026-01-17T20:38:10Z",
+      "hunk": "@@ -42,7 +48,7 @@\n @SuppressWarnings(\"deprecation\") // using deprecated semconv\n public abstract class AbstractCouchbaseAsyncClientTest extends AbstractCouchbaseTest {\n \n-  private static final int TIMEOUT_SECONDS = 10;\n+  protected static final int TIMEOUT_SECONDS = 10;",
+      "id": "PRRT_kwDODJKVX85p2QfX",
+      "opened": "2026-01-17T20:38:19Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/AbstractCouchbaseAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "29fe9f9e6321bb6fdc924491824d117f73b0fc94",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15897#discussion_r2701515756"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n```",
+      "created": "2026-01-17T20:40:47Z",
+      "hunk": "@@ -89,6 +95,10 @@ private CouchbaseAsyncCluster getCluster(BucketSettings bucketSettings) {\n     throw new IllegalArgumentException(\"unknown setting \" + bucketSettings.name());\n   }\n \n+  protected CouchbaseAsyncCluster getCluster(BucketSettings bucketSettings, boolean ignored) {\n+    return getCluster(bucketSettings);\n+  }\n+",
+      "id": "PRRT_kwDODJKVX85p2RTG",
+      "opened": "2026-01-17T20:40:47Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/AbstractCouchbaseAsyncClientTest.java",
+      "replies": [],
+      "reviewed": "ef1dd456a40e0a451b735aeed53fc70bc49b8f05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15897#discussion_r2701520737"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n```",
+      "created": "2026-01-17T20:41:18Z",
+      "hunk": "@@ -17,10 +17,9 @@\n import com.couchbase.client.java.cluster.ClusterManager;\n import com.couchbase.client.java.env.DefaultCouchbaseEnvironment;\n import io.opentelemetry.instrumentation.couchbase.AbstractCouchbaseClientTest;\n-import io.opentelemetry.sdk.testing.assertj.AttributeAssertion;\n-import java.util.List;\n import org.junit.jupiter.api.Test;\n \n+@SuppressWarnings(\"deprecation\") // using deprecated semconv",
+      "id": "PRRT_kwDODJKVX85p2Rc9",
+      "opened": "2026-01-17T20:42:25Z",
+      "path": "instrumentation/couchbase/couchbase-2.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_6/CouchbaseClient26Test.java",
+      "replies": [],
+      "reviewed": "0b342fb5fa47edfa7619228e300b669b8be447d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15897#discussion_r2701521708"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n```",
+      "created": "2026-01-17T20:41:27Z",
+      "hunk": "@@ -8,9 +8,8 @@\n import com.couchbase.client.java.cluster.BucketSettings;\n import com.couchbase.client.java.env.DefaultCouchbaseEnvironment;\n import io.opentelemetry.instrumentation.couchbase.AbstractCouchbaseAsyncClientTest;\n-import io.opentelemetry.sdk.testing.assertj.AttributeAssertion;\n-import java.util.List;\n \n+@SuppressWarnings(\"deprecation\") // using deprecated semconv",
+      "id": "PRRT_kwDODJKVX85p2Rgz",
+      "opened": "2026-01-17T20:42:25Z",
+      "path": "instrumentation/couchbase/couchbase-2.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_6/CouchbaseAsyncClient26Test.java",
+      "replies": [],
+      "reviewed": "0b342fb5fa47edfa7619228e300b669b8be447d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15897#discussion_r2701522020"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n```",
+      "created": "2026-01-17T20:41:45Z",
+      "hunk": "@@ -11,9 +11,8 @@\n import io.opentelemetry.instrumentation.couchbase.springdata.TestDocument;\n import io.opentelemetry.instrumentation.couchbase.springdata.TestRepository;\n import io.opentelemetry.javaagent.instrumentation.couchbase.v2_6.Couchbase26Util;\n-import io.opentelemetry.sdk.testing.assertj.AttributeAssertion;\n-import java.util.List;\n \n+@SuppressWarnings(\"deprecation\")",
+      "id": "PRRT_kwDODJKVX85p2RmW",
+      "opened": "2026-01-17T20:42:25Z",
+      "path": "instrumentation/couchbase/couchbase-2.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_6/springdata/CouchbaseSpringRepository26Test.java",
+      "replies": [],
+      "reviewed": "0b342fb5fa47edfa7619228e300b669b8be447d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15897#discussion_r2701522584"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n```",
+      "created": "2026-01-17T20:41:53Z",
+      "hunk": "@@ -9,9 +9,8 @@\n import com.couchbase.client.java.env.DefaultCouchbaseEnvironment;\n import io.opentelemetry.instrumentation.couchbase.springdata.AbstractCouchbaseSpringTemplateTest;\n import io.opentelemetry.javaagent.instrumentation.couchbase.v2_6.Couchbase26Util;\n-import io.opentelemetry.sdk.testing.assertj.AttributeAssertion;\n-import java.util.List;\n \n+@SuppressWarnings(\"deprecation\")",
+      "id": "PRRT_kwDODJKVX85p2Rnz",
+      "opened": "2026-01-17T20:42:25Z",
+      "path": "instrumentation/couchbase/couchbase-2.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_6/springdata/CouchbaseSpringTemplate26Test.java",
+      "replies": [],
+      "reviewed": "0b342fb5fa47edfa7619228e300b669b8be447d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15897#discussion_r2701522750"
+    }
+  ]
+}

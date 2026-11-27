@@ -1,0 +1,172 @@
+{
+  "head": "778f14a985c3cfd104c38f07f3a501bf7bd6d156",
+  "merge": "5b3b4290c7ad7591685d868ae3d10f563c826565",
+  "merged": "2026-08-18T10:54:42Z",
+  "missing_roots": 0,
+  "number": 19504,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ByteBuffer.class` is abstract, so actual keys (for example, those returned by `ByteBuffer.wrap`) have concrete subclass types and never satisfy this equality check. Such keys therefore leak implementation-style `toString()` values into producer/consumer attributes and the new batch links despite the intended omission. Use an `instanceof` check instead.",
+      "created": "2026-08-11T04:36:56Z",
+      "hunk": "@@ -144,5 +145,14 @@ public static String extractBootstrapServers(@Nullable List<String> serversConfi\n     return serversConfig.stream().map(Object::toString).collect(joining(\",\"));\n   }\n \n+  @Nullable\n+  public static String serializeKey(@Nullable Object key) {\n+    // Calling toString() does not produce useful message-key values for byte[] or ByteBuffer.\n+    if (key == null || key.getClass().isArray() || key.getClass() == ByteBuffer.class) {",
+      "id": "PRRT_kwDODJKVX86YHPd5",
+      "opened": "2026-08-11T04:36:56Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [
+        {
+          "at": "2026-08-11T13:42:45Z",
+          "body": "Fixed in 15fd6669bfb by using `instanceof ByteBuffer`, with focused coverage for a wrapped buffer key.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3758470814"
+        }
+      ],
+      "reviewed": "5927e6dd6506ec335c981c48a8b21294f7ca6cde",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3755258795"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This is javaagent production code, where the project rule is to use semconv constants directly; locally copied incubating constants are reserved for `library/src/main`. Static-import these four keys from `MessagingIncubatingAttributes` instead of recreating them, as this module already does in `KafkaConnectAttributesGetter.java:8`.",
+      "created": "2026-08-11T04:36:56Z",
+      "hunk": "@@ -0,0 +1,107 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.kafkaconnect.v2_6;\n+\n+import static io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaUtil.serializeKey;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import java.util.Objects;\n+import javax.annotation.Nullable;\n+import org.apache.kafka.connect.sink.SinkRecord;\n+\n+final class KafkaConnectBatchRecordAttributes {\n+\n+  private static final AttributeKey<String> MESSAGING_DESTINATION_NAME =\n+      AttributeKey.stringKey(\"messaging.destination.name\");\n+  private static final AttributeKey<String> MESSAGING_DESTINATION_PARTITION_ID =\n+      AttributeKey.stringKey(\"messaging.destination.partition.id\");\n+  private static final AttributeKey<String> MESSAGING_KAFKA_MESSAGE_KEY =\n+      AttributeKey.stringKey(\"messaging.kafka.message.key\");\n+  private static final AttributeKey<Long> MESSAGING_KAFKA_OFFSET =\n+      AttributeKey.longKey(\"messaging.kafka.offset\");",
+      "id": "PRRT_kwDODJKVX86YHPeC",
+      "opened": "2026-08-11T04:36:56Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaconnect/v2_6/KafkaConnectBatchRecordAttributes.java",
+      "replies": [
+        {
+          "at": "2026-08-11T13:42:47Z",
+          "body": "Fixed in 15fd6669bfb by static-importing the semconv constants directly in javaagent production code.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3758471139"
+        }
+      ],
+      "reviewed": "5927e6dd6506ec335c981c48a8b21294f7ca6cde",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3755258810"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Test code should not add `@Nullable`. Remove this import and the annotations from the `inject` and `extract` carrier parameters; overriding the annotated interface methods does not require repeating them here.",
+      "created": "2026-08-11T04:36:56Z",
+      "hunk": "@@ -0,0 +1,171 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_PARTITION_ID;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_KAFKA_MESSAGE_KEY;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_KAFKA_OFFSET;\n+import static java.util.Collections.emptyList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.junit.jupiter.api.Assumptions.assumeFalse;\n+import static org.junit.jupiter.api.Assumptions.assumeTrue;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.api.trace.TraceFlags;\n+import io.opentelemetry.api.trace.TraceState;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.TextMapGetter;\n+import io.opentelemetry.context.propagation.TextMapPropagator;\n+import io.opentelemetry.context.propagation.TextMapSetter;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanLinksBuilder;\n+import java.util.ArrayList;\n+import java.util.LinkedHashMap;\n+import java.util.List;\n+import java.util.Map;\n+import javax.annotation.Nullable;",
+      "id": "PRRT_kwDODJKVX86YHPeN",
+      "opened": "2026-08-11T04:36:56Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/src/test/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaBatchProcessSpanLinksExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-08-11T13:42:50Z",
+          "body": "Fixed in 15fd6669bfb by removing the test-only `@Nullable` annotations and import.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3758471472"
+        }
+      ],
+      "reviewed": "5927e6dd6506ec335c981c48a8b21294f7ca6cde",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3755258825"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`KafkaUtil.serializeKey(...)` can return null (e.g., null key, byte[] key, ByteBuffer key). Passing null into `AttributesBuilder.put(...)` will throw at runtime. Only call `attributes.put(MESSAGING_KAFKA_MESSAGE_KEY, ...)` when the serialized value is non-null (otherwise omit the attribute).",
+      "created": "2026-08-11T15:42:18Z",
+      "hunk": "@@ -34,21 +33,12 @@ final class KafkaProducerAttributesExtractor\n   public void onStart(\n       AttributesBuilder attributes, Context parentContext, KafkaProducerRequest request) {\n \n-    Object key = request.getRecord().key();\n-    if (key != null && canSerialize(key.getClass())) {\n-      attributes.put(MESSAGING_KAFKA_MESSAGE_KEY, key.toString());\n-    }\n+    attributes.put(MESSAGING_KAFKA_MESSAGE_KEY, KafkaUtil.serializeKey(request.getRecord().key()));",
+      "id": "PRRT_kwDODJKVX86YSPd0",
+      "opened": "2026-08-11T15:42:19Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-08-11T15:48:51Z",
+          "body": "This is safe by the `AttributesBuilder` contract. This PR resolves `opentelemetry-api:1.64.0`; `AttributesBuilder.put(AttributeKey<T>, @Nullable T)` documents that null values are not put, `ArrayBackedAttributesBuilder.put(...)` returns unchanged when `value == null`, and `AttributesTest.nullsAreNoOps` covers this behavior. The repository style also explicitly prefers passing nullable attribute values directly instead of adding redundant guards, so no change is needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3759501658"
+        }
+      ],
+      "reviewed": "9dc789d59e48914da846f556712fd7ac59007ac9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3759436712"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as producer: `KafkaUtil.serializeKey(record.key())` can be null, and `AttributesBuilder.put(...)` does not accept null values. Guard the `put` and omit the attribute when serialization returns null.",
+      "created": "2026-08-11T15:42:18Z",
+      "hunk": "@@ -48,10 +47,7 @@ public void onStart(\n     if (emitOldMessagingSemconv()) {\n       attributes.put(MESSAGING_KAFKA_MESSAGE_OFFSET, record.offset());\n     }\n-    Object key = record.key();\n-    if (key != null && canSerialize(key.getClass())) {\n-      attributes.put(MESSAGING_KAFKA_MESSAGE_KEY, key.toString());\n-    }\n+    attributes.put(MESSAGING_KAFKA_MESSAGE_KEY, KafkaUtil.serializeKey(record.key()));",
+      "id": "PRRT_kwDODJKVX86YSPer",
+      "opened": "2026-08-11T15:42:19Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaConsumerAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-08-11T15:49:04Z",
+          "body": "This is safe by the `AttributesBuilder` contract. This PR resolves `opentelemetry-api:1.64.0`; `AttributesBuilder.put(AttributeKey<T>, @Nullable T)` documents that null values are not put, `ArrayBackedAttributesBuilder.put(...)` returns unchanged when `value == null`, and `AttributesTest.nullsAreNoOps` covers this behavior. The repository style also explicitly prefers passing nullable attribute values directly instead of adding redundant guards, so no change is needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3759503207"
+        }
+      ],
+      "reviewed": "9dc789d59e48914da846f556712fd7ac59007ac9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3759436788"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Both `putCommonAttributes(...)` and `getLinkAttributes(...)` can end up calling `put(MESSAGING_KAFKA_MESSAGE_KEY, null)` when keys are null/unserializable (which is an explicitly supported case). This will throw at runtime. Fix by only putting the message key attribute when the computed key string is non-null; if it’s null, omit it from both span and link attributes. (Same pattern should be applied anywhere a nullable partition/key can flow into `AttributesBuilder.put`.)",
+      "created": "2026-08-11T15:42:19Z",
+      "hunk": "@@ -0,0 +1,100 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import java.util.Objects;\n+import javax.annotation.Nullable;\n+import org.apache.kafka.clients.consumer.ConsumerRecord;\n+\n+final class KafkaBatchRecordAttributes {\n+\n+  // copied from MessagingIncubatingAttributes\n+  private static final AttributeKey<String> MESSAGING_DESTINATION_NAME =\n+      AttributeKey.stringKey(\"messaging.destination.name\");\n+  private static final AttributeKey<String> MESSAGING_DESTINATION_PARTITION_ID =\n+      AttributeKey.stringKey(\"messaging.destination.partition.id\");\n+  private static final AttributeKey<String> MESSAGING_KAFKA_MESSAGE_KEY =\n+      AttributeKey.stringKey(\"messaging.kafka.message.key\");\n+  private static final AttributeKey<Long> MESSAGING_KAFKA_OFFSET =\n+      AttributeKey.longKey(\"messaging.kafka.offset\");\n+\n+  private boolean initialized;\n+  @Nullable private String commonDestination;\n+  @Nullable private String commonPartition;\n+  @Nullable private Long commonOffset;\n+  @Nullable private String commonKey;\n+  private boolean destinationVaries;\n+  private boolean partitionVaries;\n+  private boolean offsetVaries;\n+  private boolean keyVaries;\n+\n+  static KafkaBatchRecordAttributes create(Iterable<? extends ConsumerRecord<?, ?>> records) {\n+    KafkaBatchRecordAttributes attributes = new KafkaBatchRecordAttributes();\n+    for (ConsumerRecord<?, ?> record : records) {\n+      attributes.accept(record);\n+    }\n+    return attributes;\n+  }\n+\n+  void putCommonAttributes(AttributesBuilder attributes) {\n+    if (!initialized) {\n+      return;\n+    }\n+    if (!destinationVaries) {\n+      attributes.put(MESSAGING_DESTINATION_NAME, commonDestination);\n+    }\n+    if (!partitionVaries) {\n+      attributes.put(MESSAGING_DESTINATION_PARTITION_ID, commonPartition);\n+    }\n+    if (!offsetVaries) {\n+      attributes.put(MESSAGING_KAFKA_OFFSET, commonOffset);\n+    }\n+    if (!keyVaries) {\n+      attributes.put(MESSAGING_KAFKA_MESSAGE_KEY, commonKey);\n+    }\n+  }\n+\n+  Attributes getLinkAttributes(ConsumerRecord<?, ?> record) {\n+    AttributesBuilder attributes = Attributes.builder();\n+    if (destinationVaries) {\n+      attributes.put(MESSAGING_DESTINATION_NAME, record.topic());\n+    }\n+    if (partitionVaries) {\n+      attributes.put(MESSAGING_DESTINATION_PARTITION_ID, Integer.toString(record.partition()));\n+    }\n+    if (offsetVaries) {\n+      attributes.put(MESSAGING_KAFKA_OFFSET, record.offset());\n+    }\n+    if (keyVaries) {\n+      attributes.put(MESSAGING_KAFKA_MESSAGE_KEY, KafkaUtil.serializeKey(record.key()));\n+    }\n+    return attributes.build();\n+  }",
+      "id": "PRRT_kwDODJKVX86YSPfV",
+      "opened": "2026-08-11T15:42:19Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaBatchRecordAttributes.java",
+      "replies": [
+        {
+          "at": "2026-08-11T15:49:21Z",
+          "body": "This is safe by the `AttributesBuilder` contract. This PR resolves `opentelemetry-api:1.64.0`; `AttributesBuilder.put(AttributeKey<T>, @Nullable T)` documents that null values are not put, `ArrayBackedAttributesBuilder.put(...)` returns unchanged when `value == null`, and `AttributesTest.nullsAreNoOps` covers this behavior. The repository style also explicitly prefers passing nullable attribute values directly instead of adding redundant guards, so no change is needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3759505164"
+        }
+      ],
+      "reviewed": "9dc789d59e48914da846f556712fd7ac59007ac9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3759436857"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`commonPartition`/`partitionId(record)` and `commonKey`/`serializeKey(record.key())` can be null, but `AttributesBuilder.put(...)` does not accept null values. This can crash Kafka Connect batch processing in stable semconv mode. Omit these attributes when the computed value is null (both for common span attrs and per-link attrs).",
+      "created": "2026-08-11T15:42:19Z",
+      "hunk": "@@ -0,0 +1,101 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.kafkaconnect.v2_6;\n+\n+import static io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaUtil.serializeKey;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_PARTITION_ID;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_KAFKA_MESSAGE_KEY;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_KAFKA_OFFSET;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import java.util.Objects;\n+import javax.annotation.Nullable;\n+import org.apache.kafka.connect.sink.SinkRecord;\n+\n+final class KafkaConnectBatchRecordAttributes {\n+\n+  private boolean initialized;\n+  @Nullable private String commonDestination;\n+  @Nullable private String commonPartition;\n+  @Nullable private Long commonOffset;\n+  @Nullable private String commonKey;\n+  private boolean destinationVaries;\n+  private boolean partitionVaries;\n+  private boolean offsetVaries;\n+  private boolean keyVaries;\n+\n+  static KafkaConnectBatchRecordAttributes create(Iterable<SinkRecord> records) {\n+    KafkaConnectBatchRecordAttributes attributes = new KafkaConnectBatchRecordAttributes();\n+    for (SinkRecord record : records) {\n+      attributes.accept(record);\n+    }\n+    return attributes;\n+  }\n+\n+  void putCommonAttributes(AttributesBuilder attributes) {\n+    if (!initialized) {\n+      return;\n+    }\n+    if (!destinationVaries) {\n+      attributes.put(MESSAGING_DESTINATION_NAME, commonDestination);\n+    }\n+    if (!partitionVaries) {\n+      attributes.put(MESSAGING_DESTINATION_PARTITION_ID, commonPartition);\n+    }\n+    if (!offsetVaries) {\n+      attributes.put(MESSAGING_KAFKA_OFFSET, commonOffset);\n+    }\n+    if (!keyVaries) {\n+      attributes.put(MESSAGING_KAFKA_MESSAGE_KEY, commonKey);\n+    }\n+  }\n+\n+  Attributes getLinkAttributes(SinkRecord record) {\n+    AttributesBuilder attributes = Attributes.builder();\n+    if (destinationVaries) {\n+      attributes.put(MESSAGING_DESTINATION_NAME, record.topic());\n+    }\n+    if (partitionVaries) {\n+      attributes.put(MESSAGING_DESTINATION_PARTITION_ID, partitionId(record));\n+    }\n+    if (offsetVaries) {\n+      attributes.put(MESSAGING_KAFKA_OFFSET, record.kafkaOffset());\n+    }\n+    if (keyVaries) {\n+      attributes.put(MESSAGING_KAFKA_MESSAGE_KEY, serializeKey(record.key()));\n+    }\n+    return attributes.build();\n+  }",
+      "id": "PRRT_kwDODJKVX86YSPgE",
+      "opened": "2026-08-11T15:42:19Z",
+      "path": "instrumentation/kafka/kafka-connect-2.6/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaconnect/v2_6/KafkaConnectBatchRecordAttributes.java",
+      "replies": [
+        {
+          "at": "2026-08-11T15:49:24Z",
+          "body": "This is safe by the `AttributesBuilder` contract. This PR resolves `opentelemetry-api:1.64.0`; `AttributesBuilder.put(AttributeKey<T>, @Nullable T)` documents that null values are not put, `ArrayBackedAttributesBuilder.put(...)` returns unchanged when `value == null`, and `AttributesTest.nullsAreNoOps` covers this behavior. The repository style also explicitly prefers passing nullable attribute values directly instead of adding redundant guards, so no change is needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3759505490"
+        }
+      ],
+      "reviewed": "9dc789d59e48914da846f556712fd7ac59007ac9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3759436928"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "comment split weirdly",
+      "created": "2026-08-18T09:40:10Z",
+      "hunk": "@@ -0,0 +1,103 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import java.util.HashSet;\n+import java.util.Objects;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+import org.apache.kafka.clients.consumer.ConsumerRecord;\n+import org.apache.kafka.clients.consumer.ConsumerRecords;\n+import org.apache.kafka.common.TopicPartition;\n+\n+final class KafkaBatchRecordAttributes {\n+\n+  // copied from MessagingIncubatingAttributes\n+  private static final AttributeKey<String> MESSAGING_DESTINATION_NAME =\n+      AttributeKey.stringKey(\"messaging.destination.name\");\n+  private static final AttributeKey<String> MESSAGING_DESTINATION_PARTITION_ID =\n+      AttributeKey.stringKey(\"messaging.destination.partition.id\");\n+  private static final AttributeKey<String> MESSAGING_KAFKA_MESSAGE_KEY =\n+      AttributeKey.stringKey(\"messaging.kafka.message.key\");\n+  private static final AttributeKey<Long> MESSAGING_KAFKA_OFFSET =\n+      AttributeKey.longKey(\"messaging.kafka.offset\");\n+\n+  private boolean initialized;\n+  @Nullable private String commonPartition;\n+  private boolean destinationVaries;\n+  private boolean partitionVaries;\n+\n+  static KafkaBatchRecordAttributes create(ConsumerRecords<?, ?> records) {\n+    KafkaBatchRecordAttributes attributes = new KafkaBatchRecordAttributes();\n+    attributes.destinationVaries = destinationVaries(records);\n+    for (ConsumerRecord<?, ?> record : records) {\n+      attributes.accept(record);\n+    }\n+    return attributes;\n+  }\n+\n+  // this has to be derived from the same partition set that\n+  // KafkaReceiveAttributesGetter#getDestination uses, and not from the records themselves,\n+  // otherwise\n+  // a batch that carries an empty partition of a second topic would leave the batch span without a\n+  // destination name while still keeping the partition id and the offset on it",
+      "id": "PRRT_kwDODJKVX86aDsKd",
+      "opened": "2026-08-18T09:40:10Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaBatchRecordAttributes.java",
+      "replies": [],
+      "reviewed": "2328483d41970f115c719fcb30b56ff7bbe8ac19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19504#discussion_r3802876143"
+    }
+  ]
+}

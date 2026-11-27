@@ -1,0 +1,25 @@
+{
+  "head": "d610f8430c71ae3a2950bc03139e1ddffe72fbfe",
+  "merge": "e09d379c87a5036a29cc3b4b6c15bcd0b7f80190",
+  "merged": "2026-03-24T15:51:05Z",
+  "missing_roots": 0,
+  "number": 16939,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "👀 ",
+      "created": "2026-03-22T02:58:57Z",
+      "hunk": "@@ -61,9 +58,8 @@ public static class SystemInvokeAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class)\n     public static Scope enter(@Advice.Argument(0) SystemMessage systemMessage) {\n-      VirtualField<SystemMessage, PropagatedContext> virtualField =\n-          VirtualField.find(SystemMessage.class, PropagatedContext.class);\n-      return TaskAdviceHelper.makePropagatedContextCurrent(virtualField, systemMessage);\n+      return TaskAdviceHelper.makePropagatedContextCurrent(\n+          VirtualFields.SYSTEM_MESSAGE_PROPAGATED_CONTEXT, systemMessage);",
+      "id": "PRRT_kwDODJKVX85172x3",
+      "opened": "2026-03-22T02:58:57Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoActorCellInstrumentation.java",
+      "replies": [],
+      "reviewed": "85557d2db464aa0aa8c35ccfcc663ec51250effc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16939#discussion_r2970708015"
+    }
+  ]
+}

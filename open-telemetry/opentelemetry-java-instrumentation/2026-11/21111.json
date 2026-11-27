@@ -1,0 +1,88 @@
+{
+  "head": "c4db7e29562fd63162b5e6c1c23f88e291ccc387",
+  "merge": "92bfd7987367f4347ecfd053ae10587d8318aeed",
+  "merged": "2026-11-04T07:55:01Z",
+  "missing_roots": 0,
+  "number": 21111,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the following behavior-preserving simplification of the temporary delta-preferred exporter implementation. Keep the PR's existing draft state and base. Do not create another PR.\n\n1. In testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/DeltaPreferredInMemoryMetricExporter.java, remove the NoClassDefFoundError/NoSuchMethodError fallback and its duplicated instrument-type mapping. Delegate temporality directly to AggregationTemporalitySelector.deltaPreferred(). That SDK selector already exists in version 1.14.0, the release that introduced InMemoryMetricExporter. The repository's supported pinned testing SDKs, including 1.27 and 1.66, do not require this fallback. Keep the wrapper as small delegation to the SDK in-memory exporter, preserving raw MetricData storage, getters, reset, flush, and shutdown.\n\n2. In testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/exporter/OtlpInMemoryMetricExporter.java, use one initialized AggregationTemporalitySelector. With no otel.javaagent.testing.exporter.temporality property, use deltaPreferred(). With an explicitly configured DELTA or CUMULATIVE, parse the enum case-insensitively as today and return a constant selector for that enum. Remove the separate default selector, hasAggregationTemporalityOverride boolean, and placeholder DELTA override. getAggregationTemporality should only delegate to the initialized selector. Preserve invalid-value failure, useful CONFIG logging, and all OTLP capture/lifecycle behavior. Explicit DELTA must still mean DELTA for every instrument type, not delta-preferred.\n\n3. Add one concise TODO on the shared adapter identifying when it can be removed and linking to https://github.com/open-telemetry/opentelemetry-java/pull/8993. Suggested wording: \"TODO: Replace this adapter with the SDK selector overload once all supported test runtimes provide it: https://github.com/open-telemetry/opentelemetry-java/pull/8993\". The upstream PR adds InMemoryMetricExporter.create(AggregationTemporalitySelector), but it is not released yet. Do not upgrade SDK dependencies or replace the wrapper with the unreleased overload now. No TODO is needed on the agent exporter, which must continue storing OTLP requests.\n\nRetain the existing emitted-data regression tests and separate-JVM DELTA/CUMULATIVE override coverage. They validate our library/installed-agent wiring and external setting independently of upstream SDK tests and should remain after adapter removal. Keep shared library, Spring starter, and declarative provider paths consistent. Do not add normalization, new abstractions, broad migrations, or unrelated changes.\n\nApply narrow relevant Spotless formatting before running focused tests. Validate the Micrometer long-task timer/default temporality cases and testing:agent-for-testing's default, testTemporalityDelta, and testTemporalityCumulative paths. Validate relevant shared/starter compilation and supported SDK compatibility as needed. Do not clean, disable caches, or force reruns. Include the repository's required Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com> trailer in coding commits.\n",
+      "created": "2026-10-31T20:33:46Z",
+      "hunk": "@@ -0,0 +1,71 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.testing.internal;\n+\n+import io.opentelemetry.sdk.common.CompletableResultCode;\n+import io.opentelemetry.sdk.metrics.InstrumentType;\n+import io.opentelemetry.sdk.metrics.data.AggregationTemporality;\n+import io.opentelemetry.sdk.metrics.data.MetricData;\n+import io.opentelemetry.sdk.metrics.export.AggregationTemporalitySelector;\n+import io.opentelemetry.sdk.metrics.export.MetricExporter;\n+import io.opentelemetry.sdk.testing.exporter.InMemoryMetricExporter;\n+import java.util.Collection;\n+import java.util.List;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class DeltaPreferredInMemoryMetricExporter implements MetricExporter {",
+      "id": "PRRT_kwDODJKVX86yUX6c",
+      "opened": "2026-10-31T20:33:46Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/DeltaPreferredInMemoryMetricExporter.java",
+      "replies": [
+        {
+          "at": "2026-10-31T20:46:40Z",
+          "body": "Updated in commit `0f1b60a1`: the shared adapter now delegates directly to `deltaPreferred()` and has the removal TODO; the agent exporter initializes one default-or-override selector. Focused Micrometer tests and default/DELTA/CUMULATIVE agent tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21111#discussion_r4433236796"
+        }
+      ],
+      "reviewed": "72489030e8c997f2f2dc19f2f7e050476861e27b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21111#discussion_r4433201545"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\nMetric exporters use delta-preferred aggregation temporality by default.\n```",
+      "created": "2026-10-31T21:02:21Z",
+      "hunk": "@@ -20,6 +20,9 @@ The `otel.javaagent.experimental.initializer.jar` property is used to load the s\n This contains the span and metric exporters that are used.\n \n These are in-memory exporters, so that the tests can verify the spans and metrics being exported.\n+Metric exporters use delta-preferred aggregation temporality by default. Set\n+`otel.javaagent.testing.exporter.temporality` to `DELTA` or `CUMULATIVE` to request that temporality\n+for every instrument type in agent tests.",
+      "id": "PRRT_kwDODJKVX86yUkMM",
+      "opened": "2026-10-31T21:02:20Z",
+      "path": "docs/contributing/javaagent-test-infra.md",
+      "replies": [],
+      "reviewed": "0f1b60a1dfb4335253d1437f21dd28fcc2a5e4a7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21111#discussion_r4433281186"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with these three scoped cleanup changes discussed with the user. Preserve the draft state, existing base, and current delta-preferred behavior. Do not create another PR.\n\n1. Move the generic exporter regression out of instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractLongTaskTimerTest.java. The added testMetricsUseDeltaPreferredTemporality method creates SDK instruments directly and never calls Micrometer. It does not belong in the Micrometer long-task-timer test base. Restore that file's existing Micrometer tests, removing only this PR's added generic test, supporting imports, and private helpers. Put the library-runner regression in appropriate existing testing-common test infrastructure, exercising the real shared library test exporter/runner, not just mocking or calling selector methods. Preserve emitted DELTA counter/observable-counter/histogram checks, CUMULATIVE synchronous/observable up-down-counter checks, and the repeated observable up-down values 1, 1, 0. Reuse existing installed-agent coverage in testing/agent-for-testing/src/test/java/io/opentelemetry/javaagent/testing/AgentMetricTemporalityTest.java; relocate necessary repeated-collection assertions there if needed to retain the installed-agent regression previously inherited from the Micrometer base. Preserve the separate-JVM DELTA and CUMULATIVE override tests. Keep the tests focused and independent of Micrometer rather than introducing a new shared test module or duplicating the same matrix across instrumentation subclasses.\n\n2. In testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/DeltaPreferredInMemoryMetricExporter.java, move the adapter-removal TODO from the delegate field to the class-level Javadoc alongside the internal-API notice. The TODO applies to replacing the whole class. Retain the condition that all supported test runtimes must provide the selector overload and the link to https://github.com/open-telemetry/opentelemetry-java/pull/8993. Do not upgrade SDK dependencies or use the unreleased overload.\n\n3. In testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/exporter/OtlpInMemoryMetricExporter.java, group the instance collectedRequests queue with the fields: place it immediately after the static temporalitySelector field and before initTemporalitySelector(). There is no behavior reason for the queue to sit below that helper method. Keep the single-selector implementation and external override behavior unchanged.\n\nPreserve all current user changes, including the applied simplification of docs/contributing/javaagent-test-infra.md. Do not reinstate removed documentation, change outgoing telemetry or configuration semantics, add normalization, migrate assertions broadly, or edit unrelated files. Shared library, Spring starter, declarative provider wiring, raw storage, reset, flush, and shutdown behavior must remain unchanged. Do not reply to or resolve human review threads.\n\nApply the narrowest relevant Spotless tasks before behavioral validation. Run the focused relocated shared-runner regression and installed-agent default/DELTA/CUMULATIVE cases, and run existing Micrometer long-task-timer cases unchanged as validation targets. Use the repository's test conventions without clean, cache bypass, or forced reruns. Include this commit trailer in coding commits: Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>.\n",
+      "created": "2026-10-31T21:13:20Z",
+      "hunk": "@@ -10,17 +10,102 @@\n import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n import static java.util.concurrent.TimeUnit.MILLISECONDS;\n+import static java.util.stream.Collectors.toList;\n \n import io.micrometer.core.instrument.LongTaskTimer;\n import io.micrometer.core.instrument.Metrics;\n+import io.opentelemetry.api.metrics.DoubleHistogram;\n+import io.opentelemetry.api.metrics.LongUpDownCounter;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.api.metrics.ObservableLongCounter;\n+import io.opentelemetry.api.metrics.ObservableLongUpDownCounter;\n import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.metrics.data.AggregationTemporality;\n+import io.opentelemetry.sdk.metrics.data.MetricData;\n+import java.util.List;\n+import java.util.concurrent.atomic.AtomicLong;\n import org.assertj.core.api.AbstractIterableAssert;\n import org.junit.jupiter.api.Test;\n \n public abstract class AbstractLongTaskTimerTest {\n \n   protected abstract InstrumentationExtension testing();\n \n+  @Test\n+  void testMetricsUseDeltaPreferredTemporality() {",
+      "id": "PRRT_kwDODJKVX86yUqUR",
+      "opened": "2026-10-31T21:13:20Z",
+      "path": "instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractLongTaskTimerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-31T21:22:37Z",
+          "body": "Implemented in `05dc7c5e`: moved the shared runner regression into testing-common, added installed-agent repeated-snapshot checks for default and override modes, moved the TODO to the adapter Javadoc, and reordered the exporter fields. Spotless and the requested focused tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21111#discussion_r4433345838"
+        }
+      ],
+      "reviewed": "ba00679bc58484767cff8c141c36ea9676a6764d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21111#discussion_r4433320639"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the agreed test reduction. Preserve its existing draft state and base. Do not create another PR.\n\nReduce both testing-common/src/test/java/io/opentelemetry/instrumentation/testing/DeltaPreferredMetricTemporalityTest.java and testing/agent-for-testing/src/test/java/io/opentelemetry/javaagent/testing/AgentMetricTemporalityTest.java to two representative instruments: a regular counter and an observable up-down counter. Remove the observable-counter, synchronous up-down-counter, and histogram setup and assertions, their unused imports, and obsolete cleanup. The SDK owns the full instrument-selection matrix; these tests should verify our real library/installed-agent wiring and the repeated-value regression rather than repeat that matrix.\n\nKeep all three actual metric collections in each test, with the observable up-down value 1 for the first two collections and 0 for the third. Assert the full exported observable history only after the third collection. Remove the redundant first- and second-history assertions, not the collections themselves. Retain one counter-temporality assertion and one observable up-down-temporality assertion using the first collection. For the library/default path, the counter must be DELTA and the observable up-down counter CUMULATIVE with final history exactly 1, 1, 0. In the installed-agent test, default must produce the same temporalities/history; explicit DELTA must make both instruments DELTA and produce exactly 1, 0, -1; explicit CUMULATIVE must make both CUMULATIVE and produce exactly 1, 1, 0. Continue closing the observable instrument.\n\nRetain separate library and installed-agent test classes and their actual runner/exporter collection paths. Keep the separate-JVM default/DELTA/CUMULATIVE runs, including the lowercase override settings that exercise case-insensitive parsing. Do not introduce a new shared test abstraction or additional helper solely to compute these short expected values. Adjust a test name if its reference to every instrument becomes inaccurate. Keep the change limited to these test reductions; no production, dependency, documentation, SDK, Gradle task wiring, normalization, or Micrometer changes are requested. Preserve all existing user edits and the class-level TODO and field organization.\n\nApply the narrowest relevant Spotless tasks directly before behavioral validation. Run the focused shared-runner test and the installed-agent default, testTemporalityDelta, and testTemporalityCumulative cases. Do not clean, bypass caches, or force reruns. Include this trailer in coding commits: Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>. Do not reply to or resolve human review threads.\n",
+      "created": "2026-10-31T22:01:39Z",
+      "hunk": "@@ -0,0 +1,96 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.testing;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static java.util.stream.Collectors.toList;\n+\n+import io.opentelemetry.api.metrics.DoubleHistogram;\n+import io.opentelemetry.api.metrics.LongUpDownCounter;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.api.metrics.ObservableLongCounter;\n+import io.opentelemetry.api.metrics.ObservableLongUpDownCounter;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import io.opentelemetry.sdk.metrics.data.AggregationTemporality;\n+import io.opentelemetry.sdk.metrics.data.MetricData;\n+import java.util.List;\n+import java.util.concurrent.atomic.AtomicLong;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class DeltaPreferredMetricTemporalityTest {\n+\n+  @RegisterExtension\n+  static final LibraryInstrumentationExtension testing = LibraryInstrumentationExtension.create();\n+\n+  @Test\n+  void usesDeltaPreferredTemporalityForExportedMetrics() {",
+      "id": "PRRT_kwDODJKVX86yU_TF",
+      "opened": "2026-10-31T22:01:38Z",
+      "path": "testing-common/src/test/java/io/opentelemetry/instrumentation/testing/DeltaPreferredMetricTemporalityTest.java",
+      "replies": [
+        {
+          "at": "2026-10-31T22:10:34Z",
+          "body": "Reduced both tests to the counter and observable up-down counter, preserving three collections and the requested final histories. Committed as `4b3edf90`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21111#discussion_r4433477573"
+        }
+      ],
+      "reviewed": "05dc7c5e60405b23e42c6c534820cc0c67fd6948",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21111#discussion_r4433455492"
+    }
+  ]
+}

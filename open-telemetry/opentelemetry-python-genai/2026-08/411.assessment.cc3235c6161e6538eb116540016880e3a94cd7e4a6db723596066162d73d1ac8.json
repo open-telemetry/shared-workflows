@@ -1,0 +1,41 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8b2e1b70a17e2d608fc30b0bce129383abb6f1d29e9eba25dc195cf132e83d9f",
+  "input_digest": "cc3235c6161e6538eb116540016880e3a94cd7e4a6db723596066162d73d1ac8",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDOSbspP86afC8p",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDOSbspP86afGRU",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/5027a1fb6471feace258b8f1385b289d492757b6/tox.ini",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7c0a9c7f4e34f1069b5fd87c6c39b0279cd393c7/tox.ini"
+      ],
+      "id": "PRRT_kwDOSbspP86afU40",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/5027a1fb6471feace258b8f1385b289d492757b6/AGENTS.md",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7c0a9c7f4e34f1069b5fd87c6c39b0279cd393c7/AGENTS.md"
+      ],
+      "id": "PRRT_kwDOSbspP86afU5P",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

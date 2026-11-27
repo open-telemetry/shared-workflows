@@ -1,0 +1,199 @@
+{
+  "head": "63286a42080d6fad9750c11cb1430b3416d00577",
+  "merge": "1dc0e79807c02af3f9ca10e9f0260677b5450060",
+  "merged": "2026-07-08T22:08:24Z",
+  "missing_roots": 0,
+  "number": 129,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This records `input_tokens`/`output_tokens` as `0` whenever `usage_metadata` exists but the keys are absent, which can silently fabricate token usage and produce misleading telemetry (and may also cause tests to treat missing-vs-zero incorrectly). Prefer only setting these fields when the corresponding keys are present (e.g., check key membership), or use `None` to represent unknown/missing.",
+      "created": "2026-06-11T16:35:58Z",
+      "hunk": "@@ -311,58 +291,49 @@ def on_llm_end(\n         output_messages: list[OutputMessage] = []\n         for generation in getattr(response, \"generations\", []):\n             for chat_generation in generation:\n-                # Get finish reason\n-                finish_reason = \"unknown\"  # Default value\n+                message = chat_generation.message\n+                if message is None:\n+                    continue\n+\n+                # Resolve finish_reason from generation_info or response\n+                # metadata. Modern langchain-aws (>= 0.2) emits ``stop_reason``\n+                # (snake_case); older versions used ``stopReason``. Empty\n+                # values are filtered out by util-genai when emitting\n+                # ``gen_ai.response.finish_reasons``.\n+                finish_reason = \"\"\n                 generation_info = getattr(\n                     chat_generation, \"generation_info\", None\n                 )\n                 if generation_info is not None:\n-                    finish_reason = generation_info.get(\n-                        \"finish_reason\", \"unknown\"\n+                    finish_reason = generation_info.get(\"finish_reason\", \"\")\n+                if not finish_reason and message.response_metadata:\n+                    response_metadata = message.response_metadata\n+                    finish_reason = (\n+                        response_metadata.get(\"stop_reason\")\n+                        or response_metadata.get(\"stopReason\")\n+                        or \"\"\n                     )\n \n-                if chat_generation.message:\n-                    # Get finish reason if generation_info is None above\n-                    if (\n-                        generation_info is None\n-                        and chat_generation.message.response_metadata\n-                    ):\n-                        finish_reason = (\n-                            chat_generation.message.response_metadata.get(\n-                                \"stopReason\", \"unknown\"\n-                            )\n-                        )\n-\n-                    # Get message content\n-                    parts = [\n-                        Text(\n-                            content=chat_generation.message.content,\n-                            type=\"text\",\n-                        )\n-                    ]\n-                    role = chat_generation.message.type\n-                    output_message = OutputMessage(\n-                        role=role,\n-                        parts=cast(list[MessagePart], parts),\n-                        finish_reason=finish_reason,\n+                # Convert via message_conversion so AIMessage tool calls,\n+                # reasoning blocks, and structured content are preserved.\n+                converted = to_output_messages(\n+                    [message], finish_reason=finish_reason\n+                )\n+                output_messages.extend(converted)\n+\n+                # Token usage (extracted regardless of whether the message\n+                # produced output parts — some tool-call-only responses can\n+                # still report token counts).\n+                if message.usage_metadata:\n+                    input_tokens = message.usage_metadata.get(\n+                        \"input_tokens\", 0\n                     )\n-                    output_messages.append(output_message)\n-\n-                    # Get token usage if available\n-                    if chat_generation.message.usage_metadata:\n-                        input_tokens = (\n-                            chat_generation.message.usage_metadata.get(\n-                                \"input_tokens\", 0\n-                            )\n-                        )\n-                        llm_invocation.input_tokens = input_tokens\n+                    llm_invocation.input_tokens = input_tokens\n \n-                        output_tokens = (\n-                            chat_generation.message.usage_metadata.get(\n-                                \"output_tokens\", 0\n-                            )\n-                        )\n-                        llm_invocation.output_tokens = output_tokens\n+                    output_tokens = message.usage_metadata.get(\n+                        \"output_tokens\", 0\n+                    )\n+                    llm_invocation.output_tokens = output_tokens",
+      "id": "PRRT_kwDOSbspP86I4V7t",
+      "opened": "2026-06-11T16:35:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "89182dfb30ab91354524cb1e0e2d2302dacd9c95",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3397576778"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The truthiness check treats `0` the same as a missing value. If a provider reports `0` tokens (or the instrumentation assigns `0` as a default), this test will incorrectly expect the attribute to be absent. Use an explicit `is not None` / key-existence check to distinguish missing from zero.",
+      "created": "2026-06-11T16:35:58Z",
+      "hunk": "@@ -351,6 +367,41 @@ def assert_bedrock_completion_attributes(\n         )\n \n \n+def assert_gemini_completion_attributes(\n+    span: ReadableSpan, response: Optional\n+):\n+    assert span is not None\n+    assert span.name == \"chat gemini-2.5-pro\"\n+    assert span.attributes[gen_ai_attributes.GEN_AI_OPERATION_NAME] == \"chat\"\n+    assert (\n+        span.attributes[gen_ai_attributes.GEN_AI_REQUEST_MODEL]\n+        == \"gemini-2.5-pro\"\n+    )\n+    assert span.attributes[\"gen_ai.provider.name\"] == \"gcp.gen_ai\"\n+\n+    input_tokens = response.usage_metadata.get(\"input_tokens\")\n+    if input_tokens:\n+        assert (\n+            input_tokens\n+            == span.attributes[gen_ai_attributes.GEN_AI_USAGE_INPUT_TOKENS]\n+        )\n+    else:\n+        assert (\n+            gen_ai_attributes.GEN_AI_USAGE_INPUT_TOKENS not in span.attributes\n+        )",
+      "id": "PRRT_kwDOSbspP86I4V8P",
+      "opened": "2026-06-11T16:35:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [],
+      "reviewed": "89182dfb30ab91354524cb1e0e2d2302dacd9c95",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3397576833"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The annotation `response: Optional` is not a valid/meaningful type (it should be parameterized like `Optional[Any]` or a concrete response type). Tightening this improves static checking and avoids confusing type hints.",
+      "created": "2026-06-11T16:35:58Z",
+      "hunk": "@@ -351,6 +367,41 @@ def assert_bedrock_completion_attributes(\n         )\n \n \n+def assert_gemini_completion_attributes(\n+    span: ReadableSpan, response: Optional\n+):",
+      "id": "PRRT_kwDOSbspP86I4V8b",
+      "opened": "2026-06-11T16:35:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [],
+      "reviewed": "89182dfb30ab91354524cb1e0e2d2302dacd9c95",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3397576852"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This narrows accepted `messages` containers to only `list`. Previously the code would iterate over any iterable; now tuples/other sequences will drop all messages by returning `[]`. Consider accepting `Iterable[BaseMessage]` (or `Sequence`) and converting with `list(messages)` when needed, while still validating the element type via `to_input_messages`.",
+      "created": "2026-06-11T16:35:59Z",
+      "hunk": "@@ -1,34 +1,224 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n+\n+from __future__ import annotations\n+\n import json\n+from collections.abc import Iterable\n from typing import Any, Optional, cast\n \n-from langchain_core.messages import AIMessage\n+from langchain_core.messages import (\n+    AIMessage,\n+    BaseMessage,\n+    ToolMessage,\n+)\n \n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n from opentelemetry.util.genai.types import (\n     InputMessage,\n+    MessagePart,\n     OutputMessage,\n+    Reasoning,\n     Text,\n+    ToolCallRequest,\n+    ToolCallResponse,\n )\n \n+# Mapping from LangChain ``ls_provider`` metadata values to the well-known\n+# ``gen_ai.provider.name`` values defined by the GenAI semantic conventions.\n+_PROVIDER_NAME_OVERRIDES: dict[str, str] = {\n+    \"amazon_bedrock\": GenAIAttributes.GenAiProviderNameValues.AWS_BEDROCK.value,\n+    \"bedrock\": GenAIAttributes.GenAiProviderNameValues.AWS_BEDROCK.value,\n+    \"bedrock_converse\": GenAIAttributes.GenAiProviderNameValues.AWS_BEDROCK.value,\n+    \"azure_openai\": GenAIAttributes.GenAiProviderNameValues.AZURE_AI_OPENAI.value,\n+    \"azure\": GenAIAttributes.GenAiProviderNameValues.AZURE_AI_INFERENCE.value,\n+    \"vertexai\": GenAIAttributes.GenAiProviderNameValues.GCP_VERTEX_AI.value,\n+    \"google_vertexai\": GenAIAttributes.GenAiProviderNameValues.GCP_VERTEX_AI.value,\n+    \"google_genai\": GenAIAttributes.GenAiProviderNameValues.GCP_GEN_AI.value,\n+    \"google_generativeai\": GenAIAttributes.GenAiProviderNameValues.GCP_GEMINI.value,\n+}\n+\n+\n+def normalize_provider(metadata: Optional[dict[str, Any]]) -> Optional[str]:\n+    \"\"\"Return the spec ``gen_ai.provider.name`` value derived from metadata.\n+\n+    Returns ``None`` when no provider can be determined; callers decide how\n+    to handle that (typically by skipping the span).\n+    \"\"\"\n+    if not metadata:\n+        return None\n+    raw = metadata.get(\"ls_provider\")\n+    if not raw:\n+        return None\n+    return _PROVIDER_NAME_OVERRIDES.get(raw, raw)\n+\n+\n+# LangChain ``BaseMessage.type`` -> spec ``role`` value. Anything not in the\n+# map is passed through unchanged so future LangChain message types still emit\n+# telemetry without code changes here.\n+_ROLE_MAP: dict[str, str] = {\n+    \"human\": \"user\",\n+    \"ai\": \"assistant\",\n+    \"function\": \"tool\",\n+}\n+\n+\n+def _normalize_role(message: BaseMessage) -> str:\n+    return _ROLE_MAP.get(message.type, message.type)\n+\n+\n+def _content_to_parts(content: Any) -> list[MessagePart]:\n+    \"\"\"Convert a LangChain message ``content`` payload into ``MessagePart`` s.\n+\n+    Content may be a plain string or a list of provider-specific block dicts\n+    (e.g. Anthropic structured content). We extract :class:`Text` and\n+    :class:`Reasoning` parts; ``tool_use`` blocks are intentionally ignored\n+    here because LangChain consolidates them into ``message.tool_calls`` which\n+    is read separately.\n+    \"\"\"\n+    parts: list[MessagePart] = []\n+    if isinstance(content, str):\n+        if content:\n+            parts.append(Text(content=content))\n+        return parts\n+    if isinstance(content, list):\n+        for item in content:\n+            if isinstance(item, str):\n+                if item:\n+                    parts.append(Text(content=item))\n+                continue\n+            if not isinstance(item, dict):\n+                continue\n+            block_type = item.get(\"type\")\n+            if block_type == \"text\":\n+                text_value = item.get(\"text\")\n+                if isinstance(text_value, str) and text_value:\n+                    parts.append(Text(content=text_value))\n+            elif block_type in (\"thinking\", \"reasoning\"):\n+                reasoning_value = (\n+                    item.get(\"thinking\")\n+                    or item.get(\"reasoning\")\n+                    or item.get(\"text\")\n+                )\n+                if isinstance(reasoning_value, str) and reasoning_value:\n+                    parts.append(Reasoning(content=reasoning_value))\n+    return parts\n+\n+\n+def _ai_message_parts(message: AIMessage) -> list[MessagePart]:\n+    \"\"\"Build :class:`MessagePart` s for an :class:`AIMessage`.\n+\n+    Includes any text/reasoning content followed by a\n+    :class:`ToolCallRequest` for each entry in ``message.tool_calls``.\n+    \"\"\"\n+    parts: list[MessagePart] = _content_to_parts(message.content)\n+    tool_calls = getattr(message, \"tool_calls\", None) or []\n+    for call in tool_calls:\n+        if not isinstance(call, dict):\n+            continue\n+        name = call.get(\"name\")\n+        if not isinstance(name, str) or not name:\n+            continue\n+        call_id = call.get(\"id\")\n+        parts.append(\n+            ToolCallRequest(\n+                arguments=call.get(\"args\"),\n+                name=name,\n+                id=call_id if isinstance(call_id, str) else None,\n+            )\n+        )\n+    return parts\n+\n+\n+def _tool_message_parts(message: ToolMessage) -> list[MessagePart]:\n+    \"\"\"Build :class:`MessagePart` s for a :class:`ToolMessage` (tool result).\"\"\"\n+    tool_call_id = getattr(message, \"tool_call_id\", None)\n+    return [\n+        ToolCallResponse(\n+            response=message.content,\n+            id=tool_call_id if isinstance(tool_call_id, str) else None,\n+        )\n+    ]\n+\n+\n+def _message_parts(message: BaseMessage) -> list[MessagePart]:\n+    if isinstance(message, ToolMessage):\n+        return _tool_message_parts(message)\n+    if isinstance(message, AIMessage):\n+        return _ai_message_parts(message)\n+    return _content_to_parts(message.content)\n+\n+\n+def to_input_messages(\n+    messages: Iterable[BaseMessage],\n+) -> list[InputMessage]:\n+    \"\"\"Convert LangChain messages into spec-conformant ``InputMessage`` s.\"\"\"\n+    result: list[InputMessage] = []\n+    for message in messages:\n+        if not isinstance(message, BaseMessage):\n+            continue\n+        parts = _message_parts(message)\n+        if not parts:\n+            continue\n+        result.append(\n+            InputMessage(role=_normalize_role(message), parts=parts)\n+        )\n+    return result\n+\n+\n+def to_output_messages(\n+    messages: Iterable[BaseMessage],\n+    *,\n+    finish_reason: str = \"\",\n+) -> list[OutputMessage]:\n+    \"\"\"Convert LangChain ``AIMessage`` instances into ``OutputMessage`` s.\n+\n+    Non-``AIMessage`` entries are skipped: only assistant turns are recorded\n+    as ``gen_ai.output.messages``. Tool execution results belong on the\n+    *input* side of the next inference call, not the output side of the\n+    previous one.\n+    \"\"\"\n+    result: list[OutputMessage] = []\n+    for message in messages:\n+        if not isinstance(message, AIMessage):\n+            continue\n+        parts = _ai_message_parts(message)\n+        if not parts:\n+            continue\n+        result.append(\n+            OutputMessage(\n+                role=_normalize_role(message),\n+                parts=parts,\n+                finish_reason=finish_reason,\n+            )\n+        )\n+    return result\n+\n \n def make_input_message(data: Any) -> list[InputMessage]:\n-    \"\"\"Create structured input message with full data as JSON.\"\"\"\n+    \"\"\"Build ``InputMessage`` s from a workflow/agent input mapping.\n+\n+    When ``data['messages']`` is present, every LangChain ``BaseMessage`` in it\n+    is converted via :func:`to_input_messages` (which preserves the original\n+    role: a prior ``AIMessage`` becomes ``role='assistant'``, a\n+    ``SystemMessage`` becomes ``role='system'``, and so on) and includes\n+    tool-call structure.\n+\n+    When no ``messages`` key exists (common in LangGraph state dicts), the\n+    remaining state fields are serialized as JSON and emitted as a single\n+    user-role :class:`Text` part.\n+    \"\"\"\n     if not isinstance(data, dict):\n         return []\n     data_dict = cast(dict[str, Any], data)\n-    input_messages: list[InputMessage] = []\n     messages: Any = data_dict.get(\"messages\")\n     if messages is not None:\n-        for msg in messages:\n-            content: Any = getattr(msg, \"content\", \"\")\n-            if content and isinstance(content, str):\n-                input_message = InputMessage(\n-                    role=\"user\", parts=[Text(content)]\n-                )\n-                input_messages.append(input_message)\n-        return input_messages\n+        if not isinstance(messages, list):\n+            return []\n+        return to_input_messages(messages)",
+      "id": "PRRT_kwDOSbspP86I4V82",
+      "opened": "2026-06-11T16:35:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [],
+      "reviewed": "89182dfb30ab91354524cb1e0e2d2302dacd9c95",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3397576888"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`raw` is assumed to be a `str`, but `metadata` is typed as `dict[str, Any]`. If `ls_provider` is ever non-string (or unhashable), `_PROVIDER_NAME_OVERRIDES.get(raw, raw)` can raise at runtime. Guard with `isinstance(raw, str)` and return `None` (or `str(raw)` if you explicitly want coercion).",
+      "created": "2026-06-11T16:35:59Z",
+      "hunk": "@@ -1,34 +1,224 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n+\n+from __future__ import annotations\n+\n import json\n+from collections.abc import Iterable\n from typing import Any, Optional, cast\n \n-from langchain_core.messages import AIMessage\n+from langchain_core.messages import (\n+    AIMessage,\n+    BaseMessage,\n+    ToolMessage,\n+)\n \n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n from opentelemetry.util.genai.types import (\n     InputMessage,\n+    MessagePart,\n     OutputMessage,\n+    Reasoning,\n     Text,\n+    ToolCallRequest,\n+    ToolCallResponse,\n )\n \n+# Mapping from LangChain ``ls_provider`` metadata values to the well-known\n+# ``gen_ai.provider.name`` values defined by the GenAI semantic conventions.\n+_PROVIDER_NAME_OVERRIDES: dict[str, str] = {\n+    \"amazon_bedrock\": GenAIAttributes.GenAiProviderNameValues.AWS_BEDROCK.value,\n+    \"bedrock\": GenAIAttributes.GenAiProviderNameValues.AWS_BEDROCK.value,\n+    \"bedrock_converse\": GenAIAttributes.GenAiProviderNameValues.AWS_BEDROCK.value,\n+    \"azure_openai\": GenAIAttributes.GenAiProviderNameValues.AZURE_AI_OPENAI.value,\n+    \"azure\": GenAIAttributes.GenAiProviderNameValues.AZURE_AI_INFERENCE.value,\n+    \"vertexai\": GenAIAttributes.GenAiProviderNameValues.GCP_VERTEX_AI.value,\n+    \"google_vertexai\": GenAIAttributes.GenAiProviderNameValues.GCP_VERTEX_AI.value,\n+    \"google_genai\": GenAIAttributes.GenAiProviderNameValues.GCP_GEN_AI.value,\n+    \"google_generativeai\": GenAIAttributes.GenAiProviderNameValues.GCP_GEMINI.value,\n+}\n+\n+\n+def normalize_provider(metadata: Optional[dict[str, Any]]) -> Optional[str]:\n+    \"\"\"Return the spec ``gen_ai.provider.name`` value derived from metadata.\n+\n+    Returns ``None`` when no provider can be determined; callers decide how\n+    to handle that (typically by skipping the span).\n+    \"\"\"\n+    if not metadata:\n+        return None\n+    raw = metadata.get(\"ls_provider\")\n+    if not raw:\n+        return None\n+    return _PROVIDER_NAME_OVERRIDES.get(raw, raw)",
+      "id": "PRRT_kwDOSbspP86I4V9G",
+      "opened": "2026-06-11T16:35:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [],
+      "reviewed": "89182dfb30ab91354524cb1e0e2d2302dacd9c95",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3397576908"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Curious as to where you got this list from?",
+      "created": "2026-06-15T16:41:31Z",
+      "hunk": "@@ -1,34 +1,228 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n+\n+from __future__ import annotations\n+\n import json\n+from collections.abc import Iterable\n from typing import Any, Optional, cast\n \n-from langchain_core.messages import AIMessage\n+from langchain_core.messages import (\n+    AIMessage,\n+    BaseMessage,\n+    ToolMessage,\n+)\n \n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n from opentelemetry.util.genai.types import (\n     InputMessage,\n+    MessagePart,\n     OutputMessage,\n+    Reasoning,\n     Text,\n+    ToolCallRequest,\n+    ToolCallResponse,\n )\n \n+# Mapping from LangChain ``ls_provider`` metadata values to the well-known\n+# ``gen_ai.provider.name`` values defined by the GenAI semantic conventions.\n+_PROVIDER_NAME_OVERRIDES: dict[str, str] = {\n+    \"amazon_bedrock\": GenAIAttributes.GenAiProviderNameValues.AWS_BEDROCK.value,",
+      "id": "PRRT_kwDOSbspP86JpPxW",
+      "opened": "2026-06-15T16:41:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-06-15T17:00:24Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-python-genai/blob/58d41b24dd9c69c60469b78adf15c0ccd8018600/instrumentation/opentelemetry-instrumentation-genai-openai-agents/src/opentelemetry/instrumentation/genai/openai_agents/span_processor.py#L90 had this list, I just used the semconv versions of those, ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3415182845"
+        },
+        {
+          "at": "2026-06-15T17:19:43Z",
+          "body": "I think we either want to use the well-known values in [sem conv](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md#invoke-agent-internal-span) or what's actually available from [langchain](https://github.com/langchain-ai/langchain)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3415285397"
+        },
+        {
+          "at": "2026-07-01T16:23:27Z",
+          "body": "This change is included in the migration PR for langchain.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3507538370"
+        }
+      ],
+      "reviewed": "a85c51c884e9c76ae7d1db27e72c26ba36900867",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3415080407"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Nit: New line",
+      "created": "2026-06-15T16:57:32Z",
+      "hunk": "@@ -0,0 +1 @@\n+Update langchain instrumentation to use latest semantic conventions",
+      "id": "PRRT_kwDOSbspP86Jpfeo",
+      "opened": "2026-06-15T16:57:32Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/129.changed",
+      "replies": [],
+      "reviewed": "a85c51c884e9c76ae7d1db27e72c26ba36900867",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3415167750"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nThis method should not take this parameter anymore\n\nhttps://github.com/open-telemetry/opentelemetry-python-genai/blob/dac7e25686a26258f932dd78f36d0e6568708938/util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py#L448-L453",
+      "created": "2026-07-08T19:09:33Z",
+      "hunk": "@@ -95,7 +96,9 @@ def on_chain_start(\n                     else None\n                 )\n                 if suggested_agent_name_lower != agent_invocation_name_lower:\n+                    agent_provider = normalize_provider(metadata) or \"unknown\"\n                     agent = self._telemetry_handler.invoke_local_agent(\n+                        provider=agent_provider,",
+      "id": "PRRT_kwDOSbspP86PWghh",
+      "opened": "2026-07-08T19:16:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-07-08T20:09:44Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3546947120"
+        }
+      ],
+      "reviewed": "efeeea6f1639ca04e4342e165eae17808ee3dbfe",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3546617179"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it should be provided at the start time",
+      "created": "2026-07-08T19:11:32Z",
+      "hunk": "@@ -203,20 +202,22 @@ def on_chat_model_start(\n         else:\n             params = kwargs\n \n-        request_model = \"unknown\"\n+        # Resolve request_model from common provider-specific keys.\n+        request_model: Optional[str] = None",
+      "id": "PRRT_kwDOSbspP86PWil5",
+      "opened": "2026-07-08T19:16:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-07-08T20:08:55Z",
+          "body": "Do you mind clarifying this comment? Do you mean the request model should be provided in the `on_chain_start` method? Currently it is provided in the `on_chat_model_start` method.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3546942397"
+        },
+        {
+          "at": "2026-07-08T22:03:01Z",
+          "body": "sorry, my bad, I thought it's part of agent invocation",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3547531237"
+        }
+      ],
+      "reviewed": "efeeea6f1639ca04e4342e165eae17808ee3dbfe",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3546628771"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not necessary anymore",
+      "created": "2026-07-08T19:12:04Z",
+      "hunk": "@@ -235,45 +236,26 @@ def on_chat_model_start(\n             stop_sequences = params.get(\"stop\")\n             seed = params.get(\"seed\")\n             temperature = params.get(\"temperature\")\n-            max_tokens = params.get(\"max_completion_tokens\")\n+            # ``max_completion_tokens`` is OpenAI-specific; fall back to the\n+            # generic ``max_tokens`` used by Anthropic, Mistral, Cohere, etc.\n+            max_tokens = params.get(\"max_completion_tokens\") or params.get(\n+                \"max_tokens\"\n+            )\n \n-        provider = \"unknown\"\n+        provider = normalize_provider(metadata) or \"unknown\"",
+      "id": "PRRT_kwDOSbspP86PWjG5",
+      "opened": "2026-07-08T19:16:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-07-08T19:44:09Z",
+          "body": "This parameter is being passed into the `inference` function of the `TelemetryHandler` class at line 259 - \r\n\r\n```\r\nllm_invocation = self._telemetry_handler.inference(\r\n            provider,\r\n            request_model=request_model,\r\n        )\r\n```\r\n\r\nhttps://github.com/open-telemetry/opentelemetry-python-genai/blob/dac7e25686a26258f932dd78f36d0e6568708938/util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py#L305",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3546808697"
+        }
+      ],
+      "reviewed": "efeeea6f1639ca04e4342e165eae17808ee3dbfe",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/129#discussion_r3546631636"
+    }
+  ]
+}

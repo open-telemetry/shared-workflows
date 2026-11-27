@@ -1,0 +1,127 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1ccd08b2f949895f0f2f48b5acf42d37af9d04d4c88c9b374cbb2c6da19e9469",
+  "input_digest": "78a5b4a9893b5544cefd414c5d59e7e314f506fa053edbac8c9471b11743f972",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4603f5943c3468fa5b40de69a50a9ab97468fd58/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/OpenAITelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4603f5943c3468fa5b40de69a50a9ab97468fd58/instrumentation/openai/openai-java-1.1/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractOpenAiTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractEmbeddingsTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86G6EVD",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4603f5943c3468fa5b40de69a50a9ab97468fd58/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/OpenAITelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/OpenAITelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/internal/GenAiExceptionEventExtractors.java"
+      ],
+      "id": "PRRT_kwDODJKVX86G6EVi",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21d59664a9edeeafa77eb655678138c11294f21e/instrumentation/openai/openai-java-1.1/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21d59664a9edeeafa77eb655678138c11294f21e/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractOpenAiTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86HOFFj",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21d59664a9edeeafa77eb655678138c11294f21e/instrumentation/openai/openai-java-1.1/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86HOFFu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a4f6a6d87e2f973412c33a2d7a381cd7bf81782f/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractEmbeddingsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractEmbeddingsTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86HOr6G",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/14dea278713fee9ea18df9e980a5b39e5483e9dd/instrumentation/openai/openai-java-1.1/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/14dea278713fee9ea18df9e980a5b39e5483e9dd/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractChatTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractChatTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86HeonF",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/14dea278713fee9ea18df9e980a5b39e5483e9dd/instrumentation/openai/openai-java-1.1/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a7571eaa5401aa60d8a829ade479bb29048990c4"
+      ],
+      "id": "PRRT_kwDODJKVX86Heonb",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/382940574113e802c2d4b754e6c439fc931291dd/instrumentation/openai/openai-java-1.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/openai/v1_1/ChatTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/openai/v1_1/ChatTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Hgrvg",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/382940574113e802c2d4b754e6c439fc931291dd/instrumentation/openai/openai-java-1.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/openai/v1_1/EmbeddingsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation/openai/openai-java-1.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/openai/v1_1/EmbeddingsTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Hgrvt",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e23f93ac35cee4db4c0585d5bbc3755521ea519f/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/internal/GenAiExceptionEventExtractorsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7571eaa5401aa60d8a829ade479bb29048990c4/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/internal/GenAiExceptionEventExtractorsTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86HnjNe",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

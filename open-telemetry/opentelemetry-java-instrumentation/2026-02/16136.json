@@ -1,0 +1,51 @@
+{
+  "head": "01cf678d3cdb4cf9be85f096af99a35857736de5",
+  "merge": "308da8af893ea052ddf93b2d8c6025aaf585180b",
+  "merged": "2026-02-21T03:31:05Z",
+  "missing_roots": 0,
+  "number": 16136,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "im not sure why we are getting multiple `url.query`s with both STRING and VALUE types... when I run this locally im only getting the `STRING` entry. will keep digging",
+      "created": "2026-02-11T11:22:16Z",
+      "hunk": "@@ -79,6 +79,8 @@ libraries:\n           type: STRING\n         - name: url.query\n           type: STRING\n+        - name: url.query\n+          type: VALUE",
+      "id": "PRRT_kwDODJKVX85t9UDh",
+      "opened": "2026-02-11T11:22:16Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-02-11T12:35:03Z",
+          "body": "I think that it probably only started with the merging of the #16113 Probably `url.query` is sometimes empty and gets converted to empty value where it previously was omitted.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16136#discussion_r2793049588"
+        },
+        {
+          "at": "2026-02-11T12:38:07Z",
+          "body": "If that is the case then maybe we should add `&& !\"\".equals(value)` to https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9161d2a6fab92a3a781cf2702b252430e3509fd1/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/AttributesExtractorUtil.java#L24\ncc @trask",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16136#discussion_r2793062694"
+        },
+        {
+          "at": "2026-02-12T04:07:42Z",
+          "body": "It may be a side-effect of https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16113, but it may also be due to underlying SDK bug that hasn't been released yet: https://github.com/open-telemetry/opentelemetry-java/pull/8014\r\n\r\nI suspect that the correct fix is probably something along these lines: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16113#discussion_r2777841893 (updating instrumentation not to emit empty strings)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16136#discussion_r2796670998"
+        },
+        {
+          "at": "2026-02-13T20:30:40Z",
+          "body": "oh, added wrinkle, empty string for `url.query` is actually meaningful, e.g. in `https://example.org/test?`\r\n\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16136#discussion_r2805975251"
+        },
+        {
+          "at": "2026-02-20T11:19:59Z",
+          "body": "i've created https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/16242 to track a resolution for this in case we want to merge this as-is and followup with figuring out how to handle this (or seeing if the updated SDK makes any difference)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16136#discussion_r2832730507"
+        }
+      ],
+      "reviewed": "a854372e987403d68361cad42b22e6c49ed737f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16136#discussion_r2792738107"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "head": "a598a854c62950ece89a4e44291fe557e4e10f6c",
+  "merge": "3bc7891d1552952d318442ad88b17335293076f4",
+  "merged": "2026-01-28T16:12:33Z",
+  "missing_roots": 0,
+  "number": 16033,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "this and other library instrumentation classes are copied from servlet 3 instrumentation with servlet api types changed from javax to jakarta",
+      "created": "2026-01-28T13:02:10Z",
+      "hunk": "@@ -0,0 +1,113 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.servlet.v5_0.internal;",
+      "id": "PRRT_kwDODJKVX85rbzsO",
+      "opened": "2026-01-28T13:02:10Z",
+      "path": "instrumentation/servlet/servlet-5.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v5_0/internal/Experimental.java",
+      "replies": [],
+      "reviewed": "d25e0b9cae3745f3d27116825c1992842cf26843",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16033#discussion_r2736535114"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Changes to tests are also copied from servlet 3. Tests are rearranged to use more `@ParameterizedClass` which lets us share more code between agent and library instrumentation tests.",
+      "created": "2026-01-28T13:05:54Z",
+      "hunk": "@@ -0,0 +1,220 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.servlet.v5_0.tomcat;\n+\n+import static io.opentelemetry.instrumentation.testing.junit.http.ServerEndpoint.ERROR;\n+import static io.opentelemetry.instrumentation.testing.junit.http.ServerEndpoint.NOT_FOUND;\n+import static io.opentelemetry.instrumentation.testing.junit.http.ServerEndpoint.SUCCESS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.junit.jupiter.api.Assumptions.assumeTrue;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.junit.http.HttpServerTestOptions;\n+import io.opentelemetry.instrumentation.testing.junit.http.ServerEndpoint;\n+import io.opentelemetry.javaagent.instrumentation.servlet.v5_0.AbstractServlet5Test;\n+import io.opentelemetry.sdk.testing.assertj.SpanDataAssert;\n+import io.opentelemetry.sdk.testing.assertj.TraceAssert;\n+import io.opentelemetry.sdk.trace.data.SpanData;\n+import io.opentelemetry.testing.internal.armeria.common.AggregatedHttpRequest;\n+import io.opentelemetry.testing.internal.armeria.common.AggregatedHttpResponse;\n+import jakarta.servlet.Servlet;\n+import java.io.File;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.UUID;\n+import java.util.function.BiConsumer;\n+import java.util.function.Consumer;\n+import java.util.stream.Collectors;\n+import java.util.stream.IntStream;\n+import org.apache.catalina.Context;\n+import org.apache.catalina.LifecycleException;\n+import org.apache.catalina.core.StandardHost;\n+import org.apache.catalina.startup.Tomcat;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.io.TempDir;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.CsvSource;\n+\n+public abstract class AbstractTomcatServlet5Test extends AbstractServlet5Test<Tomcat, Context> {",
+      "id": "PRRT_kwDODJKVX85rb2rP",
+      "opened": "2026-01-28T13:05:54Z",
+      "path": "instrumentation/servlet/servlet-5.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/v5_0/tomcat/AbstractTomcatServlet5Test.java",
+      "replies": [],
+      "reviewed": "d25e0b9cae3745f3d27116825c1992842cf26843",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16033#discussion_r2736550644"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "i found it interesting that there were already really old artifacts of this available:\r\n\r\n<img width=\"1203\" height=\"520\" alt=\"image\" src=\"https://github.com/user-attachments/assets/bba5c71b-a210-4469-83e9-196c13d42627\" />\r\n",
+      "created": "2026-01-28T13:06:42Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+# Library Instrumentation for Java Servlet version 5.0 and higher\n+\n+Provides OpenTelemetry instrumentation for Java Servlets through a servlet filter.\n+\n+## Quickstart\n+\n+### Add these dependencies to your project\n+\n+Replace `OPENTELEMETRY_VERSION` with\n+the [latest release](https://central.sonatype.com/artifact/io.opentelemetry.instrumentation/opentelemetry-servlet-5.0).",
+      "id": "PRRT_kwDODJKVX85rb3Rw",
+      "opened": "2026-01-28T13:26:56Z",
+      "path": "instrumentation/servlet/servlet-5.0/library/README.md",
+      "replies": [],
+      "reviewed": "d25e0b9cae3745f3d27116825c1992842cf26843",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16033#discussion_r2736553726"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "```suggestion\r\nimport jakarta.servlet.Filter;\r\n```",
+      "created": "2026-01-28T13:17:06Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+# Library Instrumentation for Java Servlet version 5.0 and higher\n+\n+Provides OpenTelemetry instrumentation for Java Servlets through a servlet filter.\n+\n+## Quickstart\n+\n+### Add these dependencies to your project\n+\n+Replace `OPENTELEMETRY_VERSION` with\n+the [latest release](https://central.sonatype.com/artifact/io.opentelemetry.instrumentation/opentelemetry-servlet-5.0).\n+\n+For Maven, add to your `pom.xml` dependencies:\n+\n+```xml\n+\n+<dependencies>\n+  <dependency>\n+    <groupId>io.opentelemetry.instrumentation</groupId>\n+    <artifactId>opentelemetry-servlet-5.0</artifactId>\n+    <version>OPENTELEMETRY_VERSION</version>\n+  </dependency>\n+</dependencies>\n+```\n+\n+For Gradle, add to your dependencies:\n+\n+```kotlin\n+implementation(\"io.opentelemetry.instrumentation:opentelemetry-servlet-5.0:OPENTELEMETRY_VERSION\")\n+```\n+\n+### Usage\n+\n+Create telemetry producing servlet filter as shown below:\n+\n+```java\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.instrumentation.servlet.v5_0.ServletTelemetry;\n+import javax.servlet.Filter;",
+      "id": "PRRT_kwDODJKVX85rb_gp",
+      "opened": "2026-01-28T13:26:56Z",
+      "path": "instrumentation/servlet/servlet-5.0/library/README.md",
+      "replies": [],
+      "reviewed": "d25e0b9cae3745f3d27116825c1992842cf26843",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16033#discussion_r2736599390"
+    }
+  ]
+}

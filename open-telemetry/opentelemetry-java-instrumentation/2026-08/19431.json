@@ -1,0 +1,31 @@
+{
+  "head": "cabf66f128b23feb2407a90ea622604ed4976883",
+  "merge": "b96c3d0441c276616e61930c1740029e744557e5",
+  "merged": "2026-08-07T14:49:55Z",
+  "missing_roots": 0,
+  "number": 19431,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess agent for testing wouldn't work because it uses the testing exporter.\nagent for testing uses `project(\":javaagent\", configuration = \"baseJar\")` but this is fine too",
+      "created": "2026-08-07T12:04:07Z",
+      "hunk": "@@ -23,21 +23,30 @@ tasks {\n   test {\n     usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n \n-    val shadowTask = project(\":javaagent\").tasks.named<Jar>(\"shadowJar\")\n+    // the base agent only contains the agent machinery and the internal instrumentations that it\n+    // requires, the JMX instrumentation is added on top of it. Using the full agent would capture\n+    // telemetry from the target systems that is unrelated to JMX metrics.\n+    val baseAgentTask = project(\":javaagent\").tasks.named<Jar>(\"baseJavaagentJar\")",
+      "id": "PRRT_kwDODJKVX86XQ3IH",
+      "opened": "2026-08-07T12:04:07Z",
+      "path": "instrumentation/jmx-metrics/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-07T14:49:49Z",
+          "body": "will send a follow-up to use `project(\":javaagent\", configuration = \"baseJar\")` consistently here and in other places",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19431#discussion_r3736605730"
+        }
+      ],
+      "reviewed": "cabf66f128b23feb2407a90ea622604ed4976883",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19431#discussion_r3735613476"
+    }
+  ]
+}

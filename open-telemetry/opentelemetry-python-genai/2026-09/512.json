@@ -1,0 +1,52 @@
+{
+  "head": "a59e26d6f63ce4f41f6cd9bb0312176a3de57f03",
+  "merge": "42ce50cda54106d1d42b61c0f419f5beb9d62b09",
+  "merged": "2026-09-02T18:35:35Z",
+  "missing_roots": 0,
+  "number": 512,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this is not one of the sampling-relevant attributes according to semconv https://github.com/open-telemetry/semantic-conventions-genai/blob/67dff024110be5bd9f318006e733f4078e0f4c97/docs/gen-ai/gen-ai-spans.md?plain=1#L1190-L1195, so it should not be set at the start time.\n\nI can see why it should be one of them, mind sending a PR to semantic-conventions-genai to fix it?",
+      "created": "2026-08-31T22:31:22Z",
+      "hunk": "@@ -61,6 +63,7 @@ def __init__(\n         tool_call_id: str | None = None,\n         tool_type: str | None = None,\n         tool_description: str | None = None,\n+        agent_name: str | None = None,",
+      "id": "PRRT_kwDOSbspP86d5mfQ",
+      "opened": "2026-08-31T22:32:53Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-02T00:28:55Z",
+          "body": "sure, I just updated the code to remove it from sampling-relevant attributes. I'll send a PR to semconv and follow-up on this later",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/512#discussion_r3909664393"
+        }
+      ],
+      "reviewed": "36fb43c0b825baa1441457ba2302ef8a1313931e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/512#discussion_r3898999293"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why so?\n\nit's an attribute on duration metric https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-metrics.md#metric-gen_aiexecute_toolduration\n\n\nOr maybe we didn't update this repo yet to report relatively new gen_ai.execute_tool.duration metric",
+      "created": "2026-08-31T22:32:41Z",
+      "hunk": "@@ -618,6 +550,27 @@ def test_fail_tool_records_duration_with_error(self) -> None:\n         self.assertAlmostEqual(duration_point.sum, 1.5, places=3)\n         self.assertNotIn(\"gen_ai.client.token.usage\", metrics)\n \n+    def test_stop_tool_does_not_leak_agent_name_to_duration_metric(",
+      "id": "PRRT_kwDOSbspP86d5n4L",
+      "opened": "2026-08-31T22:32:53Z",
+      "path": "util/opentelemetry-util-genai/tests/test_handler_metrics.py",
+      "replies": [
+        {
+          "at": "2026-09-02T00:32:34Z",
+          "body": "sorry, the name is a little bit confusing, this was about `gen_ai.client.operation.duration` instead of `gen_ai.execute_tool.duration`. Updated the test name to make it clear.\r\nhappy to follow up with the emission of `gen_ai.execute_tool.duration` later!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/512#discussion_r3909680721"
+        }
+      ],
+      "reviewed": "36fb43c0b825baa1441457ba2302ef8a1313931e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/512#discussion_r3899008243"
+    }
+  ]
+}

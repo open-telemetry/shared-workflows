@@ -1,0 +1,115 @@
+{
+  "head": "d8f4258005602953aaf0928ecd62fdf4f74da868",
+  "merge": "1cf6a81244609a37aac261652cce635851baee4b",
+  "merged": "2026-08-02T18:52:55Z",
+  "missing_roots": 0,
+  "number": 284,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`GenericPart` now requires a `type` argument, which is a breaking change for any existing callers that previously did `GenericPart(value=...)`. Since this is a shared util package, consider keeping backwards compatibility by defaulting `type` to \"generic\" (while still allowing providers to pass a specific type).",
+      "created": "2026-07-18T04:58:15Z",
+      "hunk": "@@ -30,12 +30,16 @@ class ContentCapturingMode(Enum):\n @dataclass()\n class GenericPart:\n     \"\"\"Used for provider-specific message part types that don't match\n-    the standard MessagePart types defined in semantic conventions. Wrap custom\n-    types with GenericPart(value=...) to explicitly opt-in to non-standard types.\n-    This will be removed in a future version when all instrumentations use core types.\"\"\"\n+    the standard MessagePart types defined in semantic conventions. Set ``type``\n+    to the provider-specific type discriminator and carry the payload in\n+    ``value`` to explicitly opt-in to non-standard types.\n+    This will be removed in a future version when all instrumentations use core types.\n \n+    Per the semconv message schema, ``type`` is a free-form string (the\n+    provider's own type name), not a fixed literal.\"\"\"\n+\n+    type: str\n     value: Any",
+      "id": "PRRT_kwDOSbspP86R9FW2",
+      "opened": "2026-07-18T04:58:16Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "4c6cd92847ddb9f5ff52ac4d185d3df75a397a0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/284#discussion_r3607634715"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Compaction.id` and `Compaction.content` are annotated as optional (`... | None`) but currently have no defaults, so callers must always pass them (even when unset). That’s inconsistent with the “optional and omitted” schema goal and makes the type awkward to use.",
+      "created": "2026-07-18T04:58:15Z",
+      "hunk": "@@ -127,7 +131,20 @@ class Reasoning:\n     type: Literal[\"reasoning\"] = \"reasoning\"\n \n \n-Modality = Literal[\"image\", \"video\", \"audio\"]\n+@dataclass()\n+class Compaction:\n+    \"\"\"Represents a compaction/summary of prior conversation history.\n+\n+    This model is specified as part of semconv in `GenAI messages Python models - CompactionPart\n+    <https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/non-normative/models.ipynb>`__.\n+    \"\"\"\n+\n+    id: str | None\n+    content: str | None",
+      "id": "PRRT_kwDOSbspP86R9FW4",
+      "opened": "2026-07-18T04:58:16Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "4c6cd92847ddb9f5ff52ac4d185d3df75a397a0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/284#discussion_r3607634719"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog fragment filename doesn’t match the repo’s CI requirement of `<PR_NUMBER>.<type>` (see `.github/workflows/changelog.yml` lines 47-80). As-is, the changelog job will fail until the fragment is renamed to the PR number (e.g., `1234.changed`).",
+      "created": "2026-07-18T04:58:16Z",
+      "hunk": "@@ -0,0 +1 @@\n+Align message dataclasses with the GenAI semconv schemas: add `name` to `InputMessage`/`OutputMessage`, add `Compaction`, `SystemInstructionPart`, `MemoryRecord`, and `RetrievalDocument`, extend `Modality` with `document`, and update `FinishReason` to the schema enum (`tool_calls` becomes `tool_call`, adds `compaction`). Message and tool-definition serialization now omits `None`-valued fields to match the semconv JSON schemas.",
+      "id": "PRRT_kwDOSbspP86R9FW9",
+      "opened": "2026-07-18T04:58:16Z",
+      "path": "util/opentelemetry-util-genai/.changelog/284.changed",
+      "replies": [],
+      "reviewed": "4c6cd92847ddb9f5ff52ac4d185d3df75a397a0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/284#discussion_r3607634726"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "This link (and below) doesn't resolve, they point to the old repo",
+      "created": "2026-07-20T20:32:47Z",
+      "hunk": "@@ -202,26 +219,60 @@ class GenericToolDefinition:\n     File,\n     Uri,\n     Reasoning,\n+    Compaction,\n     GenericPart,  # For provider-specific types; prefer standard types above\n ]\n \n \n+# System instructions are a narrower set of parts than message content.\n+# Mirrors the `gen_ai.system_instructions` semconv schema (TextPart | GenericPart).\n+SystemInstructionPart = Union[Text, GenericPart]\n+\n+\n FinishReason = Literal[\n-    \"content_filter\", \"error\", \"length\", \"stop\", \"tool_calls\"\n+    \"content_filter\", \"error\", \"length\", \"stop\", \"tool_call\", \"compaction\"\n ]\n \n \n @dataclass()\n class InputMessage:\n     role: str\n     parts: list[MessagePart]\n+    name: str | None = None\n \n \n @dataclass()\n class OutputMessage:\n     role: str\n     parts: list[MessagePart]\n     finish_reason: str | FinishReason\n+    name: str | None = None\n+\n+\n+@dataclass()\n+class MemoryRecord:\n+    \"\"\"Represents a single memory record exposed to or produced by the model.\n+\n+    This model is specified as part of semconv in `GenAI messages Python models - MemoryRecord\n+    <https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/non-normative/models.ipynb>`__.",
+      "id": "PRRT_kwDOSbspP86SX61P",
+      "opened": "2026-07-20T20:39:56Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "ac138918e41b664555cc675a074b2fcb5ee4bc80",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/284#discussion_r3617361440"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "I feel we should start just using AttributeValue instead of Any in these types, since they ultimately go into a span/log attribute right ?\n\nFor `Input/OutputMessage` we just end up completely serializing those (using json.dumps) types into a string.. so I think those Anys are fine to be left as is..",
+      "created": "2026-07-20T20:39:01Z",
+      "hunk": "@@ -202,26 +219,60 @@ class GenericToolDefinition:\n     File,\n     Uri,\n     Reasoning,\n+    Compaction,\n     GenericPart,  # For provider-specific types; prefer standard types above\n ]\n \n \n+# System instructions are a narrower set of parts than message content.\n+# Mirrors the `gen_ai.system_instructions` semconv schema (TextPart | GenericPart).\n+SystemInstructionPart = Union[Text, GenericPart]\n+\n+\n FinishReason = Literal[\n-    \"content_filter\", \"error\", \"length\", \"stop\", \"tool_calls\"\n+    \"content_filter\", \"error\", \"length\", \"stop\", \"tool_call\", \"compaction\"\n ]\n \n \n @dataclass()\n class InputMessage:\n     role: str\n     parts: list[MessagePart]\n+    name: str | None = None\n \n \n @dataclass()\n class OutputMessage:\n     role: str\n     parts: list[MessagePart]\n     finish_reason: str | FinishReason\n+    name: str | None = None\n+\n+\n+@dataclass()\n+class MemoryRecord:\n+    \"\"\"Represents a single memory record exposed to or produced by the model.\n+\n+    This model is specified as part of semconv in `GenAI messages Python models - MemoryRecord\n+    <https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/non-normative/models.ipynb>`__.\n+    \"\"\"\n+\n+    content: Any\n+    id: str | None = None\n+    metadata: dict[str, Any] | None = None",
+      "id": "PRRT_kwDOSbspP86SYBdX",
+      "opened": "2026-07-20T20:39:56Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "ac138918e41b664555cc675a074b2fcb5ee4bc80",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/284#discussion_r3617399830"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n- Flag `Any`, a dict, `TypedDict`, or other ad-hoc value built for an attribute that semconv models in\n```",
+      "created": "2026-08-01T20:32:08Z",
+      "hunk": "@@ -68,6 +68,13 @@ prefer opt-in or additive. Breaking changes need explicit justification in the P\n   come from `opentelemetry.semconv._incubating.attributes.gen_ai_attributes`.\n - For attributes with a well-known value set in semconv, use the generated enum from the same\n   module (e.g. `GenAiOutputTypeValues` for `gen_ai.output.type`) instead of string literals.\n+- Flag a dict, `TypedDict`, or other ad-hoc value built for an attribute that semconv models in",
+      "id": "PRRT_kwDOSbspP86VqyRT",
+      "opened": "2026-08-01T20:32:08Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [],
+      "reviewed": "17c2c8561cb30e3dee9593f373cb29266f1d602f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/284#discussion_r3696570905"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "praise: great add.👍",
+      "created": "2026-08-01T23:06:06Z",
+      "hunk": "@@ -24,13 +24,24 @@ land the semconv change first.\n   Do not hardcode name strings if a constant exists.\n - Shared attributes must behave consistently across invocation types (same conditions, same\n   defaults). If semconv marks an attribute for multiple invocations, set it on all.\n+- Attributes whose value is a structured document (messages, tool definitions, system\n+  instructions, retrieval documents, …) are modeled in\n+  [`models.py`](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/non-normative/models.py),\n+  with a generated JSON schema under `model/gen-ai/gen-ai-*.json`. Check any `types.py` change\n+  against the ref pinned in `versions.env` (`SEMCONV_GENAI_REF`), not `main`, and flag:\n+  - a field whose name, optionality, or value type diverges from the model — e.g. required where\n+    the model says optional, or a field the model does not declare;\n+  - a type added or edited without citing the model it mirrors;\n \n ## 3. API backwards compatibility\n \n - Do not remove or rename public objects. Deprecate first via a docstring note pointing to the\n   replacement (not `@deprecated` — unreliable).\n - Private modules and module-private objects start with `_`.\n - Default to internal (`_`-prefixed) unless instrumentations need it public.\n+- Flag every `Any` in the public API (anything not under a `_`-prefixed module) — parameters,\n+  return types, and dataclass fields alike. Require the narrowest type that fits: the semconv",
+      "id": "PRRT_kwDOSbspP86Vrl3w",
+      "opened": "2026-08-01T23:07:12Z",
+      "path": ".github/instructions/util-genai.instructions.md",
+      "replies": [],
+      "reviewed": "d8f4258005602953aaf0928ecd62fdf4f74da868",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/284#discussion_r3696878804"
+    }
+  ]
+}

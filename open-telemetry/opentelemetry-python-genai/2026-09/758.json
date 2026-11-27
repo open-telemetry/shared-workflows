@@ -1,0 +1,97 @@
+{
+  "head": "b0f0b916b94e734b2193a947e2449d75dfe7f7be",
+  "merge": "3817a490e112ddaf2a37375081114a74e7eb8030",
+  "merged": "2026-09-23T13:45:00Z",
+  "missing_roots": 0,
+  "number": 758,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`get_running_loop()` only describes the thread that is executing this callback. LangChain invokes synchronous `BaseCallbackHandler` methods from async runs in executor workers (and sync tools/models under an async graph can do the same), where this check raises and returns `True`. Those callbacks therefore still attach tokens even though they belong to an async run, so a later callback in another worker can reproduce the cross-context detach failure this change is intended to remove. Make the async/sync mode explicit (or configure this handler to run inline for async callback managers) rather than inferring it from the callback thread.",
+      "created": "2026-09-21T05:01:05Z",
+      "hunk": "@@ -175,11 +176,22 @@ class OpenTelemetryLangChainCallbackHandler(BaseCallbackHandler):\n     A callback handler for LangChain that uses OpenTelemetry to create spans for LLM calls and chains, tools etc,. in future.\n     \"\"\"\n \n-    def __init__(self, telemetry_handler: TelemetryHandler) -> None:\n+    def __init__(\n+        self,\n+        telemetry_handler: TelemetryHandler,\n+    ) -> None:\n         super().__init__()\n         self._telemetry_handler = telemetry_handler\n         self._invocation_manager = _InvocationManager()\n \n+    @staticmethod\n+    def _should_attach_to_context() -> bool:\n+        try:\n+            asyncio.get_running_loop()\n+            return False\n+        except RuntimeError:",
+      "id": "PRRT_kwDOSbspP86kPRa5",
+      "opened": "2026-09-21T05:01:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "916c8f8120e2b091058a6ab0593bf09693933439",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/758#discussion_r4059371726"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`attach_to_context` remains `True` by default, so an invocation can still be finished in a different runtime context. In that case `detach(context_token)` raises `ValueError`; because it runs before `self.span.end()` in this `finally` block, the exception escapes and the span is never ended. Preserve the previous defensive detach handling (or otherwise guarantee `span.end()` and the original exception are preserved).",
+      "created": "2026-09-21T05:01:06Z",
+      "hunk": "@@ -259,18 +265,17 @@ def _apply_finish(self, error: Error | None = None) -> None:\n \n     def _finish(self, error: Error | None = None) -> None:\n         \"\"\"Apply finish telemetry and end the span. Finishes at most once.\"\"\"\n-        if self._context_token is None:\n+        if self._finished:\n             return\n         # Clear up front so a nested or repeated finish is a no-op even if\n         # _apply_finish raises.\n+        self._finished = True\n         context_token, self._context_token = self._context_token, None\n         try:\n             self._apply_finish(error)\n         finally:\n-            try:\n+            if context_token is not None:\n                 detach(context_token)\n-            except Exception:  # pylint: disable=broad-except\n-                pass\n             self.span.end()",
+      "id": "PRRT_kwDOSbspP86kPRbQ",
+      "opened": "2026-09-21T05:01:07Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "916c8f8120e2b091058a6ab0593bf09693933439",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/758#discussion_r4059371756"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These are new user-visible `TelemetryHandler` options, but the util package README still only points to generic lifecycle examples and does not explain explicit parent contexts or disabling ambient attachment. Document their semantics and the cross-context/async use case in `util/opentelemetry-util-genai/README.rst` so consumers can use the API safely.",
+      "created": "2026-09-21T05:01:06Z",
+      "hunk": "@@ -167,12 +167,19 @@ def start_inference(\n         server_address: str | None = None,\n         server_port: int | None = None,\n         operation_name: str | None = None,\n+        context: Context | None = None,\n+        attach_to_context: bool = True,",
+      "id": "PRRT_kwDOSbspP86kPRbi",
+      "opened": "2026-09-21T05:01:07Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "916c8f8120e2b091058a6ab0593bf09693933439",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/758#discussion_r4059371789"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Setting `run_inline = True` means these callbacks now run directly on the application’s event loop. Since they can do heavier work, including calling a synchronous completion hook, an async LangChain call could block other tasks. Is there a way to fix the context issue without running the entire handler inline?",
+      "created": "2026-09-22T16:29:21Z",
+      "hunk": "@@ -175,11 +176,24 @@ class OpenTelemetryLangChainCallbackHandler(BaseCallbackHandler):\n     A callback handler for LangChain that uses OpenTelemetry to create spans for LLM calls and chains, tools etc,. in future.\n     \"\"\"\n \n-    def __init__(self, telemetry_handler: TelemetryHandler) -> None:\n+    run_inline: bool = True",
+      "id": "PRRT_kwDOSbspP86k0Xo5",
+      "opened": "2026-09-22T16:29:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-09-22T19:30:06Z",
+          "body": "good catch, thanks, updated in https://github.com/open-telemetry/opentelemetry-python-genai/pull/758/changes/f8078f2d6ee089a3b334f03f32b58f0fc811d584",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/758#discussion_r4075606494"
+        }
+      ],
+      "reviewed": "df6b683d52e1a23a3b13e9bb3454da6576ce8073",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/758#discussion_r4073961982"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "A running event loop does not necessarily mean LangChain is using its async API. A synchronous `.invoke()` can also be called from an async application. In that case, this check stops the GenAI span from becoming current, so HTTP or database spans created inside the chain may attach to the outer request span instead.\r\n\r\nCould we determine whether LangChain is actually using its async callback path?",
+      "created": "2026-09-22T16:31:33Z",
+      "hunk": "@@ -175,11 +176,24 @@ class OpenTelemetryLangChainCallbackHandler(BaseCallbackHandler):\n     A callback handler for LangChain that uses OpenTelemetry to create spans for LLM calls and chains, tools etc,. in future.\n     \"\"\"\n \n-    def __init__(self, telemetry_handler: TelemetryHandler) -> None:\n+    run_inline: bool = True\n+\n+    def __init__(\n+        self,\n+        telemetry_handler: TelemetryHandler,\n+    ) -> None:\n         super().__init__()\n         self._telemetry_handler = telemetry_handler\n         self._invocation_manager = _InvocationManager()\n \n+    @staticmethod\n+    def _should_attach_to_context() -> bool:\n+        try:\n+            asyncio.get_running_loop()",
+      "id": "PRRT_kwDOSbspP86k0amx",
+      "opened": "2026-09-22T16:31:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-09-22T19:30:02Z",
+          "body": "addressed in https://github.com/open-telemetry/opentelemetry-python-genai/pull/758/changes/f8078f2d6ee089a3b334f03f32b58f0fc811d584, setting it based on handler type now",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/758#discussion_r4075605941"
+        }
+      ],
+      "reviewed": "df6b683d52e1a23a3b13e9bb3454da6576ce8073",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/758#discussion_r4073980485"
+    }
+  ]
+}

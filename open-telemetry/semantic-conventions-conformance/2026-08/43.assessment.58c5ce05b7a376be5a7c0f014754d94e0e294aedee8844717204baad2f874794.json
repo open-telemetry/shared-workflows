@@ -1,0 +1,84 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ba58cba3fbd9c1b4c7922aea9e7d617ddbdc2de68b259ad3a72ddaa0452dd57a",
+  "input_digest": "58c5ce05b7a376be5a7c0f014754d94e0e294aedee8844717204baad2f874794",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7c330a45dff4633c83f5169af7a6ae62956c54ed/tools/js/scenario-support/index.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dff918ad145c99090bdde41fbe526af68b8bda8e/tools/js/scenario-support/index.js"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zk1bx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7c330a45dff4633c83f5169af7a6ae62956c54ed/tools/http/test-client/js/src/server-workload.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dff918ad145c99090bdde41fbe526af68b8bda8e/tools/http/test-client/js/src/server-workload.js"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zk1b0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7c330a45dff4633c83f5169af7a6ae62956c54ed/tools/js/src/otel_conformance_js/__init__.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dff918ad145c99090bdde41fbe526af68b8bda8e/tools/js/src/otel_conformance_js/__init__.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Zk1b3",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/420c1df9292324d6ba1382881e4bbfd5b16dc6c4/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dff918ad145c99090bdde41fbe526af68b8bda8e/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/260a12a5c18eee6c7a5b22cc52e36497f49b528b"
+      ],
+      "id": "PRRT_kwDOTuzK5c6ZryXq",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f93630168d66de8eee969dd4ad6aa6267bca5036/tools/js/scenario-sdk/index.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dff918ad145c99090bdde41fbe526af68b8bda8e/tools/js/scenario-sdk/index.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f93630168d66de8eee969dd4ad6aa6267bca5036/tools/js/scenario-sdk/test/index.test.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f93630168d66de8eee969dd4ad6aa6267bca5036/tools/js/scenario-sdk/package.json"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Z1k5p",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6aKv6e",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/9cf91e5dac059702d74f10f9dd31e3b8d263f70a/scenarios/http/js/undici/opentelemetry-undici/client/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/dff918ad145c99090bdde41fbe526af68b8bda8e/scenarios/http/js/undici/opentelemetry-undici/client/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/0c112d590130275a7d125b95c3bebfae9532254d"
+      ],
+      "id": "PRRT_kwDOTuzK5c6aQLkb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "380288510df2921a4036da15960a3fcc8c5ed782226c9c8bc07d95da5969c2a2",
+  "input_digest": "90c7f8c3b13694d54cc528ccb92a21c08442f9e0db23be5f804f22e6e4080e99",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/83cf28a37f29899d31b9ce74ed5e9b7142bc2bc7/instrumentation/r2dbc-1.0/library/src/test/java/io/opentelemetry/instrumentation/r2dbc/v1_0/DbExecutionTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47d7374920abe3d559e10f2040b58480cb761796/instrumentation/r2dbc-1.0/library/src/test/java/io/opentelemetry/instrumentation/r2dbc/v1_0/DbExecutionTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86KoyPu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dff04960f68d24f7a424e97feaf8aa308da21e77/instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/VertxSqlClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47d7374920abe3d559e10f2040b58480cb761796/instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/VertxSqlClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/dff04960f68d24f7a424e97feaf8aa308da21e77...faf957d95d824bd791da97104ee3fa50990865eb",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/47d7374920abe3d559e10f2040b58480cb761796",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/faf957d95d824bd791da97104ee3fa50990865eb"
+      ],
+      "id": "PRRT_kwDODJKVX86K5Fit",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dff04960f68d24f7a424e97feaf8aa308da21e77/instrumentation/vertx/vertx-sql-client/vertx-sql-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v4_0/VertxSqlClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47d7374920abe3d559e10f2040b58480cb761796/instrumentation/vertx/vertx-sql-client/vertx-sql-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v4_0/VertxSqlClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/dff04960f68d24f7a424e97feaf8aa308da21e77...faf957d95d824bd791da97104ee3fa50990865eb",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/47d7374920abe3d559e10f2040b58480cb761796",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/faf957d95d824bd791da97104ee3fa50990865eb"
+      ],
+      "id": "PRRT_kwDODJKVX86K5FjO",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

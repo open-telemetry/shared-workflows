@@ -1,0 +1,58 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "92acff0805d56717860718d7d65fc21763cb53bdf6d0500dfa7c8fbf9455301b",
+  "input_digest": "5a56a8a365b0406662a50ec5912796e23a32d5513290a1cb82280ce501b4ec15",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7a99d6d4934bdd6336853ab7596423d30fbe0bc/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3434fe9b617f148a5b1a5f120da9d322f5f46030/declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java"
+      ],
+      "id": "PRRT_kwDODJKVX85ojvGa",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7a99d6d4934bdd6336853ab7596423d30fbe0bc/instrumentation/runtime-telemetry/runtime-telemetry-java8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimemetrics/java8/JarAnalyzerInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3434fe9b617f148a5b1a5f120da9d322f5f46030/instrumentation/runtime-telemetry/runtime-telemetry-java8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimemetrics/java8/JarAnalyzerInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/03b055ea188c26261bb5e67817676e1e2ecdbe20"
+      ],
+      "id": "PRRT_kwDODJKVX85ojwiL",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7a99d6d4934bdd6336853ab7596423d30fbe0bc/instrumentation/runtime-telemetry/runtime-telemetry-java8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimemetrics/java8/JarAnalyzerInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3434fe9b617f148a5b1a5f120da9d322f5f46030/instrumentation/runtime-telemetry/runtime-telemetry-java8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/runtimemetrics/java8/JarAnalyzerInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b2f739782e07a67c3ecb55459bf1b0ad7d81a22f"
+      ],
+      "id": "PRRT_kwDODJKVX85ojxNM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7a99d6d4934bdd6336853ab7596423d30fbe0bc/javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ConfigurationPropertiesSupplierTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7a99d6d4934bdd6336853ab7596423d30fbe0bc/javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/OtlpProtocolPropertiesSupplierTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3434fe9b617f148a5b1a5f120da9d322f5f46030/javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ConfigurationPropertiesSupplierTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3434fe9b617f148a5b1a5f120da9d322f5f46030/javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/OtlpProtocolPropertiesSupplierTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/32a40007c47d177dfc3e749d40075484d2226705"
+      ],
+      "id": "PRRT_kwDODJKVX85ojyqY",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

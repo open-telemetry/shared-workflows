@@ -1,0 +1,49 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "68f5912b183b4a616c789f64e83dfdbb0287c3245bd62ed2ac525cdaf60a01fa",
+  "input_digest": "b92f38be146a9395624cd82215678d739777fc0cd6af14a344bfc08638e30758",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX86Wq8z1",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9af7e48ab9b6354f865b97b552b2cfd0f887f15b/instrumentation/aws-sdk/aws-sdk-1.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aa2d26f2d6e50892757ffbfbbe92147bb8749fc7/instrumentation/aws-sdk/aws-sdk-1.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9af7e48ab9b6354f865b97b552b2cfd0f887f15b/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/AwsSdkInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aa2d26f2d6e50892757ffbfbbe92147bb8749fc7/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/AwsSdkInstrumenterFactory.java"
+      ],
+      "id": "PRRT_kwDODJKVX86WtR8t",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9af7e48ab9b6354f865b97b552b2cfd0f887f15b/instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2SqsBaseTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aa2d26f2d6e50892757ffbfbbe92147bb8749fc7/instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2SqsBaseTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86WtVpU",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9af7e48ab9b6354f865b97b552b2cfd0f887f15b/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsParentContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aa2d26f2d6e50892757ffbfbbe92147bb8749fc7/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsParentContext.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Wz20z",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

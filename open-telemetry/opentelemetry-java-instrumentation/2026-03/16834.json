@@ -1,0 +1,25 @@
+{
+  "head": "f82823865e079b2b56f26e6c6ddff9737ffcfc6b",
+  "merge": "a93e1313611f74c5d7cb31775282e856a5b4dadd",
+  "merged": "2026-03-21T13:10:47Z",
+  "missing_roots": 0,
+  "number": 16834,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "redundant with null check below\n```suggestion\n```",
+      "created": "2026-03-20T19:29:16Z",
+      "hunk": "@@ -17,9 +17,16 @@ class KubernetesExperimentalAttributesExtractor\n   @Override\n   public void onStart(AttributesBuilder attributes, Context parentContext, Request request) {\n     KubernetesRequestDigest digest = KubernetesRequestDigest.parse(request);\n+    if (digest.isNonResourceRequest()) {\n+      return;\n+    }",
+      "id": "PRRT_kwDODJKVX851zA07",
+      "opened": "2026-03-20T19:29:15Z",
+      "path": "instrumentation/kubernetes-client-7.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kubernetesclient/KubernetesExperimentalAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "18e33abebece03e6cf54a3809a1f0b3ea3b242c1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16834#discussion_r2967597187"
+    }
+  ]
+}

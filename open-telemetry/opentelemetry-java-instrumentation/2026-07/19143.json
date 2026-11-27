@@ -1,0 +1,25 @@
+{
+  "head": "3cba7c06502b80204def8be69c4cdabd91156c07",
+  "merge": "569d70a5fb1d1afad87444f845fbd3473a3f4562",
+  "merged": "2026-07-08T18:45:20Z",
+  "missing_roots": 0,
+  "number": 19143,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could add a comment similar to what the `emitBatchSize` logic has that empty batch is a batch and single item batch is not a batch",
+      "created": "2026-07-08T06:10:12Z",
+      "hunk": "@@ -240,7 +243,7 @@ public String extract(REQUEST request) {\n \n     private boolean isBatch(REQUEST request) {\n       Long batchSize = getter.getDbOperationBatchSize(request);\n-      return batchSize != null && batchSize > 1;\n+      return batchSize != null && batchSize != 1;",
+      "id": "PRRT_kwDODJKVX86PIfSU",
+      "opened": "2026-07-08T06:10:12Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientSpanNameExtractor.java",
+      "replies": [],
+      "reviewed": "aacf420209ba065c7feac70be77476e5aecbcc4f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19143#discussion_r3541603477"
+    }
+  ]
+}

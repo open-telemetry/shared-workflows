@@ -1,0 +1,40 @@
+{
+  "head": "6767690989fc4132bf2161a88376d6ec0ac9a8d0",
+  "merge": "d10f6c1c9e5ddeea5cff4e345ef2aafaa53ba7af",
+  "merged": "2026-10-19T13:46:45Z",
+  "missing_roots": 0,
+  "number": 20687,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Excluding `ChatModelTest` removes all streaming coverage from the 2.x suite: both replacement tests exercise only `call()`. Consequently, the separate `StreamAdvice`/`SpringAiStreamTracing` path is never exercised against 2.x, despite the README advertising streaming support. Please extract the compatible streaming tests into shared sources or add a 2.x streaming integration test that subscribes to completion and asserts the resulting trace and telemetry.",
+      "created": "2026-10-18T13:51:56Z",
+      "hunk": "@@ -37,10 +37,36 @@ testing {\n         implementation(\"org.springframework.ai:spring-ai-model:1.0.0\")\n       }\n     }\n+    register<JvmTestSuite>(\"version2Test\") {\n+      dependencies {\n+        val springAiVersion = if (otelProps.testLatestDeps) \"2.+\" else \"2.0.0\"\n+        implementation(\"org.springframework.ai:spring-ai-model:$springAiVersion\")\n+        implementation(\"org.springframework.ai:spring-ai-openai:$springAiVersion\")\n+      }\n+    }\n   }\n }\n \n+// version2Test also runs the shared test sources, excluding 1.x-only files\n+sourceSets.named(\"version2Test\") {\n+  java.srcDir(\"src/test/java\")\n+  // ChatModelTest uses ContextPropagationOperator and TestChatModel.getDefaultOptions() (removed in 2.x)\n+  // OpenAiChatModelTest and TestChatModel use APIs removed in spring-ai 2.x\n+  java.exclude(\n+    \"**/ChatModelTest.java\",",
+      "id": "PRRT_kwDODJKVX86trCcU",
+      "opened": "2026-10-18T13:51:57Z",
+      "path": "instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "a779b194b12c0c6ea8c4daf22ed4470c25e9ea9f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20687#discussion_r4307277384"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `version2Test` only runs with message-content capture disabled. The existing `testCaptureMessageContent` task uses the 1.x test outputs and runtime classpath, so the capture-enabled assertions inherited by `OpenAiChatModelV2Test` never check Spring AI 2.x message objects. Add a capture-enabled execution of that test using the `version2Test` outputs and runtime classpath, and wire it into `check` while retaining the default-off execution.",
+      "created": "2026-10-18T13:51:56Z",
+      "hunk": "@@ -37,10 +37,36 @@ testing {\n         implementation(\"org.springframework.ai:spring-ai-model:1.0.0\")\n       }\n     }\n+    register<JvmTestSuite>(\"version2Test\") {\n+      dependencies {\n+        val springAiVersion = if (otelProps.testLatestDeps) \"2.+\" else \"2.0.0\"\n+        implementation(\"org.springframework.ai:spring-ai-model:$springAiVersion\")\n+        implementation(\"org.springframework.ai:spring-ai-openai:$springAiVersion\")\n+      }\n+    }\n   }\n }\n \n+// version2Test also runs the shared test sources, excluding 1.x-only files\n+sourceSets.named(\"version2Test\") {\n+  java.srcDir(\"src/test/java\")\n+  // ChatModelTest uses ContextPropagationOperator and TestChatModel.getDefaultOptions() (removed in 2.x)\n+  // OpenAiChatModelTest and TestChatModel use APIs removed in spring-ai 2.x\n+  java.exclude(\n+    \"**/ChatModelTest.java\",\n+    \"**/OpenAiChatModelTest.java\",\n+    \"**/app/TestChatModel.java\",\n+  )\n+  resources.srcDir(\"src/test/resources\")\n+}\n+\n tasks {\n+  named<Test>(\"version2Test\") {\n+    filter {\n+      excludeTestsMatching(\"OpenAiChatModelTest\")\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86trCct",
+      "opened": "2026-10-18T13:51:57Z",
+      "path": "instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "a779b194b12c0c6ea8c4daf22ed4470c25e9ea9f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20687#discussion_r4307277420"
+    }
+  ]
+}

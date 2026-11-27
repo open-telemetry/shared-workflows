@@ -1,0 +1,31 @@
+{
+  "head": "efa3e68b37a6923b2a65775a50c99ee7319bf8b9",
+  "merge": "b2c97b1850aff62ae467004cb72a68b503f36c1d",
+  "merged": "2026-01-13T19:57:00Z",
+  "missing_roots": 0,
+  "number": 15834,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "breedx-splk"
+      },
+      "body": "That's unfortunate. It would be nicer if there were a way to poll for readiness instead of blindly sleeping. Doesn't testcontainers have a mechanism for this?",
+      "created": "2026-01-13T19:29:54Z",
+      "hunk": "@@ -49,6 +49,13 @@ public class RocketMqProxyContainer {\n \n   void start() {\n     container.start();\n+    try {\n+      // Wait a bit for the broker to fully start\n+      Thread.sleep(5000);",
+      "id": "PRRT_kwDODJKVX85pPCpD",
+      "opened": "2026-01-13T19:29:54Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/testing/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v5_0/RocketMqProxyContainer.java",
+      "replies": [
+        {
+          "at": "2026-01-13T19:49:58Z",
+          "body": "I did try and fix it using a `Wait` condition, trying to find some log that could be used, but there are several processes spun up, and i didn't have much success finding a good log. With that being said, I don't think we ever see this issue in CI, and i think the wackyness is only because im on ARM. I can back this piece out since it's not critical",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15834#discussion_r2687897698"
+        }
+      ],
+      "reviewed": "efa3e68b37a6923b2a65775a50c99ee7319bf8b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15834#discussion_r2687817973"
+    }
+  ]
+}

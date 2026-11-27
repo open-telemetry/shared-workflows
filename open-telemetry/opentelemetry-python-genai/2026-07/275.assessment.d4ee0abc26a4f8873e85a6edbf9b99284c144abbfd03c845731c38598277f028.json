@@ -1,0 +1,40 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b7c30919642e848874e2676f5d7594c22afc2b5d89c1f41cbaca132bac0ffa01",
+  "input_digest": "d4ee0abc26a4f8873e85a6edbf9b99284c144abbfd03c845731c38598277f028",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/96a8f0ee53bfc0257f65fe5ee23861d0393ab24e/util/opentelemetry-util-genai/.changelog/275.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/96a8f0ee53bfc0257f65fe5ee23861d0393ab24e/util/opentelemetry-util-genai/.changelog/%2Bworkflow-name-attribute.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1ed26a335ef168e9a25e6927b240e5d805fd2de4/util/opentelemetry-util-genai/.changelog/275.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1ed26a335ef168e9a25e6927b240e5d805fd2de4/util/opentelemetry-util-genai/.changelog/%2Bworkflow-name-attribute.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/0ba5228a533cdf733d863da685a6b12770dae0c1"
+      ],
+      "id": "PRRT_kwDOSbspP86RTaPx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/96a8f0ee53bfc0257f65fe5ee23861d0393ab24e/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_workflow_invocation.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1ed26a335ef168e9a25e6927b240e5d805fd2de4/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_workflow_invocation.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/0ba5228a533cdf733d863da685a6b12770dae0c1"
+      ],
+      "id": "PRRT_kwDOSbspP86RTaQA",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDOSbspP86UMAbH",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

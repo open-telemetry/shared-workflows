@@ -1,0 +1,25 @@
+{
+  "head": "f6a3c9ae6a18d694fd9b6ef06e1338af342c32c2",
+  "merge": "a26191d2ff2d8313ad960643365947dea646edb4",
+  "merged": "2026-11-07T00:16:13Z",
+  "missing_roots": 0,
+  "number": 1052,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The util test environment installs `[wrapt]` and gets `opentelemetry-instrumentation` through `test_deps`, so it does not exercise the new base-only installation. The added tests check optional-module import errors, but would miss a core API import that accidentally requires either removed dependency. Add a fresh-process smoke test that blocks both dependency imports, imports the core APIs, and completes an invocation, following the [test requirement](AGENTS.md#guidelines).",
+      "created": "2026-11-06T15:23:20Z",
+      "hunk": "@@ -299,7 +299,7 @@ deps =\n   util-genai: {[testenv]test_deps}\n   util-genai: {[testenv]pytest_deps}\n   util-genai: -r {toxinidir}/util/opentelemetry-util-genai/test-requirements.txt\n-  util-genai: -e {toxinidir}/util/opentelemetry-util-genai\n+  util-genai: -e {toxinidir}/util/opentelemetry-util-genai[wrapt]",
+      "id": "PRRT_kwDOSbspP860kLRQ",
+      "opened": "2026-11-06T15:23:21Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "1808e9dbe4724daf6b3ed9ce3def313e56e4d36a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1052#discussion_r4494084281"
+    }
+  ]
+}

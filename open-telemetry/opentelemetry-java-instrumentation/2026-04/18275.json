@@ -1,0 +1,40 @@
+{
+  "head": "05d942947d320f88fda1bc2c407b54591f57476c",
+  "merge": "38b9507a70f9801d3d3970774090676c2d325947",
+  "merged": "2026-04-24T23:12:28Z",
+  "missing_roots": 0,
+  "number": 18275,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    this.openTelemetry = openTelemetry;\n```",
+      "created": "2026-04-24T22:54:10Z",
+      "hunk": "@@ -26,7 +27,7 @@ public final class SpringKafkaTelemetryBuilder {\n   private boolean messagingReceiveInstrumentationEnabled = false;\n \n   SpringKafkaTelemetryBuilder(OpenTelemetry openTelemetry) {\n-    this.openTelemetry = openTelemetry;\n+    this.openTelemetry = requireNonNull(openTelemetry);",
+      "id": "PRRT_kwDODJKVX859hu_6",
+      "opened": "2026-04-24T22:54:10Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/library/src/main/java/io/opentelemetry/instrumentation/spring/kafka/v2_7/SpringKafkaTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "bdddb6278eba46cf08a0d95ed26c26a256e5cf74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18275#discussion_r3140681590"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-24T22:54:17Z",
+      "hunk": "@@ -6,6 +6,7 @@\n package io.opentelemetry.instrumentation.spring.kafka.v2_7;\n \n import static java.util.Collections.emptyList;\n+import static java.util.Objects.requireNonNull;",
+      "id": "PRRT_kwDODJKVX859hvCz",
+      "opened": "2026-04-24T22:54:16Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/library/src/main/java/io/opentelemetry/instrumentation/spring/kafka/v2_7/SpringKafkaTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "bdddb6278eba46cf08a0d95ed26c26a256e5cf74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18275#discussion_r3140681829"
+    }
+  ]
+}

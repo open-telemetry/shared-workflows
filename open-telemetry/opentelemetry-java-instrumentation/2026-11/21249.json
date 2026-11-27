@@ -1,0 +1,31 @@
+{
+  "head": "2ec9a8bf57f424701b75752218693bce6cd390ba",
+  "merge": "7a8b33773f3aad32f80e62ea2647c70c64dd7dca",
+  "merged": "2026-11-08T07:03:12Z",
+  "missing_roots": 0,
+  "number": 21249,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to trim the newly added provider-name tests to a few representative compatibility cases. This change only makes existing path rejection explicit for CodeQL; the existing regex already rejects these inputs. Keep the production checks in ReferenceCollector.java unchanged. In muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/ReferenceCollectorTest.java, reduce the expanded parameter lists rather than exhaustively retesting Java identifier syntax: retain representative valid ordinary, nested-class, and Unicode provider names, and a compact malformed set covering slash, backslash, and double-dot path syntax. Preserve assertions that valid providers load the expected class resource and malformed names fail before provider-class resource lookup. Keep unrelated existing tests unchanged. Run the narrowest relevant formatter and ReferenceCollectorTest validation. Update PR #21249 on its verified head repository open-telemetry/opentelemetry-java-instrumentation and head branch trask-codeql-provider-validation; do not create a replacement PR. Keep any platform-assigned follow-up branch if GitHub creates one; do not rename it or create a replacement branch.",
+      "created": "2026-11-08T00:21:52Z",
+      "hunk": "@@ -333,7 +336,59 @@ private static List<Arguments> shouldCollectHelperClassesFromResourceFile() {\n   }\n \n   @ParameterizedTest\n-  @ValueSource(strings = {\"../Provider\", \"example/Provider\", \"example..Provider\"})\n+  @ValueSource(\n+      strings = {\n+        \"Provider\",\n+        \"example.Provider\",",
+      "id": "PRRT_kwDODJKVX8608Gjg",
+      "opened": "2026-11-08T00:21:51Z",
+      "path": "muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/ReferenceCollectorTest.java",
+      "replies": [
+        {
+          "at": "2026-11-08T00:32:59Z",
+          "body": "Trimmed the test cases as requested while preserving the resource lookup and rejection assertions. Committed as `2ec9a8bf`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21249#discussion_r4504330168"
+        }
+      ],
+      "reviewed": "e0ce28190a7197ecc2789da57cd6c269bcc980ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21249#discussion_r4504303004"
+    }
+  ]
+}

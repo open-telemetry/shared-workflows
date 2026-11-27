@@ -1,0 +1,52 @@
+{
+  "head": "1417b44440337a5bc86f55e3885aa0ce5ac614bd",
+  "merge": "27537ca1c59aab38529d71075c3f98942fda050e",
+  "merged": "2026-10-12T18:57:10Z",
+  "missing_roots": 0,
+  "number": 20532,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] A `SpanExporter` implementation is not itself discovered by agent autoconfiguration, so this migration can produce an extension that loads but is never selected by `otel.traces.exporter=zipkin`. Name the actual exporter SPI (`ConfigurableSpanExporterProvider`) and note that its runtime dependencies must be packaged with the extension.",
+      "created": "2026-10-12T15:34:17Z",
+      "hunk": "@@ -4,6 +4,13 @@\n \n ### ⚠️ Breaking changes\n \n+- The Java agent no longer bundles the Zipkin exporter, and the dedicated Spring Boot Zipkin\n+  starter has been removed. To keep using Zipkin with Spring Boot, use the regular Spring Boot\n+  starter and add a compatible `opentelemetry-exporter-zipkin` dependency. To keep using Zipkin\n+  with the Java agent, provide a compatible `SpanExporter` provider in an extension loaded through\n+  `otel.javaagent.extensions`.",
+      "id": "PRRT_kwDODJKVX86rhmfP",
+      "opened": "2026-10-12T15:34:17Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-12T16:37:15Z",
+          "body": "Addressed in a3f80eb05bff4dbfd7fca00dcb5f1a8dce727064.\n\nWarranted: the frozen CHANGELOG.md:10-11 incorrectly describes a SpanExporter provider as discoverable. The agent uses SDK service discovery via OpenTelemetryInstaller.java:32-36, and the extension example requires packaging runtime dependencies (examples/extension/build.gradle.kts:7-12). The corrected CHANGELOG.md:10-14 explicitly registers a ConfigurableSpanExporterProvider named zipkin through the service provider mechanism, packages the Zipkin exporter and runtime dependencies, and retains otel.javaagent.extensions with otel.traces.exporter=zipkin.\n\n<!-- copilot-loop:05c5a7380e336c2b6a246f1045cfb60e118774492fb990d2e51997c8afc981cb:4249773775:4ac548066c5746269ec552c7882e350f -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20532#discussion_r4250307794"
+        }
+      ],
+      "reviewed": "241285f3df5887a41d67a799a310cd52253515bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20532#discussion_r4249773775"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] This breaking-change entry states what disappeared but gives no migration path. Users upgrading from the removed starter or bundled exporter need the replacement dependency/extension steps here; otherwise the release notes leave existing `otel.traces.exporter=zipkin` deployments without an actionable upgrade. Document both the regular Spring starter path and the agent `ConfigurableSpanExporterProvider` extension path.",
+      "created": "2026-10-12T17:48:55Z",
+      "hunk": "@@ -4,6 +4,8 @@\n \n ### ⚠️ Breaking changes\n \n+- The Java agent no longer bundles the deprecated Zipkin exporter, and the dedicated Spring Boot Zipkin\n+  starter has been removed.",
+      "id": "PRRT_kwDODJKVX86rkOat",
+      "opened": "2026-10-12T17:48:55Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-12T18:01:58Z",
+          "body": "path is not needed since Zipkin exporter was already previously deprecated",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20532#discussion_r4250955014"
+        }
+      ],
+      "reviewed": "1417b44440337a5bc86f55e3885aa0ce5ac614bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20532#discussion_r4250857465"
+    }
+  ]
+}

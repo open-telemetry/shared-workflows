@@ -1,0 +1,31 @@
+{
+  "head": "77d0a3e58e0a8c06139a878bddcd13d80163face",
+  "merge": "a0208841b232b59a8ac126e8e5316d6ce5faa86f",
+  "merged": "2026-10-20T03:04:04Z",
+  "missing_roots": 0,
+  "number": 907,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "MikeGoldsmith"
+      },
+      "body": "This asserts the in-memory `output_messages` rather than what actually lands on the span.\n\nAsserting the recorded output on the span would be better and would catch a future change that breaks the serialisation.",
+      "created": "2026-10-19T12:47:05Z",
+      "hunk": "@@ -0,0 +1,74 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from collections.abc import AsyncIterator, Iterator\n+\n+import pytest\n+from openai.types.chat import ChatCompletionChunk\n+\n+from opentelemetry.instrumentation.genai.openai.chat_wrappers import (\n+    AsyncChatStreamWrapper,\n+    ChatStreamWrapper,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+from opentelemetry.util.genai.types import OutputMessage, TextPart\n+\n+\n+def _chunk(\n+    delta: dict, finish_reason: str | None = None\n+) -> ChatCompletionChunk:\n+    return ChatCompletionChunk.model_validate(\n+        {\n+            \"id\": \"chatcmpl-1\",\n+            \"object\": \"chat.completion.chunk\",\n+            \"created\": 1,\n+            \"model\": \"gpt-4o\",\n+            \"choices\": [\n+                {\"index\": 0, \"delta\": delta, \"finish_reason\": finish_reason}\n+            ],\n+        }\n+    )\n+\n+\n+_REFUSAL_CHUNKS = [\n+    _chunk({\"role\": \"assistant\", \"content\": None, \"refusal\": \"\"}),\n+    _chunk({\"refusal\": \"I'm sorry, \"}),\n+    _chunk({\"refusal\": \"I can't help with that.\"}),\n+    _chunk({}, finish_reason=\"stop\"),\n+]\n+\n+\n+@pytest.mark.asyncio\n+@pytest.mark.parametrize(\"asynchronous\", [False, True])\n+async def test_streamed_refusal_is_captured_in_output_messages(\n+    tracer_provider, asynchronous: bool\n+) -> None:\n+    invocation = TelemetryHandler(tracer_provider=tracer_provider).inference(\n+        \"openai\", request_model=\"gpt-4o\"\n+    )\n+\n+    def produce() -> Iterator[ChatCompletionChunk]:\n+        yield from _REFUSAL_CHUNKS\n+\n+    async def aproduce() -> AsyncIterator[ChatCompletionChunk]:\n+        for chunk in _REFUSAL_CHUNKS:\n+            await asyncio.sleep(0)\n+            yield chunk\n+\n+    if asynchronous:\n+        stream = AsyncChatStreamWrapper(aproduce(), invocation, True)\n+        assert len([chunk async for chunk in stream]) == len(_REFUSAL_CHUNKS)\n+    else:\n+        stream = ChatStreamWrapper(produce(), invocation, True)\n+        assert len(list(stream)) == len(_REFUSAL_CHUNKS)\n+\n+    assert invocation.output_messages == [",
+      "id": "PRRT_kwDOSbspP86t7FFP",
+      "opened": "2026-10-19T12:51:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_stream_refusal.py",
+      "replies": [
+        {
+          "at": "2026-10-19T19:57:54Z",
+          "body": "Done in 77d0a3e, the test now reads `gen_ai.output.messages` from the exported span (with content capture on), and it still fails without the fix.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/907#discussion_r4318225400"
+        }
+      ],
+      "reviewed": "05ee0ebfcce209c5e59c62ed872b594f113cc8c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/907#discussion_r4313974162"
+    }
+  ]
+}

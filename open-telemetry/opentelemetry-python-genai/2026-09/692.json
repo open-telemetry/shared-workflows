@@ -1,0 +1,25 @@
+{
+  "head": "01ff821dfc89660b1cf906ecd9485c1a510c6eda",
+  "merge": "627049d20708929fedad183301b2e3e2a77755ed",
+  "merged": "2026-09-12T19:59:01Z",
+  "missing_roots": 0,
+  "number": 692,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changes the installable `instruments` extra to Agno 3, but `AgnoInstrumentor.instrumentation_dependencies()` still returns `_instruments = (\"agno >= 2.0.0, < 3\",)` from `src/opentelemetry/instrumentation/genai/agno/package.py`. Auto-instrumentation will therefore continue to reject the supported Agno 3 runtime (and the existing dependency test still asserts the old range); update the reported dependency and its test together with this bound.",
+      "created": "2026-09-12T02:11:17Z",
+      "hunk": "@@ -32,7 +32,7 @@ dependencies = [\n ]\n \n [project.optional-dependencies]\n-instruments = [\"agno >= 2.0.0, < 3\"]\n+instruments = [\"agno >=3.0.9, <4\"]",
+      "id": "PRRT_kwDOSbspP86hsOf3",
+      "opened": "2026-09-12T02:11:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/pyproject.toml",
+      "replies": [],
+      "reviewed": "9870d9799276b5cfbc51321dd0a9adc0d5c77fee",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/692#discussion_r3994742955"
+    }
+  ]
+}

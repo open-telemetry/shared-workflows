@@ -1,0 +1,55 @@
+{
+  "head": "8d628f5db0b617697a71b898a0dc34f08cae46ad",
+  "merge": "2cabe194d88cedd8b700f778ade3e8dd8e60cd4f",
+  "merged": "2026-08-03T19:53:55Z",
+  "missing_roots": 0,
+  "number": 349,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The module docstring’s Configuration section documents only `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`, but `_instrument()` also supports `completion_hook` and falls back to `load_completion_hook()` (env var `OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK`). The docstring should mention that configuration so the public module docs match the actual supported behavior.",
+      "created": "2026-08-03T16:52:45Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"\n+OpenTelemetry smolagents Instrumentation\n+========================================\n+\n+Instrumentation for `smolagents <https://github.com/huggingface/smolagents>`_.\n+\n+Usage\n+-----\n+\n+.. code-block:: python\n+\n+    from opentelemetry.instrumentation.genai.smolagents import (\n+        SmolagentsInstrumentor,\n+    )\n+\n+    # Enable instrumentation\n+    SmolagentsInstrumentor().instrument()\n+\n+Configuration\n+-------------\n+\n+Message content capture can be configured by setting the environment variable\n+``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT``. Supported values are\n+``NO_CONTENT``, ``SPAN_ONLY``, ``EVENT_ONLY``, and ``SPAN_AND_EVENT``.\n+\n+API\n+---\n+\"\"\"",
+      "id": "PRRT_kwDOSbspP86WDi81",
+      "opened": "2026-08-03T16:52:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/__init__.py",
+      "replies": [],
+      "reviewed": "88c1c3fcc150e59bc66b96bf0a32553308ed7e8f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/349#discussion_r3706030593"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`wrapt` is pinned as `==2.2.2` in other instrumentation test requirement sets to keep the tox env deterministic; this file uses `>=2.2.2`, which can introduce unexpected breakages when newer `wrapt` releases land.",
+      "created": "2026-08-03T16:52:45Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+# Copyright The OpenTelemetry Authors\n+#\n+# Licensed under the Apache License, Version 2.0 (the \"License\");\n+# you may not use this file except in compliance with the License.\n+# You may obtain a copy of the License at\n+#\n+#     http://www.apache.org/licenses/LICENSE-2.0\n+#\n+# Unless required by applicable law or agreed to in writing, software\n+# distributed under the License is distributed on an \"AS IS\" BASIS,\n+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n+# See the License for the specific language governing permissions and\n+# limitations under the License.\n+\n+\n+# ********************************\n+# WARNING: NOT HERMETIC !!!!!!!!!!\n+# ********************************\n+#\n+# This \"requirements.txt\" is installed in conjunction with multiple other\n+# dependencies in the top-level \"tox.ini\" file. In particular, please see:\n+#\n+#   smolagents-latest: {[testenv]test_deps}\n+#   smolagents-latest: -r {toxinidir}/instrumentation/opentelemetry-instrumentation-genai-smolagents/tests/requirements.latest.txt\n+#\n+# This variant of the requirements aims to test the system using the newest\n+# supported version of external dependencies.\n+\n+smolagents\n+wrapt>=2.2.2\n+",
+      "id": "PRRT_kwDOSbspP86WDi8W",
+      "opened": "2026-08-03T16:52:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/tests/requirements.latest.txt",
+      "replies": [],
+      "reviewed": "88c1c3fcc150e59bc66b96bf0a32553308ed7e8f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/349#discussion_r3706030536"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The instrumentor supports `completion_hook`/`OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK`, but the README only documents message-content capture. This leaves a supported, user-facing configuration option undiscoverable and makes the README incomplete relative to the package behavior.",
+      "created": "2026-08-03T16:52:45Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+OpenTelemetry smolagents Instrumentation\n+========================================\n+\n+|pypi|\n+\n+.. |pypi| image:: https://badge.fury.io/py/opentelemetry-instrumentation-genai-smolagents.svg\n+   :target: https://pypi.org/project/opentelemetry-instrumentation-genai-smolagents/\n+\n+This library provides OpenTelemetry instrumentation for `smolagents\n+<https://github.com/huggingface/smolagents>`_.\n+\n+Installation\n+------------\n+\n+::\n+\n+    pip install opentelemetry-instrumentation-genai-smolagents\n+\n+Usage\n+-----\n+\n+.. code-block:: python\n+\n+    from opentelemetry.instrumentation.genai.smolagents import (\n+        SmolagentsInstrumentor,\n+    )\n+\n+    # Instrument smolagents\n+    SmolagentsInstrumentor().instrument()\n+\n+Configuration\n+-------------\n+\n+Capture Message Content\n+***********************\n+\n+By default, prompts and completions are not captured. To capture message\n+content, set the environment variable\n+``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`` to one of ``NO_CONTENT``,\n+``SPAN_ONLY``, ``EVENT_ONLY``, or ``SPAN_AND_EVENT``:\n+\n+::\n+\n+    export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_AND_EVENT\n+",
+      "id": "PRRT_kwDOSbspP86WDi8o",
+      "opened": "2026-08-03T16:52:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/README.rst",
+      "replies": [],
+      "reviewed": "88c1c3fcc150e59bc66b96bf0a32553308ed7e8f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/349#discussion_r3706030566"
+    }
+  ]
+}

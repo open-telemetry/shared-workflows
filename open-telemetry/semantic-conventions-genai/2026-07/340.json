@@ -1,0 +1,70 @@
+{
+  "head": "fa44bd60215ffcd8e4e0e85f743241a05a69f135",
+  "merge": "953dd22e3cecd3a397d742c349d2435d59c8b771",
+  "merged": "2026-07-08T20:30:44Z",
+  "missing_roots": 0,
+  "number": 340,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The newly added folded `note: >` block includes trailing spaces (e.g., after `>`, after `usage`, and after some line-ending commas). YAML folding turns those into double spaces in the rendered markdown (visible as `usage  of tokens`, `response,  it SHOULD`, etc.). Removing the trailing spaces keeps the generated docs clean and avoids unintended spacing changes.",
+      "created": "2026-06-24T04:26:45Z",
+      "hunk": "@@ -19,9 +19,22 @@ attribute_groups:\n         requirement_level: recommended\n metrics:\n   - name: gen_ai.client.token.usage\n+    requirement_level: recommended\n     instrument: histogram\n     unit: \"{token}\"\n     brief: 'Number of input and output tokens used.'\n+    note: > \n+      This metric SHOULD be reported when an operation involves the usage \n+      of tokens and the count is readily available.\n+\n+      For example, if GenAI system returns usage information in the streaming response, \n+      it SHOULD be used. Or if GenAI system returns each token independently, \n+      instrumentation SHOULD count number of output tokens and record the result.\n+\n+      If instrumentation cannot efficiently obtain number of input and/or output tokens,\n+      it MAY allow users to enable offline token counting. Otherwise it MUST NOT report usage metric.\n+\n+      When systems report both used tokens and billable tokens, instrumentation MUST report billable tokens.",
+      "id": "PRRT_kwDOSUeMrM6LyfWi",
+      "opened": "2026-06-24T04:26:46Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "2b40bf2448c72b2b9eb01aa1f5e6c422d13a6ab3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/340#discussion_r3464524626"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This newly added `note: >` block has a trailing space after `metric` on the first line, which folds into a double-space (`metric  value`) in the generated markdown. Removing the trailing space keeps the rendered sentence stable.",
+      "created": "2026-06-24T04:26:45Z",
+      "hunk": "@@ -101,13 +120,17 @@ metrics:\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n   - name: gen_ai.workflow.duration\n+    requirement_level: recommended\n     annotations:\n       code_generation:\n         metric_value_type: double\n     brief: 'GenAI workflow duration.'\n     note: >\n       This metric instrument describes an operation that executes a coordinated process\n       composed of multiple agents or other operations involving generative AI.\n+\n+      When this metric is reported alongside a `gen_ai.invoke_workflow` span, the metric \n+      value SHOULD be the same as the span duration.",
+      "id": "PRRT_kwDOSUeMrM6LyfWu",
+      "opened": "2026-06-24T04:26:46Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "2b40bf2448c72b2b9eb01aa1f5e6c422d13a6ab3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/340#discussion_r3464524644"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The inline comment describing the v2 metric object shape is now inaccurate: `group.requirement_level` is referenced below, but the comment omits `requirement_level` from the listed fields. Keeping this comment in sync avoids confusion when updating templates later.",
+      "created": "2026-06-24T04:26:46Z",
+      "hunk": "@@ -1,9 +1,16 @@\n {% import 'stability.j2' as stability %}\n {% import 'notes.j2' as notes %}\n {% import 'metric_macros.j2' as metrics %}\n+{% import 'signal_requirement_level.j2' as sr %}\n \n {# v2 metric objects expose: name, instrument, unit, brief, note, stability, attributes, entity_associations. #}",
+      "id": "PRRT_kwDOSUeMrM6LyfW0",
+      "opened": "2026-06-24T04:26:46Z",
+      "path": "templates/registry/markdown/metric_table.j2",
+      "replies": [],
+      "reviewed": "2b40bf2448c72b2b9eb01aa1f5e6c422d13a6ab3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/340#discussion_r3464524650"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      When this metric is reported alongside a `gen_ai.invoke_workflow.internal` span, the metric\n```",
+      "created": "2026-07-08T16:42:07Z",
+      "hunk": "@@ -101,13 +120,17 @@ metrics:\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n   - name: gen_ai.workflow.duration\n+    requirement_level: recommended\n     annotations:\n       code_generation:\n         metric_value_type: double\n     brief: 'GenAI workflow duration.'\n     note: >\n       This metric instrument describes an operation that executes a coordinated process\n       composed of multiple agents or other operations involving generative AI.\n+\n+      When this metric is reported alongside a `gen_ai.invoke_workflow` span, the metric",
+      "id": "PRRT_kwDOSUeMrM6PUD6x",
+      "opened": "2026-07-08T16:44:01Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "fa44bd60215ffcd8e4e0e85f743241a05a69f135",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/340#discussion_r3545732999"
+    }
+  ]
+}

@@ -1,0 +1,475 @@
+{
+  "head": "1ca1a428c747df8b11ca2daea56c30bbd31d3a41",
+  "merge": "dfd20d85e458e2ee37522c0658c3e686802a9053",
+  "merged": "2026-08-24T21:00:20Z",
+  "missing_roots": 0,
+  "number": 42,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "WaitForEofAsync opens standard input but never disposes the returned stream. Since this helper is used by long-running scenarios, disposing the handle on completion avoids leaking the underlying OS handle (especially on Windows).",
+      "created": "2026-08-16T05:25:55Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+namespace OpenTelemetry.Conformance.Scenario;\n+\n+/// <summary>How a long-running scenario learns that the runner is finished with it.</summary>\n+public static class ScenarioLifecycle\n+{\n+    /// <summary>\n+    /// Completes when standard input closes, which is how the driver says stop.\n+    /// </summary>\n+    /// <remarks>\n+    /// A closed pipe rather than a signal: it means the same thing on every platform, and\n+    /// returning is what gives an SDK the chance to flush, so a scenario that exits any other way\n+    /// reports less than it produced. The protocol is the same in every domain.\n+    /// <para>\n+    /// The read runs on a thread pool thread because standard input is a synchronous handle when\n+    /// it is a pipe on Windows: awaiting it directly would block the caller rather than the\n+    /// scenario's server.\n+    /// </para>\n+    /// </remarks>\n+    public static Task WaitForEofAsync() => Task.Run(() =>\n+    {\n+        var input = Console.OpenStandardInput();\n+        var discarded = new byte[1];\n+        while (input.Read(discarded, 0, 1) > 0)",
+      "id": "PRRT_kwDOTuzK5c6Zk1hi",
+      "opened": "2026-08-16T05:25:56Z",
+      "path": "tools/dotnet/OpenTelemetry.Conformance.Scenario/ScenarioLifecycle.cs",
+      "replies": [
+        {
+          "at": "2026-08-16T05:48:57Z",
+          "body": "Added the `using`.\n\nTo be accurate about the stakes rather than the stated reason: no handle leaks in practice. `WaitForEofAsync` returns only when standard input reaches EOF, which is the shutdown signal, so the scenario stops its server, flushes and exits within moments — the OS reclaims the handle regardless, and a scenario calls this exactly once per process. The \"long-running scenarios\" framing is the wrong way round, since it is the *end* of the long run that this method observes.\n\nWorth doing anyway because it is one keyword and complicates nothing, and because this helper is shared across domains rather than owned by the HTTP scenarios. A future caller that waits for EOF without exiting immediately afterwards should not have to know that the stream was left open.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3791072837"
+        }
+      ],
+      "reviewed": "eb61b1489314f6dfc9d24eaaaed0ce1ead4b601f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3791017204"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "HttpClientScenario only checks that MOCK_SERVER_URL is non-empty, but it later concatenates it into absolute request URLs. If the runner injects a malformed value, the resulting Uri/HttpRequestMessage exceptions can be hard to diagnose; validating the URL early yields a clearer failure mode (this matches the existing Java scenario behavior).",
+      "created": "2026-08-16T05:25:55Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+using System.Net.Http.Headers;\n+using System.Text;\n+using OpenTelemetry.Conformance.Scenario;\n+\n+namespace OpenTelemetry.Conformance.Http.SystemNetHttp;\n+\n+/// <summary>Runs the shared request contract through a <c>System.Net.Http.HttpClient</c>.</summary>\n+/// <remarks>\n+/// The mock server answering the requests is declared by the scenario package and started by the\n+/// runner, so a client scenario is measured against the same traffic as every other one without\n+/// hosting a server of its own.\n+/// </remarks>\n+public static class HttpClientScenario\n+{\n+    /// <summary>\n+    /// Runs it through a plain client, for a scenario whose instrumentation attaches itself.\n+    /// </summary>\n+    /// <remarks>\n+    /// .NET instrumentations subscribe to <c>System.Net.Http</c>'s diagnostic sources through the\n+    /// SDK rather than wrapping each client, so unlike libraries that are instrumented by\n+    /// decoration this workload has nothing to hand its launcher.\n+    /// </remarks>\n+    public static async Task RunAsync()\n+    {\n+        var baseUrl = ScenarioEnvironment.Require(\"MOCK_SERVER_URL\");\n+",
+      "id": "PRRT_kwDOTuzK5c6Zk1ho",
+      "opened": "2026-08-16T05:25:56Z",
+      "path": "scenarios/http/dotnet/httpclient/scenarios/HttpClientScenario.cs",
+      "replies": [
+        {
+          "at": "2026-08-16T05:49:07Z",
+          "body": "Added the check, and your comparison to the Java scenario is what decided it — though the two need it for different reasons.\n\nI ran the malformed case before changing anything, since the diagnosis claim is testable. With `MOCK_SERVER_URL=not-a-url` the scenario failed with:\n\n```\nSystem.InvalidOperationException: An invalid request URI was provided. Either the request URI must be an absolute URI or BaseAddress must be set.\n```\n\nThat names neither the variable nor the value, so someone hitting it has to read the scenario to learn which of its inputs was bad. It now fails with `MOCK_SERVER_URL must be an http:// URL: not-a-url`, matching `ArmeriaClientScenario`'s message shape.\n\nOne nuance worth recording: Armeria validates as a byproduct of work it must do anyway — it decomposes the URL to build an `h1c://authority` client. This scenario concatenates the base URL with each path and never parses it, so here the check exists purely for the failure message. The runner always injects a well-formed URL, so this is diagnosability rather than a guard against something expected to happen.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3791073083"
+        }
+      ],
+      "reviewed": "eb61b1489314f6dfc9d24eaaaed0ce1ead4b601f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3791017212"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Respond's XML docs say requestBody is null when a request carried no body, but many server frameworks (including ASP.NET Core when reading the body stream) will naturally surface that case as an empty string. Documenting this as \"null or empty\" avoids misleading scenario implementations.",
+      "created": "2026-08-16T05:25:55Z",
+      "hunk": "@@ -0,0 +1,54 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+using System.Globalization;\n+\n+namespace OpenTelemetry.Conformance.Http;\n+\n+/// <summary>Shared support for .NET server scenarios.</summary>\n+/// <remarks>\n+/// A server scenario declares routes with the framework under test — that declaration is what an\n+/// instrumentation reads <c>http.route</c> from — and then asks this class what to answer. Every\n+/// .NET framework therefore agrees on the statuses and bodies without forcing its route\n+/// construction into a shared runtime model.\n+/// <para>\n+/// The requests are sent by <c>otel-http-drive</c> from another process, which checks each answer\n+/// against the same contract.\n+/// </para>\n+/// </remarks>\n+public static class HttpServerWorkload\n+{\n+    /// <summary>\n+    /// The port a server scenario listens on. <c>otel-http-drive</c> chooses it, which is what\n+    /// lets different scenarios run in parallel without colliding.\n+    /// </summary>\n+    public const string PortVariable = \"OTEL_HTTP_SCENARIO_PORT\";\n+\n+    /// <summary>What the contract answers to one request.</summary>\n+    /// <remarks>\n+    /// The whole answer contract in one method, so every .NET framework answers identically.\n+    /// <paramref name=\"requestBody\"/> is null for a request that carried none.\n+    /// </remarks>",
+      "id": "PRRT_kwDOTuzK5c6Zk1hr",
+      "opened": "2026-08-16T05:25:56Z",
+      "path": "tools/http/test-client/dotnet/OpenTelemetry.Conformance.Http/HttpServerWorkload.cs",
+      "replies": [
+        {
+          "at": "2026-08-16T05:48:49Z",
+          "body": "Fixed the wording — and you found a real gap behind it, though not the one the comment describes.\n\nThe behaviour was already right by design rather than by luck. `Respond` passes `requestBody` to exactly one place, and `RenderResponseBody` collapses the two cases deliberately with `string.IsNullOrEmpty(requestBody) ? \"{}\" : requestBody`. `HttpContract.Find` never sees the body at all — the lookup is by method and path — so neither the route chosen nor the body rendered can be perturbed by which spelling arrives. I left that alone; adding a null-coalescing guard would have been a moving part to satisfy a sentence.\n\nWhat the comment did surface is that the *tests* all passed `null`, while the ASP.NET Core scenario reads a body stream and therefore always passes `\"\"`. So the shape under test and the shape in use were disjoint, and the equivalence was holding without anything pinning it. Added a theory over both spellings asserting the same answer, so a future change to the rendering cannot quietly diverge them.\n\nThe docs now say a bodyless request arrives as null or empty, and why: a framework handing over a body stream reports the absent body as an empty string, one modelling it as optional reports null, and both mean the same thing here.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3791072624"
+        }
+      ],
+      "reviewed": "eb61b1489314f6dfc9d24eaaaed0ce1ead4b601f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3791017217"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we need this with --report only? ",
+      "created": "2026-08-16T18:13:18Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: http-conformance\n+instrumented_library: Microsoft.AspNetCore\n+instrumentation_library: OpenTelemetry.Instrumentation.AspNetCore\n+\n+setup: dotnet publish ../OpenTelemetryAspNetCoreServer.csproj --configuration Release --nologo\n+\n+scenarios:\n+  server:\n+    # The requests are sent from outside the scenario, so a server run holds\n+    # server telemetry only; the driver starts this command, chooses the port\n+    # it binds, and closes its standard input when it is done.\n+    #\n+    # `dotnet <assembly>` rather than the published launcher executable, whose\n+    # name is `.exe` on Windows and extensionless elsewhere.\n+    run: otel-http-drive --serve dotnet ../../../build/scenario-runtime/OpenTelemetryAspNetCoreServer/OpenTelemetryAspNetCoreServer.dll\n+    expected_violations:\n+      # Recorded rather than configured away: an enrichment callback could add\n+      # client.address, but then the scenario would stop measuring what the\n+      # instrumentation does by default.\n+      #\n+      # One entry covers all four routes — weaver's context names the\n+      # attribute, not the span.\n+      - id: recommended_attribute_not_present",
+      "id": "PRRT_kwDOTuzK5c6Zos6C",
+      "opened": "2026-08-16T18:22:15Z",
+      "path": "scenarios/http/dotnet/aspnetcore/opentelemetry-aspnetcore/server/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-19T02:40:48Z",
+          "body": "removed",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3809642663"
+        }
+      ],
+      "reviewed": "cf35f876131703af34566873577b28c3be53e199",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3792488612"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "I think for GenAI we have a special flavor of coverage report that cuts all unknown attributes (and maybe even metrics), wonder if we should just have a default coverage that reports everything for transparency and 'unknown' ones can be ignored by the dashboard based on the coverage model that contains known / expected signals and attributes.",
+      "created": "2026-08-16T18:16:19Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+{\n+  \"spans\": {\n+    \"http.server\": [\n+      \"http.request.method\",\n+      \"http.response.status_code\",\n+      \"http.route\",\n+      \"network.protocol.version\",\n+      \"server.address\",\n+      \"server.port\",\n+      \"url.path\",\n+      \"url.query\",\n+      \"url.scheme\",\n+      \"user_agent.original\"\n+    ]\n+  },\n+  \"events\": {},\n+  \"metrics\": {\n+    \"aspnetcore.memory_pool.allocated\": [",
+      "id": "PRRT_kwDOTuzK5c6Zot3P",
+      "opened": "2026-08-16T18:22:15Z",
+      "path": "scenarios/http/dotnet/aspnetcore/opentelemetry-aspnetcore/server/data.json",
+      "replies": [
+        {
+          "at": "2026-08-18T10:21:56Z",
+          "body": "Alternatively, change the diagnostics sources that are registered by the harness to only enable the HTTP ones, and not the extras that come with ASP.NET Core. The ASP.NET Core instrumentation is for ASP.NET Core, not just HTTP, so that's why it essentially enables everything by default.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3802750852"
+        },
+        {
+          "at": "2026-08-18T22:04:41Z",
+          "body": "> Alternatively, change the diagnostics sources that are registered by the harness to only enable the HTTP ones, and not the extras that come with ASP.NET Core.\r\n\r\nwent with this for now since easy and matches what I did for Java, but definitely agree @lmolkova that we probably need a more general solution for this\r\n\r\nbf1ab5e4c0af40afcf4397bf44939d888818ed0a and https://github.com/open-telemetry/semantic-conventions-conformance/pull/42/changes/3ed40aee0cd5c1433b36a39a61d207c4661d6412",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3808291256"
+        }
+      ],
+      "reviewed": "cf35f876131703af34566873577b28c3be53e199",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3792494241"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "quick poll: should we rename this in weaver to be 'unknown' / 'unrecognized'? I always read it as the opposite 'it was expected but it's missing', checking if it gives you a pause too",
+      "created": "2026-08-16T18:19:17Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: http-conformance\n+instrumented_library: System.Net.Http\n+instrumentation_library: OpenTelemetry.Instrumentation.Http\n+\n+setup: dotnet publish ../OpenTelemetryHttpClient.csproj --configuration Release --nologo\n+\n+server:\n+  run: http-mock-server --port ${PORT}\n+\n+scenarios:\n+  client:\n+    # `dotnet <assembly>` rather than the published launcher executable, whose\n+    # name is `.exe` on Windows and extensionless elsewhere.\n+    run: dotnet ../../../build/scenario-runtime/OpenTelemetryHttpClient/OpenTelemetryHttpClient.dll\n+    expected_violations:\n+      # `System.Net.Http` publishes the runtime's meter whole rather than\n+      # choosing from it, so this arrives with the rest of the client metrics\n+      # and cannot be dropped without dropping the ones being measured.\n+      #\n+      # `context: {}` matches the finding weaver reports, which carries none —\n+      # it therefore accepts any metric outside the registry, not this one by\n+      # name. Weaver gives `missing_metric` nothing narrower to match on.\n+      - id: missing_metric",
+      "id": "PRRT_kwDOTuzK5c6Zouyp",
+      "opened": "2026-08-16T18:22:15Z",
+      "path": "scenarios/http/dotnet/httpclient/opentelemetry-http/client/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-18T10:21:56Z",
+          "body": "+1 - \"missing\" sounds like a bug to fix, rather than finding something extra that there's no issues with.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3802780975"
+        }
+      ],
+      "reviewed": "cf35f876131703af34566873577b28c3be53e199",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3792499817"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\naction's hash pin has mismatched or missing version comment: points to commit a98b56852c35\n\n[Show more details](https://github.com/open-telemetry/semantic-conventions-conformance/security/code-scanning/26)",
+      "created": "2026-08-17T03:03:35Z",
+      "hunk": "@@ -212,6 +225,12 @@\n       - name: Set up Gradle\n         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0\n \n+      # A .NET scenario builds itself from source in its `setup:` before it runs.\n+      - name: Set up .NET\n+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v6.0.0",
+      "id": "PRRT_kwDOTuzK5c6Zrki2",
+      "opened": "2026-08-17T03:03:36Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-08-18T15:15:02Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42/commits/ad85f95ea36533b373691b819576b2ca9a3c9b7c",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3805407726"
+        }
+      ],
+      "reviewed": "23a213aa75382f0e503a4d74e40cb45a6c533451",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3793572627"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\naction's hash pin has mismatched or missing version comment: points to commit a98b56852c35\n\n[Show more details](https://github.com/open-telemetry/semantic-conventions-conformance/security/code-scanning/25)",
+      "created": "2026-08-17T03:03:35Z",
+      "hunk": "@@ -79,6 +79,19 @@\n       - name: Build Java\n         run: scenarios/http/java/gradlew --project-dir scenarios/http/java build\n \n+      - name: Set up .NET\n+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v6.0.0",
+      "id": "PRRT_kwDOTuzK5c6Zrkin",
+      "opened": "2026-08-17T03:03:36Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-08-18T15:15:01Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42/commits/ad85f95ea36533b373691b819576b2ca9a3c9b7c",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3805407486"
+        }
+      ],
+      "reviewed": "23a213aa75382f0e503a4d74e40cb45a6c533451",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3793572608"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "martincostello"
+      },
+      "body": "IMHO it's better to pin the SDK version in a global.json file that renovate can keep updated, which will also put the SDK version in one place and not have it unpinned and drift over time.",
+      "created": "2026-08-18T09:13:34Z",
+      "hunk": "@@ -79,6 +79,19 @@ jobs:\n       - name: Build Java\n         run: scenarios/http/java/gradlew --project-dir scenarios/http/java build\n \n+      - name: Set up .NET\n+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v6.0.0\n+        with:\n+          dotnet-version: \"10.0.x\"",
+      "id": "PRRT_kwDOTuzK5c6aDM35",
+      "opened": "2026-08-18T10:21:56Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-08-19T03:41:52Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42/changes/a036babd2bb38da6b58175207da3eb3b3fead2b9",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3809866881"
+        }
+      ],
+      "reviewed": "ca38c265713bc400892cbfbd466eb8e0022271ee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3802687983"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "martincostello"
+      },
+      "body": "If [artifacts output](https://learn.microsoft.com/en-us/dotnet/core/sdk/artifacts-output) is used, the output can all be put into a single `artifacts` directory which makes the layout much tidier and simpler.",
+      "created": "2026-08-18T09:14:27Z",
+      "hunk": "@@ -12,3 +12,8 @@ results/\n # Gradle: its caches, and everything a scenario's `setup` builds into them.\n .gradle/\n build/\n+\n+# .NET: what a build and a scenario's `setup` compile into, anywhere in the\n+# tree, which is where the SDK puts them and not something a project chooses.\n+bin/\n+obj/",
+      "id": "PRRT_kwDOTuzK5c6aDN3R",
+      "opened": "2026-08-18T10:21:56Z",
+      "path": ".gitignore",
+      "replies": [
+        {
+          "at": "2026-08-19T03:21:27Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42/changes/ad3c61a791e23dc13d65fc3e46e4f02b93c9415d",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3809796179"
+        }
+      ],
+      "reviewed": "ca38c265713bc400892cbfbd466eb8e0022271ee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3802694082"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "martincostello"
+      },
+      "body": "Might be worth clarifying that the OTel instrumentation for HTTP in .NET 10+ isn't exclusively provided by the NuGet packages referenced - the majority of the implementation is in the .NET/ASP.NET Core runtime itself.",
+      "created": "2026-08-18T09:17:52Z",
+      "hunk": "",
+      "id": "PRRT_kwDOTuzK5c6aDR1O",
+      "opened": "2026-08-18T10:21:56Z",
+      "path": "scenarios/http/dotnet/README.md",
+      "replies": [
+        {
+          "at": "2026-08-18T15:15:08Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42/commits/6ea60a6ba7518662b3b07659fc2484ea293b7a70",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3805408545"
+        }
+      ],
+      "reviewed": "ca38c265713bc400892cbfbd466eb8e0022271ee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3802717850"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "martincostello"
+      },
+      "body": "We can add comments related to this to https://github.com/dotnet/aspnetcore/issues/65873 to see if they can be implemented in a future version of ASP.NET Core.",
+      "created": "2026-08-18T09:20:33Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: http-conformance\n+instrumented_library: Microsoft.AspNetCore\n+instrumentation_library: OpenTelemetry.Instrumentation.AspNetCore\n+\n+# Publishing here rather than in `run:` keeps the toolchain out of the measured\n+# process: a `dotnet run` would restore and compile on the clock.\n+setup: otel-conformance-dotnet build\n+\n+scenarios:\n+  server:\n+    # The requests are sent from outside the scenario, so a server run holds\n+    # server telemetry only; the driver starts this command, chooses the port\n+    # it binds, and closes its standard input when it is done.\n+    run: otel-http-drive --serve otel-conformance-dotnet run\n+    expected_violations:\n+      # Recorded rather than configured away: an enrichment callback could add\n+      # client.address, but then the scenario would stop measuring what the\n+      # instrumentation does by default.\n+      #\n+      # One entry covers all four routes — weaver's context names the\n+      # attribute, not the span.\n+      - id: recommended_attribute_not_present\n+        context:\n+          attribute_key: client.address\n+          kind: server\n+        reason: >-\n+          OpenTelemetry.Instrumentation.AspNetCore never sets client.address on\n+          a server span. It does record the socket that received the request —\n+          server.address and server.port are both present — and it sets no\n+          network.peer.address either, so a server run says what it listened on\n+          but nothing about who called it. ASP.NET Core offers the peer on\n+          HttpContext.Connection.RemoteIpAddress, so this is an omission rather\n+          than something the framework cannot supply.",
+      "id": "PRRT_kwDOTuzK5c6aDVBl",
+      "opened": "2026-08-18T10:21:56Z",
+      "path": "scenarios/http/dotnet/aspnetcore/opentelemetry-aspnetcore/server/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-18T15:15:05Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42/commits/f718037f030d442cf1f60ec1b3df80831f3dafcb",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3805408106"
+        },
+        {
+          "at": "2026-08-18T21:38:51Z",
+          "body": "927111226d77c7013edff0fb002482c2c2e6d0cd",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3808123360"
+        }
+      ],
+      "reviewed": "ca38c265713bc400892cbfbd466eb8e0022271ee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3802737011"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "martincostello"
+      },
+      "body": "This will be available in ASP.NET Core 11 (it was implemented in preview 2).",
+      "created": "2026-08-18T09:20:51Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: http-conformance\n+instrumented_library: Microsoft.AspNetCore\n+instrumentation_library: OpenTelemetry.Instrumentation.AspNetCore\n+\n+# Publishing here rather than in `run:` keeps the toolchain out of the measured\n+# process: a `dotnet run` would restore and compile on the clock.\n+setup: otel-conformance-dotnet build\n+\n+scenarios:\n+  server:\n+    # The requests are sent from outside the scenario, so a server run holds\n+    # server telemetry only; the driver starts this command, chooses the port\n+    # it binds, and closes its standard input when it is done.\n+    run: otel-http-drive --serve otel-conformance-dotnet run\n+    expected_violations:\n+      # Recorded rather than configured away: an enrichment callback could add\n+      # client.address, but then the scenario would stop measuring what the\n+      # instrumentation does by default.\n+      #\n+      # One entry covers all four routes — weaver's context names the\n+      # attribute, not the span.\n+      - id: recommended_attribute_not_present\n+        context:\n+          attribute_key: client.address\n+          kind: server\n+        reason: >-\n+          OpenTelemetry.Instrumentation.AspNetCore never sets client.address on\n+          a server span. It does record the socket that received the request —\n+          server.address and server.port are both present — and it sets no\n+          network.peer.address either, so a server run says what it listened on\n+          but nothing about who called it. ASP.NET Core offers the peer on\n+          HttpContext.Connection.RemoteIpAddress, so this is an omission rather\n+          than something the framework cannot supply.\n+      # The contract has one failing request, so this is seen once; the context\n+      # matches on the status being an error rather than on which route it was.\n+      - id: error_type_missing_on_error",
+      "id": "PRRT_kwDOTuzK5c6aDVWm",
+      "opened": "2026-08-18T10:21:56Z",
+      "path": "scenarios/http/dotnet/aspnetcore/opentelemetry-aspnetcore/server/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-18T15:15:07Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42/commits/f718037f030d442cf1f60ec1b3df80831f3dafcb",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3805408314"
+        },
+        {
+          "at": "2026-08-18T21:29:56Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42/commits/f549be9",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3808070987"
+        }
+      ],
+      "reviewed": "ca38c265713bc400892cbfbd466eb8e0022271ee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3802738996"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "martincostello"
+      },
+      "body": "Do we need all these \"same as Java\" comments? Once more languages are added, it wouldn't scale to have each new implementation say \"same as {the previous scenarios}\" - this just looks like Claude waffle.",
+      "created": "2026-08-18T09:28:40Z",
+      "hunk": "@@ -0,0 +1,22 @@\n+<!--\n+  Copyright The OpenTelemetry Authors\n+  SPDX-License-Identifier: Apache-2.0\n+\n+  The build conventions every .NET conformance project shares. MSBuild finds\n+  this file by walking up from a project, so it reaches the projects here on\n+  its own, and a domain's build root imports it — the same split as\n+  `tools/java/gradle-plugins`, which a domain's Gradle build includes rather",
+      "id": "PRRT_kwDOTuzK5c6aDemI",
+      "opened": "2026-08-18T10:21:56Z",
+      "path": "tools/dotnet/Directory.Build.props",
+      "replies": [
+        {
+          "at": "2026-08-18T13:43:49Z",
+          "body": "thanks! that had infected the prs for other languages too",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3804609361"
+        }
+      ],
+      "reviewed": "ca38c265713bc400892cbfbd466eb8e0022271ee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3802794354"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "martincostello"
+      },
+      "body": "Do we need to compare .NET to Gradle?",
+      "created": "2026-08-18T10:17:11Z",
+      "hunk": "@@ -0,0 +1,97 @@\n+# .NET conformance scenarios\n+\n+Everything a .NET scenario shares: the support every scenario needs whatever\n+domain it measures, and the SDK the ones measuring library instrumentation\n+build for themselves.\n+\n+```text\n+scenarios/<domain>/dotnet/                   a domain's build root — the solution and its pins\n+tools/dotnet/OpenTelemetry.Conformance.Scenario/      what a scenario needs before any telemetry\n+tools/dotnet/OpenTelemetry.Conformance.Scenario.Sdk/  the SDK a library-instrumentation scenario owns\n+tools/dotnet/src/                            `otel-conformance-dotnet`, the launcher\n+tools/dotnet/tests/                          the launcher's tests\n+```\n+\n+## A build root per domain\n+\n+A domain's .NET scenarios are one solution, rooted at its own\n+`scenarios/<domain>/dotnet` — today only\n+[`scenarios/http/dotnet`](../../scenarios/http/dotnet). It lists the projects\n+here rather than restating them, so `dotnet build` at a build root is the whole\n+language's build and a shared project cannot drift out of date behind a\n+domain's back.\n+\n+What is not shared is the pins. MSBuild resolves `Directory.Packages.props` by\n+walking up from each project, and `tools/` is not under any build root, so the\n+projects here read [`Directory.Packages.props`](Directory.Packages.props) beside\n+them while a domain's scenarios read their own. The SDK release is therefore\n+pinned once for every domain, and the instrumentation releases a domain measures\n+are pinned with that domain — which is the opposite direction from a Gradle\n+version catalog, where a build root pins everything it includes.\n+[`Directory.Build.props`](Directory.Build.props) carries the settings that are\n+not versions, and a build root imports it.",
+      "id": "PRRT_kwDOTuzK5c6aEXy2",
+      "opened": "2026-08-18T10:21:56Z",
+      "path": "tools/dotnet/README.md",
+      "replies": [],
+      "reviewed": "ca38c265713bc400892cbfbd466eb8e0022271ee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3803135711"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "martincostello"
+      },
+      "body": "4.0.0 shipped in the last few days.",
+      "created": "2026-08-18T10:19:00Z",
+      "hunk": "@@ -0,0 +1,19 @@\n+<!--\n+  Copyright The OpenTelemetry Authors\n+  SPDX-License-Identifier: Apache-2.0\n+\n+  Only the test packages: nothing this helper ships at run time comes from\n+  NuGet, since reading and answering the contract is what the base class\n+  library already does.\n+-->\n+<Project>\n+  <PropertyGroup>\n+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>\n+  </PropertyGroup>\n+\n+  <ItemGroup>\n+    <PackageVersion Include=\"Microsoft.NET.Test.Sdk\" Version=\"18.9.0\" />\n+    <PackageVersion Include=\"xunit.v3\" Version=\"3.2.2\" />\n+    <PackageVersion Include=\"xunit.runner.visualstudio\" Version=\"3.1.5\" />",
+      "id": "PRRT_kwDOTuzK5c6aEZvc",
+      "opened": "2026-08-18T10:21:56Z",
+      "path": "tools/http/test-client/dotnet/Directory.Packages.props",
+      "replies": [
+        {
+          "at": "2026-08-19T02:52:24Z",
+          "body": "it's not available yet on the internal nuget feed I'm limited to, so i'll leave it for renovate to bump",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3809697887"
+        }
+      ],
+      "reviewed": "ca38c265713bc400892cbfbd466eb8e0022271ee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3803147171"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "martincostello"
+      },
+      "body": "As this targets .NET 10, you could use [`ReplaceLineEndings()`](https://learn.microsoft.com/dotnet/api/system.string.replacelineendings?#system-string-replacelineendings(system-string))",
+      "created": "2026-08-18T10:20:56Z",
+      "hunk": "@@ -0,0 +1,80 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+using System.Text.Json.Nodes;\n+\n+namespace OpenTelemetry.Conformance.Http;\n+\n+/// <summary>\n+/// Shared support for .NET client scenarios: the request contract, sent by the library under test.\n+/// </summary>\n+/// <remarks>\n+/// Only a <em>client</em> scenario needs this: it is the sender, so the requests have to leave the\n+/// library under test. A server scenario is driven from outside its own process by\n+/// <c>otel-http-drive</c> and never sends anything.\n+/// <para>\n+/// Every answer is checked against its exchange, so a server answering different traffic from the\n+/// rest fails the run rather than quietly producing a coverage file that cannot be compared with\n+/// the others.\n+/// </para>\n+/// </remarks>\n+public static class HttpClientWorkload\n+{\n+    /// <summary>Sends one request using the HTTP client library under test.</summary>\n+    /// <remarks><paramref name=\"body\"/> is null for a request that carries none.</remarks>\n+    public delegate Task<HttpContract.Response> Sender(string method, string url, string? body);\n+\n+    /// <summary>\n+    /// Sends <see cref=\"HttpContract.Requests\"/> at <paramref name=\"baseUrl\"/> through\n+    /// <paramref name=\"send\"/>.\n+    /// </summary>\n+    /// <remarks>\n+    /// No health check: the runner starts the mock server a client scenario calls and waits for it\n+    /// to answer before running the scenario at all.\n+    /// </remarks>\n+    public static async Task DriveAsync(string baseUrl, Sender send)\n+    {\n+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);\n+        ArgumentNullException.ThrowIfNull(send);\n+\n+        foreach (var exchange in HttpContract.Requests)\n+        {\n+            var response = await send(exchange.Method, baseUrl + exchange.Path, exchange.Body)\n+                .ConfigureAwait(false);\n+            Console.WriteLine(\n+                $\"{exchange.Method} {exchange.Path} -> {response.StatusCode} {Abbreviate(response.Body)}\");\n+            Verify(exchange, response);\n+        }\n+    }\n+\n+    /// <summary>Checks one answer against the exchange that describes it.</summary>\n+    public static void Verify(HttpContract.Exchange exchange, HttpContract.Response response)\n+    {\n+        ArgumentNullException.ThrowIfNull(exchange);\n+        ArgumentNullException.ThrowIfNull(response);\n+\n+        if (response.StatusCode != exchange.Status)\n+        {\n+            throw new ContractException(\n+                $\"{exchange.Method} {exchange.Path} answered {response.StatusCode}, but the \"\n+                + $\"contract's request answers {exchange.Status}\");\n+        }\n+\n+        // Parsed, not compared as text: whitespace and key order are a language's choice of JSON\n+        // writer, and neither is part of the contract.\n+        var expectedBody = HttpContract.Parse(exchange.RenderResponseBody(exchange.Body));\n+        var actualBody = HttpContract.Parse(response.Body);\n+        if (!JsonNode.DeepEquals(expectedBody, actualBody))\n+        {\n+            throw new ContractException(\n+                $\"{exchange.Method} {exchange.Path} answered {actualBody.ToJsonString()}, but the \"\n+                + $\"contract's request answers {expectedBody.ToJsonString()}\");\n+        }\n+    }\n+\n+    private static string Abbreviate(string value)\n+    {\n+        var singleLine = value.Replace('\\r', ' ').Replace('\\n', ' ');",
+      "id": "PRRT_kwDOTuzK5c6aEb1Y",
+      "opened": "2026-08-18T10:21:56Z",
+      "path": "tools/http/test-client/dotnet/OpenTelemetry.Conformance.Http/HttpClientWorkload.cs",
+      "replies": [
+        {
+          "at": "2026-08-18T15:15:04Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42/commits/edc0556fc0bb3b2db35d5d4d9571780238595869",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3805407926"
+        }
+      ],
+      "reviewed": "ca38c265713bc400892cbfbd466eb8e0022271ee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3803159609"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These two flushes each use a 30-second timeout, but server scenarios are killed by `otel-http-drive` 30 seconds after EOF (`tools/http/test-client/python/src/otel_http_test_client/__main__.py:38,170`). In the failure path, the trace flush can consume the entire shutdown window, so the process is killed before metrics are flushed or either provider is disposed. Their Boolean results are also ignored, allowing client scenarios to exit successfully after an incomplete export. Please use a total flush budget that fits inside the driver timeout, dispose both providers in a `finally`, and fail the run when either flush reports failure.",
+      "created": "2026-08-19T04:19:26Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+using OpenTelemetry.Metrics;\n+using OpenTelemetry.Trace;\n+\n+namespace OpenTelemetry.Conformance.Scenario;\n+\n+/// <summary>The OpenTelemetry SDK a scenario configures for itself.</summary>\n+/// <remarks>\n+/// Only a scenario measuring explicit library instrumentation needs this. A scenario measuring the\n+/// .NET automatic instrumentation has its SDK loaded into the process for it, and must not carry\n+/// these packages at all.\n+/// <para>\n+/// Both signals are built here because a scenario is measured on both: a client or server span and\n+/// the duration metric beside it come from the same instrumentation, so a scenario that configured\n+/// only tracing would record half of what it emitted.\n+/// </para>\n+/// </remarks>\n+public sealed class ScenarioSdk : IDisposable\n+{\n+    private const int FlushTimeoutMilliseconds = 30_000;\n+\n+    private readonly TracerProvider tracerProvider;\n+    private readonly MeterProvider meterProvider;\n+\n+    private ScenarioSdk(TracerProvider tracerProvider, MeterProvider meterProvider)\n+    {\n+        this.tracerProvider = tracerProvider;\n+        this.meterProvider = meterProvider;\n+    }\n+\n+    /// <summary>\n+    /// Builds the SDK with the instrumentation a scenario adds, failing early rather than\n+    /// exporting nowhere.\n+    /// </summary>\n+    /// <remarks>\n+    /// The exporter and the resource are read from the environment the runner injected, so nothing\n+    /// about where a run exports to appears in a scenario. What a scenario passes is only the\n+    /// instrumentation under test.\n+    /// </remarks>\n+    public static ScenarioSdk Initialize(\n+        Action<TracerProviderBuilder> configureTracing,\n+        Action<MeterProviderBuilder> configureMetrics)\n+    {\n+        ArgumentNullException.ThrowIfNull(configureTracing);\n+        ArgumentNullException.ThrowIfNull(configureMetrics);\n+        ScenarioEnvironment.Require(\"OTEL_EXPORTER_OTLP_ENDPOINT\");\n+\n+        var tracing = Sdk.CreateTracerProviderBuilder();\n+        configureTracing(tracing);\n+        var metrics = Sdk.CreateMeterProviderBuilder();\n+        configureMetrics(metrics);\n+\n+        return new ScenarioSdk(\n+            Built(tracing.AddOtlpExporter().Build(), \"tracer\"),\n+            Built(metrics.AddOtlpExporter().Build(), \"meter\"));\n+    }\n+\n+    /// <summary>Flushes what the scenario emitted, then shuts the SDK down.</summary>\n+    /// <remarks>\n+    /// The flush is explicit rather than left to the providers' own shutdown because the runner\n+    /// sets an effectively infinite metric export interval: without it a scenario's metrics would\n+    /// never leave the process.\n+    /// </remarks>\n+    public void Dispose()\n+    {\n+        this.tracerProvider.ForceFlush(FlushTimeoutMilliseconds);\n+        this.meterProvider.ForceFlush(FlushTimeoutMilliseconds);",
+      "id": "PRRT_kwDOTuzK5c6aWCDp",
+      "opened": "2026-08-19T04:19:27Z",
+      "path": "tools/dotnet/OpenTelemetry.Conformance.Scenario.Sdk/ScenarioSdk.cs",
+      "replies": [
+        {
+          "at": "2026-08-24T16:24:33Z",
+          "body": "Fixed in 4bea960. `ScenarioSdk` now shares one 15-second flush budget across tracing and metrics, disposes both providers through nested `finally` blocks, and throws when either `ForceFlush` reports failure.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3845397395"
+        }
+      ],
+      "reviewed": "d1131e6aab16425fbf8d0dd1001e1a3e738cfa81",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3810013489"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "martincostello"
+      },
+      "body": "Latest release:\r\n\r\n```suggestion\r\n    \"version\": \"10.0.400\"\r\n```",
+      "created": "2026-08-19T07:42:01Z",
+      "hunk": "@@ -0,0 +1,6 @@\n+{\r\n+  \"sdk\": {\r\n+    \"allowPrerelease\": false,\r\n+    \"version\": \"10.0.303\"\r",
+      "id": "PRRT_kwDOTuzK5c6aYjqG",
+      "opened": "2026-08-19T07:43:14Z",
+      "path": "scenarios/http/dotnet/global.json",
+      "replies": [],
+      "reviewed": "2f160285387bebc4474dda4c7d826725db2fa831",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3810997478"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This uses `Task.Run` to execute a blocking `Read` loop for the entire lifetime of a long-running server scenario, which consumes a thread-pool thread indefinitely. Prefer starting a dedicated thread (or using `Task.Factory.StartNew(..., TaskCreationOptions.LongRunning)`) so the thread pool isn’t impacted during scenario runtime.",
+      "created": "2026-08-24T18:21:14Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+namespace OpenTelemetry.Conformance.Scenario;\n+\n+/// <summary>How a long-running scenario learns that the runner is finished with it.</summary>\n+public static class ScenarioLifecycle\n+{\n+    /// <summary>\n+    /// Completes when standard input closes, which is how the driver says stop.\n+    /// </summary>\n+    /// <remarks>\n+    /// A closed pipe rather than a signal: it means the same thing on every platform, and\n+    /// returning is what gives an SDK the chance to flush, so a scenario that exits any other way\n+    /// reports less than it produced. The protocol is the same in every domain.\n+    /// <para>\n+    /// The read runs on a thread pool thread because standard input is a synchronous handle when\n+    /// it is a pipe on Windows: awaiting it directly would block the caller rather than the\n+    /// scenario's server.\n+    /// </para>\n+    /// </remarks>\n+    public static Task WaitForEofAsync() => Task.Run(() =>\n+    {\n+        using var input = Console.OpenStandardInput();\n+        var discarded = new byte[1];\n+        while (input.Read(discarded, 0, 1) > 0)\n+        {\n+            // Nothing arrives on standard input; only its close is the signal.\n+        }\n+    });",
+      "id": "PRRT_kwDOTuzK5c6bziFA",
+      "opened": "2026-08-24T18:21:15Z",
+      "path": "tools/dotnet/OpenTelemetry.Conformance.Scenario/ScenarioLifecycle.cs",
+      "replies": [
+        {
+          "at": "2026-08-24T18:26:08Z",
+          "body": "Addressed in 239e44cc43e48dafe68f3506ecb065a14bb60dcf.\n\nAnalysis: Standard input is synchronous on Windows, and the EOF read lasts for the server scenario's full lifetime. A long-running task gives this blocking protocol a dedicated thread instead of retaining a shared thread-pool worker.\n\nUpsides: Server scenarios no longer reduce thread-pool capacity while waiting for the driver to close standard input.\n\nDownsides: Each running server scenario owns one dedicated thread until shutdown.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3846302587"
+        }
+      ],
+      "reviewed": "f156f6959ec283a59e54ad588b0b481e1498e6d6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3846267180"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `StringContent` constructor overload is not available on all target frameworks: `StringContent` commonly accepts the media type as a `string` (not `MediaTypeHeaderValue`). This can cause a compile-time error depending on the targeted BCL. Prefer passing `HttpContract.ContentType` as a string (and, if needed, set `request.Content.Headers.ContentType` explicitly).",
+      "created": "2026-08-24T18:44:34Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+using System.Net.Http.Headers;\n+using System.Text;\n+using OpenTelemetry.Conformance.Scenario;\n+\n+namespace OpenTelemetry.Conformance.Http.SystemNetHttp;\n+\n+/// <summary>Runs the shared request contract through a <c>System.Net.Http.HttpClient</c>.</summary>\n+/// <remarks>\n+/// The mock server answering the requests is declared by the scenario package and started by the\n+/// runner, so a client scenario is measured against the same traffic as every other one without\n+/// hosting a server of its own.\n+/// </remarks>\n+public static class HttpClientScenario\n+{\n+    /// <summary>\n+    /// Runs it through a plain client, for a scenario whose instrumentation attaches itself.\n+    /// </summary>\n+    /// <remarks>\n+    /// .NET instrumentations subscribe to <c>System.Net.Http</c>'s diagnostic sources through the\n+    /// SDK rather than wrapping each client, so unlike libraries that are instrumented by\n+    /// decoration this workload has nothing to hand its launcher.\n+    /// </remarks>\n+    public static async Task RunAsync()\n+    {\n+        var baseUrl = ScenarioEnvironment.Require(\"MOCK_SERVER_URL\");\n+\n+        // The requests below concatenate this with each path, so a malformed value would otherwise\n+        // surface as \"an invalid request URI was provided\" from deep in HttpClient, naming neither\n+        // the variable nor what it held.\n+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var mockServerUri)\n+            || mockServerUri.Scheme != Uri.UriSchemeHttp)\n+        {\n+            throw new ArgumentException($\"MOCK_SERVER_URL must be an http:// URL: {baseUrl}\");\n+        }\n+\n+        // One client for the whole sequence, which is how HttpClient is meant to be used and what\n+        // an instrumentation is written against.\n+        using var client = new HttpClient();\n+\n+        await HttpClientWorkload.DriveAsync(\n+            baseUrl,\n+            async (method, url, body) =>\n+            {\n+                using var request = new HttpRequestMessage(new HttpMethod(method), url);\n+                request.Headers.UserAgent.ParseAdd(HttpContract.UserAgent);\n+                if (body is not null)\n+                {\n+                    request.Content = new StringContent(\n+                        body, Encoding.UTF8, new MediaTypeHeaderValue(HttpContract.ContentType));",
+      "id": "PRRT_kwDOTuzK5c6bz-nh",
+      "opened": "2026-08-24T18:44:35Z",
+      "path": "scenarios/http/dotnet/httpclient/scenarios/HttpClientScenario.cs",
+      "replies": [
+        {
+          "at": "2026-08-24T18:47:52Z",
+          "body": "No code change.\n\nAnalysis: This project has one target framework: the shared build props set `TargetFramework` to `net10.0`, and `global.json` pins SDK 10.0.400. That framework provides the `StringContent(string, Encoding?, MediaTypeHeaderValue?)` overload. The solution builds this call successfully under the pinned SDK, so compatibility with older base class libraries is outside this project's target.\n\nUpsides: Keeping the typed media value avoids an unnecessary equivalent rewrite and preserves the compile-time API check used by the current target.\n\nDownsides: This call would need reevaluation if the project later targets an older .NET base class library.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3846461498"
+        }
+      ],
+      "reviewed": "0d08f1074b44d3a867b85361ec94d5ecdbc97ce6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3846438128"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`StringContent` does not have a constructor overload that accepts `MediaTypeHeaderValue` on many target frameworks; this is likely to fail compilation. Use the `StringContent(string, Encoding, string)` overload (pass the media type string) or set `request.Content.Headers.ContentType` explicitly after construction.",
+      "created": "2026-08-24T19:06:29Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+using System.Net.Http.Headers;\n+using System.Text;\n+using OpenTelemetry.Conformance.Scenario;\n+\n+namespace OpenTelemetry.Conformance.Http.SystemNetHttp;\n+\n+/// <summary>Runs the shared request contract through a <c>System.Net.Http.HttpClient</c>.</summary>\n+/// <remarks>\n+/// The mock server answering the requests is declared by the scenario package and started by the\n+/// runner, so a client scenario is measured against the same traffic as every other one without\n+/// hosting a server of its own.\n+/// </remarks>\n+public static class HttpClientScenario\n+{\n+    /// <summary>\n+    /// Runs it through a plain client, for a scenario whose instrumentation attaches itself.\n+    /// </summary>\n+    /// <remarks>\n+    /// .NET instrumentations subscribe to <c>System.Net.Http</c>'s diagnostic sources through the\n+    /// SDK rather than wrapping each client, so unlike libraries that are instrumented by\n+    /// decoration this workload has nothing to hand its launcher.\n+    /// </remarks>\n+    public static async Task RunAsync()\n+    {\n+        var baseUrl = ScenarioEnvironment.Require(\"MOCK_SERVER_URL\");\n+\n+        // The requests below concatenate this with each path, so a malformed value would otherwise\n+        // surface as \"an invalid request URI was provided\" from deep in HttpClient, naming neither\n+        // the variable nor what it held.\n+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var mockServerUri)\n+            || mockServerUri.Scheme != Uri.UriSchemeHttp)\n+        {\n+            throw new ArgumentException($\"MOCK_SERVER_URL must be an http:// URL: {baseUrl}\");\n+        }\n+\n+        // One client for the whole sequence, which is how HttpClient is meant to be used and what\n+        // an instrumentation is written against.\n+        using var client = new HttpClient();\n+\n+        await HttpClientWorkload.DriveAsync(\n+            baseUrl,\n+            async (method, url, body) =>\n+            {\n+                using var request = new HttpRequestMessage(new HttpMethod(method), url);\n+                request.Headers.UserAgent.ParseAdd(HttpContract.UserAgent);\n+                if (body is not null)\n+                {\n+                    request.Content = new StringContent(\n+                        body, Encoding.UTF8, new MediaTypeHeaderValue(HttpContract.ContentType));",
+      "id": "PRRT_kwDOTuzK5c6b0ajj",
+      "opened": "2026-08-24T19:06:30Z",
+      "path": "scenarios/http/dotnet/httpclient/scenarios/HttpClientScenario.cs",
+      "replies": [
+        {
+          "at": "2026-08-24T19:11:12Z",
+          "body": "Addressed in 2e336200155d93f56db9e8a0ab1d210b7059ad3f.\n\nAnalysis: The existing overload compiles for this project's `net10.0` target. The string overload produces the same Content-Type header from the shared constant and avoids depending on the newer typed overload, so it is a safe compatibility improvement.\n\nUpsides: The request construction uses the broadly available overload and no longer needs the `System.Net.Http.Headers` import.\n\nDownsides: `StringContent` parses the fixed media type string at runtime instead of receiving a pre-parsed value.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3846641168"
+        }
+      ],
+      "reviewed": "019d816c9e22d8a781acf4e99d873fd5acfca9c6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/42#discussion_r3846607219"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "1ca1b04a45399134689180156e0d00a4462a4ea7",
+  "merge": "f305c01b700f0418a7fb7553c93bfe2340b2042d",
+  "merged": "2026-02-09T22:52:21Z",
+  "missing_roots": 0,
+  "number": 16101,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "should we be seeing the `service.peer.name` attribute on metrics/traces when this is enabled?",
+      "created": "2026-02-05T12:15:06Z",
+      "hunk": "@@ -3596,7 +3596,7 @@ libraries:\n           type: STRING\n         - name: network.peer.port\n           type: LONG\n-    - when: otel.semconv-stability.opt-in=database\n+    - when: otel.semconv-stability.opt-in=database,service.peer",
+      "id": "PRRT_kwDODJKVX85s3i3U",
+      "opened": "2026-02-05T12:15:06Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-02-05T22:15:55Z",
+          "body": "thanks! sent #3257",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16101#discussion_r2771391471"
+        }
+      ],
+      "reviewed": "0ea1956617ebe9d3aa1f8b3426daf84847a1d9e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16101#discussion_r2768863418"
+    }
+  ]
+}

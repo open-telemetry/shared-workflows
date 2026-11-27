@@ -1,0 +1,25 @@
+{
+  "head": "365c6e850fb749032b24fc2b7229fe4a508e77a4",
+  "merge": "23ea097edbedf84a628c8da647240152718032dd",
+  "merged": "2026-04-27T04:17:18Z",
+  "missing_roots": 0,
+  "number": 18327,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Removed as duplicate dead code. This class instrumented `org.jboss.resteasy.plugins.server.servlet.ServletContainerDispatcher#service` to initialize `JaxrsContextPath` from the `servletMappingPrefix` field — identical behavior to `ResteasyServletContainerDispatcherInstrumentation` in the shared `jaxrs-2.0-resteasy-common-3.0` module, which `Resteasy30InstrumentationModule` already registers. Both were applying the same advice to the same type, so the module-local copy was dropped in favor of the common one.",
+      "created": "2026-04-27T01:11:49Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX859tDBa",
+      "opened": "2026-04-27T01:11:48Z",
+      "path": "instrumentation/jaxrs/jaxrs-2.0/jaxrs-2.0-resteasy-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxrs/v2_0/resteasy/v3_0/Resteasy30ServletContainerDispatcherInstrumentation.java",
+      "replies": [],
+      "reviewed": "365c6e850fb749032b24fc2b7229fe4a508e77a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18327#discussion_r3144483360"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "45e3e0de76c764925544a292436ce1f2ca1ff749981ff8e7b7d61fb43a68ca55",
+  "input_digest": "0fc59ca9a169e8dabed96700de80ac5e2816e4fbe938a9f4ee45a89f9d46df45",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a27eb3ba5a408d36c89f9f80aa95f8daa2a977d4/instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/AwsLambdaSqsInstrumenterFactoryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11d24d2c0c801a9d348660e669dc19046ee82644/instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/AwsLambdaSqsInstrumenterFactoryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a27eb3ba5a408d36c89f9f80aa95f8daa2a977d4/instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/AwsLambdaSqsMetricsAssertions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11d24d2c0c801a9d348660e669dc19046ee82644/instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/AwsLambdaSqsMetricsAssertions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a27eb3ba5a408d36c89f9f80aa95f8daa2a977d4/instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11d24d2c0c801a9d348660e669dc19046ee82644/instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a27eb3ba5a408d36c89f9f80aa95f8daa2a977d4/instrumentation/thrift-0.13/library/src/test/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ThriftInstrumenterFactoryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11d24d2c0c801a9d348660e669dc19046ee82644/instrumentation/thrift-0.13/library/src/test/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ThriftInstrumenterFactoryTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ufW9D",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5fe07a3536602edd4a661505d1f61ff7c3256ccd/instrumentation/thrift-0.13/library/src/test/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ThriftInstrumenterFactoryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11d24d2c0c801a9d348660e669dc19046ee82644/instrumentation/thrift-0.13/library/src/test/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ThriftInstrumenterFactoryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5fe07a3536602edd4a661505d1f61ff7c3256ccd/instrumentation/thrift-0.13/testing/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/AbstractThriftTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11d24d2c0c801a9d348660e669dc19046ee82644/instrumentation/thrift-0.13/testing/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/AbstractThriftTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/11d24d2c0c801a9d348660e669dc19046ee82644",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5fe07a3536602edd4a661505d1f61ff7c3256ccd/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcInstanceSemconvTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11d24d2c0c801a9d348660e669dc19046ee82644/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcInstanceSemconvTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ugub9",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6d8ab1392d8feb894cefe363c21293ea53420174/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/datasource/JdbcTelemetryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11d24d2c0c801a9d348660e669dc19046ee82644/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/datasource/JdbcTelemetryTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86uhZVT",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "head": "7ae13ec378c7ae38af0b81c29a667f71f0cec961",
+  "merge": "0917bb2a7abeacb0a63acfdece5743aeafea7ccd",
+  "merged": "2026-09-28T06:21:19Z",
+  "missing_roots": 0,
+  "number": 19980,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`fieldName` comes from the new public API and is copied verbatim into generated class, field, and method names. An allowed value such as `\"request.id\"` therefore creates an injected field/getter containing `.`, which is forbidden in JVM unqualified names; names containing the `$` delimiter can also make distinct mapping tuples resolve to the same generated class name. Please either validate a clearly documented restricted alphabet or use a lossless, collision-free encoding before constructing generated names.",
+      "created": "2026-09-04T14:26:22Z",
+      "hunk": "@@ -24,35 +24,40 @@ public static boolean isVirtualFieldInterfaceName(String className) {\n     return className.startsWith(DYNAMIC_CLASSES_PACKAGE + \"VirtualFieldAccessor$\");\n   }\n \n-  static String getVirtualFieldImplementationClassName(String typeName, String fieldTypeName) {\n+  static String getVirtualFieldImplementationClassName(\n+      String fieldName, String typeName, String fieldTypeName) {\n     return DYNAMIC_CLASSES_PACKAGE\n         + \"VirtualFieldImpl$\"\n+        + (!fieldName.isEmpty() ? fieldName + \"$\" : \"\")",
+      "id": "PRRT_kwDODJKVX86fU6U7",
+      "opened": "2026-09-04T14:26:23Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/field/GeneratedVirtualFieldNames.java",
+      "replies": [],
+      "reviewed": "9bc36a555f1309f59467fea7eae180dacb152c72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19980#discussion_r3934960021"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new public behavior has no end-to-end coverage: the added tests verify mapping collection and generated strings, while the existing `testing-common/integration-tests` virtual-field test exercises only the two-argument API. Please extend that integration instrumentation to create two differently named fields with the same owner/value types and verify that their values remain independent through Muzzle generation, field injection, and runtime lookup.",
+      "created": "2026-09-04T14:26:23Z",
+      "hunk": "@@ -24,21 +26,47 @@ public abstract class VirtualField<T, F> {\n   /**\n    * Finds a {@link VirtualField} instance for given {@code type} and {@code fieldType}.\n    *\n-   * <p>Conceptually this can be thought of as a map lookup to fetch a second level map given {@code\n-   * type}.\n-   *\n    * <p>In runtime, when using the javaagent, the <em>calls</em> to this method are rewritten to\n-   * something more performant while injecting advice into a method.\n-   *\n-   * <p>When using this method outside of Advice method, the {@link VirtualField} should be looked\n-   * up once and stored in a field to avoid repeatedly calling this method.\n+   * something more performant while injecting <em>inline</em> advice into a method. This rewriting\n+   * is not performed for <em>non-inline</em> advice. Users are advised not to rely on agent\n+   * automatically rewriting the virtual field usages and instead look up {@link VirtualField} once\n+   * and stored in a field to avoid repeatedly calling this method. Rewriting calls to this method\n+   * may be removed in a future agent release.\n    *\n    * @param type The type that will contain the new virtual field.\n    * @param fieldType The field type that will be added to {@code type}.\n+   * @see VirtualField#find(String, Class, Class)\n    */\n   public static <U extends T, V extends F, T, F> VirtualField<U, V> find(\n       Class<T> type, Class<F> fieldType) {\n-    return RuntimeVirtualFieldSupplier.get().find(type, fieldType);\n+    return find(RuntimeVirtualFieldSupplier.DEFAULT_FIELD_NAME, type, fieldType);\n+  }\n+\n+  /**\n+   * Finds a {@link VirtualField} instance for given {@code fieldName}, {@code type} and {@code\n+   * fieldType}.\n+   *\n+   * <p>Conceptually this can be thought of as adding a field with name {@code fieldName} to class\n+   * {@code type} with type {@code fieldType}. Alternatively this can be viewed as a map where an\n+   * object of type {@code type} is associated with another map where they key is composed of {@code\n+   * fieldName} and {@code fieldType} and the value is the value of the virtual field.\n+   *\n+   * <p>Calls to this method may be expensive, caller should keep the returned {@link VirtualField}\n+   * and reuse it instead of repeatedly calling this method.\n+   *\n+   * <p>Unlike calls to {@link VirtualField#find(Class, Class)} calls to this method are never\n+   * rewritten.\n+   *\n+   * @param fieldName The name of the virtual field.\n+   * @param type The type that will contain the new virtual field.\n+   * @param fieldType The field type that will be added to {@code type}.\n+   */\n+  public static <U extends T, V extends F, T, F> VirtualField<U, V> find(\n+      String fieldName, Class<T> type, Class<F> fieldType) {",
+      "id": "PRRT_kwDODJKVX86fU6Vz",
+      "opened": "2026-09-04T14:26:23Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/util/VirtualField.java",
+      "replies": [],
+      "reviewed": "9bc36a555f1309f59467fea7eae180dacb152c72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19980#discussion_r3934960091"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This named registration overload points callers to the two-argument `find`, but that method always requests the default empty field name (`VirtualField.java:40-42`) and cannot retrieve this mapping. Link to the new three-argument overload instead.",
+      "created": "2026-09-04T14:26:23Z",
+      "hunk": "@@ -29,4 +29,19 @@ public interface VirtualFieldMappingsBuilder {\n    */\n   @CanIgnoreReturnValue\n   VirtualFieldMappingsBuilder register(String typeName, String fieldTypeName);\n+\n+  /**\n+   * Register the association between the {@code typeName} and the {@code fieldTypeName}. Class\n+   * pairs registered using this method will be available as {@link VirtualField}s in the runtime;\n+   * obtainable by calling {@link VirtualField#find(Class, Class)}.",
+      "id": "PRRT_kwDODJKVX86fU6WS",
+      "opened": "2026-09-04T14:26:23Z",
+      "path": "muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/VirtualFieldMappingsBuilder.java",
+      "replies": [],
+      "reviewed": "9bc36a555f1309f59467fea7eae180dacb152c72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19980#discussion_r3934960132"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@trask do you have any suggestions on what the argument order should be?",
+      "created": "2026-09-04T15:57:05Z",
+      "hunk": "@@ -24,21 +26,47 @@ public abstract class VirtualField<T, F> {\n   /**\n    * Finds a {@link VirtualField} instance for given {@code type} and {@code fieldType}.\n    *\n-   * <p>Conceptually this can be thought of as a map lookup to fetch a second level map given {@code\n-   * type}.\n-   *\n    * <p>In runtime, when using the javaagent, the <em>calls</em> to this method are rewritten to\n-   * something more performant while injecting advice into a method.\n-   *\n-   * <p>When using this method outside of Advice method, the {@link VirtualField} should be looked\n-   * up once and stored in a field to avoid repeatedly calling this method.\n+   * something more performant while injecting <em>inline</em> advice into a method. This rewriting\n+   * is not performed for <em>non-inline</em> advice. Users are advised not to rely on agent\n+   * automatically rewriting the virtual field usages and instead look up {@link VirtualField} once\n+   * and stored in a field to avoid repeatedly calling this method. Rewriting calls to this method\n+   * may be removed in a future agent release.\n    *\n    * @param type The type that will contain the new virtual field.\n    * @param fieldType The field type that will be added to {@code type}.\n+   * @see VirtualField#find(String, Class, Class)\n    */\n   public static <U extends T, V extends F, T, F> VirtualField<U, V> find(\n       Class<T> type, Class<F> fieldType) {\n-    return RuntimeVirtualFieldSupplier.get().find(type, fieldType);\n+    return find(RuntimeVirtualFieldSupplier.DEFAULT_FIELD_NAME, type, fieldType);\n+  }\n+\n+  /**\n+   * Finds a {@link VirtualField} instance for given {@code fieldName}, {@code type} and {@code\n+   * fieldType}.\n+   *\n+   * <p>Conceptually this can be thought of as adding a field with name {@code fieldName} to class\n+   * {@code type} with type {@code fieldType}. Alternatively this can be viewed as a map where an\n+   * object of type {@code type} is associated with another map where they key is composed of {@code\n+   * fieldName} and {@code fieldType} and the value is the value of the virtual field.\n+   *\n+   * <p>Calls to this method may be expensive, caller should keep the returned {@link VirtualField}\n+   * and reuse it instead of repeatedly calling this method.\n+   *\n+   * <p>Unlike calls to {@link VirtualField#find(Class, Class)} calls to this method are never\n+   * rewritten.\n+   *\n+   * @param fieldName The name of the virtual field.\n+   * @param type The type that will contain the new virtual field.\n+   * @param fieldType The field type that will be added to {@code type}.\n+   */\n+  public static <U extends T, V extends F, T, F> VirtualField<U, V> find(",
+      "id": "PRRT_kwDODJKVX86fWz8B",
+      "opened": "2026-09-04T15:57:05Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/util/VirtualField.java",
+      "replies": [
+        {
+          "at": "2026-09-24T04:09:30Z",
+          "body": "I guess I like\n\n> Class<T> type, Class<F> fieldType, String fieldName\n\nas that matches source declaration order and matches the existing overload\n\nanother good option is\n\n> Class<T> type, String fieldName, Class<F> fieldType\n\nwhich matches `MethodHandles.Lookup.findGetter(Class, String, Class)`\n\nespecially if we are thinking to deprecate the original method and require field name",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19980#discussion_r4089819871"
+        }
+      ],
+      "reviewed": "6b75499017435928fc6fc4b4e8a710625b6a4497",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19980#discussion_r3935704748"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "just to exercise the new code adding name to a couple of fields that have a common jdk type that user fields could conceivably also use",
+      "created": "2026-09-08T07:31:51Z",
+      "hunk": "@@ -22,11 +22,11 @@\n public class JmsSubscriptionNames {\n \n   private static final VirtualField<MessageConsumer, String> CONSUMER_SUBSCRIPTION_NAME =\n-      VirtualField.find(MessageConsumer.class, String.class);\n+      VirtualField.find(\"subscriptionName\", MessageConsumer.class, String.class);",
+      "id": "PRRT_kwDODJKVX86gI0cq",
+      "opened": "2026-09-08T07:31:50Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsSubscriptionNames.java",
+      "replies": [],
+      "reviewed": "2ad5427927a48f299c1902853e41075ac6b51640",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19980#discussion_r3955407867"
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d97d3d95492cddefe5dde6679248e2b55e3e4e87069ebd8166de0f236f7f813a",
+  "input_digest": "bc0a92bd94f278a96b531ddc232f9f0c9be5a43792daec9683abf79595360479",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26fcafb8632eb37e85b26b04788fcac8591949bc/instrumentation/apache-httpclient/apache-httpclient-4.3/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v4_3/ApacheHttpClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation/apache-httpclient/apache-httpclient-4.3/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v4_3/ApacheHttpClientTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcxZ7",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26fcafb8632eb37e85b26b04788fcac8591949bc/instrumentation/apache-httpclient/apache-httpclient-5.2/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v5_2/ApacheHttpClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation/apache-httpclient/apache-httpclient-5.2/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v5_2/ApacheHttpClientTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcxaE",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26fcafb8632eb37e85b26b04788fcac8591949bc/instrumentation/helidon-4.3/library/src/main/java/io/opentelemetry/instrumentation/helidon/v4_3/HelidonTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation/helidon-4.3/library/src/main/java/io/opentelemetry/instrumentation/helidon/v4_3/HelidonTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcxaN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50c4262a19a9fe527b64755d11591d2560eb3b79/instrumentation/apache-httpclient/apache-httpclient-4.3/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v4_3/ApacheHttpClientHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50c4262a19a9fe527b64755d11591d2560eb3b79/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractorBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Zd3yb",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50c4262a19a9fe527b64755d11591d2560eb3b79/instrumentation/apache-httpclient/apache-httpclient-5.2/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v5_2/ApacheHttpClientHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50c4262a19a9fe527b64755d11591d2560eb3b79/instrumentation/apache-httpclient/apache-httpclient-5.2/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v5_2/ApacheHttpClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50c4262a19a9fe527b64755d11591d2560eb3b79/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50c4262a19a9fe527b64755d11591d2560eb3b79/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractorBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation/apache-httpclient/apache-httpclient-5.2/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v5_2/ApacheHttpClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractorBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation/apache-httpclient/apache-httpclient-5.2/library/src/test/java/io/opentelemetry/instrumentation/apachehttpclient/v5_2/ApacheHttpClientHeaderSelectorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Zd3yo",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50c4262a19a9fe527b64755d11591d2560eb3b79/instrumentation/helidon-4.3/library/src/main/java/io/opentelemetry/instrumentation/helidon/v4_3/HelidonAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50c4262a19a9fe527b64755d11591d2560eb3b79/instrumentation/helidon-4.3/library/src/main/java/io/opentelemetry/instrumentation/helidon/v4_3/HelidonTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50c4262a19a9fe527b64755d11591d2560eb3b79/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation/helidon-4.3/library/src/main/java/io/opentelemetry/instrumentation/helidon/v4_3/HelidonTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpServerAttributesExtractorBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation/helidon-4.3/library/src/test/java/io/opentelemetry/instrumentation/helidon/v4_3/HelidonHeaderSelectorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Zd3y4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/870798a8a3ce8517552994f1b6563f4f5e382281/instrumentation/apache-httpclient/apache-httpclient-4.3/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v4_3/ApacheHttpClientRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6fb3ab407b3790dc8a571d04ca22bc4a2ef37c26/instrumentation/apache-httpclient/apache-httpclient-4.3/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v4_3/ApacheHttpClientRequest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86aFQkB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

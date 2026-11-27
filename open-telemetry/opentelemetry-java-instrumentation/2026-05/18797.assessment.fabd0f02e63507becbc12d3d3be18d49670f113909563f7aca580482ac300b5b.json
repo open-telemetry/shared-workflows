@@ -1,0 +1,197 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "be790da8275e26a009474e84f7c0a92264e52467e9db28371bb34bb7af4e2db8",
+  "input_digest": "fabd0f02e63507becbc12d3d3be18d49670f113909563f7aca580482ac300b5b",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4188b98cadd5dd381c7a89b3526e5f0da289cd0/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java"
+      ],
+      "id": "PRRT_kwDODJKVX86DCGJ1",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4188b98cadd5dd381c7a89b3526e5f0da289cd0/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java"
+      ],
+      "id": "PRRT_kwDODJKVX86DCGJi",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4188b98cadd5dd381c7a89b3526e5f0da289cd0/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/WithSpanInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/WithSpanInstrumentationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86DCGKC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4188b98cadd5dd381c7a89b3526e5f0da289cd0/instrumentation/opentelemetry-extension-annotations-1.0/javaagent/src/test/java/io/opentelemetry/test/annotation/WithSpanInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation/opentelemetry-extension-annotations-1.0/javaagent/src/test/java/io/opentelemetry/test/annotation/WithSpanInstrumentationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86DCGKP",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4188b98cadd5dd381c7a89b3526e5f0da289cd0/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/89e21c1383d99163cae4ef4ac98060be5d8f96e5"
+      ],
+      "id": "PRRT_kwDODJKVX86DCnot",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4188b98cadd5dd381c7a89b3526e5f0da289cd0/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4188b98cadd5dd381c7a89b3526e5f0da289cd0/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/89e21c1383d99163cae4ef4ac98060be5d8f96e5"
+      ],
+      "id": "PRRT_kwDODJKVX86DCnpH",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86DCnpS",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86DCGKP",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/89e21c1383d99163cae4ef4ac98060be5d8f96e5/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/89e21c1383d99163cae4ef4ac98060be5d8f96e5/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/ConstructedWithAddingSpanAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/ConstructedWithAddingSpanAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e51cd987dc05c367197d238f5c590f1c14e1b373"
+      ],
+      "id": "PRRT_kwDODJKVX86DC0Tw",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86DNhNp",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86DCGKC",
+      "status": "duplicate"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86DNhOR",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86DCGKP",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e51cd987dc05c367197d238f5c590f1c14e1b373/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e6bee41e12dece0db6cf61ca5c51f3bfc661e4a6",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/06835661d9ba7b28c63ea87672988aa06508fa48"
+      ],
+      "id": "PRRT_kwDODJKVX86DNhOy",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e51cd987dc05c367197d238f5c590f1c14e1b373/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e51cd987dc05c367197d238f5c590f1c14e1b373/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/03e1006f471b5879c9b1c1e514464acd641322e1"
+      ],
+      "id": "PRRT_kwDODJKVX86DNhPI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e51cd987dc05c367197d238f5c590f1c14e1b373/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e51cd987dc05c367197d238f5c590f1c14e1b373/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/03e1006f471b5879c9b1c1e514464acd641322e1"
+      ],
+      "id": "PRRT_kwDODJKVX86DNhPl",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03e1006f471b5879c9b1c1e514464acd641322e1/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e6bee41e12dece0db6cf61ca5c51f3bfc661e4a6"
+      ],
+      "id": "PRRT_kwDODJKVX86DWhdX",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03e1006f471b5879c9b1c1e514464acd641322e1/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/AddingSpanAttributes.java"
+      ],
+      "id": "PRRT_kwDODJKVX86DWhd4",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/03e1006f471b5879c9b1c1e514464acd641322e1/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation-annotations/src/main/java/io/opentelemetry/instrumentation/annotations/WithSpan.java"
+      ],
+      "id": "PRRT_kwDODJKVX86DWhds",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e6bee41e12dece0db6cf61ca5c51f3bfc661e4a6/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0e6062162e2b8127f5db6377f34d702d5cdf282/instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86DZGr_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

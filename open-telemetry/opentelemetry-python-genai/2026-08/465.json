@@ -1,0 +1,115 @@
+{
+  "head": "a357f519a268dbe0a52781204566f6965003a7ee",
+  "merge": "4675601c7bc98c0f911b2366e9f864f8674770c5",
+  "merged": "2026-08-26T21:23:47Z",
+  "missing_roots": 0,
+  "number": 465,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`__version__ = \\\"1.2b0.dev\\\"` is not PEP 440 compliant (the `.dev` segment requires a numeric component, e.g. `.dev0`). This can break packaging/build tooling that validates versions; update it to a valid PEP 440 version string.",
+      "created": "2026-08-24T19:06:23Z",
+      "hunk": "@@ -0,0 +1,4 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+__version__ = \"1.2b0.dev\"",
+      "id": "PRRT_kwDOSbspP86b0acL",
+      "opened": "2026-08-24T19:06:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/version.py",
+      "replies": [],
+      "reviewed": "b7d721a17bb93340578cba777472de8d5d619db9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/465#discussion_r3846606503"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The implementation imports `wrapt` directly (`from wrapt import wrap_function_wrapper`), but `wrapt` is not declared as a direct dependency of this package. Relying on transitive dependencies is brittle; add an explicit `wrapt` dependency (with an appropriate bound) to the package dependencies.",
+      "created": "2026-08-24T19:06:24Z",
+      "hunk": "@@ -0,0 +1,91 @@\n+[build-system]\n+requires = [\"hatchling\"]\n+build-backend = \"hatchling.build\"\n+\n+[project]\n+name = \"opentelemetry-instrumentation-genai-portkey\"\n+dynamic = [\"version\"]\n+description = \"OpenTelemetry Portkey AI instrumentation\"\n+readme = \"README.rst\"\n+license = \"Apache-2.0\"\n+requires-python = \">=3.10\"\n+authors = [\n+  { name = \"OpenTelemetry Authors\", email = \"cncf-opentelemetry-contributors@lists.cncf.io\" },\n+]\n+classifiers = [\n+  \"Development Status :: 4 - Beta\",\n+  \"Intended Audience :: Developers\",\n+  \"License :: OSI Approved :: Apache Software License\",\n+  \"Programming Language :: Python\",\n+  \"Programming Language :: Python :: 3\",\n+  \"Programming Language :: Python :: 3.10\",\n+  \"Programming Language :: Python :: 3.11\",\n+  \"Programming Language :: Python :: 3.12\",\n+  \"Programming Language :: Python :: 3.13\",\n+  \"Programming Language :: Python :: 3.14\",\n+]\n+dependencies = [\n+  \"opentelemetry-api ~= 1.43\",\n+  \"opentelemetry-instrumentation >= 0.64b0, <1\",\n+  \"opentelemetry-semantic-conventions >= 0.64b0, <1\",\n+  \"opentelemetry-util-genai >= 1.1b0.dev, <2\",",
+      "id": "PRRT_kwDOSbspP86b0acy",
+      "opened": "2026-08-24T19:06:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/pyproject.toml",
+      "replies": [],
+      "reviewed": "b7d721a17bb93340578cba777472de8d5d619db9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/465#discussion_r3846606555"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The wrapper functions currently ignore `handler` and simply call through to `wrapped`, which means no inference spans (and no completion hook invocation) are emitted despite the PR description stating it \\\"will just emit inference spans\\\". Please either (a) implement minimal telemetry emission via `TelemetryHandler` in these wrappers (sync + async, chat + prompt), or (b) adjust the PR description/docs to clearly state this is a no-op skeleton until span emission is implemented.",
+      "created": "2026-08-24T19:06:24Z",
+      "hunk": "@@ -0,0 +1,136 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Patching functions for Portkey AI instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+from collections.abc import Awaitable, Callable\n+from typing import Any, cast\n+\n+from wrapt import wrap_function_wrapper\n+\n+from opentelemetry.instrumentation.utils import unwrap\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+\n+logger = logging.getLogger(__name__)\n+\n+_CHAT_COMPLETE_MODULE = \"portkey_ai.api_resources.apis.chat_complete\"\n+_GENERATION_MODULE = \"portkey_ai.api_resources.apis.generation\"\n+_COMPLETIONS_CLASS = \"Completions\"\n+_ASYNC_COMPLETIONS_CLASS = \"AsyncCompletions\"\n+\n+\n+def patch_portkey(handler: TelemetryHandler) -> None:\n+    \"\"\"Apply patches to Portkey AI completion methods.\"\"\"\n+    try:\n+        wrap_function_wrapper(\n+            _CHAT_COMPLETE_MODULE,\n+            f\"{_COMPLETIONS_CLASS}.create\",\n+            _chat_completions_create(handler),\n+        )\n+        wrap_function_wrapper(\n+            _CHAT_COMPLETE_MODULE,\n+            f\"{_ASYNC_COMPLETIONS_CLASS}.create\",\n+            _async_chat_completions_create(handler),\n+        )\n+    except (ImportError, AttributeError) as exc:\n+        logger.debug(\"Failed to patch Portkey chat completions: %s\", exc)\n+\n+    try:\n+        wrap_function_wrapper(\n+            _GENERATION_MODULE,\n+            f\"{_COMPLETIONS_CLASS}.create\",\n+            _prompts_completions_create(handler),\n+        )\n+        wrap_function_wrapper(\n+            _GENERATION_MODULE,\n+            f\"{_ASYNC_COMPLETIONS_CLASS}.create\",\n+            _async_prompts_completions_create(handler),\n+        )\n+    except (ImportError, AttributeError) as exc:\n+        logger.debug(\"Failed to patch Portkey prompt completions: %s\", exc)\n+\n+\n+def unpatch_portkey() -> None:\n+    \"\"\"Remove patches from Portkey AI completion methods.\"\"\"\n+    try:\n+        from portkey_ai.api_resources.apis import (\n+            chat_complete,  # pylint: disable=import-outside-toplevel\n+        )\n+\n+        unwrap(chat_complete.Completions, \"create\")\n+        unwrap(chat_complete.AsyncCompletions, \"create\")\n+    except (ImportError, AttributeError):\n+        pass\n+\n+    try:\n+        from portkey_ai.api_resources.apis import (\n+            generation,  # pylint: disable=import-outside-toplevel\n+        )\n+\n+        unwrap(generation.Completions, \"create\")\n+        unwrap(generation.AsyncCompletions, \"create\")\n+    except (ImportError, AttributeError):\n+        pass\n+\n+\n+def _chat_completions_create(\n+    handler: TelemetryHandler,\n+) -> Callable[..., Any]:\n+    def traced_method(\n+        wrapped: Callable[..., Any],\n+        instance: Any,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Any:\n+        # TODO: Implement full inference invocation telemetry mapping\n+        return wrapped(*args, **kwargs)",
+      "id": "PRRT_kwDOSbspP86b0adB",
+      "opened": "2026-08-24T19:06:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/patch.py",
+      "replies": [],
+      "reviewed": "b7d721a17bb93340578cba777472de8d5d619db9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/465#discussion_r3846606587"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These assertions assume Portkey’s `create` methods are never wrapped before the test runs (i.e., `__wrapped__` is absent). That’s brittle (upstream changes or other instrumentation could legitimately introduce `__wrapped__`). A more robust approach is to capture the original `cls.create` object before instrumentation, assert it changes after `instrument()`, and assert it is restored to the exact original after `uninstrument()`.",
+      "created": "2026-08-24T19:06:24Z",
+      "hunk": "@@ -0,0 +1,114 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for the PortkeyInstrumentor class.\"\"\"\n+\n+from __future__ import annotations\n+\n+from opentelemetry.instrumentation.genai.portkey import (\n+    PortkeyInstrumentor,\n+)\n+\n+\n+def test_instrumentor_instantiation() -> None:\n+    \"\"\"Test that the instrumentor can be instantiated.\"\"\"\n+    instrumentor = PortkeyInstrumentor()\n+    assert instrumentor is not None\n+    assert isinstance(instrumentor, PortkeyInstrumentor)\n+\n+\n+def test_instrumentation_dependencies() -> None:\n+    \"\"\"Test that instrumentation dependencies are correctly reported.\"\"\"\n+    instrumentor = PortkeyInstrumentor()\n+    dependencies = instrumentor.instrumentation_dependencies()\n+\n+    assert dependencies is not None\n+    assert len(dependencies) > 0\n+    assert \"portkey-ai >= 1.0.0, < 3\" in dependencies\n+\n+\n+def test_instrument_uninstrument_cycle(\n+    tracer_provider, logger_provider, meter_provider\n+) -> None:\n+    \"\"\"Test that instrument() and uninstrument() can be called multiple times.\"\"\"\n+    instrumentor = PortkeyInstrumentor()\n+\n+    # First instrumentation\n+    instrumentor.instrument(\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+    )\n+\n+    # First uninstrumentation\n+    instrumentor.uninstrument()\n+\n+    # Second instrumentation (should work)\n+    instrumentor.instrument(\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+    )\n+\n+    # Second uninstrumentation\n+    instrumentor.uninstrument()\n+\n+\n+def test_instrument_wraps_and_unwraps_methods(\n+    tracer_provider, logger_provider, meter_provider\n+) -> None:\n+    \"\"\"Test that instrument() installs wrappers on Portkey methods and uninstrument() restores them.\"\"\"\n+    from portkey_ai.api_resources.apis import (\n+        chat_complete,\n+        generation,\n+    )\n+\n+    targets = []\n+    for mod, cls_name in [\n+        (chat_complete, \"Completions\"),\n+        (chat_complete, \"AsyncCompletions\"),\n+        (generation, \"Completions\"),\n+        (generation, \"AsyncCompletions\"),\n+    ]:\n+        cls = getattr(mod, cls_name, None)\n+        if cls is not None and hasattr(cls, \"create\"):\n+            targets.append(cls)\n+\n+    assert len(targets) >= 2\n+    for cls in targets:\n+        assert not hasattr(cls.create, \"__wrapped__\")",
+      "id": "PRRT_kwDOSbspP86b0adY",
+      "opened": "2026-08-24T19:06:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/test_instrumentor.py",
+      "replies": [],
+      "reviewed": "b7d721a17bb93340578cba777472de8d5d619db9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/465#discussion_r3846606619"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These assertions assume Portkey’s `create` methods are never wrapped before the test runs (i.e., `__wrapped__` is absent). That’s brittle (upstream changes or other instrumentation could legitimately introduce `__wrapped__`). A more robust approach is to capture the original `cls.create` object before instrumentation, assert it changes after `instrument()`, and assert it is restored to the exact original after `uninstrument()`.",
+      "created": "2026-08-24T19:06:25Z",
+      "hunk": "@@ -0,0 +1,114 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for the PortkeyInstrumentor class.\"\"\"\n+\n+from __future__ import annotations\n+\n+from opentelemetry.instrumentation.genai.portkey import (\n+    PortkeyInstrumentor,\n+)\n+\n+\n+def test_instrumentor_instantiation() -> None:\n+    \"\"\"Test that the instrumentor can be instantiated.\"\"\"\n+    instrumentor = PortkeyInstrumentor()\n+    assert instrumentor is not None\n+    assert isinstance(instrumentor, PortkeyInstrumentor)\n+\n+\n+def test_instrumentation_dependencies() -> None:\n+    \"\"\"Test that instrumentation dependencies are correctly reported.\"\"\"\n+    instrumentor = PortkeyInstrumentor()\n+    dependencies = instrumentor.instrumentation_dependencies()\n+\n+    assert dependencies is not None\n+    assert len(dependencies) > 0\n+    assert \"portkey-ai >= 1.0.0, < 3\" in dependencies\n+\n+\n+def test_instrument_uninstrument_cycle(\n+    tracer_provider, logger_provider, meter_provider\n+) -> None:\n+    \"\"\"Test that instrument() and uninstrument() can be called multiple times.\"\"\"\n+    instrumentor = PortkeyInstrumentor()\n+\n+    # First instrumentation\n+    instrumentor.instrument(\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+    )\n+\n+    # First uninstrumentation\n+    instrumentor.uninstrument()\n+\n+    # Second instrumentation (should work)\n+    instrumentor.instrument(\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+    )\n+\n+    # Second uninstrumentation\n+    instrumentor.uninstrument()\n+\n+\n+def test_instrument_wraps_and_unwraps_methods(\n+    tracer_provider, logger_provider, meter_provider\n+) -> None:\n+    \"\"\"Test that instrument() installs wrappers on Portkey methods and uninstrument() restores them.\"\"\"\n+    from portkey_ai.api_resources.apis import (\n+        chat_complete,\n+        generation,\n+    )\n+\n+    targets = []\n+    for mod, cls_name in [\n+        (chat_complete, \"Completions\"),\n+        (chat_complete, \"AsyncCompletions\"),\n+        (generation, \"Completions\"),\n+        (generation, \"AsyncCompletions\"),\n+    ]:\n+        cls = getattr(mod, cls_name, None)\n+        if cls is not None and hasattr(cls, \"create\"):\n+            targets.append(cls)\n+\n+    assert len(targets) >= 2\n+    for cls in targets:\n+        assert not hasattr(cls.create, \"__wrapped__\")\n+\n+    instrumentor = PortkeyInstrumentor()\n+    instrumentor.instrument(\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+    )\n+\n+    for cls in targets:\n+        assert hasattr(cls.create, \"__wrapped__\")\n+\n+    instrumentor.uninstrument()\n+\n+    for cls in targets:\n+        assert not hasattr(cls.create, \"__wrapped__\")",
+      "id": "PRRT_kwDOSbspP86b0ad-",
+      "opened": "2026-08-24T19:06:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/test_instrumentor.py",
+      "replies": [],
+      "reviewed": "b7d721a17bb93340578cba777472de8d5d619db9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/465#discussion_r3846606681"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These assertions assume Portkey’s `create` methods are never wrapped before the test runs (i.e., `__wrapped__` is absent). That’s brittle (upstream changes or other instrumentation could legitimately introduce `__wrapped__`). A more robust approach is to capture the original `cls.create` object before instrumentation, assert it changes after `instrument()`, and assert it is restored to the exact original after `uninstrument()`.",
+      "created": "2026-08-24T19:06:25Z",
+      "hunk": "@@ -0,0 +1,114 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for the PortkeyInstrumentor class.\"\"\"\n+\n+from __future__ import annotations\n+\n+from opentelemetry.instrumentation.genai.portkey import (\n+    PortkeyInstrumentor,\n+)\n+\n+\n+def test_instrumentor_instantiation() -> None:\n+    \"\"\"Test that the instrumentor can be instantiated.\"\"\"\n+    instrumentor = PortkeyInstrumentor()\n+    assert instrumentor is not None\n+    assert isinstance(instrumentor, PortkeyInstrumentor)\n+\n+\n+def test_instrumentation_dependencies() -> None:\n+    \"\"\"Test that instrumentation dependencies are correctly reported.\"\"\"\n+    instrumentor = PortkeyInstrumentor()\n+    dependencies = instrumentor.instrumentation_dependencies()\n+\n+    assert dependencies is not None\n+    assert len(dependencies) > 0\n+    assert \"portkey-ai >= 1.0.0, < 3\" in dependencies\n+\n+\n+def test_instrument_uninstrument_cycle(\n+    tracer_provider, logger_provider, meter_provider\n+) -> None:\n+    \"\"\"Test that instrument() and uninstrument() can be called multiple times.\"\"\"\n+    instrumentor = PortkeyInstrumentor()\n+\n+    # First instrumentation\n+    instrumentor.instrument(\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+    )\n+\n+    # First uninstrumentation\n+    instrumentor.uninstrument()\n+\n+    # Second instrumentation (should work)\n+    instrumentor.instrument(\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+    )\n+\n+    # Second uninstrumentation\n+    instrumentor.uninstrument()\n+\n+\n+def test_instrument_wraps_and_unwraps_methods(\n+    tracer_provider, logger_provider, meter_provider\n+) -> None:\n+    \"\"\"Test that instrument() installs wrappers on Portkey methods and uninstrument() restores them.\"\"\"\n+    from portkey_ai.api_resources.apis import (\n+        chat_complete,\n+        generation,\n+    )\n+\n+    targets = []\n+    for mod, cls_name in [\n+        (chat_complete, \"Completions\"),\n+        (chat_complete, \"AsyncCompletions\"),\n+        (generation, \"Completions\"),\n+        (generation, \"AsyncCompletions\"),\n+    ]:\n+        cls = getattr(mod, cls_name, None)\n+        if cls is not None and hasattr(cls, \"create\"):\n+            targets.append(cls)\n+\n+    assert len(targets) >= 2\n+    for cls in targets:\n+        assert not hasattr(cls.create, \"__wrapped__\")\n+\n+    instrumentor = PortkeyInstrumentor()\n+    instrumentor.instrument(\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+    )\n+\n+    for cls in targets:\n+        assert hasattr(cls.create, \"__wrapped__\")",
+      "id": "PRRT_kwDOSbspP86b0adt",
+      "opened": "2026-08-24T19:06:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/test_instrumentor.py",
+      "replies": [],
+      "reviewed": "b7d721a17bb93340578cba777472de8d5d619db9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/465#discussion_r3846606657"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For the `portkey-latest` factor, both `{[testenv]test_deps}` and `{[testenv]pytest_deps}` are included. This looks redundant and can make dependency resolution harder to reason about (and in some setups can result in duplicate installs). Consider aligning this factor with the pattern used by the other `*-latest` instrumentation envs (keep only the necessary dep group(s)).",
+      "created": "2026-08-24T19:06:25Z",
+      "hunk": "@@ -186,6 +190,13 @@ deps =\n   qwen-agent-conformance: {[testenv]pytest_deps}\n   qwen-agent-conformance: -r {toxinidir}/instrumentation/opentelemetry-instrumentation-genai-qwen-agent/tests/requirements.latest.txt\n \n+  portkey-oldest: {[testenv]pytest_deps}\n+  portkey-oldest: -e {toxinidir}/instrumentation/opentelemetry-instrumentation-genai-portkey[instruments]\n+  portkey-oldest: -r {toxinidir}/instrumentation/opentelemetry-instrumentation-genai-portkey/tests/requirements.oldest.txt\n+  portkey-latest: {[testenv]test_deps}\n+  portkey-latest: {[testenv]pytest_deps}",
+      "id": "PRRT_kwDOSbspP86b0aeG",
+      "opened": "2026-08-24T19:06:25Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "b7d721a17bb93340578cba777472de8d5d619db9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/465#discussion_r3846606699"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "088d4414c13104aad2c0cea71059c4df0de27d64",
+  "merge": "abbef30c5e94447f9d7b86b2a90d059fe2c73072",
+  "merged": "2026-04-01T14:39:49Z",
+  "missing_roots": 0,
+  "number": 17355,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@copilot revert changes to this file",
+      "created": "2026-04-01T13:01:08Z",
+      "hunk": "@@ -104,89 +104,90 @@ RemoteWebDriver getDriver() {\n   @SuppressWarnings(\"deprecation\") // using deprecated semconv\n   void testGwt() {\n     RemoteWebDriver driver = getDriver();\n-",
+      "id": "PRRT_kwDODJKVX854Orwv",
+      "opened": "2026-04-01T13:01:08Z",
+      "path": "instrumentation/gwt-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/gwt/GwtTest.java",
+      "replies": [
+        {
+          "at": "2026-04-01T13:14:09Z",
+          "body": "Reverted in 088d441.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17355#discussion_r3022029130"
+        }
+      ],
+      "reviewed": "1eabd89baa5491760f3369931bb790f08cae6617",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17355#discussion_r3021955486"
+    }
+  ]
+}

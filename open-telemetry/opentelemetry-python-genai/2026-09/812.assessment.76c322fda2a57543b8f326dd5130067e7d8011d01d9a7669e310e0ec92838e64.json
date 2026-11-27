@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1894ca08557f1a3667fa5f096e4ee9d01ea551f65435647f7331d1ca8d5167e0",
+  "input_digest": "76c322fda2a57543b8f326dd5130067e7d8011d01d9a7669e310e0ec92838e64",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/bbaf0536d61550950fd1795e3a518dab39139a42/instrumentation/opentelemetry-instrumentation-genai-openai/.changelog/812.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/bbaf0536d61550950fd1795e3a518dab39139a42/instrumentation/opentelemetry-instrumentation-genai-openai/.changelog/812.added",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/6f5d991a4919e68e121c8d82f49d29a085744de0/instrumentation/opentelemetry-instrumentation-genai-openai/.changelog/812.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/6f5d991a4919e68e121c8d82f49d29a085744de0/instrumentation/opentelemetry-instrumentation-genai-openai/.changelog/812.added"
+      ],
+      "id": "PRRT_kwDOSbspP86m5enm",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ab71d7fbcc3c274b3cfdd96cd00d478c338b5a2c/instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/6f5d991a4919e68e121c8d82f49d29a085744de0/instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py"
+      ],
+      "id": "PRRT_kwDOSbspP86nMeyv",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

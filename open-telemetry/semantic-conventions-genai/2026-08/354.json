@@ -1,0 +1,247 @@
+{
+  "head": "2a91f8a8362e4aa0a7afd7a7bd9463e8f307bab0",
+  "merge": "8d3e4a0f3c34a46f6edb9c71e8666e02e6bf3958",
+  "merged": "2026-08-10T23:52:58Z",
+  "missing_roots": 0,
+  "number": 354,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The module docstring is now out of date: this scenario file also includes a LangGraph workflow (invoke_workflow) and tool execution (execute_tool), not just retrieval and plan-and-execute planning. Keeping the header accurate helps readers find the right example quickly.",
+      "created": "2026-07-01T03:59:00Z",
+      "hunk": "@@ -1,15 +1,53 @@\n \"\"\"Reference implementation for LangChain retrieval and Plan-and-Execute planning.\"\"\"",
+      "id": "PRRT_kwDOSUeMrM6NdvWT",
+      "opened": "2026-07-01T03:59:01Z",
+      "path": "reference/scenarios/langchain/scenario.py",
+      "replies": [],
+      "reviewed": "9628bdd1933ab004c48d96a3eb2eb40463947233",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3503189508"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This comment says execute_tool spans are omitted, but the scenario now *does* create an execute_tool span in get_weather(). This is misleading for anyone reading the workflow example and trying to understand expected span output.",
+      "created": "2026-07-01T03:59:00Z",
+      "hunk": "@@ -181,12 +219,64 @@ def _capture_create(*args, **kwargs):\n             print(f\"    -> planned {len(plan.steps)} step(s)\")\n \n \n+async def run_workflow_reference():\n+    \"\"\"Scenario: graph execution via LangGraph wrapped in a workflow span.\"\"\"\n+    print(\"  [workflow] LangGraph graph run (reference implementation)\")\n+    from langgraph.graph import StateGraph, START, END\n+\n+    builder = StateGraph(GraphState)\n+    builder.add_node(\"node_a\", node_a)\n+    builder.add_node(\"node_b\", node_b)\n+    builder.add_edge(START, \"node_a\")\n+    builder.add_edge(\"node_a\", \"node_b\")\n+    builder.add_edge(\"node_b\", END)\n+\n+    graph = builder.compile()\n+\n+    input_text = \"What's the weather in Seattle?\"\n+    workflow_name = \"Weather graph\"\n+    workflow_span_attributes = {\n+        \"gen_ai.operation.name\": \"invoke_workflow\",\n+    }\n+    with _reference_tracer.start_as_current_span(\n+        f\"invoke_workflow {workflow_name}\", attributes=workflow_span_attributes\n+    ) as workflow_span:\n+        workflow_span.set_attribute(\"gen_ai.workflow.name\", workflow_name)\n+        workflow_span.set_attribute(\n+            \"gen_ai.input.messages\", json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]}])\n+        )\n+\n+        # Note: Other spans (invoke_agent, execute_tool) are omitted for brevity in this scenario.",
+      "id": "PRRT_kwDOSUeMrM6NdvWq",
+      "opened": "2026-07-01T03:59:01Z",
+      "path": "reference/scenarios/langchain/scenario.py",
+      "replies": [],
+      "reviewed": "9628bdd1933ab004c48d96a3eb2eb40463947233",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3503189538"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This report claims LangChain supports `gen_ai.tool.call.id`, but the committed LangChain scenario data (`reference/scenarios/langchain/data.json`) does not list that attribute under `execute_tool`. Either the LangChain scenario should emit a credible tool call id, or this entry should be removed so the coverage report matches the scenario outputs.",
+      "created": "2026-07-01T03:59:00Z",
+      "hunk": "@@ -19,23 +19,24 @@\n \n | Attribute | Supporting Libraries |\n | --- | --- |\n-| gen_ai.tool.call.id | [agent-framework], [autogen], [google-adk], [groq], [instructor], [litellm], [llamaindex], [mistralai], [openai], [openai-agents], [openai-assistants], [pydantic-ai] |\n-| gen_ai.tool.description | [agent-framework], [autogen], [crewai], [google-adk], [groq], [instructor], [litellm], [llamaindex], [mistralai], [openai], [openai-agents], [openai-assistants], [pydantic-ai] |\n-| gen_ai.tool.type | [agent-framework], [autogen], [crewai], [google-adk], [groq], [instructor], [litellm], [llamaindex], [mistralai], [openai], [openai-agents], [openai-assistants], [pydantic-ai] |\n+| gen_ai.tool.call.id | [autogen], [google-adk], [groq], [instructor], [langchain], [litellm], [llamaindex], [mistralai], [openai], [openai-agents], [openai-assistants], [pydantic-ai] |",
+      "id": "PRRT_kwDOSUeMrM6NdvWw",
+      "opened": "2026-07-01T03:59:01Z",
+      "path": "reference/reports/execute-tool-span.md",
+      "replies": [],
+      "reviewed": "9628bdd1933ab004c48d96a3eb2eb40463947233",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3503189547"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`run_workflow()` re-imports symbols that are already imported at module scope, which is redundant and makes it harder to see what is actually unique to this function (handoff). Consider importing only the additional symbol needed here.",
+      "created": "2026-07-01T03:59:01Z",
+      "hunk": "@@ -158,12 +159,65 @@ async def _capture_create(*args, **kwargs):\n             print(f\"    -> {str(result.final_output)[:60]}\")\n \n \n+async def run_workflow():\n+    \"\"\"Run a simple agent run wrapped in a workflow span representing the SDK workflow tracing.\"\"\"\n+    from agents import Agent, Runner, RunConfig, handoff\n+    from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel",
+      "id": "PRRT_kwDOSUeMrM6NdvW1",
+      "opened": "2026-07-01T03:59:01Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [],
+      "reviewed": "9628bdd1933ab004c48d96a3eb2eb40463947233",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3503189553"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This PR changes the semantic convention guidance for when to emit `invoke_workflow`. Since this is a consumer-visible conventions change under `model/`, it should include a Towncrier fragment under `changelog.d/` (unless the project considers this purely editorial).",
+      "created": "2026-07-01T03:59:01Z",
+      "hunk": "@@ -566,14 +566,22 @@ spans:\n       The `gen_ai.operation.name` SHOULD be `invoke_workflow`.\n       **Span name** SHOULD be `invoke_workflow {gen_ai.workflow.name}`.\n \n-      This span SHOULD be reported by the instrumentations when they can\n-      reliably determine that invocation is a workflow (i.e. groups several agent\n-      invocations) and SHOULD NOT be reported by instrumentations that\n-      can't distinguish it `invoke_workflow` from `invoke_agent`.\n-      eg: Some frameworks like ADK have workflow agents that orchestrate other agents\n-      and report `invoke_agent` spans, so `invoke_workflow` SHOULD NOT be reported by such instrumentations.\n-      Conversely, frameworks like CrewAI have a distinct concept of crew (similar to workflow)\n-      that is separate from individual agents, so they SHOULD report `invoke_workflow` spans.\n+      The workflow span SHOULD be reported for operations executing composable processes\n+      (e.g., graphs, orchestrators) that can coordinate multiple agents or GenAI calls.\n+      For example, when instrumenting user-facing API that supports composable operations.\n+      It SHOULD NOT be reported for standalone agent invocations.",
+      "id": "PRRT_kwDOSUeMrM6NdvW7",
+      "opened": "2026-07-01T03:59:01Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "9628bdd1933ab004c48d96a3eb2eb40463947233",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3503189565"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`model/gen-ai/spans.yaml` has whitespace-only blank lines in the `invoke_workflow` span note (lines 577 and 579). These tend to fail trailing-whitespace checks and create noisy diffs; make the blank lines truly empty (no spaces).",
+      "created": "2026-07-01T04:12:33Z",
+      "hunk": "@@ -566,14 +566,22 @@ spans:\n       The `gen_ai.operation.name` SHOULD be `invoke_workflow`.\n       **Span name** SHOULD be `invoke_workflow {gen_ai.workflow.name}`.\n \n-      This span SHOULD be reported by the instrumentations when they can\n-      reliably determine that invocation is a workflow (i.e. groups several agent\n-      invocations) and SHOULD NOT be reported by instrumentations that\n-      can't distinguish it `invoke_workflow` from `invoke_agent`.\n-      eg: Some frameworks like ADK have workflow agents that orchestrate other agents\n-      and report `invoke_agent` spans, so `invoke_workflow` SHOULD NOT be reported by such instrumentations.\n-      Conversely, frameworks like CrewAI have a distinct concept of crew (similar to workflow)\n-      that is separate from individual agents, so they SHOULD report `invoke_workflow` spans.\n+      The workflow span SHOULD be reported for operations executing composable processes\n+      (e.g., graphs, orchestrators) that can coordinate multiple agents or GenAI calls.\n+      For example, when instrumenting user-facing API that supports composable operations.\n+      It SHOULD NOT be reported for standalone agent invocations.\n+\n+      Framework-specific semantic conventions SHOULD define which operations to report\n+      as workflow spans and MAY specify heuristics to distinguish workflows from standalone\n+      agent invocations.\n+ \n+      Examples of workflow invocations in different frameworks include:\n+      \n+      - **ADK**: [`Runner.run(...)`](https://adk.dev/agents/) with multi-agent or graph workflow.",
+      "id": "PRRT_kwDOSUeMrM6Nd3WT",
+      "opened": "2026-07-01T04:12:33Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "e81183df7e4c745a5a772f008cb34f2c585043e5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3503235086"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "RKest"
+      },
+      "body": "Consider adding wording to omit the `invoke_workflow` span, in case it happens to be an implementation detail.\n\nMotivating example is using [AgentTool](https://github.com/google/adk-python/blob/ade8577745bda23588bc0ac71f93a9d3343ec80a/src/google/adk/tools/agent_tool.py#L107) in ADK, which uses a `Runner` internally, which means using `AgentTool` produces the following trace.\n\n```\ninvoke_workflow                            # Entry point for the user\n└── invoke_agent root\n    ├── chat gpt4-o\n    └── execute_tool subagent\n        └── invoke_workflow                # ADK implementation detail\n            └── invoke_agent subagent\n```\n\nI think the nested `invoke_workflow` here only adds noise given:\n- With an exception of an exotic [ADK plugin](https://adk.dev/plugins/) setup) only one agent will even be part of this workflow\n- Even if another agent is part of the subagent \"workflow\" here, this span won't create another trace. This is opposed to if we omitted the root `invoke_workflow` span based on a heuristic the setup \"looks like a single agent setup\".\n\nMy rough draft: \"The `invoke_workflow` span SHOULD NOT be reported when the workflow invocation is an internal implementation detail of another operation (e.g., an agent or tool that spins up a runner/workflow under the hood to delegate to a sub-agent) rather than a user-facing entry point. In such cases instrumentations SHOULD suppress the nested `invoke_workflow` span so the trace reflects the caller-facing structure instead of framework internals.\"",
+      "created": "2026-07-06T17:34:52Z",
+      "hunk": "@@ -691,14 +691,22 @@ Represents an operation that executes a coordinated process composed of multiple\n The `gen_ai.operation.name` SHOULD be `invoke_workflow`.\n **Span name** SHOULD be `invoke_workflow {gen_ai.workflow.name}`.\n \n-This span SHOULD be reported by the instrumentations when they can\n-reliably determine that invocation is a workflow (i.e. groups several agent\n-invocations) and SHOULD NOT be reported by instrumentations that\n-can't distinguish it `invoke_workflow` from `invoke_agent`.\n-eg: Some frameworks like ADK have workflow agents that orchestrate other agents\n-and report `invoke_agent` spans, so `invoke_workflow` SHOULD NOT be reported by such instrumentations.\n-Conversely, frameworks like CrewAI have a distinct concept of crew (similar to workflow)\n-that is separate from individual agents, so they SHOULD report `invoke_workflow` spans.\n+The workflow span SHOULD be reported for operations executing composable processes\n+(e.g., graphs, orchestrators) that can coordinate multiple agents or GenAI calls.\n+For example, when instrumenting user-facing API that supports composable operations.\n+It SHOULD NOT be reported for standalone agent invocations.\n+\n+Framework-specific semantic conventions SHOULD define which operations to report\n+as workflow spans and MAY specify heuristics to distinguish workflows from standalone\n+agent invocations.\n+\n+Examples of workflow invocations in different frameworks include:\n+\n+- **ADK**: [`Runner.run(...)`](https://adk.dev/agents/) with multi-agent or graph workflow.",
+      "id": "PRRT_kwDOSUeMrM6OrMeV",
+      "opened": "2026-07-06T17:55:48Z",
+      "path": "docs/gen-ai/gen-ai-agent-spans.md",
+      "replies": [
+        {
+          "at": "2026-07-09T01:55:31Z",
+          "body": "great point, added \r\n\r\n>    If a workflow operation can be invoked both by external callers and internally\r\n      by the instrumented framework, only the external invocation SHOULD be reported as a workflow span.\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3548350659"
+        }
+      ],
+      "reviewed": "e81183df7e4c745a5a772f008cb34f2c585043e5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3530904673"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "RKest"
+      },
+      "body": "Open question is what should the framework provided orchestrators (e.g. ADK's `Runner`) be named? Either `invoke_workflow`, `invoke_workflow {per_framework_noun}` (e.g. `invoke_workflow runner` in ADK) or `invoke_workflow {first_invoked_agent_name|adk_app_name}`?\n\nOne pro of `invoke_workflow {first_invoked_agent_name|adk_app_name}`, is it makes it simple to catch at a glance, by simply looking at the root span, which agentic application is invoked.\n\nOtherwise, `invoke_workflow` or `invoke_workflow {per_framework_noun}` seem cleaner, and probably easier to word in the standard.",
+      "created": "2026-07-06T17:53:58Z",
+      "hunk": "@@ -691,14 +691,22 @@ Represents an operation that executes a coordinated process composed of multiple\n The `gen_ai.operation.name` SHOULD be `invoke_workflow`.\n **Span name** SHOULD be `invoke_workflow {gen_ai.workflow.name}`.\n \n-This span SHOULD be reported by the instrumentations when they can\n-reliably determine that invocation is a workflow (i.e. groups several agent\n-invocations) and SHOULD NOT be reported by instrumentations that\n-can't distinguish it `invoke_workflow` from `invoke_agent`.\n-eg: Some frameworks like ADK have workflow agents that orchestrate other agents\n-and report `invoke_agent` spans, so `invoke_workflow` SHOULD NOT be reported by such instrumentations.\n-Conversely, frameworks like CrewAI have a distinct concept of crew (similar to workflow)\n-that is separate from individual agents, so they SHOULD report `invoke_workflow` spans.\n+The workflow span SHOULD be reported for operations executing composable processes\n+(e.g., graphs, orchestrators) that can coordinate multiple agents or GenAI calls.",
+      "id": "PRRT_kwDOSUeMrM6OrgVE",
+      "opened": "2026-07-06T17:55:48Z",
+      "path": "docs/gen-ai/gen-ai-agent-spans.md",
+      "replies": [
+        {
+          "at": "2026-07-09T02:04:19Z",
+          "body": "updated workflow name definition in the registry to include\r\n\r\n>      For example, it can be the name of the first chain in LangChain,\r\n>      the name of the crew in CrewAI, or the entry point agent in ADK or\r\n>      OpenAI Agents when no explicit workflow name is provided.\r\n\r\n>      It is NOT RECOMMENDED to use instrumentation-time constants or names of\r\n>      types representing the workflow, such as \"StateGraph\". When no meaningful\r\n>      workflow name is available for a framework, this attribute SHOULD NOT be set.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3548385746"
+        }
+      ],
+      "reviewed": "e81183df7e4c745a5a772f008cb34f2c585043e5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3531019276"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This bullet is unqualified, which contradicts \"It SHOULD NOT be reported for standalone agent invocations\" three paragraphs above. `Runner.run(some_agent, ...)` with no handoffs, no sub-agents, and no agents-as-tools *is* a standalone agent invocation, but this line says every `Runner.run` is a workflow. The ADK bullet got a qualifier; this one didn't, so instrumentation authors get two different answers for the most common case.\n\n```suggestion\n      - **OpenAI Agents**: [`Runner.run(starting_agent=...)`](https://openai.github.io/openai-agents-python/ref/run/#agents.run.Runner.run) with handoffs, sub-agents, or agents-as-tools.\n```\n\nIf your intent is instead \"every `Runner.run` is a workflow because the SDK itself models it as one\" — which is how I read the PR description, and the SDK's own docs do describe it as \"Run a workflow starting at the given agent\" — then it's the general rule above that needs to soften, not this bullet. Something like: a workflow span MAY be reported when the framework's own entry point is defined as a workflow, even when a particular invocation happens to contain a single agent. Right now the two statements can't both hold.",
+      "created": "2026-07-31T03:38:07Z",
+      "hunk": "@@ -575,14 +575,24 @@ spans:\n       The `gen_ai.operation.name` SHOULD be `invoke_workflow`.\n       **Span name** SHOULD be `invoke_workflow {gen_ai.workflow.name}`.\n \n-      This span SHOULD be reported by the instrumentations when they can\n-      reliably determine that invocation is a workflow (i.e. groups several agent\n-      invocations) and SHOULD NOT be reported by instrumentations that\n-      can't distinguish it `invoke_workflow` from `invoke_agent`.\n-      eg: Some frameworks like ADK have workflow agents that orchestrate other agents\n-      and report `invoke_agent` spans, so `invoke_workflow` SHOULD NOT be reported by such instrumentations.\n-      Conversely, frameworks like CrewAI have a distinct concept of crew (similar to workflow)\n-      that is separate from individual agents, so they SHOULD report `invoke_workflow` spans.\n+      The workflow span SHOULD be reported for operations that trigger the execution\n+      of composable processes (e.g., graphs, orchestrators) coordinating multiple\n+      agents or GenAI calls. It SHOULD NOT be reported for standalone agent invocations.\n+\n+      If a workflow operation can be invoked both by external callers and internally\n+      by the instrumented framework, only the external invocation SHOULD be reported as a workflow span.\n+\n+      Framework-specific semantic conventions SHOULD define which operations to report\n+      as workflows and MAY specify heuristics to distinguish them from standalone\n+      agent invocations and internal operations.\n+\n+      Examples of workflow invocations in different frameworks include:\n+\n+      - **ADK**: [`Runner.run(...)`](https://adk.dev/agents/) with multi-agent or graph workflow.\n+      - **crewai**: [`Crew.kickoff()`](https://docs.crewai.com/concepts/crews)\n+      - **langchain / langgraph**: [`*Graph*.invoke(...)`](https://reference.langchain.com/python/langgraph/graphs)\n+      - **Microsoft Agent Framework**: [`Workflow*.run(...)`](https://learn.microsoft.com/agent-framework/workflows/)\n+      - **OpenAI Agents**: [`Runner.run(starting_agent=...)`](https://openai.github.io/openai-agents-python/ref/run/#agents.run.Runner.run)",
+      "id": "PRRT_kwDOSUeMrM6VT2n1",
+      "opened": "2026-07-31T03:40:07Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "dfe389491971b6ce926f33a979a45d7b0e85195a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3687884899"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Two separate things.\n\n**The two omission rules overlap.** \"When no meaningful workflow name is available ... this attribute SHOULD NOT be set\" and \"if there is no low-cardinality workflow name available ... it MUST NOT be captured by default\" aren't the same condition — \"meaningful\" and \"low-cardinality\" are independent — but they're adjacent and at different strengths, and the example you give (`StateGraph`) is squarely low-cardinality yet discouraged. So a reader whose only available name is `StateGraph` hits both rules and can't tell which governs. Collapsing them would help:\n\n```suggestion\n      This attribute MUST have low cardinality. It is NOT RECOMMENDED to use\n      instrumentation-time constants or names of types representing the workflow,\n      such as \"StateGraph\". When no meaningful, low-cardinality workflow name is\n      available for a given framework, this attribute MUST NOT be captured by default.\n\n      Semantic conventions for individual Generative AI frameworks SHOULD document\n      what `gen_ai.workflow.name` means in the context of that framework.\n```\n\nNote this deliberately resolves the `SHOULD NOT` / `MUST NOT` mismatch in favor of `MUST NOT`, which is a strengthening — take it only if that's what you meant.\n\n**Trailing whitespace on lines 859 and 863**, which `.editorconfig` disallows (`trim_trailing_whitespace = true`). Line 863 matters beyond tidiness: this is a `note: |` literal block, so that trailing space is copied verbatim into the generated docs — you can see `SHOULD document ` with a trailing space in the diffs of `docs/gen-ai/gen-ai-agent-spans.md`, `docs/gen-ai/gen-ai-metrics.md`, and `docs/registry/attributes/gen-ai.md`. (Copilot flagged the same class of thing on the whitespace-only blank lines in `spans.yaml`.)",
+      "created": "2026-07-31T03:38:07Z",
+      "hunk": "@@ -846,12 +846,21 @@ attributes:\n     type: string\n     brief: Human-readable name of the GenAI workflow provided by the application.\n     note: |\n-      This attribute can be populated in different frameworks; for example, as the name of the first chain in LangChain or the name of the crew in CrewAI.\n-      The workflow name is usually provided by the application in a way that is specific to the generative AI framework or library that orchestrates the workflow.\n-      It is usually a static name that is expected to be unique within an application.\n+      The workflow name is usually a static, application-unique identifier defined\n+      in a framework-specific way.\n \n-      `gen_ai.workflow.name` MUST have low cardinality.\n-      Semantic conventions for individual Generative AI frameworks SHOULD document what `gen_ai.workflow.name` means in the context of that framework.\n-      If there is no low-cardinality workflow name available for a given framework, this attribute MUST NOT be captured by default.\n+      For example, it can be the name of the first chain in LangChain,\n+      the name of the crew in CrewAI, or the entry point agent in ADK or\n+      OpenAI Agents when no explicit workflow name is provided.\n+\n+      It is NOT RECOMMENDED to use instrumentation-time constants or names of\n+      types representing the workflow, such as \"StateGraph\". When no meaningful\n+      workflow name is available for a framework, this attribute SHOULD NOT be set.\n+      \n+      This attribute MUST have low cardinality; if there is no low-cardinality workflow name\n+      available for a given framework, it MUST NOT be captured by default.\n+\n+      Semantic conventions for individual Generative AI frameworks SHOULD document \n+      what `gen_ai.workflow.name` means in the context of that framework.",
+      "id": "PRRT_kwDOSUeMrM6VT2n3",
+      "opened": "2026-07-31T03:40:07Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "dfe389491971b6ce926f33a979a45d7b0e85195a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3687884902"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This comment is inaccurate: it says agent spans are \"omitted for brevity\", but there are no agents in this graph to omit. `node_a` calls a tool directly and `node_b` formats a string. Worth rewording to describe what the graph actually does.\n\nSeparately — and I want to be clear this is a preference, not a defect — I'd push for a more representative graph. Capturability is genuinely fine here: `run_name`, input, and output are all readable at the `graph.ainvoke()` boundary, so this does demonstrate the attributes are collectable, which is the question the rubric actually asks. But the note this PR adds describes workflows as processes \"coordinating multiple agents or GenAI calls\", and this graph coordinates neither, so as *the* reference example for LangGraph it's thin: a workflow span whose only child is an `execute_tool` span.\n\n`run_plan_and_execute_reference` already shows the pattern for standing up a mock-backed `ChatOpenAI` and emitting the `chat` child span from the captured request/response, and the mock server returns a normal completion for a plain chat call, so having one node do real inference would be cheap. Your call whether that's worth it.",
+      "created": "2026-07-31T03:38:07Z",
+      "hunk": "@@ -175,12 +213,61 @@ def _capture_create(*args, **kwargs):\n             print(f\"    -> planned {len(plan.steps)} step(s)\")\n \n \n+async def run_workflow_reference():\n+    \"\"\"Scenario: graph execution via LangGraph wrapped in a workflow span.\"\"\"\n+    print(\"  [workflow] LangGraph graph run (reference implementation)\")\n+    from langgraph.graph import END, START, StateGraph\n+\n+    builder = StateGraph(GraphState)\n+    builder.add_node(\"node_a\", node_a)\n+    builder.add_node(\"node_b\", node_b)\n+    builder.add_edge(START, \"node_a\")\n+    builder.add_edge(\"node_a\", \"node_b\")\n+    builder.add_edge(\"node_b\", END)\n+\n+    graph = builder.compile()\n+\n+    input_text = \"What's the weather in Seattle?\"\n+    workflow_name = \"Weather graph\"\n+    workflow_span_attributes = {\n+        \"gen_ai.operation.name\": \"invoke_workflow\",\n+    }\n+    with _reference_tracer.start_as_current_span(\n+        f\"invoke_workflow {workflow_name}\", attributes=workflow_span_attributes\n+    ) as workflow_span:\n+        workflow_span.set_attribute(\"gen_ai.workflow.name\", workflow_name)\n+        workflow_span.set_attribute(\n+            \"gen_ai.input.messages\", json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]}])\n+        )\n+\n+        # Note: Other spans (invoke_agent) are omitted for brevity in this scenario.",
+      "id": "PRRT_kwDOSUeMrM6VT2n5",
+      "opened": "2026-07-31T03:40:07Z",
+      "path": "reference/scenarios/langchain/scenario.py",
+      "replies": [],
+      "reviewed": "dfe389491971b6ce926f33a979a45d7b0e85195a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3687884904"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`\"Agent workflow\"` is the OpenAI Agents SDK's own default for `RunConfig.workflow_name`, and the SDK docstring for that field says it \"Should be a logical name for the run, like 'Code generation workflow' or 'Customer support agent'\". Passing the SDK's generic placeholder back in makes for a weak example right next to a note telling instrumentations not to use generic names. The name from your own PR description makes the point much better, and since `data.json` and the reports only track attribute *names*, changing the value won't cause any generated drift:\n\n```suggestion\n    workflow_name = \"sequential-agents\"\n```\n\nAlso, the module docstring at the top still says the scenario \"Exercises: agent run with tool calling against a mock OpenAI server\". You updated the langchain docstring for the new workflow run; this one is now stale.",
+      "created": "2026-07-31T03:38:07Z",
+      "hunk": "@@ -158,12 +158,64 @@ async def _capture_create(*args, **kwargs):\n             print(f\"    -> {str(result.final_output)[:60]}\")\n \n \n+async def run_workflow():\n+    \"\"\"Run a simple agent run wrapped in a workflow span representing the SDK workflow tracing.\"\"\"\n+    from agents import handoff\n+\n+    client = openai.AsyncOpenAI(base_url=MOCK_BASE_URL, api_key=\"mock-key\")\n+    request_model = \"gpt-4o-mini\"\n+    model = OpenAIChatCompletionsModel(model=request_model, openai_client=client)\n+\n+    agent_b = Agent(\n+        name=\"agent-b\",\n+        instructions=\"You are agent B, tell the user the weather is sunny.\",\n+        model=model,\n+    )\n+    agent_a = Agent(\n+        name=\"agent-a\",\n+        instructions=\"You are agent A. Handoff to agent-b immediately to answer the user's weather question.\",\n+        model=model,\n+        handoffs=[handoff(agent_b)],\n+    )\n+    input_text = \"What's the weather in Seattle?\"\n+\n+    print(\"  [workflow_run] agent run as workflow (reference implementation)\")\n+    workflow_name = \"Agent workflow\"",
+      "id": "PRRT_kwDOSUeMrM6VT2n6",
+      "opened": "2026-07-31T03:40:07Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [],
+      "reviewed": "dfe389491971b6ce926f33a979a45d7b0e85195a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3687884905"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Two notes on the fragment, plus some PR-description feedback I'm parking here since there's no better anchor.\n\nThe fragment is a three-item list where the third item — the reference scenarios — isn't a consumer-visible convention change, so I'd drop it and keep this to what actually changed in the conventions. The file is also missing a trailing newline (`.editorconfig` sets `insert_final_newline = true`).\n\n```suggestion\nClarify when instrumentations should report `gen_ai.invoke_workflow` spans, add per-framework examples, and tighten the guidance on what `gen_ai.workflow.name` should contain.\n```\n\nOn the description: the \"Motivation section filled in above\" box is unchecked and there's no motivation section. The reasoning in your \"Fun fact\" section *is* the motivation and deserves to be promoted into the body, especially since this reverses the previous explicit guidance that ADK instrumentations should not report `invoke_workflow`.\n\nThe description also only covers OpenAI Agents and ADK, but this PR adds a LangGraph workflow scenario and brand-new langchain `execute_tool` coverage — that's why `reference/README.md` and `reference/reports/execute-tool-span.md` change. Worth calling out so those diffs aren't a surprise.",
+      "created": "2026-07-31T03:38:07Z",
+      "hunk": "@@ -0,0 +1 @@\n+Clarify the reporting criteria for `gen_ai.invoke_workflow` spans, recommend per-framework guidance, add reference scenarios",
+      "id": "PRRT_kwDOSUeMrM6VT2nq",
+      "opened": "2026-07-31T03:40:07Z",
+      "path": "changelog.d/354.clarification.md",
+      "replies": [],
+      "reviewed": "dfe389491971b6ce926f33a979a45d7b0e85195a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3687884883"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I read the thread with @RKest that produced this sentence, so I understand the case it's for: ADK's `AgentTool` spins up a `Runner` internally, giving you a nested `invoke_workflow` underneath `execute_tool`. My concern is that the sentence as written doesn't carry that meaning to someone who hasn't read the thread.\n\nIt's framed around *who calls the operation* — \"external callers\" vs \"internally by the instrumented framework\" — but the property that actually separates the motivating case is that the nested invocation is an implementation detail of an enclosing GenAI operation. An instrumentation can detect that (there's an active GenAI span in context when the inner `Runner` starts). Detecting whether its caller was \"external\" is much less obvious. The sentence also doesn't say what becomes of the internal invocation: suppressed entirely, or reported as something else?\n\n@RKest's draft in that thread is closer to implementable and I'd lean toward it, or something like it:\n\n> The `invoke_workflow` span SHOULD NOT be reported when the workflow invocation is an internal implementation detail of another operation (e.g., an agent or tool that spins up a runner/workflow under the hood to delegate to a sub-agent) rather than a user-facing entry point.\n\nI'm deliberately not putting a suggestion block here, because I don't want to guess at whether you also intend this to cover genuinely nested user-authored workflows (a LangGraph sub-graph invoked as a node of a parent graph). Those look identical in the trace but arguably should keep their span. Whichever way you decide, it's worth saying explicitly.",
+      "created": "2026-07-31T03:38:07Z",
+      "hunk": "@@ -575,14 +575,24 @@ spans:\n       The `gen_ai.operation.name` SHOULD be `invoke_workflow`.\n       **Span name** SHOULD be `invoke_workflow {gen_ai.workflow.name}`.\n \n-      This span SHOULD be reported by the instrumentations when they can\n-      reliably determine that invocation is a workflow (i.e. groups several agent\n-      invocations) and SHOULD NOT be reported by instrumentations that\n-      can't distinguish it `invoke_workflow` from `invoke_agent`.\n-      eg: Some frameworks like ADK have workflow agents that orchestrate other agents\n-      and report `invoke_agent` spans, so `invoke_workflow` SHOULD NOT be reported by such instrumentations.\n-      Conversely, frameworks like CrewAI have a distinct concept of crew (similar to workflow)\n-      that is separate from individual agents, so they SHOULD report `invoke_workflow` spans.\n+      The workflow span SHOULD be reported for operations that trigger the execution\n+      of composable processes (e.g., graphs, orchestrators) coordinating multiple\n+      agents or GenAI calls. It SHOULD NOT be reported for standalone agent invocations.\n+\n+      If a workflow operation can be invoked both by external callers and internally\n+      by the instrumented framework, only the external invocation SHOULD be reported as a workflow span.",
+      "id": "PRRT_kwDOSUeMrM6VT2nv",
+      "opened": "2026-07-31T03:40:07Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "dfe389491971b6ce926f33a979a45d7b0e85195a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3687884893"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Two things in this list.\n\nThe ADK link goes to the Agents index. That page does talk about workflows, but nothing on it describes `Runner.run`, which is what the bullet actually names. ADK has a page titled \"Workflows: multi-agent, multi-node applications\" at <https://adk.dev/workflows/> that matches this bullet much more closely.\n\nThe framework names are also inconsistent with each other and with the rest of the model — `spans.yaml:588,590` and `registry.yaml:858` already use `ADK`, `CrewAI`, and `LangChain`. Keeping `ADK` bare (not \"Google ADK\") stays consistent with those.\n\n```suggestion\n      - **ADK**: [`Runner.run(...)`](https://adk.dev/workflows/) with multi-agent or graph workflow.\n      - **CrewAI**: [`Crew.kickoff()`](https://docs.crewai.com/concepts/crews)\n      - **LangChain / LangGraph**: [`*Graph*.invoke(...)`](https://reference.langchain.com/python/langgraph/graphs)\n```",
+      "created": "2026-07-31T03:38:07Z",
+      "hunk": "@@ -575,14 +575,24 @@ spans:\n       The `gen_ai.operation.name` SHOULD be `invoke_workflow`.\n       **Span name** SHOULD be `invoke_workflow {gen_ai.workflow.name}`.\n \n-      This span SHOULD be reported by the instrumentations when they can\n-      reliably determine that invocation is a workflow (i.e. groups several agent\n-      invocations) and SHOULD NOT be reported by instrumentations that\n-      can't distinguish it `invoke_workflow` from `invoke_agent`.\n-      eg: Some frameworks like ADK have workflow agents that orchestrate other agents\n-      and report `invoke_agent` spans, so `invoke_workflow` SHOULD NOT be reported by such instrumentations.\n-      Conversely, frameworks like CrewAI have a distinct concept of crew (similar to workflow)\n-      that is separate from individual agents, so they SHOULD report `invoke_workflow` spans.\n+      The workflow span SHOULD be reported for operations that trigger the execution\n+      of composable processes (e.g., graphs, orchestrators) coordinating multiple\n+      agents or GenAI calls. It SHOULD NOT be reported for standalone agent invocations.\n+\n+      If a workflow operation can be invoked both by external callers and internally\n+      by the instrumented framework, only the external invocation SHOULD be reported as a workflow span.\n+\n+      Framework-specific semantic conventions SHOULD define which operations to report\n+      as workflows and MAY specify heuristics to distinguish them from standalone\n+      agent invocations and internal operations.\n+\n+      Examples of workflow invocations in different frameworks include:\n+\n+      - **ADK**: [`Runner.run(...)`](https://adk.dev/agents/) with multi-agent or graph workflow.\n+      - **crewai**: [`Crew.kickoff()`](https://docs.crewai.com/concepts/crews)\n+      - **langchain / langgraph**: [`*Graph*.invoke(...)`](https://reference.langchain.com/python/langgraph/graphs)",
+      "id": "PRRT_kwDOSUeMrM6VT2nx",
+      "opened": "2026-07-31T03:40:07Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "dfe389491971b6ce926f33a979a45d7b0e85195a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/354#discussion_r3687884895"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "head": "6dde1a465885052355cc3300b10dbcccf75d27d6",
+  "merge": "b6fb1c64cd75bf5d227f3351b7cfd1ccfd84dc8d",
+  "merged": "2026-02-11T01:13:41Z",
+  "missing_roots": 0,
+  "number": 16123,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "description for `LOGGING_BRIDGE` ends with `.` while other descriptions don't",
+      "created": "2026-02-10T12:01:00Z",
+      "hunk": "@@ -207,6 +207,7 @@ List of possible options:\n * `CONTROLLER_SPANS`: Instrumentation that generates controller-level spans for controller/handler methods in web frameworks (disabled by default, experimental)\n * `VIEW_SPANS`: Instrumentation that generates view-level spans for view rendering such as templates or JSP (disabled by default, experimental)\n * `LOGGING_BRIDGE`: Instrumentation that bridges logging framework events to the OpenTelemetry Logs API. These instrumentations capture log records from standard logging frameworks and emit them as OpenTelemetry log records.\n+* `RESOURCE_DETECTOR`: Instrumentation that sets resource attributes based on certain conditions",
+      "id": "PRRT_kwDODJKVX85tuCcB",
+      "opened": "2026-02-10T12:01:00Z",
+      "path": "docs/contributing/documenting-instrumentation.md",
+      "replies": [],
+      "reviewed": "1cdf53faae208077b014cd540c35f1f6020f128a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16123#discussion_r2787552120"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "elsewhere you replaced `new telemetry` with `any telemetry`",
+      "created": "2026-02-10T12:08:04Z",
+      "hunk": "@@ -12144,25 +12153,39 @@ libraries:\n       type: boolean\n       default: false\n   - name: spring-cloud-gateway-webmvc-4.3\n+    display_name: Spring Cloud Gateway Server WebMVC\n+    description: |\n+      This instrumentation enhances tracing for Spring Cloud Gateway Server WebMVC. It does not generate new telemetry on its own, but rather enriches existing traces produced by other instrumentations like Spring WebMVC with Spring Cloud Gateway-specific attributes.",
+      "id": "PRRT_kwDODJKVX85tuIT3",
+      "opened": "2026-02-10T12:08:04Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "1cdf53faae208077b014cd540c35f1f6020f128a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16123#discussion_r2787582682"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "kind of assumes that the reader knows what a `process spans` is, idk whether that is an issue",
+      "created": "2026-02-10T12:13:47Z",
+      "hunk": "@@ -12114,12 +12117,15 @@ libraries:\n         - Check for --spring.application.name program argument (not jvm arg) via ProcessHandle\n         - Check for --spring.application.name program argument via sun.java.command system property\n     library_link: https://spring.io/projects/spring-boot\n+    features:\n+    - RESOURCE_DETECTOR\n     source_path: instrumentation/spring/spring-boot-resources\n     scope:\n       name: io.opentelemetry.spring-boot-resources\n   - name: spring-cloud-aws-3.0\n+    display_name: Spring Cloud AWS\n     description: |\n-      This instrumentation enhances tracing for Spring Cloud AWS. It augments the existing AWS SDK instrumentation by providing higher-level tracing for SQS operations, capturing details specific to Spring Cloud AWS SQS usage and linking them to the underlying AWS SDK traces.\n+      This instrumentation enhances messaging span creation for Spring Cloud AWS SQS. It coordinates with the AWS SDK instrumentation to create process spans at the appropriate points in Spring Cloud AWS message handling.",
+      "id": "PRRT_kwDODJKVX85tuNKB",
+      "opened": "2026-02-10T12:13:46Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "1cdf53faae208077b014cd540c35f1f6020f128a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16123#discussion_r2787609001"
+    }
+  ]
+}

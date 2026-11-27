@@ -1,0 +1,25 @@
+{
+  "head": "bf30eef4711942ad8be8189ae3027c5b9292f0e0",
+  "merge": "e78ccd8ef9ba80a34910b015d48b514a258f3bf4",
+  "merged": "2026-04-05T00:09:42Z",
+  "missing_roots": 0,
+  "number": 17426,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "While we do have other final package private classes is is more common to not add final.",
+      "created": "2026-04-02T13:46:47Z",
+      "hunk": "@@ -7,7 +7,7 @@\n \n import io.opentelemetry.instrumentation.api.incubator.semconv.code.CodeAttributesGetter;\n \n-public class JaxWsCodeAttributesGetter implements CodeAttributesGetter<JaxWsRequest> {\n+final class JaxWsCodeAttributesGetter implements CodeAttributesGetter<JaxWsRequest> {",
+      "id": "PRRT_kwDODJKVX854gheM",
+      "opened": "2026-04-02T13:46:47Z",
+      "path": "instrumentation/jaxws/jaxws-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxws/common/JaxWsCodeAttributesGetter.java",
+      "replies": [],
+      "reviewed": "bf30eef4711942ad8be8189ae3027c5b9292f0e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17426#discussion_r3028158130"
+    }
+  ]
+}

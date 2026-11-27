@@ -1,0 +1,61 @@
+{
+  "head": "c712c891a55bb7706a03d7ad4113db08ac6c41ec",
+  "merge": "ad9f51497d28b8df182305f38a4f0bee19a28f1c",
+  "merged": "2026-08-28T23:14:41Z",
+  "missing_roots": 0,
+  "number": 94,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This environment currently exports both AutoGen's built-in telemetry and OpenInference telemetry: the committed report contains the same native `create_agent`/`invoke_agent`/`execute_tool` span classes as `native/data.json` alongside OpenInference spans. Because `data.json` unions attributes by class, this can incorrectly credit OpenInference with native coverage and violates the one-instrumentation rule in `scenarios/gen-ai/AGENTS.md:36-38`. Set `AUTOGEN_DISABLE_RUNTIME_TRACING: \"true\"` here (supported by AutoGen 0.7.5), then regenerate this implementation's `data.json`.",
+      "created": "2026-08-28T05:49:01Z",
+      "hunk": "@@ -0,0 +1,23 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: genai-conformance\n+instrumented_library: autogen\n+instrumentation_library: openinference-instrumentation-autogen-agentchat\n+\n+server:\n+  run: genai-mock-server --port ${PORT}\n+\n+env:\n+  OPENAI_BASE_URL: ${MOCK_SERVER_URL}/v1\n+  OPENAI_API_KEY: test_openai_api_key\n+  # OpenInference records its own `llm.*` attributes by default;\n+  # this is the switch that adds the GenAI conventions beside them.\n+  OPENINFERENCE_ENABLE_GENAI_SEMCONV: \"true\"",
+      "id": "PRRT_kwDOTuzK5c6dElj5",
+      "opened": "2026-08-28T05:49:02Z",
+      "path": "scenarios/gen-ai/python/autogen/openinference/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-28T15:30:19Z",
+          "body": "works only partially, added monkeypatching tricks to disable",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/94#discussion_r3881847072"
+        }
+      ],
+      "reviewed": "7486ee9a6dd3a6f06746c70390939f3e8eabc105",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/94#discussion_r3878221567"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This dependency does not provide the `otel-conformance-python` executable invoked by `conformance.yaml`; that console script comes from the separate `tools/python` project. As written, the native scenarios fail before running. Depend on `otel-conformance-python` and map it to `tools/python`, matching the working native setup in `litellm/native`.",
+      "created": "2026-08-28T05:49:01Z",
+      "hunk": "@@ -0,0 +1,21 @@\n+[project]\n+name = \"autogen-native-conformance\"\n+version = \"0.0.0\"\n+requires-python = \">=3.12\"\n+dependencies = [\n+    \"autogen-agentchat==0.7.5\",\n+    \"autogen-ext[openai]==0.7.5\",\n+    \"opentelemetry-api==1.44.0\",\n+    \"opentelemetry-sdk==1.44.0\",\n+    \"opentelemetry-exporter-otlp-proto-grpc==1.44.0\",\n+    # `otel-conformance-python` installs the SDK providers and loads no\n+    # instrumentation, which is what leaves the library's own telemetry the\n+    # only thing measured.\n+    \"opentelemetry-conformance[python]\",\n+]\n+\n+[tool.uv.sources]\n+opentelemetry-conformance = { path = \"../../../../../tools/runner\", editable = true }",
+      "id": "PRRT_kwDOTuzK5c6dEljl",
+      "opened": "2026-08-28T05:49:02Z",
+      "path": "scenarios/gen-ai/python/autogen/native/pyproject.toml",
+      "replies": [],
+      "reviewed": "7486ee9a6dd3a6f06746c70390939f3e8eabc105",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/94#discussion_r3878221537"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "AutoGen defaults `reflect_on_tool_use` to false, so this run stops after executing the tool and never sends its result in the contract's second model request. Regenerate both reports after this change.\n```suggestion\nagent = AssistantAgent(\n    name=\"weather_assistant\",\n    model_client=OpenAIChatCompletionClient(\n        model=\"gpt-4o-mini\", max_tokens=100, temperature=0.5\n    ),\n    system_message=\"You are a helpful assistant.\",\n    tools=[get_current_weather],\n    reflect_on_tool_use=True,\n)\n```\n",
+      "created": "2026-08-28T17:30:02Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: an AutoGen agent run that calls a tool.\n+\n+The tool actually runs, which is the point: an agent framework executes the\n+call itself rather than handing it back, so the tool execution is a span of\n+its own and not just a message in the next request.\n+\"\"\"\n+\n+import asyncio\n+\n+from autogen_agentchat.agents import AssistantAgent\n+from autogen_ext.models.openai import OpenAIChatCompletionClient\n+\n+\n+def get_current_weather(location: str) -> str:\n+    \"\"\"Get the current weather in a given location.\"\"\"\n+    return f\"70 degrees and sunny in {location}\"\n+\n+\n+agent = AssistantAgent(\n+    name=\"weather_assistant\",\n+    model_client=OpenAIChatCompletionClient(\n+        model=\"gpt-4o-mini\", max_tokens=100, temperature=0.5\n+    ),\n+    system_message=\"You are a helpful assistant.\",\n+    tools=[get_current_weather],\n+)",
+      "id": "PRRT_kwDOTuzK5c6dP9nj",
+      "opened": "2026-08-28T18:42:34Z",
+      "path": "scenarios/gen-ai/python/autogen/scenarios/automatic_tool_calling.py",
+      "replies": [],
+      "reviewed": "ed1b393df0ccd8e876d0dd39e5f52db8ebf6b406",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/94#discussion_r3882661006"
+    }
+  ]
+}

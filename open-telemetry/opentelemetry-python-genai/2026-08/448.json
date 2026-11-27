@@ -1,0 +1,40 @@
+{
+  "head": "a199824343c7a30ff9465a00488a4b051be7baec",
+  "merge": "40214e5be57adb2c47c4daf3aa15f90f3259d210",
+  "merged": "2026-08-21T16:59:42Z",
+  "missing_roots": 0,
+  "number": 448,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This package CHANGELOG.md explicitly states it is managed by towncrier and should not be edited directly. CI enforces this (see .github/workflows/changelog.yml, which fails PRs that modify **/CHANGELOG.md), so this new 1.1b1 section will cause the changelog gate to fail. Please revert direct edits to CHANGELOG.md and add/keep a towncrier fragment under .changelog/ instead (or apply the \"release\" / \"Skip Changelog\" label if this PR is intentionally exempt).",
+      "created": "2026-08-21T16:33:36Z",
+      "hunk": "@@ -15,6 +15,13 @@ See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTR\n \n <!-- changelog start -->\n \n+## Version 1.1b1 (2026-08-21)\n+\n+### Changed\n+\n+- Raised `opentelemetry-util-genai` dependency floor to 1.1b0.\n+  ([#433](https://github.com/open-telemetry/opentelemetry-python-genai/pull/433))\n+",
+      "id": "PRRT_kwDOSbspP86bOS5_",
+      "opened": "2026-08-21T16:33:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "a199824343c7a30ff9465a00488a4b051be7baec",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/448#discussion_r3831964677"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "PR title/description mention copying changelog updates for the LangChain package, but this README change also bumps the displayed versions for Anthropic and Google GenAI. If this PR is only for LangChain, these extra version bumps should be reverted; otherwise the PR metadata should be updated to reflect the additional packages.",
+      "created": "2026-08-21T16:33:36Z",
+      "hunk": "@@ -14,13 +14,13 @@ All instrumentations use [opentelemetry-util-genai](./util/opentelemetry-util-ge\n | Instrumentation | Supported Package | Version |\n | --------------- | ----------------- | ------- |\n | [opentelemetry-instrumentation-genai-agno](./instrumentation/opentelemetry-instrumentation-genai-agno) | agno >= 2.0.0, < 3 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-agno/) |\n-| [opentelemetry-instrumentation-genai-anthropic](./instrumentation/opentelemetry-instrumentation-genai-anthropic) | anthropic >= 0.51.0, < 2 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-anthropic/) |\n-| [opentelemetry-instrumentation-genai-langchain](./instrumentation/opentelemetry-instrumentation-genai-langchain) | langchain >= 0.3.21, < 2 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-langchain/) |\n+| [opentelemetry-instrumentation-genai-anthropic](./instrumentation/opentelemetry-instrumentation-genai-anthropic) | anthropic >= 0.51.0, < 2 | [1.1b1](https://pypi.org/project/opentelemetry-instrumentation-genai-anthropic/) |\n+| [opentelemetry-instrumentation-genai-langchain](./instrumentation/opentelemetry-instrumentation-genai-langchain) | langchain >= 0.3.21, < 2 | [1.1b1](https://pypi.org/project/opentelemetry-instrumentation-genai-langchain/) |\n | [opentelemetry-instrumentation-genai-openai](./instrumentation/opentelemetry-instrumentation-genai-openai) | openai >= 1.26.0, < 4 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-openai/) |\n | [opentelemetry-instrumentation-genai-openai-agents](./instrumentation/opentelemetry-instrumentation-genai-openai-agents) | openai-agents >= 0.3.3, < 1 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-openai-agents/) |\n | [opentelemetry-instrumentation-genai-qwen-agent](./instrumentation/opentelemetry-instrumentation-genai-qwen-agent) | qwen-agent >= 0.0.20, < 1 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-qwen-agent/) |\n | [opentelemetry-instrumentation-genai-smolagents](./instrumentation/opentelemetry-instrumentation-genai-smolagents) | smolagents >= 1.24.0, < 2 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-smolagents/) |\n-| [opentelemetry-instrumentation-google-genai](./instrumentation/opentelemetry-instrumentation-google-genai) | google-genai >= 1.32.0, <3 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-google-genai/) |\n+| [opentelemetry-instrumentation-google-genai](./instrumentation/opentelemetry-instrumentation-google-genai) | google-genai >= 1.32.0, <3 | [1.1b1](https://pypi.org/project/opentelemetry-instrumentation-google-genai/) |",
+      "id": "PRRT_kwDOSbspP86bOS5m",
+      "opened": "2026-08-21T16:33:36Z",
+      "path": "README.md",
+      "replies": [],
+      "reviewed": "a199824343c7a30ff9465a00488a4b051be7baec",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/448#discussion_r3831964641"
+    }
+  ]
+}

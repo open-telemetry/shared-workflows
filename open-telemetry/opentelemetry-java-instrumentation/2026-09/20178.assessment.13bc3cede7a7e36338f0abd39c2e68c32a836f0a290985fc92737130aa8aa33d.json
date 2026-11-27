@@ -1,0 +1,49 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "94a86efdf7d37fae501363604950da401a8462512b8a900098c56b4a6d04bf01",
+  "input_digest": "13bc3cede7a7e36338f0abd39c2e68c32a836f0a290985fc92737130aa8aa33d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/343ff2028089fa1493930b6961e2246e66bd8b7e/instrumentation/spring/spring-rabbit-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a43806bc8d9ebf687a70c0b4eb2d26513b616b3c/instrumentation/spring/spring-rabbit-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/343ff2028089fa1493930b6961e2246e66bd8b7e...909d7c147e1ada94910268b8efd8ad109954f51b",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e9bb710e85f304dc3754cf2230a3763c5e38080a"
+      ],
+      "id": "PRRT_kwDODJKVX86jNr2_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ac89d8a75433e4eaf92740f2c8b84760189fceb/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a43806bc8d9ebf687a70c0b4eb2d26513b616b3c/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a43806bc8d9ebf687a70c0b4eb2d26513b616b3c/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitErrorHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a43806bc8d9ebf687a70c0b4eb2d26513b616b3c/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e9bb710e85f304dc3754cf2230a3763c5e38080a"
+      ],
+      "id": "PRRT_kwDODJKVX86j1-te",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6863bb5f6dfdc350ec535a7246534119de3128a4/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitErrorHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a43806bc8d9ebf687a70c0b4eb2d26513b616b3c/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitErrorHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6863bb5f6dfdc350ec535a7246534119de3128a4/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a43806bc8d9ebf687a70c0b4eb2d26513b616b3c/instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86kqjXp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

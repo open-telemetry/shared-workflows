@@ -1,0 +1,88 @@
+{
+  "head": "c5c5c748453e48950b1dac4381fbf9b005a40177",
+  "merge": "7535a957f8fab7a6f126d43c181bf57af33a6530",
+  "merged": "2026-09-30T15:26:38Z",
+  "missing_roots": 0,
+  "number": 20323,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This entry omits the user-visible behavior change introduced by the PR: v3 preview now ignores this opt-in and suppresses automatic process-metric registration. The surrounding deprecation entries explicitly call out settings ignored under v3 preview, so release notes should state this while clarifying that outside-preview and explicit library registration remain unchanged.",
+      "created": "2026-09-30T03:17:54Z",
+      "hunk": "@@ -20,6 +20,13 @@\n \n ### 🚫 Deprecations\n \n+- Deprecate the OSHI `ProcessMetrics` library API and\n+  `otel.instrumentation.oshi.experimental-metrics.enabled` configuration. They will be removed in\n+  3.0.",
+      "id": "PRRT_kwDODJKVX86nX3zf",
+      "opened": "2026-09-30T03:17:56Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-09-30T03:53:20Z",
+          "body": "Addressed in 67ca4e29a9af353a2c9747626359fa7db969ba11.\n\nFixed in the verified source changes 67ca4e29a9af353a2c9747626359fa7db969ba11.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20323#discussion_r4140646535"
+        }
+      ],
+      "reviewed": "d9d945dc5e67d283b7a45e618eb7b1bd71fd93da",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20323#discussion_r4140489681"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The table says this property enables the process metrics unconditionally, but the new `!preview` guard makes it ineffective under v3 preview. Mention that the setting is ignored when `otel.instrumentation.common.v3-preview=true` so users are not directed to a configuration that cannot work in that mode.",
+      "created": "2026-09-30T03:17:55Z",
+      "hunk": "@@ -2,9 +2,9 @@\n \n ## Settings for the OSHI instrumentation\n \n-| System property                                          | Type    | Default | Description              |\n-| -------------------------------------------------------- | ------- | ------- | ------------------------ |\n-| `otel.instrumentation.oshi.experimental-metrics.enabled` | Boolean | `false` | Enable the OSHI metrics. |\n+| System property                                          | Type    | Default | Description                                                                                                                                                                                                                                                                                                                                                                          |\n+| -------------------------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |\n+| `otel.instrumentation.oshi.experimental-metrics.enabled` | Boolean | `false` | Deprecated. Enable the `runtime.java.memory` and `runtime.java.cpu_time` process metrics. Will be removed in 3.0. Use the standard JVM metrics `jvm.memory.used` and `jvm.cpu.time` instead. These are not exact replacements: `jvm.memory.used` measures JVM memory pools rather than process RSS or virtual memory, and `jvm.cpu.time` does not separate user and system CPU time. |",
+      "id": "PRRT_kwDODJKVX86nX30J",
+      "opened": "2026-09-30T03:17:56Z",
+      "path": "instrumentation/oshi-5.0/README.md",
+      "replies": [
+        {
+          "at": "2026-09-30T03:53:22Z",
+          "body": "Addressed in 67ca4e29a9af353a2c9747626359fa7db969ba11.\n\nFixed in the verified source changes 67ca4e29a9af353a2c9747626359fa7db969ba11.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20323#discussion_r4140646647"
+        }
+      ],
+      "reviewed": "d9d945dc5e67d283b7a45e618eb7b1bd71fd93da",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20323#discussion_r4140489748"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This description now overstates the setting: the production read is skipped when `otel.instrumentation.common.v3-preview=true`, so the setting does not enable these metrics in that mode. Document that limitation here so generated configuration docs match the new behavior.",
+      "created": "2026-09-30T03:17:55Z",
+      "hunk": "@@ -7,7 +7,13 @@ semantic_conventions:\n configurations:\n   - name: otel.instrumentation.oshi.experimental-metrics.enabled\n     declarative_name: java.oshi.experimental_metrics/development.enabled\n-    description: Enable the experimental `runtime.java.memory` and `runtime.java.cpu_time` metrics.\n+    description: >\n+      Deprecated. Enables the experimental `runtime.java.memory` and `runtime.java.cpu_time` metrics.\n+      Will be removed in 3.0.",
+      "id": "PRRT_kwDODJKVX86nX30r",
+      "opened": "2026-09-30T03:17:56Z",
+      "path": "instrumentation/oshi-5.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-09-30T03:53:24Z",
+          "body": "Addressed in 67ca4e29a9af353a2c9747626359fa7db969ba11.\n\nFixed in the verified source changes 67ca4e29a9af353a2c9747626359fa7db969ba11.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20323#discussion_r4140646756"
+        }
+      ],
+      "reviewed": "d9d945dc5e67d283b7a45e618eb7b1bd71fd93da",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20323#discussion_r4140489799"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] Marking this setting deprecated requires regenerating the complete instrumentation catalog as well. `docs/instrumentation-list.yaml:1554-1560` still contains the old description without `deprecated: true`, and its v3-preview/experimental variant still lists both process metrics at `docs/instrumentation-list.yaml:16114-16117`, contradicting the new behavior. Please run the instrumentation docs generator and commit the updated catalog.",
+      "created": "2026-09-30T14:43:58Z",
+      "hunk": "@@ -7,7 +7,14 @@ semantic_conventions:\n configurations:\n   - name: otel.instrumentation.oshi.experimental-metrics.enabled\n     declarative_name: java.oshi.experimental_metrics/development.enabled\n-    description: Enable the experimental `runtime.java.memory` and `runtime.java.cpu_time` metrics.\n+    description: >\n+      Deprecated. Outside v3 preview, enables the experimental `runtime.java.memory` and\n+      `runtime.java.cpu_time` metrics. This setting is ignored when\n+      `otel.instrumentation.common.v3-preview=true`. Will be removed in 3.0.\n+      Use the standard JVM metrics `jvm.memory.used` and `jvm.cpu.time` instead. These are not exact\n+      replacements: `jvm.memory.used` measures JVM memory pools rather than process RSS or virtual\n+      memory, and `jvm.cpu.time` does not separate user and system CPU time.\n     type: boolean\n     default: false\n+    deprecated: true",
+      "id": "PRRT_kwDODJKVX86nlGR2",
+      "opened": "2026-09-30T14:43:58Z",
+      "path": "instrumentation/oshi-5.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "c5c5c748453e48950b1dac4381fbf9b005a40177",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20323#discussion_r4145894870"
+    }
+  ]
+}

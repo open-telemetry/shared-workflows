@@ -1,0 +1,97 @@
+{
+  "head": "1974543ddf7eab301a083642596828242c450426",
+  "merge": "f38a2f234bf49549c7e3b7fae351a2c03327a3b6",
+  "merged": "2026-07-13T19:50:49Z",
+  "missing_roots": 0,
+  "number": 233,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new conversation_id attribute is also included in the inference operation details event (LogRecord) via InferenceInvocation._maybe_create_event(), but this test only asserts the span attributes. Adding an assertion for the emitted event would better cover the intended behavior for both span and event telemetry, and aligns with util-genai test expectations for new attributes.",
+      "created": "2026-07-09T14:53:16Z",
+      "hunk": "@@ -369,6 +369,19 @@ def test_llm_start_and_stop_creates_span(self):  # pylint: disable=no-self-use\n         )\n         self.assertEqual(span_system[0][\"type\"], \"text\")\n \n+    def test_llm_conversation_id(self):  # pylint: disable=no-self-use\n+        with self.telemetry_handler.inference(\n+            \"test-provider\",\n+            request_model=\"test-model\",\n+        ) as invocation:\n+            invocation.conversation_id = \"test-conversation-id\"\n+\n+        span = _get_single_span(self.span_exporter)\n+        span_attrs = _get_span_attributes(span)\n+        self.assertEqual(\n+            span_attrs[GenAI.GEN_AI_CONVERSATION_ID], \"test-conversation-id\"\n+        )\n+",
+      "id": "PRRT_kwDOSbspP86PnAj8",
+      "opened": "2026-07-09T14:53:17Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils.py",
+      "replies": [],
+      "reviewed": "14baafac13522ebd37ed97fc4c742c6596ea6363",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/233#discussion_r3552577973"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test verifies gen_ai.conversation.id on the span, but the interactions instrumentation also emits the gen_ai.client.inference.operation.details event under the default SPAN_AND_EVENT capture mode (see tests/common/base.py). Adding an assertion for the event attribute would cover the full intended telemetry (span + event).",
+      "created": "2026-07-09T14:53:17Z",
+      "hunk": "@@ -151,6 +151,16 @@ def test_generated_span_has_minimal_genai_attributes(self) -> None:\n             span.attributes[\"gen_ai.operation.name\"], \"interactions.create\"\n         )\n \n+    def test_generated_span_has_conversation_id(self) -> None:\n+        self.configure_valid_interaction()\n+        self.run_interaction(\n+            model=\"gemini-2.5-flash\",\n+            input=\"Follow-up question\",\n+            previous_interaction_id=\"prev-123\",\n+        )\n+        span = self.otel.get_span_named(\"interactions.create gemini-2.5-flash\")\n+        self.assertEqual(span.attributes[\"gen_ai.conversation.id\"], \"prev-123\")\n+",
+      "id": "PRRT_kwDOSbspP86PnAk8",
+      "opened": "2026-07-09T14:53:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/base.py",
+      "replies": [],
+      "reviewed": "14baafac13522ebd37ed97fc4c742c6596ea6363",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/233#discussion_r3552578063"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is this a conversation id though?\n\nAssuming there are multiple turns within one conversation, the conversation.id stays the same, but I imagine interaction id changes with each turn?",
+      "created": "2026-07-09T15:38:46Z",
+      "hunk": "@@ -301,6 +301,12 @@ def instrumented_interactions_create(\n             server_address=server_address,\n         )\n \n+        previous_interaction_id = kwargs.get(\n+            \"previous_interaction_id\"\n+        ) or _get_field(kwargs.get(\"config\"), \"previous_interaction_id\")\n+        if previous_interaction_id:\n+            invocation.conversation_id = str(previous_interaction_id)",
+      "id": "PRRT_kwDOSbspP86Pn6ds",
+      "opened": "2026-07-09T15:38:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-07-09T16:47:24Z",
+          "body": "hmm good point, I thought it stayed the same but it changes on each turn. \r\n\r\nSo I could put `Interactions.id` as the response ID sem conv attribute (and which is what the user uses in a subsequent request as the `previous_interactions_id`, but I don't think there's a good place to put `previous_interactions_id` which comes through via the request kwargs",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/233#discussion_r3553328900"
+        },
+        {
+          "at": "2026-07-09T21:56:40Z",
+          "body": "> I could put Interactions.id as the response ID \r\n\r\n👍 \r\n\r\n>  I don't think there's a good place to put previous_interactions_id which comes through via the request kwargs\r\n\r\nWould you mind sending PR to semconv to propose it (or file an issue)? OpenAI responses has the same problem and it makes sense to introduce a common attribute",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/233#discussion_r3555068467"
+        },
+        {
+          "at": "2026-07-10T15:59:42Z",
+          "body": "Updated PR to use response id, and sent out https://github.com/open-telemetry/semantic-conventions-genai/pull/372 for `previous_reponse_id` sem conv",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/233#discussion_r3560277489"
+        }
+      ],
+      "reviewed": "af7eab92d96515f2a0e380535d0bcbf6a5ef9749",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/233#discussion_r3552903612"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): do we need a check in vcr or conformance testing for this attribute?",
+      "created": "2026-07-10T15:44:23Z",
+      "hunk": "@@ -82,6 +82,8 @@ def _apply_interaction_response_attributes(\n     telemetry_handler: TelemetryHandler,\n ) -> None:\n     invocation.response_model_name = response.model\n+    if getattr(response, \"id\", None):\n+        invocation.response_id = response.id",
+      "id": "PRRT_kwDOSbspP86P77Pu",
+      "opened": "2026-07-10T15:44:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-07-10T18:37:19Z",
+          "body": "Added it in",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/233#discussion_r3561208487"
+        },
+        {
+          "at": "2026-07-10T19:26:02Z",
+          "body": "Awesome thank you sir.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/233#discussion_r3561470616"
+        }
+      ],
+      "reviewed": "6cef9f45dcae9d827e5a4afe191ec9cf26dd10b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/233#discussion_r3560180114"
+    }
+  ]
+}

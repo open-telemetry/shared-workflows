@@ -1,0 +1,51 @@
+{
+  "head": "4e54bde846e398ed8fe56ff227120e19aea720f3",
+  "merge": "91a0475a90b9721d599f1f785c008d04e609c811",
+  "merged": "2026-03-02T15:17:53Z",
+  "missing_roots": 0,
+  "number": 16337,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "the idea here is that in case some git related error happens down the line and it logs the remote, the token wouldn't be there anymore. might be overkill",
+      "created": "2026-03-01T22:14:20Z",
+      "hunk": "@@ -87,8 +89,10 @@ jobs:\n           GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}\n         run: |\n           BRANCH_NAME=\"${{ steps.findbranch.outputs.branch }}\"\n+          git remote set-url origin \"https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git\"\n           git commit -m \"chore: update instrumentation list [automated]\" || echo \"No changes to commit.\"\n           git push --force origin \"$BRANCH_NAME\"\n+          git remote set-url origin \"https://github.com/${{ github.repository }}.git\"",
+      "id": "PRRT_kwDODJKVX85xbvZh",
+      "opened": "2026-03-01T22:14:20Z",
+      "path": ".github/workflows/metadata-update.yml",
+      "replies": [],
+      "reviewed": "fd11b27b58bface3316d91bdba3be37bde5084ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16337#discussion_r2869888402"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think to solve this in other cases we've added the token here to use on checkout, check out auto-license-report.yml",
+      "created": "2026-03-02T00:03:05Z",
+      "hunk": "@@ -31,6 +31,8 @@ jobs:\n \n     steps:\n       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2\n+        with:\n+          persist-credentials: false",
+      "id": "PRRT_kwDODJKVX85xcJYO",
+      "opened": "2026-03-02T00:03:05Z",
+      "path": ".github/workflows/metadata-update.yml",
+      "replies": [
+        {
+          "at": "2026-03-02T00:53:34Z",
+          "body": "the only problem with that approach is that because of how long this job runs for, there is usually more than 1 hour from when that original token was generated and when we do the push, so if we set it at checkout it might expire before we try and use it again",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16337#discussion_r2870091098"
+        },
+        {
+          "at": "2026-03-02T03:51:35Z",
+          "body": "oh, right, can you add a comment about this?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16337#discussion_r2870376298"
+        }
+      ],
+      "reviewed": "fd11b27b58bface3316d91bdba3be37bde5084ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16337#discussion_r2870027357"
+    }
+  ]
+}

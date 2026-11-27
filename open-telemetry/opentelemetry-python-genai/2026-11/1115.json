@@ -1,0 +1,52 @@
+{
+  "head": "3bbd74acc7672317910a89b42c0f581c85292f6d",
+  "merge": "4292ab94e2cf0f5c51764ee41a5b43bb48319dee",
+  "merged": "2026-11-24T22:51:12Z",
+  "missing_roots": 0,
+  "number": 1115,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "After a successful SDK manager exit, `SyncStreamManagerWrapper` still calls `stream_wrapper.__exit__` at line 771, closing a stream that the [SDK manager already closed](https://github.com/anthropics/anthropic-sdk-python/blob/8baaef1c4d23b2e4861d05da0dca65252e879eb8/src/anthropic/lib/streaming/_messages.py#L193-L199). If only that second close raises, this new guard replaces the caller's exception with an instrumentation-only failure; the async path has the same issue at lines 369–370 and 842. After successful manager cleanup, call `_finalize_failure(exc_val)` for an unsuppressed caller error or `_finalize_success()` otherwise, without closing again, and add sync/async regression tests where only the second close fails.",
+      "created": "2026-11-20T23:35:36Z",
+      "hunk": "@@ -237,6 +237,10 @@ def __exit__(\n                 try:\n                     self._self_stream.close()\n                 except Exception:  # pylint: disable=broad-exception-caught\n+                    # A stream that isn't a context manager (e.g. a generator)\n+                    # would never be closed here without instrumentation.\n+                    if hasattr(self._self_stream, \"__exit__\"):\n+                        raise",
+      "id": "PRRT_kwDOSbspP866N6rv",
+      "opened": "2026-11-20T23:35:36Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [
+        {
+          "at": "2026-11-21T01:11:22Z",
+          "body": "Good catch, fixed in 78637afc9: after a clean manager exit we now finalize without closing again. Added sync/async regression tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1115#discussion_r4649543561"
+        }
+      ],
+      "reviewed": "fa6ba58cd41da4724a7ed361cfce43df709ddc92",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1115#discussion_r4648935626"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "sangkyoonnam"
+      },
+      "body": "Both exceptions are `RuntimeError`, so the `error.type` assertion below passes whichever one the span records. With a distinct type for the close error the test still passes (py311 openai-latest), and it pins that the span keeps the caller's `RuntimeError` while the caller sees `OSError`:\n\n```suggestion\n            raise OSError(\"close failure\")\n\n        monkeypatch.setattr(response.__wrapped__, \"close\", close_raises)\n        with pytest.raises(OSError, match=\"close failure\") as raised:\n```\n\n`__exit__` calls `_finalize_failure(exc_val)` before closing, so the split looks intentional rather than accidental.\n",
+      "created": "2026-11-23T14:07:17Z",
+      "hunk": "@@ -1488,10 +1488,11 @@ def close_raises():\n             raise RuntimeError(\"close failure\")\n \n         monkeypatch.setattr(response.__wrapped__, \"close\", close_raises)\n-        with pytest.raises(RuntimeError, match=\"user failure\"):\n+        with pytest.raises(RuntimeError, match=\"close failure\") as raised:",
+      "id": "PRRT_kwDOSbspP8664ao5",
+      "opened": "2026-11-23T14:07:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_completions.py",
+      "replies": [
+        {
+          "at": "2026-11-24T21:50:07Z",
+          "body": "Addressed in https://github.com/open-telemetry/opentelemetry-python-genai/pull/1115/commits/3bbd74acc7672317910a89b42c0f581c85292f6d",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1115#discussion_r4687024989"
+        }
+      ],
+      "reviewed": "78637afc911a6906fd4a8bc87954b8400b1b1bac",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1115#discussion_r4666898583"
+    }
+  ]
+}

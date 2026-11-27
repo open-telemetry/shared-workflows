@@ -1,0 +1,229 @@
+{
+  "head": "a503128b1a34f76876fde5c65e192cb379d09caa",
+  "merge": "847f6bfa0582da8bd99ad3ad508ce44aff011d8b",
+  "merged": "2026-09-28T11:01:56Z",
+  "missing_roots": 0,
+  "number": 20260,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This v3-preview gate conflicts with the configuration stability policy: names containing `experimental` are unstable and must remain ungated when deprecated; preview gating is reserved for deprecated stable names that must survive until 3.0 (`.github/agents/knowledge/config-property-stability.md:110-115,264-270`). Continue applying and warning for this alias regardless of v3-preview, and remove the corresponding preview-specific behavior from tests and documentation.",
+      "created": "2026-09-25T20:50:57Z",
+      "hunk": "@@ -79,30 +101,46 @@ public static IncludeExclude getHeaders(\n             \"messaging\",\n             \"headers\",\n             \"common.messaging\",\n-            EXPERIMENTAL,\n+            STABLE,\n             systemPropertyFallback);\n     return selector == null ? NONE : selector;\n   }\n \n-  /** Returns the replacement header patterns, or the matching deprecated patterns if absent. */\n+  /** Returns the stable header patterns, or the matching deprecated patterns if absent. */\n   @Nullable\n   private static List<String> getHeaderPatterns(\n       String name,\n       DeclarativeConfigProperties headers,\n+      DeclarativeConfigProperties deprecatedCommonHeaders,\n       DeclarativeConfigProperties deprecatedHeaders,\n+      boolean v3Preview,\n       boolean systemPropertyFallback) {\n-    String replacementProperty = COMMON_MESSAGING_PROPERTY_PREFIX + \".experimental.headers.\" + name;\n+    String replacementProperty = COMMON_MESSAGING_PROPERTY_PREFIX + \".headers.\" + name;\n     List<String> patterns = getList(headers, name, replacementProperty, systemPropertyFallback);\n     if (patterns != null && !patterns.isEmpty()) {\n       return patterns;\n     }\n \n+    // The common experimental selector remains an alias until 3.0.\n+    if (!v3Preview) {",
+      "id": "PRRT_kwDODJKVX86mJuHC",
+      "opened": "2026-09-25T20:50:57Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:33:07Z",
+          "body": "Addressed in 208cb1f7b6766d0af866051cecef046a668927a5.\n\nFixed in the verified source changes 208cb1f7b6766d0af866051cecef046a668927a5.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4109368799"
+        }
+      ],
+      "reviewed": "1fca1d16ee5a34f18f077091f76230b4285c3034",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4108523811"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The deprecated common selector refs were not added to `instrumentation/rabbitmq-2.7/metadata.yaml`. RabbitMQ still calls `ExperimentalConfig.get().getMessagingHeaders()` (`RabbitSingletons.java:236`) and advertises the stable header refs, so its generated configuration metadata now omits two deprecated aliases that runtime still accepts. Add both `messaging.deprecated-common-headers` refs there as done for the other messaging modules.",
+      "created": "2026-09-25T20:50:57Z",
+      "hunk": "@@ -106,37 +106,51 @@ configurations:\n     default: true\n \n   messaging.headers.included:\n+    name: otel.instrumentation.common.messaging.headers.included\n+    declarative_name: java.common.messaging.headers.included\n+    description: \"A comma-separated list of case-sensitive message header name glob patterns to capture as span attributes. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. An absent or empty selector captures no headers; an exclude-only selector captures every header not excluded.\"\n+    type: list\n+    default: \"\"\n+\n+  messaging.headers.excluded:\n+    name: otel.instrumentation.common.messaging.headers.excluded\n+    declarative_name: java.common.messaging.headers.excluded\n+    description: \"A comma-separated list of case-sensitive message header name glob patterns to exclude from span attributes. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. An absent or empty selector captures no headers; an exclude-only selector captures every header not excluded, which may expose sensitive information.\"\n+    type: list\n+    default: \"\"\n+\n+  messaging.deprecated-common-headers.included:",
+      "id": "PRRT_kwDODJKVX86mJuHb",
+      "opened": "2026-09-25T20:50:57Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [
+        {
+          "at": "2026-09-25T23:33:11Z",
+          "body": "Addressed in 208cb1f7b6766d0af866051cecef046a668927a5.\n\nFixed in the verified source changes 208cb1f7b6766d0af866051cecef046a668927a5.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4109368999"
+        }
+      ],
+      "reviewed": "1fca1d16ee5a34f18f077091f76230b4285c3034",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4108523853"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The deprecated common selector is no longer gated by v3-preview: `MessagingConfig` always reads `headers/development`, and the new preview tests explicitly assert that behavior. Saying it is ignored gives users incorrect migration guidance; state that it remains available under preview (or omit this sentence).",
+      "created": "2026-09-25T23:36:19Z",
+      "hunk": "@@ -17,6 +17,12 @@\n \n ### 🚫 Deprecations\n \n+- Deprecate `otel.instrumentation.common.messaging.experimental.headers.included` and\n+  `otel.instrumentation.common.messaging.experimental.headers.excluded` (and the\n+  `java.common.messaging.headers/development` selector) in favor of the stable\n+  `otel.instrumentation.common.messaging.headers.included` and `.excluded` properties\n+  (`java.common.messaging.headers` in declarative configuration). The deprecated common selector\n+  is ignored under v3-preview.",
+      "id": "PRRT_kwDODJKVX86mLxZ7",
+      "opened": "2026-09-25T23:36:20Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-09-25T23:53:02Z",
+          "body": "Addressed in 7240f1619215a940863604e8ba83e2d28d5df4ea.\n\nFixed in the verified source changes 7240f1619215a940863604e8ba83e2d28d5df4ea.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4109431294"
+        }
+      ],
+      "reviewed": "208cb1f7b6766d0af866051cecef046a668927a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4109378293"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This reintroduces preview gating for an unstable configuration name. Because `otel.instrumentation.common.messaging.experimental.headers.*` contains `experimental`, the deprecated alias must remain applied (with its warning) under v3-preview; preview gating is reserved for deprecated stable names. As written, enabling v3-preview silently falls through to the older alias or disables configured header capture. Remove this gate and update the preview-specific tests and documentation accordingly.",
+      "created": "2026-09-26T14:27:13Z",
+      "hunk": "@@ -79,30 +98,50 @@ public static IncludeExclude getHeaders(\n             \"messaging\",\n             \"headers\",\n             \"common.messaging\",\n-            EXPERIMENTAL,\n+            STABLE,\n             systemPropertyFallback);\n     return selector == null ? NONE : selector;\n   }\n \n-  /** Returns the replacement header patterns, or the matching deprecated patterns if absent. */\n+  /** Returns the stable header patterns, or the matching deprecated patterns if absent. */\n   @Nullable\n   private static List<String> getHeaderPatterns(\n       String name,\n       DeclarativeConfigProperties headers,\n+      DeclarativeConfigProperties messagingConfig,\n       DeclarativeConfigProperties deprecatedHeaders,\n+      boolean v3Preview,\n       boolean systemPropertyFallback) {\n-    String replacementProperty = COMMON_MESSAGING_PROPERTY_PREFIX + \".experimental.headers.\" + name;\n+    String replacementProperty = COMMON_MESSAGING_PROPERTY_PREFIX + \".headers.\" + name;\n     List<String> patterns = getList(headers, name, replacementProperty, systemPropertyFallback);\n     if (patterns != null && !patterns.isEmpty()) {\n       return patterns;\n     }\n \n+    // The common experimental selector remains an alias outside v3-preview until 3.0.\n+    if (!v3Preview) {",
+      "id": "PRRT_kwDODJKVX86mRVk0",
+      "opened": "2026-09-26T14:27:13Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-26T14:41:51Z",
+          "body": "Addressed in cf4eaed787bf7edffd80e262ff387e9e0674e6f7.\n\nFixed in the verified source changes cf4eaed787bf7edffd80e262ff387e9e0674e6f7.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4111692129"
+        }
+      ],
+      "reviewed": "10b33b2689600acf198a369f63e05f1f4a34f04a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4111654065"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This generated example says the excluded fallback is ignored under v3-preview, but `MessagingConfig` applies it in that mode. Describe it as remaining available until 3.0.\n\nThis issue also appears on line 204 of the same file.",
+      "created": "2026-09-26T14:44:55Z",
+      "hunk": "@@ -174,22 +174,38 @@ instrumentation/development:\n         # list of attribute keys.\n         resource_attributes: []\n       messaging:\n-        # Deprecated: use `otel.instrumentation.common.messaging.experimental.headers.included`\n-        # instead. A comma-separated list of header names to capture as span attributes. It does not\n-        # support glob patterns: an entry containing `*` or `?` is ignored with a warning, and every\n-        # other entry is matched as a literal header name.\n+        # Deprecated: use `otel.instrumentation.common.messaging.headers.included` instead. A\n+        # comma-separated list of header names to capture as span attributes. It does not support\n+        # glob patterns: an entry containing `*` or `?` is ignored with a warning, and every other\n+        # entry is matched as a literal header name.\n         capture_headers/development: []\n+        headers:\n+          # A comma-separated list of case-sensitive message header name glob patterns to exclude\n+          # from span attributes. `?` matches one character and `*` matches zero or more characters.\n+          # Excluded patterns take precedence over included patterns. An absent or empty selector\n+          # captures no headers; an exclude-only selector captures every header not excluded, which\n+          # may expose sensitive information.\n+          excluded: []\n+\n+          # A comma-separated list of case-sensitive message header name glob patterns to capture as\n+          # span attributes. `?` matches one character and `*` matches zero or more characters.\n+          # Excluded patterns take precedence over included patterns. An absent or empty selector\n+          # captures no headers; an exclude-only selector captures every header not excluded.\n+          included: []\n         headers/development:\n-          # A comma-separated list of message header name patterns to exclude from span attributes.\n-          # Excluded patterns take precedence over included patterns. Matching is case-sensitive.\n-          # `?` matches one character and `*` matches zero or more characters. If included is not\n-          # configured, all non-excluded headers are captured, which may expose sensitive\n-          # information.\n+          # Deprecated: use `otel.instrumentation.common.messaging.headers.excluded` instead. This\n+          # setting is ignored under v3-preview and will be removed in 3.0. Case-sensitive header",
+      "id": "PRRT_kwDODJKVX86mRcyk",
+      "opened": "2026-09-26T14:44:56Z",
+      "path": "docs/declarative-configuration-example.yaml",
+      "replies": [
+        {
+          "at": "2026-09-26T14:58:03Z",
+          "body": "Addressed in f08a4db74bc9aa5d0dc2513743c44b3dd70d6d83, 071ef78b825441d25d5f30d9189dd89b37f92177.\n\nFixed in the verified source changes f08a4db74bc9aa5d0dc2513743c44b3dd70d6d83, 071ef78b825441d25d5f30d9189dd89b37f92177.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4111733718"
+        }
+      ],
+      "reviewed": "cf4eaed787bf7edffd80e262ff387e9e0674e6f7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4111700122"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This preview claim contradicts the resolver and the new preview tests: the deprecated common selector is still applied under v3-preview. Document that it remains available under preview so users are not told their configured capture is ignored.\n\nThis issue also appears on line 132 of the same file.",
+      "created": "2026-09-26T14:44:56Z",
+      "hunk": "@@ -106,37 +106,51 @@ configurations:\n     default: true\n \n   messaging.headers.included:\n+    name: otel.instrumentation.common.messaging.headers.included\n+    declarative_name: java.common.messaging.headers.included\n+    description: \"A comma-separated list of case-sensitive message header name glob patterns to capture as span attributes. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. An absent or empty selector captures no headers; an exclude-only selector captures every header not excluded.\"\n+    type: list\n+    default: \"\"\n+\n+  messaging.headers.excluded:\n+    name: otel.instrumentation.common.messaging.headers.excluded\n+    declarative_name: java.common.messaging.headers.excluded\n+    description: \"A comma-separated list of case-sensitive message header name glob patterns to exclude from span attributes. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. An absent or empty selector captures no headers; an exclude-only selector captures every header not excluded, which may expose sensitive information.\"\n+    type: list\n+    default: \"\"\n+\n+  messaging.deprecated-common-headers.included:\n     name: otel.instrumentation.common.messaging.experimental.headers.included\n     declarative_name: java.common.messaging.headers/development.included\n-    description: \"A comma-separated list of message header name patterns to capture as span attributes. Matching is case-sensitive. `?` matches one character and `*` matches zero or more characters.\"\n+    description: \"Deprecated: use `otel.instrumentation.common.messaging.headers.included` instead. This setting is ignored under v3-preview and will be removed in 3.0. Case-sensitive header name glob patterns: `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. An absent or empty selector captures no headers; an exclude-only selector captures every header not excluded.\"",
+      "id": "PRRT_kwDODJKVX86mRcyr",
+      "opened": "2026-09-26T14:44:56Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [
+        {
+          "at": "2026-09-26T14:58:05Z",
+          "body": "Addressed in f08a4db74bc9aa5d0dc2513743c44b3dd70d6d83, 071ef78b825441d25d5f30d9189dd89b37f92177.\n\nFixed in the verified source changes f08a4db74bc9aa5d0dc2513743c44b3dd70d6d83, 071ef78b825441d25d5f30d9189dd89b37f92177.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4111733835"
+        }
+      ],
+      "reviewed": "cf4eaed787bf7edffd80e262ff387e9e0674e6f7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4111700134"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The deprecated included property is not ignored under v3-preview; the resolver deliberately continues applying it and the changelog says the same. Update this IDE-facing metadata to avoid incorrect migration guidance.\n\nThis issue also appears on line 391 of the same file.",
+      "created": "2026-09-26T14:44:56Z",
+      "hunk": "@@ -359,38 +359,54 @@\n         \"replacement\": \"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\"\n       }\n     },\n+    {\n+      \"name\": \"otel.instrumentation.common.messaging.headers.included\",\n+      \"type\": \"java.util.List<java.lang.String>\",\n+      \"description\": \"A comma-separated list of case-sensitive message header name glob patterns to capture as span attributes. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. An absent or empty selector captures no headers; an exclude-only selector captures every header not excluded.\"\n+    },\n     {\n       \"name\": \"otel.instrumentation.common.messaging.experimental.headers.included\",\n       \"type\": \"java.util.List<java.lang.String>\",\n-      \"description\": \"A comma-separated list of message header name patterns to capture as span attributes. Matching is case-sensitive. `?` matches one character and `*` matches zero or more characters.\"\n+      \"description\": \"Deprecated: use otel.instrumentation.common.messaging.headers.included instead. This setting is ignored under v3-preview and will be removed in 3.0. Case-sensitive header name glob patterns: `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. An absent or empty selector captures no headers; an exclude-only selector captures every header not excluded.\",",
+      "id": "PRRT_kwDODJKVX86mRcyz",
+      "opened": "2026-09-26T14:44:56Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+      "replies": [
+        {
+          "at": "2026-09-26T14:58:07Z",
+          "body": "Addressed in f08a4db74bc9aa5d0dc2513743c44b3dd70d6d83, 071ef78b825441d25d5f30d9189dd89b37f92177.\n\nFixed in the verified source changes f08a4db74bc9aa5d0dc2513743c44b3dd70d6d83, 071ef78b825441d25d5f30d9189dd89b37f92177.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4111733949"
+        }
+      ],
+      "reviewed": "cf4eaed787bf7edffd80e262ff387e9e0674e6f7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4111700145"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The existing Unreleased entry at lines 53–56 still tells users of `otel.instrumentation.messaging.experimental.headers.*` to migrate to the common experimental names that this entry now deprecates. This leaves contradictory migration guidance in the same release and differs from the updated metadata, which points those aliases directly to the stable names. Update that earlier entry or explicitly supersede its migration target here.",
+      "created": "2026-09-27T01:53:20Z",
+      "hunk": "@@ -17,6 +17,12 @@\n \n ### 🚫 Deprecations\n \n+- Deprecate `otel.instrumentation.common.messaging.experimental.headers.included` and\n+  `otel.instrumentation.common.messaging.experimental.headers.excluded` (and the\n+  `java.common.messaging.headers/development` selector) in favor of the stable\n+  `otel.instrumentation.common.messaging.headers.included` and `.excluded` properties\n+  (`java.common.messaging.headers` in declarative configuration). The deprecated common selector\n+  remains available, including under v3-preview, and will be removed in 3.0.",
+      "id": "PRRT_kwDODJKVX86mWdVs",
+      "opened": "2026-09-27T01:53:20Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-09-27T02:05:58Z",
+          "body": "Addressed in 915da8f7e860afceb547c53c487f396a1c24282c.\n\nFixed in the verified source changes 915da8f7e860afceb547c53c487f396a1c24282c.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4113757945"
+        }
+      ],
+      "reviewed": "783fac626a05282a193b74ed9cdd6de38550f063",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4113728190"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This generated example is intended to omit deprecated settings (`instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/DocGeneratorApplication.java:66-69`), and the generator skips every configuration marked deprecated (`DeclarativeConfigYamlGenerator.java:90-95`). Since this PR now marks `messaging.deprecated-common-headers.*` as deprecated, retaining `headers/development` makes the copy-ready example inconsistent with both the metadata and generator output. Remove this deprecated block (or regenerate the file).",
+      "created": "2026-09-27T01:53:20Z",
+      "hunk": "@@ -179,17 +174,34 @@ instrumentation/development:\n         # list of attribute keys.\n         resource_attributes: []\n       messaging:\n+        headers:\n+          # A comma-separated list of case-sensitive message header name glob patterns to exclude\n+          # from span attributes. `?` matches one character and `*` matches zero or more characters.\n+          # Excluded patterns take precedence over included patterns. An absent or empty selector\n+          # captures no headers; an exclude-only selector captures every header not excluded, which\n+          # may expose sensitive information.\n+          excluded: []\n+\n+          # A comma-separated list of case-sensitive message header name glob patterns to capture as\n+          # span attributes. `?` matches one character and `*` matches zero or more characters.\n+          # Excluded patterns take precedence over included patterns. An absent or empty selector\n+          # captures no headers; an exclude-only selector captures every header not excluded.\n+          included: []\n         headers/development:",
+      "id": "PRRT_kwDODJKVX86mWdVx",
+      "opened": "2026-09-27T01:53:20Z",
+      "path": "docs/declarative-configuration-example.yaml",
+      "replies": [
+        {
+          "at": "2026-09-27T02:06:00Z",
+          "body": "Addressed in 915da8f7e860afceb547c53c487f396a1c24282c.\n\nFixed in the verified source changes 915da8f7e860afceb547c53c487f396a1c24282c.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4113757986"
+        }
+      ],
+      "reviewed": "783fac626a05282a193b74ed9cdd6de38550f063",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4113728205"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] Regenerate the committed configuration catalog after changing these shared definitions. `docs/instrumentation-list.yaml:128-172` still advertises the old `otel.instrumentation.common.messaging.experimental.headers.*` names and `headers/development` paths, so users of the complete generated catalog will not see the new stable selectors or the updated deprecations. Please run `:instrumentation-docs:runAnalysis` and commit the generated output.",
+      "created": "2026-09-28T03:16:48Z",
+      "hunk": "@@ -118,45 +118,46 @@ configurations:\n     default: false\n \n   messaging.headers.included:\n-    name: otel.instrumentation.common.messaging.experimental.headers.included\n-    declarative_name: java.common.messaging.headers/development.included\n-    description: \"A comma-separated list of message header name patterns to capture as span attributes. Matching is case-sensitive. `?` matches one character and `*` matches zero or more characters.\"\n+    name: otel.instrumentation.common.messaging.headers.included\n+    declarative_name: java.common.messaging.headers.included\n+    description: \"A comma-separated list of case-sensitive message header name glob patterns to capture as span attributes. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. An absent or empty selector captures no headers; an exclude-only selector captures every header not excluded.\"",
+      "id": "PRRT_kwDODJKVX86mhki1",
+      "opened": "2026-09-28T03:16:48Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [],
+      "reviewed": "8027297e1e846ab01c06a896ce4335ff9a33156d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4118258083"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  header capture. Use `java.common.messaging.headers` instead.\n  ([#20260](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260))\n```",
+      "created": "2026-09-28T03:32:23Z",
+      "hunk": "@@ -4,6 +4,9 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- The experimental `java.common.messaging.headers/development` YAML selector no longer configures\n+  header capture. Use `java.common.messaging.headers` instead. The older flat selector properties\n+  continue to work outside v3-preview. ([#20260](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260))",
+      "id": "PRRT_kwDODJKVX86mhvZu",
+      "opened": "2026-09-28T03:32:23Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "3dea1c702479b80981fe05257ad7a6b59206471e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20260#discussion_r4118329692"
+    }
+  ]
+}

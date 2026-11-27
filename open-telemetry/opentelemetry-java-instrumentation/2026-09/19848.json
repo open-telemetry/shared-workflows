@@ -1,0 +1,157 @@
+{
+  "head": "6f9d9d9cc98273993d12c336e51be482ab6a12ae",
+  "merge": "f7cef08677143b268b824876b356f31a4ccdfe5b",
+  "merged": "2026-09-10T15:33:25Z",
+  "missing_roots": 0,
+  "number": 19848,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The stated “Protostellar behavior is unchanged” does not hold here. Protostellar creates `dispatch_to_server` directly in `CoreProtostellarAccessors` (so no `CouchbaseRequestPeers` scope exists) and then supplies its endpoint through the legacy `net.peer.name` / `net.peer.port` keys. Removing those mappings means stable-semconv Protostellar dispatch spans now lose both peer attributes. Please retain the legacy conversion specifically for the Protostellar/no-classic-socket path, or capture the Protostellar endpoint separately.",
+      "created": "2026-08-27T00:17:04Z",
+      "hunk": "@@ -185,15 +195,13 @@ private static String stableKey(String key) {\n       if (key.equals(DB_SYSTEM.getKey())) {\n         return DB_SYSTEM_NAME.getKey();\n       }\n-      if (key.equals(NET_PEER_NAME)) {\n-        return NETWORK_PEER_ADDRESS.getKey();\n-      }\n-      if (key.equals(NET_PEER_PORT)) {\n-        return NETWORK_PEER_PORT.getKey();\n-      }\n       return null;\n     }\n \n+    private static boolean isStableNetworkPeerKey(String key) {\n+      return key.equals(NETWORK_PEER_ADDRESS.getKey()) || key.equals(NETWORK_PEER_PORT.getKey());\n+    }",
+      "id": "PRRT_kwDODJKVX86cp9OC",
+      "opened": "2026-08-27T00:17:06Z",
+      "path": "instrumentation/couchbase/couchbase-3.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_4/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-08-27T09:39:00Z",
+          "body": "Addressed in ab5595fff205ba03f92d95e1cd98386ac0ffb743.\n\nAnalysis: Protostellar does not pass through the classic socket instrumentation, so its dispatch span has no captured peer. Restore the legacy key translation only when no socket peer was captured. This keeps the actual socket address authoritative for classic dispatch spans.\n\nUpsides: Stable Protostellar spans retain network.peer.address and network.peer.port without adding configured endpoint attributes to classic spans.\n\nDownsides: The translating span stores one boolean for the lifetime of each request span.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3870534966"
+        }
+      ],
+      "reviewed": "db50f43b569204c35e1a94b981dea400dd2e91fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3867713251"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use `hasAttributesSatisfyingExactly(...)` and enumerate the semconv-dependent dispatch attributes. The non-exact assertion silently accepts unexpected attributes, so this regression test would not detect legacy/configured peer attributes leaking alongside the new socket peer values.",
+      "created": "2026-08-27T00:17:04Z",
+      "hunk": "@@ -118,7 +125,21 @@ void testEmitsSpans() {\n                           equalTo(SERVER_ADDRESS, serverAddress()),\n                           equalTo(SERVER_PORT, serverPort()));\n                 },\n-                span -> span.hasName(\"dispatch_to_server\")));\n+                span ->\n+                    span.hasName(\"dispatch_to_server\")\n+                        .hasAttributesSatisfying(\n+                            equalTo(NETWORK_PEER_ADDRESS, networkPeerAddress),\n+                            equalTo(NETWORK_PEER_PORT, networkPeerPort))));",
+      "id": "PRRT_kwDODJKVX86cp9OP",
+      "opened": "2026-08-27T00:17:06Z",
+      "path": "instrumentation/couchbase/couchbase-3.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseClient31Test.java",
+      "replies": [
+        {
+          "at": "2026-08-27T09:39:01Z",
+          "body": "Addressed in 44003f1e9038a6014fd3b8131c9a91d1785eb708.\n\nAnalysis: Each version test now builds the complete dispatch attribute set for its Couchbase SDK version and active semantic convention mode. Exact assertions reject extra legacy or configured endpoint attributes while allowing dynamic operation, connection, and duration values.\n\nUpsides: The tests now detect attribute leaks and preserve coverage for legacy, stable, and stable-plus-experimental modes across all four supported Couchbase version lines.\n\nDownsides: The tests contain more mode-specific expected attribute setup because the older SDK lines emit fewer dispatch attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3870535115"
+        }
+      ],
+      "reviewed": "db50f43b569204c35e1a94b981dea400dd2e91fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3867713278"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use `hasAttributesSatisfyingExactly(...)` and enumerate the semconv-dependent dispatch attributes. The non-exact assertion silently accepts unexpected attributes, so this regression test would not detect legacy/configured peer attributes leaking alongside the new socket peer values.",
+      "created": "2026-08-27T00:17:05Z",
+      "hunk": "@@ -120,7 +127,21 @@ void testEmitsSpans() {\n                           equalTo(SERVER_ADDRESS, serverAddress()),\n                           equalTo(SERVER_PORT, serverPort()));\n                 },\n-                span -> span.hasName(\"dispatch_to_server\")));\n+                span ->\n+                    span.hasName(\"dispatch_to_server\")\n+                        .hasAttributesSatisfying(\n+                            equalTo(NETWORK_PEER_ADDRESS, networkPeerAddress),\n+                            equalTo(NETWORK_PEER_PORT, networkPeerPort))));",
+      "id": "PRRT_kwDODJKVX86cp9Om",
+      "opened": "2026-08-27T00:17:06Z",
+      "path": "instrumentation/couchbase/couchbase-3.1.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1_6/CouchbaseClient316Test.java",
+      "replies": [
+        {
+          "at": "2026-08-27T09:39:03Z",
+          "body": "Addressed in 44003f1e9038a6014fd3b8131c9a91d1785eb708.\n\nAnalysis: Each version test now builds the complete dispatch attribute set for its Couchbase SDK version and active semantic convention mode. Exact assertions reject extra legacy or configured endpoint attributes while allowing dynamic operation, connection, and duration values.\n\nUpsides: The tests now detect attribute leaks and preserve coverage for legacy, stable, and stable-plus-experimental modes across all four supported Couchbase version lines.\n\nDownsides: The tests contain more mode-specific expected attribute setup because the older SDK lines emit fewer dispatch attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3870535296"
+        }
+      ],
+      "reviewed": "db50f43b569204c35e1a94b981dea400dd2e91fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3867713306"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use `hasAttributesSatisfyingExactly(...)` and enumerate the semconv-dependent dispatch attributes. The non-exact assertion silently accepts unexpected attributes, so this regression test would not detect legacy/configured peer attributes leaking alongside the new socket peer values.",
+      "created": "2026-08-27T00:17:05Z",
+      "hunk": "@@ -106,7 +113,21 @@ void testEmitsSpans() {\n                       equalTo(SERVER_ADDRESS, serverAddress()),\n                       equalTo(SERVER_PORT, serverPort()));\n                 },\n-                span -> span.hasName(\"dispatch_to_server\")));\n+                span ->\n+                    span.hasName(\"dispatch_to_server\")\n+                        .hasAttributesSatisfying(\n+                            equalTo(NETWORK_PEER_ADDRESS, networkPeerAddress),\n+                            equalTo(NETWORK_PEER_PORT, networkPeerPort))));",
+      "id": "PRRT_kwDODJKVX86cp9PD",
+      "opened": "2026-08-27T00:17:06Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseClient32Test.java",
+      "replies": [
+        {
+          "at": "2026-08-27T09:39:04Z",
+          "body": "Addressed in 44003f1e9038a6014fd3b8131c9a91d1785eb708.\n\nAnalysis: Each version test now builds the complete dispatch attribute set for its Couchbase SDK version and active semantic convention mode. Exact assertions reject extra legacy or configured endpoint attributes while allowing dynamic operation, connection, and duration values.\n\nUpsides: The tests now detect attribute leaks and preserve coverage for legacy, stable, and stable-plus-experimental modes across all four supported Couchbase version lines.\n\nDownsides: The tests contain more mode-specific expected attribute setup because the older SDK lines emit fewer dispatch attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3870535485"
+        }
+      ],
+      "reviewed": "db50f43b569204c35e1a94b981dea400dd2e91fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3867713348"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use `hasAttributesSatisfyingExactly(...)` and enumerate the semconv-dependent dispatch attributes. The non-exact assertion silently accepts unexpected attributes, so this regression test would not detect legacy/configured peer attributes leaking alongside the new socket peer values.",
+      "created": "2026-08-27T00:17:05Z",
+      "hunk": "@@ -103,7 +110,21 @@ void testEmitsSpans() {\n                           equalTo(SERVER_ADDRESS, serverAddress()),\n                           equalTo(SERVER_PORT, serverPort()));\n                 },\n-                span -> span.hasName(\"dispatch_to_server\")));\n+                span ->\n+                    span.hasName(\"dispatch_to_server\")\n+                        .hasAttributesSatisfying(\n+                            equalTo(NETWORK_PEER_ADDRESS, networkPeerAddress),\n+                            equalTo(NETWORK_PEER_PORT, networkPeerPort))));",
+      "id": "PRRT_kwDODJKVX86cp9Pc",
+      "opened": "2026-08-27T00:17:06Z",
+      "path": "instrumentation/couchbase/couchbase-3.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_4/CouchbaseClient34Test.java",
+      "replies": [
+        {
+          "at": "2026-08-27T09:39:06Z",
+          "body": "Addressed in 44003f1e9038a6014fd3b8131c9a91d1785eb708.\n\nAnalysis: Each version test now builds the complete dispatch attribute set for its Couchbase SDK version and active semantic convention mode. Exact assertions reject extra legacy or configured endpoint attributes while allowing dynamic operation, connection, and duration values.\n\nUpsides: The tests now detect attribute leaks and preserve coverage for legacy, stable, and stable-plus-experimental modes across all four supported Couchbase version lines.\n\nDownsides: The tests contain more mode-specific expected attribute setup because the older SDK lines emit fewer dispatch attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3870535635"
+        }
+      ],
+      "reviewed": "db50f43b569204c35e1a94b981dea400dd2e91fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3867713380"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This helper runs on every classic SDK write even when stable database semconv is disabled. In that default/legacy mode each request still allocates a `Scope`, a new `ArrayDeque` (the value is removed on close), and later a `Peer`, only for the tracer constructor to discard it. Short-circuit `open` when `emitStableDatabaseSemconv()` is false so legacy users do not pay this hot-path allocation cost.",
+      "created": "2026-08-27T00:17:06Z",
+      "hunk": "@@ -0,0 +1,103 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import com.couchbase.client.core.cnc.RequestSpan;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import java.util.ArrayDeque;\n+import java.util.Deque;\n+import javax.annotation.Nullable;\n+\n+public class CouchbaseRequestPeers {\n+\n+  private static final ThreadLocal<Deque<Scope>> current = new ThreadLocal<>();\n+\n+  @Nullable\n+  public static Scope open(@Nullable RequestSpan parent, @Nullable SocketAddress remoteAddress) {\n+    if (parent == null || !(remoteAddress instanceof InetSocketAddress)) {\n+      return null;\n+    }",
+      "id": "PRRT_kwDODJKVX86cp9Pv",
+      "opened": "2026-08-27T00:17:06Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseRequestPeers.java",
+      "replies": [
+        {
+          "at": "2026-08-27T09:39:07Z",
+          "body": "Addressed in 54025cb983859737106bd88b7652a470c60a6d59.\n\nAnalysis: Socket peer capture only contributes stable network.peer attributes. Make open return before it creates a scope or accesses the thread-local stack when stable database semantic conventions are disabled. Add stable-mode unit-test tasks so the capture path remains covered while the default task verifies the no-capture path.\n\nUpsides: Legacy users avoid per-write Scope, deque, and Peer allocations. Unit tests now cover both the allocation guard and stable peer propagation.\n\nDownsides: The two unit-test modules run an additional small test task in stable semantic convention mode.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3870535786"
+        }
+      ],
+      "reviewed": "db50f43b569204c35e1a94b981dea400dd2e91fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3867713409"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The HTTP support is only exercised by calling `WriteAdvice.onEnter` directly with mocked request interfaces. That bypasses the exact handler and `write` method matchers added here, so a wrong class name/signature—or an HTTP pipeline that never reaches this advice—would still leave all new tests green; the integration tests currently cover only `collection.get`. Please add an instrumented HTTP operation test that verifies the resulting `dispatch_to_server` span has the resolved `network.peer.*` endpoint (covering both chunked and non-chunked handlers if both paths are intended).",
+      "created": "2026-08-31T07:51:27Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import com.couchbase.client.core.cnc.RequestSpan;\n+import com.couchbase.client.core.deps.io.netty.channel.ChannelHandlerContext;\n+import com.couchbase.client.core.msg.Request;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+public class CouchbaseMessageHandlerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"com.couchbase.client.core.io.netty.kv.KeyValueMessageHandler\",\n+        \"com.couchbase.client.core.io.netty.NonChunkedHttpMessageHandler\",\n+        \"com.couchbase.client.core.io.netty.chunk.ChunkedMessageHandler\");",
+      "id": "PRRT_kwDODJKVX86dpZQn",
+      "opened": "2026-08-31T07:51:27Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseMessageHandlerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-31T08:24:10Z",
+          "body": "Addressed in 7696be73d16e280280e73313094169297cedaac5.\n\nAnalysis: The direct advice test cannot prove that Byte Buddy applies the advice to Couchbase's HTTP pipeline. A real `Cluster.query` call uses `ChunkedMessageHandler.write` and exports a `dispatch_to_server` span, so the integration test verifies both matcher application and peer propagation. Couchbase 3.1.4 uses `NonChunkedHttpMessageHandler` only for ping requests, whose `RequestSpan` is null, so that path cannot produce a dispatch span to assert.\n\nUpsides: The test fails if the chunked handler type or method matcher drifts, and it verifies the resolved query endpoint address and mapped port on exported telemetry.\n\nDownsides: Enabling the query service increases container startup cost. Disabling automatic primary-index creation keeps the fixture limited to the index-free `SELECT 1` query.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3892820787"
+        }
+      ],
+      "reviewed": "b8ee308f076ccb26326152e097ff04802b686dd9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19848#discussion_r3892631177"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "0bc4a7e00cf3d80439cd7f5e4b3e1349517a8035d5cf67c04c3ca21045c21808",
+  "input_digest": "47932d47693d8aa0d1afb0b056d0f80fd6453672d57142bd1fd87d72959ea3ba",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/d486bc91648e9b6aed9b1b910afacf47cbf24cc0/instrumentation/opentelemetry-instrumentation-genai-portkey/tests/test_stream_context.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7fa548b7acc76ad1d435e7731621ed89c1fed6ae/instrumentation/opentelemetry-instrumentation-genai-portkey/tests/test_stream_context.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/5d91f8c2bf00688c622bb8d360cf58690d2234d0"
+      ],
+      "id": "PRRT_kwDOSbspP86sCQ2Q",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/5d91f8c2bf00688c622bb8d360cf58690d2234d0/instrumentation/opentelemetry-instrumentation-genai-portkey/.changelog/890.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7fa548b7acc76ad1d435e7731621ed89c1fed6ae/instrumentation/opentelemetry-instrumentation-genai-portkey/.changelog/890.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/aef226c597697f41758cfee6d610ffe892ad997c"
+      ],
+      "id": "PRRT_kwDOSbspP86vYMFu",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/5d91f8c2bf00688c622bb8d360cf58690d2234d0/instrumentation/opentelemetry-instrumentation-genai-portkey/tests/test_stream_context.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7fa548b7acc76ad1d435e7731621ed89c1fed6ae/instrumentation/opentelemetry-instrumentation-genai-portkey/tests/test_stream_context.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/e3a43fcd0937ae0352dfc69db6ee1d9e9ad3c8db"
+      ],
+      "id": "PRRT_kwDOSbspP86vYMF5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

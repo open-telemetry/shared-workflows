@@ -1,0 +1,94 @@
+{
+  "head": "7979ddb621c7b16dfb5de922f7dc945be4b495ba",
+  "merge": "d18a0eb7a338e38f1189f577efe8764f94ac4f4a",
+  "merged": "2026-11-04T04:55:01Z",
+  "missing_roots": 0,
+  "number": 379,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The OpenAI JavaScript SDK supports automatic tool calling through `chat.completions.runTools()`, which runs supplied functions and sends their results back. The Python-only exception at `scenarios/gen-ai/README.md:97–100` therefore does not apply to this row. That contract requires a scenario for every supported class, even when the instrumentation does not emit the corresponding telemetry. Add an `automatic_tool_calling` workload using the SDK-managed loop, add its instrumented entry point and `conformance.yaml` registration, update this row, and regenerate `data.json`. Otherwise this class is omitted from measurement rather than exposing any instrumentation gaps.",
+      "created": "2026-10-23T07:17:55Z",
+      "hunk": "@@ -138,6 +138,28 @@ here emits them, so there is no class for them yet.\n \n Each class is one file, and each file gets its own weaver report.\n \n+The table above covers Python. JavaScript uses the same exchanges and class\n+files, with these implementations:\n+\n+| Library | Classes | Implementations |\n+| --- | --- | --- |\n+| `openai` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `opentelemetry-openai` |",
+      "id": "PRRT_kwDOTuzK5c6vgnAq",
+      "opened": "2026-10-23T07:17:56Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [
+        {
+          "at": "2026-10-23T13:09:08Z",
+          "body": "Added `automatic_tool_calling` on `chat.completions.runTools()`, with the instrumented entry point and registration. `data.json` comes out unchanged: with instrumentation-openai 0.21.0 the SDK loop emits the same inference telemetry as manual tool calling and no tool-execution span, so there is no new attribute or finding to record.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/379#discussion_r4359856087"
+        }
+      ],
+      "reviewed": "794bd61b8bcc26c7c13b0734eb20bce235127d9b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/379#discussion_r4357086562"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Both libraries support hosted web search, so per the contract they need a `server_tool_calling` scenario too, like Python `openai` has. Something like:\n\n```js\n// openai/scenarios/server_tool_calling.js\nawait client().responses.create({\n  model: \"gpt-4o-mini\",\n  instructions: \"You are a helpful assistant.\",\n  input: \"What is OpenTelemetry?\",\n  tools: [{ type: \"web_search\" }],\n  max_output_tokens: 100,\n  temperature: 0.5,\n});\n```\n\n```js\n// vercel-ai/scenarios/server_tool_calling.js\nconst openai = provider();\nawait generateText({\n  ...request(),\n  model: openai.responses(\"gpt-4o-mini\"),\n  messages: [{ role: \"user\", content: \"What is OpenTelemetry?\" }],\n  tools: { web_search: openai.tools.webSearch({}) },\n});\n```",
+      "created": "2026-11-03T06:37:59Z",
+      "hunk": "@@ -142,6 +142,28 @@ them, so there is no class for them yet.\n \n Each class is one file, and each file gets its own weaver report.\n \n+The table above covers Python. JavaScript uses the same exchanges and class\n+files, with these implementations:\n+\n+| Library | Classes | Implementations |\n+| --- | --- | --- |\n+| `openai` | inference, streaming, tool_calling, automatic_tool_calling, structured_output, multimodal, embeddings | `opentelemetry-openai` |\n+| `vercel-ai` | inference, streaming, tool_calling, automatic_tool_calling, structured_output, multimodal, embeddings | `native` (`@ai-sdk/otel`, the AI SDK's first-party telemetry integration) |",
+      "id": "PRRT_kwDOTuzK5c6zAVSg",
+      "opened": "2026-11-03T06:54:16Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [
+        {
+          "at": "2026-11-03T07:30:45Z",
+          "body": "Covered in [this commit](https://github.com/adityareddy-dev/semantic-conventions-conformance/commit/7979ddb621c7b16dfb5de922f7dc945be4b495ba).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/379#discussion_r4451955039"
+        }
+      ],
+      "reviewed": "ae9fa9166e6082cc88c37f34c74aabb02590d60e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/379#discussion_r4451609597"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: [AGENTS.md](https://github.com/open-telemetry/semantic-conventions-conformance/blob/main/scenarios/gen-ai/AGENTS.md) still describes only the Python layout (`<class>.py`, `pyproject.toml`, `uv.lock`). Worth adding the JS layout there (shared `scenarios/` package, per-class entry programs, workspace lockfile) so the next JS library follows it.",
+      "created": "2026-11-03T06:37:59Z",
+      "hunk": "@@ -142,6 +142,28 @@ them, so there is no class for them yet.\n \n Each class is one file, and each file gets its own weaver report.\n \n+The table above covers Python. JavaScript uses the same exchanges and class\n+files, with these implementations:\n+\n+| Library | Classes | Implementations |\n+| --- | --- | --- |\n+| `openai` | inference, streaming, tool_calling, automatic_tool_calling, structured_output, multimodal, embeddings | `opentelemetry-openai` |\n+| `vercel-ai` | inference, streaming, tool_calling, automatic_tool_calling, structured_output, multimodal, embeddings | `native` (`@ai-sdk/otel`, the AI SDK's first-party telemetry integration) |\n+\n+The JavaScript domain is one npm workspace with a committed lockfile, using",
+      "id": "PRRT_kwDOTuzK5c6zAVSl",
+      "opened": "2026-11-03T06:54:16Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [
+        {
+          "at": "2026-11-03T07:35:23Z",
+          "body": "Added the JS layout in [3cee5abd](https://github.com/adityareddy-dev/semantic-conventions-conformance/commit/3cee5abd).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/379#discussion_r4451986153"
+        }
+      ],
+      "reviewed": "ae9fa9166e6082cc88c37f34c74aabb02590d60e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/379#discussion_r4451609605"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Every JS gen-ai `data.json` (OpenAI too) has about 12 `host.*` / `process.*` resource findings. They come from `NodeSDK`'s default resource detectors in the scenario SDK, not from the instrumentation under test, and Python results don't have them. Could we either turn the detectors off in [`tools/js/scenario-sdk/index.js`](https://github.com/open-telemetry/semantic-conventions-conformance/blob/main/tools/js/scenario-sdk/index.js#L86):\n\n```js\nconst sdk = new NodeSDK({ instrumentations, resourceDetectors: [] });\n```\n\nor filter them in [`tools/gen-ai/runner/src/genai_conformance/weaver.toml`](https://github.com/open-telemetry/semantic-conventions-conformance/blob/main/tools/gen-ai/runner/src/genai_conformance/weaver.toml)?\n\n```toml\n# Resource attributes the Node SDK's default detectors set.\n[[live-check.finding_filters]]\nsignal_type = \"resource\"\nexclude_samples = [\n  \"host.arch\",\n  \"host.id\",\n  \"host.name\",\n  \"process.command\",\n  \"process.command_args\",\n  \"process.executable.name\",\n  \"process.executable.path\",\n  \"process.owner\",\n  \"process.pid\",\n  \"process.runtime.description\",\n  \"process.runtime.name\",\n  \"process.runtime.version\",\n]\n```\n\nThe scenario SDK is shared with the HTTP JS scenarios, so the first option needs their `data.json` files re-checked.",
+      "created": "2026-11-03T06:53:41Z",
+      "hunk": "@@ -0,0 +1,14 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+const { runScenario } = require(\"@otel-conformance/scenario-sdk\");\n+\n+module.exports = (workload) =>\n+  runScenario({}, async () => {",
+      "id": "PRRT_kwDOTuzK5c6zAkJG",
+      "opened": "2026-11-03T06:54:16Z",
+      "path": "scenarios/gen-ai/js/vercel-ai/native/run.js",
+      "replies": [
+        {
+          "at": "2026-11-03T07:31:11Z",
+          "body": "I used the GenAI-only filter to keep HTTP's process-runtime coverage intact.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/379#discussion_r4451958093"
+        }
+      ],
+      "reviewed": "ae9fa9166e6082cc88c37f34c74aabb02590d60e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/379#discussion_r4451704191"
+    }
+  ]
+}

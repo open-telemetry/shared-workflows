@@ -1,0 +1,25 @@
+{
+  "head": "21c5c26e190ca0e7e377e44a8b258ff7affc2822",
+  "merge": "dd7f8872240e23108083edd0e313efe7cf428b73",
+  "merged": "2026-03-21T03:23:49Z",
+  "missing_roots": 0,
+  "number": 16875,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": ".isEmpty()",
+      "created": "2026-03-21T03:03:44Z",
+      "hunk": "@@ -93,7 +93,7 @@ void testRemoveOurHandler(String testName) throws Exception {\n                     .equals(channelPipeline.first().getClass().getName()))\n         .isTrue();\n     assertThat(channelPipeline.last()).isNull();\n-    assertThat(channelPipeline.toMap().size()).isEqualTo(0);\n+    assertThat(channelPipeline.toMap()).hasSize(0);",
+      "id": "PRRT_kwDODJKVX8512bxf",
+      "opened": "2026-03-21T03:03:44Z",
+      "path": "instrumentation/netty/netty-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/netty/v4_0/ChannelPipelineTest.java",
+      "replies": [],
+      "reviewed": "21c5c26e190ca0e7e377e44a8b258ff7affc2822",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16875#discussion_r2968828007"
+    }
+  ]
+}

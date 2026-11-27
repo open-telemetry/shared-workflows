@@ -1,0 +1,44 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "30158cde3d8f58976345c9d021416eebef1c1b4a5d5686327bc9437c09a9ffae",
+  "input_digest": "49cea53e60e3e53f505d5c61a30149d63a2c0227d38fb5eef2da83b29dcba551",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/175759d807aec2b2b85c56275e393f011156d77d/instrumentation/opentelemetry-instrumentation-google-genai/pyproject.toml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/48ed2219b024e1dddea291cefc4c3240968f3a3c/instrumentation/opentelemetry-instrumentation-google-genai/pyproject.toml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/10d0fe05f84d610c4f718aa9c3843e266a260f27"
+      ],
+      "id": "PRRT_kwDOSbspP86Pvn5A",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/175759d807aec2b2b85c56275e393f011156d77d/instrumentation/opentelemetry-instrumentation-google-genai/examples/manual/requirements.txt",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/48ed2219b024e1dddea291cefc4c3240968f3a3c/instrumentation/opentelemetry-instrumentation-google-genai/examples/manual/requirements.txt"
+      ],
+      "id": "PRRT_kwDOSbspP86Pvn5Y",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/175759d807aec2b2b85c56275e393f011156d77d/.github/instructions/instrumentation.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/48ed2219b024e1dddea291cefc4c3240968f3a3c/.github/instructions/instrumentation.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/78e88789947dc144b417e016f265c8eef0c3bc4b"
+      ],
+      "id": "PRRT_kwDOSbspP86Pvn5r",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

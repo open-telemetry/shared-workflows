@@ -1,0 +1,178 @@
+{
+  "head": "76a7383d0e79d81f040ca85c270d22e2563caf69",
+  "merge": "79ce6b6601b3e8d4831418ef1f1a9f6a4a1556ed",
+  "merged": "2026-10-11T05:04:49Z",
+  "missing_roots": 0,
+  "number": 817,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Suspending here leaves the Responses API's other supported cleanup path unscoped: the `response`/`async response` properties install close callbacks at lines 209 and 422 that invoke `_stop(None)` directly, without entering `_execution_context()`. Thus `stream.response.close()` / `await stream.response.aclose()` finalize telemetry while the caller context is current, contrary to the new cleanup contract. Route those finalizers through an activation context and add this path to the context tests.",
+      "created": "2026-09-30T14:36:20Z",
+      "hunk": "@@ -132,6 +133,12 @@ def __init__(\n         self._self_invocation = invocation\n         self._self_capture_content = capture_content\n         self._self_response_telemetry_finalized = False\n+        # The stream returns to the caller undrained: leave the caller's\n+        # context as it was and make the span current only while reading.\n+        invocation.suspend()\n+\n+    def _execution_context(self) -> AbstractContextManager[None]:\n+        return self._self_invocation.activate()",
+      "id": "PRRT_kwDOSbspP86nk5tJ",
+      "opened": "2026-09-30T14:36:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_wrappers.py",
+      "replies": [
+        {
+          "at": "2026-10-07T04:56:53Z",
+          "body": "Fixed in 993a9d95: both close callbacks now finalize inside the stream's execution context, with a test for each.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4203200771"
+        }
+      ],
+      "reviewed": "b493216d37becb6821f95036b3e73e0dab1f4ee8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4145816045"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Stream-manager cleanup still bypasses this hook. `SyncStreamManagerWrapper.__exit__` and `AsyncStreamManagerWrapper.__aexit__` call the wrapped manager's exit first (lines 656 and 723), and only afterward call the stream wrapper's scoped exit. Once OpenAI suspends the invocation, the SDK manager's close/cleanup therefore runs in the caller context rather than the invocation context promised here. Scope the wrapped manager exit with the stream wrapper's execution context (and cover the current span inside manager exit).",
+      "created": "2026-09-30T14:36:21Z",
+      "hunk": "@@ -81,6 +83,10 @@ class _StreamTelemetry(Generic[ChunkT], metaclass=ABCMeta):\n \n     _self_finalized: bool\n \n+    def _execution_context(self) -> AbstractContextManager[None]:\n+        \"\"\"Scope stream reads and cleanup, restoring context before returning a chunk.\"\"\"\n+        return nullcontext()",
+      "id": "PRRT_kwDOSbspP86nk5uj",
+      "opened": "2026-09-30T14:36:22Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [
+        {
+          "at": "2026-10-07T04:56:55Z",
+          "body": "Fixed in 9d277c98: the wrapped manager's exit now runs inside the execution context, and the sync and async tests check the scope is active inside that exit.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4203201017"
+        }
+      ],
+      "reviewed": "b493216d37becb6821f95036b3e73e0dab1f4ee8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4145816189"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Could the base wrappers provide the `activate()` part by default? Every wrapper that gets an invocation repeats the same override. With `suspend`/`activate` on `_StreamTimingInvocation` and the invocation remembering `_attach_to_context`:\n\n```python\ndef _execution_context(self) -> AbstractContextManager[None]:\n    invocation = self._self_invocation\n    if invocation is None or not invocation._attach_to_context:\n        return nullcontext()\n    return invocation.activate()\n```\n\nThis mirrors `suspend()`, which is already a no-op for detached invocations. `suspend()` can stay explicit in instrumentations since it has to run where the invocation was started. The OpenAI and tool-wrapper overrides can then go, and other instrumentations only need the `suspend()` call to opt in.",
+      "created": "2026-10-06T22:30:40Z",
+      "hunk": "@@ -81,6 +83,10 @@ class _StreamTelemetry(Generic[ChunkT], metaclass=ABCMeta):\n \n     _self_finalized: bool\n \n+    def _execution_context(self) -> AbstractContextManager[None]:\n+        \"\"\"Scope stream reads and cleanup, restoring context before returning a chunk.\"\"\"\n+        return nullcontext()",
+      "id": "PRRT_kwDOSbspP86prnSb",
+      "opened": "2026-10-06T22:32:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [
+        {
+          "at": "2026-10-07T04:53:50Z",
+          "body": "Done in bbcdef58. `GenAIInvocation` remembers `_attach_to_context`, and the base `_execution_context()` returns `invocation.activate()` for a suspended invocation and `nullcontext()` otherwise. The OpenAI chat and Responses wrappers and both tool wrappers lose their overrides; the tool wrappers now hand the invocation to the base class so it reaches the default. `suspend()` stays where it is.\r\n\r\nTwo adjustments to the shape you sketched, both from things the first cut broke. The gate is the invocation's `_suspended` state (attached, then suspended) rather than `_attach_to_context` alone: wrappers that never call `suspend()` (Anthropic, Bedrock, Google GenAI, Portkey, smolagents) keep the invocation attached, and activating it around the read that finalizes reinstated the ended span after `stop()` detached the original token. With the gate in the hook, `activate()` itself keeps its meaning, and those instrumentations behave as before. And handing a `ToolInvocation` to the base class recorded chunk-timing histograms for tools, which the conventions don't define, so `ToolInvocation._on_stream_chunk` is a no-op and a test asserts a drained tool stream exports only `gen_ai.execute_tool.duration`. One consequence worth naming: a tool invocation created with `_attach_to_context=False` is no longer made current by the tool wrapper (its old override activated regardless of the flag); no in-repo caller does that, and a test documents it.\r\n\r\nRegression tests: a never-suspended invocation ends with the parent current through exhaustion, error and close, sync and async; a suspended one is current during reads only. util 538 passed, openai latest 394 passed (the two `bad_endpoint` cassette failures are there without this change too), oldest 193, langchain 483, pyright on util 0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4203185136"
+        }
+      ],
+      "reviewed": "a2769b99a7ef263f09f1c1a3ebe50f107499f5fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4201053624"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "hectorhdzg"
+      },
+      "body": "Please pass invocation to the base wrapper here so it sets gen_ai.request.stream. The base wrapper now handles activation, so the _execution_context override can be removed.",
+      "created": "2026-10-08T22:14:43Z",
+      "hunk": "@@ -89,8 +95,12 @@ class MyStreamWrapper(SyncStreamWrapper[Chunk]):\n     def __init__(self, stream, invocation, capture_content):\n         super().__init__(stream)",
+      "id": "PRRT_kwDOSbspP86qksw_",
+      "opened": "2026-10-08T22:14:43Z",
+      "path": "util/opentelemetry-util-genai/AGENTS.md",
+      "replies": [
+        {
+          "at": "2026-10-09T04:57:03Z",
+          "body": "Updated in 82c4177e, along with the copy of this section in the root AGENTS.md.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4226748519"
+        }
+      ],
+      "reviewed": "9581198832ff779c11df28228da7fe6e8bca1ed1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4224680583"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "hectorhdzg"
+      },
+      "body": "This rule still requires an _execution_context override, but the resolved implementation deliberately moved activation into the base wrapper. Could we instead require passing the invocation to super and calling invocation.suspend()? An explicit override would bypass the new suspended-state guard and could activate invocations created with _attach_to_context=False",
+      "created": "2026-10-08T22:15:08Z",
+      "hunk": "@@ -55,7 +55,9 @@ prefer opt-in or additive. Breaking changes need explicit justification in the P\n   capture path — never as unconditional span/log attributes.\n - Adding attributes to invocations produced by the util is fine.\n - Streaming responses must be instrumented by subclassing the util's `SyncStreamWrapper` /\n-  `AsyncStreamWrapper` (`opentelemetry.util.genai.stream`). Flag hand-rolled stream wrappers.\n+  `AsyncStreamWrapper` (`opentelemetry.util.genai.stream`). Flag hand-rolled stream wrappers, and\n+  invocation-backed wrappers that do not `invocation.suspend()` before the stream is returned and",
+      "id": "PRRT_kwDOSbspP86qktO4",
+      "opened": "2026-10-08T22:15:31Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [
+        {
+          "at": "2026-10-09T05:12:09Z",
+          "body": "Updated in 82c4177e.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4226829223"
+        }
+      ],
+      "reviewed": "9581198832ff779c11df28228da7fe6e8bca1ed1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4224683557"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "hectorhdzg"
+      },
+      "body": "Could we update this guidance to reflect the new default? Invocation-backed wrappers should pass the invocation to the base constructor and call invocation.suspend(); the base wrapper then activates it during reads and cleanup. Recommending a custom _execution_context override no longer matches the implementation.",
+      "created": "2026-10-08T22:15:27Z",
+      "hunk": "@@ -35,6 +35,20 @@ to manage context:\n   ambient context is used.\n \n \n+Stream execution context\n+------------------------\n+\n+Subclasses of ``SyncStreamWrapper`` and ``AsyncStreamWrapper`` can override\n+``_execution_context()`` to return a fresh context manager for each stream read\n+and cleanup operation. Context is restored before returning a chunk to the\n+consumer. Generator ``send``/``throw`` and ``asend``/``athrow`` also use this\n+scope when the underlying stream supports them.\n+\n+For invocation-backed streams, call ``invocation.suspend()`` before returning the",
+      "id": "PRRT_kwDOSbspP86qkto-",
+      "opened": "2026-10-08T22:15:31Z",
+      "path": "util/opentelemetry-util-genai/README.rst",
+      "replies": [
+        {
+          "at": "2026-10-09T05:12:16Z",
+          "body": "Updated in 82c4177e.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4226829814"
+        }
+      ],
+      "reviewed": "9581198832ff779c11df28228da7fe6e8bca1ed1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4224686253"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "On the `with_raw_response` path this wrapper is only built on `parse()`, so `suspend()` runs wherever the caller parses. If that's inside a caller span, the inference span is left current after the stream is drained and the span has ended. On main the same flow ends with the context restored, since `stop()` detaches. The span is also still current between `create()` and `parse()`.\n\nWould it work to suspend in `wrap_stream_result` (or right before `traced_method` returns) so both paths are covered? Same applies to `_ResponseStreamMixin`. Both tests below fail on this branch; the second passes on main:\n\n```python\nfrom openai import Stream\n\nfrom opentelemetry import context\nfrom opentelemetry.instrumentation.genai.openai._raw_response import (\n    wrap_stream_result,\n)\nfrom opentelemetry.instrumentation.genai.openai.chat_wrappers import (\n    ChatStreamWrapper,\n)\nfrom opentelemetry.util.genai.handler import TelemetryHandler\n\nfrom .test_raw_response_proxy import _RawResponse\n\n\nclass _EmptyStream(Stream):\n    def __init__(self):\n        pass\n\n    def __iter__(self):\n        return iter(())\n\n    def close(self):\n        pass\n\n\ndef _start(tracer_provider):\n    return TelemetryHandler(tracer_provider=tracer_provider).inference(\n        \"openai\", request_model=\"m\"\n    )\n\n\ndef test_raw_response_span_not_current_after_create(tracer_provider):\n    before = context.get_current()\n    wrap_stream_result(\n        ChatStreamWrapper, _RawResponse(_EmptyStream()), _start(tracer_provider), False\n    )\n    assert context.get_current() is before\n\n\ndef test_raw_response_parse_under_caller_span_then_drain(\n    tracer_provider, span_exporter\n):\n    before = context.get_current()\n    raw = wrap_stream_result(\n        ChatStreamWrapper, _RawResponse(_EmptyStream()), _start(tracer_provider), False\n    )\n    with tracer_provider.get_tracer(\"t\").start_as_current_span(\"caller\"):\n        stream = raw.parse()\n    assert list(stream) == []\n    assert len(span_exporter.get_finished_spans()) == 2\n    assert context.get_current() is before\n```\n",
+      "created": "2026-10-09T02:14:26Z",
+      "hunk": "@@ -212,6 +212,7 @@ def __init__(\n     ) -> None:\n         super().__init__(stream, invocation=invocation)\n         self._self_invocation = invocation\n+        invocation.suspend()",
+      "id": "PRRT_kwDOSbspP86qnyEH",
+      "opened": "2026-10-09T02:34:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/chat_wrappers.py",
+      "replies": [
+        {
+          "at": "2026-10-09T04:55:26Z",
+          "body": "Fixed in 76a7383d: wrap_stream_result now suspends before returning the raw-response proxy, so create() leaves the context as it found it and parse() under a caller span no longer leaves the inference span current. The Responses API streams go through the same function, so _ResponseStreamMixin is covered too. Your two tests are in test_raw_response_stream_suspend.py, plus an async variant and one for a response closed without parse().",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4226738389"
+        }
+      ],
+      "reviewed": "835c6db73c715eda5d549bc8474dd5ef9d4e1fe4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4225987056"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this documents a private hook and implementation details; could be shorter and user-facing:\n\n```suggestion\nStream wrappers make a suspended invocation current only while a chunk is read or the stream is cleaned up.\n```",
+      "created": "2026-10-09T02:14:26Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add the `_execution_context()` hook on `SyncStreamWrapper`/`AsyncStreamWrapper` to scope each stream read and cleanup, including generator `send`/`throw` and `asend`/`athrow`. `finalize_on_close`/`finalize_on_aclose` accept an optional `execution_context` so a close through the HTTP response runs inside the same scope, and the stream manager wrappers run the wrapped manager's exit inside it. The hook defaults to making a suspended invocation current again for each read and for finalizing an abandoned stream, so an instrumentation opts in by passing the invocation to `super().__init__(stream, invocation)` and calling `invocation.suspend()` when it hands the stream back.",
+      "id": "PRRT_kwDOSbspP86qnyER",
+      "opened": "2026-10-09T02:34:42Z",
+      "path": "util/opentelemetry-util-genai/.changelog/817.added",
+      "replies": [
+        {
+          "at": "2026-10-09T04:57:42Z",
+          "body": "Applied in 76a7383d.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4226753692"
+        }
+      ],
+      "reviewed": "835c6db73c715eda5d549bc8474dd5ef9d4e1fe4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/817#discussion_r4225987067"
+    }
+  ]
+}

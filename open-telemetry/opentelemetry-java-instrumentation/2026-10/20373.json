@@ -1,0 +1,55 @@
+{
+  "head": "f953eae98bc71e8ba6dd925366768d6f87792b4a",
+  "merge": "a23902696685a3a88889379c23cbc3755f022b2e",
+  "merged": "2026-10-06T08:48:33Z",
+  "missing_roots": 0,
+  "number": 20373,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-04T20:39:31Z",
+      "hunk": "@@ -35,9 +34,12 @@ Every Gradle project whose tests exercise semconv attributes **must** define its\n `emitOld*()` or `emitStable*()` accessor.\n \n A `testBothSemconv` task (testing the `/dup` mode) is **only required for the RPC domain**.\n-Database, code, and service-peer domains do not need a `testBothSemconv` task — only\n+Database and service-peer domains do not need a `testBothSemconv` task — only\n `testStableSemconv` (and the default `test` task for the legacy/unset mode).\n \n+Code attributes always use the stable conventions. They have no legacy or dual-emission mode and\n+need no semconv opt-in test tasks.\n+",
+      "id": "PRRT_kwDODJKVX86o2TpN",
+      "opened": "2026-10-04T20:39:31Z",
+      "path": ".github/agents/knowledge/testing-semconv-stability.md",
+      "replies": [],
+      "reviewed": "0af651dcc8250e3062ebbe4227f61d9c45062571",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20373#discussion_r4179231194"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-05T20:28:39Z",
+      "hunk": "@@ -4,11 +4,22 @@\n \n ### ⚠️ Breaking changes\n \n+- Emit only stable source code attributes: `code.function.name` replaces `code.namespace` and\n+  `code.function`, and log records use `code.file.path` and `code.line.number` instead of\n+  `code.filepath` and `code.lineno`. The `code` and `code/dup` opt-ins and\n+  `general.code.semconv` declarative settings no longer select legacy emission.\n - Change the Java agent's `telemetry.distro.name` resource attribute from\n   `opentelemetry-java-instrumentation` to `opentelemetry-javaagent`.\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- Move `CodeAttributesGetter`, `CodeAttributesExtractor`, and `CodeSpanNameExtractor` from\n+  `io.opentelemetry.instrumentation.api.incubator.semconv.code` in\n+  `opentelemetry-instrumentation-api-incubator` to `io.opentelemetry.instrumentation.api.semconv.code`\n+  in `opentelemetry-instrumentation-api`. Update imports and dependencies to the stable API,\n+  and rename `CodeAttributesGetter#getMethodName` implementations to `getCodeMethodName`.\n+- Remove the testing helper `SemconvCodeStabilityUtil`.\n+  Assert stable source code attributes directly.",
+      "id": "PRRT_kwDODJKVX86pM6gR",
+      "opened": "2026-10-05T20:28:39Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "9e44eaee2b20b061e6d49a7820cc24563ec8f639",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20373#discussion_r4188428213"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  in `opentelemetry-instrumentation-api`.\n  Rename `CodeAttributesGetter#getMethodName` to `getCodeMethodName`.\n```",
+      "created": "2026-10-05T20:30:04Z",
+      "hunk": "@@ -4,11 +4,20 @@\n \n ### ⚠️ Breaking changes\n \n+- Emit only stable source code attributes: `code.function.name` replaces `code.namespace` and\n+  `code.function`, and log records use `code.file.path` and `code.line.number` instead of\n+  `code.filepath` and `code.lineno`. The `code` and `code/dup` opt-ins and\n+  `general.code.semconv` declarative settings no longer select legacy emission.\n - Change the Java agent's `telemetry.distro.name` resource attribute from\n   `opentelemetry-java-instrumentation` to `opentelemetry-javaagent`.\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- Move `CodeAttributesGetter`, `CodeAttributesExtractor`, and `CodeSpanNameExtractor` from\n+  `io.opentelemetry.instrumentation.api.incubator.semconv.code` in\n+  `opentelemetry-instrumentation-api-incubator` to `io.opentelemetry.instrumentation.api.semconv.code`\n+  in `opentelemetry-instrumentation-api`. Update imports and dependencies to the stable API,\n+  and rename `CodeAttributesGetter#getMethodName` implementations to `getCodeMethodName`.",
+      "id": "PRRT_kwDODJKVX86pM8jA",
+      "opened": "2026-10-05T20:30:04Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "5f6111e867d0e0f13bf4fb3726bec90d818b005b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20373#discussion_r4188441131"
+    }
+  ]
+}

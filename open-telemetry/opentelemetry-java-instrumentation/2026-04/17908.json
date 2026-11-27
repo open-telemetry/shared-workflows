@@ -1,0 +1,31 @@
+{
+  "head": "7716e8d021de827169c8ee7969cbd8bd3e7ff2b2",
+  "merge": "d89f71b05414b203a9ca503898596e35f1a62f03",
+  "merged": "2026-04-18T16:38:47Z",
+  "missing_roots": 0,
+  "number": 17908,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot \n\nmove usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n\nto withType<Test>().configureEach",
+      "created": "2026-04-17T21:41:13Z",
+      "hunk": "@@ -158,6 +158,7 @@ tasks {\n   val testStableSemconv by registering(Test::class) {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n+    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)",
+      "id": "PRRT_kwDODJKVX8573Sb_",
+      "opened": "2026-04-17T21:41:13Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-04-17T21:50:20Z",
+          "body": "Updated in 7716e8d0: moved `usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)` into `withType<Test>().configureEach` and removed the redundant task-specific declarations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17908#discussion_r3103481342"
+        }
+      ],
+      "reviewed": "59d36d161081c22e6eb5d0e85e3c76a7d64b4b99",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17908#discussion_r3103440036"
+    }
+  ]
+}

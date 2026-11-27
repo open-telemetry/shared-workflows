@@ -1,0 +1,46 @@
+{
+  "head": "aebb678e1d490b220491b2b13291d5c8abfd5ba6",
+  "merge": "9cd817d7b912b49291c0f78435d59421489dcfe2",
+  "merged": "2026-08-05T09:29:48Z",
+  "missing_roots": 0,
+  "number": 19400,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This provider inherits order `0`, so a user declarative model customizer can run afterward and add a Zipkin exporter after this check (or be prevented from replacing one). Declarative providers are applied by ascending `order()`, with equal orders nondeterministic. Run this checker last, as the config-properties provider already does, so it validates the final model.",
+      "created": "2026-08-04T17:58:37Z",
+      "hunk": "@@ -0,0 +1,69 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.exporter.internal;\n+\n+import io.opentelemetry.instrumentation.config.internal.DeclarativeConfigV3Preview;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.BatchSpanProcessorModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.SimpleSpanProcessorModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.SpanExporterModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.SpanProcessorModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.TracerProviderModel;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigurationException;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Fails declarative configuration when the Zipkin span exporter is configured while the v3 preview\n+ * is enabled, since Zipkin support will be removed in 3.0.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+// to be removed for 3.0.0, when the zipkin exporter dependency itself is dropped\n+public class ZipkinExporterRemovalDeclarativeCustomizerProvider\n+    implements DeclarativeConfigurationCustomizerProvider {\n+\n+  @Override\n+  public void customize(DeclarativeConfigurationCustomizer customizer) {\n+    customizer.addModelCustomizer(\n+        model -> {\n+          checkZipkinExporter(model);\n+          return model;\n+        });\n+  }",
+      "id": "PRRT_kwDODJKVX86Wa94U",
+      "opened": "2026-08-04T17:58:37Z",
+      "path": "sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/exporter/internal/ZipkinExporterRemovalDeclarativeCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-08-04T18:10:04Z",
+          "body": "Good catch, fixed in 26c3f880b7 — added order() returning Integer.MAX_VALUE, matching what the config-properties provider already does.\n\nConfirmed the mechanics before changing it: DeclarativeConfiguration loads these via Ordered.loadOrderedList (ascending order()), and DeclarativeConfigurationBuilder.addModelCustomizer composes them in registration order via \\mergeCustomizer\\, so a provider with \\order() > 0\\ would indeed have run after this check and could have added a zipkin exporter it never saw.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19400#discussion_r3715047354"
+        }
+      ],
+      "reviewed": "b265637ec077b8c73079e37343f13aac7b9cd3d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19400#discussion_r3714973479"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-08-04T18:35:06Z",
+      "hunk": "@@ -2,6 +2,16 @@\n \n ## Unreleased\n \n+### 📈 Enhancements\n+\n+- When `otel.instrumentation.common.v3-preview` is enabled, the Zipkin span exporter is no longer\n+  supported and configuring it fails at startup. Zipkin support will be removed in 3.0.\n+",
+      "id": "PRRT_kwDODJKVX86WblYd",
+      "opened": "2026-08-04T18:35:06Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "26c3f880b754c77d843aa8799454ef9093ebb3cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19400#discussion_r3715209728"
+    }
+  ]
+}

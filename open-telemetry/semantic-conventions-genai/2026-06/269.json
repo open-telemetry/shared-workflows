@@ -1,0 +1,31 @@
+{
+  "head": "66d89d38129355c6f97222b6c8b3a04ab5604ae7",
+  "merge": "68dcf82f5300a2653464838e7046ec0c7da805b5",
+  "merged": "2026-06-09T17:02:22Z",
+  "missing_roots": 0,
+  "number": 269,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`route_pr` currently has a redundant `if counts[\"reviewer\"]: return \"approver\"` branch: after the maintainer check, the function returns `\"approver\"` in all remaining cases anyway. This extra conditional can mislead readers into thinking other routing outcomes are possible here and makes the precedence comment harder to map to the code.",
+      "created": "2026-06-09T13:26:28Z",
+      "hunk": "@@ -647,22 +655,21 @@ def route_pr(facts: dict[str, Any], classifications: list[dict[str, Any]]) -> st\n     # Precedence:\n     #   1. A thread waiting on the author -> \"author\".\n     #   2. Otherwise a thread waiting on something external -> \"external\".\n-    #   3. Otherwise a thread pending on a reviewer -> \"approver\". An open\n-    #      reviewer-owed thread outranks the approval count: even an approved PR\n-    #      is not merge-ready while an approver still owes a follow-up, because\n-    #      that response may change their stance.\n-    #   4. Otherwise the approval count decides: enough approvals -> ready for a\n-    #      maintainer to merge (two normally, one when the author route does\n-    #      not apply);\n-    #      fewer -> still waiting on approvers.\n+    #   3. If there are enough approvals and no unresolved review-comment\n+    #      thread is still waiting on a reviewer or is unclear -> \"maintainer\".\n+    #      A reviewer-routed synthetic PR conversation after enough approvals\n+    #      means merge is the remaining action, not more review.\n+    #   4. Otherwise a thread pending on a reviewer -> \"approver\".\n+    #   5. Otherwise the approval count decides: fewer approvals -> still\n+    #      waiting on approvers.\n     if counts[\"author\"] and not is_maintenance_bot:\n         return \"author\"\n     if counts[\"external\"]:\n         return \"external\"\n+    if facts.get(\"approval_count\", 0) >= required_approvals and not has_blocking_review_thread(classifications):\n+        return \"maintainer\"\n     if counts[\"reviewer\"]:\n         return \"approver\"\n-    if facts.get(\"approval_count\", 0) >= required_approvals:\n-        return \"maintainer\"\n     return \"approver\"",
+      "id": "PRRT_kwDOSUeMrM6IKa8S",
+      "opened": "2026-06-09T13:26:29Z",
+      "path": ".github/scripts/pull-request-dashboard/dashboard.py",
+      "replies": [
+        {
+          "at": "2026-06-09T13:31:03Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/66d89d38129355c6f97222b6c8b3a04ab5604ae7.\n\nRemoved the redundant reviewer fallback branch and simplified the routing precedence comment.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/269#discussion_r3380999144"
+        }
+      ],
+      "reviewed": "3e9dc7d0160a3998a32e137e7f00fd319a830a0d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/269#discussion_r3380964442"
+    }
+  ]
+}

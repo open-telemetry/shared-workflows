@@ -1,0 +1,100 @@
+{
+  "head": "4a28713548aa7ca039e79e0e98858e9bb043bc55",
+  "merge": "5ac03c86517d12f52f1abc798277c37347efbb4f",
+  "merged": "2026-09-10T04:21:42Z",
+  "missing_roots": 0,
+  "number": 614,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These request/template attributes can only be assigned after `handler.inference()` has already started the span, so head samplers cannot inspect them. Add them as keyword arguments to the inference factory and constructor, initialize them before `_start()`, and include them in `_get_start_attributes()`; they can still remain mutable for finish-time updates.\n\nThis issue also appears in the following locations of the same file:\n- line 140\n- line 301\n- line 415",
+      "created": "2026-09-04T05:07:38Z",
+      "hunk": "@@ -124,6 +132,12 @@ def __init__(\n         self.text_cache_read_input_tokens: int | None = None\n         self.image_cache_read_input_tokens: int | None = None\n         self.audio_cache_read_input_tokens: int | None = None\n+        self.reasoning_level: str | None = None\n+        self.previous_response_id: str | None = None\n+        self.conversation_compacted: bool | None = None\n+        self.prompt_name: str | None = None\n+        self.prompt_version: str | None = None",
+      "id": "PRRT_kwDOSbspP86fK8wY",
+      "opened": "2026-09-04T05:07:39Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "a65b127238732cc7f3d8acfc656d64796b59a816",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/614#discussion_r3931043537"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.retrieval.top_k` is a request setting, but callers can still provide it only after `retrieval()` has started the span, making it unavailable to head samplers. Accept `top_k` on `TelemetryHandler.retrieval()`/`RetrievalInvocation.__init__` and add it to `_get_start_attributes()` instead of relying solely on the finish-time assignment.",
+      "created": "2026-09-04T05:07:39Z",
+      "hunk": "@@ -73,7 +75,7 @@ def __init__(\n         self._request_model: str | None = request_model\n         self._server_address: str | None = server_address\n         self._server_port: int | None = server_port\n-        self.top_k: float | None = None\n+        self.top_k: int | None = None",
+      "id": "PRRT_kwDOSbspP86fK8wg",
+      "opened": "2026-09-04T05:07:39Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_retrieval_invocation.py",
+      "replies": [],
+      "reviewed": "a65b127238732cc7f3d8acfc656d64796b59a816",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/614#discussion_r3931043564"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "nit just say if (): return {}, instead of storing the result in `should_capture`",
+      "created": "2026-09-04T19:23:27Z",
+      "hunk": "@@ -266,6 +302,23 @@ def _get_attributes(self) -> dict[str, AttributeValue]:\n         attrs.update({k: v for k, v in optional_attrs if v is not None})\n         return attrs\n \n+    def _get_prompt_variable_attributes(\n+        self, *, for_span: bool\n+    ) -> dict[str, AttributeValue]:\n+        if not self.prompt_variables:\n+            return {}\n+        should_capture = (",
+      "id": "PRRT_kwDOSbspP86faxQR",
+      "opened": "2026-09-04T19:23:27Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "39f59a316d071255058bae51c6fa33bb456463ae",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/614#discussion_r3937266608"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "should we use `json.dumps or `gen_ai_json_dumps` instead of str here ? Also we can narrow the type returned by this function to dict[str,str]",
+      "created": "2026-09-04T19:30:43Z",
+      "hunk": "@@ -266,6 +302,23 @@ def _get_attributes(self) -> dict[str, AttributeValue]:\n         attrs.update({k: v for k, v in optional_attrs if v is not None})\n         return attrs\n \n+    def _get_prompt_variable_attributes(\n+        self, *, for_span: bool\n+    ) -> dict[str, AttributeValue]:\n+        if not self.prompt_variables:\n+            return {}\n+        should_capture = (\n+            should_capture_content_on_spans()\n+            if for_span\n+            else should_capture_content_on_events()\n+        )\n+        if not should_capture:\n+            return {}\n+        return {\n+            f\"{_GEN_AI_PROMPT_VARIABLE_PREFIX}{k}\": str(v)",
+      "id": "PRRT_kwDOSbspP86fa4-k",
+      "opened": "2026-09-04T19:30:43Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "39f59a316d071255058bae51c6fa33bb456463ae",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/614#discussion_r3937314009"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "gen AI is telling me that in retrieval, top_k is the maximum number of documents/results to return, not a \"sampling setting\" (which refers to nucleus/top-k token sampling in generation).",
+      "created": "2026-09-04T19:33:42Z",
+      "hunk": "@@ -36,7 +38,7 @@ class RetrievalInvocation(GenAIInvocation):\n     - gen_ai.provider.name: Provider name (Conditionally Required, when applicable)\n     - gen_ai.request.model: Model name if applicable (Conditionally Required, if available)\n     - server.port: Server port (Conditionally Required, if server.address is set)\n-    - gen_ai.request.top_k: Top-k sampling setting (Recommended)\n+    - gen_ai.retrieval.top_k: Top-k sampling setting (Recommended)",
+      "id": "PRRT_kwDOSbspP86fa8Ax",
+      "opened": "2026-09-04T19:33:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_retrieval_invocation.py",
+      "replies": [],
+      "reviewed": "39f59a316d071255058bae51c6fa33bb456463ae",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/614#discussion_r3937332706"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why did we add this? we just removed a similar one for spans",
+      "created": "2026-09-04T22:41:08Z",
+      "hunk": "@@ -143,6 +143,14 @@ def should_capture_content_on_spans() -> bool:\n     )\n \n \n+def should_capture_content_on_events() -> bool:",
+      "id": "PRRT_kwDOSbspP86fdbaW",
+      "opened": "2026-09-04T22:41:08Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [],
+      "reviewed": "5fd24ef8fb8430fc6e66409a467ba7d4cadcbdd7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/614#discussion_r3938337484"
+    }
+  ]
+}

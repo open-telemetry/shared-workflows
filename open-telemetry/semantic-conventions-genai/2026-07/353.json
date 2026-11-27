@@ -1,0 +1,574 @@
+{
+  "head": "51ff2f2c55f43e7489748144363bc87554911a1d",
+  "merge": "683d28da9fc8e5fc87a7d64200ac88799b9202c2",
+  "merged": "2026-07-31T20:57:23Z",
+  "missing_roots": 0,
+  "number": 353,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This semantic-conventions change adds a new operation value and a new span type under `model/`, but there is no corresponding reference scenario demonstrating that `gen_ai.get_response.client` can be emitted from a real library call boundary. Repo conventions require convention changes under `model/**` to be backed by at least one runnable `reference/scenarios/**` scenario (and refreshed `data.json`/reports).\n\nThe existing `reference/scenarios/openai/scenario.py` already exercises the OpenAI Responses API, but it only calls `client.responses.create(...)` and does not exercise a “fetch by id” operation; the mock server also only implements `POST /v1/responses` (no retrieve endpoint), so there’s currently no place in the repo that can credibly emit `gen_ai.operation.name=get_response` with `gen_ai.response.id` sourced from an actual retrieve call.\n\nPlease add reference coverage (likely under `reference/scenarios/openai/`) that:\n- creates a stored response, then fetches it by id (public SDK API)\n- emits the `gen_ai.get_response.client` span around the retrieve call, setting required attributes inline and response-derived attributes from the returned object\n- regenerates the scenario `data.json` and reference reports.",
+      "created": "2026-07-01T16:40:00Z",
+      "hunk": "@@ -338,6 +338,65 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.get_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a GenAI get response span. A request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `get_response`.\n+\n+      This operation does not perform inference: it returns a response that was produced by an\n+      earlier operation, so no tokens are consumed by the fetch itself. Any token counts present\n+      on the fetched response describe that original generation and MUST NOT be reported to the\n+      `gen_ai.client.token.usage` metric.\n+\n+      **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+      for individual GenAI providers MAY specify a different span name format.\n+\n+      **Span kind** SHOULD be `CLIENT` and MAY be set to `INTERNAL` on spans representing\n+      calls to a provider running in the same process. It's RECOMMENDED to use `CLIENT` kind\n+      when the provider being instrumented usually runs in a different process than its client\n+      or when the call happens over an instrumented protocol such as HTTP.\n+    stability: development\n+    attributes:",
+      "id": "PRRT_kwDOSUeMrM6NqGBH",
+      "opened": "2026-07-01T16:40:01Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-02T19:47:56Z",
+          "body": "Added reference coverage under `reference/scenarios/openai/`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3515718570"
+        }
+      ],
+      "reviewed": "f7afd3b797d98a7faedb04f30f992f59a663f231",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3507642290"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Towncrier fragment filenames should use `<pr-number>.<type>.md` once a PR exists; `+.<type>.md` is intended only when there is no PR number yet. Keeping `+.enhancement.md` in a numbered PR risks collisions with other in-flight PRs also using `+`.\n\nPlease rename this fragment to match the PR number (e.g., `1234.enhancement.md`).",
+      "created": "2026-07-01T16:40:01Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add the `get_response` operation and `gen_ai.get_response.client` span for fetching a previously generated model response by its identifier without performing inference, with an OpenAI-specific refinement for the Responses API.",
+      "id": "PRRT_kwDOSUeMrM6NqGBm",
+      "opened": "2026-07-01T16:40:01Z",
+      "path": "changelog.d/353.enhancement.md",
+      "replies": [
+        {
+          "at": "2026-07-02T19:48:37Z",
+          "body": "Renamed the fragment to `changelog.d/353.enhancement.md` to match the PR number.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3515721936"
+        }
+      ],
+      "reviewed": "f7afd3b797d98a7faedb04f30f992f59a663f231",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3507642332"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "wdyt about `fetch_response` instead? Fetch is more precise - no generation happens.",
+      "created": "2026-07-05T17:27:14Z",
+      "hunk": "@@ -450,6 +450,10 @@ attributes:\n           value: \"retrieval\"\n           brief: 'Retrieval operation such as [OpenAI Search Vector Store API](https://platform.openai.com/docs/api-reference/vector-stores/search)'\n           stability: development\n+        - id: get_response",
+      "id": "PRRT_kwDOSUeMrM6ObqKO",
+      "opened": "2026-07-05T17:46:39Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-07-06T22:34:29Z",
+          "body": "Makes sense to me, happy to make this change.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3532445044"
+        }
+      ],
+      "reviewed": "f1b59db3933972de4bd2ad14f0deb1caa8953788",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3525316935"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "response if has high cardinality, it can't be used in a span name. It seems plain operation name is the best we can do here. ",
+      "created": "2026-07-05T17:28:34Z",
+      "hunk": "@@ -338,6 +338,65 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.get_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions",
+      "id": "PRRT_kwDOSUeMrM6ObqoB",
+      "opened": "2026-07-05T17:46:39Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-06T22:35:07Z",
+          "body": "Good point, I'll change this to just use the `gen_ai.operation.name` to reduce the cardinality.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3532447507"
+        }
+      ],
+      "reviewed": "f1b59db3933972de4bd2ad14f0deb1caa8953788",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3525319682"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n      Describes a request to a Generative AI provider that fetches a\n      previously generated model response by its identifier.\n```",
+      "created": "2026-07-05T17:28:54Z",
+      "hunk": "@@ -338,6 +338,65 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.get_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a GenAI get response span. A request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.",
+      "id": "PRRT_kwDOSUeMrM6ObquF",
+      "opened": "2026-07-05T17:46:39Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "f1b59db3933972de4bd2ad14f0deb1caa8953788",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3525320187"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "WDYT about simplifying it to one requirement and also putting it as a note on the operation name definition (as a note), so that it applies to span, metric, events, etc\n\n```suggestion\n      Instrumentations MUST NOT report token usage or metrics for this operation\n```",
+      "created": "2026-07-05T17:35:33Z",
+      "hunk": "@@ -338,6 +338,65 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.get_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a GenAI get response span. A request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `get_response`.\n+\n+      This operation does not perform inference: it returns a response that was produced by an\n+      earlier operation, so no tokens are consumed by the fetch itself. Any token counts present\n+      on the fetched response describe that original generation and MUST NOT be reported to the\n+      `gen_ai.client.token.usage` metric.",
+      "id": "PRRT_kwDOSUeMrM6ObsZT",
+      "opened": "2026-07-05T17:46:39Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "f1b59db3933972de4bd2ad14f0deb1caa8953788",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3525329149"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nIt doesn't seem like there is an immediate scenario where this API is provided by self-hosted models",
+      "created": "2026-07-05T17:36:57Z",
+      "hunk": "@@ -338,6 +338,65 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.get_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a GenAI get response span. A request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `get_response`.\n+\n+      This operation does not perform inference: it returns a response that was produced by an\n+      earlier operation, so no tokens are consumed by the fetch itself. Any token counts present\n+      on the fetched response describe that original generation and MUST NOT be reported to the\n+      `gen_ai.client.token.usage` metric.\n+\n+      **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+      for individual GenAI providers MAY specify a different span name format.\n+\n+      **Span kind** SHOULD be `CLIENT` and MAY be set to `INTERNAL` on spans representing\n+      calls to a provider running in the same process. It's RECOMMENDED to use `CLIENT` kind\n+      when the provider being instrumented usually runs in a different process than its client\n+      or when the call happens over an instrumented protocol such as HTTP.",
+      "id": "PRRT_kwDOSUeMrM6Obst-",
+      "opened": "2026-07-05T17:46:39Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "f1b59db3933972de4bd2ad14f0deb1caa8953788",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3525330894"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this includes system instructions, input and output - do all of these appear in the response? ",
+      "created": "2026-07-05T17:38:57Z",
+      "hunk": "@@ -338,6 +338,65 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.get_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a GenAI get response span. A request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `get_response`.\n+\n+      This operation does not perform inference: it returns a response that was produced by an\n+      earlier operation, so no tokens are consumed by the fetch itself. Any token counts present\n+      on the fetched response describe that original generation and MUST NOT be reported to the\n+      `gen_ai.client.token.usage` metric.\n+\n+      **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+      for individual GenAI providers MAY specify a different span name format.\n+\n+      **Span kind** SHOULD be `CLIENT` and MAY be set to `INTERNAL` on spans representing\n+      calls to a provider running in the same process. It's RECOMMENDED to use `CLIENT` kind\n+      when the provider being instrumented usually runs in a different process than its client\n+      or when the call happens over an instrumented protocol such as HTTP.\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.address_and_port\n+      - ref_group: attributes.gen_ai.content",
+      "id": "PRRT_kwDOSUeMrM6ObtQU",
+      "opened": "2026-07-05T17:46:39Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-06T22:42:11Z",
+          "body": "Looks like the `Response` object returned only carries `instructions`, `output`, and `tools`, but not `input`. Updated the PR accordingly. ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3532475163"
+        }
+      ],
+      "reviewed": "f1b59db3933972de4bd2ad14f0deb1caa8953788",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3525333777"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "are there other providers that support this API ? No need to list them, but good to include in the research and make sure this convention applies well to them",
+      "created": "2026-07-05T17:39:50Z",
+      "hunk": "@@ -450,6 +450,10 @@ attributes:\n           value: \"retrieval\"\n           brief: 'Retrieval operation such as [OpenAI Search Vector Store API](https://platform.openai.com/docs/api-reference/vector-stores/search)'\n           stability: development\n+        - id: get_response\n+          value: \"get_response\"\n+          brief: 'Fetch a previously generated model response by its identifier, without performing inference, such as [OpenAI Get a model response](https://platform.openai.com/docs/api-reference/responses/get)'",
+      "id": "PRRT_kwDOSUeMrM6ObteI",
+      "opened": "2026-07-05T17:46:39Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-07-06T22:42:18Z",
+          "body": "Looks like this applies to Azure OpenAI and AWS Bedrock as well as both mirror the OpenAI `Response` object.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3532475519"
+        }
+      ],
+      "reviewed": "f1b59db3933972de4bd2ad14f0deb1caa8953788",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3525334922"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "we just told in the description that tokens MUST NOT be reported. If the caveat that we don't report them on metric, but report on spans, this would be a huge source of inconsistency for anyone calculating tokens for individual multi-step run based on spans ",
+      "created": "2026-07-05T17:40:24Z",
+      "hunk": "@@ -338,6 +338,65 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.get_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a GenAI get response span. A request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `get_response`.\n+\n+      This operation does not perform inference: it returns a response that was produced by an\n+      earlier operation, so no tokens are consumed by the fetch itself. Any token counts present\n+      on the fetched response describe that original generation and MUST NOT be reported to the\n+      `gen_ai.client.token.usage` metric.\n+\n+      **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+      for individual GenAI providers MAY specify a different span name format.\n+\n+      **Span kind** SHOULD be `CLIENT` and MAY be set to `INTERNAL` on spans representing\n+      calls to a provider running in the same process. It's RECOMMENDED to use `CLIENT` kind\n+      when the provider being instrumented usually runs in a different process than its client\n+      or when the call happens over an instrumented protocol such as HTTP.\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.address_and_port\n+      - ref_group: attributes.gen_ai.content\n+      - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.provider.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: server.address\n+        sampling_relevant: true\n+      - ref: server.port\n+        sampling_relevant: true\n+      - ref: gen_ai.response.id\n+        requirement_level: required\n+        sampling_relevant: true\n+        note: >\n+          The identifier of the response being fetched, as used in the request and returned in the response.\n+      - ref: gen_ai.response.model\n+        requirement_level: recommended\n+      - ref: gen_ai.response.finish_reasons\n+        requirement_level: recommended\n+      - ref: gen_ai.usage.input_tokens",
+      "id": "PRRT_kwDOSUeMrM6Obtme",
+      "opened": "2026-07-05T17:46:39Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-06T22:42:25Z",
+          "body": "Makes sense. I removed `gen_ai.usage.input_tokens`/`output_tokesn` from the response span entirely.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3532475867"
+        }
+      ],
+      "reviewed": "f1b59db3933972de4bd2ad14f0deb1caa8953788",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3525335551"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "what if generation failed in the first place and status is `failed` (or incomplete) - how do we record it? \n\nhttps://developers.openai.com/api/reference/resources/responses/methods/retrieve#(resource)%20responses%20%3E%20(model)%20response%20%3E%20(schema)%20%3E%20(property)%20status",
+      "created": "2026-07-05T17:46:34Z",
+      "hunk": "@@ -338,6 +338,65 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.get_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a GenAI get response span. A request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `get_response`.\n+\n+      This operation does not perform inference: it returns a response that was produced by an\n+      earlier operation, so no tokens are consumed by the fetch itself. Any token counts present\n+      on the fetched response describe that original generation and MUST NOT be reported to the\n+      `gen_ai.client.token.usage` metric.\n+\n+      **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.response.id}`. Semantic conventions\n+      for individual GenAI providers MAY specify a different span name format.\n+\n+      **Span kind** SHOULD be `CLIENT` and MAY be set to `INTERNAL` on spans representing\n+      calls to a provider running in the same process. It's RECOMMENDED to use `CLIENT` kind\n+      when the provider being instrumented usually runs in a different process than its client\n+      or when the call happens over an instrumented protocol such as HTTP.\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.address_and_port\n+      - ref_group: attributes.gen_ai.content\n+      - ref_group: attributes.gen_ai.error",
+      "id": "PRRT_kwDOSUeMrM6ObvBa",
+      "opened": "2026-07-05T17:46:39Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-06T22:42:33Z",
+          "body": "`get_response` fetch will succeed even when the response it returns has a failed original generation, so we don't mark the span as an error in that case. I've added notes to the span and `finish_reasons` attribute to make it more clear.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3532476338"
+        }
+      ],
+      "reviewed": "f1b59db3933972de4bd2ad14f0deb1caa8953788",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3525342975"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n          brief: 'Fetch a previously generated model response by its identifier, without performing inference, such as [OpenAI Get a model response](https://platform.openai.com/docs/api-reference/responses/get)'\n          note: > \n             Instrumentations SHOULD NOT report token usage (as attributes or metrics) for this operation. \n```\n\nLet's move it here so it applies to spans and metrics",
+      "created": "2026-07-10T00:13:14Z",
+      "hunk": "@@ -450,6 +450,10 @@ attributes:\n           value: \"retrieval\"\n           brief: 'Retrieval operation such as [OpenAI Search Vector Store API](https://platform.openai.com/docs/api-reference/vector-stores/search)'\n           stability: development\n+        - id: fetch_response\n+          value: \"fetch_response\"\n+          brief: 'Fetch a previously generated model response by its identifier, without performing inference, such as [OpenAI Get a model response](https://platform.openai.com/docs/api-reference/responses/get)'",
+      "id": "PRRT_kwDOSUeMrM6PvQcJ",
+      "opened": "2026-07-10T00:24:01Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-07-10T20:07:58Z",
+          "body": "Moved the note over to the registry instead of spans so it'll apply to both spans and metrics.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3561695355"
+        }
+      ],
+      "reviewed": "ac274b122a9a33cc59495be346b263161940f294",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3555582884"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "left a comment suggesting to move it to operation name definition instead of spans",
+      "created": "2026-07-10T00:13:39Z",
+      "hunk": "@@ -341,6 +341,67 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.fetch_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `fetch_response`.\n+\n+      Instrumentations MUST NOT report token usage or metrics for this operation.",
+      "id": "PRRT_kwDOSUeMrM6PvQpy",
+      "opened": "2026-07-10T00:24:01Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-10T21:01:10Z",
+          "body": "Addressed by the above update.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3561973241"
+        }
+      ],
+      "reviewed": "ac274b122a9a33cc59495be346b263161940f294",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3555584138"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it's just  a random string, it does not help with sampling\n\n\n```suggestion\n```",
+      "created": "2026-07-10T00:15:55Z",
+      "hunk": "@@ -341,6 +341,67 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.fetch_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `fetch_response`.\n+\n+      Instrumentations MUST NOT report token usage or metrics for this operation.\n+\n+      `error.type` and the span status describe failures of the fetch itself. Successfully\n+      fetching a response whose original generation failed or was left incomplete is not an\n+      error of this operation; that outcome is conveyed through `gen_ai.response.finish_reasons`.\n+\n+      **Span name** SHOULD be `{gen_ai.operation.name}`. The response identifier is high\n+      cardinality, so it is not included in the span name. Semantic conventions for individual\n+      GenAI providers MAY specify a different span name format.\n+\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.address_and_port\n+      - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.provider.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: server.address\n+        sampling_relevant: true\n+      - ref: server.port\n+        sampling_relevant: true\n+      - ref: gen_ai.response.id\n+        requirement_level: required\n+        sampling_relevant: true",
+      "id": "PRRT_kwDOSUeMrM6PvR1x",
+      "opened": "2026-07-10T00:24:01Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "ac274b122a9a33cc59495be346b263161940f294",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3555590800"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nit seems it's already captured on the finish reason, not needed here",
+      "created": "2026-07-10T00:16:57Z",
+      "hunk": "@@ -341,6 +341,67 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.fetch_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `fetch_response`.\n+\n+      Instrumentations MUST NOT report token usage or metrics for this operation.\n+\n+      `error.type` and the span status describe failures of the fetch itself. Successfully\n+      fetching a response whose original generation failed or was left incomplete is not an\n+      error of this operation; that outcome is conveyed through `gen_ai.response.finish_reasons`.",
+      "id": "PRRT_kwDOSUeMrM6PvSX-",
+      "opened": "2026-07-10T00:24:01Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-10T21:19:11Z",
+          "body": "Removed this unnecessary information.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3562051896"
+        }
+      ],
+      "reviewed": "ac274b122a9a33cc59495be346b263161940f294",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3555593810"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n        note: >\n          Conveys the outcome of the original generation as recorded on the fetched response,\n          derived from its status: a completed generation maps to its stop reason, an incomplete\n          one to why it was cut short (for example `length` or `content_filter`), and a failed or\n          cancelled generation to `error`.\n          \n          Semantic conventions for individual GenAI\n          providers SHOULD document how to \n          populate this attribute.\n```\n\nand can you please add a short sentence as note on openai finish_reason describing how `incomplete_details` map to finish reason?\n\nthanks!",
+      "created": "2026-07-10T00:22:23Z",
+      "hunk": "@@ -341,6 +341,67 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.fetch_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `fetch_response`.\n+\n+      Instrumentations MUST NOT report token usage or metrics for this operation.\n+\n+      `error.type` and the span status describe failures of the fetch itself. Successfully\n+      fetching a response whose original generation failed or was left incomplete is not an\n+      error of this operation; that outcome is conveyed through `gen_ai.response.finish_reasons`.\n+\n+      **Span name** SHOULD be `{gen_ai.operation.name}`. The response identifier is high\n+      cardinality, so it is not included in the span name. Semantic conventions for individual\n+      GenAI providers MAY specify a different span name format.\n+\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.address_and_port\n+      - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.provider.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: server.address\n+        sampling_relevant: true\n+      - ref: server.port\n+        sampling_relevant: true\n+      - ref: gen_ai.response.id\n+        requirement_level: required\n+        sampling_relevant: true\n+        note: >\n+          The identifier of the response being fetched, as used in the request and returned in the response.\n+      - ref: gen_ai.system_instructions\n+        requirement_level: opt_in\n+        note: >\n+          Only content carried on the fetched response is recorded. A fetched response contains\n+          the system instructions, output messages, and tool definitions but not the original\n+          input messages, so `gen_ai.input.messages` is not set on this span.\n+      - ref: gen_ai.output.messages\n+        requirement_level: opt_in\n+      - ref: gen_ai.tool.definitions\n+        requirement_level: opt_in\n+      - ref: gen_ai.response.model\n+        requirement_level: recommended\n+      - ref: gen_ai.response.finish_reasons\n+        requirement_level: recommended\n+        note: >\n+          Conveys the outcome of the original generation as recorded on the fetched response,\n+          derived from its status: a completed generation maps to its stop reason, an incomplete\n+          one to why it was cut short (for example `length` or `content_filter`), and a failed or\n+          cancelled generation to `error`.",
+      "id": "PRRT_kwDOSUeMrM6PvVS9",
+      "opened": "2026-07-10T00:24:01Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-10T21:42:10Z",
+          "body": "Added a note to the finish_reason.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3562148475"
+        }
+      ],
+      "reviewed": "ac274b122a9a33cc59495be346b263161940f294",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3555610562"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.system_instructions` is being encoded as a list containing an object with a `parts` field, but the semantic-conventions JSON schema for `gen_ai.system_instructions` is an array of instruction parts (each part has `type`, `content`, etc.) with no `parts` wrapper. This shape mismatch is likely to fail schema validation and is inconsistent with other reference scenarios in this repo.",
+      "created": "2026-07-14T22:37:48Z",
+      "hunk": "@@ -593,6 +593,115 @@ def run_responses_with_prompt_template_reference(client):\n         print(f\"    -> {(output_text or '')[:60]}\")\n \n \n+def _fetch_response_finish_reason(fetched):\n+    \"\"\"Map a fetched Responses `status` to a `gen_ai.response.finish_reasons` value.\n+\n+    The fetch itself always succeeds here; this conveys the outcome of the\n+    ORIGINAL generation recorded on the response. A completed generation maps to\n+    its stop reason, an incomplete one to why it was cut short, and a failed or\n+    cancelled generation to `error`.\n+    \"\"\"\n+    status = getattr(fetched, \"status\", None)\n+    if status == \"completed\":\n+        return \"stop\"\n+    if status == \"incomplete\":\n+        details = getattr(fetched, \"incomplete_details\", None)\n+        reason = getattr(details, \"reason\", None) if details else None\n+        if reason == \"max_output_tokens\":\n+            return \"length\"\n+        if reason == \"content_filter\":\n+            return \"content_filter\"\n+        return \"incomplete\"\n+    return \"error\"\n+\n+\n+def _emit_fetch_response_span(client, response_id):\n+    \"\"\"Fetch a response by id and emit the `gen_ai.fetch_response.client` span.\n+\n+    Owns its own span boundary, so all attributes are set inline here. Every\n+    value is derived from the retrieve-call boundary:\n+\n+    - `gen_ai.response.id`, `gen_ai.response.model` come from the fetched object.\n+    - `gen_ai.response.finish_reasons` conveys the ORIGINAL generation's outcome,\n+      derived from the fetched `status`/`incomplete_details` (see helper above).\n+      A fetched response whose original generation failed or is incomplete is NOT\n+      an error of this fetch, so `error.type`/span status are not set for it.\n+    - `gen_ai.system_instructions` and `gen_ai.output.messages` are the content\n+      carried by the fetched response. The original input messages are NOT part\n+      of the fetched response object, so `gen_ai.input.messages` is not recorded.\n+    - Token usage is intentionally NOT recorded: no inference happens here, and\n+      the fetched response's token counts belong to the original generation.\n+      Recording them would double-count tokens when summing spans in a\n+      multi-step run.\n+    - `openai.api.type` is `responses`; `openai.response.service_tier` comes from\n+      the fetched object.\n+    \"\"\"\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"fetch_response\",\n+        \"gen_ai.provider.name\": \"openai\",\n+        \"gen_ai.response.id\": response_id,\n+        \"openai.api.type\": \"responses\",\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\"fetch_response\", attributes=span_attributes) as span:\n+        fetched = client.responses.retrieve(response_id)\n+        span.set_attribute(\"gen_ai.response.id\", fetched.id)\n+        span.set_attribute(\"gen_ai.response.model\", fetched.model)\n+        span.set_attribute(\"gen_ai.response.finish_reasons\", [_fetch_response_finish_reason(fetched)])\n+        service_tier = getattr(fetched, \"service_tier\", None)\n+        if service_tier is not None:\n+            span.set_attribute(\"openai.response.service_tier\", service_tier)\n+        # Content carried on the fetched response: system instructions and output\n+        # messages. The original input messages are NOT part of the fetched\n+        # response, so `gen_ai.input.messages` is not set here.\n+        instructions = getattr(fetched, \"instructions\", None)\n+        if instructions:\n+            span.set_attribute(\n+                \"gen_ai.system_instructions\",\n+                json.dumps([{\"parts\": [{\"type\": \"text\", \"content\": instructions}]}]),",
+      "id": "PRRT_kwDOSUeMrM6Q6zoQ",
+      "opened": "2026-07-14T22:37:49Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-07-16T19:37:19Z",
+          "body": "Updated to fix.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3598405418"
+        }
+      ],
+      "reviewed": "1c86472594cc4fcc237272b53ad974fb4c1f3af1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3583094426"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description/title talk about a `get_response` operation and `gen_ai.get_response.client` span, but the model and reference implementation added here are for `fetch_response` / `gen_ai.fetch_response.client`. Please align the PR description (and any related naming) with the actual operation/span names in the model, or rename the model/span to match the stated `get_response` naming; otherwise reviewers/users will be confused about what was actually added.",
+      "created": "2026-07-14T22:37:49Z",
+      "hunk": "@@ -341,6 +341,60 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.fetch_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `fetch_response`.\n+\n+      **Span name** SHOULD be `{gen_ai.operation.name}`. The response identifier is high\n+      cardinality, so it is not included in the span name. Semantic conventions for individual\n+      GenAI providers MAY specify a different span name format.",
+      "id": "PRRT_kwDOSUeMrM6Q6zoo",
+      "opened": "2026-07-14T22:37:49Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "1c86472594cc4fcc237272b53ad974fb4c1f3af1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3583094462"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "I think the [Gemini Interactions API](https://ai.google.dev/api/interactions-api#getInteractionById) is equivalent, please let me know if that's right. I think there may be some conflicts with this proposal, I add comments below.",
+      "created": "2026-07-23T19:32:04Z",
+      "hunk": "@@ -344,6 +344,60 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.fetch_response.client",
+      "id": "PRRT_kwDOSUeMrM6TXGGd",
+      "opened": "2026-07-23T20:33:21Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-23T22:03:42Z",
+          "body": "Yeah, I think that's correct. I'll address each of the comments below.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641667035"
+        }
+      ],
+      "reviewed": "01008b0399a79013d2422bdea0874495103ffb5b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3640846296"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "In the case of the Gemini Interactions API, should we add another value here like `get_interaction`?\n\nWe did that for `generate_content` vs `chat`/`text_completion`",
+      "created": "2026-07-23T19:52:24Z",
+      "hunk": "@@ -459,6 +459,12 @@ attributes:\n           value: \"retrieval\"\n           brief: 'Retrieval operation such as [OpenAI Search Vector Store API](https://platform.openai.com/docs/api-reference/vector-stores/search)'\n           stability: development\n+        - id: fetch_response",
+      "id": "PRRT_kwDOSUeMrM6TXZM6",
+      "opened": "2026-07-23T20:33:21Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-07-23T20:50:08Z",
+          "body": "yes, I think so - different operation name, but the same span type and metric name. Span type will need to eventually land on otlp in some form (regardless of this PR)",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641306265"
+        },
+        {
+          "at": "2026-07-23T22:25:56Z",
+          "body": "I think that makes sense, I'll work on updating this PR and see what you think.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641771015"
+        },
+        {
+          "at": "2026-07-24T16:03:10Z",
+          "body": "It also looks like the Response API calls this operation \"retrieve\" https://developers.openai.com/api/reference/resources/responses/methods/retrieve and the Python SDK also uses this. Is there a strong reason to use \"fetch\"?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3646636776"
+        },
+        {
+          "at": "2026-07-26T17:45:51Z",
+          "body": "This was in response to Liudmila's comment: https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3525316935. I'm not opposed to using the `retrieve` language here as it also doesn't imply creation. Does that work for you as well, @lmolkova?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3653062807"
+        },
+        {
+          "at": "2026-07-27T21:55:07Z",
+          "body": "we have retrieval operation name which means like vector DB or search call. It'd be confusing to have `retrieve` for response and `retrieval` for data retrieval",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3661176979"
+        },
+        {
+          "at": "2026-07-27T22:03:51Z",
+          "body": "maybe the least bad option would be to return to `get_response` ? `fetch` is impossible to mix with create | generate, but `get` (unless you're hardcore REST person) may be misleading. This was my intent behind fetch - it's not used by any provider and the least misleading. I still prefer to keep it, but it's not a strong optinion.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3661223505"
+        },
+        {
+          "at": "2026-07-28T18:54:52Z",
+          "body": "That makes sense and I don't have a strong opinion, so let's stick with fetch",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3668374922"
+        }
+      ],
+      "reviewed": "01008b0399a79013d2422bdea0874495103ffb5b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3640958157"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "What about background execution with polling? IIUC, both OpenAI responses and Gemini interactions support this, and you would typically read the token usage when polling/fetching since the inference is happening in the background.\n\n- https://developers.openai.com/api/docs/guides/background?lang=curl\n- https://ai.google.dev/gemini-api/docs/background-execution#rest_3",
+      "created": "2026-07-23T19:59:14Z",
+      "hunk": "@@ -683,6 +683,115 @@ def run_responses_with_prompt_template_reference(client):\n         print(f\"    -> {(output_text or '')[:60]}\")\n \n \n+def _fetch_response_finish_reason(fetched):\n+    \"\"\"Map a fetched Responses `status` to a `gen_ai.response.finish_reasons` value.\n+\n+    The fetch itself always succeeds here; this conveys the outcome of the\n+    ORIGINAL generation recorded on the response. A completed generation maps to\n+    its stop reason, an incomplete one to why it was cut short, and a failed or\n+    cancelled generation to `error`.\n+    \"\"\"\n+    status = getattr(fetched, \"status\", None)\n+    if status == \"completed\":\n+        return \"stop\"\n+    if status == \"incomplete\":\n+        details = getattr(fetched, \"incomplete_details\", None)\n+        reason = getattr(details, \"reason\", None) if details else None\n+        if reason == \"max_output_tokens\":\n+            return \"length\"\n+        if reason == \"content_filter\":\n+            return \"content_filter\"\n+        return \"incomplete\"\n+    return \"error\"\n+\n+\n+def _emit_fetch_response_span(client, response_id):\n+    \"\"\"Fetch a response by id and emit the `gen_ai.fetch_response.client` span.\n+\n+    Owns its own span boundary, so all attributes are set inline here. Every\n+    value is derived from the retrieve-call boundary:\n+\n+    - `gen_ai.response.id`, `gen_ai.response.model` come from the fetched object.\n+    - `gen_ai.response.finish_reasons` conveys the ORIGINAL generation's outcome,\n+      derived from the fetched `status`/`incomplete_details` (see helper above).\n+      A fetched response whose original generation failed or is incomplete is NOT\n+      an error of this fetch, so `error.type`/span status are not set for it.\n+    - `gen_ai.system_instructions` and `gen_ai.output.messages` are the content\n+      carried by the fetched response. The original input messages are NOT part\n+      of the fetched response object, so `gen_ai.input.messages` is not recorded.\n+    - Token usage is intentionally NOT recorded: no inference happens here, and\n+      the fetched response's token counts belong to the original generation.\n+      Recording them would double-count tokens when summing spans in a\n+      multi-step run.\n+    - `openai.api.type` is `responses`; `openai.response.service_tier` comes from\n+      the fetched object.\n+    \"\"\"\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"fetch_response\",\n+        \"gen_ai.provider.name\": \"openai\",\n+        \"gen_ai.response.id\": response_id,\n+        \"openai.api.type\": \"responses\",\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\"fetch_response\", attributes=span_attributes) as span:\n+        fetched = client.responses.retrieve(response_id)\n+        span.set_attribute(\"gen_ai.response.id\", fetched.id)\n+        span.set_attribute(\"gen_ai.response.model\", fetched.model)\n+        span.set_attribute(\"gen_ai.response.finish_reasons\", [_fetch_response_finish_reason(fetched)])\n+        service_tier = getattr(fetched, \"service_tier\", None)\n+        if service_tier is not None:\n+            span.set_attribute(\"openai.response.service_tier\", service_tier)\n+        # Content carried on the fetched response: system instructions and output\n+        # messages. The original input messages are NOT part of the fetched\n+        # response, so `gen_ai.input.messages` is not set here.\n+        instructions = getattr(fetched, \"instructions\", None)\n+        if instructions:\n+            span.set_attribute(\n+                \"gen_ai.system_instructions\",\n+                json.dumps([{\"type\": \"text\", \"content\": instructions}]),\n+            )\n+        output_messages = responses_output_messages(fetched)\n+        if output_messages:\n+            span.set_attribute(\"gen_ai.output.messages\", json.dumps(output_messages))\n+        # Token usage is intentionally NOT recorded on this span: no inference\n+        # happens on a fetch, and the fetched response's token counts belong to\n+        # the original generation (already accounted for on that operation).",
+      "id": "PRRT_kwDOSUeMrM6TXgZx",
+      "opened": "2026-07-23T20:33:21Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-07-23T20:52:35Z",
+          "body": "what would be the alternative? get instrumentation does not know how it's being used. It can be called multiple times on the same content or never called at all.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641319707"
+        },
+        {
+          "at": "2026-07-23T21:06:25Z",
+          "body": "Ya good point, but how would you recover the token usage if it's not recorded here? I guess it's either double count or don't count at all.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641389422"
+        },
+        {
+          "at": "2026-07-23T21:26:47Z",
+          "body": "we don't ? \r\n\r\n- we can't record usage metrics here for sure.\r\n- we could record span attributes only assuming people will filter by span type / operation name. But we can't really make any meaningful aggregations on them. Per-response is still valuable. \r\n\r\nA layer above what polls and waits can record token usage. It can be a convenience (start-and-wait-for-lro-to-complete) API that records full inference / agent call or an application. Another option - server side needs to report usage. It's the only reliable place (given network issues and retries, client side is always under-counting).\r\n\r\n---\r\nI think @JacksonWeber had them attributes on  span initially and I suggested to remove. I'm open to adding them back with a note that these attributes must not be used for aggregation (and still we get into the same problem as https://github.com/open-telemetry/semantic-conventions-genai/issues/19). My motivation asking to remove was to untangle trivial addition of a span from complex token usage questions.\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641493133"
+        },
+        {
+          "at": "2026-07-23T22:17:13Z",
+          "body": "The issue IMO is that both OpenAI and Gemini use the same RPC to represent \"background inference\" and \"retrieve an older response\". @JacksonWeber did you intend to solve both of these with this PR? Maybe we should just propose opening a follow up issue for background/async inference.\r\n\r\n> A layer above what polls and waits can record token usage. It can be a convenience (start-and-wait-for-lro-to-complete) API that records full inference / agent call or an application.\r\n\r\nI don't think either of the client SDKs have such a layer today.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641726050"
+        },
+        {
+          "at": "2026-07-23T22:56:31Z",
+          "body": "My intent with this PR was just the \"retrieve an existing response by id\" case, not to solve background/async inference. I think the fact that both providers overload the same GET for polling an in-progress run is what's been muddying the water here. Happy to keep this PR scoped to just the original intent with a future PR for background inference.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641894597"
+        },
+        {
+          "at": "2026-07-24T15:56:49Z",
+          "body": "Great, do you mind filing a follow up issue for this?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3646604229"
+        },
+        {
+          "at": "2026-07-27T20:43:51Z",
+          "body": "@aabmass I've filed the related issue here: https://github.com/open-telemetry/semantic-conventions-genai/issues/403",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3660766087"
+        }
+      ],
+      "reviewed": "01008b0399a79013d2422bdea0874495103ffb5b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641000486"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "The Interactions API also supports a [`last_event_id`](https://ai.google.dev/api/interactions-api#:~:text=interaction%20to%20retrieve.-,last_event_id,-string) which acts like a cursor. Does the Responses API have something similar?",
+      "created": "2026-07-23T20:33:02Z",
+      "hunk": "@@ -344,6 +344,60 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.fetch_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `fetch_response`.\n+\n+      **Span name** SHOULD be `{gen_ai.operation.name}`. The response identifier is high\n+      cardinality, so it is not included in the span name. Semantic conventions for individual\n+      GenAI providers MAY specify a different span name format.\n+\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.address_and_port\n+      - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.provider.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: server.address\n+        sampling_relevant: true\n+      - ref: server.port\n+        sampling_relevant: true\n+      - ref: gen_ai.response.id",
+      "id": "PRRT_kwDOSUeMrM6TYCm0",
+      "opened": "2026-07-23T20:33:21Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-23T22:29:52Z",
+          "body": "Yeah, RAPI has the equivalent. `GET /v1/responses/{id}` takes `stream: true` with `starting_after` which is basically OpenAI's version of `last_event_id`",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641792218"
+        },
+        {
+          "at": "2026-07-24T15:57:59Z",
+          "body": "Seems relatively harmless to capture it in the span attributes and potentially useful. WDYT?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3646610184"
+        },
+        {
+          "at": "2026-07-27T23:29:13Z",
+          "body": "Added it here under the name `stream_cursor`. Let me know if that works for you.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3661640107"
+        },
+        {
+          "at": "2026-07-28T18:53:51Z",
+          "body": "Thanks!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3668368351"
+        }
+      ],
+      "reviewed": "01008b0399a79013d2422bdea0874495103ffb5b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641201212"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "One more note on background generation, there is a separate status for both APIs when polling that indicates if the response is done or not. See https://developers.openai.com/api/docs/guides/background?lang=curl#polling-background-responses\n\nNot sure if capturing it in finish_reason is appropriate, we might need another attribute.",
+      "created": "2026-07-23T21:03:07Z",
+      "hunk": "@@ -344,6 +344,60 @@ spans:\n         requirement_level:\n           conditionally_required: When applicable.\n \n+  - type: gen_ai.fetch_response.client\n+    kind: client\n+    name:\n+      note: |\n+        **Span name** SHOULD be `{gen_ai.operation.name}`. Semantic conventions\n+        for individual GenAI providers MAY specify a different span name format.\n+    brief: >\n+      Describes a request to a Generative AI provider that fetches a\n+      previously generated model response by its identifier.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `fetch_response`.\n+\n+      **Span name** SHOULD be `{gen_ai.operation.name}`. The response identifier is high\n+      cardinality, so it is not included in the span name. Semantic conventions for individual\n+      GenAI providers MAY specify a different span name format.\n+\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.address_and_port\n+      - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.provider.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: server.address\n+        sampling_relevant: true\n+      - ref: server.port\n+        sampling_relevant: true\n+      - ref: gen_ai.response.id\n+        requirement_level: required\n+        note: >\n+          The identifier of the response being fetched, as used in the request and returned in the response.\n+      - ref: gen_ai.system_instructions\n+        requirement_level: opt_in\n+        note: >\n+          Only content carried on the fetched response is recorded. A fetched response contains\n+          the system instructions, output messages, and tool definitions but not the original\n+          input messages, so `gen_ai.input.messages` is not set on this span.\n+      - ref: gen_ai.output.messages\n+        requirement_level: opt_in\n+      - ref: gen_ai.tool.definitions\n+        requirement_level: opt_in\n+      - ref: gen_ai.response.model\n+        requirement_level: recommended\n+      - ref: gen_ai.response.finish_reasons",
+      "id": "PRRT_kwDOSUeMrM6TYf1d",
+      "opened": "2026-07-23T21:06:25Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-23T22:46:19Z",
+          "body": "That's a good point, finish_reasons might be the wrong home for this. Status is meant to capture the lifecycle of the brackground run whereas finish_reasons is why the model stopped once it's procuded output.\r\n\r\nI think we want a dedicated attribute here, something like `gen_ai.response.status` with a small cross-provider enum that maps cleanly onto the different statuses. What do you think?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641856873"
+        },
+        {
+          "at": "2026-07-27T23:30:05Z",
+          "body": "Happy to add this, what do you think, @lmolkova?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3661643798"
+        },
+        {
+          "at": "2026-07-28T21:00:33Z",
+          "body": "Just noticed the thumbs up, I've added the above proposal.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3669154432"
+        },
+        {
+          "at": "2026-07-29T14:48:08Z",
+          "body": "Yup LGTM",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3675386663"
+        }
+      ],
+      "reviewed": "01008b0399a79013d2422bdea0874495103ffb5b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3641374050"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n      The value SHOULD be the provider's response status mapped onto the closest member of this\n      enum or a provider-specific value when none of these apply. \n      Semantic conventions for individual GenAI providers SHOULD document how their status\n```\n(please check my english)\n\nGoogle provider 2 more options: `requires_action` and `budget_exceeded` https://ai.google.dev/api/interactions-api#Resource:Interaction\n\nNone of the values defined here are applicable for these.\n\n",
+      "created": "2026-07-30T04:49:35Z",
+      "hunk": "@@ -205,6 +214,45 @@ attributes:\n       - [stop]\n       - [stop, length]\n     stability: development\n+  - key: gen_ai.response.status\n+    type:\n+      members:\n+        - id: queued\n+          value: \"queued\"\n+          brief: The response has been accepted by the provider but generation has not started yet.\n+          stability: development\n+        - id: in_progress\n+          value: \"in_progress\"\n+          brief: The response is still being generated, for example a background or streamed response that has not finished.\n+          stability: development\n+        - id: completed\n+          value: \"completed\"\n+          brief: The response finished generating successfully.\n+          stability: development\n+        - id: incomplete\n+          value: \"incomplete\"\n+          brief: The response stopped before generation completed, for example because a token limit or content filter was reached.\n+          stability: development\n+        - id: failed\n+          value: \"failed\"\n+          brief: The response generation failed with an error.\n+          stability: development\n+        - id: cancelled\n+          value: \"cancelled\"\n+          brief: The response generation was cancelled before it completed.\n+          stability: development\n+    brief: The lifecycle status of a generated response, as reported by the provider when the response is fetched or polled.\n+    note: >\n+      This attribute captures the lifecycle state of a (possibly background or long-running)\n+      generation, such as whether it is queued, still running, or has reached a terminal state.\n+      It is distinct from `gen_ai.response.finish_reasons`, which describes why the model stopped\n+      once it began producing output.\n+\n+      The value SHOULD be the provider's response status mapped onto the closest member of this\n+      enum. Semantic conventions for individual GenAI providers SHOULD document how their status",
+      "id": "PRRT_kwDOSUeMrM6U_Wjp",
+      "opened": "2026-07-30T04:49:56Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-07-30T19:56:14Z",
+          "body": "Added",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3685825270"
+        }
+      ],
+      "reviewed": "b138723854cacd389749b2a54a712162d5aef3e6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/353#discussion_r3680064710"
+    }
+  ]
+}

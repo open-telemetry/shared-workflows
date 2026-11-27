@@ -1,0 +1,55 @@
+{
+  "head": "7ec4fafc0e23bad63381e639948e6aa4e62940dd",
+  "merge": "8aa030d5510e5ca9de401b5610e9e2b9d3bf1087",
+  "merged": "2026-03-31T06:38:49Z",
+  "missing_roots": 0,
+  "number": 17232,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "follows label name convention in this repo",
+      "created": "2026-03-30T23:57:26Z",
+      "hunk": "@@ -171,10 +247,10 @@ jobs:\n           if [[ \"$existing\" -eq 0 ]]; then\n             gh pr create \\\n               --title \"Review fixes for ${SHORT_NAME}\" \\\n-              --body-file /tmp/pr-body.md \\\n+              --body-file \"$PR_BODY\" \\\n               --base main \\\n               --head \"$branch\" \\\n-              --label automated-code-review\n+              --label \"automated code review\"",
+      "id": "PRRT_kwDODJKVX8530Zc5",
+      "opened": "2026-03-30T23:58:54Z",
+      "path": ".github/workflows/code-review-sweep.yml",
+      "replies": [],
+      "reviewed": "81b89c31e593bc32e18e806ae1b82c0b735b2875",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17232#discussion_r3012747876"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "limit to one model per pass (will try different models in subsequent passes)",
+      "created": "2026-03-30T23:57:56Z",
+      "hunk": "@@ -52,14 +53,19 @@ jobs:\n     strategy:\n       matrix: ${{ fromJSON(needs.dispatch.outputs.matrix) }}\n       fail-fast: false\n-      max-parallel: 2  # keep low to avoid Copilot API rate limits\n+      max-parallel: 3  # keep low to avoid Copilot API rate limits\n     environment: protected\n     permissions:\n       contents: write  # for git push\n     env:\n       MODULE_DIR: ${{ matrix.module_dir }}\n       SHORT_NAME: ${{ matrix.short_name }}\n-      MODELS: \"gpt-5.4 claude-sonnet-4.6\"\n+      MODEL: \"gpt-5.4\"",
+      "id": "PRRT_kwDODJKVX8530Zss",
+      "opened": "2026-03-30T23:58:54Z",
+      "path": ".github/workflows/code-review-sweep.yml",
+      "replies": [],
+      "reviewed": "81b89c31e593bc32e18e806ae1b82c0b735b2875",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17232#discussion_r3012749305"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "small bump",
+      "created": "2026-03-30T23:58:45Z",
+      "hunk": "@@ -52,14 +53,19 @@ jobs:\n     strategy:\n       matrix: ${{ fromJSON(needs.dispatch.outputs.matrix) }}\n       fail-fast: false\n-      max-parallel: 2  # keep low to avoid Copilot API rate limits\n+      max-parallel: 3  # keep low to avoid Copilot API rate limits",
+      "id": "PRRT_kwDODJKVX8530aEz",
+      "opened": "2026-03-30T23:58:54Z",
+      "path": ".github/workflows/code-review-sweep.yml",
+      "replies": [],
+      "reviewed": "81b89c31e593bc32e18e806ae1b82c0b735b2875",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17232#discussion_r3012751411"
+    }
+  ]
+}

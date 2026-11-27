@@ -1,0 +1,430 @@
+{
+  "head": "1e91cbb266430c327dc2c0d670b949a07f298d74",
+  "merge": "7ba35a057ca50686ec9f3b9c51ced754c51ead67",
+  "merged": "2026-09-10T15:33:24Z",
+  "missing_roots": 0,
+  "number": 19844,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `registerFromSeedNodes` only succeeds for sets previously returned by the instrumented `ConnectionStringUtil`. The public `Cluster.connect(Set<SeedNode>, ...)` and `AsyncCluster.connect(Set<SeedNode>, ...)` paths pass the caller's set directly, so on 3.1–3.5 this lookup returns null and the stable server attributes are omitted, contrary to the PR's advertised seed-node support. Please derive a target from an uncached `SeedNode` set (while preferring the cached original for DNS-SRV) and cover a direct seed-set connection path.",
+      "created": "2026-08-27T08:05:00Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import com.couchbase.client.core.Core;\n+import io.opentelemetry.instrumentation.api.internal.cache.Cache;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.CouchbaseServerTarget;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+// Targets are keyed by core because clusters with different targets can share an environment. Weak\n+// keys scope entries to the cluster lifecycle. Through 3.2, the seed set bridges target parsing to\n+// core construction.\n+public class CouchbaseServerTargets {\n+\n+  private static final Cache<Set<?>, CouchbaseServerTarget> seedNodeTargets = Cache.weak();\n+  private static final Cache<Core, CouchbaseServerTarget> coreTargets = Cache.weak();\n+\n+  public static void registerSeedNodes(Set<?> seedNodes, @Nullable CouchbaseServerTarget target) {\n+    if (target != null) {\n+      seedNodeTargets.put(seedNodes, target);\n+    }\n+  }\n+\n+  public static void register(Core core, @Nullable CouchbaseServerTarget target) {\n+    if (target != null) {\n+      coreTargets.put(core, target);\n+    }\n+  }\n+\n+  public static void registerFromSeedNodes(Core core, @Nullable Set<?> seedNodes) {\n+    if (seedNodes != null) {\n+      register(core, seedNodeTargets.get(seedNodes));",
+      "id": "PRRT_kwDODJKVX86cvW3C",
+      "opened": "2026-08-27T08:05:00Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseServerTargets.java",
+      "replies": [
+        {
+          "at": "2026-08-27T08:15:38Z",
+          "body": "Addressed in fd3245d002b6b29b5a0a2270d5eae35b78552b6e.\n\nAnalysis: Direct `SeedNode` connections bypass `ConnectionStringUtil`, so the core registration has no cached parsed target. The registration now uses the cached target first to preserve the original DNS-SRV host. It otherwise builds a target from each seed's address and key-value port. The 3.1 integration test now connects through the direct seed-set API, so its stable semantic convention assertions cover this path.\n\nUpsides: Direct `Cluster.connect(Set<SeedNode>, ...)` and `AsyncCluster.connect(Set<SeedNode>, ...)` calls now emit the configured server address and port. Connection-string calls still retain the original DNS-SRV host.\n\nDownsides: Multi-seed target ordering follows the iteration order of the caller's set.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3869929032"
+        }
+      ],
+      "reviewed": "acf4fb2a8109d43026f736d4de9ece8a7c9dc694",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3869857236"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This branches on the telemetry being tested, so a regression that drops `NETWORK_PEER_ADDRESS` will select the reduced assertion set and pass even for subclasses whose `includesNetworkAttributes()` contract requires peer enrichment. Branch on that declared expectation instead so the existing 2.x tests continue to detect missing network attributes.",
+      "created": "2026-08-27T21:15:10Z",
+      "hunk": "@@ -162,6 +177,29 @@ protected String serverAddress() {\n     return emitStableDatabaseSemconv() ? \"127.0.0.1\" : null;\n   }\n \n+  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n+  protected void assertOpenBucketAttributes(SpanData spanData) {\n+    SpanDataAssert span = assertThat(spanData);\n+    if (spanData.getAttributes().get(NETWORK_PEER_ADDRESS) == null) {",
+      "id": "PRRT_kwDODJKVX86c-2qx",
+      "opened": "2026-08-27T21:15:11Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/AbstractCouchbaseTest.java",
+      "replies": [
+        {
+          "at": "2026-08-27T21:40:26Z",
+          "body": "No code change.\n\nAnalysis: `includesNetworkAttributes()` describes Couchbase request spans. It has never required peer attributes on the separate `Cluster.openBucket` span. The unchanged 2.6 stable-semconv test passes with that span lacking `network.peer.address`. Changing this branch to use `includesNetworkAttributes()` makes both bucket cases fail by requiring an attribute that the instrumentation does not emit. The assertion keeps its reduced shape for that established span and still checks the exact attribute set.\n\nUpsides: Preserves the established 2.x contract and avoids making the tests require unsupported `Cluster.openBucket` enrichment.\n\nDownsides: The full assertion remains selected from the span shape because no existing subclass can declare that separate capability.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3876087292"
+        }
+      ],
+      "reviewed": "7c155e8515b6329a5551c578a3fe7b0ca6cfe3ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3875925328"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The parsed-`ConnectionString` constructor path is introduced specifically for Couchbase 3.6+, but the 3.4 module only runs this integration test with 3.4.0, which exercises the text constructor. Muzzle can validate referenced APIs but not that this constructor matcher actually captures targets, so the `[3.4.0,)` range can silently omit these attributes from 3.6 onward. Please add a 3.6-or-latest dependency test that runs the stable-semconv assertions through this path.",
+      "created": "2026-08-27T21:15:10Z",
+      "hunk": "@@ -0,0 +1,82 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import com.couchbase.client.core.Core;\n+import com.couchbase.client.core.env.SeedNode;\n+import com.couchbase.client.core.util.ConnectionString;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.Set;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+// Core constructors receive seed nodes through 3.2, connection string text in 3.3-3.5, and a parsed\n+// connection string from 3.6. Capturing each shape here keeps the target tied to the client core.\n+public class CouchbaseCoreInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.couchbase.client.core.Core\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArguments(3)).and(takesArgument(2, Set.class)),\n+        getClass().getName() + \"$SeedNodesConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArguments(4)).and(takesArgument(3, String.class)),\n+        getClass().getName() + \"$TextConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(3))\n+            .and(takesArgument(2, named(\"com.couchbase.client.core.util.ConnectionString\"))),\n+        getClass().getName() + \"$ParsedConstructorAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SeedNodesConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void captureConfiguredTarget(\n+        @Advice.This Core core, @Advice.Argument(2) Set<SeedNode> seedNodes) {\n+      CouchbaseServerTargets.registerFromSeedNodes(core, seedNodes);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class TextConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void captureConfiguredTarget(\n+        @Advice.This Core core,\n+        @Advice.Argument(2) Set<SeedNode> seedNodes,\n+        @Advice.Argument(3) String connectionString) {\n+      if (connectionString == null) {\n+        CouchbaseServerTargets.registerFromSeedNodes(core, seedNodes);\n+        return;\n+      }\n+      CouchbaseServerTargets.register(core, CouchbaseConnectionStrings.target(connectionString));\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ParsedConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void captureConfiguredTarget(\n+        @Advice.This Core core, @Advice.Argument(2) ConnectionString connectionString) {\n+      CouchbaseServerTargets.register(core, CouchbaseConnectionStrings.target(connectionString));",
+      "id": "PRRT_kwDODJKVX86c-2rU",
+      "opened": "2026-08-27T21:15:11Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseCoreInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-27T21:40:28Z",
+          "body": "Addressed in 7b171942e78716716a483e5a42d16d6452486fa0.\n\nAnalysis: The 3.4 module covers the open-ended Couchbase 3.x range but lacked a latest-dependency declaration. Adding the 3.+ test dependency makes the existing stable-semconv integration task run against Couchbase 3.12.2, which uses the parsed ConnectionString constructor and verifies the configured target attributes.\n\nUpsides: Exercises the 3.6+ constructor matcher in an integration test and keeps that coverage current as Couchbase 3.x releases advance.\n\nDownsides: The latest-dependency job downloads and tests one additional Couchbase client version for this module.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3876087452"
+        }
+      ],
+      "reviewed": "7c155e8515b6329a5551c578a3fe7b0ca6cfe3ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3875925387"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] The test name says the scheme is kept, but the asserted address explicitly omits `couchbases://`. Rename it so the test contract matches the assertion.",
+      "created": "2026-08-31T03:52:35Z",
+      "hunk": "@@ -0,0 +1,90 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.couchbase.client.core.util.ConnectionString;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.CouchbaseServerTarget;\n+import org.junit.jupiter.api.Test;\n+\n+class CouchbaseConnectionStringsTest {\n+\n+  @Test\n+  void loneSeedKeepsItsHostAndPort() {\n+    CouchbaseServerTarget target = CouchbaseConnectionStrings.target(\"couchbase://node:11210\");\n+\n+    assertThat(target.getAddress()).isEqualTo(\"node\");\n+    assertThat(target.getPort()).isEqualTo(11210);\n+  }\n+\n+  @Test\n+  void hostThatResolvesThroughDnsSrvIsNamedByItself() {\n+    ConnectionString connectionString = ConnectionString.create(\"couchbases://cluster.example\");\n+    assertThat(connectionString.isValidDnsSrv()).isTrue();\n+\n+    CouchbaseServerTarget target = CouchbaseConnectionStrings.target(connectionString);\n+    assertThat(target.getAddress()).isEqualTo(\"cluster.example\");\n+    assertThat(target.getPort()).isNull();\n+  }\n+\n+  @Test\n+  void severalSeedsKeepTheirOrderAndDuplicatesAndLoseThePort() {\n+    CouchbaseServerTarget target =\n+        CouchbaseConnectionStrings.target(\"couchbase://two.example,one.example:11210,two.example\");\n+\n+    assertThat(target.getAddress()).isEqualTo(\"two.example,one.example:11210,two.example\");\n+    assertThat(target.getPort()).isNull();\n+  }\n+\n+  @Test\n+  void theSchemeIsKeptForSeveralSeeds() {",
+      "id": "PRRT_kwDODJKVX86dmvBg",
+      "opened": "2026-08-31T03:52:36Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseConnectionStringsTest.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:05:38Z",
+          "body": "Addressed in 727f5afb5725b221a36f5632edd4dc3af85487aa.\n\nAnalysis: The test verifies that a multi-seed target strips the connection string scheme. The old method name stated the opposite behavior.\n\nUpsides: The test name now documents the behavior that its assertion enforces.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3891626869"
+        }
+      ],
+      "reviewed": "4b6870f7431a030412481f131b1df23f572b9117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3891585866"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] On current 3.x clients, `Core.create(..., Set<SeedNode>)` converts the set to a synthetic `ConnectionString` by iterating the set before invoking this constructor. Treating every parsed connection string as original input therefore preserves arbitrary set iteration order, so equivalent direct seed sets can emit different multi-endpoint `server.address` values instead of the deterministic value promised by this PR. Capture/overwrite the target at the `Core.create(..., Set)` boundary using the sorted direct-seed representation (while retaining order only for actual connection-string input), and cover this through the latest-deps path.",
+      "created": "2026-08-31T04:13:23Z",
+      "hunk": "@@ -0,0 +1,82 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import com.couchbase.client.core.Core;\n+import com.couchbase.client.core.env.SeedNode;\n+import com.couchbase.client.core.util.ConnectionString;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.Set;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+// Core constructors receive seed nodes through 3.2, connection string text in 3.3-3.5, and a parsed\n+// connection string from 3.6. Capturing each shape here keeps the target tied to the client core.\n+public class CouchbaseCoreInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.couchbase.client.core.Core\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArguments(3)).and(takesArgument(2, Set.class)),\n+        getClass().getName() + \"$SeedNodesConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArguments(4)).and(takesArgument(3, String.class)),\n+        getClass().getName() + \"$TextConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(takesArguments(3))\n+            .and(takesArgument(2, named(\"com.couchbase.client.core.util.ConnectionString\"))),\n+        getClass().getName() + \"$ParsedConstructorAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SeedNodesConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void captureConfiguredTarget(\n+        @Advice.This Core core, @Advice.Argument(2) Set<SeedNode> seedNodes) {\n+      CouchbaseServerTargets.registerFromSeedNodes(core, seedNodes);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class TextConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void captureConfiguredTarget(\n+        @Advice.This Core core,\n+        @Advice.Argument(2) Set<SeedNode> seedNodes,\n+        @Advice.Argument(3) String connectionString) {\n+      if (connectionString == null) {\n+        CouchbaseServerTargets.registerFromSeedNodes(core, seedNodes);\n+        return;\n+      }\n+      CouchbaseServerTargets.register(core, CouchbaseConnectionStrings.target(connectionString));\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ParsedConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void captureConfiguredTarget(\n+        @Advice.This Core core, @Advice.Argument(2) ConnectionString connectionString) {\n+      CouchbaseServerTargets.register(core, CouchbaseConnectionStrings.target(connectionString));",
+      "id": "PRRT_kwDODJKVX86dm5xW",
+      "opened": "2026-08-31T04:13:23Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseCoreInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:46:03Z",
+          "body": "Addressed in e7e0ea2fac080045487d6be3aa8c263ed8fb3076.\n\nAnalysis: Current Couchbase clients convert direct seed sets to parsed connection strings before constructing Core. Constructor advice preserves that synthetic order. Exit advice on the direct-seed Core factory now overwrites the target with the sorted seed-set representation. A latest-dependency test calls that factory with reverse-ordered seeds and checks the stored target.\n\nUpsides: Direct seed sets now produce a stable server.address while real connection strings still retain their configured order. The latest client path has regression coverage.\n\nDownsides: The latest-dependency test creates and shuts down one extra Core instance.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3891759101"
+        }
+      ],
+      "reviewed": "727f5afb5725b221a36f5632edd4dc3af85487aa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3891651396"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This adds every KV/manager occurrence, not every distinct endpoint promised by the PR. `SeedNode` equality includes both optional ports, so a valid set can contain `(node, kv=11210, manager=8091)` and `(node, kv=11210, manager=8092)`; this code emits `node:11210` twice. Deduplicate host/port pairs in this direct-seed fallback while leaving original connection-string duplicates intact.",
+      "created": "2026-08-31T04:52:33Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import com.couchbase.client.core.Core;\n+import com.couchbase.client.core.env.SeedNode;\n+import io.opentelemetry.instrumentation.api.internal.cache.Cache;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.CouchbaseServerTarget;\n+import java.util.Optional;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+// Targets are keyed by core because clusters with different targets can share an environment. Weak\n+// keys scope entries to the cluster lifecycle. Through 3.2, the seed set bridges target parsing to\n+// core construction.\n+public class CouchbaseServerTargets {\n+\n+  private static final Cache<Set<SeedNode>, CouchbaseServerTarget> seedNodeTargets = Cache.weak();\n+  private static final Cache<Core, CouchbaseServerTarget> coreTargets = Cache.weak();\n+\n+  public static void registerSeedNodes(\n+      Set<SeedNode> seedNodes, @Nullable CouchbaseServerTarget target) {\n+    if (target != null) {\n+      seedNodeTargets.put(seedNodes, target);\n+    }\n+  }\n+\n+  public static void register(Core core, @Nullable CouchbaseServerTarget target) {\n+    if (target != null) {\n+      coreTargets.put(core, target);\n+    }\n+  }\n+\n+  public static void registerDirectSeedNodes(Core core, Set<SeedNode> seedNodes) {\n+    register(core, target(seedNodes));\n+  }\n+\n+  public static void registerFromSeedNodes(Core core, @Nullable Set<SeedNode> seedNodes) {\n+    if (seedNodes != null) {\n+      CouchbaseServerTarget target = seedNodeTargets.get(seedNodes);\n+      register(core, target != null ? target : target(seedNodes));\n+    }\n+  }\n+\n+  @Nullable\n+  static CouchbaseServerTarget target(Set<SeedNode> seedNodes) {\n+    CouchbaseServerTarget.Builder target = CouchbaseServerTarget.builder();\n+    for (SeedNode seedNode : seedNodes) {\n+      if (seedNode == null) {\n+        target.addSeed(null, 0);\n+      } else {\n+        Optional<Integer> kvPort = seedNode.kvPort();\n+        Optional<Integer> clusterManagerPort = seedNode.clusterManagerPort();\n+        if (!kvPort.isPresent() && !clusterManagerPort.isPresent()) {\n+          target.addSeed(seedNode.address(), 0);\n+        } else {\n+          if (kvPort.isPresent()) {\n+            target.addSeed(seedNode.address(), kvPort.get());\n+          }\n+          if (clusterManagerPort.isPresent() && !clusterManagerPort.equals(kvPort)) {\n+            target.addSeed(seedNode.address(), clusterManagerPort.get());",
+      "id": "PRRT_kwDODJKVX86dnQDH",
+      "opened": "2026-08-31T04:52:33Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseServerTargets.java",
+      "replies": [
+        {
+          "at": "2026-08-31T05:00:29Z",
+          "body": "Addressed in 00e6bdde94e3cd0ec47e0ccb50067c61e70d252f.\n\nAnalysis: Distinct SeedNode values can share one host and port when their other port differs. The direct-seed target builder now tracks ports by address and adds each endpoint once. Connection-string parsing still uses the order-preserving builder directly, so configured duplicates remain intact.\n\nUpsides: Direct seed targets now contain every distinct endpoint exactly once. Unit and latest-client tests cover duplicate KV endpoints with different manager ports.\n\nDownsides: Direct seed target creation allocates a small map and set to track seen endpoints.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3891820122"
+        }
+      ],
+      "reviewed": "e7e0ea2fac080045487d6be3aa8c263ed8fb3076",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3891790069"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `isValidDnsSrv()` only means this is a single-host DNS-SRV candidate; Couchbase additionally requires `CoreEnvironment.ioConfig().dnsSrvEnabled()`. With DNS SRV disabled, the client uses this as a direct seed, but this branch still reports a `couchbase(s)://` discovery identity. Thread the actual DNS-SRV-enabled flag from the core/environment advice into target parsing and use the direct endpoint representation when it is false.",
+      "created": "2026-09-09T16:05:44Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import com.couchbase.client.core.util.ConnectionString;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import java.util.Iterator;\n+import javax.annotation.Nullable;\n+\n+// Parsing the connection string preserves configured endpoint order and DNS SRV identity.\n+public class CouchbaseConnectionStrings {\n+\n+  @Nullable\n+  public static CouchbaseServerTarget target(@Nullable String connectionString) {\n+    if (connectionString == null || connectionString.isEmpty()) {\n+      return null;\n+    }\n+    try {\n+      return target(ConnectionString.create(connectionString));\n+    } catch (RuntimeException ignored) {\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  public static CouchbaseServerTarget target(@Nullable ConnectionString connectionString) {\n+    if (connectionString == null) {\n+      return null;\n+    }\n+    try {\n+      String scheme = connectionString.scheme().toString();\n+      if (connectionString.isValidDnsSrv()) {",
+      "id": "PRRT_kwDODJKVX86gvH46",
+      "opened": "2026-09-09T16:05:45Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseConnectionStrings.java",
+      "replies": [
+        {
+          "at": "2026-09-09T16:48:45Z",
+          "body": "Addressed in ae65417d37f289c4d751bf4109eb3890e80e6126.\n\nAnalysis: `ConnectionString.isValidDnsSrv()` identifies a candidate, while `IoConfig.dnsSrvEnabled()` decides whether Couchbase performs DNS SRV discovery. The core advice now passes that setting into connection-string parsing. The seed-node carrier path also converts a stored discovery target to its direct endpoint form when the environment disables DNS SRV.\n\nUpsides: `server.address` and the stable span name now match the endpoint mode Couchbase uses. Both direct core construction and the older seed-node construction path use the environment setting.\n\nDownsides: The parser keeps compatibility overloads that assume DNS SRV is enabled for callers that do not have a `CoreEnvironment`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3970938060"
+        }
+      ],
+      "reviewed": "b1ba5b826dc5fa0a79737dc6b85c0bf403d96951",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3970539867"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Couchbase 3.12.2's `DATABASE` convention reports the collection hook as `couchbase.collection.name`. This condition recognizes only the generic key and Couchbase's V0 key, so current stable-mode KV spans miss `_default` and fall back to the bucket or server in their name. Accept the current V1 hook key as well.",
+      "created": "2026-09-09T16:05:45Z",
+      "hunk": "@@ -0,0 +1,70 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import static io.opentelemetry.semconv.DbAttributes.DB_COLLECTION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_SUMMARY;\n+\n+import javax.annotation.Nullable;\n+\n+public class CouchbaseSpanName {\n+\n+  private String operation;\n+  @Nullable private String querySummary;\n+  @Nullable private String collection;\n+  @Nullable private String namespace;\n+  @Nullable private CouchbaseServerTarget serverTarget;\n+  private boolean databaseRequest;\n+\n+  public CouchbaseSpanName(String operation) {\n+    this.operation = operation;\n+  }\n+\n+  public void captureAttribute(String key, @Nullable String value) {\n+    if (DB_QUERY_SUMMARY.getKey().equals(key)) {\n+      querySummary = value;\n+    } else if (DB_COLLECTION_NAME.getKey().equals(key) || \"db.couchbase.collection\".equals(key)) {",
+      "id": "PRRT_kwDODJKVX86gvH5t",
+      "opened": "2026-09-09T16:05:45Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseSpanName.java",
+      "replies": [
+        {
+          "at": "2026-09-09T16:48:47Z",
+          "body": "Addressed in e9146852d463ff38b10e313f81798c96bfd54072.\n\nAnalysis: Couchbase 3.12.2 maps its V1 collection hook to `couchbase.collection.name`, while V0 maps statements to `db.statement`. The bridge now recognizes the V1 collection key and reserves query-summary naming for the real `db.query.summary` key.\n\nUpsides: Stable KV spans use the collection in their names. Query text and its literals no longer become high-cardinality span names.\n\nDownsides: V0 query spans without a real summary now fall back to the namespace, server target, or operation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3970938318"
+        }
+      ],
+      "reviewed": "b1ba5b826dc5fa0a79737dc6b85c0bf403d96951",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3970539938"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Treating `db.statement` as `db.query.summary` puts raw query text into the span name. Couchbase maps its V0 statement hook to `db.statement` and passes query statements through it; unlike a query summary, this is high-cardinality and can contain literals. Remove this fallback so the documented collection/namespace/server precedence applies when no real summary exists.",
+      "created": "2026-09-09T16:05:45Z",
+      "hunk": "@@ -0,0 +1,70 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import static io.opentelemetry.semconv.DbAttributes.DB_COLLECTION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_SUMMARY;\n+\n+import javax.annotation.Nullable;\n+\n+public class CouchbaseSpanName {\n+\n+  private String operation;\n+  @Nullable private String querySummary;\n+  @Nullable private String collection;\n+  @Nullable private String namespace;\n+  @Nullable private CouchbaseServerTarget serverTarget;\n+  private boolean databaseRequest;\n+\n+  public CouchbaseSpanName(String operation) {\n+    this.operation = operation;\n+  }\n+\n+  public void captureAttribute(String key, @Nullable String value) {\n+    if (DB_QUERY_SUMMARY.getKey().equals(key)) {\n+      querySummary = value;\n+    } else if (DB_COLLECTION_NAME.getKey().equals(key) || \"db.couchbase.collection\".equals(key)) {\n+      collection = value;\n+    } else if (DB_NAMESPACE.getKey().equals(key) || \"db.name\".equals(key)) {\n+      namespace = value;\n+    } else if (DB_OPERATION_NAME.getKey().equals(key) || \"db.operation\".equals(key)) {\n+      if (value != null) {\n+        operation = value;\n+      }\n+    } else if (\"db.statement\".equals(key)) {\n+      querySummary = value;\n+    }",
+      "id": "PRRT_kwDODJKVX86gvH6P",
+      "opened": "2026-09-09T16:05:45Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseSpanName.java",
+      "replies": [
+        {
+          "at": "2026-09-09T16:48:48Z",
+          "body": "Addressed in e9146852d463ff38b10e313f81798c96bfd54072.\n\nAnalysis: Couchbase 3.12.2 maps its V1 collection hook to `couchbase.collection.name`, while V0 maps statements to `db.statement`. The bridge now recognizes the V1 collection key and reserves query-summary naming for the real `db.query.summary` key.\n\nUpsides: Stable KV spans use the collection in their names. Query text and its literals no longer become high-cardinality span names.\n\nDownsides: V0 query spans without a real summary now fall back to the namespace, server target, or operation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3970938499"
+        }
+      ],
+      "reviewed": "b1ba5b826dc5fa0a79737dc6b85c0bf403d96951",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3970539994"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This parsing assumes the Testcontainers connection string always contains exactly one host and an explicit trailing port, and that `lastIndexOf(':')` separates host/port (which won’t hold for IPv6 literals or DNS-SRV style identities). Consider extracting the host/port via Couchbase’s `ConnectionString` API (or another structured parser) to make the test resilient if Testcontainers changes formatting or runs under different networking setups.",
+      "created": "2026-09-09T17:07:17Z",
+      "hunk": "@@ -77,9 +85,16 @@ static void setup() {\n             .build();\n     cleanup.deferAfterAll(environment::shutdown);\n \n+    String connectionString = couchbase.getConnectionString();\n+    String seed = connectionString.substring(connectionString.indexOf(\"://\") + 3);\n+    int portSeparator = seed.lastIndexOf(':');\n+    seedAddress = seed.substring(0, portSeparator);\n+    kvPort = Integer.parseInt(seed.substring(portSeparator + 1));\n+    clusterManagerPort = couchbase.getMappedPort(8091);",
+      "id": "PRRT_kwDODJKVX86gwgO4",
+      "opened": "2026-09-09T17:07:19Z",
+      "path": "instrumentation/couchbase/couchbase-3.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseClient31Test.java",
+      "replies": [
+        {
+          "at": "2026-09-09T17:19:54Z",
+          "body": "Addressed in 726a5f899ea156b111ec59fb3d122ec85d08d8b1.\n\nAnalysis: Both tests split the Testcontainers connection string at its last colon. That treats an IPv6 colon as a host and port separator. The tests now use Couchbase's `ConnectionString` parser and read the parsed seed host and port.\n\nUpsides: The setup and expected attributes use the same structured host and port values that Couchbase reads. IPv6 literals no longer break the test parser.\n\nDownsides: The tests still use the first seed because each Testcontainers instance exposes one Couchbase server.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971178309"
+        }
+      ],
+      "reviewed": "e9146852d463ff38b10e313f81798c96bfd54072",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971084035"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The test derives `server.address` / `server.port` by substringing the connection string, which is brittle (e.g., DNS-SRV style strings without explicit ports, IPv6 literals with multiple ':', or connection strings with additional components). Using Couchbase’s `ConnectionString.create(connectionString)` (or another structured parser) to read hosts/ports would make the test more robust and reduce the chance of CI flakes on different environments.",
+      "created": "2026-09-09T17:07:18Z",
+      "hunk": "@@ -85,27 +87,45 @@ void testEmitsSpans() {\n     }\n \n     testing.waitAndAssertTracesWithoutScopeVersionVerification(\n-        trace -> {\n-          assertThat(trace.getSpan(0).getInstrumentationScopeInfo().getName())\n-              .isEqualTo(\"com.couchbase.client.jvm\");\n-          trace.hasSpansSatisfyingExactly(\n-              span -> {\n-                span.hasKind(testLatestDeps() ? CLIENT : INTERNAL).hasName(\"get\");\n-                if (testLatestDeps()) {\n-                  span.hasStatus(StatusData.error());\n-                }\n-                span.hasAttributesSatisfyingExactly(\n-                    equalTo(maybeStable(DB_SYSTEM), \"couchbase\"),\n-                    equalTo(maybeStable(DB_NAME), \"test\"),\n-                    equalTo(maybeStable(DB_OPERATION), \"get\"),\n-                    equalTo(maybeStable(stringKey(\"db.couchbase.collection\")), \"_default\"),\n-                    equalTo(stringKey(\"db.couchbase.document_id\"), oldOrExperimental(\"id\")),\n-                    equalTo(stringKey(\"db.couchbase.scope\"), oldOrExperimental(\"_default\")),\n-                    equalTo(longKey(\"db.couchbase.retries\"), oldOrExperimental(0L)),\n-                    equalTo(stringKey(\"db.couchbase.service\"), oldOrExperimental(\"kv\")));\n-              },\n-              span -> span.hasName(\"dispatch_to_server\"));\n-        });\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> {\n+                  span.hasKind(testLatestDeps() ? CLIENT : INTERNAL).hasName(spanName());\n+                  if (testLatestDeps()) {\n+                    span.hasStatus(StatusData.error());\n+                  }\n+                  span.hasAttributesSatisfyingExactly(\n+                      equalTo(maybeStable(DB_SYSTEM), \"couchbase\"),\n+                      equalTo(maybeStable(DB_NAME), \"test\"),\n+                      equalTo(maybeStable(DB_OPERATION), \"get\"),\n+                      equalTo(maybeStable(stringKey(\"db.couchbase.collection\")), \"_default\"),\n+                      equalTo(stringKey(\"db.couchbase.document_id\"), oldOrExperimental(\"id\")),\n+                      equalTo(stringKey(\"db.couchbase.scope\"), oldOrExperimental(\"_default\")),\n+                      equalTo(longKey(\"db.couchbase.retries\"), oldOrExperimental(0L)),\n+                      equalTo(stringKey(\"db.couchbase.service\"), oldOrExperimental(\"kv\")),\n+                      equalTo(SERVER_ADDRESS, serverAddress()),\n+                      equalTo(SERVER_PORT, serverPort()));\n+                },\n+                span -> span.hasName(\"dispatch_to_server\")));\n+  }\n+\n+  private static String serverAddress() {\n+    if (!emitStableDatabaseSemconv()) {\n+      return null;\n+    }\n+    String seed = connectionString.substring(connectionString.indexOf(\"://\") + 3);\n+    return seed.substring(0, seed.lastIndexOf(':'));\n+  }\n+\n+  private static Long serverPort() {\n+    if (!emitStableDatabaseSemconv()) {\n+      return null;\n+    }\n+    return Long.valueOf(connectionString.substring(connectionString.lastIndexOf(':') + 1));\n+  }",
+      "id": "PRRT_kwDODJKVX86gwgPf",
+      "opened": "2026-09-09T17:07:19Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseClient32Test.java",
+      "replies": [
+        {
+          "at": "2026-09-09T17:19:56Z",
+          "body": "Addressed in 726a5f899ea156b111ec59fb3d122ec85d08d8b1.\n\nAnalysis: Both tests split the Testcontainers connection string at its last colon. That treats an IPv6 colon as a host and port separator. The tests now use Couchbase's `ConnectionString` parser and read the parsed seed host and port.\n\nUpsides: The setup and expected attributes use the same structured host and port values that Couchbase reads. IPv6 literals no longer break the test parser.\n\nDownsides: The tests still use the first seed because each Testcontainers instance exposes one Couchbase server.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971178584"
+        }
+      ],
+      "reviewed": "e9146852d463ff38b10e313f81798c96bfd54072",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971084090"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Deduplication in `portsByAddress` keys on the raw `port` value, which treats ‘no port (0)’ and an explicitly configured scheme-default port (e.g., 11210 / 11207) as distinct. Depending on how `DbServerTarget` renders endpoints, this can produce duplicate rendered endpoints for the same host (e.g., when one `SeedNode` has no KV port and another explicitly sets the default). Consider normalizing the port used for deduplication so that missing ports and explicit default ports are treated equivalently (e.g., map `port == 0` and `port == defaultPort` to a single canonical value), while still passing `-1` to `addEndpoint()` for the ‘missing’ case.",
+      "created": "2026-09-09T17:07:18Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import com.couchbase.client.core.Core;\n+import com.couchbase.client.core.env.CoreEnvironment;\n+import com.couchbase.client.core.env.SeedNode;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.HashMap;\n+import java.util.HashSet;\n+import java.util.Map;\n+import java.util.Optional;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+// Targets are attached to each core because clusters with different targets can share an\n+// environment.\n+public class CouchbaseServerTargets {\n+\n+  private static final VirtualField<SeedNode, CouchbaseServerTarget> SEED_NODE_TARGETS =\n+      VirtualField.find(SeedNode.class, CouchbaseServerTarget.class);\n+\n+  private static final VirtualField<Core, CouchbaseServerTarget> CORE_TARGETS =\n+      VirtualField.find(Core.class, CouchbaseServerTarget.class);\n+\n+  public static void registerSeedNodes(\n+      Set<SeedNode> seedNodes, @Nullable CouchbaseServerTarget target) {\n+    if (target != null) {\n+      for (SeedNode seedNode : seedNodes) {\n+        if (seedNode != null) {\n+          SEED_NODE_TARGETS.set(seedNode, target);\n+        }\n+      }\n+    }\n+  }\n+\n+  public static void register(Core core, @Nullable CouchbaseServerTarget target) {\n+    if (target != null) {\n+      CORE_TARGETS.set(core, target);\n+    }\n+  }\n+\n+  public static void registerFromSeedNodes(\n+      Core core, @Nullable Set<SeedNode> seedNodes, @Nullable CoreEnvironment environment) {\n+    if (seedNodes == null) {\n+      return;\n+    }\n+    CouchbaseServerTarget target = null;\n+    for (SeedNode seedNode : seedNodes) {\n+      if (seedNode != null) {\n+        target = SEED_NODE_TARGETS.get(seedNode);\n+        if (target != null) {\n+          break;\n+        }\n+      }\n+    }\n+    if (environment != null) {\n+      if (target == null) {\n+        target = target(seedNodes, environment.securityConfig().tlsEnabled());\n+      } else if (!environment.ioConfig().dnsSrvEnabled()) {\n+        target = target.asDirect();\n+      }\n+    }\n+    register(core, target);\n+  }\n+\n+  @Nullable\n+  static CouchbaseServerTarget target(Set<SeedNode> seedNodes, boolean tlsEnabled) {\n+    DbServerTargetBuilder target =\n+        DbServerTarget.builder(\n+                CouchbaseServerTarget.defaultPort(tlsEnabled ? \"couchbases\" : \"couchbase\"))\n+            .setSorted(true);\n+    Map<String, Set<Integer>> portsByAddress = new HashMap<>();\n+    for (SeedNode seedNode : seedNodes) {\n+      if (seedNode == null) {\n+        addSeed(target, portsByAddress, null, 0);\n+      } else {\n+        Optional<Integer> kvPort = seedNode.kvPort();\n+        Optional<Integer> clusterManagerPort = seedNode.clusterManagerPort();\n+        if (!kvPort.isPresent() && !clusterManagerPort.isPresent()) {\n+          addSeed(target, portsByAddress, seedNode.address(), 0);\n+        } else {\n+          if (kvPort.isPresent()) {\n+            addSeed(target, portsByAddress, seedNode.address(), kvPort.get());\n+          }\n+          if (clusterManagerPort.isPresent() && !clusterManagerPort.equals(kvPort)) {\n+            addSeed(target, portsByAddress, seedNode.address(), clusterManagerPort.get());\n+          }\n+        }\n+      }\n+    }\n+    return CouchbaseServerTarget.direct(target.build());\n+  }\n+\n+  private static void addSeed(\n+      DbServerTargetBuilder target,\n+      Map<String, Set<Integer>> portsByAddress,\n+      @Nullable String address,\n+      int port) {\n+    if (address == null) {\n+      target.addEndpoint(null, port > 0 ? port : -1);\n+      return;\n+    }\n+    Set<Integer> ports = portsByAddress.computeIfAbsent(address, ignored -> new HashSet<>());\n+    if (ports.add(port)) {\n+      target.addEndpoint(address, port > 0 ? port : -1);\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86gwgQG",
+      "opened": "2026-09-09T17:07:19Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseServerTargets.java",
+      "replies": [
+        {
+          "at": "2026-09-09T17:19:58Z",
+          "body": "Addressed in 4160f486cc39c6e05853971c3a05fa6628c6965a.\n\nAnalysis: `DbServerTargetBuilder` resolves a missing port to the scheme default. The seed-node deduplication ran before that resolution, so a missing port and an explicit default port survived as two endpoints. The deduplication key now uses the effective default port while preserving the original value passed to the builder.\n\nUpsides: Equivalent seed-node forms render once. Non-default ports remain distinct, and the builder still knows whether the client configured a port explicitly.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971178809"
+        }
+      ],
+      "reviewed": "e9146852d463ff38b10e313f81798c96bfd54072",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971084143"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`emitStableDatabaseSemconv()` is evaluated for every attribute call on the hot path. Since the stability mode is effectively process-wide configuration, consider evaluating it once (e.g., in the span wrapper constructor) and storing it in a boolean field to avoid repeated checks during high-volume attribute recording.",
+      "created": "2026-09-09T17:07:19Z",
+      "hunk": "@@ -61,13 +64,18 @@ public Mono<Void> stop(Duration timeout) {\n   private static final class AgentRequestSpan implements RequestSpan {\n \n     private final CouchbaseSpan delegate;\n+    private final CouchbaseSpanName spanName;\n \n-    private AgentRequestSpan(CouchbaseSpan delegate) {\n+    private AgentRequestSpan(String name, CouchbaseSpan delegate) {\n       this.delegate = delegate;\n+      this.spanName = new CouchbaseSpanName(name);\n     }\n \n     @Override\n     public void attribute(String key, String value) {\n+      if (emitStableDatabaseSemconv()) {\n+        spanName.captureAttribute(key, value);\n+      }\n       delegate.setAttribute(key, value);\n     }",
+      "id": "PRRT_kwDODJKVX86gwgQe",
+      "opened": "2026-09-09T17:07:19Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-09-09T17:19:59Z",
+          "body": "No code change.\n\nAnalysis: `emitStableDatabaseSemconv()` returns a `static final boolean` through a small static method. The JVM can inline that read. Copying it into every request-span wrapper would add a field and a constructor assignment without evidence of a net cost reduction.\n\nUpsides: Keeping the shared accessor avoids per-span state and keeps both Couchbase tracer versions consistent with other instrumentation.\n\nDownsides: The source still contains a method call for each string attribute before JIT compilation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971179016"
+        }
+      ],
+      "reviewed": "e9146852d463ff38b10e313f81798c96bfd54072",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971084193"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`emitStableDatabaseSemconv()` is evaluated on every attribute call, which can be hot for database request spans. Since the stability mode is effectively configuration, consider computing it once (e.g., in the tracer or `AgentRequestSpan` constructor) and storing a boolean flag, then using that flag inside `attribute(...)`/`setAttribute(...)`. This also applies to the equivalent logic in the Couchbase 3.1 request tracer.",
+      "created": "2026-09-09T17:38:46Z",
+      "hunk": "@@ -61,13 +64,18 @@ public Mono<Void> stop(Duration timeout) {\n   private static final class AgentRequestSpan implements RequestSpan {\n \n     private final CouchbaseSpan delegate;\n+    private final CouchbaseSpanName spanName;\n \n-    private AgentRequestSpan(CouchbaseSpan delegate) {\n+    private AgentRequestSpan(String name, CouchbaseSpan delegate) {\n       this.delegate = delegate;\n+      this.spanName = new CouchbaseSpanName(name);\n     }\n \n     @Override\n     public void attribute(String key, String value) {\n+      if (emitStableDatabaseSemconv()) {\n+        spanName.captureAttribute(key, value);\n+      }\n       delegate.setAttribute(key, value);\n     }",
+      "id": "PRRT_kwDODJKVX86gxI-b",
+      "opened": "2026-09-09T17:38:47Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-09-09T17:41:29Z",
+          "body": "No code change.\n\nAnalysis: This repeats the previous review's concern without new evidence or a code change. `emitStableDatabaseSemconv()` returns a `static final boolean` through a small static method. The JVM can inline that read in both tracer versions. A field on every request-span wrapper would add per-span state and constructor work.\n\nUpsides: Keeping the shared accessor avoids duplicate state and keeps both tracer versions consistent.\n\nDownsides: The source still contains a method call for each string attribute before JIT compilation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971367316"
+        }
+      ],
+      "reviewed": "4160f486cc39c6e05853971c3a05fa6628c6965a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971338215"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For non-`couchbase` / non-`couchbases` schemes that may still parse successfully, `CouchbaseServerTarget.defaultPort(scheme)` returns `-1`, which is then passed into `DbServerTarget.builder(-1)`. This can lead to incorrect port-rendering behavior (or potentially a malformed `DbServerTarget`) rather than cleanly returning `null`. Consider explicitly validating the parsed scheme before building the direct target (e.g., compute the default port and return `null` when it’s `< 0`).",
+      "created": "2026-09-09T17:38:46Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import com.couchbase.client.core.util.ConnectionString;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import java.util.Iterator;\n+import javax.annotation.Nullable;\n+\n+// Parsing the connection string preserves configured endpoint order and DNS SRV identity.\n+public class CouchbaseConnectionStrings {\n+\n+  @Nullable\n+  public static CouchbaseServerTarget target(@Nullable String connectionString) {\n+    return target(connectionString, true);\n+  }\n+\n+  @Nullable\n+  public static CouchbaseServerTarget target(\n+      @Nullable String connectionString, boolean dnsSrvEnabled) {\n+    if (connectionString == null || connectionString.isEmpty()) {\n+      return null;\n+    }\n+    try {\n+      return target(ConnectionString.create(connectionString), dnsSrvEnabled);\n+    } catch (RuntimeException ignored) {\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  public static CouchbaseServerTarget target(@Nullable ConnectionString connectionString) {\n+    return target(connectionString, true);\n+  }\n+\n+  @Nullable\n+  public static CouchbaseServerTarget target(\n+      @Nullable ConnectionString connectionString, boolean dnsSrvEnabled) {\n+    if (connectionString == null) {\n+      return null;\n+    }\n+    try {\n+      String scheme = connectionString.scheme().toString();\n+      if (connectionString.isValidDnsSrv()) {\n+        Iterator<ConnectionString.UnresolvedSocket> seeds = connectionString.hosts().iterator();\n+        if (!seeds.hasNext()) {\n+          return null;\n+        }\n+        ConnectionString.UnresolvedSocket seed = seeds.next();\n+        if (seed == null || seeds.hasNext()) {\n+          return null;\n+        }\n+        CouchbaseServerTarget target =\n+            CouchbaseServerTarget.forServiceDiscovery(scheme, seed.hostname());\n+        return dnsSrvEnabled || target == null ? target : target.asDirect();\n+      }\n+      DbServerTargetBuilder target =\n+          DbServerTarget.builder(CouchbaseServerTarget.defaultPort(scheme)).setSorted(false);",
+      "id": "PRRT_kwDODJKVX86gxI_Y",
+      "opened": "2026-09-09T17:38:47Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseConnectionStrings.java",
+      "replies": [
+        {
+          "at": "2026-09-09T17:41:31Z",
+          "body": "No code change.\n\nAnalysis: Couchbase rejects arbitrary schemes before this builder runs. Current releases also accept `couchbase2` for Protostellar. With that supported scheme, `builder(-1)` drops a host with no port and correctly preserves an explicit port. Rejecting every scheme whose default port is unknown would drop valid `couchbase2` targets.\n\nUpsides: Explicit Protostellar targets remain available, while malformed and incomplete targets still return `null`.\n\nDownsides: A `couchbase2` target without an explicit port remains unavailable because this instrumentation does not know its default port.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971367508"
+        }
+      ],
+      "reviewed": "4160f486cc39c6e05853971c3a05fa6628c6965a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971338293"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The local variable name `target` is used for a `DbServerTargetBuilder`, which is easy to confuse with the returned `CouchbaseServerTarget` and with other `target(...)` methods in this class. Renaming the builder variable (and the corresponding `addSeed(DbServerTargetBuilder target, ...)` parameter) to something like `builder` would reduce cognitive overhead and make the code less error-prone.",
+      "created": "2026-09-09T17:38:46Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import com.couchbase.client.core.Core;\n+import com.couchbase.client.core.env.CoreEnvironment;\n+import com.couchbase.client.core.env.SeedNode;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTargetBuilder;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.HashMap;\n+import java.util.HashSet;\n+import java.util.Map;\n+import java.util.Optional;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+// Targets are attached to each core because clusters with different targets can share an\n+// environment.\n+public class CouchbaseServerTargets {\n+\n+  private static final VirtualField<SeedNode, CouchbaseServerTarget> SEED_NODE_TARGETS =\n+      VirtualField.find(SeedNode.class, CouchbaseServerTarget.class);\n+\n+  private static final VirtualField<Core, CouchbaseServerTarget> CORE_TARGETS =\n+      VirtualField.find(Core.class, CouchbaseServerTarget.class);\n+\n+  public static void registerSeedNodes(\n+      Set<SeedNode> seedNodes, @Nullable CouchbaseServerTarget target) {\n+    if (target != null) {\n+      for (SeedNode seedNode : seedNodes) {\n+        if (seedNode != null) {\n+          SEED_NODE_TARGETS.set(seedNode, target);\n+        }\n+      }\n+    }\n+  }\n+\n+  public static void register(Core core, @Nullable CouchbaseServerTarget target) {\n+    if (target != null) {\n+      CORE_TARGETS.set(core, target);\n+    }\n+  }\n+\n+  public static void registerFromSeedNodes(\n+      Core core, @Nullable Set<SeedNode> seedNodes, @Nullable CoreEnvironment environment) {\n+    if (seedNodes == null) {\n+      return;\n+    }\n+    CouchbaseServerTarget target = null;\n+    for (SeedNode seedNode : seedNodes) {\n+      if (seedNode != null) {\n+        target = SEED_NODE_TARGETS.get(seedNode);\n+        if (target != null) {\n+          break;\n+        }\n+      }\n+    }\n+    if (environment != null) {\n+      if (target == null) {\n+        target = target(seedNodes, environment.securityConfig().tlsEnabled());\n+      } else if (!environment.ioConfig().dnsSrvEnabled()) {\n+        target = target.asDirect();\n+      }\n+    }\n+    register(core, target);\n+  }\n+\n+  @Nullable\n+  static CouchbaseServerTarget target(Set<SeedNode> seedNodes, boolean tlsEnabled) {\n+    int defaultPort = CouchbaseServerTarget.defaultPort(tlsEnabled ? \"couchbases\" : \"couchbase\");\n+    DbServerTargetBuilder target = DbServerTarget.builder(defaultPort).setSorted(true);\n+    Map<String, Set<Integer>> portsByAddress = new HashMap<>();\n+    for (SeedNode seedNode : seedNodes) {\n+      if (seedNode == null) {\n+        addSeed(target, portsByAddress, null, 0, defaultPort);\n+      } else {\n+        Optional<Integer> kvPort = seedNode.kvPort();\n+        Optional<Integer> clusterManagerPort = seedNode.clusterManagerPort();\n+        if (!kvPort.isPresent() && !clusterManagerPort.isPresent()) {\n+          addSeed(target, portsByAddress, seedNode.address(), 0, defaultPort);\n+        } else {\n+          if (kvPort.isPresent()) {\n+            addSeed(target, portsByAddress, seedNode.address(), kvPort.get(), defaultPort);\n+          }\n+          if (clusterManagerPort.isPresent() && !clusterManagerPort.equals(kvPort)) {\n+            addSeed(\n+                target, portsByAddress, seedNode.address(), clusterManagerPort.get(), defaultPort);\n+          }\n+        }\n+      }\n+    }\n+    return CouchbaseServerTarget.direct(target.build());\n+  }\n+\n+  private static void addSeed(\n+      DbServerTargetBuilder target,\n+      Map<String, Set<Integer>> portsByAddress,\n+      @Nullable String address,\n+      int port,\n+      int defaultPort) {\n+    if (address == null) {\n+      target.addEndpoint(null, port > 0 ? port : -1);\n+      return;\n+    }\n+    Set<Integer> ports = portsByAddress.computeIfAbsent(address, ignored -> new HashSet<>());\n+    if (ports.add(port > 0 ? port : defaultPort)) {\n+      target.addEndpoint(address, port > 0 ? port : -1);",
+      "id": "PRRT_kwDODJKVX86gxJAC",
+      "opened": "2026-09-09T17:38:47Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseServerTargets.java",
+      "replies": [
+        {
+          "at": "2026-09-09T17:41:32Z",
+          "body": "No code change.\n\nAnalysis: `target` names the server target being assembled throughout this short method. The declared `DbServerTargetBuilder` type distinguishes the builder from the returned `CouchbaseServerTarget`. Renaming it is a preference and does not fix a defect.\n\nUpsides: Keeping the name avoids a review-only rename with no behavior change.\n\nDownsides: A reader may prefer the more mechanical name `builder`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971367692"
+        }
+      ],
+      "reviewed": "4160f486cc39c6e05853971c3a05fa6628c6965a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971338356"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This helper hides the two short mode-dependent expected names. Keep both values visible at the assertion by inlining `emitStableDatabaseSemconv() ? \"get _default\" : \"get\"` in `hasName(...)`, then remove this method.",
+      "created": "2026-09-09T18:02:36Z",
+      "hunk": "@@ -100,33 +115,40 @@ void testEmitsSpans() {\n     }\n \n     testing.waitAndAssertTracesWithoutScopeVersionVerification(\n-        trace -> {\n-          assertThat(trace.getSpan(0).getInstrumentationScopeInfo().getName())\n-              .isEqualTo(\n-                  testLatestDeps()\n-                      ? \"com.couchbase.client.jvm\"\n-                      : v3Preview()\n-                          ? \"io.opentelemetry.couchbase-3.1\"\n-                          : \"io.opentelemetry.javaagent.couchbase-3.1\");\n-          trace.hasSpansSatisfyingExactly(\n-              span -> {\n-                span.hasKind(INTERNAL) // later version of couchbase gives correct behavior\n-                    .hasName(\"get\")\n-                    .hasStatus(\n-                        StatusData.unset()) // later version of couchbase gives correct behavior\n-                    .hasAttributesSatisfyingExactly(\n-                        equalTo(maybeStable(DB_SYSTEM), \"couchbase\"),\n-                        equalTo(maybeStable(DB_NAME), \"test\"),\n-                        equalTo(maybeStable(DB_OPERATION), \"get\"),\n-                        equalTo(maybeStable(stringKey(\"db.couchbase.collection\")), \"_default\"),\n-                        equalTo(stringKey(\"db.couchbase.scope\"), oldOrExperimental(\"_default\")),\n-                        equalTo(\n-                            longKey(\"db.couchbase.retries\"),\n-                            oldOrExperimental(testLatestDeps() ? 0L : null)),\n-                        equalTo(stringKey(\"db.couchbase.service\"), oldOrExperimental(\"kv\")));\n-              },\n-              span -> span.hasName(\"dispatch_to_server\"));\n-        });\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> {\n+                  span.hasKind(INTERNAL) // later version of couchbase gives correct behavior\n+                      .hasName(spanName())\n+                      .hasStatus(\n+                          StatusData.unset()) // later version of couchbase gives correct behavior\n+                      .hasAttributesSatisfyingExactly(\n+                          equalTo(maybeStable(DB_SYSTEM), \"couchbase\"),\n+                          equalTo(maybeStable(DB_NAME), \"test\"),\n+                          equalTo(maybeStable(DB_OPERATION), \"get\"),\n+                          equalTo(maybeStable(stringKey(\"db.couchbase.collection\")), \"_default\"),\n+                          equalTo(stringKey(\"db.couchbase.scope\"), oldOrExperimental(\"_default\")),\n+                          equalTo(stringKey(\"db.couchbase.service\"), oldOrExperimental(\"kv\")),\n+                          equalTo(\n+                              longKey(\"db.couchbase.retries\"),\n+                              oldOrExperimental(testLatestDeps() ? 0L : null)),\n+                          equalTo(SERVER_ADDRESS, serverAddress()),\n+                          equalTo(SERVER_PORT, null));\n+                },\n+                span -> span.hasName(\"dispatch_to_server\")));\n+  }\n+\n+  private static String serverAddress() {\n+    if (!emitStableDatabaseSemconv()) {\n+      return null;\n+    }\n+    String[] endpoints = {seedAddress + \":\" + kvPort, seedAddress + \":\" + clusterManagerPort};\n+    Arrays.sort(endpoints);\n+    return String.join(\",\", endpoints);\n+  }\n+\n+  private static String spanName() {\n+    return emitStableDatabaseSemconv() ? \"get _default\" : \"get\";\n   }",
+      "id": "PRRT_kwDODJKVX86gxm7z",
+      "opened": "2026-09-09T18:02:37Z",
+      "path": "instrumentation/couchbase/couchbase-3.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseClient31Test.java",
+      "replies": [
+        {
+          "at": "2026-09-09T18:06:02Z",
+          "body": "Addressed in 25a9dc300f6bbfbc3e026dc3a500b6efbf196df6.\n\nAnalysis: The span-name, server-address, and server-port helpers only hid short mode-dependent expected values. The assertions now show both expected shapes directly. The nontrivial Couchbase 3.1 endpoint sorting remains in its helper.\n\nUpsides: Readers can see each stable and legacy expectation where the test checks it. The tests follow the repository's mode-dependent assertion pattern.\n\nDownsides: The stable-mode condition is repeated in the assertions.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971553138"
+        }
+      ],
+      "reviewed": "4160f486cc39c6e05853971c3a05fa6628c6965a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971526242"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This helper only chooses a short mode-dependent expected value. Inline `emitStableDatabaseSemconv() ? seedAddress : null` at the `SERVER_ADDRESS` assertion so both expected shapes remain visible, then remove this method.\n\nThis issue also appears in the following locations of the same file:\n- line 125\n- line 132",
+      "created": "2026-09-09T18:02:36Z",
+      "hunk": "@@ -85,27 +93,44 @@ void testEmitsSpans() {\n     }\n \n     testing.waitAndAssertTracesWithoutScopeVersionVerification(\n-        trace -> {\n-          assertThat(trace.getSpan(0).getInstrumentationScopeInfo().getName())\n-              .isEqualTo(\"com.couchbase.client.jvm\");\n-          trace.hasSpansSatisfyingExactly(\n-              span -> {\n-                span.hasKind(testLatestDeps() ? CLIENT : INTERNAL).hasName(\"get\");\n-                if (testLatestDeps()) {\n-                  span.hasStatus(StatusData.error());\n-                }\n-                span.hasAttributesSatisfyingExactly(\n-                    equalTo(maybeStable(DB_SYSTEM), \"couchbase\"),\n-                    equalTo(maybeStable(DB_NAME), \"test\"),\n-                    equalTo(maybeStable(DB_OPERATION), \"get\"),\n-                    equalTo(maybeStable(stringKey(\"db.couchbase.collection\")), \"_default\"),\n-                    equalTo(stringKey(\"db.couchbase.document_id\"), oldOrExperimental(\"id\")),\n-                    equalTo(stringKey(\"db.couchbase.scope\"), oldOrExperimental(\"_default\")),\n-                    equalTo(longKey(\"db.couchbase.retries\"), oldOrExperimental(0L)),\n-                    equalTo(stringKey(\"db.couchbase.service\"), oldOrExperimental(\"kv\")));\n-              },\n-              span -> span.hasName(\"dispatch_to_server\"));\n-        });\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> {\n+                  span.hasKind(testLatestDeps() ? CLIENT : INTERNAL).hasName(spanName());\n+                  if (testLatestDeps()) {\n+                    span.hasStatus(StatusData.error());\n+                  }\n+                  span.hasAttributesSatisfyingExactly(\n+                      equalTo(maybeStable(DB_SYSTEM), \"couchbase\"),\n+                      equalTo(maybeStable(DB_NAME), \"test\"),\n+                      equalTo(maybeStable(DB_OPERATION), \"get\"),\n+                      equalTo(maybeStable(stringKey(\"db.couchbase.collection\")), \"_default\"),\n+                      equalTo(stringKey(\"db.couchbase.document_id\"), oldOrExperimental(\"id\")),\n+                      equalTo(stringKey(\"db.couchbase.scope\"), oldOrExperimental(\"_default\")),\n+                      equalTo(longKey(\"db.couchbase.retries\"), oldOrExperimental(0L)),\n+                      equalTo(stringKey(\"db.couchbase.service\"), oldOrExperimental(\"kv\")),\n+                      equalTo(SERVER_ADDRESS, serverAddress()),\n+                      equalTo(SERVER_PORT, serverPort()));\n+                },\n+                span -> span.hasName(\"dispatch_to_server\")));\n+  }\n+\n+  private static String serverAddress() {\n+    if (!emitStableDatabaseSemconv()) {\n+      return null;\n+    }\n+    return seedAddress;",
+      "id": "PRRT_kwDODJKVX86gxm8R",
+      "opened": "2026-09-09T18:02:37Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseClient32Test.java",
+      "replies": [
+        {
+          "at": "2026-09-09T18:06:04Z",
+          "body": "Addressed in 25a9dc300f6bbfbc3e026dc3a500b6efbf196df6.\n\nAnalysis: The span-name, server-address, and server-port helpers only hid short mode-dependent expected values. The assertions now show both expected shapes directly. The nontrivial Couchbase 3.1 endpoint sorting remains in its helper.\n\nUpsides: Readers can see each stable and legacy expectation where the test checks it. The tests follow the repository's mode-dependent assertion pattern.\n\nDownsides: The stable-mode condition is repeated in the assertions.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971553393"
+        }
+      ],
+      "reviewed": "4160f486cc39c6e05853971c3a05fa6628c6965a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3971526291"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The cast is redundant: this assertion helper already accepts an `int` for an `AttributeKey<Long>`. Keeping `seedPort` as an `int` also preserves the mode-dependent expectation without extra conversion.",
+      "created": "2026-09-09T23:22:31Z",
+      "hunk": "@@ -85,27 +93,27 @@ void testEmitsSpans() {\n     }\n \n     testing.waitAndAssertTracesWithoutScopeVersionVerification(\n-        trace -> {\n-          assertThat(trace.getSpan(0).getInstrumentationScopeInfo().getName())\n-              .isEqualTo(\"com.couchbase.client.jvm\");\n-          trace.hasSpansSatisfyingExactly(\n-              span -> {\n-                span.hasKind(testLatestDeps() ? CLIENT : INTERNAL).hasName(\"get\");\n-                if (testLatestDeps()) {\n-                  span.hasStatus(StatusData.error());\n-                }\n-                span.hasAttributesSatisfyingExactly(\n-                    equalTo(maybeStable(DB_SYSTEM), \"couchbase\"),\n-                    equalTo(maybeStable(DB_NAME), \"test\"),\n-                    equalTo(maybeStable(DB_OPERATION), \"get\"),\n-                    equalTo(maybeStable(stringKey(\"db.couchbase.collection\")), \"_default\"),\n-                    equalTo(stringKey(\"db.couchbase.document_id\"), oldOrExperimental(\"id\")),\n-                    equalTo(stringKey(\"db.couchbase.scope\"), oldOrExperimental(\"_default\")),\n-                    equalTo(longKey(\"db.couchbase.retries\"), oldOrExperimental(0L)),\n-                    equalTo(stringKey(\"db.couchbase.service\"), oldOrExperimental(\"kv\")));\n-              },\n-              span -> span.hasName(\"dispatch_to_server\"));\n-        });\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> {\n+                  span.hasKind(testLatestDeps() ? CLIENT : INTERNAL)\n+                      .hasName(emitStableDatabaseSemconv() ? \"get _default\" : \"get\");\n+                  if (testLatestDeps()) {\n+                    span.hasStatus(StatusData.error());\n+                  }\n+                  span.hasAttributesSatisfyingExactly(\n+                      equalTo(maybeStable(DB_SYSTEM), \"couchbase\"),\n+                      equalTo(maybeStable(DB_NAME), \"test\"),\n+                      equalTo(maybeStable(DB_OPERATION), \"get\"),\n+                      equalTo(maybeStable(stringKey(\"db.couchbase.collection\")), \"_default\"),\n+                      equalTo(stringKey(\"db.couchbase.document_id\"), oldOrExperimental(\"id\")),\n+                      equalTo(stringKey(\"db.couchbase.scope\"), oldOrExperimental(\"_default\")),\n+                      equalTo(longKey(\"db.couchbase.retries\"), oldOrExperimental(0L)),\n+                      equalTo(stringKey(\"db.couchbase.service\"), oldOrExperimental(\"kv\")),\n+                      equalTo(SERVER_ADDRESS, emitStableDatabaseSemconv() ? seedAddress : null),\n+                      equalTo(SERVER_PORT, emitStableDatabaseSemconv() ? (long) seedPort : null));",
+      "id": "PRRT_kwDODJKVX86g3mt9",
+      "opened": "2026-09-09T23:22:32Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseClient32Test.java",
+      "replies": [
+        {
+          "at": "2026-09-09T23:57:33Z",
+          "body": "No code change.\n\nAnalysis: The nullable branch requires a boxed `Long`. Removing the cast selects `equalTo(AttributeKey<Long>, int)`, and Java then tries to unbox `null` in the false branch. `compileTestJava` reports `NullTernary` and `NullArgumentForNonNullParameter`. The cast makes the conditional type `Long` and preserves `null` as \"attribute absent\".\n\nUpsides: Keeping the cast preserves the mode-dependent assertion and avoids an invalid null unboxing.\n\nDownsides: The explicit cast can look redundant when the nullable branch is read in isolation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3974097213"
+        }
+      ],
+      "reviewed": "1e91cbb266430c327dc2c0d670b949a07f298d74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3973901654"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This lookup cannot recover the target for supported Protostellar (`couchbase2://`) requests in current Couchbase 3.x. The SDK creates a `CoreProtostellar` (not `Core`) for that scheme, and `ProtostellarBaseRequest.context()` constructs its `RequestContext` with a null `Core`, so this always resolves to null and stable spans omit the configured `server.address`/`server.port` even though the parser intentionally accepts `couchbase2`. Please associate the target with a carrier available on the Protostellar request path and cover it in the latest-deps test.",
+      "created": "2026-09-10T00:05:30Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_1;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+\n+import com.couchbase.client.core.msg.RequestContext;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_0.CouchbaseSpan;\n+\n+public final class CouchbaseConfiguredTarget {\n+\n+  public static void capture(\n+      CouchbaseSpan span, CouchbaseSpanName spanName, RequestContext requestContext) {\n+    if (!emitStableDatabaseSemconv()) {\n+      return;\n+    }\n+    CouchbaseServerTarget target = CouchbaseServerTargets.get(requestContext.core());",
+      "id": "PRRT_kwDODJKVX86g4K6P",
+      "opened": "2026-09-10T00:05:30Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_1/CouchbaseConfiguredTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-10T00:41:32Z",
+          "body": "Addressed in 21e9e0da4e48fca19949e48e840eec1a7589c852.\n\nAnalysis: `CoreProtostellar` receives the parsed connection string, but its request context has no `Core`. Store the parsed target on the `CoreProtostellar`, copy it to each `ProtostellarBaseRequest`, and read it from `RequestContext.request()`. Dynamically registered virtual fields keep these associations tied to the exact SDK carriers without raising the module's Couchbase 3.2 minimum version.\n\nUpsides: Stable Protostellar spans report the configured server address and port. The latest-deps test covers the null-Core request path. Older Couchbase 3.2 clients remain supported.\n\nDownsides: This adds two constructor advice hooks and dynamic virtual field lookup for SDK classes that do not exist in the minimum supported version.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3974395201"
+        }
+      ],
+      "reviewed": "1e91cbb266430c327dc2c0d670b949a07f298d74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844#discussion_r3974136803"
+    }
+  ]
+}

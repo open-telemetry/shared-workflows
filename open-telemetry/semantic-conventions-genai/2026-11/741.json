@@ -1,0 +1,31 @@
+{
+  "head": "bd3581f505d5292f860e7f2102958425eb300317",
+  "merge": "9f72b7f2ad759d49e61304dc4649ce2e68d29716",
+  "merged": "2026-11-21T00:05:54Z",
+  "missing_roots": 0,
+  "number": 741,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the CI failures caused by the conformance pin bump in this PR and push the necessary changes to this existing PR, open-telemetry/semantic-conventions-genai#741, head repository open-telemetry/semantic-conventions-genai, branch copilot/bump-conformance-pin. Do not create a separate requested PR. Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. Keep any platform-assigned follow-up branch if GitHub creates one.\n\nThe user explicitly requested \"fix and push\". Preserve CONFORMANCE_REF=00c0e86daae738ccb8b67e4ab2fac13111ead42e and the non-terminal OpenAI background response behavior needed for #516. Do not modify #516 or add its proposed polling/usage conventions.\n\nInspect the failed CI run https://github.com/open-telemetry/semantic-conventions-genai/actions/runs/44834166968. Five reference scenarios pass execution but fail git diff --exit-code on generated data.json: agent-framework, google-adk, langchain, openai, and openai-agents. The runner now recognizes existing emitted fields: skill fields in agent-framework/google-adk, transfer/process fields in openai-agents/google-adk/langchain, and openai.api.type/openai.response.service_tier in openai. Regenerate these snapshots using the repository tooling, do not hand-edit them or remove correct emitted telemetry to suppress the diff.\n\nThe MCP scenario fails because two expected genai_span_name_format violations are no longer reported: execute_tool get_weather and execute_tool missing_tool. Inspect reference/scenarios/mcp expected_violations configuration, remove the obsolete expectations if confirmed, and regenerate its output as needed. Do not weaken validation or add blanket ignores. Refresh directly affected generated reports using the repository generation workflow if required.\n\nRun the narrowest relevant scenario validation for all six affected libraries and verify the regenerated outputs are stable. Fix any other directly coupled failures from this pin bump if encountered, without unrelated cleanup, convention changes, dependency downgrades, or modifications to CI checks. Commit and push the changes. Acceptance: the conformance pin is retained, all six affected scenarios run successfully, committed generated data matches reruns, and no obsolete MCP expected violations remain. The coordinating session handles PR title/description adjustments and Copilot review.",
+      "created": "2026-11-20T23:20:46Z",
+      "hunk": "@@ -7,4 +7,4 @@ POLICY_REPO_REF=eacd25ceaa59489a6dd132a12693ccec12e695a4\n \n # renovate: datasource=git-refs depName=open-telemetry/semantic-conventions-conformance versioning=git ref=main\n CONFORMANCE_REPO_URL=https://github.com/open-telemetry/semantic-conventions-conformance.git\n-CONFORMANCE_REF=a8e3cf41548ea41e5eb4c693a3c4b3f67ab88bd5\n+CONFORMANCE_REF=00c0e86daae738ccb8b67e4ab2fac13111ead42e",
+      "id": "PRRT_kwDOSUeMrM66NqXo",
+      "opened": "2026-11-20T23:20:46Z",
+      "path": "versions.env",
+      "replies": [
+        {
+          "at": "2026-11-20T23:24:28Z",
+          "body": "Fixed in bd3581f. All six scenarios pass twice in strict mode, and their regenerated snapshots and reports are stable.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/741#discussion_r4648857814"
+        }
+      ],
+      "reviewed": "431aec2dabbd38264d01e4a26d28e5ad6ff88de7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/741#discussion_r4648827114"
+    }
+  ]
+}

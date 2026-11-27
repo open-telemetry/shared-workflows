@@ -1,0 +1,73 @@
+{
+  "head": "87a827b0127ce684c83547388c8d3d09508220b5",
+  "merge": "9330f2a10b33887e6131b499d3fb88b923cf5c76",
+  "merged": "2026-07-13T18:12:52Z",
+  "missing_roots": 0,
+  "number": 19199,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The test casts `future` to `FutureInternal` without first asserting it implements that interface. If Vert.x ever changes the empty-batch return type, this would fail with a `ClassCastException` instead of a clear assertion failure. Add an `isInstanceOf(FutureInternal.class)` assertion before the cast (similar to the Promise check).",
+      "created": "2026-07-13T01:46:53Z",
+      "hunk": "@@ -213,6 +218,24 @@ void commandWithNoArguments() throws Exception {\n                             redisSpanAttributes(\"RANDOMKEY\", \"RANDOMKEY\"))));\n   }\n \n+  @Test\n+  void emptyBatchDoesNotStartSpan() {\n+    // Vert.x never completes the future returned by batch(emptyList()), so this test cannot wait\n+    // for completion like the regular batch tests. Starting a span would replace the pending future\n+    // with a span-ending wrapper, but the span would never end or become exportable. The original\n+    // Vert.x promise retains its event-loop context, while the wrapper does not.\n+    Future<List<Response>> future = connection.batch(emptyList());\n+\n+    assertThat(future.isComplete()).isFalse();\n+    assertThat(future).isInstanceOf(Promise.class);\n+    assertThat(((FutureInternal<?>) future).context()).isNotNull();\n+",
+      "id": "PRRT_kwDODJKVX86QQaiG",
+      "opened": "2026-07-13T01:46:53Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+      "replies": [
+        {
+          "at": "2026-07-13T02:10:06Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/612afad1936794245151aead09dcb123e8902585.\n\nAdded an explicit FutureInternal type assertion before the cast.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19199#discussion_r3567667322"
+        }
+      ],
+      "reviewed": "53e936ef011ec8946fc114ecddd7bdbb2fa19d55",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19199#discussion_r3567610967"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Batch instrumentation still starts a span for empty request lists (and for non-4.0.x will also wrap the returned Future). This contradicts the PR goal of skipping instrumentation for empty batches and exporting no span. Consider short-circuiting in start() when requests.isEmpty() so the original Future is returned unchanged and no span is created.",
+      "created": "2026-07-13T16:05:15Z",
+      "hunk": "@@ -147,7 +170,8 @@ public static BatchAdviceScope start(\n           return null;\n         }\n         Context context = instrumenter().start(parentContext, otelRequest);\n-        return new BatchAdviceScope(otelRequest, context, context.makeCurrent());\n+        return new BatchAdviceScope(\n+            otelRequest, context, context.makeCurrent(), requests.isEmpty());\n       }",
+      "id": "PRRT_kwDODJKVX86QdK8h",
+      "opened": "2026-07-13T16:05:16Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/RedisStandaloneConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-13T17:05:24Z",
+          "body": "No code change needed. The PR now intentionally captures empty batches as PIPELINE spans. I updated the title and description to document synchronous span ending for Vert.x Redis 4.0.0 through 4.0.3 and normal asynchronous completion starting with 4.1.0.Beta1.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19199#discussion_r3572608848"
+        }
+      ],
+      "reviewed": "87a827b0127ce684c83547388c8d3d09508220b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19199#discussion_r3572185629"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This regression test currently asserts that an empty batch produces a PIPELINE span. The PR description says empty batches should skip instrumentation and export no span. The assertion should be updated to validate that no traces/spans are exported for emptyBatch().",
+      "created": "2026-07-13T16:05:16Z",
+      "hunk": "@@ -213,6 +216,45 @@ void commandWithNoArguments() throws Exception {\n                             redisSpanAttributes(\"RANDOMKEY\", \"RANDOMKEY\"))));\n   }\n \n+  @Test\n+  void emptyBatch() throws Exception {\n+    Future<List<Response>> future = connection.batch(emptyList());\n+\n+    if (isVertx40x() && !future.isComplete()) {\n+      // Vert.x 4.0.x never completes an empty batch. Complete it only to clean up the test.\n+      assertThat(\n+              future\n+                  .getClass()\n+                  .getMethod(\"tryComplete\", Object.class)\n+                  .invoke(future, (Object) null))\n+          .isEqualTo(true);\n+    } else {\n+      assertThat(future.toCompletionStage().toCompletableFuture().get(30, SECONDS)).isEmpty();\n+    }\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\n+                            emitStableDatabaseSemconv()\n+                                ? \"PIPELINE \" + host + \":\" + port\n+                                : \"PIPELINE\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(redisSpanAttributes(\"PIPELINE\", \"\", 0L))));\n+  }",
+      "id": "PRRT_kwDODJKVX86QdK9C",
+      "opened": "2026-07-13T16:05:16Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+      "replies": [
+        {
+          "at": "2026-07-13T17:05:26Z",
+          "body": "No code change needed. The PIPELINE span assertion is intentional. I updated the PR title and description, which still described the superseded no-span approach and caused this mismatch.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19199#discussion_r3572609100"
+        }
+      ],
+      "reviewed": "87a827b0127ce684c83547388c8d3d09508220b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19199#discussion_r3572185669"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "6c7c4338776f834e1339d8fb8ffa4ea767bc3754",
+  "merge": "a1abe011fdfa7968edbc8af7b5e84f06fbad8fca",
+  "merged": "2026-04-25T21:12:35Z",
+  "missing_roots": 0,
+  "number": 18229,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With the deprecated boolean removed, the only way to disable query redaction is now implicitly via configuring this new list to be empty. Consider updating the corresponding metadata descriptions (and/or docs) to explicitly state how to disable redaction (e.g., “set the list to empty to disable redaction”), since previously users could set a boolean to `false`.",
+      "created": "2026-04-23T14:36:02Z",
+      "hunk": "@@ -77,26 +72,15 @@ public CommonConfig(OpenTelemetry openTelemetry) {\n             .get(\"client\")\n             .getBoolean(\"emit_experimental_telemetry/development\", false);\n \n-    Boolean oldRedact =\n-        commonConfig.get(\"http\").get(\"client\").getBoolean(\"redact_query_parameters/development\");\n-    if (oldRedact != null) {\n-      logger.warning(\n-          \"otel.instrumentation.http.client.experimental.redact-query-parameters is deprecated. \"\n-              + \"Use otel.instrumentation.sanitization.url.experimental.sensitive-query-parameters instead.\");\n-    }\n-    List<String> newConfigValue =\n+    List<String> sensitiveQueryParameterList =\n         generalConfig\n             .get(\"sanitization\")\n             .get(\"url\")\n             .getScalarList(\"sensitive_query_parameters/development\", String.class);\n-\n-    if (newConfigValue != null) {\n-      sensitiveQueryParameters = new HashSet<>(newConfigValue);\n-    } else if (oldRedact != null) {\n-      sensitiveQueryParameters = oldRedact ? HttpConstants.SENSITIVE_QUERY_PARAMETERS : emptySet();\n-    } else {\n-      sensitiveQueryParameters = HttpConstants.SENSITIVE_QUERY_PARAMETERS;\n-    }\n+    sensitiveQueryParameters =\n+        sensitiveQueryParameterList != null\n+            ? new HashSet<>(sensitiveQueryParameterList)\n+            : HttpConstants.SENSITIVE_QUERY_PARAMETERS;",
+      "id": "PRRT_kwDODJKVX859IAt6",
+      "opened": "2026-04-23T14:36:03Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+      "replies": [],
+      "reviewed": "e70705628b5fb3e72eaaa016861805662c663627",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18229#discussion_r3131593194"
+    }
+  ]
+}

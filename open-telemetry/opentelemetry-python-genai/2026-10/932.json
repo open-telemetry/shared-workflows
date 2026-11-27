@@ -1,0 +1,25 @@
+{
+  "head": "498cd0e86af994618a4d0c33c985a0265fda8c40",
+  "merge": "ed76b4f82444e2d0846ce7d9cfd5257426cfb01c",
+  "merged": "2026-10-22T03:45:27Z",
+  "missing_roots": 0,
+  "number": 932,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the streamed path never recorded the empty part on main, so only the non-streamed behavior changes for users.\n\n```suggestion\nStop recording an empty reasoning part for redacted Converse reasoning content.\n```",
+      "created": "2026-10-22T03:29:23Z",
+      "hunk": "@@ -0,0 +1 @@\n+Stop recording an empty reasoning part for redacted Converse reasoning content, in both the streamed and the non-streamed path.",
+      "id": "PRRT_kwDOSbspP86vCVPM",
+      "opened": "2026-10-22T03:30:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/.changelog/932.fixed",
+      "replies": [],
+      "reviewed": "ca0f437926b3595278a8f9e8f06eaf94aa358f06",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/932#discussion_r4344266146"
+    }
+  ]
+}

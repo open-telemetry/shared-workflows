@@ -1,0 +1,40 @@
+{
+  "head": "b02ddb081127f8f35f05205777aa9f3b32053acd",
+  "merge": "e3e2ed11e32c22b1ee5e1963588320e41d734e70",
+  "merged": "2026-08-26T04:27:52Z",
+  "missing_roots": 0,
+  "number": 79,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "https://github.com/open-telemetry/opentelemetry-python-genai/issues/471",
+      "created": "2026-08-25T03:53:24Z",
+      "hunk": "@@ -9,9 +9,6 @@\n       \"gen_ai.request.model\",\n       \"gen_ai.request.stop_sequences\",\n       \"gen_ai.request.stream\",\n-      \"gen_ai.request.temperature\",\n-      \"gen_ai.request.top_k\",\n-      \"gen_ai.request.top_p\",",
+      "id": "PRRT_kwDOTuzK5c6b7igh",
+      "opened": "2026-08-25T03:53:24Z",
+      "path": "scenarios/gen-ai/python/anthropic/opentelemetry-anthropic/data.json",
+      "replies": [],
+      "reviewed": "40bc939cbe56400784e544a054fc16d0e4053f57",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/79#discussion_r3849425212"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-08-25T03:53:49Z",
+      "hunk": "@@ -12,6 +12,11 @@\n have an attribute for and Anthropic accepts. There is no seed and there are no\n penalties in this API, so those are absent from the request rather than\n silently missing from the coverage.\n+\n+The sampling options go through ``extra_body`` because anthropic 1.0 dropped\n+them from the method signatures. They are still model-level REST parameters,\n+merged into the request body as-is, so the request is unchanged from 0.x and\n+the conventions still expect the attributes.",
+      "id": "PRRT_kwDOTuzK5c6b7iwY",
+      "opened": "2026-08-25T03:53:49Z",
+      "path": "scenarios/gen-ai/python/anthropic/scenarios/inference.py",
+      "replies": [],
+      "reviewed": "40bc939cbe56400784e544a054fc16d0e4053f57",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/79#discussion_r3849426748"
+    }
+  ]
+}

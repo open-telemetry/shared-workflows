@@ -1,0 +1,25 @@
+{
+  "head": "e161af85eeba364776919d78c6bccbcda0e7239d",
+  "merge": "5b8b8e5640e817ee9b7b845c8558feaa41e8f8ed",
+  "merged": "2026-08-28T23:15:40Z",
+  "missing_roots": 0,
+  "number": 97,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why multiple scenarios? \n\nalso where are non-native instrumentations?",
+      "created": "2026-08-25T05:46:00Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a Pydantic AI agent run that calls a tool.\n+\n+The tool actually runs, which is the point: an agent framework executes the\n+call itself rather than handing it back, so the tool execution is a span of\n+its own and not just a message in the next request.\n+\"\"\"\n+\n+from pydantic_ai import Agent\n+from pydantic_ai.models.openai import OpenAIChatModel\n+from pydantic_ai.settings import ModelSettings\n+\n+Agent.instrument_all()\n+\n+agent = Agent(",
+      "id": "PRRT_kwDOTuzK5c6b8wk1",
+      "opened": "2026-08-25T05:46:00Z",
+      "path": "scenarios/gen-ai/python/pydantic-ai/native/scenarios/automatic_tool_calling.py",
+      "replies": [],
+      "reviewed": "4c727064ad272ad347a3a219481de0cca9e4e0f1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/97#discussion_r3849904428"
+    }
+  ]
+}

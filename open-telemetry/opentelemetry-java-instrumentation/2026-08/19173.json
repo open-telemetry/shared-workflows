@@ -1,0 +1,130 @@
+{
+  "head": "3005aaf9bda47012f1e9dd451774f3a9e0c1c9e9",
+  "merge": "e5c11e16fc8d2cf02c7b1ef47eed8524897013ea",
+  "merged": "2026-08-02T19:14:20Z",
+  "missing_roots": 0,
+  "number": 19173,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This recognizes any name with the prefix and class-hash suffix, even though Tomcat's generated format requires the middle segment to be an integer counter. For example, an explicitly configured `Tomcat Connection Pool[orders-<class hash>]` is incorrectly rewritten to `jdbc-*`, contradicting the requirement to preserve configured names. Validate the counter segment before treating the name as generated.",
+      "created": "2026-07-10T04:05:03Z",
+      "hunk": "@@ -77,6 +84,19 @@ private static BatchCallback createInstruments(DataSourceProxy dataSource) {\n         pendingRequestsForConnection);\n   }\n \n+  private static String getPoolName(DataSourceProxy dataSource) {\n+    String poolName = dataSource.getPoolName();\n+    if (poolName == null || isDefaultTomcatPoolName(poolName)) {\n+      return DEFAULT_POOL_NAME + \"-\" + idGenerator.getAndIncrement();\n+    }\n+    return poolName;\n+  }\n+\n+  private static boolean isDefaultTomcatPoolName(String poolName) {\n+    return poolName.startsWith(TOMCAT_DEFAULT_POOL_NAME_PREFIX)\n+        && poolName.endsWith(TOMCAT_DEFAULT_POOL_NAME_SUFFIX);\n+  }",
+      "id": "PRRT_kwDODJKVX86PxMug",
+      "opened": "2026-07-10T04:05:04Z",
+      "path": "instrumentation/tomcat/tomcat-jdbc-8.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/jdbc/v8_5/TomcatConnectionPoolMetrics.java",
+      "replies": [],
+      "reviewed": "b5ab33f3d0f754c866c2b87de13c3f991ba4baed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19173#discussion_r3556296181"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Pending the discussion in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3564889077, I think we should avoid process-local `-N` suffixes here. If no stable name exists, use a stable fallback and let duplicates merge so metric identities remain consistent across restarts.",
+      "created": "2026-07-13T21:23:01Z",
+      "hunk": "@@ -77,6 +84,19 @@ private static BatchCallback createInstruments(DataSourceProxy dataSource) {\n         pendingRequestsForConnection);\n   }\n \n+  private static String getPoolName(DataSourceProxy dataSource) {\n+    String poolName = dataSource.getPoolName();\n+    if (poolName == null || isDefaultTomcatPoolName(poolName)) {\n+      return DEFAULT_POOL_NAME + \"-\" + idGenerator.getAndIncrement();",
+      "id": "PRRT_kwDODJKVX86Qixdk",
+      "opened": "2026-07-13T21:23:01Z",
+      "path": "instrumentation/tomcat/tomcat-jdbc-8.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/jdbc/v8_5/TomcatConnectionPoolMetrics.java",
+      "replies": [],
+      "reviewed": "b5ab33f3d0f754c866c2b87de13c3f991ba4baed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19173#discussion_r3574237893"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "if a name is blank (\"\"), this would still set it\n\n\n```suggestion\n    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n    public static void onExit(\n        @Advice.This PoolProperties poolProperties, @Advice.Argument(0) String name) {\n      if (name != null && !name.isEmpty()) {\n        TomcatConnectionPoolMetrics.markPoolNameAsConfigured(poolProperties);\n      }\n    }\n```",
+      "created": "2026-07-31T11:37:34Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.tomcat.jdbc.v8_5;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.tomcat.jdbc.pool.PoolProperties;\n+\n+class PoolPropertiesInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.tomcat.jdbc.pool.PoolProperties\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isPublic().and(named(\"setName\")).and(takesArguments(String.class)),\n+        getClass().getName() + \"$SetNameAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SetNameAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(@Advice.This PoolProperties poolProperties) {\n+      TomcatConnectionPoolMetrics.markPoolNameAsConfigured(poolProperties);\n+    }",
+      "id": "PRRT_kwDODJKVX86VZ1Cq",
+      "opened": "2026-07-31T11:49:21Z",
+      "path": "instrumentation/tomcat/tomcat-jdbc-8.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/jdbc/v8_5/PoolPropertiesInstrumentation.java",
+      "replies": [],
+      "reviewed": "a72fa25878418c30c648fb38a2e399a81a0f18a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19173#discussion_r3690149466"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "The original test deliberately called both `createPool()` and `close()` twice, which we no longer have coverage for. Maybe we could update the assertConnectionPoolMetrics helper to add it back?",
+      "created": "2026-07-31T11:40:15Z",
+      "hunk": "@@ -24,38 +25,99 @@\n @ExtendWith(MockitoExtension.class)\n class TomcatJdbcInstrumentationTest {\n \n+  private static final String DEFAULT_POOL_NAME = \"tomcat-jdbc\";\n+\n   @RegisterExtension\n   static final AgentInstrumentationExtension testing = AgentInstrumentationExtension.create();\n \n   @Mock javax.sql.DataSource dataSourceMock;\n   @Mock Connection connectionMock;\n \n-  @Test\n-  void shouldReportMetrics() throws SQLException {\n-    // given\n+  @BeforeEach\n+  void setUp() throws SQLException {\n     when(dataSourceMock.getConnection()).thenReturn(connectionMock);\n+  }\n+\n+  @Test\n+  void shouldUseJdbcUrlForDefaultPoolName() throws SQLException {\n+    DataSource dataSource = newDataSource();\n+    dataSource.setUrl(\"jdbc:postgresql://db.example:5432/orders\");\n+\n+    assertConnectionPoolMetrics(dataSource, \"db.example:5432/orders\");\n+  }\n+\n+  @Test\n+  void shouldUseConnectionPropertiesForDefaultPoolName() throws SQLException {\n+    DataSource dataSource = newDataSource();\n+    dataSource.setUrl(\"jdbc:postgresql:ignored\");\n+    dataSource.setConnectionProperties(\n+        \"serverName=properties.example;portNumber=5433;databaseName=inventory\");\n+\n+    assertConnectionPoolMetrics(dataSource, \"properties.example:5433/inventory\");\n+  }\n+\n+  @Test\n+  void shouldUseServerAddressWhenPortAndNamespaceAreMissing() throws SQLException {\n+    DataSource dataSource = newDataSource();\n+    dataSource.setUrl(\"jdbc:custom:ignored\");\n+    dataSource.setConnectionProperties(\"serverName=address-only.example\");\n+\n+    assertConnectionPoolMetrics(dataSource, \"address-only.example\");\n+  }\n \n-    DataSource tomcatDataSource = new DataSource();\n-    tomcatDataSource.setDataSource(dataSourceMock);\n+  @Test\n+  void shouldUseDbNamespaceWhenServerAddressIsMissing() throws SQLException {\n+    DataSource dataSource = newDataSource();\n+    dataSource.setUrl(\"jdbc:h2:mem:orders\");\n+\n+    assertConnectionPoolMetrics(dataSource, \"orders\");\n+  }\n+\n+  @Test\n+  void shouldUseFixedPoolNameWhenUrlCannotBeParsed() throws SQLException {\n+    DataSource dataSource = newDataSource();\n \n-    // there shouldn't be any problems if this method gets called more than once\n-    tomcatDataSource.createPool();\n-    tomcatDataSource.createPool();\n+    // Calling createPool twice must continue to register one metric callback.\n+    dataSource.createPool();\n \n-    // when\n-    Connection connection = tomcatDataSource.getConnection();\n-    connection.close();\n+    assertConnectionPoolMetrics(dataSource, DEFAULT_POOL_NAME);\n+  }\n \n-    // then\n-    assertConnectionPoolMetrics(tomcatDataSource.getPoolName());\n+  @Test\n+  void shouldUseConfiguredPoolName() throws SQLException {\n+    DataSource dataSource = newDataSource();\n+    dataSource.setName(\"testPool\");\n \n-    // when\n-    // this one too shouldn't cause any problems when called more than once\n-    tomcatDataSource.close();\n-    tomcatDataSource.close();\n-    testing.clearData();",
+      "id": "PRRT_kwDODJKVX86VZ3r5",
+      "opened": "2026-07-31T11:49:21Z",
+      "path": "instrumentation/tomcat/tomcat-jdbc-8.5/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/tomcat/jdbc/v8_5/TomcatJdbcInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "a72fa25878418c30c648fb38a2e399a81a0f18a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19173#discussion_r3690166350"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "```suggestion\n  void shouldUseFixedPoolNameWhenUrlIsMissing() throws SQLException {\n```",
+      "created": "2026-07-31T11:41:03Z",
+      "hunk": "@@ -24,38 +25,99 @@\n @ExtendWith(MockitoExtension.class)\n class TomcatJdbcInstrumentationTest {\n \n+  private static final String DEFAULT_POOL_NAME = \"tomcat-jdbc\";\n+\n   @RegisterExtension\n   static final AgentInstrumentationExtension testing = AgentInstrumentationExtension.create();\n \n   @Mock javax.sql.DataSource dataSourceMock;\n   @Mock Connection connectionMock;\n \n-  @Test\n-  void shouldReportMetrics() throws SQLException {\n-    // given\n+  @BeforeEach\n+  void setUp() throws SQLException {\n     when(dataSourceMock.getConnection()).thenReturn(connectionMock);\n+  }\n+\n+  @Test\n+  void shouldUseJdbcUrlForDefaultPoolName() throws SQLException {\n+    DataSource dataSource = newDataSource();\n+    dataSource.setUrl(\"jdbc:postgresql://db.example:5432/orders\");\n+\n+    assertConnectionPoolMetrics(dataSource, \"db.example:5432/orders\");\n+  }\n+\n+  @Test\n+  void shouldUseConnectionPropertiesForDefaultPoolName() throws SQLException {\n+    DataSource dataSource = newDataSource();\n+    dataSource.setUrl(\"jdbc:postgresql:ignored\");\n+    dataSource.setConnectionProperties(\n+        \"serverName=properties.example;portNumber=5433;databaseName=inventory\");\n+\n+    assertConnectionPoolMetrics(dataSource, \"properties.example:5433/inventory\");\n+  }\n+\n+  @Test\n+  void shouldUseServerAddressWhenPortAndNamespaceAreMissing() throws SQLException {\n+    DataSource dataSource = newDataSource();\n+    dataSource.setUrl(\"jdbc:custom:ignored\");\n+    dataSource.setConnectionProperties(\"serverName=address-only.example\");\n+\n+    assertConnectionPoolMetrics(dataSource, \"address-only.example\");\n+  }\n \n-    DataSource tomcatDataSource = new DataSource();\n-    tomcatDataSource.setDataSource(dataSourceMock);\n+  @Test\n+  void shouldUseDbNamespaceWhenServerAddressIsMissing() throws SQLException {\n+    DataSource dataSource = newDataSource();\n+    dataSource.setUrl(\"jdbc:h2:mem:orders\");\n+\n+    assertConnectionPoolMetrics(dataSource, \"orders\");\n+  }\n+\n+  @Test\n+  void shouldUseFixedPoolNameWhenUrlCannotBeParsed() throws SQLException {",
+      "id": "PRRT_kwDODJKVX86VZ4Y3",
+      "opened": "2026-07-31T11:49:21Z",
+      "path": "instrumentation/tomcat/tomcat-jdbc-8.5/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/tomcat/jdbc/v8_5/TomcatJdbcInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "a72fa25878418c30c648fb38a2e399a81a0f18a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19173#discussion_r3690170563"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "are these shadow configs needed? if so, can we add a comment explaining why? Every other module needing JDBC classes on the test agent uses `testInstrumentation(project(\":instrumentation:jdbc:javaagent\"))`",
+      "created": "2026-07-31T11:42:24Z",
+      "hunk": "@@ -13,7 +13,22 @@ muzzle {\n \n dependencies {\n   compileOnly(\"org.apache.tomcat:tomcat-jdbc:8.5.0\")\n+\n+  bootstrap(project(\":instrumentation:jdbc:bootstrap\"))\n+  compileOnly(\n+    project(\n+      path = \":instrumentation:jdbc:library\",\n+      configuration = \"shadow\",",
+      "id": "PRRT_kwDODJKVX86VZ5eN",
+      "opened": "2026-07-31T11:49:21Z",
+      "path": "instrumentation/tomcat/tomcat-jdbc-8.5/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "a72fa25878418c30c648fb38a2e399a81a0f18a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19173#discussion_r3690177054"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "we usually put references to virtual fields and their setters/gettings in a separate class that ends in `*Singletons`. [example](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/async-http-client/async-http-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/asynchttpclient/v2_0/AsyncHttpClientSingletons.java#L20)",
+      "created": "2026-07-31T11:48:22Z",
+      "hunk": "@@ -31,6 +36,9 @@ public class TomcatConnectionPoolMetrics {\n           // keep the pre-rename scope name so existing dashboards/filters on\n           // otel.scope.name=\"io.opentelemetry.tomcat-jdbc\" continue to work\n           : \"io.opentelemetry.tomcat-jdbc\";\n+  private static final String DEFAULT_POOL_NAME = \"tomcat-jdbc\";\n+  private static final VirtualField<PoolProperties, Boolean> configuredPoolNameField =\n+      VirtualField.find(PoolProperties.class, Boolean.class);",
+      "id": "PRRT_kwDODJKVX86VZ-VH",
+      "opened": "2026-07-31T11:49:21Z",
+      "path": "instrumentation/tomcat/tomcat-jdbc-8.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/jdbc/v8_5/TomcatConnectionPoolMetrics.java",
+      "replies": [],
+      "reviewed": "a72fa25878418c30c648fb38a2e399a81a0f18a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19173#discussion_r3690205125"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Same as the DBCP one: `serverAddress` can be a literal IPv6 address, and appending `:port` straight onto it gives `::1:5432`, which reads as a bare address rather than address + port. Worth bracketing here, same as `UrlParsingUtils.buildShortUrl` does when it builds `db.connection_string`.\r\n\r\n```suggestion\r\n    StringBuilder poolName = new StringBuilder();\r\n    if (serverAddress != null) {\r\n      if (serverAddress.indexOf(':') >= 0) {\r\n        poolName.append('[').append(serverAddress).append(']');\r\n      } else {\r\n        poolName.append(serverAddress);\r\n      }\r\n      if (serverPort != null) {\r\n        poolName.append(':').append(serverPort);\r\n      }\r\n    }\r\n```\r\n\r\nThis depends on #19366 landing first, which normalizes `getServerAddress()` to always be unbracketed. Today it's already bracketed for some drivers, so the plain colon check would double-bracket those.\r\n\r\nCould you also add a name-derivation test with an IPv6 URL, e.g. `jdbc:postgresql://[2001:db8::1]:5432/orders` -> `[2001:db8::1]:5432/orders`?",
+      "created": "2026-08-01T17:33:18Z",
+      "hunk": "@@ -74,6 +78,40 @@ private static BatchCallback createInstruments(DataSourceProxy dataSource) {\n         pendingRequestsForConnection);\n   }\n \n+  private static String getPoolName(DataSourceProxy dataSource) {\n+    PoolConfiguration poolProperties = dataSource.getPoolProperties();\n+    String configuredPoolName = dataSource.getPoolName();\n+    if (configuredPoolName != null && TomcatJdbcSingletons.isPoolNameConfigured(poolProperties)) {\n+      return configuredPoolName;\n+    }\n+\n+    DbInfo dbInfo =\n+        JdbcConnectionUrlParser.parse(poolProperties.getUrl(), poolProperties.getDbProperties());\n+    String serverAddress = dbInfo.getServerAddress();\n+    Integer serverPort = dbInfo.getServerPort();\n+    String dbNamespace = dbInfo.getDbNamespace();\n+\n+    StringBuilder poolName = new StringBuilder();\n+    if (serverAddress != null) {\n+      poolName.append(serverAddress);\n+      if (serverPort != null) {\n+        poolName.append(':').append(serverPort);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86VpxMr",
+      "opened": "2026-08-01T17:34:25Z",
+      "path": "instrumentation/tomcat/tomcat-jdbc-8.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/jdbc/v8_5/TomcatConnectionPoolMetrics.java",
+      "replies": [],
+      "reviewed": "eaa15152e23e35152b95d216f5462e0e59f380cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19173#discussion_r3696189681"
+    }
+  ]
+}

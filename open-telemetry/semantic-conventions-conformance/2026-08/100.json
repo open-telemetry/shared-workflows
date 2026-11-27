@@ -1,0 +1,115 @@
+{
+  "head": "7e4b936548b496d0062c6f2e921ec209c6e9cccb",
+  "merge": "b64a670b16664ebf3ead0d6867e4593722f0a30d",
+  "merged": "2026-08-28T23:27:06Z",
+  "missing_roots": 0,
+  "number": 100,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This labels the OpenInference run as exercising `mistral`, while the native run for the same shared `mistralai` scenarios declares `mistralai`. The runner passes this value into report/data tooling, so the two implementations will be grouped as different instrumented libraries instead of remaining directly comparable. Use the imported SDK/distribution name consistently in both configurations.",
+      "created": "2026-08-28T06:42:11Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: genai-conformance\n+instrumented_library: mistral",
+      "id": "PRRT_kwDOTuzK5c6dFOSZ",
+      "opened": "2026-08-28T06:42:11Z",
+      "path": "scenarios/gen-ai/python/mistral/openinference/conformance.yaml",
+      "replies": [],
+      "reviewed": "a1ba96d824f7f0db1bd46f8ce3cc05826e510b33",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/100#discussion_r3878469254"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The tool-call response keeps `CHAT_RESPONSE`'s hard-coded model instead of echoing the requested model, unlike the ordinary chat path below. A tool call made with any other model will therefore report the wrong response model and can produce incorrect `gen_ai.response.model` coverage.",
+      "created": "2026-08-28T06:42:11Z",
+      "hunk": "@@ -0,0 +1,209 @@\n+\"\"\"Mistral-compatible endpoints (chat completions, FIM and embeddings).\n+\n+Mounted under ``/mistral``, the prefix the agents blueprint already uses:\n+Mistral serves chat completions at the same ``/v1/chat/completions`` path as\n+OpenAI, and one path cannot answer as two providers. A scenario points the\n+SDK's ``server_url`` at the prefixed base URL.\n+\"\"\"\n+\n+import copy\n+import json\n+\n+from flask import Blueprint, Response, request\n+\n+from ._common import mock_json_schema_value, mock_tool_arguments, sse\n+\n+bp = Blueprint(\"mistral\", __name__, url_prefix=\"/mistral\")\n+\n+CHAT_RESPONSE = {\n+    \"id\": \"mistral-mock-001\",\n+    \"object\": \"chat.completion\",\n+    \"created\": 1700000000,\n+    \"model\": \"mistral-small-latest\",\n+    \"choices\": [\n+        {\n+            \"index\": 0,\n+            \"message\": {\n+                \"role\": \"assistant\",\n+                \"content\": \"This is a response from the mock server.\",\n+                \"tool_calls\": None,\n+            },\n+            \"finish_reason\": \"stop\",\n+        }\n+    ],\n+    \"usage\": {\n+        \"prompt_tokens\": 25,\n+        \"completion_tokens\": 12,\n+        \"total_tokens\": 37,\n+    },\n+}\n+\n+# Mistral validates a tool call id as exactly nine alphanumeric characters,\n+# and rejects the result message that carries it back otherwise.\n+TOOL_CALL_ID = \"call_mock\"\n+\n+\n+def _tool_call_response(body):\n+    resp = copy.deepcopy(CHAT_RESPONSE)\n+    resp[\"id\"] = \"mistral-mock-002\"\n+    tool = body.get(\"tools\", [{}])[0]",
+      "id": "PRRT_kwDOTuzK5c6dFOSr",
+      "opened": "2026-08-28T06:42:11Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/mistral.py",
+      "replies": [],
+      "reviewed": "a1ba96d824f7f0db1bd46f8ce3cc05826e510b33",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/100#discussion_r3878469285"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-08-28T15:33:20Z",
+      "hunk": "@@ -22,6 +22,8 @@ against those, and check:\n   program, and no configuration read beyond the client library's own\n   environment variables. Telemetry needing programmatic configuration gets an\n   entry program beside `conformance.yaml`, importing the shared scenario.\n+  `mistral/` additionally reads its endpoint, because that SDK has no variable\n+  for one.",
+      "id": "PRRT_kwDOTuzK5c6dN8v3",
+      "opened": "2026-08-28T15:33:19Z",
+      "path": ".github/instructions/gen-ai-scenarios.instructions.md",
+      "replies": [],
+      "reviewed": "0fdba89f6dc06cdaa10f187a0368c9bd89345a9d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/100#discussion_r3881867882"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n  `conformance.yaml` maps from `${MOCK_SERVER_URL}`. Where an SDK has no such\n  variable the program reads one and passes it.\n```",
+      "created": "2026-08-28T15:34:50Z",
+      "hunk": "@@ -32,7 +32,9 @@ for what else changes in those directories.\n   importing the shared scenario.\n - **A program reads no configuration of its own.** It reaches the mock server\n   through the client library's own base-URL environment variable, which\n-  `conformance.yaml` maps from `${MOCK_SERVER_URL}`.\n+  `conformance.yaml` maps from `${MOCK_SERVER_URL}`. Where an SDK has no such\n+  variable, as Mistral's does not, the program reads one and passes it, and\n+  nothing else.",
+      "id": "PRRT_kwDOTuzK5c6dN-bS",
+      "opened": "2026-08-28T15:34:50Z",
+      "path": "scenarios/gen-ai/AGENTS.md",
+      "replies": [],
+      "reviewed": "0fdba89f6dc06cdaa10f187a0368c9bd89345a9d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/100#discussion_r3881878163"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`mistralai==2.9.4` accepts `encoding_format`, so this scenario leaves `gen_ai.request.encoding_formats` unmeasured in both implementations. Pass an explicit format such as `\"float\"` and regenerate both data files.",
+      "created": "2026-08-28T17:30:44Z",
+      "hunk": "@@ -0,0 +1,20 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: Mistral embeddings.\n+\n+A different operation, so a different span type, which is why this is its own\n+program rather than another call inside inference.py. Batched input and an\n+explicit dimension count, since each is an attribute the conventions declare\n+for this operation. Mistral's embeddings API takes no encoding format.",
+      "id": "PRRT_kwDOTuzK5c6dP-Um",
+      "opened": "2026-08-28T18:44:27Z",
+      "path": "scenarios/gen-ai/python/mistral/scenarios/embeddings.py",
+      "replies": [],
+      "reviewed": "38e4bc1c0312af7f3aa078faadfb119208842f0a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/100#discussion_r3882665363"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Mistral 2.9.4 accepts `input_audio` in chat messages, so image is not the only supported non-text input. Add an audio exchange and mock coverage so both implementations measure its content shape and token counts.",
+      "created": "2026-08-28T17:30:44Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a Mistral chat completion carrying an image.\n+\n+One exchange, because an image is the only non-text content the chat API\n+takes: Mistral has no audio input or output on this route. Coverage records",
+      "id": "PRRT_kwDOTuzK5c6dP-Uq",
+      "opened": "2026-08-28T18:44:27Z",
+      "path": "scenarios/gen-ai/python/mistral/scenarios/multimodal.py",
+      "replies": [],
+      "reviewed": "38e4bc1c0312af7f3aa078faadfb119208842f0a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/100#discussion_r3882665372"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`call_mock` contains `_`, so it does not meet the nine-alphanumeric-character constraint documented above. Use nine letters or digits and make the test check the character class.",
+      "created": "2026-08-28T17:30:44Z",
+      "hunk": "@@ -0,0 +1,210 @@\n+\"\"\"Mistral-compatible endpoints (chat completions, FIM and embeddings).\n+\n+Mounted under ``/mistral``, the prefix the agents blueprint already uses:\n+Mistral serves chat completions at the same ``/v1/chat/completions`` path as\n+OpenAI, and one path cannot answer as two providers. A scenario points the\n+SDK's ``server_url`` at the prefixed base URL.\n+\"\"\"\n+\n+import copy\n+import json\n+\n+from flask import Blueprint, Response, request\n+\n+from ._common import mock_json_schema_value, mock_tool_arguments, sse\n+\n+bp = Blueprint(\"mistral\", __name__, url_prefix=\"/mistral\")\n+\n+CHAT_RESPONSE = {\n+    \"id\": \"mistral-mock-001\",\n+    \"object\": \"chat.completion\",\n+    \"created\": 1700000000,\n+    \"model\": \"mistral-small-latest\",\n+    \"choices\": [\n+        {\n+            \"index\": 0,\n+            \"message\": {\n+                \"role\": \"assistant\",\n+                \"content\": \"This is a response from the mock server.\",\n+                \"tool_calls\": None,\n+            },\n+            \"finish_reason\": \"stop\",\n+        }\n+    ],\n+    \"usage\": {\n+        \"prompt_tokens\": 25,\n+        \"completion_tokens\": 12,\n+        \"total_tokens\": 37,\n+    },\n+}\n+\n+# Mistral validates a tool call id as exactly nine alphanumeric characters,\n+# and rejects the result message that carries it back otherwise.\n+TOOL_CALL_ID = \"call_mock\"",
+      "id": "PRRT_kwDOTuzK5c6dP-Uu",
+      "opened": "2026-08-28T18:44:27Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/mistral.py",
+      "replies": [],
+      "reviewed": "38e4bc1c0312af7f3aa078faadfb119208842f0a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/100#discussion_r3882665375"
+    }
+  ]
+}

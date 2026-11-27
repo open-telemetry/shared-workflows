@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "83b97892f79a938fe2550389efaf69347be3e2924c1bea321771f9a62ee6e905",
+  "input_digest": "85026e09f7412084b03fbc30505c98ffff36fcc681fa0e9e3c38ce5f25aaf2e1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/5e8242a985f71ea4f583661aa948e2e409d00887/.github/instructions/build-config.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ae0343175a418e4d661e2508eec17dbd887ad5a3/.github/instructions/build-config.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/df945a484ffa3f6fae21ba97e6730ad859400969"
+      ],
+      "id": "PRRT_kwDOSbspP86ZJpWn",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/5e8242a985f71ea4f583661aa948e2e409d00887/.github/copilot-instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ae0343175a418e4d661e2508eec17dbd887ad5a3/.github/copilot-instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/df945a484ffa3f6fae21ba97e6730ad859400969"
+      ],
+      "id": "PRRT_kwDOSbspP86ZJpXB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

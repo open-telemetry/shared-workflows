@@ -1,0 +1,70 @@
+{
+  "head": "d711619bfe5c91c90e40f1bc8d6db67909e4d72c",
+  "merge": "1645cdabdcee1491e6362c854176c14c22334820",
+  "merged": "2026-07-08T17:32:48Z",
+  "missing_roots": 0,
+  "number": 19092,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These two static imports both introduce the simple name `SECONDS`: `Constants.SECONDS` is the unit `String` `\"s\"`, while `TimeUnit.SECONDS` is the enum constant. Both are actually used — `TimeUnit.SECONDS` in `latch.await(10, SECONDS)` (line 50) and `Constants.SECONDS` in `.hasUnit(SECONDS)` (line 57). Because two different members named `SECONDS` are in scope, every use of the simple name `SECONDS` is an ambiguous reference and the `testJava21` source set will fail to compile, so this test can never run. Keep one as a static import and reference the other in qualified form, e.g. keep `import static java.util.concurrent.TimeUnit.SECONDS;`, replace the `Constants.SECONDS` static import with a regular `import io.opentelemetry.instrumentation.runtimetelemetry.internal.Constants;`, and change line 57 to `.hasUnit(Constants.SECONDS)`.",
+      "created": "2026-06-28T13:26:06Z",
+      "hunk": "@@ -0,0 +1,60 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry;\n+\n+import static io.opentelemetry.instrumentation.runtimetelemetry.internal.Constants.SECONDS;\n+import static java.util.concurrent.TimeUnit.SECONDS;",
+      "id": "PRRT_kwDODJKVX86MzUXy",
+      "opened": "2026-06-28T13:26:06Z",
+      "path": "instrumentation/runtime-telemetry/library/src/testJava21/java/io/opentelemetry/instrumentation/runtimetelemetry/JfrVirtualThreadPinnedTest.java",
+      "replies": [],
+      "reviewed": "e40d2546ab31185b9be5f824da41866e2815280e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19092#discussion_r3487944098"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could consider `@EnabledOnJre(JRE.JAVA_21)`",
+      "created": "2026-06-29T15:51:07Z",
+      "hunk": "@@ -0,0 +1,60 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry;\n+\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.Constants;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.JfrFeature;\n+import java.util.concurrent.CountDownLatch;\n+import java.util.concurrent.locks.LockSupport;\n+import org.junit.jupiter.api.Assumptions;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class JfrVirtualThreadPinnedTest {\n+\n+  @RegisterExtension\n+  JfrExtension jfrExtension =\n+      new JfrExtension(\n+          jfrConfig -> {\n+            jfrConfig.disableAllFeatures();\n+            jfrConfig.enableFeature(JfrFeature.VIRTUAL_THREAD_METRICS);\n+          });\n+\n+  @Test\n+  void shouldHaveVirtualThreadPinnedEvents() throws InterruptedException {\n+    // Thread.ofVirtual() is GA in Java 21; synchronized pinning was removed in Java 24 (JEP 491)\n+    int feature = Runtime.version().feature();\n+    Assumptions.assumeTrue(feature >= 21 && feature < 24, \"Requires Java 21-23\");",
+      "id": "PRRT_kwDODJKVX86NBhpy",
+      "opened": "2026-06-29T15:51:07Z",
+      "path": "instrumentation/runtime-telemetry/library/src/testJava21/java/io/opentelemetry/instrumentation/runtimetelemetry/JfrVirtualThreadPinnedTest.java",
+      "replies": [],
+      "reviewed": "ff472a4de8725532ed2dc050a4c527f03f6a3f54",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19092#discussion_r3492985113"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n  private static final String METRIC_DESCRIPTION = \"Duration of virtual thread pinning.\";\n```",
+      "created": "2026-07-03T06:46:34Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry.internal.threads;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.metrics.DoubleHistogram;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.Constants;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.DurationUtil;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.JfrFeature;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.RecordedEventHandler;\n+import java.time.Duration;\n+import java.util.Optional;\n+import jdk.jfr.consumer.RecordedEvent;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class VirtualThreadPinnedHandler implements RecordedEventHandler {\n+  private static final String METRIC_NAME = \"jvm.thread.virtual.pinned\";\n+  private static final String METRIC_DESCRIPTION = \"Duration of virtual thread pinning\";",
+      "id": "PRRT_kwDODJKVX86OG7yi",
+      "opened": "2026-07-03T06:46:33Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/threads/VirtualThreadPinnedHandler.java",
+      "replies": [],
+      "reviewed": "74da0c3c94d475ac362b5515eb9e0a535c78a640",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19092#discussion_r3517989198"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n      \"Number of times a virtual thread failed to be submitted to its scheduler.\";\n```",
+      "created": "2026-07-03T06:46:53Z",
+      "hunk": "@@ -0,0 +1,55 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry.internal.threads;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.metrics.LongCounter;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.JfrFeature;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.RecordedEventHandler;\n+import java.time.Duration;\n+import java.util.Optional;\n+import jdk.jfr.consumer.RecordedEvent;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class VirtualThreadSubmitFailedHandler implements RecordedEventHandler {\n+  private static final String METRIC_NAME = \"jvm.thread.virtual.submit_failed\";\n+  private static final String METRIC_DESCRIPTION =\n+      \"Number of times a virtual thread failed to be submitted to its scheduler\";",
+      "id": "PRRT_kwDODJKVX86OG8Fe",
+      "opened": "2026-07-03T06:46:53Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/threads/VirtualThreadSubmitFailedHandler.java",
+      "replies": [],
+      "reviewed": "74da0c3c94d475ac362b5515eb9e0a535c78a640",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19092#discussion_r3517990828"
+    }
+  ]
+}

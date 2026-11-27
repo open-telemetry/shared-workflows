@@ -1,0 +1,223 @@
+{
+  "head": "855726a661b9f0b04168255109c92b1820679eda",
+  "merge": "2ff8a6b4c167050fddf498d4468d7950dd54ef72",
+  "merged": "2026-09-26T21:29:57Z",
+  "missing_roots": 0,
+  "number": 20249,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Dropping the entire `opentelemetry-samplers` dependency also removes the registered `linksbased_parentbased_always_on` sampler from Spring Boot starter applications, which is unrelated to the stated `RuleBasedRoutingSampler` migration. The 1.60.0 artifact supplies this through `LinksParentAlwaysOnSamplerProvider`, and the SDK incubator does not replace it. Please preserve that provider while removing only the deprecated rule-based functionality.",
+      "created": "2026-09-25T17:38:57Z",
+      "hunk": "@@ -21,5 +21,4 @@ dependencies {\n   implementation(\"io.opentelemetry.contrib:opentelemetry-gcp-resources\")\n   implementation(\"io.opentelemetry.contrib:opentelemetry-cloudfoundry-resources\")\n   implementation(\"io.opentelemetry.contrib:opentelemetry-baggage-processor\")",
+      "id": "PRRT_kwDODJKVX86mGN0v",
+      "opened": "2026-09-25T17:38:58Z",
+      "path": "instrumentation/spring/starters/spring-boot-starter/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-25T18:05:08Z",
+          "body": "Addressed in 326b197fd82439ff5c81aefbac25c06e4fa5ba18, 67fc7aef5e37bc9bc47d4db0f2eb988973708e42.\n\nFixed in the verified source changes 326b197fd82439ff5c81aefbac25c06e4fa5ba18, 67fc7aef5e37bc9bc47d4db0f2eb988973708e42.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4107283846"
+        }
+      ],
+      "reviewed": "3b5bed0c41ffc5bbb4217193c9cc916647015807",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4107082647"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Removing the whole `opentelemetry-samplers` artifact also removes its `LinksParentAlwaysOnSamplerProvider`, so existing agent configurations with `otel.traces.sampler=linksbased_parentbased_always_on` will start failing even though this PR is scoped to `RuleBasedRoutingSampler`. The 1.60.0 artifact registers that provider through `ConfigurableSamplerProvider`, and the SDK incubator has no equivalent. Preserve this provider (for example by splitting/selectively bundling the contrib artifact) while excluding only the rule-based implementation.",
+      "created": "2026-09-25T17:38:57Z",
+      "hunk": "@@ -51,7 +51,6 @@ dependencies {\n   implementation(\"io.opentelemetry.contrib:opentelemetry-gcp-resources\")\n   implementation(\"io.opentelemetry.contrib:opentelemetry-cloudfoundry-resources\")\n   implementation(\"io.opentelemetry.contrib:opentelemetry-baggage-processor\")",
+      "id": "PRRT_kwDODJKVX86mGN1m",
+      "opened": "2026-09-25T17:38:58Z",
+      "path": "javaagent-tooling/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-25T18:05:10Z",
+          "body": "Addressed in 326b197fd82439ff5c81aefbac25c06e4fa5ba18, 67fc7aef5e37bc9bc47d4db0f2eb988973708e42.\n\nFixed in the verified source changes 326b197fd82439ff5c81aefbac25c06e4fa5ba18, 67fc7aef5e37bc9bc47d4db0f2eb988973708e42.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4107284065"
+        }
+      ],
+      "reviewed": "3b5bed0c41ffc5bbb4217193c9cc916647015807",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4107082737"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The added provider test only compares `getDescription()` and never exercises this new sampling logic. Because this class now replaces the contrib implementation, regressions in its three compatibility-critical paths would go unnoticed; add tests covering delegation when there are no links, sampling when any link is sampled, and dropping when all links are unsampled.",
+      "created": "2026-09-25T18:09:47Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.sampler.internal;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.sdk.trace.data.LinkData;\n+import io.opentelemetry.sdk.trace.samplers.Sampler;\n+import io.opentelemetry.sdk.trace.samplers.SamplingResult;\n+import java.util.List;\n+\n+final class LinksBasedSampler implements Sampler {\n+  private final Sampler root;\n+\n+  LinksBasedSampler(Sampler root) {\n+    this.root = root;\n+  }\n+\n+  @Override\n+  public SamplingResult shouldSample(\n+      Context parentContext,\n+      String traceId,\n+      String name,\n+      SpanKind spanKind,\n+      Attributes attributes,\n+      List<LinkData> parentLinks) {\n+    if (!parentLinks.isEmpty()) {\n+      for (LinkData linkData : parentLinks) {\n+        if (linkData.getSpanContext().isSampled()) {\n+          return SamplingResult.recordAndSample();\n+        }",
+      "id": "PRRT_kwDODJKVX86mGy9y",
+      "opened": "2026-09-25T18:09:48Z",
+      "path": "sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/sampler/internal/LinksBasedSampler.java",
+      "replies": [
+        {
+          "at": "2026-09-25T18:30:02Z",
+          "body": "Addressed in df53cb741e575413d64abd8804516652c65fc8c1.\n\nFixed in the verified source changes df53cb741e575413d64abd8804516652c65fc8c1.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4107483156"
+        }
+      ],
+      "reviewed": "67fc7aef5e37bc9bc47d4db0f2eb988973708e42",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4107320868"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This recursion only follows `parent_based`, but the SDK's declarative model also accepts a nested sampler at `always_record.root`, and the contrib sampler explicitly supports `rule_based_routing` anywhere a sampler is accepted. A valid `always_record: { root: { rule_based_routing: ... } }` configuration therefore creates the deprecated sampler without the promised warning. Please traverse `getAlwaysRecord().getRoot()` as well and add this case to the test.",
+      "created": "2026-09-25T23:22:03Z",
+      "hunk": "@@ -0,0 +1,71 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.sampler.internal;\n+\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.ParentBasedSamplerModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.SamplerModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.TracerProviderModel;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Warns when the bundled declarative rule-based routing sampler is selected.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class RuleBasedRoutingSamplerDeprecationCustomizerProvider\n+    implements DeclarativeConfigurationCustomizerProvider {\n+\n+  private static final Logger logger =\n+      Logger.getLogger(RuleBasedRoutingSamplerDeprecationCustomizerProvider.class.getName());\n+\n+  @Override\n+  public void customize(DeclarativeConfigurationCustomizer customizer) {\n+    AtomicBoolean warned = new AtomicBoolean();\n+    customizer.addModelCustomizer(\n+        model -> {\n+          if (isSelected(model) && warned.compareAndSet(false, true)) {\n+            logger.warning(\n+                \"The declarative rule_based_routing sampler is deprecated in the Java agent and\"\n+                    + \" Spring Boot starter and will be removed in 3.0. Consider migrating to the\"\n+                    + \" SDK incubator composite/development rule_based sampler; its configuration\"\n+                    + \" and matching behavior differ.\");\n+          }\n+          return model;\n+        });\n+  }\n+\n+  private static boolean isSelected(OpenTelemetryConfigurationModel model) {\n+    TracerProviderModel tracerProvider = model.getTracerProvider();\n+    return tracerProvider != null && containsRuleBasedRouting(tracerProvider.getSampler());\n+  }\n+\n+  private static boolean containsRuleBasedRouting(@Nullable SamplerModel sampler) {\n+    if (sampler == null) {\n+      return false;\n+    }\n+    if (sampler.getExtensionProperties().containsKey(\"rule_based_routing\")) {\n+      return true;\n+    }\n+    ParentBasedSamplerModel parentBased = sampler.getParentBased();\n+    return parentBased != null\n+        && (containsRuleBasedRouting(parentBased.getRoot())",
+      "id": "PRRT_kwDODJKVX86mLq6E",
+      "opened": "2026-09-25T23:22:04Z",
+      "path": "sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/sampler/internal/RuleBasedRoutingSamplerDeprecationCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:44:05Z",
+          "body": "No code change.\n\nThis branch uses OpenTelemetry SDK 1.66.0, whose declarative model and sampler factory do not support always_record. This configuration cannot be selected until a future SDK dependency update.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4109402355"
+        }
+      ],
+      "reviewed": "534628ff12404dca89ed74f0810c3f5dec3ffb88",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4109335907"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The links-based sampler is still selected and warned about under `otel.instrumentation.common.v3-preview`. Because this name is planned to become unrecognized when the bundled dependency is removed in 3.0, preview mode should mirror that behavior instead of accepting it; follow the existing Zipkin-removal pattern by throwing a configuration error in preview mode and warning only outside it.",
+      "created": "2026-09-25T23:47:54Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.sampler.internal;\n+\n+import io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import java.util.logging.Logger;\n+\n+/**\n+ * Warns when the bundled links-based sampler is selected.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class LinksBasedSamplerDeprecationCustomizerProvider\n+    implements AutoConfigurationCustomizerProvider {\n+\n+  private static final Logger logger =\n+      Logger.getLogger(LinksBasedSamplerDeprecationCustomizerProvider.class.getName());\n+\n+  @Override\n+  public void customize(AutoConfigurationCustomizer customizer) {\n+    AtomicBoolean warned = new AtomicBoolean();\n+    customizer.addSamplerCustomizer(\n+        (sampler, config) -> {\n+          warnIfSelected(config, warned);\n+          return sampler;\n+        });\n+  }\n+\n+  private static void warnIfSelected(ConfigProperties config, AtomicBoolean warned) {\n+    if (\"linksbased_parentbased_always_on\".equals(config.getString(\"otel.traces.sampler\"))\n+        && warned.compareAndSet(false, true)) {\n+      logger.warning(\n+          \"The otel.traces.sampler=linksbased_parentbased_always_on sampler is deprecated in the\"\n+              + \" Java agent and Spring Boot starter and will be removed in 3.0; there is no\"\n+              + \" replacement.\");",
+      "id": "PRRT_kwDODJKVX86mL21J",
+      "opened": "2026-09-25T23:47:54Z",
+      "path": "sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/sampler/internal/LinksBasedSamplerDeprecationCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-09-26T00:03:15Z",
+          "body": "Addressed in 77a73b858d60e17459bbbbce8f79e069b35ed5fe.\n\nFixed in the verified source changes 77a73b858d60e17459bbbbce8f79e069b35ed5fe.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4109465788"
+        }
+      ],
+      "reviewed": "534628ff12404dca89ed74f0810c3f5dec3ffb88",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4109414300"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This path still accepts the deprecated declarative sampler and emits the warning when v3 preview is enabled. V3 preview is intended to reproduce 3.0 behavior, and the adjacent Zipkin-removal customizer rejects configuration for dependencies scheduled to be dropped in 3.0. Since `rule_based_routing` is also slated to disappear in 3.0, reject it under `DeclarativeConfigV3Preview.isEnabled(model)` (without warning) and cover that mode.",
+      "created": "2026-09-25T23:47:54Z",
+      "hunk": "@@ -0,0 +1,71 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.sampler.internal;\n+\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.OpenTelemetryConfigurationModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.ParentBasedSamplerModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.SamplerModel;\n+import io.opentelemetry.sdk.autoconfigure.declarativeconfig.model.TracerProviderModel;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Warns when the bundled declarative rule-based routing sampler is selected.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class RuleBasedRoutingSamplerDeprecationCustomizerProvider\n+    implements DeclarativeConfigurationCustomizerProvider {\n+\n+  private static final Logger logger =\n+      Logger.getLogger(RuleBasedRoutingSamplerDeprecationCustomizerProvider.class.getName());\n+\n+  @Override\n+  public void customize(DeclarativeConfigurationCustomizer customizer) {\n+    AtomicBoolean warned = new AtomicBoolean();\n+    customizer.addModelCustomizer(\n+        model -> {\n+          if (isSelected(model) && warned.compareAndSet(false, true)) {\n+            logger.warning(\n+                \"The declarative rule_based_routing sampler is deprecated in the Java agent and\"\n+                    + \" Spring Boot starter and will be removed in 3.0. Consider migrating to the\"\n+                    + \" SDK incubator composite/development rule_based sampler; its configuration\"",
+      "id": "PRRT_kwDODJKVX86mL21U",
+      "opened": "2026-09-25T23:47:54Z",
+      "path": "sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/sampler/internal/RuleBasedRoutingSamplerDeprecationCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-09-26T00:03:17Z",
+          "body": "Addressed in 77a73b858d60e17459bbbbce8f79e069b35ed5fe.\n\nFixed in the verified source changes 77a73b858d60e17459bbbbce8f79e069b35ed5fe.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4109465890"
+        }
+      ],
+      "reviewed": "534628ff12404dca89ed74f0810c3f5dec3ffb88",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4109414315"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The new v3-preview checks make this unconditional release-note claim inaccurate: with preview enabled, selecting either sampler throws a configuration error rather than continuing with a warning. Please call out the preview exception so users understand the startup behavior.",
+      "created": "2026-09-26T00:06:31Z",
+      "hunk": "@@ -17,6 +17,11 @@\n \n ### 🚫 Deprecations\n \n+- Deprecate the Java agent and Spring Boot starter's bundled contrib samplers, including the\n+  `rule_based_routing` declarative sampler and `linksbased_parentbased_always_on` flat sampler.\n+  Both names continue to work but log a warning when selected. For rule-based routing, consider\n+  the SDK incubator `composite/development` `rule_based` sampler; there is no links-based replacement.",
+      "id": "PRRT_kwDODJKVX86mMA0f",
+      "opened": "2026-09-26T00:06:31Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-09-26T00:18:20Z",
+          "body": "Addressed in 13459dedf7364fb8a721116fc63bee1c57f85d0d.\n\nFixed in the verified source changes 13459dedf7364fb8a721116fc63bee1c57f85d0d.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4109516253"
+        }
+      ],
+      "reviewed": "77a73b858d60e17459bbbbce8f79e069b35ed5fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4109476585"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This statement omits the v3-preview behavior added here: both customizers throw a `ConfigurationException` instead of continuing and warning when preview mode is enabled. Users can therefore see startup fail despite this page saying both names continue to work. Please document the preview-mode rejection explicitly.",
+      "created": "2026-09-26T00:06:31Z",
+      "hunk": "@@ -35,3 +35,21 @@ provides.\n   - Log injection of IDs (logback, log4j2, log4j)\n   - Automatic context propagation across `Executor`s\n   - Ability to instrument methods in the application if user adds `@WithSpan` annotation\n+\n+## Bundled sampler deprecations\n+\n+The Java agent and Spring Boot starter still bundle `io.opentelemetry.contrib:opentelemetry-samplers`.\n+The following sampler names supplied by that dependency are deprecated in these distributions:\n+\n+- `rule_based_routing` in declarative configuration.\n+- `linksbased_parentbased_always_on` with `otel.traces.sampler` or `OTEL_TRACES_SAMPLER`.\n+\n+Both names continue to work without configuration changes, but selecting either one logs a\n+deprecation warning at startup. We plan to stop bundling the dependency and supporting these names\n+in 3.0. This does not deprecate the contrib library itself.",
+      "id": "PRRT_kwDODJKVX86mMA0m",
+      "opened": "2026-09-26T00:06:31Z",
+      "path": "docs/agent-features.md",
+      "replies": [
+        {
+          "at": "2026-09-26T00:18:23Z",
+          "body": "Addressed in 13459dedf7364fb8a721116fc63bee1c57f85d0d.\n\nFixed in the verified source changes 13459dedf7364fb8a721116fc63bee1c57f85d0d.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4109516407"
+        }
+      ],
+      "reviewed": "77a73b858d60e17459bbbbce8f79e069b35ed5fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4109476603"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-26T17:20:57Z",
+      "hunk": "@@ -35,3 +35,23 @@ provides.\n   - Log injection of IDs (logback, log4j2, log4j)\n   - Automatic context propagation across `Executor`s\n   - Ability to instrument methods in the application if user adds `@WithSpan` annotation\n+\n+## Bundled sampler deprecations\n+\n+The Java agent and Spring Boot starter still bundle `io.opentelemetry.contrib:opentelemetry-samplers`.\n+The following sampler names supplied by that dependency are deprecated in these distributions:\n+\n+- `rule_based_routing` in declarative configuration.\n+- `linksbased_parentbased_always_on` with `otel.traces.sampler` or `OTEL_TRACES_SAMPLER`.\n+\n+Outside v3-preview, both names continue to work without configuration changes, but selecting either\n+one logs a deprecation warning at startup. When\n+`otel.instrumentation.common.v3-preview=true`, selecting either sampler fails SDK initialization\n+with a configuration error. We plan to stop bundling the dependency and supporting these names in\n+3.0. This does not deprecate the contrib library itself.\n+\n+For `rule_based_routing`, consider the SDK incubator's `composite/development` `rule_based`\n+sampler. Its configuration and matching behavior differ; see the\n+[migration example](https://github.com/open-telemetry/opentelemetry-java-contrib/issues/3099)\n+before switching. There is no replacement for `linksbased_parentbased_always_on`;\n+evaluate alternatives based on your sampling requirements.",
+      "id": "PRRT_kwDODJKVX86mSgsh",
+      "opened": "2026-09-26T17:20:57Z",
+      "path": "docs/agent-features.md",
+      "replies": [],
+      "reviewed": "13459dedf7364fb8a721116fc63bee1c57f85d0d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4112131576"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-26T17:21:25Z",
+      "hunk": "@@ -1,3 +1,6 @@\n # OpenTelemetry Spring Starter\n \n Documentation of the OpenTelemetry Spring Starter is [here](https://opentelemetry.io/docs/zero-code/java/spring-boot/).\n+\n+For the bundled sampler deprecations and migration guidance, see\n+[Bundled sampler deprecations](../../../../docs/agent-features.md#bundled-sampler-deprecations).",
+      "id": "PRRT_kwDODJKVX86mSg6J",
+      "opened": "2026-09-26T17:21:25Z",
+      "path": "instrumentation/spring/starters/spring-boot-starter/README.md",
+      "replies": [],
+      "reviewed": "8a7777cb59f8648252092e9889059d5b446cfa81",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4112132858"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-26T17:21:34Z",
+      "hunk": "@@ -1 +1,4 @@\n # Java Agent for Auto Instrumentation\n+\n+For the bundled sampler deprecations and migration guidance, see\n+[Bundled sampler deprecations](../docs/agent-features.md#bundled-sampler-deprecations).",
+      "id": "PRRT_kwDODJKVX86mSg-U",
+      "opened": "2026-09-26T17:21:34Z",
+      "path": "javaagent/README.md",
+      "replies": [],
+      "reviewed": "8a7777cb59f8648252092e9889059d5b446cfa81",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20249#discussion_r4112133270"
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "head": "0489eff4960449bca07309a8fb019a615a5b6676",
+  "merge": "0183a25b3d6970d993fd3e77b0471b8d518efe83",
+  "merged": "2026-06-23T14:45:04Z",
+  "missing_roots": 0,
+  "number": 179,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Since it's supported by [openai responses API](https://developers.openai.com/api/reference/resources/responses/methods/create#(resource)%20responses%20%3E%20(method)%20create%20%3E%20(params)%200.non_streaming%20%3E%20(param)%20prompt%20%3E%20(schema)) and [aws bedrock](https://docs.aws.amazon.com/boto3/latest/reference/services/bedrock-runtime/client/converse.html) we should add scenarios in reference instrumentations here.",
+      "created": "2026-05-22T23:00:15Z",
+      "hunk": "@@ -15,6 +15,8 @@\n | --- | --- |\n | gen_ai.conversation.id | (none) |\n | gen_ai.output.type | (none) |\n+| gen_ai.prompt.name | (none) |",
+      "id": "PRRT_kwDOSUeMrM6EP0dp",
+      "opened": "2026-05-22T23:06:12Z",
+      "path": "reference/reports/gen-ai-client-inference-operation-details-event.md",
+      "replies": [
+        {
+          "at": "2026-06-03T03:48:31Z",
+          "body": "Done, please take a look again, thanks!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/179#discussion_r3345785529"
+        }
+      ],
+      "reviewed": "c8194d110844f03611118921e089648f004f01f5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/179#discussion_r3291557554"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "I don't see prompt version in MCP https://modelcontextprotocol.io/specification/2025-11-25/schema#getpromptrequestparams or https://modelcontextprotocol.io/specification/2025-11-25/schema#prompt",
+      "created": "2026-05-22T23:02:48Z",
+      "hunk": "@@ -21,6 +21,13 @@ attribute_groups:\n         brief: The name of the prompt or prompt template provided in the request or response.\n         requirement_level:\n           conditionally_required: When operation is related to a specific prompt.\n+      - ref: gen_ai.prompt.version",
+      "id": "PRRT_kwDOSUeMrM6EP1ZF",
+      "opened": "2026-05-22T23:06:12Z",
+      "path": "model/mcp/common.yaml",
+      "replies": [],
+      "reviewed": "c8194d110844f03611118921e089648f004f01f5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/179#discussion_r3291562700"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "MCP has a notion of [prompt arguments](https://modelcontextprotocol.io/specification/2025-11-25/schema#prompt), we should mention in the brief that in case of MCP arguments map to variables. ",
+      "created": "2026-05-22T23:04:27Z",
+      "hunk": "@@ -21,6 +21,13 @@ attribute_groups:\n         brief: The name of the prompt or prompt template provided in the request or response.\n         requirement_level:\n           conditionally_required: When operation is related to a specific prompt.\n+      - ref: gen_ai.prompt.version\n+        brief: The version of the prompt template provided in the request or response.\n+        requirement_level:\n+          conditionally_required: When `gen_ai.prompt.name` is set and a version is available.\n+      - ref: gen_ai.prompt.variable",
+      "id": "PRRT_kwDOSUeMrM6EP2En",
+      "opened": "2026-05-22T23:06:12Z",
+      "path": "model/mcp/common.yaml",
+      "replies": [],
+      "reviewed": "c8194d110844f03611118921e089648f004f01f5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/179#discussion_r3291566446"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we still pass input messages along with the prompt? Isn't it defeat the purpose?\n",
+      "created": "2026-06-05T03:47:37Z",
+      "hunk": "@@ -287,6 +287,115 @@ def run_converse_with_document_input_reference(client):\n         print(f\"    -> {text[:60]}\")\n \n \n+def run_converse_with_prompt_template_reference(client):\n+    \"\"\"Scenario: Bedrock Converse API using a named prompt template with version and variables.\n+\n+    Demonstrates setting gen_ai.prompt.name, gen_ai.prompt.version,\n+    and gen_ai.prompt.variable.* attributes when using a prompt template.\n+\n+    AWS Bedrock supports prompt management via Amazon Bedrock Prompt Management,\n+    where prompts can be versioned and parameterized with variables.\n+    \"\"\"\n+    print(\"  [converse_prompt_template] Bedrock Converse with named prompt template (reference implementation)\")\n+    request_model = \"anthropic.claude-3-haiku-20240307-v1:0\"\n+    prompt_name = \"order-inquiry\"\n+    prompt_version = \"2.0.1\"\n+    prompt_variables = {\"customer_id\": \"C-12345\", \"order_id\": \"ORD-67890\"}\n+\n+    messages = [\n+        {\n+            \"role\": \"user\",\n+            \"content\": [\n+                {\n+                    \"text\": f\"Look up order {prompt_variables['order_id']} for customer {prompt_variables['customer_id']}.\"\n+                }\n+            ],\n+        }\n+    ]\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"chat\",\n+        \"gen_ai.provider.name\": \"aws.bedrock\",\n+        \"gen_ai.request.model\": request_model,\n+        \"gen_ai.prompt.name\": prompt_name,\n+        \"gen_ai.prompt.version\": prompt_version,\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"chat anthropic.claude-3-haiku-20240307-v1:0\", attributes=span_attributes\n+    ) as span:\n+        for var_name, var_value in prompt_variables.items():\n+            span.set_attribute(f\"gen_ai.prompt.variable.{var_name}\", var_value)\n+        span.set_attribute(\n+            \"gen_ai.input.messages\",\n+            json.dumps(\n+                [{\"role\": m[\"role\"], \"parts\": [{\"type\": \"text\", \"content\": m[\"content\"][0][\"text\"]}]} for m in messages]",
+      "id": "PRRT_kwDOSUeMrM6HQVdg",
+      "opened": "2026-06-05T03:58:06Z",
+      "path": "reference/scenarios/aws-bedrock/scenario.py",
+      "replies": [],
+      "reviewed": "6070a2758cf947c001a9c78094242b899dca5639",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/179#discussion_r3360225398"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "we never pass prompt or prompt variables to this call (https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html#bedrock-runtime_Converse-request-promptVariables) how would instrumentation know about them?",
+      "created": "2026-06-05T03:50:52Z",
+      "hunk": "@@ -287,6 +287,115 @@ def run_converse_with_document_input_reference(client):\n         print(f\"    -> {text[:60]}\")\n \n \n+def run_converse_with_prompt_template_reference(client):\n+    \"\"\"Scenario: Bedrock Converse API using a named prompt template with version and variables.\n+\n+    Demonstrates setting gen_ai.prompt.name, gen_ai.prompt.version,\n+    and gen_ai.prompt.variable.* attributes when using a prompt template.\n+\n+    AWS Bedrock supports prompt management via Amazon Bedrock Prompt Management,\n+    where prompts can be versioned and parameterized with variables.\n+    \"\"\"\n+    print(\"  [converse_prompt_template] Bedrock Converse with named prompt template (reference implementation)\")\n+    request_model = \"anthropic.claude-3-haiku-20240307-v1:0\"\n+    prompt_name = \"order-inquiry\"\n+    prompt_version = \"2.0.1\"\n+    prompt_variables = {\"customer_id\": \"C-12345\", \"order_id\": \"ORD-67890\"}\n+\n+    messages = [\n+        {\n+            \"role\": \"user\",\n+            \"content\": [\n+                {\n+                    \"text\": f\"Look up order {prompt_variables['order_id']} for customer {prompt_variables['customer_id']}.\"\n+                }\n+            ],\n+        }\n+    ]\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"chat\",\n+        \"gen_ai.provider.name\": \"aws.bedrock\",\n+        \"gen_ai.request.model\": request_model,\n+        \"gen_ai.prompt.name\": prompt_name,\n+        \"gen_ai.prompt.version\": prompt_version,\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"chat anthropic.claude-3-haiku-20240307-v1:0\", attributes=span_attributes\n+    ) as span:\n+        for var_name, var_value in prompt_variables.items():\n+            span.set_attribute(f\"gen_ai.prompt.variable.{var_name}\", var_value)\n+        span.set_attribute(\n+            \"gen_ai.input.messages\",\n+            json.dumps(\n+                [{\"role\": m[\"role\"], \"parts\": [{\"type\": \"text\", \"content\": m[\"content\"][0][\"text\"]}]} for m in messages]\n+            ),\n+        )\n+        response = client.converse(\n+            modelId=request_model,\n+            messages=messages,",
+      "id": "PRRT_kwDOSUeMrM6HQXGO",
+      "opened": "2026-06-05T03:58:06Z",
+      "path": "reference/scenarios/aws-bedrock/scenario.py",
+      "replies": [],
+      "reviewed": "6070a2758cf947c001a9c78094242b899dca5639",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/179#discussion_r3360234162"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "let's drop mention of MCP here and instead reference this attribute on MCP spans. There please add a note explaining that MCP prompt arguments are expected in this attribute",
+      "created": "2026-06-05T03:57:56Z",
+      "hunk": "@@ -21,6 +21,11 @@ attribute_groups:\n         brief: The name of the prompt or prompt template provided in the request or response.\n         requirement_level:\n           conditionally_required: When operation is related to a specific prompt.\n+      - ref: gen_ai.prompt.variable\n+        brief: >\n+          The variables supplied to the prompt template in the request.\n+          In MCP, prompt arguments map to prompt variables.",
+      "id": "PRRT_kwDOSUeMrM6HQbrq",
+      "opened": "2026-06-05T03:58:06Z",
+      "path": "model/mcp/common.yaml",
+      "replies": [],
+      "reviewed": "6070a2758cf947c001a9c78094242b899dca5639",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/179#discussion_r3360259467"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "note that openai has deprecated this prompt template feature",
+      "created": "2026-06-19T11:01:39Z",
+      "hunk": "@@ -505,6 +505,101 @@ def run_embeddings_reference(client):\n         print(f\"    -> embedding dim: {len(resp.data[0].embedding)}\")\n \n \n+def run_responses_with_prompt_template_reference(client):\n+    \"\"\"Scenario: OpenAI Responses API with a stored prompt template.\n+\n+    The Responses API accepts a `prompt` parameter that references a stored\n+    prompt template by id, with optional version and variables. The\n+    instrumentation extracts gen_ai.prompt.name, gen_ai.prompt.version,\n+    and gen_ai.prompt.variable.* from the request.\n+    \"\"\"\n+    print(\"  [responses_prompt_template] Responses API with prompt template (reference implementation)\")",
+      "id": "PRRT_kwDOSUeMrM6Kz7CF",
+      "opened": "2026-06-19T11:01:39Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "43b48733351a404e577bede41061ac4b4c798bae",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/179#discussion_r3442001061"
+    }
+  ]
+}

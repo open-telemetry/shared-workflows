@@ -1,0 +1,32 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "18b5c18295d9f0768e5c59b4e6ec17187558cc3077e534473ba380c7b3d305cd",
+  "input_digest": "dc874fad1cd35446dbaba652313a50dbf889286bc84f2ec87cc8669ef6791131",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5cfa26d833547440392a7daf2e7508f855819391/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c77fb9840b4291508d968bb4c07791929411d601/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcConfig.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Xotul",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ae114e0ced9f19dc66b12d4faf4c919dacf9e15c/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ae114e0ced9f19dc66b12d4faf4c919dacf9e15c/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c77fb9840b4291508d968bb4c07791929411d601/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcConfig.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XrkDs",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

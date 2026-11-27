@@ -1,0 +1,145 @@
+{
+  "head": "eeb42eaceb6072bb3453ed15718c9d7353b396f8",
+  "merge": "144c49680588c0e1c607f1f88c8c57ddfdae81cd",
+  "merged": "2026-07-08T20:46:30Z",
+  "missing_roots": 0,
+  "number": 204,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In requirements files, the canonical distribution name is `langchain-openai` (hyphen). Using `langchain_openai` here is inconsistent with other dependency specs in this repo (e.g., tox uses `langchain-openai`) and can confuse automation that expects the normalized name.",
+      "created": "2026-07-08T17:58:34Z",
+      "hunk": "@@ -1,5 +1,5 @@\n langchain==1.3.11\n-langchain_openai\n+langchain_openai>=1.3.3",
+      "id": "PRRT_kwDOSbspP86PVVa1",
+      "opened": "2026-07-08T17:58:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/zero-code/requirements.txt",
+      "replies": [],
+      "reviewed": "28fa1d05d7e9e44218ad13d0bd480933254e05bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/204#discussion_r3546192655"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The header says these are \"pinned\" requirements, but the entries are now lower-bounded (`>=`). This comment is misleading after the version specifier change.",
+      "created": "2026-07-08T17:58:34Z",
+      "hunk": "@@ -15,10 +15,10 @@\n # Single pinned requirements for langchain unit tests.",
+      "id": "PRRT_kwDOSbspP86PVVaU",
+      "opened": "2026-07-08T17:58:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.txt",
+      "replies": [],
+      "reviewed": "28fa1d05d7e9e44218ad13d0bd480933254e05bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/204#discussion_r3546192609"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In requirements files, the canonical distribution name is `langchain-openai` (hyphen). Using `langchain_openai` here is inconsistent with other dependency specs in this repo (e.g., tox uses `langchain-openai`) and can confuse automation that expects the normalized name.",
+      "created": "2026-07-08T17:58:35Z",
+      "hunk": "@@ -1,5 +1,5 @@\n langchain==1.3.11\n-langchain_openai\n+langchain_openai>=1.3.3",
+      "id": "PRRT_kwDOSbspP86PVVbM",
+      "opened": "2026-07-08T17:58:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/manual/requirements.txt",
+      "replies": [],
+      "reviewed": "28fa1d05d7e9e44218ad13d0bd480933254e05bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/204#discussion_r3546192682"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In requirements files, the canonical distribution name is `langchain-openai` (hyphen). Using `langchain_openai` here is inconsistent with other dependency specs in this repo (e.g., tox uses `langchain-openai`) and can confuse automation that expects the normalized name.",
+      "created": "2026-07-08T17:58:35Z",
+      "hunk": "@@ -1,5 +1,5 @@\n langchain==1.3.11\n-langchain_openai\n-langgraph\n+langchain_openai>=1.3.3",
+      "id": "PRRT_kwDOSbspP86PVVbf",
+      "opened": "2026-07-08T17:58:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/tools/requirements.txt",
+      "replies": [],
+      "reviewed": "28fa1d05d7e9e44218ad13d0bd480933254e05bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/204#discussion_r3546192707"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In requirements files, the canonical distribution name is `langchain-openai` (hyphen). Using `langchain_openai` here is inconsistent with other dependency specs in this repo (e.g., tox uses `langchain-openai`) and can confuse automation that expects the normalized name.",
+      "created": "2026-07-08T17:58:35Z",
+      "hunk": "@@ -1,5 +1,5 @@\n-langchain\n-langchain_openai\n-langgraph\n+langchain>=1.3.11\n+langchain_openai>=1.3.3",
+      "id": "PRRT_kwDOSbspP86PVVbz",
+      "opened": "2026-07-08T17:58:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/workflow/requirements.txt",
+      "replies": [],
+      "reviewed": "28fa1d05d7e9e44218ad13d0bd480933254e05bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/204#discussion_r3546192733"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In requirements files, the canonical distribution name is `langchain-openai` (hyphen). Using `langchain_openai` here is inconsistent with other dependency specs in this repo (e.g., tox uses `langchain-openai`) and can confuse automation that expects the normalized name.",
+      "created": "2026-07-08T17:58:35Z",
+      "hunk": "@@ -1,5 +1,5 @@\n-langchain\n-langchain_openai\n-langgraph\n+langchain>=1.3.11\n+langchain_openai>=1.3.3",
+      "id": "PRRT_kwDOSbspP86PVVcE",
+      "opened": "2026-07-08T17:58:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/agent/requirements.txt",
+      "replies": [],
+      "reviewed": "28fa1d05d7e9e44218ad13d0bd480933254e05bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/204#discussion_r3546192758"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example pins `langchain` to an exact version while the rest of the file uses minimum-version constraints. If the intent is to keep example requirements as minimums (consistent with the other langchain examples updated in this PR), consider switching `langchain==...` to `langchain>=...` so Renovate can bump floors without hard pinning the base framework.",
+      "created": "2026-07-08T18:42:30Z",
+      "hunk": "@@ -1,5 +1,5 @@\n langchain==1.3.11\n-langchain_openai\n+langchain-openai>=1.3.3",
+      "id": "PRRT_kwDOSbspP86PWEmP",
+      "opened": "2026-07-08T18:42:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/manual/requirements.txt",
+      "replies": [],
+      "reviewed": "eeb42eaceb6072bb3453ed15718c9d7353b396f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/204#discussion_r3546460305"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example pins `langchain` to an exact version while using minimum-version constraints for other deps. If the goal is minimum versions (as in the updated workflow/agent examples), consider loosening `langchain==...` to `langchain>=...` for consistency and easier dependency updates.",
+      "created": "2026-07-08T18:42:31Z",
+      "hunk": "@@ -1,5 +1,5 @@\n langchain==1.3.11\n-langchain_openai\n+langchain-openai>=1.3.3",
+      "id": "PRRT_kwDOSbspP86PWEm0",
+      "opened": "2026-07-08T18:42:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/zero-code/requirements.txt",
+      "replies": [],
+      "reviewed": "eeb42eaceb6072bb3453ed15718c9d7353b396f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/204#discussion_r3546460354"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example pins `langchain` exactly but uses minimum-version constraints for `langgraph`/`langchain-openai`. If these example requirements are meant to be minimums, consider changing `langchain==...` to `langchain>=...` for consistency with the other examples updated in this PR.",
+      "created": "2026-07-08T18:42:31Z",
+      "hunk": "@@ -1,5 +1,5 @@\n langchain==1.3.11\n-langchain_openai\n-langgraph\n+langchain-openai>=1.3.3",
+      "id": "PRRT_kwDOSbspP86PWEnH",
+      "opened": "2026-07-08T18:42:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/tools/requirements.txt",
+      "replies": [],
+      "reviewed": "eeb42eaceb6072bb3453ed15718c9d7353b396f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/204#discussion_r3546460378"
+    }
+  ]
+}

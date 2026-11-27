@@ -1,0 +1,40 @@
+{
+  "head": "3d3cf0b24bf3f2437d32875bd202faafb99ab238",
+  "merge": "5262e50c0af9f9991f8963bb029e989e73cea61a",
+  "merged": "2026-01-26T20:29:15Z",
+  "missing_roots": 0,
+  "number": 15981,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Maybe we should call it `InternalNettyRequest` or `CommonNettyRequest` to avoid having 2 classes with the same name.",
+      "created": "2026-01-26T13:54:58Z",
+      "hunk": "@@ -0,0 +1,48 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.netty.v4_1;\n+\n+import io.netty.handler.codec.http.HttpResponse;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Adapts a user-provided {@link AttributesExtractor} that works with the public {@link\n+ * NettyRequest} type to work with the internal common NettyRequest type.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+final class AttributesExtractorAdapter\n+    implements AttributesExtractor<\n+        io.opentelemetry.instrumentation.netty.common.v4_0.internal.NettyRequest, HttpResponse> {",
+      "id": "PRRT_kwDODJKVX85rCSqm",
+      "opened": "2026-01-26T13:54:57Z",
+      "path": "instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/AttributesExtractorAdapter.java",
+      "replies": [],
+      "reviewed": "d43b7ddabce9bd640c1f430260e59a90c0b59706",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15981#discussion_r2727705332"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "We have helper for converting types for span name and attribute extractors https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b4bd148b45bae57bcfda454c74aab669707e4a45/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/InstrumenterUtil.java#L119-L130 Could consider using them",
+      "created": "2026-01-26T13:59:58Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.netty.v4_1;\n+\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanNameExtractor;\n+import java.util.function.UnaryOperator;\n+\n+/**\n+ * Adapts a user-provided {@link SpanNameExtractor} customizer that works with the public {@link\n+ * NettyRequest} type to work with the internal common NettyRequest type.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+final class SpanNameExtractorAdapter {",
+      "id": "PRRT_kwDODJKVX85rCWHk",
+      "opened": "2026-01-26T13:59:58Z",
+      "path": "instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/SpanNameExtractorAdapter.java",
+      "replies": [],
+      "reviewed": "d43b7ddabce9bd640c1f430260e59a90c0b59706",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15981#discussion_r2727723315"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "head": "51542984d8b93d9f3fff79f963389bd205488017",
+  "merge": "addd68887ddee40c920a4e544ff693e3a2bf4b3d",
+  "merged": "2026-09-17T20:40:50Z",
+  "missing_roots": 0,
+  "number": 739,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "explicit dependencies so we won't fail on CI without explicit udpate",
+      "created": "2026-09-17T19:53:58Z",
+      "hunk": "@@ -38,7 +38,9 @@\n # the newest supported version of external dependencies.\n \n llama-index-core~=0.14.24\n-llama-index-llms-openai\n+llama-index-workflows~=2.23.0",
+      "id": "PRRT_kwDOSbspP86jgv9-",
+      "opened": "2026-09-17T19:53:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/requirements.latest.txt",
+      "replies": [
+        {
+          "at": "2026-09-17T19:57:16Z",
+          "body": "but this would fetch 2.24.0 still, right?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/739#discussion_r4040915040"
+        },
+        {
+          "at": "2026-09-17T20:22:39Z",
+          "body": "`~=2.23.0` fetches anything `2.23.*`,  `~=2.23` would fetch 2.24\r\n\r\nalso CI is green",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/739#discussion_r4041127154"
+        }
+      ],
+      "reviewed": "51542984d8b93d9f3fff79f963389bd205488017",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/739#discussion_r4040887526"
+    }
+  ]
+}

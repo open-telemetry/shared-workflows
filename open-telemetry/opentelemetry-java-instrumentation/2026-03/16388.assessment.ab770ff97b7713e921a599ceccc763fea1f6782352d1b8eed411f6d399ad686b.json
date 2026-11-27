@@ -1,0 +1,75 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "605649826884571ac3e346c253f793354acabff6254c259640e0c0506f383060",
+  "input_digest": "ab770ff97b7713e921a599ceccc763fea1f6782352d1b8eed411f6d399ad686b",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4650bd745c4de0500af02e2d3ea221e75891d4c3/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/257ebe6467d84fa1871fdc21e6666e86b0048aec/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/257ebe6467d84fa1871fdc21e6666e86b0048aec/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/InternalServerAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX85yMEIn",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4650bd745c4de0500af02e2d3ea221e75891d4c3/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/257ebe6467d84fa1871fdc21e6666e86b0048aec/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/257ebe6467d84fa1871fdc21e6666e86b0048aec"
+      ],
+      "id": "PRRT_kwDODJKVX85yRA_9",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85y-Yiu",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85zOE6n",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c5020b53b7a2cd8982344334d66067f3c89cb27f/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/HttpConstants.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c5020b53b7a2cd8982344334d66067f3c89cb27f/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/client/AkkaHttpClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c5020b53b7a2cd8982344334d66067f3c89cb27f/instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/ApacheHttpClientRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/257ebe6467d84fa1871fdc21e6666e86b0048aec/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/HttpConstants.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/257ebe6467d84fa1871fdc21e6666e86b0048aec/instrumentation/akka/akka-http-10.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/akkahttp/client/AkkaHttpClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/257ebe6467d84fa1871fdc21e6666e86b0048aec/instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/ApacheHttpAsyncClientHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/961f10f1b1a38c39580a09bf735c2d52587682c2"
+      ],
+      "id": "PRRT_kwDODJKVX85zOOe1",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85zssNd",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5d6fb60ffb8cf16a75a7ab2dd00917b07bda6ad8/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/HttpConstants.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/257ebe6467d84fa1871fdc21e6666e86b0048aec/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/HttpConstants.java"
+      ],
+      "id": "PRRT_kwDODJKVX85z0deU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

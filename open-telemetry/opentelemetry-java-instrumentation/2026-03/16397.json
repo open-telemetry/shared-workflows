@@ -1,0 +1,46 @@
+{
+  "head": "7d18df14fee53a4e2dbf9e90cdb24fc8582fabf0",
+  "merge": "c7ed20484412726eba42f620066c4005ad28b28b",
+  "merged": "2026-03-06T12:27:46Z",
+  "missing_roots": 0,
+  "number": 16397,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "```suggestion\r\nclass ExperimentalTestHelper {\r\n```",
+      "created": "2026-03-06T00:33:49Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.xxljob;\n+\n+import javax.annotation.Nullable;\n+\n+public class ExperimentalTestHelper {",
+      "id": "PRRT_kwDODJKVX85yeDLE",
+      "opened": "2026-03-06T00:37:47Z",
+      "path": "instrumentation/xxl-job/xxl-job-common/testing/src/main/java/io/opentelemetry/instrumentation/xxljob/ExperimentalTestHelper.java",
+      "replies": [],
+      "reviewed": "2ac50c678d5f93d9aa4e3ea8898d6671f2f4a960",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16397#discussion_r2893097488"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "we could combine these two into one\r\n\r\n```suggestion\r\n  @Nullable\r\n  public static <T> T experimental(T value) {\r\n    if (isEnabled) {\r\n      return value;\r\n    }\r\n    return null;\r\n  }\r\n```",
+      "created": "2026-03-06T00:35:36Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.xxljob;\n+\n+import javax.annotation.Nullable;\n+\n+public class ExperimentalTestHelper {\n+  private static final boolean isEnabled =\n+      Boolean.getBoolean(\"otel.instrumentation.xxl-job.experimental-span-attributes\");\n+\n+  @Nullable\n+  public static String experimental(String value) {\n+    if (isEnabled) {\n+      return value;\n+    }\n+    return null;\n+  }\n+\n+  @Nullable\n+  public static Long experimental(long value) {\n+    if (isEnabled) {\n+      return value;\n+    }\n+    return null;\n+  }",
+      "id": "PRRT_kwDODJKVX85yeEF-",
+      "opened": "2026-03-06T00:37:47Z",
+      "path": "instrumentation/xxl-job/xxl-job-common/testing/src/main/java/io/opentelemetry/instrumentation/xxljob/ExperimentalTestHelper.java",
+      "replies": [
+        {
+          "at": "2026-03-06T08:47:56Z",
+          "body": "Done\\! I also updated Hystrix's ExperimentalTestHelper to use the generic method since I originally based mine on that one.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16397#discussion_r2894564391"
+        }
+      ],
+      "reviewed": "2ac50c678d5f93d9aa4e3ea8898d6671f2f4a960",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16397#discussion_r2893102564"
+    }
+  ]
+}

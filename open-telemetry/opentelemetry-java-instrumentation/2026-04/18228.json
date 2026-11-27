@@ -1,0 +1,31 @@
+{
+  "head": "68d18726ef005c4978c226d49653afb2cc597c4f",
+  "merge": "9cbf2067420b7c31b977af86357d73b6157e56a9",
+  "merged": "2026-04-25T20:46:11Z",
+  "missing_roots": 0,
+  "number": 18228,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Is is possible that the first handler is set but the `toMap` returns an empty map? A side effect from our instrumentation? Or perhaps first is also always `null`?",
+      "created": "2026-04-23T07:10:37Z",
+      "hunk": "@@ -226,7 +199,16 @@ void ourHandlerNotInHandlerMap() throws Exception {\n             entry -> {\n               list.add(entry.getValue());\n             });\n-    assertThat(list).hasSize(1);\n+    assertThat(list).containsExactly(httpHandler);\n+  }\n+\n+  private static void assertThatPipelineHasNoUserHandlers(ChannelPipeline channelPipeline) {\n+    assertThat(channelPipeline.first())\n+        .matches(\n+            handler ->\n+                handler == null || DEFAULT_TAIL_HANDLER.equals(handler.getClass().getName()));\n+    assertThat(channelPipeline.last()).isNull();\n+    assertThat(channelPipeline.toMap()).isEmpty();",
+      "id": "PRRT_kwDODJKVX859Ag27",
+      "opened": "2026-04-23T07:10:37Z",
+      "path": "instrumentation/netty/netty-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/netty/v4_0/ChannelPipelineTest.java",
+      "replies": [
+        {
+          "at": "2026-04-25T20:28:18Z",
+          "body": "added comment",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18228#discussion_r3142525244"
+        }
+      ],
+      "reviewed": "2d55c0b731db3567bab6b3f65025abb3e0f57ac3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18228#discussion_r3128949582"
+    }
+  ]
+}

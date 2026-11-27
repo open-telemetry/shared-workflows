@@ -1,0 +1,40 @@
+{
+  "head": "ad517fc2a42e15f7caf6ab0b37dccdcf1f89c9a9",
+  "merge": "d29d0c1c21f5ec0d2f36e1e522cb8c64eaecadd8",
+  "merged": "2026-09-16T04:57:08Z",
+  "missing_roots": 0,
+  "number": 684,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.request.top_k` is a floating-point semantic-convention attribute (`InferenceInvocation.top_k` is `float | None`), but this assigns the raw LangChain value, which is commonly an `int` such as 40. The resulting span/log attribute is therefore emitted with the wrong value type; coerce the value to `float` before assigning it.",
+      "created": "2026-09-11T21:28:40Z",
+      "hunk": "@@ -343,6 +347,8 @@ def on_chat_model_start(\n         llm_invocation.conversation_id = _conversation_id(metadata)\n         llm_invocation.input_messages = input_messages\n         llm_invocation.top_p = top_p\n+        llm_invocation.top_k = top_k",
+      "id": "PRRT_kwDOSbspP86hpLpm",
+      "opened": "2026-09-11T21:28:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "6c366d5985ad9053e004ed278da8d87e027444fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/684#discussion_r3993537151"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test only inspects fields on a `MagicMock` `InferenceInvocation`; it does not finish a real invocation or verify the emitted semantic-convention attributes and their types. A regression in the attribute mapping—or the `top_k` int/float mismatch—would still pass, so add a span-level assertion for `gen_ai.request.top_k` (float) and `gen_ai.request.choice.count` (int) using the real telemetry path.",
+      "created": "2026-09-11T21:28:40Z",
+      "hunk": "@@ -2799,6 +2799,42 @@ def test_on_chat_model_start_captures_input_messages_when_content_enabled():\n     assert blob.content == _REAL_PNG_BYTES\n \n \n+def test_on_chat_model_start_captures_top_k_and_choice_count():\n+    run_id = _run_id()\n+    handler, _, llm_inv = _make_handler_with_llm_invocation(run_id)\n+\n+    handler.on_chat_model_start(\n+        serialized={},\n+        messages=[[HumanMessage(content=\"Hello\")]],\n+        run_id=run_id,\n+        invocation_params={\n+            \"params\": {\n+                \"model_name\": \"gpt-4o\",\n+                \"top_k\": 40,\n+                \"n\": 3,\n+            }\n+        },\n+    )\n+\n+    assert llm_inv.top_k == 40\n+    assert llm_inv.request_choice_count == 3",
+      "id": "PRRT_kwDOSbspP86hpLqG",
+      "opened": "2026-09-11T21:28:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_callback_handler.py",
+      "replies": [],
+      "reviewed": "6c366d5985ad9053e004ed278da8d87e027444fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/684#discussion_r3993537197"
+    }
+  ]
+}

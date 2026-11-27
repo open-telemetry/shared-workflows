@@ -1,0 +1,31 @@
+{
+  "head": "73c10eaee50a92da1790d0309cefa7566537d232",
+  "merge": "06f2c58c39ce3516bd5af3ec3a7f9e1c6b3240ec",
+  "merged": "2026-10-29T18:02:26Z",
+  "missing_roots": 0,
+  "number": 21070,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. In smoke-tests/images/spring-boot/build.gradle.kts, add exactly this comment immediately above excludes.add(\"time\"): `// Leave out the timestamp so Gradle can reuse cached results.` Keep the exclusion and existing version unchanged. Remove the newly added testBuildInfoHasNoTimestamp test from instrumentation/spring/spring-boot-resources/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/boot/resources/TestBootInfClassesResource.java and remove its now-unused IOException, InputStream, and Properties imports. Preserve all pre-existing tests. Keep this limited to the requested comment and test removal; run appropriate narrow validation.",
+      "created": "2026-10-29T17:02:44Z",
+      "hunk": "@@ -54,6 +54,7 @@ java {\n \n springBoot {\n   buildInfo {\n+    excludes.add(\"time\")",
+      "id": "PRRT_kwDODJKVX86xqeVT",
+      "opened": "2026-10-29T17:02:44Z",
+      "path": "smoke-tests/images/spring-boot/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-29T17:11:02Z",
+          "body": "Applied the requested comment and removed the timestamp-only test/imports. The focused Spring Boot resource unit tests passed. Commit: `73c10eae`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21070#discussion_r4415512513"
+        }
+      ],
+      "reviewed": "c09e803c25fecd2afb87a1662ebc2990388bf37a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21070#discussion_r4415417874"
+    }
+  ]
+}

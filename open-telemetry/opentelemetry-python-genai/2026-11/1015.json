@@ -1,0 +1,238 @@
+{
+  "head": "aceb70543e5d07674aa373c1ed6fb1f8e5e35b18",
+  "merge": "1806dbe8797452f27f82123e2108ba3592f186a7",
+  "merged": "2026-11-07T02:06:57Z",
+  "missing_roots": 0,
+  "number": 1015,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "The util tests cover the event at the shared `GenAIInvocation` level, but there’s only one end-to-end instrumentation test for it: a synchronous, non-streaming LangChain authentication failure. It would be good to add a few assertions to existing async and streaming error tests as well. Those wrappers have their own error and finalization paths, so this would confirm the original exception reaches `invocation.fail()` and the event is emitted exactly once in real instrumentation usage.",
+      "created": "2026-10-30T15:33:09Z",
+      "hunk": "@@ -0,0 +1,284 @@\n+# Copyright The OpenTelemetry Authors",
+      "id": "PRRT_kwDOSbspP86yB33-",
+      "opened": "2026-10-30T15:33:09Z",
+      "path": "util/opentelemetry-util-genai/tests/test_exception_event.py",
+      "replies": [
+        {
+          "at": "2026-10-30T16:51:45Z",
+          "body": "Added checks to the Portkey async and Bedrock sync streaming error tests to confirm the event is emitted once with the right type.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4426175001"
+        }
+      ],
+      "reviewed": "dc242fcad0193ee50f47eb75caa221c74bb736d3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4425381673"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Could these tests live in `test_utils_events.py` instead? That file already covers event emission and uses essentially the same telemetry setup. Since this is another event type rather than a separate subsystem, keeping the coverage together would make the tests easier to discover and avoid creating a new file for each event scenario.",
+      "created": "2026-10-30T15:35:59Z",
+      "hunk": "@@ -0,0 +1,284 @@\n+# Copyright The OpenTelemetry Authors",
+      "id": "PRRT_kwDOSbspP86yB9et",
+      "opened": "2026-10-30T15:36:00Z",
+      "path": "util/opentelemetry-util-genai/tests/test_exception_event.py",
+      "replies": [
+        {
+          "at": "2026-10-30T16:50:51Z",
+          "body": "Moved them into test_utils_events.py and reused its setup, and removed the separate file on new commit.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4426167042"
+        }
+      ],
+      "reviewed": "dc242fcad0193ee50f47eb75caa221c74bb736d3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4425418468"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Semconv is moving to per-operation exception events (`gen_ai.client.inference.exception` in open-telemetry/semantic-conventions-genai#658, `gen_ai.client.embeddings.exception` in #659), with `gen_ai.client.operation.exception` left for the rest. Please make the event name a class attribute that each client invocation sets, so the rename is a one-line change per subclass.\n\nThis also replaces the `SpanKind.CLIENT` check: span kind is only a proxy for \"this operation has a client exception event\", and the new `_span_kind` field can go.\n\n```python\n# GenAIInvocation\n_exception_event_name: ClassVar[str | None] = None\n\n# InferenceInvocation, EmbeddingInvocation, RetrievalInvocation,\n# FetchResponseInvocation, RemoteAgentInvocation\n_exception_event_name: ClassVar[str | None] = \"gen_ai.client.operation.exception\"\n```\n",
+      "created": "2026-10-31T19:10:44Z",
+      "hunk": "@@ -181,6 +186,9 @@ def _resolve_suppressed_content_and_hook(\n     )\n \n \n+_EXCEPTION_EVENT_NAME = \"gen_ai.client.operation.exception\"",
+      "id": "PRRT_kwDOSbspP86yTz0I",
+      "opened": "2026-10-31T19:17:23Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-11-04T06:30:32Z",
+          "body": "fixed on the recent commit",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4464404799"
+        }
+      ],
+      "reviewed": "d59e0356685d1f22c7fa2f6b3934d29e8724e892",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4432966686"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "With a per-class event name this becomes the only gate. `_start_span` is never `False` here, since the suppressed invocations override `_finish` and never call this method:\n\n```suggestion\n            self._exception_event_name is None\n```\n\nand `_EXCEPTION_EVENT_NAME` below becomes `self._exception_event_name`.\n",
+      "created": "2026-10-31T19:10:44Z",
+      "hunk": "@@ -443,6 +454,54 @@ def _finish(self, error: Error | None = None) -> None:\n                     self._context_key, None, context=self._span_context\n                 )\n \n+    def _emit_exception_event(self, error: Error) -> None:\n+        \"\"\"Emit a ``gen_ai.client.operation.exception`` event for a raised exception.\n+\n+        Only client operations that own their span report it; a suppressed\n+        invocation leaves it to the invocation it runs inside. Errors built\n+        without an exception have nothing to report, and, as in the SDK's\n+        ``use_span``, a ``BaseException`` that is not an ``Exception`` (such as\n+        cancellation) is not treated as one.\n+\n+        For more details, see the semantic convention documentation:\n+        https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-exceptions.md\n+        \"\"\"\n+        from opentelemetry.util.genai.stream import (  # pylint: disable=import-outside-toplevel\n+            AbandonedStreamError,\n+        )\n+\n+        exception = error.exception\n+        if (\n+            not self._start_span\n+            or self._span_kind is not SpanKind.CLIENT",
+      "id": "PRRT_kwDOSbspP86yTz0M",
+      "opened": "2026-10-31T19:17:23Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "d59e0356685d1f22c7fa2f6b3934d29e8724e892",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4432966691"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Could the expected event name be per operation? Then the semconv split only changes the expected values here, and `_exception_events` takes the name as a parameter.\n\n```python\noperations = {\n    \"inference\": (lambda: handler.inference(\"provider\"), \"gen_ai.client.operation.exception\"),\n    \"embedding\": (lambda: handler.embedding(\"provider\"), \"gen_ai.client.operation.exception\"),\n    ...\n}\nfor name, (start, event_name) in operations.items():\n    ...\n    (event,) = self._exception_events(event_name)\n```",
+      "created": "2026-10-31T19:10:44Z",
+      "hunk": "@@ -543,3 +558,160 @@ def test_event_emitted_when_logger_enabled(self):\n             kwargs.get(\"severity_number\"),\n             SeverityNumber.DEBUG,\n         )\n+\n+    def _exception_events(self):\n+        return [\n+            log.log_record\n+            for log in self.log_exporter.get_finished_logs()\n+            if log.log_record.event_name == EXCEPTION_EVENT\n+        ]\n+\n+    def test_failed_client_operation_emits_exception_event(self):\n+        handler = self.telemetry_handler\n+        operations = {\n+            \"inference\": lambda: handler.inference(\"provider\"),\n+            \"embedding\": lambda: handler.embedding(\"provider\"),\n+            \"retrieval\": lambda: handler.retrieval(provider=\"provider\"),\n+            \"fetch_response\": lambda: handler.fetch_response(\n+                \"provider\", response_id=\"resp_1\"\n+            ),\n+            \"invoke_remote_agent\": lambda: handler.invoke_remote_agent(\n+                \"provider\"\n+            ),\n+        }\n+        for name, start in operations.items():",
+      "id": "PRRT_kwDOSbspP86yTz0O",
+      "opened": "2026-10-31T19:17:23Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils_events.py",
+      "replies": [],
+      "reviewed": "d59e0356685d1f22c7fa2f6b3934d29e8724e892",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4432966694"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The SDK fills `exception.type`, `exception.message` and `exception.stacktrace` (same values as here) when the exception is passed to `emit`, so this can be:\n\n```suggestion\n        self._logger.emit(\n            event_name=_EXCEPTION_EVENT_NAME,\n            exception=exception,\n            context=self._span_context,\n            severity_number=SeverityNumber.WARN,\n        )\n```\n\nThe `traceback`, `exception_attributes` and `fq_exception_type` imports are then unused.",
+      "created": "2026-10-31T19:14:24Z",
+      "hunk": "@@ -443,6 +454,54 @@ def _finish(self, error: Error | None = None) -> None:\n                     self._context_key, None, context=self._span_context\n                 )\n \n+    def _emit_exception_event(self, error: Error) -> None:\n+        \"\"\"Emit a ``gen_ai.client.operation.exception`` event for a raised exception.\n+\n+        Only client operations that own their span report it; a suppressed\n+        invocation leaves it to the invocation it runs inside. Errors built\n+        without an exception have nothing to report, and, as in the SDK's\n+        ``use_span``, a ``BaseException`` that is not an ``Exception`` (such as\n+        cancellation) is not treated as one.\n+\n+        For more details, see the semantic convention documentation:\n+        https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-exceptions.md\n+        \"\"\"\n+        from opentelemetry.util.genai.stream import (  # pylint: disable=import-outside-toplevel\n+            AbandonedStreamError,\n+        )\n+\n+        exception = error.exception\n+        if (\n+            not self._start_span\n+            or self._span_kind is not SpanKind.CLIENT\n+            or not isinstance(exception, Exception)\n+            # Raised by the stream wrappers themselves, not by the operation.\n+            or isinstance(exception, AbandonedStreamError)\n+        ):\n+            return\n+        if not self._logger.enabled(\n+            context=self._span_context,\n+            severity_number=SeverityNumber.WARN,\n+            event_name=_EXCEPTION_EVENT_NAME,\n+        ):\n+            return\n+        self._logger.emit(\n+            LogRecord(\n+                event_name=_EXCEPTION_EVENT_NAME,\n+                attributes={\n+                    exception_attributes.EXCEPTION_TYPE: fq_exception_type(\n+                        exception\n+                    ),\n+                    exception_attributes.EXCEPTION_MESSAGE: str(exception),\n+                    exception_attributes.EXCEPTION_STACKTRACE: \"\".join(\n+                        traceback.format_exception(exception)\n+                    ),\n+                },\n+                context=self._span_context,\n+                severity_number=SeverityNumber.WARN,\n+            )\n+        )",
+      "id": "PRRT_kwDOSbspP86yT1S-",
+      "opened": "2026-10-31T19:17:23Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "d59e0356685d1f22c7fa2f6b3934d29e8724e892",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4432976398"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please drop the `AbandonedStreamError` special case. The span already fails with it, so an event next to it is consistent, and the base invocation shouldn't depend on the stream module (the lazy import above can go too). The `abandoned_stream` case in the tests would then expect an event.\n\n```suggestion\n```",
+      "created": "2026-10-31T19:15:49Z",
+      "hunk": "@@ -443,6 +454,54 @@ def _finish(self, error: Error | None = None) -> None:\n                     self._context_key, None, context=self._span_context\n                 )\n \n+    def _emit_exception_event(self, error: Error) -> None:\n+        \"\"\"Emit a ``gen_ai.client.operation.exception`` event for a raised exception.\n+\n+        Only client operations that own their span report it; a suppressed\n+        invocation leaves it to the invocation it runs inside. Errors built\n+        without an exception have nothing to report, and, as in the SDK's\n+        ``use_span``, a ``BaseException`` that is not an ``Exception`` (such as\n+        cancellation) is not treated as one.\n+\n+        For more details, see the semantic convention documentation:\n+        https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-exceptions.md\n+        \"\"\"\n+        from opentelemetry.util.genai.stream import (  # pylint: disable=import-outside-toplevel\n+            AbandonedStreamError,\n+        )\n+\n+        exception = error.exception\n+        if (\n+            not self._start_span\n+            or self._span_kind is not SpanKind.CLIENT\n+            or not isinstance(exception, Exception)\n+            # Raised by the stream wrappers themselves, not by the operation.\n+            or isinstance(exception, AbandonedStreamError)",
+      "id": "PRRT_kwDOSbspP86yT1-C",
+      "opened": "2026-10-31T19:17:23Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "d59e0356685d1f22c7fa2f6b3934d29e8724e892",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4432980496"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "open-telemetry/semantic-conventions-genai#658 is merged, so inference has its own event now:\n\n```suggestion\n    _exception_event_name = \"gen_ai.client.inference.exception\"\n```",
+      "created": "2026-11-06T03:20:37Z",
+      "hunk": "@@ -147,6 +147,7 @@ class InferenceInvocation(GenAIInvocation):\n     \"\"\"\n \n     _records_stream_telemetry = True\n+    _exception_event_name = \"gen_ai.client.operation.exception\"",
+      "id": "PRRT_kwDOSbspP860XaPM",
+      "opened": "2026-11-06T03:21:29Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "7801f5f5337db2bd8ae2915a5cf0f35c6a8dcbc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4488684921"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Same for embeddings (open-telemetry/semantic-conventions-genai#659):\n\n```suggestion\n    _exception_event_name = \"gen_ai.client.embeddings.exception\"\n```",
+      "created": "2026-11-06T03:20:37Z",
+      "hunk": "@@ -52,6 +52,8 @@ class EmbeddingInvocation(GenAIInvocation):\n     Use handler.embedding(provider) rather than constructing this directly.\n     \"\"\"\n \n+    _exception_event_name = \"gen_ai.client.operation.exception\"",
+      "id": "PRRT_kwDOSbspP860XaPR",
+      "opened": "2026-11-06T03:21:29Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_embedding_invocation.py",
+      "replies": [],
+      "reviewed": "7801f5f5337db2bd8ae2915a5cf0f35c6a8dcbc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4488684935"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Fetch response got its own event in open-telemetry/semantic-conventions-genai#669:\n\n```suggestion\n    _exception_event_name = \"gen_ai.client.fetch_response.exception\"\n```",
+      "created": "2026-11-06T03:20:37Z",
+      "hunk": "@@ -105,6 +105,8 @@ class FetchResponseInvocation(GenAIInvocation):\n     failed.\n     \"\"\"\n \n+    _exception_event_name = \"gen_ai.client.operation.exception\"",
+      "id": "PRRT_kwDOSbspP860XaPW",
+      "opened": "2026-11-06T03:21:29Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_fetch_response_invocation.py",
+      "replies": [],
+      "reviewed": "7801f5f5337db2bd8ae2915a5cf0f35c6a8dcbc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4488684942"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Remote agents use `gen_ai.client.invoke_agent.exception` now (open-telemetry/semantic-conventions-genai#667):\n\n```suggestion\n    _exception_event_name = \"gen_ai.client.invoke_agent.exception\"\n```\n\nopen-telemetry/semantic-conventions-genai#670 also added one for local agents, so `LocalAgentInvocation` can set:\n\n```python\n_exception_event_name = \"gen_ai.invoke_agent.exception\"\n```",
+      "created": "2026-11-06T03:20:37Z",
+      "hunk": "@@ -504,6 +504,8 @@ class RemoteAgentInvocation(AgentInvocation):\n         https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md#invoke-agent-client-span\n     \"\"\"\n \n+    _exception_event_name = \"gen_ai.client.operation.exception\"",
+      "id": "PRRT_kwDOSbspP860XaPb",
+      "opened": "2026-11-06T03:21:29Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [],
+      "reviewed": "7801f5f5337db2bd8ae2915a5cf0f35c6a8dcbc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4488684947"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Tool execution and local agent invocation have exception events now (open-telemetry/semantic-conventions-genai#668, #670), so only `workflow` should stay here. Could `tool` and `invoke_local_agent` move to the table above, with `ToolInvocation` setting `_exception_event_name = \"gen_ai.execute_tool.exception\"`?\n\n```python\n\"tool\": (\n    lambda: handler.tool(\"get_weather\"),\n    \"gen_ai.execute_tool.exception\",\n),\n\"invoke_local_agent\": (\n    lambda: handler.invoke_local_agent(),\n    \"gen_ai.invoke_agent.exception\",\n),\n```",
+      "created": "2026-11-06T03:20:37Z",
+      "hunk": "@@ -543,3 +558,186 @@ def test_event_emitted_when_logger_enabled(self):\n             kwargs.get(\"severity_number\"),\n             SeverityNumber.DEBUG,\n         )\n+\n+    def _exception_events(self, event_name=EXCEPTION_EVENT):\n+        return [\n+            log.log_record\n+            for log in self.log_exporter.get_finished_logs()\n+            if log.log_record.event_name == event_name\n+        ]\n+\n+    def test_failed_client_operation_emits_exception_event(self):\n+        handler = self.telemetry_handler\n+        operations = {\n+            \"inference\": (\n+                lambda: handler.inference(\"provider\"),\n+                \"gen_ai.client.operation.exception\",\n+            ),\n+            \"embedding\": (\n+                lambda: handler.embedding(\"provider\"),\n+                \"gen_ai.client.operation.exception\",\n+            ),\n+            \"retrieval\": (\n+                lambda: handler.retrieval(provider=\"provider\"),\n+                \"gen_ai.client.operation.exception\",\n+            ),\n+            \"fetch_response\": (\n+                lambda: handler.fetch_response(\n+                    \"provider\", response_id=\"resp_1\"\n+                ),\n+                \"gen_ai.client.operation.exception\",\n+            ),\n+            \"invoke_remote_agent\": (\n+                lambda: handler.invoke_remote_agent(\"provider\"),\n+                \"gen_ai.client.operation.exception\",\n+            ),\n+        }\n+        for name, (start, event_name) in operations.items():\n+            with self.subTest(operation=name):\n+                self.span_exporter.clear()\n+                self.log_exporter.clear()\n+                with self.assertRaises(RateLimitError):\n+                    with start():\n+                        _raise_rate_limit()\n+\n+                (event,) = self._exception_events(event_name)\n+                span = _get_single_span(self.span_exporter)\n+                self.assertEqual(event.severity_number, SeverityNumber.WARN)\n+                self.assertEqual(event.trace_id, span.context.trace_id)\n+                self.assertEqual(event.span_id, span.context.span_id)\n+                self.assertEqual(\n+                    event.attributes[exception_attributes.EXCEPTION_TYPE],\n+                    f\"{__name__}.RateLimitError\",\n+                )\n+                self.assertEqual(\n+                    event.attributes[exception_attributes.EXCEPTION_MESSAGE],\n+                    \"rate limit reached\",\n+                )\n+                stacktrace = event.attributes[\n+                    exception_attributes.EXCEPTION_STACKTRACE\n+                ]\n+                self.assertIn(\"in _raise_rate_limit\", stacktrace)\n+                self.assertTrue(\n+                    stacktrace.endswith(\"RateLimitError: rate limit reached\\n\")\n+                )\n+\n+    def test_failed_internal_operation_emits_no_exception_event(self):\n+        handler = self.telemetry_handler\n+        operations = {\n+            \"tool\": lambda: handler.tool(\"get_weather\"),\n+            \"workflow\": lambda: handler.workflow(\"workflow\"),\n+            \"invoke_local_agent\": lambda: handler.invoke_local_agent(),\n+        }",
+      "id": "PRRT_kwDOSbspP860XaPh",
+      "opened": "2026-11-06T03:21:29Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils_events.py",
+      "replies": [],
+      "reviewed": "7801f5f5337db2bd8ae2915a5cf0f35c6a8dcbc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4488684956"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "With per-operation events this needs an update:\n\n```suggestion\nWhen an inference, embeddings, retrieval, fetch response, agent invocation, or tool execution\noperation fails with an exception, the package also emits the operation's exception event (for\nexample ``gen_ai.client.inference.exception``) with ``WARN`` severity, carrying ``exception.type``,\n``exception.message``, and ``exception.stacktrace``. ``exception.message`` may contain sensitive\ninformation. The event is not emitted for failures reported without an exception, or for a\n``BaseException`` that is not an ``Exception``, such as cancellation.\n```",
+      "created": "2026-11-06T03:20:37Z",
+      "hunk": "@@ -195,6 +195,13 @@ To suppress these events while keeping a ``LoggerProvider`` active, configure yo\n ``LogRecordProcessor`` to filter them out (see `examples/suppress-inference-event\n <https://github.com/open-telemetry/opentelemetry-python-genai/tree/main/examples/suppress-inference-event>`_).\n \n+When a client operation (inference, embeddings, retrieval, fetch response, or remote agent\n+invocation) fails with an exception, the package also emits a ``gen_ai.client.operation.exception``\n+event (with ``WARN`` severity) carrying ``exception.type``, ``exception.message``, and\n+``exception.stacktrace``. ``exception.message`` may contain sensitive information. The event is not\n+emitted for failures reported without an exception, or for a ``BaseException`` that is not an\n+``Exception``, such as cancellation.",
+      "id": "PRRT_kwDOSbspP860XaPl",
+      "opened": "2026-11-06T03:21:29Z",
+      "path": "util/opentelemetry-util-genai/README.rst",
+      "replies": [],
+      "reviewed": "7801f5f5337db2bd8ae2915a5cf0f35c6a8dcbc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4488684961"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nEmit GenAI exception events when an operation fails with an exception.\n```",
+      "created": "2026-11-06T03:20:37Z",
+      "hunk": "@@ -0,0 +1 @@\n+Emit the `gen_ai.client.operation.exception` event when a client operation fails with an exception.",
+      "id": "PRRT_kwDOSbspP860XaPq",
+      "opened": "2026-11-06T03:21:29Z",
+      "path": "util/opentelemetry-util-genai/.changelog/1015.added",
+      "replies": [],
+      "reviewed": "7801f5f5337db2bd8ae2915a5cf0f35c6a8dcbc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1015#discussion_r4488684969"
+    }
+  ]
+}

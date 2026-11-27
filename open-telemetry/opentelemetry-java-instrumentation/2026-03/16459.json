@@ -1,0 +1,52 @@
+{
+  "head": "e25984ca801bba958849f8b50a49ab12230b69ff",
+  "merge": "c04a1950e156db389d90690064b64512cfadd4fb",
+  "merged": "2026-03-15T07:59:53Z",
+  "missing_roots": 0,
+  "number": 16459,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "so will we auto-enable all the semconv stability opt-ins with this too?",
+      "created": "2026-03-12T23:29:37Z",
+      "hunk": "@@ -122,6 +123,7 @@ public CommonConfig(OpenTelemetry openTelemetry) {\n         commonConfig.get(\"logging\").getString(\"span_id\", LoggingContextConstants.SPAN_ID);\n     loggingTraceFlagsKey =\n         commonConfig.get(\"logging\").getString(\"trace_flags\", LoggingContextConstants.TRACE_FLAGS);\n+    v3Preview = commonConfig.getBoolean(\"v3_preview\", false);",
+      "id": "PRRT_kwDODJKVX850BbWO",
+      "opened": "2026-03-12T23:29:42Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+      "replies": [
+        {
+          "at": "2026-03-13T00:07:12Z",
+          "body": "no, but that's a good idea",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16459#discussion_r2928159609"
+        }
+      ],
+      "reviewed": "5d711cf48334e3a45bb5c6c7aa3a72736ad7269f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16459#discussion_r2928013325"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think that I would have omitted `common` from the property name, but it is fine this way too.",
+      "created": "2026-03-13T07:14:19Z",
+      "hunk": "@@ -124,6 +125,9 @@ public CommonConfig(OpenTelemetry openTelemetry) {\n     loggingTraceFlagsKey =\n         commonConfig.get(\"logging\").getString(\"trace_flags\", LoggingContextConstants.TRACE_FLAGS);\n     v3Preview = commonConfig.getBoolean(\"v3_preview\", false);",
+      "id": "PRRT_kwDODJKVX850Fj6u",
+      "opened": "2026-03-13T07:14:18Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+      "replies": [
+        {
+          "at": "2026-03-13T16:23:46Z",
+          "body": "I don't think we can, because the first level under `.java` in declarative configuration is limited to objects:\n\nhttps://github.com/open-telemetry/opentelemetry-java/blob/777213e15306f988edb5f53edf300365428fe67c/api/incubator/src/main/java/io/opentelemetry/api/incubator/config/ConfigProvider.java#L47-L49\n\nhttps://github.com/open-telemetry/opentelemetry-configuration/blob/402bba567c08bdb27bdfe5b702b93d0249f8f981/opentelemetry_configuration.json#L903-L908",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16459#discussion_r2932343638"
+        }
+      ],
+      "reviewed": "e25984ca801bba958849f8b50a49ab12230b69ff",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16459#discussion_r2929510010"
+    }
+  ]
+}

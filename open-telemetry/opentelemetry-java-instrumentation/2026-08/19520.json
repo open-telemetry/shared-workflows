@@ -1,0 +1,67 @@
+{
+  "head": "1072224776667f8bc75a971dd7f3a8604edb3ad2",
+  "merge": "902d84a61c76093d28adee745fa3736b3e72091e",
+  "merged": "2026-08-13T17:54:37Z",
+  "missing_roots": 0,
+  "number": 19520,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new javaagent configuration parser has no direct tests. The updated javaagent test JVM arguments cover only a non-empty `included` selector, so `excluded`-only configuration, replacement-vs-deprecated precedence, v3 suppression, and the one-time deprecation warning can regress independently of the separately tested Spring implementation. Please add focused `LogbackConfig` tests, analogous to `GrpcConfigTest`, for these branches.",
+      "created": "2026-08-11T23:32:22Z",
+      "hunk": "@@ -0,0 +1,87 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.logback.appender.v1_0;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.internal.SemconvStability;\n+import java.util.List;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+final class LogbackConfig {\n+\n+  private static final Logger logger = Logger.getLogger(LogbackConfig.class.getName());\n+  private static final AtomicBoolean warnedDeprecatedProperty = new AtomicBoolean();\n+\n+  private static final String DEPRECATED_MDC_ATTRIBUTES =\n+      \"otel.instrumentation.logback-appender.experimental.capture-mdc-attributes\";\n+  private static final String MDC_ATTRIBUTES_INCLUDED =\n+      \"otel.instrumentation.logback-appender.experimental.mdc-attributes.included\";\n+\n+  @Nullable private final IncludeExclude mdcAttributes;\n+\n+  static LogbackConfig create(OpenTelemetry openTelemetry) {\n+    return new LogbackConfig(\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"logback_appender\"),\n+        SemconvStability.v3Preview(openTelemetry));\n+  }\n+\n+  LogbackConfig(DeclarativeConfigProperties config, boolean v3Preview) {\n+    mdcAttributes = getMdcAttributes(config, v3Preview);\n+  }\n+\n+  @Nullable\n+  IncludeExclude getMdcAttributes() {\n+    return mdcAttributes;\n+  }\n+\n+  @Nullable\n+  private static IncludeExclude getMdcAttributes(\n+      DeclarativeConfigProperties config, boolean v3Preview) {\n+    DeclarativeConfigProperties mdcAttributes = config.get(\"mdc_attributes/development\");\n+    List<String> included = mdcAttributes.getScalarList(\"included\", String.class);\n+    List<String> excluded = mdcAttributes.getScalarList(\"excluded\", String.class);",
+      "id": "PRRT_kwDODJKVX86YaG6O",
+      "opened": "2026-08-11T23:32:23Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/appender/v1_0/LogbackConfig.java",
+      "replies": [
+        {
+          "at": "2026-08-11T23:54:38Z",
+          "body": "Addressed in 0f139d9d5193ec9ee55ef26cb456772872907f7d.\n\nAnalysis: Javaagent implementation classes are hidden from agent-backed tests by class loader separation, so add the repository-standard javaagent-unit-tests module and exercise LogbackConfig directly there. The tests cover excluded-only selection, new-selector precedence, v3 suppression of the deprecated property, and include-only fallback with a single warning.\n\nUpsides: Protects all requested parser branches independently of Spring behavior and integration-test JVM arguments.\n\nDownsides: Adds a small Gradle submodule and test-only reflection to reset the private one-time warning flag.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19520#discussion_r3762589706"
+        }
+      ],
+      "reviewed": "a0a9874f9759481be6cb2d3c5ab7431360db65bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19520#discussion_r3762481570"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "log4j xml allows setting includes and excludes perhaps these should be allowed here too for feature parity?",
+      "created": "2026-08-12T13:55:02Z",
+      "hunk": "@@ -104,9 +105,25 @@ The available settings are:\n | `captureArguments`                   | Boolean | `false` | Enable the capture of Logback log event arguments.                                                                                                                                                                                                |\n | `captureLogstashMarkerAttributes`    | Boolean | `false` | Enable the capture of Logstash markers, supported are those added to logs via `Markers.append()`, `Markers.appendEntries()`, `Markers.appendArray()` and `Markers.appendRaw()` methods.                                                           |\n | `captureLogstashStructuredArguments` | Boolean | `false` | Enable the capture of Logstash StructuredArguments as attributes (e.g., `StructuredArguments.v()` and `StructuredArguments.keyValue()`).                                                                                                          |\n-| `captureMdcAttributes`               | String  |         | Comma separated list of MDC attributes to capture. Use the wildcard character `*` to capture all attributes.                                                                                                                                      |\n+| `captureMdcAttributes`               | String  |         | Include-only MDC selector, and the only MDC setting that can be configured from `logback.xml`. Deprecated in favor of `setMdcAttributes(IncludeExclude)`, which is not reachable from XML, and will be removed in 3.0.                            |",
+      "id": "PRRT_kwDODJKVX86Yl8Mv",
+      "opened": "2026-08-12T13:55:02Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/README.md",
+      "replies": [
+        {
+          "at": "2026-08-12T17:31:08Z",
+          "body": "Good call — added `mdcAttributesIncluded` and `mdcAttributesExcluded` so the selector is configurable from `logback.xml`:\n\n```xml\n<appender name=\"OpenTelemetry\" class=\"io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender\">\n  <mdcAttributesIncluded>request-*,user-?</mdcAttributesIncluded>\n  <mdcAttributesExcluded>*-secret</mdcAttributesExcluded>\n</appender>\n```\n\n`setMdcAttributes(IncludeExclude)` still wins over the XML elements, which win over the deprecated `captureMdcAttributes` (which now keeps its exact historical literal-key semantics, including the sole-`*` special case).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19520#discussion_r3768769611"
+        }
+      ],
+      "reviewed": "87c4479ef70a93e7a07b5188f3d62a8b3f2cae4e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19520#discussion_r3767044280"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-08-13T12:28:55Z",
+      "hunk": "@@ -62,6 +70,17 @@\n   `MessagingConsumerMetrics.getForOperationType()`.\n   ([#19357](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19357))\n \n+### 📈 Enhancements\n+\n+- Add `otel.instrumentation.logback-appender.experimental.mdc-attributes.included` and\n+  `otel.instrumentation.logback-appender.experimental.mdc-attributes.excluded`, which select the MDC\n+  keys captured as log attributes using case-sensitive glob patterns where `?` matches one character\n+  and `*` matches any number of characters. Excluded patterns take precedence over included\n+  patterns, and configuring only excluded patterns captures every MDC attribute that they do not\n+  exclude. The same selector is available in `logback.xml` as `mdcAttributesIncluded` and\n+  `mdcAttributesExcluded`.\n+  ([#19520](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19520))\n+",
+      "id": "PRRT_kwDODJKVX86Y7eb2",
+      "opened": "2026-08-13T12:28:55Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "315784ecfb4f8ce6f3eba2f96ccef68247c098af",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19520#discussion_r3775312263"
+    }
+  ]
+}

@@ -1,0 +1,422 @@
+{
+  "head": "64118fdd9f8a553df0e9710f35c913e67a2c4107",
+  "merge": "3eafaa0539f1e38aae788d7c7fc60c74ad0d7290",
+  "merged": "2026-09-04T14:53:14Z",
+  "missing_roots": 0,
+  "number": 19823,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Pekko's `SystemMessageDelivery` sends system messages through `OutboundEnvelope.copy()`. That method creates a new reusable envelope by calling `init` on the Artery stream thread, so this advice overwrites the captured sender context with that thread's root context and the copied envelope is serialized without propagation metadata. Instrument `copy()` and transfer `OUTBOUND_ENVELOPE_CONTEXT` from the original envelope to the returned envelope; add a remote-system-message regression test.",
+      "created": "2026-08-26T09:05:21Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.VirtualFields.OUTBOUND_ENVELOPE_CONTEXT;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.pekko.remote.artery.OutboundEnvelope;\n+\n+/**\n+ * Captures the context of the thread that sends a message to a remote actor. Pekko serializes the\n+ * message later, on a stream thread, where the context of the sender is not available any more.\n+ */\n+class OutboundEnvelopeInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.pekko.remote.artery.ReusableOutboundEnvelope\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"init\").and(takesArguments(3)), getClass().getName() + \"$InitAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"clear\").and(takesArguments(0)), getClass().getName() + \"$ClearAdvice\");",
+      "id": "PRRT_kwDODJKVX86cZXE4",
+      "opened": "2026-08-26T09:05:21Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/artery/OutboundEnvelopeInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-26T09:45:45Z",
+          "body": "fix added",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3861511891"
+        }
+      ],
+      "reviewed": "a6631b7ef6f8576b84099f964cfdd137fd729961",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3861209071"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The caught exception is unused, so the catch-variable naming rule calls for `ignored`.\n\n```suggestion\n    } catch (BufferOverflowException ignored) {\n```",
+      "created": "2026-08-26T14:57:00Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.TextMapGetter;\n+import io.opentelemetry.context.propagation.TextMapSetter;\n+import java.nio.BufferOverflowException;\n+import java.nio.ByteBuffer;\n+import java.util.HashMap;\n+import java.util.LinkedHashMap;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Reads and writes the context that is attached to a remote message.\n+ *\n+ * <p>The metadata is self describing so that reading it does not depend on how pekko frames the\n+ * data that a {@code RemoteInstrument} writes:\n+ *\n+ * <pre>\n+ *   byte  version\n+ *   short field count\n+ *   for each field:\n+ *     short key length, key bytes (utf-8)\n+ *     short value length, value bytes (utf-8)\n+ * </pre>\n+ *\n+ * <p>A reader that does not know the version skips the metadata, pekko repositions the buffer to\n+ * the end of the section after the instrument has run.\n+ */\n+public final class ContextMetadata {\n+\n+  private static final byte VERSION = 1;\n+  // messages share the artery frame with the metadata, don't let a large context eat into the\n+  // space that is available for the message itself\n+  private static final int MAX_SIZE = 4 * 1024;\n+\n+  private static final TextMapSetter<Map<String, String>> SETTER = Map::put;\n+  private static final TextMapGetter<Map<String, String>> GETTER =\n+      new TextMapGetter<Map<String, String>>() {\n+        @Override\n+        public Iterable<String> keys(Map<String, String> carrier) {\n+          return carrier.keySet();\n+        }\n+\n+        @Override\n+        @Nullable\n+        public String get(@Nullable Map<String, String> carrier, String key) {\n+          return carrier == null ? null : carrier.get(key);\n+        }\n+      };\n+\n+  public static void write(Context context, ByteBuffer buffer) {\n+    Map<String, String> fields = new LinkedHashMap<>();\n+    GlobalOpenTelemetry.getPropagators().getTextMapPropagator().inject(context, fields, SETTER);\n+    if (fields.isEmpty()) {\n+      return;\n+    }\n+\n+    int startPosition = buffer.position();\n+    try {\n+      buffer.put(VERSION);\n+      buffer.putShort((short) fields.size());\n+      for (Map.Entry<String, String> field : fields.entrySet()) {\n+        writeString(buffer, field.getKey());\n+        writeString(buffer, field.getValue());\n+      }\n+      if (buffer.position() - startPosition > MAX_SIZE) {\n+        // rewind, pekko treats writing nothing as \"this instrument has no metadata\"\n+        buffer.position(startPosition);\n+      }\n+    } catch (BufferOverflowException exception) {",
+      "id": "PRRT_kwDODJKVX86cgqx1",
+      "opened": "2026-08-26T15:18:05Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/ContextMetadata.java",
+      "replies": [],
+      "reviewed": "a34a6d20013422ec01bc5f4a9eb7d7012efaaeff",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3864053901"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "New instrumentation modules also need a row in `docs/supported-libraries.md`, and `Apache Pekko Remote` is missing. The propagation-only `Apache Pekko Actors` row shows the format.",
+      "created": "2026-08-26T14:57:00Z",
+      "hunk": "@@ -0,0 +1,7 @@\n+display_name: Pekko Remote",
+      "id": "PRRT_kwDODJKVX86cgqxv",
+      "opened": "2026-08-26T15:18:05Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-08-26T15:22:04Z",
+          "body": "Added, following the Apache Pekko Actors row since this module is propagation only. Also rebased on main.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3864247619"
+        }
+      ],
+      "reviewed": "a34a6d20013422ec01bc5f4a9eb7d7012efaaeff",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3864053889"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "pureklkl"
+      },
+      "body": "Shall it be documented? And maybe make it configurable?",
+      "created": "2026-08-27T01:47:52Z",
+      "hunk": "@@ -0,0 +1,62 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.artery;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.artery.VirtualFields.INBOUND_ENVELOPE_CONTEXT;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.ContextMetadata;\n+import java.nio.ByteBuffer;\n+import org.apache.pekko.actor.ActorRef;\n+import org.apache.pekko.remote.artery.InboundEnvelope;\n+import org.apache.pekko.remote.artery.RemoteInstrument;\n+\n+/**\n+ * Attaches the context to the metadata section of a remote message. Pekko keeps the instruments of\n+ * both sides sorted by identifier and skips the metadata of an identifier that the receiving node\n+ * does not know, so a node that runs without the agent ignores what this instrument writes.\n+ */\n+public class OtelRemoteInstrument extends RemoteInstrument {\n+\n+  // must be >= 1 and < 32, values from 1 to 7 are reserved for pekko, 0 is used by Lightbend\n+  // Telemetry and 8 by Kamon\n+  private static final byte IDENTIFIER = 9;",
+      "id": "PRRT_kwDODJKVX86cq5Di",
+      "opened": "2026-08-27T01:47:52Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/artery/OtelRemoteInstrument.java",
+      "replies": [
+        {
+          "at": "2026-08-27T07:37:46Z",
+          "body": "It makes more sense for this to be hardcoded as the Otel value. I already have a PR for pekko documenting that 9 is reserved for Otel.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3869675330"
+        },
+        {
+          "at": "2026-08-27T07:58:04Z",
+          "body": "Making this configurable is actually dangerous because in a cluster. every node would have to have the same config setting.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3869807939"
+        },
+        {
+          "at": "2026-08-27T16:15:15Z",
+          "body": "I see, thx.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3873606015"
+        }
+      ],
+      "reviewed": "90a68764bc32ce6de16a6cd0521279563eb2872c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3868091906"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] `@TestInstance(PER_CLASS)` gives the Artery and classic subclasses separate base instances, but these fields collapse both fixtures into one JVM-wide slot. Keep only `testing` static and make the transport fixture and send/latch state instance-owned, as required for shared abstract test bases.",
+      "created": "2026-08-27T14:44:55Z",
+      "hunk": "@@ -0,0 +1,123 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+\n+import com.typesafe.config.Config;\n+import com.typesafe.config.ConfigFactory;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.util.concurrent.CountDownLatch;\n+import org.apache.pekko.actor.AbstractActor;\n+import org.apache.pekko.actor.ActorRef;\n+import org.apache.pekko.actor.ActorSystem;\n+import org.apache.pekko.actor.ExtendedActorSystem;\n+import org.apache.pekko.actor.Props;\n+import org.junit.jupiter.api.AfterAll;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.TestInstance;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+@TestInstance(TestInstance.Lifecycle.PER_CLASS)\n+abstract class AbstractPekkoRemoteTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  private static ActorSystem senderSystem;\n+  private static ActorSystem receiverSystem;\n+  private static String receiverPath;",
+      "id": "PRRT_kwDODJKVX86c3BNV",
+      "opened": "2026-08-27T14:56:08Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/AbstractPekkoRemoteTest.java",
+      "replies": [
+        {
+          "at": "2026-08-27T15:41:42Z",
+          "body": "c766036db754da6436afcdce8cb9f3db3852772e should cover this",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3873331588"
+        }
+      ],
+      "reviewed": "0d8b125b64075ea5eacb372630e9a9e7d0b84c13",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3872836198"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Appending this field unconditionally can make classic remoting drop an otherwise valid message. `EndpointWriter.writeSend` compares the returned PDU size with `transport.maximumPayloadBytes` and discards oversized PDUs, so a message that previously fit but has less headroom than the propagation field will no longer be delivered when the agent is enabled. Please skip the metadata when it would exceed the transport limit (likely at a point where that limit is available) and cover this boundary case.",
+      "created": "2026-08-27T20:39:12Z",
+      "hunk": "@@ -0,0 +1,80 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.classic;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.classic.VirtualFields.SERIALIZED_MESSAGE_CONTEXT;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.ProtobufContext;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.pekko.remote.transport.PekkoPduCodec;\n+import org.apache.pekko.util.ByteString;\n+import scala.Tuple2;\n+\n+/** Reads and writes the context that classic remoting messages carry. */\n+class PduCodecInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.pekko.remote.transport.PekkoPduProtobufCodec$\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"constructMessage\"), getClass().getName() + \"$ConstructMessageAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"decodeMessage\").and(takesArgument(0, named(\"org.apache.pekko.util.ByteString\"))),\n+        getClass().getName() + \"$DecodeMessageAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructMessageAdvice {\n+\n+    @Advice.AssignReturned.ToReturned\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static ByteString onExit(@Advice.Return ByteString pdu) {\n+      Context context = Java8BytecodeBridge.currentContext();\n+      if (context == Java8BytecodeBridge.rootContext()) {\n+        return pdu;\n+      }\n+      byte[] field = ProtobufContext.encode(context);\n+      if (field.length == 0) {\n+        return pdu;\n+      }\n+\n+      byte[] message = pdu.toArrayUnsafe();\n+      byte[] result = new byte[message.length + field.length];\n+      System.arraycopy(message, 0, result, 0, message.length);\n+      System.arraycopy(field, 0, result, message.length, field.length);\n+      return ByteString.fromArrayUnsafe(result);",
+      "id": "PRRT_kwDODJKVX86c-N7u",
+      "opened": "2026-08-27T20:39:12Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/classic/PduCodecInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-27T21:44:48Z",
+          "body": "1860db48441174080c8d2f9e542b219e4d4770e4 is for this",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3876113084"
+        }
+      ],
+      "reviewed": "ac38b7c8d768621a258ab62cb13d6c8cef34f9d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3875674716"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] Nothing exercises the declared `pekko-remote_3` support. This instrumentation matches Scala implementation methods by name, which muzzle does not verify; please reuse these Java tests in a `scala3Test` suite and wire it into `check`, as `pekko-actor-1.0` and `pekko-http-1.0` do.",
+      "created": "2026-08-28T20:18:47Z",
+      "hunk": "@@ -0,0 +1,57 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+}\n+\n+muzzle {\n+  pass {\n+    group.set(\"org.apache.pekko\")\n+    module.set(\"pekko-remote_2.12\")\n+    versions.set(\"[1.0,)\")\n+    assertInverse.set(true)\n+  }\n+  pass {\n+    group.set(\"org.apache.pekko\")\n+    module.set(\"pekko-remote_2.13\")\n+    versions.set(\"[1.0,)\")\n+    assertInverse.set(true)\n+  }\n+  pass {\n+    group.set(\"org.apache.pekko\")\n+    module.set(\"pekko-remote_3\")",
+      "id": "PRRT_kwDODJKVX86dSyRh",
+      "opened": "2026-08-28T22:13:03Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-29T09:22:51Z",
+          "body": "Added in 7e21785c63: a `scala3Test` suite that runs the same Java tests against the `_3` artifacts, wired into `check`, following `pekko-actor-1.0` and `pekko-http-1.0`. I checked it resolves `pekko-remote_3` and `scala3-library_3` rather than silently falling back to `_2.12`.\n\nIt passes 7/7, so the matchers here do hold under scala 3.\n\nWorth saying this was not a theoretical ask. The same point on #19829 turned out to be a live bug: scala 3 compiles the forwarders a class inherits from a trait as bridge methods, ByteBuddy does not advise bridge methods, and the advice there silently never ran. Only the scala 3 suite caught it.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3886144107"
+        }
+      ],
+      "reviewed": "1860db48441174080c8d2f9e542b219e4d4770e4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3883772872"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Pekko 1.0.0 invokes `PekkoPduProtobufCodec$$`; `PekkoPduProtobufCodec$` is only its static-forwarder mirror in that release, so this advice never runs although the module declares 1.0+. Please match and test the 1.0.0 binary name too, or raise the supported minimum to 1.0.1.",
+      "created": "2026-08-28T20:18:47Z",
+      "hunk": "@@ -0,0 +1,85 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.classic;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.classic.VirtualFields.SERIALIZED_MESSAGE_CONTEXT;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.ProtobufContext;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.pekko.remote.transport.PekkoPduCodec;\n+import org.apache.pekko.util.ByteString;\n+import scala.Tuple2;\n+\n+/** Reads and writes the context that classic remoting messages carry. */\n+class PduCodecInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.pekko.remote.transport.PekkoPduProtobufCodec$\");",
+      "id": "PRRT_kwDODJKVX86dSyRm",
+      "opened": "2026-08-28T22:13:03Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/classic/PduCodecInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-29T09:22:54Z",
+          "body": "The finding is right. In `pekko-remote_2.13:1.0.0` the object is `PekkoPduProtobufCodec$$` (it has `MODULE$` and implements `PekkoPduCodec`) and `PekkoPduProtobufCodec$` has neither, it only carries the static forwarders. `EndpointWriter` calls `constructMessage` with `invokeinterface`, so the advice does not run on 1.0.0. From 1.0.1 on, `PekkoPduProtobufCodec$` is the object.\n\nI am not adding the 1.0.0 name though. 1.0.1 is the minimum this library builds against for pekko, `pekko-actor-1.0` and `pekko-remote-1.0` both declare `library(\"org.apache.pekko:pekko-...:1.0.1\")`, so 1.0.0 is not a version we support in practice.\n\nI have left the muzzle range at `[1.0,)` to match `pekko-actor-1.0` and `pekko-http-1.0` rather than move this one module to `[1.0.1,)`. Happy to tighten all of them if you would rather the declared range matched the real minimum.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3886144193"
+        }
+      ],
+      "reviewed": "1860db48441174080c8d2f9e542b219e4d4770e4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3883772881"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] This reader stops after five bytes, but a protobuf wire-type-0 value can legally occupy ten. Because this helper is called from advice, please support the full varint width and return no context for malformed input instead of throwing.",
+      "created": "2026-08-28T20:18:47Z",
+      "hunk": "@@ -0,0 +1,115 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import io.opentelemetry.context.Context;\n+import java.nio.ByteBuffer;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Carries the context in a protobuf field that is appended to the message of classic remoting.\n+ *\n+ * <p>Appending a field to a serialized protobuf message produces a valid message, a parser that\n+ * does not know the field keeps it as an unknown field, so a node that runs without the agent\n+ * ignores what is added here.\n+ */\n+public final class ProtobufContext {\n+\n+  // pekko uses 1 and 2 in AckAndEnvelopeContainer, kamon uses 15 within the envelope\n+  private static final int FIELD_NUMBER = 1000;\n+  private static final int WIRE_TYPE_VARINT = 0;\n+  private static final int WIRE_TYPE_FIXED64 = 1;\n+  private static final int WIRE_TYPE_LENGTH_DELIMITED = 2;\n+  private static final int WIRE_TYPE_FIXED32 = 5;\n+  private static final int MAX_SIZE = 4 * 1024;\n+\n+  private static final byte[] EMPTY = new byte[0];\n+\n+  /** Returns the field that carries the given context, empty when there is nothing to write. */\n+  public static byte[] encode(Context context) {\n+    ByteBuffer buffer = ByteBuffer.allocate(MAX_SIZE);\n+    ContextMetadata.write(context, buffer);\n+    int length = buffer.position();\n+    if (length == 0) {\n+      return EMPTY;\n+    }\n+\n+    ByteBuffer field = ByteBuffer.allocate(length + 10);\n+    writeVarInt(field, (FIELD_NUMBER << 3) | WIRE_TYPE_LENGTH_DELIMITED);\n+    writeVarInt(field, length);\n+    buffer.flip();\n+    field.put(buffer);\n+\n+    byte[] result = new byte[field.position()];\n+    field.flip();\n+    field.get(result);\n+    return result;\n+  }\n+\n+  /** Reads the context from the message, null when the message does not carry one. */\n+  @Nullable\n+  public static Context decode(byte[] message) {\n+    ByteBuffer buffer = ByteBuffer.wrap(message);\n+    while (buffer.hasRemaining()) {\n+      int tag = readVarInt(buffer);\n+      int fieldNumber = tag >>> 3;\n+      int wireType = tag & 7;\n+      if (fieldNumber == FIELD_NUMBER && wireType == WIRE_TYPE_LENGTH_DELIMITED) {\n+        int length = readVarInt(buffer);\n+        buffer.limit(buffer.position() + length);\n+        return ContextMetadata.read(buffer);\n+      }\n+      if (!skipField(buffer, wireType)) {\n+        return null;\n+      }\n+    }\n+    return null;\n+  }\n+\n+  private static boolean skipField(ByteBuffer buffer, int wireType) {\n+    switch (wireType) {\n+      case WIRE_TYPE_VARINT:\n+        readVarInt(buffer);\n+        return true;\n+      case WIRE_TYPE_FIXED64:\n+        buffer.position(buffer.position() + 8);\n+        return true;\n+      case WIRE_TYPE_LENGTH_DELIMITED:\n+        // read the length before asking for the position, the buffer advances while it is read\n+        int length = readVarInt(buffer);\n+        buffer.position(buffer.position() + length);\n+        return true;\n+      case WIRE_TYPE_FIXED32:\n+        buffer.position(buffer.position() + 4);\n+        return true;\n+      default:\n+        // groups are deprecated and pekko does not use them, stop looking\n+        return false;\n+    }\n+  }\n+\n+  private static void writeVarInt(ByteBuffer buffer, int value) {\n+    while ((value & ~0x7F) != 0) {\n+      buffer.put((byte) ((value & 0x7F) | 0x80));\n+      value >>>= 7;\n+    }\n+    buffer.put((byte) value);\n+  }\n+\n+  private static int readVarInt(ByteBuffer buffer) {\n+    int result = 0;\n+    for (int shift = 0; shift < 32; shift += 7) {\n+      byte current = buffer.get();\n+      result |= (current & 0x7F) << shift;\n+      if ((current & 0x80) == 0) {\n+        return result;\n+      }\n+    }\n+    throw new IllegalStateException(\"malformed varint\");",
+      "id": "PRRT_kwDODJKVX86dSyRp",
+      "opened": "2026-08-28T22:13:03Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/ProtobufContext.java",
+      "replies": [
+        {
+          "at": "2026-08-29T09:22:56Z",
+          "body": "Fixed in 7e21785c63. `readVarInt` now reads the full 10 byte width and keeps the low 32 bits, which is what protobuf itself does when a wide varint is read into an int, and `decode` returns no context for input that does not parse rather than throwing out of advice.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3886144276"
+        }
+      ],
+      "reviewed": "1860db48441174080c8d2f9e542b219e4d4770e4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3883772883"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] `describedAs` is AssertJ's alias for `as`, which the test rules exclude.\n```suggestion\n      assertThat(low).isGreaterThan(0);\n\n      // the same size, this time with a context that the codec would want to append\n      int justFits = low;\n      AtomicReference<Boolean> delivered = new AtomicReference<>();\n      testing.runWithSpan(\n          \"parent\", () -> delivered.set(delivers(sender, path, received, justFits, 30_000)));\n      assertThat(delivered.get()).isTrue();\n```",
+      "created": "2026-08-28T20:18:47Z",
+      "hunk": "@@ -0,0 +1,124 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import static java.util.concurrent.TimeUnit.MILLISECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.typesafe.config.Config;\n+import java.util.concurrent.CountDownLatch;\n+import java.util.concurrent.atomic.AtomicReference;\n+import org.apache.pekko.actor.AbstractActor;\n+import org.apache.pekko.actor.ActorRef;\n+import org.apache.pekko.actor.ActorSystem;\n+import org.apache.pekko.actor.ExtendedActorSystem;\n+import org.apache.pekko.actor.Props;\n+import org.junit.jupiter.api.Test;\n+\n+class PekkoClassicRemoteTest extends AbstractPekkoRemoteTest {\n+\n+  private static final int MAXIMUM_FRAME_SIZE = 32000;\n+\n+  @Override\n+  protected Config remoteConfig() {\n+    return parseConfig(\n+        \"pekko.remote.artery.enabled = off\\n\"\n+            + \"pekko.remote.classic.enabled-transports = [\\\"pekko.remote.classic.netty.tcp\\\"]\\n\"\n+            + \"pekko.remote.classic.netty.tcp.hostname = 127.0.0.1\\n\"\n+            + \"pekko.remote.classic.netty.tcp.port = 0\\n\");\n+  }\n+\n+  /**\n+   * Classic remoting discards a pdu that is larger than the transport allows, so a message that\n+   * fits without a context must still be delivered when there is a context to write. The size that\n+   * just fits is measured rather than assumed, because it depends on the envelope around the\n+   * message as well as on the configured frame size.\n+   */\n+  @Test\n+  void doesNotStopAMessageThatOnlyJustFitsFromBeingDelivered() throws InterruptedException {\n+    Config config =\n+        parseConfig(\n+            \"pekko.remote.artery.enabled = off\\n\"\n+                + \"pekko.remote.classic.enabled-transports = [\\\"pekko.remote.classic.netty.tcp\\\"]\\n\"\n+                + \"pekko.remote.classic.netty.tcp.hostname = 127.0.0.1\\n\"\n+                + \"pekko.remote.classic.netty.tcp.port = 0\\n\"\n+                + \"pekko.remote.classic.netty.tcp.maximum-frame-size = \"\n+                + MAXIMUM_FRAME_SIZE\n+                + \"b\\n\");\n+    ActorSystem sender = ActorSystem.create(\"size-sender\", config);\n+    ActorSystem receiver = ActorSystem.create(\"size-receiver\", config);\n+    try {\n+      AtomicReference<CountDownLatch> received = new AtomicReference<>();\n+      receiver.actorOf(Props.create(CountingActor.class, received), \"counter\");\n+      String path =\n+          ((ExtendedActorSystem) receiver).provider().getDefaultAddress() + \"/user/counter\";\n+\n+      // the largest message that is delivered with no context to write, which is the limit the\n+      // agent must not lower\n+      int low = 0;\n+      int high = MAXIMUM_FRAME_SIZE;\n+      while (low < high) {\n+        int size = (low + high + 1) / 2;\n+        if (delivers(sender, path, received, size, 2000)) {\n+          low = size;\n+        } else {\n+          high = size - 1;\n+        }\n+      }\n+      assertThat(low)\n+          .describedAs(\"no message size was delivered, the limit could not be measured\")\n+          .isGreaterThan(0);\n+\n+      // the same size, this time with a context that the codec would want to append\n+      int justFits = low;\n+      AtomicReference<Boolean> delivered = new AtomicReference<>();\n+      testing.runWithSpan(\n+          \"parent\", () -> delivered.set(delivers(sender, path, received, justFits, 30_000)));\n+      assertThat(delivered.get())\n+          .describedAs(\n+              \"a message of %s bytes was delivered without a context but not with one\", justFits)\n+          .isTrue();",
+      "id": "PRRT_kwDODJKVX86dSyRt",
+      "opened": "2026-08-28T22:13:03Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/PekkoClassicRemoteTest.java",
+      "replies": [
+        {
+          "at": "2026-08-29T09:22:58Z",
+          "body": "Removed both in 7e21785c63.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3886144327"
+        }
+      ],
+      "reviewed": "1860db48441174080c8d2f9e542b219e4d4770e4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3883772891"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] These getter/setter instances are runtime helpers, so the field naming rule calls for lower camel case. The mutable `ThreadLocal` fields in `RemoteMessageState` and `ClassicPayloadLimit` need the same treatment.",
+      "created": "2026-08-28T20:18:48Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.TextMapGetter;\n+import io.opentelemetry.context.propagation.TextMapSetter;\n+import java.nio.BufferOverflowException;\n+import java.nio.ByteBuffer;\n+import java.util.HashMap;\n+import java.util.LinkedHashMap;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Reads and writes the context that is attached to a remote message.\n+ *\n+ * <p>The metadata is self describing so that reading it does not depend on how pekko frames the\n+ * data that a {@code RemoteInstrument} writes:\n+ *\n+ * <pre>\n+ *   byte  version\n+ *   short field count\n+ *   for each field:\n+ *     short key length, key bytes (utf-8)\n+ *     short value length, value bytes (utf-8)\n+ * </pre>\n+ *\n+ * <p>A reader that does not know the version skips the metadata, pekko repositions the buffer to\n+ * the end of the section after the instrument has run.\n+ */\n+public final class ContextMetadata {\n+\n+  private static final byte VERSION = 1;\n+  // messages share the artery frame with the metadata, don't let a large context eat into the\n+  // space that is available for the message itself\n+  private static final int MAX_SIZE = 4 * 1024;\n+\n+  private static final TextMapSetter<Map<String, String>> SETTER = Map::put;\n+  private static final TextMapGetter<Map<String, String>> GETTER =",
+      "id": "PRRT_kwDODJKVX86dSyR7",
+      "opened": "2026-08-28T22:13:03Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/ContextMetadata.java",
+      "replies": [
+        {
+          "at": "2026-08-29T09:23:01Z",
+          "body": "Renamed in 7e21785c63: `SETTER`/`GETTER` to `setter`/`getter`, and the thread locals to `outboundContext`, `inboundEnvelope` and `payloadLimit`. The `VirtualField` fields keep `SCREAMING_SNAKE_CASE`, which the same rule asks for.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3886144401"
+        }
+      ],
+      "reviewed": "1860db48441174080c8d2f9e542b219e4d4770e4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3883772914"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] Pekko invokes these callbacks with `recipient.orNull` and `sender.orNull`. Please mark both parameters `@Nullable` here and in the other three overrides.",
+      "created": "2026-08-28T20:18:48Z",
+      "hunk": "@@ -0,0 +1,62 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.artery;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.artery.VirtualFields.INBOUND_ENVELOPE_CONTEXT;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.ContextMetadata;\n+import java.nio.ByteBuffer;\n+import org.apache.pekko.actor.ActorRef;\n+import org.apache.pekko.remote.artery.InboundEnvelope;\n+import org.apache.pekko.remote.artery.RemoteInstrument;\n+\n+/**\n+ * Attaches the context to the metadata section of a remote message. Pekko keeps the instruments of\n+ * both sides sorted by identifier and skips the metadata of an identifier that the receiving node\n+ * does not know, so a node that runs without the agent ignores what this instrument writes.\n+ */\n+public class OtelRemoteInstrument extends RemoteInstrument {\n+\n+  // must be >= 1 and < 32, values from 1 to 7 are reserved for pekko, 0 is used by Lightbend\n+  // Telemetry and 8 by Kamon\n+  private static final byte IDENTIFIER = 9;\n+\n+  @Override\n+  public byte identifier() {\n+    return IDENTIFIER;\n+  }\n+\n+  @Override\n+  public void remoteWriteMetadata(\n+      ActorRef recipient, Object message, ActorRef sender, ByteBuffer buffer) {",
+      "id": "PRRT_kwDODJKVX86dSySA",
+      "opened": "2026-08-28T22:13:03Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/artery/OtelRemoteInstrument.java",
+      "replies": [
+        {
+          "at": "2026-08-29T09:23:03Z",
+          "body": "Confirmed and fixed in 7e21785c63. `RemoteInstruments` calls `OptionVal.orNull$extension` immediately before each of these callbacks, so both parameters really can be null. All four overrides are marked now.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3886144466"
+        }
+      ],
+      "reviewed": "1860db48441174080c8d2f9e542b219e4d4770e4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3883772918"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `TextMapSetter` allows a null carrier, but this method reference dereferences it. Use a setter that keeps the upstream null contract.\n```suggestion\n  private static final TextMapSetter<Map<String, String>> SETTER =\n      new TextMapSetter<Map<String, String>>() {\n        @Override\n        public void set(@Nullable Map<String, String> carrier, String key, String value) {\n          if (carrier != null) {\n            carrier.put(key, value);\n          }\n        }\n      };\n```",
+      "created": "2026-08-28T20:18:48Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.TextMapGetter;\n+import io.opentelemetry.context.propagation.TextMapSetter;\n+import java.nio.BufferOverflowException;\n+import java.nio.ByteBuffer;\n+import java.util.HashMap;\n+import java.util.LinkedHashMap;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Reads and writes the context that is attached to a remote message.\n+ *\n+ * <p>The metadata is self describing so that reading it does not depend on how pekko frames the\n+ * data that a {@code RemoteInstrument} writes:\n+ *\n+ * <pre>\n+ *   byte  version\n+ *   short field count\n+ *   for each field:\n+ *     short key length, key bytes (utf-8)\n+ *     short value length, value bytes (utf-8)\n+ * </pre>\n+ *\n+ * <p>A reader that does not know the version skips the metadata, pekko repositions the buffer to\n+ * the end of the section after the instrument has run.\n+ */\n+public final class ContextMetadata {\n+\n+  private static final byte VERSION = 1;\n+  // messages share the artery frame with the metadata, don't let a large context eat into the\n+  // space that is available for the message itself\n+  private static final int MAX_SIZE = 4 * 1024;\n+\n+  private static final TextMapSetter<Map<String, String>> SETTER = Map::put;",
+      "id": "PRRT_kwDODJKVX86dSySE",
+      "opened": "2026-08-28T22:13:03Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/ContextMetadata.java",
+      "replies": [
+        {
+          "at": "2026-08-29T09:23:05Z",
+          "body": "Right, `TextMapSetter.set` does carry `@Nullable` on the carrier, so `Map::put` was wrong.\n\nThe suggestion as written does not compile here though, an anonymous class implementing a functional interface trips errorprone's `UnnecessaryAnonymousClass` under `-Werror`. Fixed in 7e21785c63 with a named null safe target instead:\n\n```java\nprivate static final TextMapSetter<Map<String, String>> setter = ContextMetadata::put;\n\nprivate static void put(@Nullable Map<String, String> carrier, String key, String value) {\n  if (carrier != null) {\n    carrier.put(key, value);\n  }\n}\n```\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3886144527"
+        }
+      ],
+      "reviewed": "1860db48441174080c8d2f9e542b219e4d4770e4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3883772925"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] A probe that arrives after its two-second timeout counts down whichever latch the next probe installed. This can make the test pass when the final context-bearing message was dropped. Correlate each message with its own latch.",
+      "created": "2026-08-29T16:12:03Z",
+      "hunk": "@@ -0,0 +1,119 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import static java.util.concurrent.TimeUnit.MILLISECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.typesafe.config.Config;\n+import java.util.concurrent.CountDownLatch;\n+import java.util.concurrent.atomic.AtomicReference;\n+import org.apache.pekko.actor.AbstractActor;\n+import org.apache.pekko.actor.ActorRef;\n+import org.apache.pekko.actor.ActorSystem;\n+import org.apache.pekko.actor.ExtendedActorSystem;\n+import org.apache.pekko.actor.Props;\n+import org.junit.jupiter.api.Test;\n+\n+class PekkoClassicRemoteTest extends AbstractPekkoRemoteTest {\n+\n+  private static final int MAXIMUM_FRAME_SIZE = 32000;\n+\n+  @Override\n+  protected Config remoteConfig() {\n+    return parseConfig(\n+        \"pekko.remote.artery.enabled = off\\n\"\n+            + \"pekko.remote.classic.enabled-transports = [\\\"pekko.remote.classic.netty.tcp\\\"]\\n\"\n+            + \"pekko.remote.classic.netty.tcp.hostname = 127.0.0.1\\n\"\n+            + \"pekko.remote.classic.netty.tcp.port = 0\\n\");\n+  }\n+\n+  /**\n+   * Classic remoting discards a pdu that is larger than the transport allows, so a message that\n+   * fits without a context must still be delivered when there is a context to write. The size that\n+   * just fits is measured rather than assumed, because it depends on the envelope around the\n+   * message as well as on the configured frame size.\n+   */\n+  @Test\n+  void doesNotStopAMessageThatOnlyJustFitsFromBeingDelivered() throws InterruptedException {\n+    Config config =\n+        parseConfig(\n+            \"pekko.remote.artery.enabled = off\\n\"\n+                + \"pekko.remote.classic.enabled-transports = [\\\"pekko.remote.classic.netty.tcp\\\"]\\n\"\n+                + \"pekko.remote.classic.netty.tcp.hostname = 127.0.0.1\\n\"\n+                + \"pekko.remote.classic.netty.tcp.port = 0\\n\"\n+                + \"pekko.remote.classic.netty.tcp.maximum-frame-size = \"\n+                + MAXIMUM_FRAME_SIZE\n+                + \"b\\n\");\n+    ActorSystem sender = ActorSystem.create(\"size-sender\", config);\n+    ActorSystem receiver = ActorSystem.create(\"size-receiver\", config);\n+    try {\n+      AtomicReference<CountDownLatch> received = new AtomicReference<>();\n+      receiver.actorOf(Props.create(CountingActor.class, received), \"counter\");\n+      String path =\n+          ((ExtendedActorSystem) receiver).provider().getDefaultAddress() + \"/user/counter\";\n+\n+      // the largest message that is delivered with no context to write, which is the limit the\n+      // agent must not lower\n+      int low = 0;\n+      int high = MAXIMUM_FRAME_SIZE;\n+      while (low < high) {\n+        int size = (low + high + 1) / 2;\n+        if (delivers(sender, path, received, size, 2000)) {\n+          low = size;\n+        } else {\n+          high = size - 1;\n+        }\n+      }\n+      assertThat(low).isGreaterThan(0);\n+\n+      // the same size, this time with a context that the codec would want to append\n+      int justFits = low;\n+      AtomicReference<Boolean> delivered = new AtomicReference<>();\n+      testing.runWithSpan(\n+          \"parent\", () -> delivered.set(delivers(sender, path, received, justFits, 30_000)));\n+      assertThat(delivered.get()).isTrue();\n+    } finally {\n+      sender.terminate();\n+      receiver.terminate();\n+    }\n+  }\n+\n+  private static boolean delivers(\n+      ActorSystem sender,\n+      String path,\n+      AtomicReference<CountDownLatch> received,\n+      int size,\n+      long timeoutMillis) {\n+    CountDownLatch latch = new CountDownLatch(1);\n+    received.set(latch);\n+    StringBuilder message = new StringBuilder(size);\n+    for (int i = 0; i < size; i++) {\n+      message.append('x');\n+    }\n+    sender.actorSelection(path).tell(message.toString(), ActorRef.noSender());\n+    try {\n+      return latch.await(timeoutMillis, MILLISECONDS);\n+    } catch (InterruptedException e) {\n+      Thread.currentThread().interrupt();\n+      throw new AssertionError(e);\n+    }\n+  }\n+\n+  /** Counts messages without recording a span, this test is about delivery rather than tracing. */\n+  public static class CountingActor extends AbstractActor {\n+    private final AtomicReference<CountDownLatch> received;\n+\n+    public CountingActor(AtomicReference<CountDownLatch> received) {\n+      this.received = received;\n+    }\n+\n+    @Override\n+    public Receive createReceive() {\n+      return receiveBuilder().match(String.class, message -> received.get().countDown()).build();",
+      "id": "PRRT_kwDODJKVX86dbCnd",
+      "opened": "2026-08-29T16:20:10Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/PekkoClassicRemoteTest.java",
+      "replies": [
+        {
+          "at": "2026-09-01T13:04:25Z",
+          "body": "Fixed in 8e3f320fd9. Every probe message now starts with a unique `probe-N:` id, the latches live in a map keyed by that id, and the actor only counts down the latch of the probe that sent the message it received. A message that arrives after its two second timeout now counts against its own dead probe rather than the next one, so the binary search cannot mis-measure and the final context-bearing send can only be satisfied by its own message.\n\nThe id takes up part of the requested size instead of adding to it, which keeps the measured frame limit honest; the sizes probed near the limit are far larger than the id.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3904356310"
+        }
+      ],
+      "reviewed": "7e21785c6342276a8375680629c73a02359e24f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3887047952"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This module also registers classic remoting, so the Artery-only description omits half of its behavior.\n```suggestion\n/**\n * Propagates context with remote messages sent between Pekko cluster nodes. Artery uses the\n * {@code RemoteInstrument} SPI, while classic remoting appends an unknown protobuf field. The\n * received context is restored before dispatch so Pekko actor instrumentation can carry it to the\n * receiving actor.\n */\n```",
+      "created": "2026-08-29T16:12:03Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.artery.ArteryInstrumentations;\n+import io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.classic.ClassicInstrumentations;\n+import java.util.ArrayList;\n+import java.util.List;\n+\n+/**\n+ * Propagates context to the messages that pekko sends to the other nodes of a cluster. Pekko\n+ * serializes remote messages in the artery outbound stream, the context is attached to the message\n+ * with the {@code RemoteInstrument} spi and restored before the message is delivered to the\n+ * receiving actor.\n+ */",
+      "id": "PRRT_kwDODJKVX86dbCnf",
+      "opened": "2026-08-29T16:20:10Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/PekkoRemoteInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "7e21785c6342276a8375680629c73a02359e24f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3887047956"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "In https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/context/ContextPayload.java and https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ContextPropagationUtil.java we limit the number of context entires to 100 and the size to 8k chars",
+      "created": "2026-09-01T12:02:58Z",
+      "hunk": "@@ -0,0 +1,122 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.TextMapGetter;\n+import io.opentelemetry.context.propagation.TextMapSetter;\n+import java.nio.BufferOverflowException;\n+import java.nio.ByteBuffer;\n+import java.util.HashMap;\n+import java.util.LinkedHashMap;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Reads and writes the context that is attached to a remote message.\n+ *\n+ * <p>The metadata is self describing so that reading it does not depend on how pekko frames the\n+ * data that a {@code RemoteInstrument} writes:\n+ *\n+ * <pre>\n+ *   byte  version\n+ *   short field count\n+ *   for each field:\n+ *     short key length, key bytes (utf-8)\n+ *     short value length, value bytes (utf-8)\n+ * </pre>\n+ *\n+ * <p>A reader that does not know the version skips the metadata, pekko repositions the buffer to\n+ * the end of the section after the instrument has run.\n+ */\n+public final class ContextMetadata {\n+\n+  private static final byte VERSION = 1;\n+  // messages share the artery frame with the metadata, don't let a large context eat into the\n+  // space that is available for the message itself\n+  private static final int MAX_SIZE = 4 * 1024;\n+\n+  private static final TextMapSetter<Map<String, String>> setter = ContextMetadata::put;\n+  private static final TextMapGetter<Map<String, String>> getter =\n+      new TextMapGetter<Map<String, String>>() {\n+        @Override\n+        public Iterable<String> keys(Map<String, String> carrier) {\n+          return carrier.keySet();\n+        }\n+\n+        @Override\n+        @Nullable\n+        public String get(@Nullable Map<String, String> carrier, String key) {\n+          return carrier == null ? null : carrier.get(key);\n+        }\n+      };\n+\n+  private static void put(@Nullable Map<String, String> carrier, String key, String value) {\n+    if (carrier != null) {\n+      carrier.put(key, value);\n+    }\n+  }\n+\n+  public static void write(Context context, ByteBuffer buffer) {\n+    Map<String, String> fields = new LinkedHashMap<>();\n+    GlobalOpenTelemetry.getPropagators().getTextMapPropagator().inject(context, fields, setter);\n+    if (fields.isEmpty()) {\n+      return;\n+    }\n+\n+    int startPosition = buffer.position();\n+    try {\n+      buffer.put(VERSION);\n+      buffer.putShort((short) fields.size());\n+      for (Map.Entry<String, String> field : fields.entrySet()) {\n+        writeString(buffer, field.getKey());\n+        writeString(buffer, field.getValue());\n+      }\n+      if (buffer.position() - startPosition > MAX_SIZE) {\n+        // rewind, pekko treats writing nothing as \"this instrument has no metadata\"\n+        buffer.position(startPosition);\n+      }\n+    } catch (BufferOverflowException ignored) {\n+      buffer.position(startPosition);\n+    }\n+  }\n+\n+  @Nullable\n+  public static Context read(ByteBuffer buffer) {\n+    if (buffer.get() != VERSION) {\n+      return null;\n+    }\n+    int count = buffer.getShort();\n+    if (count <= 0) {\n+      return null;\n+    }\n+    Map<String, String> fields = new HashMap<>();\n+    for (int i = 0; i < count; i++) {",
+      "id": "PRRT_kwDODJKVX86eGCOO",
+      "opened": "2026-09-01T12:02:58Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/ContextMetadata.java",
+      "replies": [
+        {
+          "at": "2026-09-01T13:04:27Z",
+          "body": "Added in 8e3f320fd9, with the same limits and FINE logging as the rmi `ContextPayload`: writing skips propagation above 100 entries, and reading rejects more than 100 entries or more than 8k chars. The existing 4k byte cap stays as well, that one is about not eating into the artery frame rather than about trust.\n\nDoing this surfaced a real hole on the read side: `readString` allocated `new byte[buffer.getShort()]`, so a corrupt or hostile negative length threw `NegativeArraySizeException`, which is not in `ProtobufContext.decode`'s catch list and would have escaped the artery `RemoteInstrument` callback with no catch of ours at all. Every length prefix is now validated against the bytes that remain, and anything that does not fit is reported as no context.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3904356649"
+        }
+      ],
+      "reviewed": "7e21785c6342276a8375680629c73a02359e24f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3903888672"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "If the classic and artery instrumentations are independent could also consider having them in separate instrumentation modules. Then you wouldn't need `ArteryInstrumentations` and `ClassicInstrumentations`. This would also avoid muzzle failing when only one of these implementations is present, idk whether it is possible to exclude one of these. Though this is fine too.",
+      "created": "2026-09-01T12:15:25Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.artery.ArteryInstrumentations;\n+import io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0.classic.ClassicInstrumentations;\n+import java.util.ArrayList;\n+import java.util.List;\n+\n+/**\n+ * Propagates context to the messages that pekko sends to the other nodes of a cluster. Pekko\n+ * serializes remote messages in the artery outbound stream, the context is attached to the message\n+ * with the {@code RemoteInstrument} spi and restored before the message is delivered to the\n+ * receiving actor.\n+ */\n+@AutoService(InstrumentationModule.class)\n+public class PekkoRemoteInstrumentationModule extends InstrumentationModule {\n+\n+  public PekkoRemoteInstrumentationModule() {\n+    super(\"pekko-remote\", \"pekko-remote-1.0\");\n+  }\n+\n+  @Override\n+  public List<TypeInstrumentation> typeInstrumentations() {\n+    List<TypeInstrumentation> instrumentations = new ArrayList<>(ArteryInstrumentations.get());",
+      "id": "PRRT_kwDODJKVX86eGSJR",
+      "opened": "2026-09-01T12:15:25Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/PekkoRemoteInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-01T13:04:29Z",
+          "body": "I'd keep the single module. The scenario the split would guard against cannot arise here: artery and classic remoting both live in the `pekko-remote` artifact itself (the classic codec and `EndpointWriter` included, only the netty transport dependency is external), so muzzle never sees one implementation without the other. Splitting would trade the two grouping classes for a second module's worth of boilerplate without changing what can match. Happy to revisit if pekko ever separates the artifacts.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3904356944"
+        }
+      ],
+      "reviewed": "7e21785c6342276a8375680629c73a02359e24f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3903983590"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Capping the metadata itself at 4 KiB does not preserve Artery message delivery. Pekko writes this metadata into the fixed-capacity `EnvelopeBuffer` before writing the actor refs, manifest, and message; if those later writes overflow, Pekko drops the whole message. Consequently, a payload that fits without the agent but has less headroom than this metadata becomes undeliverable. Please make Artery retry/serialize without this metadata when it consumes the message's remaining frame space, and cover the near-frame-limit case as the classic transport test does.",
+      "created": "2026-09-01T13:11:47Z",
+      "hunk": "@@ -0,0 +1,172 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.logging.Level.FINE;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.TextMapGetter;\n+import io.opentelemetry.context.propagation.TextMapSetter;\n+import java.nio.BufferOverflowException;\n+import java.nio.ByteBuffer;\n+import java.util.HashMap;\n+import java.util.LinkedHashMap;\n+import java.util.Map;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Reads and writes the context that is attached to a remote message.\n+ *\n+ * <p>The metadata is self describing so that reading it does not depend on how pekko frames the\n+ * data that a {@code RemoteInstrument} writes:\n+ *\n+ * <pre>\n+ *   byte  version\n+ *   short field count\n+ *   for each field:\n+ *     short key length, key bytes (utf-8)\n+ *     short value length, value bytes (utf-8)\n+ * </pre>\n+ *\n+ * <p>A reader that does not know the version skips the metadata, pekko repositions the buffer to\n+ * the end of the section after the instrument has run.\n+ */\n+public final class ContextMetadata {\n+\n+  private static final Logger logger = Logger.getLogger(ContextMetadata.class.getName());\n+\n+  private static final byte VERSION = 1;\n+  // messages share the artery frame with the metadata, don't let a large context eat into the\n+  // space that is available for the message itself\n+  private static final int MAX_BYTES = 4 * 1024;\n+  // the limits that the rmi and thrift context propagation use, modeled on tomcat's\n+  // maxHeaderCount and maxHttpHeaderSize; the size is counted in characters\n+  private static final int MAX_CONTEXT_ENTRIES = 100;\n+  private static final int MAX_CONTEXT_SIZE = 8 * 1024;\n+\n+  private static final TextMapSetter<Map<String, String>> setter = ContextMetadata::put;\n+  private static final TextMapGetter<Map<String, String>> getter =\n+      new TextMapGetter<Map<String, String>>() {\n+        @Override\n+        public Iterable<String> keys(Map<String, String> carrier) {\n+          return carrier.keySet();\n+        }\n+\n+        @Override\n+        @Nullable\n+        public String get(@Nullable Map<String, String> carrier, String key) {\n+          return carrier == null ? null : carrier.get(key);\n+        }\n+      };\n+\n+  private static void put(@Nullable Map<String, String> carrier, String key, String value) {\n+    if (carrier != null) {\n+      carrier.put(key, value);\n+    }\n+  }\n+\n+  public static void write(Context context, ByteBuffer buffer) {\n+    Map<String, String> fields = new LinkedHashMap<>();\n+    GlobalOpenTelemetry.getPropagators().getTextMapPropagator().inject(context, fields, setter);\n+    if (fields.isEmpty()) {\n+      return;\n+    }\n+    if (fields.size() > MAX_CONTEXT_ENTRIES) {\n+      logger.log(\n+          FINE,\n+          \"Not propagating context, {0} entries exceeds the maximum of {1}\",\n+          new Object[] {fields.size(), MAX_CONTEXT_ENTRIES});\n+      return;\n+    }\n+\n+    int startPosition = buffer.position();\n+    try {\n+      buffer.put(VERSION);\n+      buffer.putShort((short) fields.size());\n+      for (Map.Entry<String, String> field : fields.entrySet()) {\n+        writeString(buffer, field.getKey());\n+        writeString(buffer, field.getValue());\n+      }\n+      if (buffer.position() - startPosition > MAX_BYTES) {\n+        // rewind, pekko treats writing nothing as \"this instrument has no metadata\"\n+        buffer.position(startPosition);\n+      }",
+      "id": "PRRT_kwDODJKVX86eHa0F",
+      "opened": "2026-09-01T13:11:48Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/ContextMetadata.java",
+      "replies": [
+        {
+          "at": "2026-09-01T13:44:32Z",
+          "body": "The mechanism described here is real, I verified it in `Codecs.scala`: the encoder writes the instrument metadata into the envelope buffer before the payload is serialized, and on `BufferOverflowException` it publishes `Dropped` with no retry. But the remedy does not exist at the level this code runs at, and the difference from the classic transport is worth spelling out.\n\nIn classic remoting our advice runs in `constructMessage` after the message is serialized, with `transport.maximumPayloadBytes` in hand, so \"skip the metadata when it will not fit\" was computable and that is what the earlier fix does. In artery, `remoteWriteMetadata` is called before the payload exists; the remaining frame space is unknowable from inside the `RemoteInstrument` SPI. A retry without metadata would mean instrumenting artery's `Encoder` catch block to re-run serialization, and serializing a message twice is not safe to assume side effect free.\n\nThis property is inherent to the SPI rather than to this instrument: kamon's `RemoteInstrument` and pekko's own carry it too, and pekko's designed answer is operational, `LoggingRemoteInstrument` with `log-frame-size-exceeding` exists precisely so operators size `maximum-frame-size` with instrument overhead in mind. The 4k cap bounds the exposure to about 1.5% of the default 256 KiB artery frame, and a typical traceparent plus tracestate is around a hundred bytes.\n\nSo I am leaving artery as is unless a maintainer would like the encoder instrumented; happy to discuss what that would take.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3904723685"
+        }
+      ],
+      "reviewed": "8e3f320fd95baa6c619c39f72c0824539fce1bf8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3904426873"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] This caught exception is intentionally unused, so the repository catch-variable convention requires the name `ignored`.",
+      "created": "2026-09-01T13:11:48Z",
+      "hunk": "@@ -0,0 +1,137 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import io.opentelemetry.context.Context;\n+import java.nio.BufferUnderflowException;\n+import java.nio.ByteBuffer;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Carries the context in a protobuf field that is appended to the message of classic remoting.\n+ *\n+ * <p>Appending a field to a serialized protobuf message produces a valid message, a parser that\n+ * does not know the field keeps it as an unknown field, so a node that runs without the agent\n+ * ignores what is added here.\n+ */\n+public final class ProtobufContext {\n+\n+  // pekko uses 1 and 2 in AckAndEnvelopeContainer, kamon uses 15 within the envelope\n+  private static final int FIELD_NUMBER = 1000;\n+  private static final int WIRE_TYPE_VARINT = 0;\n+  private static final int WIRE_TYPE_FIXED64 = 1;\n+  private static final int WIRE_TYPE_LENGTH_DELIMITED = 2;\n+  private static final int WIRE_TYPE_FIXED32 = 5;\n+  private static final int MAX_SIZE = 4 * 1024;\n+  // a varint holds up to 64 bits, seven of them per byte\n+  private static final int MAX_VAR_INT_BYTES = 10;\n+\n+  private static final byte[] EMPTY = new byte[0];\n+\n+  /** Returns the field that carries the given context, empty when there is nothing to write. */\n+  public static byte[] encode(Context context) {\n+    ByteBuffer buffer = ByteBuffer.allocate(MAX_SIZE);\n+    ContextMetadata.write(context, buffer);\n+    int length = buffer.position();\n+    if (length == 0) {\n+      return EMPTY;\n+    }\n+\n+    ByteBuffer field = ByteBuffer.allocate(length + 10);\n+    writeVarInt(field, (FIELD_NUMBER << 3) | WIRE_TYPE_LENGTH_DELIMITED);\n+    writeVarInt(field, length);\n+    buffer.flip();\n+    field.put(buffer);\n+\n+    byte[] result = new byte[field.position()];\n+    field.flip();\n+    field.get(result);\n+    return result;\n+  }\n+\n+  /**\n+   * Reads the context from the message, null when the message does not carry one.\n+   *\n+   * <p>The bytes are whatever arrived, and this runs from advice, so anything that does not parse\n+   * is reported as no context rather than thrown at pekko.\n+   */\n+  @Nullable\n+  public static Context decode(byte[] message) {\n+    try {\n+      return read(ByteBuffer.wrap(message));\n+    } catch (BufferUnderflowException | IllegalArgumentException | IllegalStateException e) {",
+      "id": "PRRT_kwDODJKVX86eHa0m",
+      "opened": "2026-09-01T13:11:48Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/ProtobufContext.java",
+      "replies": [
+        {
+          "at": "2026-09-01T13:44:30Z",
+          "body": "Fixed in ca81be6b7b. I swept the module for other unused catch variables at the same time; the only other catch binds `InterruptedException e` and uses it, so this was the last one.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3904723412"
+        }
+      ],
+      "reviewed": "8e3f320fd95baa6c619c39f72c0824539fce1bf8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3904426933"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This binary search treats any 2-second timeout as proof that the candidate exceeds the frame limit, but the first probe also has to establish the remote association. If startup takes longer than two seconds, `high` is permanently reduced below the real boundary and the final send can have ample room for metadata, so this regression test passes without exercising the payload-limit fix. Warm up the connection with a small message before starting the search.",
+      "created": "2026-09-01T14:04:52Z",
+      "hunk": "@@ -0,0 +1,139 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoremote.v1_0;\n+\n+import static java.util.concurrent.TimeUnit.MILLISECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.typesafe.config.Config;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.concurrent.CountDownLatch;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import java.util.concurrent.atomic.AtomicReference;\n+import org.apache.pekko.actor.AbstractActor;\n+import org.apache.pekko.actor.ActorRef;\n+import org.apache.pekko.actor.ActorSystem;\n+import org.apache.pekko.actor.ExtendedActorSystem;\n+import org.apache.pekko.actor.Props;\n+import org.junit.jupiter.api.Test;\n+\n+class PekkoClassicRemoteTest extends AbstractPekkoRemoteTest {\n+\n+  private static final int MAXIMUM_FRAME_SIZE = 32000;\n+\n+  // latches keyed by the probe id the message carries, so that a message which arrives after its\n+  // probe already timed out counts against its own probe and not against whichever probe runs next\n+  private final ConcurrentHashMap<String, CountDownLatch> received = new ConcurrentHashMap<>();\n+  private final AtomicInteger probeIds = new AtomicInteger();\n+\n+  @Override\n+  protected Config remoteConfig() {\n+    return parseConfig(\n+        \"pekko.remote.artery.enabled = off\\n\"\n+            + \"pekko.remote.classic.enabled-transports = [\\\"pekko.remote.classic.netty.tcp\\\"]\\n\"\n+            + \"pekko.remote.classic.netty.tcp.hostname = 127.0.0.1\\n\"\n+            + \"pekko.remote.classic.netty.tcp.port = 0\\n\");\n+  }\n+\n+  /**\n+   * Classic remoting discards a pdu that is larger than the transport allows, so a message that\n+   * fits without a context must still be delivered when there is a context to write. The size that\n+   * just fits is measured rather than assumed, because it depends on the envelope around the\n+   * message as well as on the configured frame size.\n+   */\n+  @Test\n+  void doesNotStopAMessageThatOnlyJustFitsFromBeingDelivered() {\n+    Config config =\n+        parseConfig(\n+            \"pekko.remote.artery.enabled = off\\n\"\n+                + \"pekko.remote.classic.enabled-transports = [\\\"pekko.remote.classic.netty.tcp\\\"]\\n\"\n+                + \"pekko.remote.classic.netty.tcp.hostname = 127.0.0.1\\n\"\n+                + \"pekko.remote.classic.netty.tcp.port = 0\\n\"\n+                + \"pekko.remote.classic.netty.tcp.maximum-frame-size = \"\n+                + MAXIMUM_FRAME_SIZE\n+                + \"b\\n\");\n+    ActorSystem sender = ActorSystem.create(\"size-sender\", config);\n+    ActorSystem receiver = ActorSystem.create(\"size-receiver\", config);\n+    try {\n+      receiver.actorOf(Props.create(CountingActor.class, received), \"counter\");\n+      String path =\n+          ((ExtendedActorSystem) receiver).provider().getDefaultAddress() + \"/user/counter\";\n+\n+      // the largest message that is delivered with no context to write, which is the limit the\n+      // agent must not lower\n+      int low = 0;\n+      int high = MAXIMUM_FRAME_SIZE;\n+      while (low < high) {\n+        int size = (low + high + 1) / 2;\n+        if (delivers(sender, path, size, 2000)) {",
+      "id": "PRRT_kwDODJKVX86eIsL0",
+      "opened": "2026-09-01T14:04:52Z",
+      "path": "instrumentation/pekko/pekko-remote-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pekkoremote/v1_0/PekkoClassicRemoteTest.java",
+      "replies": [],
+      "reviewed": "ca81be6b7b91f1c140ffc23ed7f699994d23eac8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19823#discussion_r3904916371"
+    }
+  ]
+}

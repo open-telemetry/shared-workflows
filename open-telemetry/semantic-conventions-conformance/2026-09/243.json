@@ -1,0 +1,118 @@
+{
+  "head": "965e0992bfc9528f99c75b07ef13d82896d052a1",
+  "merge": "5589743cf049a0488af1dc7af17fcf470e0db8fa",
+  "merged": "2026-09-28T22:57:40Z",
+  "missing_roots": 0,
+  "number": 243,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\nspoofable bot actor check: actor context may be spoofable\n\n[Show more details](https://github.com/open-telemetry/semantic-conventions-conformance/security/code-scanning/44)",
+      "created": "2026-09-23T19:33:48Z",
+      "hunk": "@@ -343,8 +352,147 @@\n           )\"\n           echo \"matrix=$matrix\" >> \"$GITHUB_OUTPUT\"\n \n-  scenarios:\n+      # Renovate PRs only, the same guard the autofix applies. The runner\n+      # image's python3 runs the script by path: it is standard library only.\n+      - name: Scope the lock file regeneration\n+        id: relock-scope\n+        if: >-\n+          github.event_name == 'pull_request' &&\n+          github.actor == 'renovate[bot]' &&",
+      "id": "PRRT_kwDOTuzK5c6lTmCV",
+      "opened": "2026-09-23T19:33:48Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "fefa580db8cd5671704f173bf573e748bf5e789b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/243#discussion_r4086477378"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When only one ecosystem is touched, `relock` creates an artifact only for that ecosystem (for example, `renovate-lock-js`), but this step runs for every scenario matrix entry and requests `renovate-lock-${{ matrix.language }}`. The download action fails when the pattern has no matching artifact, so unrelated language scenarios never run; a failed relock has the same problem because it may produce no artifact at all. Guard this download by the selected ecosystem and handle a failed/no-op relock without invoking a missing-artifact download.",
+      "created": "2026-09-23T19:40:17Z",
+      "hunk": "@@ -362,6 +510,31 @@ jobs:\n         with:\n           persist-credentials: false\n \n+      # Before any toolchain setup: setup-ruby's bundler-cache installs\n+      # frozen, and the Node and uv caches hash the lock files.\n+      - name: Download the lock file patch\n+        if: needs.relock.result != 'skipped'\n+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n+        with:\n+          pattern: renovate-lock-${{ matrix.language }}",
+      "id": "PRRT_kwDOTuzK5c6lTwS9",
+      "opened": "2026-09-23T19:40:18Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-09-23T20:12:05Z",
+          "body": "Same, pattern doesn't fail on no artifacts",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/243#discussion_r4086838525"
+        }
+      ],
+      "reviewed": "fefa580db8cd5671704f173bf573e748bf5e789b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/243#discussion_r4086542478"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This download is unconditional whenever the Runner failed for a Renovate PR, but a valid run can have no regenerated lock patch—for example, when the relock is a no-op or only generated-data patches exist. `actions/download-artifact` errors when a pattern matches no artifacts, so the autofix exits before it can apply the available data patch or simply do nothing. Make artifact retrieval tolerate absent lock artifacts (and likewise coordinate the data download) before applying the layers.",
+      "created": "2026-09-23T19:40:17Z",
+      "hunk": "@@ -0,0 +1,200 @@\n+name: Renovate autofix\n+\n+on:\n+  workflow_run: # zizmor: ignore[dangerous-triggers] the job only handles same-repository Renovate pull requests\n+    workflows: [Runner]\n+    types: [completed]\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  actions: read\n+  contents: read\n+\n+jobs:\n+  # We validate the input of this workflow (origin, caused by a push from Renovate bot)\n+  # before proceeding to the high-privilege section (git push).\n+  # This check also prevents infinite loops where a push by the otelbot failing CI triggers another autofix run.\n+  apply:\n+    if: >-\n+      github.event.workflow_run.event == 'pull_request' &&\n+      github.event.workflow_run.conclusion == 'failure' &&\n+      github.event.workflow_run.actor.login == 'renovate[bot]' &&\n+      github.event.workflow_run.head_repository.full_name == github.repository\n+    runs-on: ubuntu-latest\n+    steps:\n+      - name: Check out the trusted repository\n+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n+        with:\n+          persist-credentials: false\n+\n+      - name: Download regenerated lock file patches\n+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n+        with:\n+          github-token: ${{ github.token }}\n+          path: ${{ runner.temp }}/renovate-lock-patches",
+      "id": "PRRT_kwDOTuzK5c6lTwSG",
+      "opened": "2026-09-23T19:40:18Z",
+      "path": ".github/workflows/renovate-autofix.yml",
+      "replies": [
+        {
+          "at": "2026-09-23T20:11:28Z",
+          "body": "actions/download-artifact at the pinned SHA (v8.0.1) doesn't fail on a pattern with no matches: pattern only filters the artifact list, and the action then downloads 0 artifacts and succeeds (src/download-artifact.ts; it only throws for a missing name/artifact-ids). The existing #237 autofix already relies on this for renovate-data-*.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/243#discussion_r4086833114"
+        }
+      ],
+      "reviewed": "fefa580db8cd5671704f173bf573e748bf5e789b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/243#discussion_r4086542400"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "`data.json` shouldn't be created by the autofix.\r\nShould we perform similar strict validation as for lock files?\r\n```suggestion\r\n            verify_layer \"$lock_tree\" \"$data_tree\" '^M$' \"$data_allow\"\r\n```",
+      "created": "2026-09-24T17:22:33Z",
+      "hunk": "@@ -0,0 +1,200 @@\n+name: Renovate autofix\n+\n+on:\n+  workflow_run: # zizmor: ignore[dangerous-triggers] the job only handles same-repository Renovate pull requests\n+    workflows: [Runner]\n+    types: [completed]\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  actions: read\n+  contents: read\n+\n+jobs:\n+  # We validate the input of this workflow (origin, caused by a push from Renovate bot)\n+  # before proceeding to the high-privilege section (git push).\n+  # This check also prevents infinite loops where a push by the otelbot failing CI triggers another autofix run.\n+  apply:\n+    if: >-\n+      github.event.workflow_run.event == 'pull_request' &&\n+      github.event.workflow_run.conclusion == 'failure' &&\n+      github.event.workflow_run.actor.login == 'renovate[bot]' &&\n+      github.event.workflow_run.head_repository.full_name == github.repository\n+    runs-on: ubuntu-latest\n+    steps:\n+      - name: Check out the trusted repository\n+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n+        with:\n+          persist-credentials: false\n+\n+      - name: Download regenerated lock file patches\n+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n+        with:\n+          github-token: ${{ github.token }}\n+          path: ${{ runner.temp }}/renovate-lock-patches\n+          pattern: renovate-lock-*\n+          run-id: ${{ github.event.workflow_run.id }}\n+\n+      - name: Download generated data patches\n+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n+        with:\n+          github-token: ${{ github.token }}\n+          path: ${{ runner.temp }}/renovate-data-patches\n+          pattern: renovate-data-*\n+          run-id: ${{ github.event.workflow_run.id }}\n+\n+      # Two layers on the PR head: the lock files first, since the data was\n+      # generated against them, then data.json. Each layer is output only if\n+      # it changes the tree below it.\n+      #\n+      # `git apply --include/--exclude` filters a rename on its new path\n+      # only (its old path is not checked), so a rename can move a tracked\n+      # file to an allowlisted path -- or move an allowlisted file out from\n+      # under itself -- without the filter ever seeing an excluded name. It\n+      # also has no opinion on file mode, so the same filter lets a patch\n+      # turn an allowlisted path into an executable or a symlink. And if\n+      # every hunk in a patch is filtered out, `git apply` succeeds as a\n+      # silent no-op rather than failing. The include/exclude filter is\n+      # therefore only a first pass, not the security boundary: after each\n+      # layer, the resulting tree is diffed against the tree below it and\n+      # every changed entry is re-checked against the same allowlist below.\n+      - name: Apply generated patches\n+        id: apply-patches\n+        env:\n+          GIT_INDEX_FILE: ${{ runner.temp }}/renovate-autofix.index\n+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}\n+          LOCK_PATCHES_DIR: ${{ runner.temp }}/renovate-lock-patches\n+          DATA_PATCHES_DIR: ${{ runner.temp }}/renovate-data-patches\n+        run: |\n+          set -euo pipefail\n+          shopt -s globstar nullglob\n+\n+          # Verify that every tree entry that differs between $1 (the lower\n+          # tree) and $2 (the upper tree) is a plain-file change at mode\n+          # 100644, with a status matching $3 (a regex: the lock layer only\n+          # ever rewrites tracked files, so it is restricted to `^M$`; the\n+          # data layer may also create a fresh data.json, so it allows\n+          # `^[AM]$`), whose path matches the layer's allowlist regex $4.\n+          # Rejects renames, deletes, type changes (e.g. symlinks) and mode\n+          # changes that the `git apply` include/exclude filter does not\n+          # catch on its own.\n+          #\n+          # `git diff-tree` is run as an ordinary command into a file first,\n+          # not as a `done < <(...)` process substitution: a failing process\n+          # substitution's exit status is invisible to the loop and to\n+          # `set -e`, which would let a diff-tree error pass the layer\n+          # unchecked.\n+          verify_layer() {\n+            local lower=\"$1\" upper=\"$2\" status_regex=\"$3\" path_regex=\"$4\"\n+            local meta path new_mode status\n+            local diff_file=\"$RUNNER_TEMP/verify-layer-diff-$$.raw\"\n+            git diff-tree -r --no-renames --raw -z \"$lower\" \"$upper\" \\\n+              > \"$diff_file\"\n+            while IFS= read -r -d '' meta && IFS= read -r -d '' path; do\n+              # \":<old mode> <new mode> <old sha> <new sha> <status>\"\n+              read -r _ new_mode _ _ status <<<\"${meta#:}\"\n+              if [[ ! \"$status\" =~ $status_regex ]]; then\n+                echo \"::error::autofix layer rejected: $path has status\" \\\n+                     \"'$status' (expected $status_regex)\"\n+                exit 1\n+              fi\n+              if [[ \"$new_mode\" != \"100644\" ]]; then\n+                echo \"::error::autofix layer rejected: $path has mode\" \\\n+                     \"'$new_mode' (expected 100644)\"\n+                exit 1\n+              fi\n+              if [[ ! \"$path\" =~ $path_regex ]]; then\n+                echo \"::error::autofix layer rejected: $path is outside\" \\\n+                     \"the allowlist\"\n+                exit 1\n+              fi\n+            done < \"$diff_file\"\n+            rm -f \"$diff_file\"\n+          }\n+\n+          lock_allow='^(scenarios|tools)/(.+/)?(package-lock\\.json|go\\.mod|go\\.sum|uv\\.lock|Gemfile\\.lock|composer\\.lock)$'\n+          data_allow='^scenarios/(.+/)?data\\.json$'\n+\n+          lock_patches=(\"$LOCK_PATCHES_DIR\"/**/*.patch)\n+          data_patches=(\"$DATA_PATCHES_DIR\"/**/*.patch)\n+          if (( ${#lock_patches[@]} + ${#data_patches[@]} == 0 )); then\n+            exit 0\n+          fi\n+\n+          git fetch --no-tags --depth=1 origin \"$HEAD_SHA\"\n+          git read-tree \"$HEAD_SHA\"\n+          head_tree=\"$(git write-tree)\"\n+\n+          if (( ${#lock_patches[@]} > 0 )); then\n+            includes=()\n+            for root in scenarios tools; do\n+              for name in package-lock.json go.mod go.sum uv.lock \\\n+                          Gemfile.lock composer.lock; do\n+                includes+=(\"--include=$root/**/$name\")\n+              done\n+            done\n+            git apply --cached \"${includes[@]}\" --exclude='*' \\\n+              \"${lock_patches[@]}\"\n+          fi\n+          lock_tree=\"$(git write-tree)\"\n+          if [[ \"$lock_tree\" != \"$head_tree\" ]]; then\n+            verify_layer \"$head_tree\" \"$lock_tree\" '^M$' \"$lock_allow\"\n+            echo \"lock_tree=$lock_tree\" >> \"$GITHUB_OUTPUT\"\n+          fi\n+\n+          if (( ${#data_patches[@]} > 0 )); then\n+            git apply --cached \\\n+              --include='scenarios/**/data.json' \\\n+              --exclude='*' \\\n+              \"${data_patches[@]}\"\n+          fi\n+          data_tree=\"$(git write-tree)\"\n+          if [[ \"$data_tree\" != \"$lock_tree\" ]]; then\n+            verify_layer \"$lock_tree\" \"$data_tree\" '^[AM]$' \"$data_allow\"",
+      "id": "PRRT_kwDOTuzK5c6lsQfC",
+      "opened": "2026-09-24T17:22:33Z",
+      "path": ".github/workflows/renovate-autofix.yml",
+      "replies": [],
+      "reviewed": "7156c69d805638526784e04df9457a08c7b5a64d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/243#discussion_r4096458712"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The post-autofix run will not skip `relock` as required by the PR's after-merge checklist. The PR author remains `renovate[bot]` after otelbot pushes the generated commits, and the merge diff still contains the original manifest (plus the generated lock), so this condition remains true and `_relock_scope.py` returns a non-empty matrix. Add a reliable post-autofix discriminator here (or revise the stated acceptance criterion) so the follow-up run has the intended behavior.",
+      "created": "2026-09-28T16:23:10Z",
+      "hunk": "@@ -343,8 +352,149 @@ jobs:\n           )\"\n           echo \"matrix=$matrix\" >> \"$GITHUB_OUTPUT\"\n \n-  scenarios:\n+      # Renovate PRs only. The PR's author, not `github.actor`: the actor is\n+      # whoever acted last on the PR, which is spoofable (zizmor\n+      # bot-conditions). The runner image's python3 runs the script by path:\n+      # it is standard library only.\n+      - name: Scope the lock file regeneration\n+        id: relock-scope\n+        if: >-\n+          github.event_name == 'pull_request' &&\n+          github.event.pull_request.user.login == 'renovate[bot]' &&\n+          github.event.pull_request.head.repo.full_name == github.repository",
+      "id": "PRRT_kwDOTuzK5c6mxKT2",
+      "opened": "2026-09-28T16:23:10Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-09-28T22:07:28Z",
+          "body": "Intended: the follow-up run relocks again, and because the locks are already fresh it produces no patch, so it doubles as a check that the pushed lock files are up to date. No loop is possible, since the autofix only runs for runs triggered by renovate[bot]. I've updated the checklist in the description accordingly.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/243#discussion_r4127483813"
+        }
+      ],
+      "reviewed": "7156c69d805638526784e04df9457a08c7b5a64d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/243#discussion_r4124553366"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "```suggestion\n          # data layer is similarly restricted to `^M$`),\n          # whose path matches the layer's allowlist regex $4.\n```",
+      "created": "2026-09-28T22:13:21Z",
+      "hunk": "@@ -0,0 +1,200 @@\n+name: Renovate autofix\n+\n+on:\n+  workflow_run: # zizmor: ignore[dangerous-triggers] the job only handles same-repository Renovate pull requests\n+    workflows: [Runner]\n+    types: [completed]\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  actions: read\n+  contents: read\n+\n+jobs:\n+  # We validate the input of this workflow (origin, caused by a push from Renovate bot)\n+  # before proceeding to the high-privilege section (git push).\n+  # This check also prevents infinite loops where a push by the otelbot failing CI triggers another autofix run.\n+  apply:\n+    if: >-\n+      github.event.workflow_run.event == 'pull_request' &&\n+      github.event.workflow_run.conclusion == 'failure' &&\n+      github.event.workflow_run.actor.login == 'renovate[bot]' &&\n+      github.event.workflow_run.head_repository.full_name == github.repository\n+    runs-on: ubuntu-latest\n+    steps:\n+      - name: Check out the trusted repository\n+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n+        with:\n+          persist-credentials: false\n+\n+      - name: Download regenerated lock file patches\n+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n+        with:\n+          github-token: ${{ github.token }}\n+          path: ${{ runner.temp }}/renovate-lock-patches\n+          pattern: renovate-lock-*\n+          run-id: ${{ github.event.workflow_run.id }}\n+\n+      - name: Download generated data patches\n+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n+        with:\n+          github-token: ${{ github.token }}\n+          path: ${{ runner.temp }}/renovate-data-patches\n+          pattern: renovate-data-*\n+          run-id: ${{ github.event.workflow_run.id }}\n+\n+      # Two layers on the PR head: the lock files first, since the data was\n+      # generated against them, then data.json. Each layer is output only if\n+      # it changes the tree below it.\n+      #\n+      # `git apply --include/--exclude` filters a rename on its new path\n+      # only (its old path is not checked), so a rename can move a tracked\n+      # file to an allowlisted path -- or move an allowlisted file out from\n+      # under itself -- without the filter ever seeing an excluded name. It\n+      # also has no opinion on file mode, so the same filter lets a patch\n+      # turn an allowlisted path into an executable or a symlink. And if\n+      # every hunk in a patch is filtered out, `git apply` succeeds as a\n+      # silent no-op rather than failing. The include/exclude filter is\n+      # therefore only a first pass, not the security boundary: after each\n+      # layer, the resulting tree is diffed against the tree below it and\n+      # every changed entry is re-checked against the same allowlist below.\n+      - name: Apply generated patches\n+        id: apply-patches\n+        env:\n+          GIT_INDEX_FILE: ${{ runner.temp }}/renovate-autofix.index\n+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}\n+          LOCK_PATCHES_DIR: ${{ runner.temp }}/renovate-lock-patches\n+          DATA_PATCHES_DIR: ${{ runner.temp }}/renovate-data-patches\n+        run: |\n+          set -euo pipefail\n+          shopt -s globstar nullglob\n+\n+          # Verify that every tree entry that differs between $1 (the lower\n+          # tree) and $2 (the upper tree) is a plain-file change at mode\n+          # 100644, with a status matching $3 (a regex: the lock layer only\n+          # ever rewrites tracked files, so it is restricted to `^M$`; the\n+          # data layer may also create a fresh data.json, so it allows\n+          # `^[AM]$`), whose path matches the layer's allowlist regex $4.",
+      "id": "PRRT_kwDOTuzK5c6m4Tmd",
+      "opened": "2026-09-28T22:14:54Z",
+      "path": ".github/workflows/renovate-autofix.yml",
+      "replies": [],
+      "reviewed": "7156c69d805638526784e04df9457a08c7b5a64d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/243#discussion_r4127527744"
+    }
+  ]
+}

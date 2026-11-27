@@ -1,0 +1,36 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "63a05a23cafa45e46b3058c7e96cbb6652c7f8e8e9b1426b14b793e88165ac45",
+  "input_digest": "e3a4b873ca22fb7756862a9180fc253cf787583d6bce8afc97d2c51c79ae3e1f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/dd693026856a0bc27f9ba1bcbe4cbcf5c679f834/model/gen-ai/spans.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/dd693026856a0bc27f9ba1bcbe4cbcf5c679f834/docs/gen-ai/gen-ai-agent-spans.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/dd693026856a0bc27f9ba1bcbe4cbcf5c679f834/docs/gen-ai/gen-ai-realtime.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/d94f5ad30911d102107e88acdf2ce65b17dda9dd/docs/gen-ai/gen-ai-agent-spans.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/d94f5ad30911d102107e88acdf2ce65b17dda9dd",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/cc3c85efb8514f1434b1741939e47e154957863d"
+      ],
+      "id": "PRRT_kwDOSUeMrM67ivaT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/cc3c85efb8514f1434b1741939e47e154957863d/reference/scenarios/langchain/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/d94f5ad30911d102107e88acdf2ce65b17dda9dd/reference/scenarios/langchain/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/65a7d6e603aec6a2b8bcd6098021328f8ae7625d"
+      ],
+      "id": "PRRT_kwDOSUeMrM67mS9H",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

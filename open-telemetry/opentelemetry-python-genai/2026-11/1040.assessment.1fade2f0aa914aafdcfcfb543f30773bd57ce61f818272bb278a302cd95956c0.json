@@ -1,0 +1,70 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f2006faed23921d7d009fefba89ae486d83d4fe5deb9d9f6ed99cc34c96a4015",
+  "input_digest": "1fade2f0aa914aafdcfcfb543f30773bd57ce61f818272bb278a302cd95956c0",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ff083b673827bc58ee4431c8d0018d4361ba6bd5/instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/__init__.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b9921a822f12f6a5f9cb378d6c660f1109183b82/instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/__init__.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b9921a822f12f6a5f9cb378d6c660f1109183b82/instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/test_instrumentor.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/f6d2d18cb122700deca38911c0492e25da4869c8"
+      ],
+      "id": "PRRT_kwDOSbspP86z4aW_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/f6d2d18cb122700deca38911c0492e25da4869c8/uv.lock",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b9921a822f12f6a5f9cb378d6c660f1109183b82/uv.lock",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/68287d7c4a607b5ae6538308f44eb8359e90d85a"
+      ],
+      "id": "PRRT_kwDOSbspP860t_YY",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/f6d2d18cb122700deca38911c0492e25da4869c8/instrumentation/opentelemetry-instrumentation-genai-llama-index/.changelog/1040.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b9921a822f12f6a5f9cb378d6c660f1109183b82/instrumentation/opentelemetry-instrumentation-genai-llama-index/.changelog/1040.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/5cbe17acc431f90b2b5d0b7e69bd6a4346d1ca29"
+      ],
+      "id": "PRRT_kwDOSbspP860t_YZ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/f6d2d18cb122700deca38911c0492e25da4869c8/instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/test_instrumentor.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b9921a822f12f6a5f9cb378d6c660f1109183b82/instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/test_instrumentor.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/5cbe17acc431f90b2b5d0b7e69bd6a4346d1ca29"
+      ],
+      "id": "PRRT_kwDOSbspP860t_Yb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/f6d2d18cb122700deca38911c0492e25da4869c8/instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/test_instrumentor.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b9921a822f12f6a5f9cb378d6c660f1109183b82/instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/test_instrumentor.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/5cbe17acc431f90b2b5d0b7e69bd6a4346d1ca29"
+      ],
+      "id": "PRRT_kwDOSbspP860t_Ye",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

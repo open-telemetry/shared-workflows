@@ -1,0 +1,73 @@
+{
+  "head": "a880819b851d9f1dd1fbb1dd97a3c3b86d4b7a92",
+  "merge": "43c321f71a5ea75718c2a15ccb92eb26f17fdca4",
+  "merged": "2026-08-12T22:44:06Z",
+  "missing_roots": 0,
+  "number": 19514,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Splitting on spaces can expose part of a sensitive value. `sun.java.command` does not preserve argument boundaries, so a launch argument such as `-DappSecret=\"abc def\" --other=test` may appear here as `-DappSecret=abc def --other=test`; this code emits `-DappSecret=*** def --other=test`. Please redact continuations conservatively (for example, until a recognizable next option) rather than treating every space as a trustworthy boundary.",
+      "created": "2026-08-11T17:54:56Z",
+      "hunk": "@@ -143,12 +143,24 @@ private static void addCommandAttributes(AttributesBuilder attributes, String ex\n         if (JAR_FILE_PATTERN.matcher(javaCommand).matches()) {\n           commandLine.append(\" -jar\");\n         }\n-        commandLine.append(' ').append(javaCommand);\n+        commandLine.append(' ').append(scrubCommandLine(javaCommand));\n       }\n       attributes.put(PROCESS_COMMAND_LINE, commandLine.toString());\n     }\n   }\n \n+  private static String scrubCommandLine(String commandLine) {\n+    String[] arguments = commandLine.split(\" \", -1);",
+      "id": "PRRT_kwDODJKVX86YUyRL",
+      "opened": "2026-08-11T17:54:56Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessResource.java",
+      "replies": [
+        {
+          "at": "2026-08-11T18:32:41Z",
+          "body": "Good catch. `sun.java.command` has already lost the argument boundaries, so even a recognizable next option could be part of the sensitive value. I updated this to conservatively redact everything after the sensitive property assignment and added an embedded-space regression case.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19514#discussion_r3760685642"
+        }
+      ],
+      "reviewed": "af854f21315ac450f9d2f4a2024a4149819ab4d3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19514#discussion_r3760423078"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The trailing `.*` does not match line terminators unless DOTALL is enabled. Unix arguments can contain newlines, so a value such as `-DappSecret=abc\\ndef` would become `-DappSecret=***\\ndef`, exposing the remainder even though argument boundaries are unavailable. Enable DOTALL and add a multiline regression case so the full remainder is consumed.",
+      "created": "2026-08-12T01:55:45Z",
+      "hunk": "@@ -38,6 +38,8 @@ public final class ProcessResource {\n   // scrub values for system properties containing \"secret\" or \"password\" in the name\n   private static final Pattern SCRUB_PATTERN =\n       Pattern.compile(\"(-D.*(password|secret).*=).*\", Pattern.CASE_INSENSITIVE);\n+  private static final Pattern SCRUB_COMMAND_LINE_PATTERN =\n+      Pattern.compile(\"(-D[^\\\\s=]*(password|secret)[^\\\\s=]*=).*\", Pattern.CASE_INSENSITIVE);",
+      "id": "PRRT_kwDODJKVX86Ybi9-",
+      "opened": "2026-08-12T01:55:45Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessResource.java",
+      "replies": [
+        {
+          "at": "2026-08-12T02:04:34Z",
+          "body": "Addressed in 181af00b819f5f820cc38d5253a8791c44918919.\n\nAnalysis: The flattened sun.java.command value has no recoverable argument boundaries, so once a sensitive property is found the redaction must consume line terminators as well as ordinary characters. Enabling DOTALL closes the newline leak, and the regression input proves that text after a newline is removed.\n\nUpsides: Prevents partial disclosure of multiline secret values and later flattened command-line content.\n\nDownsides: After a sensitive property is encountered, all remaining command-line text is redacted even when a newline was originally part of an argument.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19514#discussion_r3763082261"
+        }
+      ],
+      "reviewed": "0bcce08881bd586e7f8a967177cf24c1672f0d4b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19514#discussion_r3763048384"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Surely someone is using `-D\"my secret\"=x`. Imo this is fine, but I guess we could also do a substring search for password and secret and remove everything that comes after.",
+      "created": "2026-08-12T14:35:54Z",
+      "hunk": "@@ -37,7 +37,10 @@ public final class ProcessResource {\n       Pattern.compile(\"^\\\\S+\\\\.(jar|war)\", Pattern.CASE_INSENSITIVE);\n   // scrub values for system properties containing \"secret\" or \"password\" in the name\n   private static final Pattern SCRUB_PATTERN =\n-      Pattern.compile(\"(-D.*(password|secret).*=).*\", Pattern.CASE_INSENSITIVE);\n+      Pattern.compile(\"(-D.*(password|secret).*=).*\", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);\n+  private static final Pattern SCRUB_COMMAND_LINE_PATTERN =\n+      Pattern.compile(\n+          \"(-D[^\\\\s=]*(password|secret)[^\\\\s=]*=).*\", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);",
+      "id": "PRRT_kwDODJKVX86Ym0tM",
+      "opened": "2026-08-12T14:35:54Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessResource.java",
+      "replies": [
+        {
+          "at": "2026-08-12T22:13:37Z",
+          "body": "went with https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19514/commits/a880819b851d9f1dd1fbb1dd97a3c3b86d4b7a92",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19514#discussion_r3770731425"
+        }
+      ],
+      "reviewed": "7021176e9d8da4885a187fa88bf1a8224eef01fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19514#discussion_r3767384966"
+    }
+  ]
+}

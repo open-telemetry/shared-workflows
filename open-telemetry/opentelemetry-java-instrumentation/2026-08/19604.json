@@ -1,0 +1,199 @@
+{
+  "head": "466e5ab8ce8275bd6b0865397f14362b5521f449",
+  "merge": "b7a692c0df0baca66ac9569bfb0f8963eed3fe0f",
+  "merged": "2026-08-18T13:06:31Z",
+  "missing_roots": 0,
+  "number": 19604,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The removal timeline conflicts with #19444, which keeps legacy setters through 2.x and removes them in 3.0; the delegated extractor API also documents removal in 3.0. Saying “next minor release” incorrectly tells users this API may disappear during 2.x. Please align the Javadoc and annotation comment with the 3.0 timeline.\n\nThis issue also appears on line 100 of the same file.",
+      "created": "2026-08-15T00:43:58Z",
+      "hunk": "@@ -43,26 +44,66 @@ public RestletTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers. No request headers\n+   * are captured unless this selector is configured.\n+   *\n+   * @param requestHeaders Selector for the HTTP request headers to capture.\n+   */\n+  @CanIgnoreReturnValue\n+  public RestletTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n    * @param requestHeaders HTTP header names to capture.\n+   * @deprecated Use {@link #setRequestHeaders(IncludeExclude)} instead. May be removed in the next\n+   *     minor release.\n    */\n+  @Deprecated // may be removed in the next minor release",
+      "id": "PRRT_kwDODJKVX86Zcy3E",
+      "opened": "2026-08-15T00:43:59Z",
+      "path": "instrumentation/restlet/restlet-1.1/library/src/main/java/io/opentelemetry/instrumentation/restlet/v1_1/RestletTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:06:45Z",
+          "body": "Keeping `may be removed in the next minor release` here — these are alpha modules, and the 3.0 timeline you're citing applies to the stable ones.\n\n`.github/agents/knowledge/api-deprecation-policy.md` draws the line by publishing artifact, not by how public the class looks: alpha deprecations are \"introduced in one monthly release and removed in a subsequent one,\" and it says explicitly \"Do not schedule an alpha-only deprecation for 3.0 — it does not have to wait for a major version.\" It even lists the inverse of this comment as a review finding: \"`to be removed in 3.0` on an alpha-only symbol: check the publishing module's `gradle.properties`. If it is not `otel.stable=true`, the deprecation should say `may be removed in the next minor release`.\"\n\n`instrumentation/restlet/restlet-1.1/library` has no `otel.stable=true` (only `spring-boot-autoconfigure` and `spring-boot-starter` set it anywhere under `instrumentation/`), so it publishes as `-alpha` and this is the alpha wording verbatim from the policy's example block.\n\nThe 3.0 timeline on the delegated extractor API is correct for *that* API, because `instrumentation-api` is stable. The two differing timelines in one PR are expected — the policy notes that \"alpha and stable surfaces deprecated by the same PR often differ,\" which is also why the CHANGELOG bullet carries no timeline at all.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788442612"
+        }
+      ],
+      "reviewed": "a99678dbea2924d920ed753edc22fff4c601e07e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788005320"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The removal timeline conflicts with #19444, which keeps legacy setters through 2.x and removes them in 3.0; the delegated extractor API also documents removal in 3.0. Saying “next minor release” incorrectly tells users this API may disappear during 2.x. Please align the Javadoc and annotation comment with the 3.0 timeline.\n\nThis issue also appears on line 100 of the same file.",
+      "created": "2026-08-15T00:43:58Z",
+      "hunk": "@@ -43,26 +44,66 @@ public RestletTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers. No request headers\n+   * are captured unless this selector is configured.\n+   *\n+   * @param requestHeaders Selector for the HTTP request headers to capture.\n+   */\n+  @CanIgnoreReturnValue\n+  public RestletTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n    * @param requestHeaders HTTP header names to capture.\n+   * @deprecated Use {@link #setRequestHeaders(IncludeExclude)} instead. May be removed in the next\n+   *     minor release.\n    */\n+  @Deprecated // may be removed in the next minor release",
+      "id": "PRRT_kwDODJKVX86Zcy3N",
+      "opened": "2026-08-15T00:43:59Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/RestletTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:06:54Z",
+          "body": "Same as the Restlet 1.1 thread — keeping `may be removed in the next minor release`, because `instrumentation/restlet/restlet-2.0/library` publishes as `-alpha`.\n\n`.github/agents/knowledge/api-deprecation-policy.md` ties removal timing to the publishing artifact's stability and says \"Do not schedule an alpha-only deprecation for 3.0 — it does not have to wait for a major version.\" This module sets no `otel.stable=true`, so the alpha wording is the correct one, and the policy's own review checklist flags `to be removed in 3.0` on an alpha symbol as the defect.\n\nThe 3.0 timeline on the delegated `instrumentation-api` extractor method is right for that API since it is stable; the policy anticipates one PR deprecating both stable and alpha surfaces with different timelines.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788442859"
+        }
+      ],
+      "reviewed": "a99678dbea2924d920ed753edc22fff4c601e07e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788005335"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The removal timeline conflicts with #19444, which keeps legacy setters through 2.x and removes them in 3.0; the delegated extractor API also documents removal in 3.0. Saying “next minor release” incorrectly tells users this API may disappear during 2.x. Please align the Javadoc and annotation comment with the 3.0 timeline.\n\nThis issue also appears on line 146 of the same file.",
+      "created": "2026-08-15T00:43:59Z",
+      "hunk": "@@ -89,26 +90,66 @@ public ServletTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers. No request headers\n+   * are captured unless this selector is configured.\n+   *\n+   * @param requestHeaders Selector for the HTTP request headers to capture.\n+   */\n+  @CanIgnoreReturnValue\n+  public ServletTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n    * @param requestHeaders HTTP header names to capture.\n+   * @deprecated Use {@link #setRequestHeaders(IncludeExclude)} instead. May be removed in the next\n+   *     minor release.\n    */\n+  @Deprecated // may be removed in the next minor release",
+      "id": "PRRT_kwDODJKVX86Zcy3T",
+      "opened": "2026-08-15T00:43:59Z",
+      "path": "instrumentation/servlet/servlet-3.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v3_0/ServletTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:07:04Z",
+          "body": "Keeping the alpha wording here too. `instrumentation/servlet/servlet-3.0/library` sets no `otel.stable=true`, so it publishes as `-alpha`, and `.github/agents/knowledge/api-deprecation-policy.md` says alpha deprecations are removed in a subsequent monthly release and must not be scheduled for 3.0. Its review checklist treats `to be removed in 3.0` on an alpha-only symbol as the thing to flag, which is the opposite of this suggestion.\n\nThe policy also calls out that `*TelemetryBuilder` classes in `instrumentation/**/library` look like supported public API but are published only from `-alpha` artifacts, which is exactly this class.\n\nThe 3.0 timeline on the `instrumentation-api` method this delegates to is correct for that API because it is stable; differing timelines within one PR are expected, and that is why the CHANGELOG bullet omits the timeline entirely.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788443177"
+        }
+      ],
+      "reviewed": "a99678dbea2924d920ed753edc22fff4c601e07e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788005345"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The removal timeline conflicts with #19444, which keeps legacy setters through 2.x and removes them in 3.0; the delegated extractor API also documents removal in 3.0. Saying “next minor release” incorrectly tells users this API may disappear during 2.x. Please align the Javadoc and annotation comment with the 3.0 timeline.\n\nThis issue also appears on line 146 of the same file.",
+      "created": "2026-08-15T00:43:59Z",
+      "hunk": "@@ -89,26 +90,66 @@ public ServletTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers. No request headers\n+   * are captured unless this selector is configured.\n+   *\n+   * @param requestHeaders Selector for the HTTP request headers to capture.\n+   */\n+  @CanIgnoreReturnValue\n+  public ServletTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n    * @param requestHeaders HTTP header names to capture.\n+   * @deprecated Use {@link #setRequestHeaders(IncludeExclude)} instead. May be removed in the next\n+   *     minor release.\n    */\n+  @Deprecated // may be removed in the next minor release",
+      "id": "PRRT_kwDODJKVX86Zcy3Z",
+      "opened": "2026-08-15T00:43:59Z",
+      "path": "instrumentation/servlet/servlet-5.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v5_0/ServletTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:07:15Z",
+          "body": "Same reasoning as the Servlet 3.0 thread. `instrumentation/servlet/servlet-5.0/library` has no `otel.stable=true`, so it publishes as `-alpha`, and `.github/agents/knowledge/api-deprecation-policy.md` reserves the 3.0 removal timeline for stable artifacts while explicitly saying alpha deprecations should not wait for a major version.\n\nI did tighten these setters since your review, though for a different reason: they now delegate to the exact-name path on `DefaultHttpServerInstrumenterBuilder` instead of wrapping the names in an `IncludeExclude`, so a caller who passed `\"*\"` keeps looking up a header literally named `*` rather than suddenly capturing every header including `Authorization`. The Javadoc documents that the deprecated setters match literally.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788443749"
+        }
+      ],
+      "reviewed": "a99678dbea2924d920ed753edc22fff4c601e07e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788005353"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This literal-matching guarantee is not currently preserved. The delegated `DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` wraps these names in an `IncludeExclude`; now that this PR implements request-header enumeration, legacy values containing `*` or `?` are evaluated as globs. For example, a caller that previously supplied `\"*\"` can now capture every request header, including credentials, instead of a literal header named `*`. Please add an exact-name path for deprecated setters and route this method through it.\n\nThis issue also appears on line 104 of the same file.",
+      "created": "2026-08-15T04:20:50Z",
+      "hunk": "@@ -43,22 +44,72 @@ public RestletTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers. No request headers\n+   * are captured unless this selector is configured.\n+   *\n+   * @param requestHeaders Selector for the HTTP request headers to capture.\n+   */\n+  @CanIgnoreReturnValue\n+  public RestletTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86ZeBxF",
+      "opened": "2026-08-15T04:20:51Z",
+      "path": "instrumentation/restlet/restlet-1.1/library/src/main/java/io/opentelemetry/instrumentation/restlet/v1_1/RestletTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:41:49Z",
+          "body": "The literal-matching promise is implemented, and I verified it rather than assuming.\n\nThe globbing you're seeing in `DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` was fixed on the base branch of this PR (`trask/http-header-selectors-api`, commit `1572a0077b`). `CapturedHttpHeaders.createExact` now stores the names as a literal set and never builds a selector, and both extractor builders' deprecated setters route through it. This PR's builders delegate straight to that path, so no `IncludeExclude` is constructed anywhere on the deprecated route.\n\nBecause this review reads the head branch in isolation rather than the merge commit, the pre-fix version of that file is what's visible here.\n\nTo make that an evidence claim rather than an assertion, I added a regression test that drives a real instrumented request with `setCapturedRequestHeaders(singletonList(\"*\"))` and asserts no `http.request.header.*` / `http.response.header.*` attributes are recorded. On the merge ref `refs/pull/19604/merge` (`4df519344d`), which is what CI builds, it passes. On the head branch in isolation, with the stale base, it fails exactly as you'd predict, with `http.request.header.authorization=[secret]` on the span.\n\nThat contrast is the finding you're describing, and it's confined to the stale base. The test also fails loudly if anyone ever reintroduces the globbing path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788507541"
+        }
+      ],
+      "reviewed": "bf3a2dcd3655ee87d830eec7f6d7c373ad75cd74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788472228"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This literal-matching guarantee is not currently preserved. The delegated `DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` wraps these names in an `IncludeExclude`; now that this PR implements request-header enumeration, legacy values containing `*` or `?` are evaluated as globs. For example, a caller that previously supplied `\"*\"` can now capture every request header, including credentials, instead of a literal header named `*`. Please add an exact-name path for deprecated setters and route this method through it.\n\nThis issue also appears on line 150 of the same file.",
+      "created": "2026-08-15T04:20:51Z",
+      "hunk": "@@ -89,22 +90,72 @@ public ServletTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers. No request headers\n+   * are captured unless this selector is configured.\n+   *\n+   * @param requestHeaders Selector for the HTTP request headers to capture.\n+   */\n+  @CanIgnoreReturnValue\n+  public ServletTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86ZeBxM",
+      "opened": "2026-08-15T04:20:51Z",
+      "path": "instrumentation/servlet/servlet-3.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v3_0/ServletTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:41:31Z",
+          "body": "The literal-matching promise is implemented, and I verified it rather than assuming.\n\nThe globbing you're seeing in `DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` was fixed on the base branch of this PR (`trask/http-header-selectors-api`, commit `1572a0077b`). `CapturedHttpHeaders.createExact` now stores the names as a literal set and never builds a selector, and both extractor builders' deprecated setters route through it. This PR's builders delegate straight to that path, so no `IncludeExclude` is constructed anywhere on the deprecated route.\n\nBecause this review reads the head branch in isolation rather than the merge commit, the pre-fix version of that file is what's visible here.\n\nTo make that an evidence claim rather than an assertion, I added `ServletHeaderCaptureTest#deprecatedSettersMatchHeaderNamesLiterally`, which drives the real `Filter` with `setCapturedRequestHeaders(singletonList(\"*\"))` and asserts no `http.request.header.*` / `http.response.header.*` attributes are recorded. Results:\n\n- On the merge ref `refs/pull/19604/merge` (`4df519344d`), which is what CI builds: passes, 2 tests, 0 failures, for both servlet-3.0 and servlet-5.0.\n- On the head branch in isolation, with the stale base: fails exactly as you'd predict, with `http.request.header.authorization=[secret]`, `http.request.header.x-test-request` and `http.response.header.x-test-response` on the span.\n\nThat contrast is the finding you're describing, and it's confined to the stale base. The test also fails loudly if anyone ever reintroduces the globbing path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788507098"
+        }
+      ],
+      "reviewed": "bf3a2dcd3655ee87d830eec7f6d7c373ad75cd74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788472238"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This literal-matching guarantee is not currently preserved. The delegated `DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` wraps these names in an `IncludeExclude`; now that this PR implements request-header enumeration, legacy values containing `*` or `?` are evaluated as globs. For example, a caller that previously supplied `\"*\"` can now capture every request header, including credentials, instead of a literal header named `*`. Please add an exact-name path for deprecated setters and route this method through it.\n\nThis issue also appears on line 150 of the same file.",
+      "created": "2026-08-15T04:20:51Z",
+      "hunk": "@@ -89,22 +90,72 @@ public ServletTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers. No request headers\n+   * are captured unless this selector is configured.\n+   *\n+   * @param requestHeaders Selector for the HTTP request headers to capture.\n+   */\n+  @CanIgnoreReturnValue\n+  public ServletTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86ZeBxV",
+      "opened": "2026-08-15T04:20:51Z",
+      "path": "instrumentation/servlet/servlet-5.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v5_0/ServletTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:41:41Z",
+          "body": "The literal-matching promise is implemented, and I verified it rather than assuming.\n\nThe globbing you're seeing in `DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` was fixed on the base branch of this PR (`trask/http-header-selectors-api`, commit `1572a0077b`). `CapturedHttpHeaders.createExact` now stores the names as a literal set and never builds a selector, and both extractor builders' deprecated setters route through it. This PR's builders delegate straight to that path, so no `IncludeExclude` is constructed anywhere on the deprecated route.\n\nBecause this review reads the head branch in isolation rather than the merge commit, the pre-fix version of that file is what's visible here.\n\nTo make that an evidence claim rather than an assertion, I added `ServletHeaderCaptureTest#deprecatedSettersMatchHeaderNamesLiterally`, which drives the real `Filter` with `setCapturedRequestHeaders(singletonList(\"*\"))` and asserts no `http.request.header.*` / `http.response.header.*` attributes are recorded. Results:\n\n- On the merge ref `refs/pull/19604/merge` (`4df519344d`), which is what CI builds: passes, 2 tests, 0 failures, for both servlet-3.0 and servlet-5.0.\n- On the head branch in isolation, with the stale base: fails exactly as you'd predict, with `http.request.header.authorization=[secret]`, `http.request.header.x-test-request` and `http.response.header.x-test-response` on the span.\n\nThat contrast is the finding you're describing, and it's confined to the stale base. The test also fails loudly if anyone ever reintroduces the globbing path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788507298"
+        }
+      ],
+      "reviewed": "bf3a2dcd3655ee87d830eec7f6d7c373ad75cd74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788472249"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This literal-matching guarantee is not currently preserved. The delegated `DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` wraps these names in an `IncludeExclude`; now that this PR implements request-header enumeration, legacy values containing `*` or `?` are evaluated as globs. For example, a caller that previously supplied `\"*\"` can now capture every request header, including credentials, instead of a literal header named `*`. Please add an exact-name path for deprecated setters and route this method through it.\n\nThis issue also appears on line 104 of the same file.",
+      "created": "2026-08-15T04:20:51Z",
+      "hunk": "@@ -43,22 +44,72 @@ public RestletTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, and an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector captures no headers. No request headers\n+   * are captured unless this selector is configured.\n+   *\n+   * @param requestHeaders Selector for the HTTP request headers to capture.\n+   */\n+  @CanIgnoreReturnValue\n+  public RestletTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86ZeBxe",
+      "opened": "2026-08-15T04:20:51Z",
+      "path": "instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/RestletTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:41:58Z",
+          "body": "The literal-matching promise is implemented, and I verified it rather than assuming.\n\nThe globbing you're seeing in `DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` was fixed on the base branch of this PR (`trask/http-header-selectors-api`, commit `1572a0077b`). `CapturedHttpHeaders.createExact` now stores the names as a literal set and never builds a selector, and both extractor builders' deprecated setters route through it. This PR's builders delegate straight to that path, so no `IncludeExclude` is constructed anywhere on the deprecated route.\n\nBecause this review reads the head branch in isolation rather than the merge commit, the pre-fix version of that file is what's visible here.\n\nTo make that an evidence claim rather than an assertion, I added a regression test that drives a real instrumented request with `setCapturedRequestHeaders(singletonList(\"*\"))` and asserts no `http.request.header.*` / `http.response.header.*` attributes are recorded. On the merge ref `refs/pull/19604/merge` (`4df519344d`), which is what CI builds, it passes. On the head branch in isolation, with the stale base, it fails exactly as you'd predict, with `http.request.header.authorization=[secret]` on the span.\n\nThat contrast is the finding you're describing, and it's confined to the stale base. The test also fails loudly if anyone ever reintroduces the globbing path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788507805"
+        }
+      ],
+      "reviewed": "bf3a2dcd3655ee87d830eec7f6d7c373ad75cd74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3788472260"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess using `Iterable` instead of `Collection` could open possibilities for implementing this method without copying headers into a new list.",
+      "created": "2026-08-18T11:34:43Z",
+      "hunk": "@@ -107,7 +107,7 @@ public List<String> getRequestHeaderValues(HttpServletRequest request, String na\n   }\n \n   @Override\n-  public Iterable<String> getRequestHeaderNames(HttpServletRequest httpServletRequest) {\n+  public Collection<String> getRequestHeaderNames(HttpServletRequest httpServletRequest) {",
+      "id": "PRRT_kwDODJKVX86aFs-_",
+      "opened": "2026-08-18T11:34:43Z",
+      "path": "instrumentation/servlet/servlet-5.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v5_0/internal/Servlet5Accessor.java",
+      "replies": [
+        {
+          "at": "2026-08-18T13:05:51Z",
+          "body": "Will bundle into a follow-up PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3804297687"
+        }
+      ],
+      "reviewed": "466e5ab8ce8275bd6b0865397f14362b5521f449",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19604#discussion_r3803645962"
+    }
+  ]
+}

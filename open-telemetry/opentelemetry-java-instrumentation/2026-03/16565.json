@@ -1,0 +1,40 @@
+{
+  "head": "18f286e5192ad33eaf50cf4010c0bbca54725a2a",
+  "merge": "067711b6d3491a245a400427d0364f46c106de0e",
+  "merged": "2026-03-16T15:56:59Z",
+  "missing_roots": 0,
+  "number": 16565,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "instead of spelling out the suite name we usually add all suites with `testing.suites`\n```suggestion\n    dependsOn(testing.suites, testStableSemconv)\n```",
+      "created": "2026-03-16T08:18:25Z",
+      "hunk": "@@ -39,6 +57,7 @@ tasks {\n \n   check {\n     dependsOn(testStableSemconv)\n+    dependsOn(\"testArmeria19\")",
+      "id": "PRRT_kwDODJKVX850ga-s",
+      "opened": "2026-03-16T08:18:25Z",
+      "path": "instrumentation/armeria/armeria-1.3/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "fa4f2aaad9b55adb9b4e8a9fb5513837311fd951",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16565#discussion_r2938798867"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think it is simpler to add `testing().runWithSpan(\"child\", () -> {})` here and assert that this span is present in the trace",
+      "created": "2026-03-16T08:21:04Z",
+      "hunk": "@@ -0,0 +1,109 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.armeria.v1_3;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.linecorp.armeria.client.WebClient;\n+import com.linecorp.armeria.common.HttpData;\n+import com.linecorp.armeria.common.HttpObject;\n+import com.linecorp.armeria.common.HttpResponse;\n+import com.linecorp.armeria.common.HttpStatus;\n+import com.linecorp.armeria.common.ResponseHeaders;\n+import com.linecorp.armeria.server.ServerBuilder;\n+import com.linecorp.armeria.testing.junit5.server.ServerExtension;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import java.util.List;\n+import java.util.concurrent.CompletableFuture;\n+import java.util.concurrent.TimeUnit;\n+import java.util.concurrent.atomic.AtomicReference;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+/**\n+ * Tests context propagation through the {@code collect()} API path in Armeria 1.9.x.\n+ *\n+ * <p>{@code StreamMessage.collect()} was introduced in Armeria 1.9.0. In versions 1.9.0 through\n+ * 1.9.2, {@code DefaultStreamMessage.collect()} creates a {@code SubscriptionImpl} with a {@code\n+ * NoopSubscriber} (bypassing {@code SubscriberWrapper}) and a non-null {@code CompletableFuture} as\n+ * constructor argument 4. The {@code WrapCompletableFutureAdvice} wraps that future to propagate\n+ * context, this is the only context propagation path for the collect flow, since {@code\n+ * SubscriberWrapper} skips {@code NoopSubscriber}.\n+ *\n+ * <p>Starting in Armeria 1.10.0, the {@code SubscriptionImpl} constructor was refactored to remove\n+ * the {@code CompletableFuture} parameter at position 4, so the {@code WrapCompletableFutureAdvice}\n+ * matcher no longer matches and the advice is effectively a no-op. Context propagation for {@code\n+ * collect()} in 1.10.0+ is handled through other mechanisms in the Armeria codebase itself.\n+ */\n+class ArmeriaStreamCollectTest {\n+  @RegisterExtension\n+  static final AgentInstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension\n+  static ServerExtension server =\n+      new ServerExtension() {\n+        @Override\n+        protected void configure(ServerBuilder sb) {\n+          sb.service(\n+              \"/stream\",\n+              (ctx, req) ->\n+                  HttpResponse.of(\n+                      ResponseHeaders.of(HttpStatus.OK),\n+                      HttpData.ofUtf8(\"hello\"),\n+                      HttpData.ofUtf8(\"world\")));\n+        }\n+      };\n+\n+  @Test\n+  void collectPropagatesContext() throws Exception {\n+    AtomicReference<SpanContext> collectContext = new AtomicReference<>();\n+    CompletableFuture<List<HttpObject>> collectFuture = new CompletableFuture<>();\n+\n+    testing.runWithSpan(\n+        \"parent\",\n+        () -> {\n+          HttpResponse response =\n+              WebClient.builder(server.httpUri()).build().get(\"/stream\");\n+          // collect() in Armeria 1.9.x uses a SubscriptionImpl with NoopSubscriber + a\n+          // CompletableFuture as arg 4. The CompletableFutureWrapper is the only mechanism\n+          // propagating context here since SubscriberWrapper skips NoopSubscriber.\n+          response\n+              .collect()\n+              .thenAccept(\n+                  objects -> {\n+                    collectContext.set(Span.current().getSpanContext());",
+      "id": "PRRT_kwDODJKVX850gdV_",
+      "opened": "2026-03-16T08:21:04Z",
+      "path": "instrumentation/armeria/armeria-1.3/javaagent/src/testArmeria19/java/io/opentelemetry/javaagent/instrumentation/armeria/v1_3/ArmeriaStreamCollectTest.java",
+      "replies": [],
+      "reviewed": "fa4f2aaad9b55adb9b4e8a9fb5513837311fd951",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16565#discussion_r2938811850"
+    }
+  ]
+}

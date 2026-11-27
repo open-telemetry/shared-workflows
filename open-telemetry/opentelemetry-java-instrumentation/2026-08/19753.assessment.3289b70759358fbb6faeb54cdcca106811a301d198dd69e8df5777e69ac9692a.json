@@ -1,0 +1,26 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "11da3ce98c6e5d63f67284c53552aecdf02376d3ad54edf8a18f5b4ebe4ed97a",
+  "input_digest": "3289b70759358fbb6faeb54cdcca106811a301d198dd69e8df5777e69ac9692a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8fc734865c02033d48f8d68049ce132ce0c355a0/instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aa996db4b68d98c4a9018f17736c4459404c57ab/instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d69e861fac89d4acf1ffb6654fd29201bbcac07d"
+      ],
+      "id": "PRRT_kwDODJKVX86bPyq5",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86bn1kf",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

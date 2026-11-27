@@ -1,0 +1,41 @@
+{
+  "head": "4a0b80b49813b808146d9087916af31079ec8fd4",
+  "merge": "f6b43c36565ae00f0e62e32e8952d751e4a978fb",
+  "merged": "2026-07-14T03:11:22Z",
+  "missing_roots": 0,
+  "number": 19093,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can you add catch Throwable around `toString()` for safety? thx",
+      "created": "2026-07-13T21:51:28Z",
+      "hunk": "@@ -207,22 +188,8 @@ public static void onExit(\n         return;\n       }\n \n-      String str = null;\n-\n-      if (value instanceof Boolean\n-          // Byte, Short, Int, Long, Float, Double, BigDecimal\n-          || value instanceof Number\n-          || value instanceof String\n-          || value instanceof Date\n-          || value instanceof Time\n-          || value instanceof Timestamp\n-          || value instanceof URL\n-          || value instanceof RowId) {\n-        str = value.toString();\n-      }\n-\n-      if (str != null) {\n-        JdbcData.addParameter(statement, Integer.toString(index - 1), str);\n+      if (value != null) {\n+        JdbcData.addParameter(statement, Integer.toString(index - 1), value.toString());",
+      "id": "PRRT_kwDODJKVX86QjM8T",
+      "opened": "2026-07-13T21:51:28Z",
+      "path": "instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/PreparedStatementInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-14T00:34:27Z",
+          "body": "the instrumentation method already has:\r\n```\r\n    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\r\n```\r\nI would consider wrapping it if it would do anything else. but the only thing it does is adding a parameter, if anything fails the parameter will be unset.\r\nSo I would argue its already there.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093#discussion_r3575244976"
+        },
+        {
+          "at": "2026-07-14T01:18:05Z",
+          "body": "sorry, meant to leave this comment in the library instrumentation",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093#discussion_r3575398780"
+        },
+        {
+          "at": "2026-07-14T01:40:04Z",
+          "body": "ah alright. added the Throwable guard there",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093#discussion_r3575466407"
+        }
+      ],
+      "reviewed": "fff321f49bbf1816374ebcbb6505b23716ef3e9f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093#discussion_r3574398808"
+    }
+  ]
+}

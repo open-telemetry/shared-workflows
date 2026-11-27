@@ -1,0 +1,133 @@
+{
+  "head": "4dad852f5a740e0bc38a5db79279c710c394ecdc",
+  "merge": "ab6fa475ca9ab834af2c53b2501a339c86774b6f",
+  "merged": "2026-09-10T01:39:22Z",
+  "missing_roots": 0,
+  "number": 594,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Importing `dspy` at module import time makes the instrumentation package fail to import when `dspy` isn’t installed (a common/expected setup for optional instrumentations). To keep imports lazy, remove the top-level `import dspy` and instead import `dspy` inside `patch_dspy()` / `unpatch_dspy()` and (since `_start_retrieval_invocation` reads `dspy.settings`) either import `dspy` inside `_start_retrieval_invocation` or pass the configured RM/settings through from the patch site.",
+      "created": "2026-09-03T20:18:01Z",
+      "hunk": "@@ -6,11 +6,12 @@\n from __future__ import annotations\n \n import inspect\n-from collections.abc import Awaitable, Callable\n+from collections.abc import Awaitable, Callable, Mapping, Sequence\n from copy import copy, deepcopy\n from importlib import import_module\n-from typing import TYPE_CHECKING, Any\n+from typing import TYPE_CHECKING, Any, cast\n \n+import dspy",
+      "id": "PRRT_kwDOSbspP86fEML-",
+      "opened": "2026-09-03T20:18:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "a3697bcad16ae2a7b113c73e17534bcef7581cc5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/594#discussion_r3928354159"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Importing `dspy` at module import time makes the instrumentation package fail to import when `dspy` isn’t installed (a common/expected setup for optional instrumentations). To keep imports lazy, remove the top-level `import dspy` and instead import `dspy` inside `patch_dspy()` / `unpatch_dspy()` and (since `_start_retrieval_invocation` reads `dspy.settings`) either import `dspy` inside `_start_retrieval_invocation` or pass the configured RM/settings through from the patch site.",
+      "created": "2026-09-03T20:18:01Z",
+      "hunk": "@@ -388,3 +415,178 @@ async def traced_method(\n             return result\n \n     return traced_method\n+\n+\n+def _extract_retrieval_query(\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> str | None:\n+    if \"query\" in kwargs and kwargs[\"query\"] is not None:\n+        return str(kwargs[\"query\"])\n+    if args and args[0] is not None:\n+        return str(args[0])\n+    return None\n+\n+\n+def _extract_retrieval_k(\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> float | None:\n+    k = kwargs.get(\"k\")\n+    if k is None and len(args) > 1:\n+        k = args[1]\n+    if k is None and hasattr(instance, \"k\"):\n+        k = getattr(instance, \"k\", None)\n+    if k is not None:\n+        try:\n+            return float(k)\n+        except (ValueError, TypeError):\n+            return None\n+    return None\n+\n+\n+def _start_retrieval_invocation(\n+    handler: TelemetryHandler,\n+    instance: Retrieve,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> RetrievalInvocation:\n+    rm: Any = getattr(instance, \"rm\", None)\n+    if rm is None:\n+        rm = getattr(dspy.settings, \"rm\", None)",
+      "id": "PRRT_kwDOSbspP86fEMMa",
+      "opened": "2026-09-03T20:18:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "a3697bcad16ae2a7b113c73e17534bcef7581cc5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/594#discussion_r3928354206"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The async wrapping path (`Retrieve.aforward`) is newly introduced but isn’t exercised by the added tests. Add an async unit test (guarded/skipped when `dspy.Retrieve` lacks `aforward`) that calls `await retrieve.aforward(...)` and asserts the retrieval span/attributes are emitted, so the async instrumentation doesn’t regress silently.",
+      "created": "2026-09-03T20:18:01Z",
+      "hunk": "@@ -172,6 +182,20 @@ def patch_dspy(handler: TelemetryHandler) -> None:\n             _tool_acall(handler),\n         )\n \n+    retrieve_module = dspy.Retrieve.__module__\n+    retrieve_name = dspy.Retrieve.__name__\n+    _wrap_function(\n+        retrieve_module,\n+        f\"{retrieve_name}.forward\",\n+        _retrieve_forward(handler),\n+    )\n+    if hasattr(dspy.Retrieve, \"aforward\"):\n+        _wrap_function(\n+            retrieve_module,\n+            f\"{retrieve_name}.aforward\",\n+            _retrieve_aforward(handler),\n+        )",
+      "id": "PRRT_kwDOSbspP86fEMMw",
+      "opened": "2026-09-03T20:18:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "a3697bcad16ae2a7b113c73e17534bcef7581cc5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/594#discussion_r3928354246"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Parsing with `json.loads(str(docs_attr))` can mask type regressions (e.g., if the attribute accidentally becomes a Python list/dict and `str(...)` produces non-JSON). Prefer asserting the attribute type is a JSON string (or bytes) and then calling `json.loads(docs_attr)` (decoding bytes if needed). This makes the test fail loudly if the span attribute is emitted in an unexpected type/format.",
+      "created": "2026-09-03T20:18:02Z",
+      "hunk": "@@ -0,0 +1,318 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for DSPy Retrieve instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+import copy\n+import json\n+from typing import Any\n+\n+import dspy\n+import pytest\n+\n+from opentelemetry.instrumentation.genai.dspy import DSPyInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAI,\n+)\n+from opentelemetry.semconv.attributes import error_attributes\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+from opentelemetry.trace import StatusCode\n+\n+\n+class _DummyPassage:\n+    def __init__(self, text: str) -> None:\n+        self.long_text = text\n+\n+\n+class _DummyRM:\n+    def __init__(\n+        self,\n+        data_source_id: str | None = None,\n+        provider: str | None = None,\n+        should_fail: bool = False,\n+    ) -> None:\n+        self.data_source_id = data_source_id\n+        self.provider = provider\n+        self.should_fail = should_fail\n+\n+    def __call__(self, query: str, k: int = 3, **kwargs: Any) -> list[Any]:\n+        if self.should_fail:\n+            raise RuntimeError(\"RM retrieval failure\")\n+        return [_DummyPassage(f\"Passage {i} for {query}\") for i in range(k)]\n+\n+\n+def test_sync_retrieve_execution(\n+    tracer_provider: TracerProvider,\n+    logger_provider: LoggerProvider,\n+    meter_provider: MeterProvider,\n+    span_exporter: InMemorySpanExporter,\n+) -> None:\n+    rm = _DummyRM()\n+    dspy.settings.configure(rm=rm)\n+\n+    with instrument(\n+        DSPyInstrumentor(),\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+        content_capture=\"SPAN_ONLY\",\n+    ):\n+        retrieve = dspy.Retrieve(k=3)\n+        res = retrieve(\"What is OpenTelemetry?\")\n+        assert len(res.passages) == 3\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+\n+    assert span.name == \"retrieval\"\n+    assert span.status.status_code == StatusCode.UNSET\n+    attrs = span.attributes or {}\n+    assert attrs.get(GenAI.GEN_AI_OPERATION_NAME) == \"retrieval\"\n+    assert attrs.get(GenAI.GEN_AI_REQUEST_TOP_K) == 3.0\n+    assert (\n+        attrs.get(GenAI.GEN_AI_RETRIEVAL_QUERY_TEXT)\n+        == \"What is OpenTelemetry?\"\n+    )\n+\n+    docs_attr = attrs.get(GenAI.GEN_AI_RETRIEVAL_DOCUMENTS)\n+    assert docs_attr is not None\n+    docs = json.loads(str(docs_attr))",
+      "id": "PRRT_kwDOSbspP86fEMNC",
+      "opened": "2026-09-03T20:18:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/test_retrieve.py",
+      "replies": [],
+      "reviewed": "a3697bcad16ae2a7b113c73e17534bcef7581cc5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/594#discussion_r3928354280"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "These branches are unreachable. [`Retrieve.forward`](https://github.com/stanfordnlp/dspy/blob/main/dspy/retrievers/retrieve.py#L63-L65) flattens RM passages to strings before returning:\n\n```python\npassages = [psg.long_text for psg in passages]\nreturn Prediction(passages=passages)\n```\n\nThe wrapper only ever receives `Prediction` with `list[str]`. The `Mapping`, `id`, and `score` branches never run.\n\nRMs that carry IDs or scores (like [`DatabricksRM`](https://github.com/stanfordnlp/dspy/blob/main/dspy/retrievers/databricks_rm.py#L207)) override `forward()`, so patching `dspy.Retrieve.forward` does not intercept them anyway.",
+      "created": "2026-09-04T23:07:24Z",
+      "hunk": "@@ -396,3 +416,174 @@ async def traced_method(\n             return result\n \n     return traced_method\n+\n+\n+def _extract_retrieval_query(\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> str | None:\n+    if \"query\" in kwargs and kwargs[\"query\"] is not None:\n+        return str(kwargs[\"query\"])\n+    if args and args[0] is not None:\n+        return str(args[0])\n+    return None\n+\n+\n+def _extract_retrieval_k(\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> int | None:\n+    k = kwargs.get(\"k\")\n+    if k is None and len(args) > 1:\n+        k = args[1]\n+    if k is None and hasattr(instance, \"k\"):\n+        k = getattr(instance, \"k\", None)\n+    if k is not None:\n+        try:\n+            return int(k)\n+        except (ValueError, TypeError):\n+            return None\n+    return None\n+\n+\n+def _start_retrieval_invocation(\n+    handler: TelemetryHandler,\n+    instance: Retrieve,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> RetrievalInvocation:\n+    rm: Any = getattr(instance, \"rm\", None)\n+    if rm is None:\n+        import dspy\n+\n+        rm = getattr(dspy.settings, \"rm\", None)\n+\n+    # DSPy retrieval models lack a uniform identifier schema, so inspect common index and provider\n+    # attributes across the Retrieve instance and configured RM.\n+    data_source_id: str | None = (\n+        getattr(instance, \"data_source_id\", None)\n+        or getattr(instance, \"index_name\", None)\n+        or (getattr(rm, \"data_source_id\", None) if rm is not None else None)\n+        or (getattr(rm, \"index_name\", None) if rm is not None else None)\n+        or (getattr(rm, \"collection_name\", None) if rm is not None else None)\n+    )\n+    provider: str | None = (\n+        getattr(instance, \"provider\", None)\n+        or (getattr(rm, \"provider\", None) if rm is not None else None)\n+        or (getattr(rm, \"provider_name\", None) if rm is not None else None)\n+    )\n+\n+    invocation = handler.retrieval(\n+        data_source_id=str(data_source_id)\n+        if data_source_id is not None\n+        else None,\n+        provider=str(provider) if provider is not None else None,\n+    )\n+\n+    invocation.query_text = _extract_retrieval_query(args, kwargs)\n+    invocation.top_k = _extract_retrieval_k(instance, args, kwargs)\n+    return invocation\n+\n+\n+def _set_retrieval_invocation_documents(\n+    handler: TelemetryHandler,\n+    invocation: RetrievalInvocation,\n+    result: object,\n+) -> None:\n+    if not handler.should_capture_content():\n+        return\n+\n+    passages: Sequence[object] | None = None\n+    if hasattr(result, \"passages\"):\n+        attr_val = getattr(result, \"passages\")\n+        if isinstance(attr_val, Sequence) and not isinstance(\n+            attr_val, (str, bytes)\n+        ):\n+            passages = cast(Sequence[object], attr_val)\n+    elif isinstance(result, Sequence) and not isinstance(result, (str, bytes)):\n+        passages = cast(Sequence[object], result)\n+    elif isinstance(result, str):\n+        passages = [result]\n+\n+    if passages is None:\n+        return\n+\n+    documents: list[dict[str, Any]] = []\n+    for psg in passages:\n+        # Standard dspy.Retrieve flattens RM passages to strings via psg.long_text.\n+        if isinstance(psg, str):\n+            documents.append({\"content\": psg})\n+        elif isinstance(psg, Mapping):",
+      "id": "PRRT_kwDOSbspP86fdwI1",
+      "opened": "2026-09-08T19:38:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-09T13:53:39Z",
+          "body": "Good catch.. removing this dead code",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/594#discussion_r3969220307"
+        }
+      ],
+      "reviewed": "fd477f868d7a1550f45b7758c858d20e6b6cbf0c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/594#discussion_r3938464361"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "DSPy RM classes do not define `provider` or `provider_name` attributes (e.g. [`WeaviateRM`](https://github.com/stanfordnlp/dspy/blob/main/dspy/retrievers/weaviate_rm.py#L52) uses `_weaviate_collection_name`, [`DatabricksRM`](https://github.com/stanfordnlp/dspy/blob/main/dspy/retrievers/databricks_rm.py#L143) uses `databricks_index_name`). Probing them only works on the synthetic `_DummyRM` in tests and returns `None` in real DSPy usage.\n\nPer the [semantic conventions for retrievals](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md#retrievals), `gen_ai.provider.name` is not required. Leave it unset unless mapping from known RM types.",
+      "created": "2026-09-04T23:07:24Z",
+      "hunk": "@@ -396,3 +416,174 @@ async def traced_method(\n             return result\n \n     return traced_method\n+\n+\n+def _extract_retrieval_query(\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> str | None:\n+    if \"query\" in kwargs and kwargs[\"query\"] is not None:\n+        return str(kwargs[\"query\"])\n+    if args and args[0] is not None:\n+        return str(args[0])\n+    return None\n+\n+\n+def _extract_retrieval_k(\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> int | None:\n+    k = kwargs.get(\"k\")\n+    if k is None and len(args) > 1:\n+        k = args[1]\n+    if k is None and hasattr(instance, \"k\"):\n+        k = getattr(instance, \"k\", None)\n+    if k is not None:\n+        try:\n+            return int(k)\n+        except (ValueError, TypeError):\n+            return None\n+    return None\n+\n+\n+def _start_retrieval_invocation(\n+    handler: TelemetryHandler,\n+    instance: Retrieve,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> RetrievalInvocation:\n+    rm: Any = getattr(instance, \"rm\", None)\n+    if rm is None:\n+        import dspy\n+\n+        rm = getattr(dspy.settings, \"rm\", None)\n+\n+    # DSPy retrieval models lack a uniform identifier schema, so inspect common index and provider\n+    # attributes across the Retrieve instance and configured RM.\n+    data_source_id: str | None = (\n+        getattr(instance, \"data_source_id\", None)\n+        or getattr(instance, \"index_name\", None)\n+        or (getattr(rm, \"data_source_id\", None) if rm is not None else None)\n+        or (getattr(rm, \"index_name\", None) if rm is not None else None)\n+        or (getattr(rm, \"collection_name\", None) if rm is not None else None)\n+    )\n+    provider: str | None = (",
+      "id": "PRRT_kwDOSbspP86fdwI4",
+      "opened": "2026-09-08T19:38:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-09T13:53:21Z",
+          "body": "Ack.. removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/594#discussion_r3969217355"
+        }
+      ],
+      "reviewed": "fd477f868d7a1550f45b7758c858d20e6b6cbf0c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/594#discussion_r3938464369"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "[`dspy.Retrieve`](https://github.com/stanfordnlp/dspy/blob/main/dspy/retrievers/retrieve.py#L43-L65) does not define `aforward` - it only has `__call__` and `forward`.\n\nBecause of this:\n- The `_retrieve_aforward` wrapper and unwrap are dead code.\n- `test_async_retrieve_execution` skips on real DSPy installs.\n- The other two async tests only pass because they monkeypatch their own `aforward` onto the class.\n\nDrop the async path until DSPy adds native async support for `Retrieve`.",
+      "created": "2026-09-04T23:07:24Z",
+      "hunk": "@@ -180,6 +182,20 @@ def patch_dspy(handler: TelemetryHandler) -> None:\n             _tool_acall(handler),\n         )\n \n+    retrieve_module = dspy.Retrieve.__module__\n+    retrieve_name = dspy.Retrieve.__name__\n+    _wrap_function(\n+        retrieve_module,\n+        f\"{retrieve_name}.forward\",\n+        _retrieve_forward(handler),\n+    )\n+    if hasattr(dspy.Retrieve, \"aforward\"):",
+      "id": "PRRT_kwDOSbspP86fdwIz",
+      "opened": "2026-09-08T19:38:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-09T13:53:49Z",
+          "body": "Removing this dead code as well !",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/594#discussion_r3969221940"
+        }
+      ],
+      "reviewed": "fd477f868d7a1550f45b7758c858d20e6b6cbf0c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/594#discussion_r3938464359"
+    }
+  ]
+}

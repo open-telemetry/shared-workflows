@@ -1,0 +1,145 @@
+{
+  "head": "df818318d39b5947c1b540babbcd6578393f4582",
+  "merge": "04c401460bc3cc7057aa3ee8ddc5f3d2aff1040a",
+  "merged": "2026-08-20T00:25:38Z",
+  "missing_roots": 0,
+  "number": 406,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `setup-uv` pin is duplicated across many workflows (and also in a composite action). This makes future bumps error-prone and verbose. Consider introducing a local wrapper composite action (e.g., `.github/actions/setup-uv/action.yml`) that internally pins `astral-sh/setup-uv@<sha>`, and then replace these occurrences with `uses: ./.github/actions/setup-uv` so the version is updated in one place.",
+      "created": "2026-08-18T00:34:12Z",
+      "hunk": "@@ -56,7 +56,7 @@ jobs:\n           python-version: \"3.14\"\n \n       - name: Set up uv\n-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1",
+      "id": "PRRT_kwDOSbspP86Z8O6-",
+      "opened": "2026-08-18T00:34:14Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "6a1b1f0c55a6a7c79ce67b42b2aa863485cb38a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/406#discussion_r3799958763"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `setup-uv` pin is duplicated across many workflows (and also in a composite action). This makes future bumps error-prone and verbose. Consider introducing a local wrapper composite action (e.g., `.github/actions/setup-uv/action.yml`) that internally pins `astral-sh/setup-uv@<sha>`, and then replace these occurrences with `uses: ./.github/actions/setup-uv` so the version is updated in one place.",
+      "created": "2026-08-18T00:34:12Z",
+      "hunk": "@@ -35,7 +35,7 @@ jobs:\n           python-version: \"3.14\"\n \n       - name: Set up uv\n-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1",
+      "id": "PRRT_kwDOSbspP86Z8O6p",
+      "opened": "2026-08-18T00:34:14Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "6a1b1f0c55a6a7c79ce67b42b2aa863485cb38a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/406#discussion_r3799958729"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `setup-uv` pin is duplicated across many workflows (and also in a composite action). This makes future bumps error-prone and verbose. Consider introducing a local wrapper composite action (e.g., `.github/actions/setup-uv/action.yml`) that internally pins `astral-sh/setup-uv@<sha>`, and then replace these occurrences with `uses: ./.github/actions/setup-uv` so the version is updated in one place.",
+      "created": "2026-08-18T00:34:13Z",
+      "hunk": "@@ -154,7 +154,7 @@ jobs:\n           python-version: \"3.14\"\n \n       - name: Set up uv\n-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1",
+      "id": "PRRT_kwDOSbspP86Z8O78",
+      "opened": "2026-08-18T00:34:14Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "6a1b1f0c55a6a7c79ce67b42b2aa863485cb38a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/406#discussion_r3799958841"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `setup-uv` pin is duplicated across many workflows (and also in a composite action). This makes future bumps error-prone and verbose. Consider introducing a local wrapper composite action (e.g., `.github/actions/setup-uv/action.yml`) that internally pins `astral-sh/setup-uv@<sha>`, and then replace these occurrences with `uses: ./.github/actions/setup-uv` so the version is updated in one place.",
+      "created": "2026-08-18T00:34:13Z",
+      "hunk": "@@ -75,7 +75,7 @@ jobs:\n           python-version: \"3.14\"\n \n       - name: Set up uv\n-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1",
+      "id": "PRRT_kwDOSbspP86Z8O7N",
+      "opened": "2026-08-18T00:34:14Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "6a1b1f0c55a6a7c79ce67b42b2aa863485cb38a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/406#discussion_r3799958782"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `setup-uv` pin is duplicated across many workflows (and also in a composite action). This makes future bumps error-prone and verbose. Consider introducing a local wrapper composite action (e.g., `.github/actions/setup-uv/action.yml`) that internally pins `astral-sh/setup-uv@<sha>`, and then replace these occurrences with `uses: ./.github/actions/setup-uv` so the version is updated in one place.",
+      "created": "2026-08-18T00:34:13Z",
+      "hunk": "@@ -97,7 +97,7 @@ jobs:\n           python-version: \"3.14\"\n \n       - name: Set up uv\n-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1",
+      "id": "PRRT_kwDOSbspP86Z8O7X",
+      "opened": "2026-08-18T00:34:14Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "6a1b1f0c55a6a7c79ce67b42b2aa863485cb38a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/406#discussion_r3799958792"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `setup-uv` pin is duplicated across many workflows (and also in a composite action). This makes future bumps error-prone and verbose. Consider introducing a local wrapper composite action (e.g., `.github/actions/setup-uv/action.yml`) that internally pins `astral-sh/setup-uv@<sha>`, and then replace these occurrences with `uses: ./.github/actions/setup-uv` so the version is updated in one place.",
+      "created": "2026-08-18T00:34:13Z",
+      "hunk": "@@ -116,7 +116,7 @@ jobs:\n           python-version: \"3.14\"\n \n       - name: Set up uv\n-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1",
+      "id": "PRRT_kwDOSbspP86Z8O7j",
+      "opened": "2026-08-18T00:34:14Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "6a1b1f0c55a6a7c79ce67b42b2aa863485cb38a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/406#discussion_r3799958807"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `setup-uv` pin is duplicated across many workflows (and also in a composite action). This makes future bumps error-prone and verbose. Consider introducing a local wrapper composite action (e.g., `.github/actions/setup-uv/action.yml`) that internally pins `astral-sh/setup-uv@<sha>`, and then replace these occurrences with `uses: ./.github/actions/setup-uv` so the version is updated in one place.",
+      "created": "2026-08-18T00:34:13Z",
+      "hunk": "@@ -135,7 +135,7 @@ jobs:\n           python-version: \"3.14\"\n \n       - name: Set up uv\n-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1",
+      "id": "PRRT_kwDOSbspP86Z8O7z",
+      "opened": "2026-08-18T00:34:14Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "6a1b1f0c55a6a7c79ce67b42b2aa863485cb38a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/406#discussion_r3799958826"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `setup-uv` pin is duplicated across many workflows (and also in a composite action). This makes future bumps error-prone and verbose. Consider introducing a local wrapper composite action (e.g., `.github/actions/setup-uv/action.yml`) that internally pins `astral-sh/setup-uv@<sha>`, and then replace these occurrences with `uses: ./.github/actions/setup-uv` so the version is updated in one place.",
+      "created": "2026-08-18T00:34:14Z",
+      "hunk": "@@ -173,7 +173,7 @@ jobs:\n           python-version: \"3.14\"\n \n       - name: Set up uv\n-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1",
+      "id": "PRRT_kwDOSbspP86Z8O8E",
+      "opened": "2026-08-18T00:34:14Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "6a1b1f0c55a6a7c79ce67b42b2aa863485cb38a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/406#discussion_r3799958854"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Because this is pinned by SHA and annotated with a human-readable version comment, it’s easy for the comment (`# v10.0.1`) to drift from the actual commit over time. To keep this verifiable, consider linking to the upstream release/tag in the comment (or adding a lightweight check in the bump process) so reviewers can confirm the SHA corresponds to the intended release.",
+      "created": "2026-08-18T00:34:14Z",
+      "hunk": "@@ -35,7 +35,7 @@ jobs:\n           python-version: \"3.14\"\n \n       - name: Set up uv\n-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0\n+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1",
+      "id": "PRRT_kwDOSbspP86Z8O8c",
+      "opened": "2026-08-18T00:34:14Z",
+      "path": ".github/workflows/ci.yml",
+      "replies": [],
+      "reviewed": "6a1b1f0c55a6a7c79ce67b42b2aa863485cb38a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/406#discussion_r3799958879"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f4fbbe6af4287300a86241ed58ba5dc2259eb73a0e8579427ad2c1cd577f34c9",
+  "input_digest": "c0f366beee4f6ed11bfedc4ade95fb59f593277e86a04ce96310e47ad5a3205a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b8aad6ce4c4e4581a90af2bfb5c6dba1a37c7496/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b8aad6ce4c4e4581a90af2bfb5c6dba1a37c7496/instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b30602fd7a2435ec980314a12d219143b8de659d/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b30602fd7a2435ec980314a12d219143b8de659d/instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b30602fd7a2435ec980314a12d219143b8de659d",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6fc3a9b1cf4438842db9f09e565680d24157aee1"
+      ],
+      "id": "PRRT_kwDODJKVX86IPcEU",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b8aad6ce4c4e4581a90af2bfb5c6dba1a37c7496/instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b8aad6ce4c4e4581a90af2bfb5c6dba1a37c7496/instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractS3ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b30602fd7a2435ec980314a12d219143b8de659d/instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b30602fd7a2435ec980314a12d219143b8de659d/instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractS3ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fee0b32334673ce24d9ec4f6cfd778ec0e7de7b4"
+      ],
+      "id": "PRRT_kwDODJKVX86IPcE5",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

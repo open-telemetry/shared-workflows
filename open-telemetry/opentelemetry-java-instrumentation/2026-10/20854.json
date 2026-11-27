@@ -1,0 +1,52 @@
+{
+  "head": "32b0d831a4b457cf3cb6095ddb513bd53e18314b",
+  "merge": "6a5877474b4e2f373a2910faf65ab7749e1e484c",
+  "merged": "2026-10-23T10:58:04Z",
+  "missing_roots": 0,
+  "number": 20854,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the agreed documentation-only change to `OpenTelemetryMeterRegistryBuilder.setPrometheusMode(boolean)` in `instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/OpenTelemetryMeterRegistryBuilder.java`. Do not create a separate PR. Replace the method's Javadoc with the following behavior-focused wording, without mentioning Micrometer's `PrometheusMeterRegistry` or claiming naming equivalence:\n\n```java\n/**\n * Sets the optional \"Prometheus mode\". When enabled, appends base-unit suffixes to counter,\n * distribution summary, and gauge names, uses a {@code .seconds} suffix for timer and long-task\n * timer names, and forces the base time unit to seconds.\n *\n * <p>This mode is typically used with the OpenTelemetry Prometheus exporter, which handles\n * Prometheus-specific name translation, such as replacing dots with underscores and adding\n * the {@code _total} suffix to counter names.\n */\n```\n\nKeep the change limited to this Javadoc. Preserve all runtime behavior and the rest of this PR. Follow repository formatting requirements and run relevant validation/tests if warranted for this documentation-only change.",
+      "created": "2026-10-22T17:37:17Z",
+      "hunk": "@@ -57,11 +57,11 @@ public OpenTelemetryMeterRegistryBuilder setBaseTimeUnit(TimeUnit baseTimeUnit)\n   }\n \n   /**\n-   * Enables the \"Prometheus mode\" - this will simulate the behavior of Micrometer's {@code\n-   * PrometheusMeterRegistry}. The instruments will be renamed to match Micrometer instrument\n-   * naming, and the base time unit will be set to seconds.\n+   * Sets the optional \"Prometheus mode\", which approximates Micrometer's {@code",
+      "id": "PRRT_kwDODJKVX86vTlkQ",
+      "opened": "2026-10-22T17:37:16Z",
+      "path": "instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/OpenTelemetryMeterRegistryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-10-22T17:41:52Z",
+          "body": "Updated the Javadoc as requested in `b92ffd62`. The focused Spotless check passes; runtime behavior is unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20854#discussion_r4351581237"
+        }
+      ],
+      "reviewed": "f1edd282321534f3d75564a4831ccde70561ad11",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20854#discussion_r4351538825"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing stabilization PR directly on its existing head branch. The user explicitly requested: \"send pr to make those changes (no backcompat), then stack the stabilization PR on top of that pr\" and \"coordinate, send implementation to cloud\". The prerequisite is now draft PR #20871 in this same repository, branch copilot/task-move-base-unit-prom-mode-experimental, verified head 9fe12e2298d10c815e6262913dd51798713106cb. The coordinator has already retargeted THIS PR's base to that prerequisite branch. Do not create another PR or modify the prerequisite PR.\n\nStart from this PR's existing head branch copilot/trask-promote-module-to-stable at b92ffd6230c5bdf050a042b8fdb6a0961b5e5e77 and merge the prerequisite branch into it, not the reverse. Preserve the existing stabilization work and the prerequisite's API removals. Resolve the builder Javadoc/delete conflict by keeping setBaseTimeUnit and setPrometheusMode absent from OpenTelemetryMeterRegistryBuilder. Both operations now live in io.opentelemetry.instrumentation.micrometer.v1_5.internal.Experimental with the existing names. The user explicitly requested no deprecated aliases, compatibility shims, or public builder replacements.\n\nKeep this PR focused on stabilizing the remaining supported Micrometer bridge API above #20871. Retain otel.stable=true in instrumentation/micrometer/micrometer-1.5/library/gradle.properties, preserve the read-back limitation Javadoc added to OpenTelemetryMeterRegistry, and preserve setClock plus the existing create()/build() return types of MeterRegistry.\n\nRegenerate docs/apidiffs/current_vs_latest/opentelemetry-micrometer-1.5.txt using the repository's existing API-report mechanism so the stable builder surface includes build() and setClock(Clock), not setBaseTimeUnit or setPrometheusMode. Keep internal.Experimental excluded from the supported stable API report through existing filters; do not weaken filters or add experimental methods to the supported surface.\n\nPreserve the useful clarified Prometheus-mode Javadoc already added by this PR by applying it to Experimental.setPrometheusMode(builder, boolean), instead of restoring the removed builder method. It should state that the mode appends base-unit suffixes to counters, distribution summaries, and gauges, appends .seconds to timers and long-task timers, and forces the base time unit to seconds. The Prometheus exporter handles its own name translation, including dots to underscores and counter _total. Avoid claiming full naming equivalence with Micrometer's PrometheusMeterRegistry or implying every Prometheus/OTLP user must enable this mode.\n\nDo not change runtime behavior, existing flat or declarative javaagent property names/defaults/precedence, or the Spring Boot starter integration. Keep the API-removal changelog entry in the prerequisite, without duplicating it in this layer. Follow CONTRIBUTING.md, the knowledge index, and applicable path-specific instructions. Run the narrowest relevant spotlessApply before targeted validation, and run the appropriate API-report and behavior checks where feasible. Do not use spotlessCheck as a preliminary step, do not use --rerun-tasks, and do not wait for remote CI. Report validation outcomes or blockers.\n\nAcceptance: this head contains prerequisite commit 9fe12e2298d10c815e6262913dd51798713106cb and the original stabilization work; this PR remains a draft; the stable API report excludes the two removed setters; both settings are only available through Experimental; clarified Prometheus Javadoc is retained on the helper; default and configured runtime behavior are unchanged. Do not change any PR title, description, or base metadata, request reviews, dispatch tasks, create more PRs, or merge any PR. The coordinator owns metadata, native stack registration, and the subsequent Copilot review.",
+      "created": "2026-10-22T19:04:00Z",
+      "hunk": "@@ -0,0 +1 @@\n+otel.stable=true",
+      "id": "PRRT_kwDODJKVX86vVjdf",
+      "opened": "2026-10-22T19:03:59Z",
+      "path": "instrumentation/micrometer/micrometer-1.5/library/gradle.properties",
+      "replies": [
+        {
+          "at": "2026-10-22T19:14:22Z",
+          "body": "Merged the prerequisite branch into this stabilization branch in `857e34175fa`. The stable API report now excludes both setters, and the Prometheus-mode documentation is on `Experimental.setPrometheusMode`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20854#discussion_r4352485298"
+        }
+      ],
+      "reviewed": "b92ffd6230c5bdf050a042b8fdb6a0961b5e5e77",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20854#discussion_r4352379541"
+    }
+  ]
+}

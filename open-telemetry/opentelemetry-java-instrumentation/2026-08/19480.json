@@ -1,0 +1,73 @@
+{
+  "head": "e032c513daf66244f1e272a5753f553b8f3fac71",
+  "merge": "9444a29f1ca848744c13313b433f740ea7c70f1c",
+  "merged": "2026-08-14T16:20:23Z",
+  "missing_roots": 0,
+  "number": 19480,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`shouldStart()` can suppress the next message’s process span when a prior tracing iterator left its process scope current (for example, code called `next()` on the last item without a final `hasNext()`). The analogous Kafka and SQS tracing iterators intentionally start unconditionally so a new process span replaces that leaked context; otherwise subsequent work remains attached to the stale span. Start the process instrumenter unconditionally here as well.",
+      "created": "2026-08-10T22:38:29Z",
+      "hunk": "@@ -0,0 +1,71 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rocketmqclient.v5_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.rocketmqclient.v5_0.RocketMqSingletons.consumerProcessInstrumenter;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import java.util.Iterator;\n+import javax.annotation.Nullable;\n+import org.apache.rocketmq.client.apis.consumer.ConsumeResult;\n+import org.apache.rocketmq.client.apis.message.MessageView;\n+\n+public class SimpleConsumerTracingIterator implements Iterator<MessageView> {\n+\n+  private final Iterator<MessageView> delegate;\n+  @Nullable private MessageView currentMessage;\n+  @Nullable private Context currentContext;\n+  @Nullable private Scope currentScope;\n+\n+  public static Iterator<MessageView> wrap(Iterator<MessageView> delegate) {\n+    return new SimpleConsumerTracingIterator(delegate);\n+  }\n+\n+  private SimpleConsumerTracingIterator(Iterator<MessageView> delegate) {\n+    this.delegate = delegate;\n+  }\n+\n+  @Override\n+  public boolean hasNext() {\n+    endCurrentProcess();\n+    return delegate.hasNext();\n+  }\n+\n+  @Override\n+  public MessageView next() {\n+    endCurrentProcess();\n+    MessageView message = delegate.next();\n+    Context parentContext = VirtualFieldStore.getContextByMessage(message);\n+    if (parentContext == null) {\n+      parentContext = Context.current();\n+    }\n+    Instrumenter<MessageView, ConsumeResult> instrumenter = consumerProcessInstrumenter();\n+    if (instrumenter.shouldStart(parentContext, message)) {\n+      currentMessage = message;\n+      currentContext = instrumenter.start(parentContext, message);\n+      currentScope = currentContext.makeCurrent();\n+    }",
+      "id": "PRRT_kwDODJKVX86YDzbW",
+      "opened": "2026-08-10T22:38:30Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/SimpleConsumerTracingIterator.java",
+      "replies": [
+        {
+          "at": "2026-08-10T23:47:14Z",
+          "body": "Addressed by removing SimpleConsumer process-span creation and deleting the tracing iterator/list. SimpleConsumer now emits receive CLIENT spans only, so there is no iterator-held process scope to leak.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19480#discussion_r3754276224"
+        }
+      ],
+      "reviewed": "56eddccc9f71f610b3449a5248ae2139efdbc4f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19480#discussion_r3753940755"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Extending `ArrayList` means standard traversal APIs such as `stream()`/`parallelStream()` use `ArrayList.spliterator()`, and `listIterator()` uses its own iterator; neither reaches the overridden `iterator()`. Applications processing received messages through those common APIs therefore emit no process spans. Route all traversal methods through tracing wrappers (or use a delegating `List`) and cover these paths.",
+      "created": "2026-08-10T22:38:30Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rocketmqclient.v5_0;\n+\n+import java.util.ArrayList;\n+import java.util.Iterator;\n+import java.util.List;\n+import java.util.function.Consumer;\n+import org.apache.rocketmq.client.apis.message.MessageView;\n+\n+public class SimpleConsumerTracingList extends ArrayList<MessageView> {",
+      "id": "PRRT_kwDODJKVX86YDzb0",
+      "opened": "2026-08-10T22:38:30Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/SimpleConsumerTracingList.java",
+      "replies": [
+        {
+          "at": "2026-08-10T23:47:25Z",
+          "body": "Addressed by removing the tracing list and all traversal-created process spans. The vendor's original `List` is now returned unchanged, and SimpleConsumer emits receive CLIENT spans only.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19480#discussion_r3754277148"
+        }
+      ],
+      "reviewed": "56eddccc9f71f610b3449a5248ae2139efdbc4f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19480#discussion_r3753940803"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This stable-mode success test only runs in `testMessagingPreview`, which always enables experimental receive telemetry; the default task uses legacy semconv. Add coverage for stable messaging semconv with receive telemetry disabled, verifying that SimpleConsumer still emits process spans but emits neither the new receive span nor the low-level receive span—the configuration behavior called out by this PR is otherwise untested.",
+      "created": "2026-08-10T22:38:30Z",
+      "hunk": "@@ -0,0 +1,289 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.rocketmqclient.v5_0;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static io.opentelemetry.instrumentation.testing.util.TelemetryDataUtil.orderByRootSpanKind;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_BATCH_MESSAGE_COUNT;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_CONSUMER_GROUP_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_MESSAGE_ID;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_TYPE;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_ROCKETMQ_MESSAGE_KEYS;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_ROCKETMQ_MESSAGE_TAG;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_ROCKETMQ_NAMESPACE;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_SYSTEM;\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.Arrays.asList;\n+import static org.assertj.core.api.Assertions.assertThatThrownBy;\n+import static org.junit.jupiter.api.Assumptions.assumeFalse;\n+import static org.junit.jupiter.api.Assumptions.assumeTrue;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.testing.assertj.SpanDataAssert;\n+import io.opentelemetry.sdk.trace.data.LinkData;\n+import io.opentelemetry.sdk.trace.data.SpanData;\n+import io.opentelemetry.sdk.trace.data.StatusData;\n+import java.time.Duration;\n+import java.util.HashMap;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.concurrent.CompletionException;\n+import java.util.concurrent.atomic.AtomicReference;\n+import org.apache.rocketmq.client.apis.ClientConfiguration;\n+import org.apache.rocketmq.client.apis.ClientException;\n+import org.apache.rocketmq.client.apis.ClientServiceProvider;\n+import org.apache.rocketmq.client.apis.consumer.FilterExpression;\n+import org.apache.rocketmq.client.apis.consumer.FilterExpressionType;\n+import org.apache.rocketmq.client.apis.consumer.SimpleConsumer;\n+import org.apache.rocketmq.client.apis.message.Message;\n+import org.apache.rocketmq.client.apis.message.MessageView;\n+import org.apache.rocketmq.client.apis.producer.Producer;\n+import org.apache.rocketmq.client.apis.producer.SendReceipt;\n+import org.apache.rocketmq.client.java.impl.ClientImpl;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.TestInstance;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv\n+@TestInstance(TestInstance.Lifecycle.PER_CLASS)\n+class RocketMqSimpleConsumerTest {\n+\n+  private static final String TOPIC = \"normal-topic-0\";\n+  private static final String TAG = \"tagA\";\n+  private static final String CONSUMER_GROUP = \"simple-consumer-group\";\n+  private static final String[] KEYS = {\"simple-key-0\", \"simple-key-1\"};\n+  private static final byte[] BODY = \"simple-consumer\".getBytes(UTF_8);\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  private final ClientServiceProvider provider = ClientServiceProvider.loadService();\n+  private final RocketMqProxyContainer container = new RocketMqProxyContainer();\n+  private SimpleConsumer consumer;\n+  private Producer producer;\n+\n+  @BeforeAll\n+  void setUp() throws ClientException {\n+    container.start();\n+    cleanup.deferAfterAll(container::close);\n+    ClientConfiguration clientConfiguration =\n+        ClientConfiguration.newBuilder()\n+            .setEndpoints(container.endpoints)\n+            .setRequestTimeout(Duration.ofSeconds(10))\n+            .build();\n+    Map<String, FilterExpression> subscriptionExpressions = new HashMap<>();\n+    subscriptionExpressions.put(TOPIC, new FilterExpression(TAG, FilterExpressionType.TAG));\n+    consumer =\n+        provider\n+            .newSimpleConsumerBuilder()\n+            .setClientConfiguration(clientConfiguration)\n+            .setConsumerGroup(CONSUMER_GROUP)\n+            .setAwaitDuration(Duration.ofSeconds(5))\n+            .setSubscriptionExpressions(subscriptionExpressions)\n+            .build();\n+    cleanup.deferAfterAll(() -> ((ClientImpl) consumer).stopAsync());\n+    producer =\n+        provider\n+            .newProducerBuilder()\n+            .setClientConfiguration(clientConfiguration)\n+            .setTopics(TOPIC)\n+            .build();\n+    cleanup.deferAfterAll(producer);\n+  }\n+\n+  @Test\n+  void shouldInstrumentSynchronousReceiveAndProcess() throws ClientException {\n+    assumeTrue(emitStableMessagingSemconv());",
+      "id": "PRRT_kwDODJKVX86YDzcC",
+      "opened": "2026-08-10T22:38:30Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v5_0/RocketMqSimpleConsumerTest.java",
+      "replies": [
+        {
+          "at": "2026-08-10T23:47:28Z",
+          "body": "Added stable messaging coverage with receive telemetry disabled, verifying that a successful SimpleConsumer receive emits neither the new receive span nor the low-level receive span. Process spans were intentionally removed because the returned `List` provides no reliable processing-completion boundary.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19480#discussion_r3754277404"
+        }
+      ],
+      "reviewed": "56eddccc9f71f610b3449a5248ae2139efdbc4f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19480#discussion_r3753940824"
+    }
+  ]
+}

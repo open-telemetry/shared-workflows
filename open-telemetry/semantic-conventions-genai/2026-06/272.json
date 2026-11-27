@@ -1,0 +1,31 @@
+{
+  "head": "22304e45faebf888b14cdd8ac2751cacd4e17438",
+  "merge": "b8ad3037ad7d8d73757ef6d02a5781a298ca219c",
+  "merged": "2026-06-10T01:27:50Z",
+  "missing_roots": 0,
+  "number": 272,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new comment uses the term \"side-level routing\", but the rest of the file consistently describes this as \"per-PR routing\" / \"routing buckets\". Using a unique term here is ambiguous and makes the intent harder to follow.",
+      "created": "2026-06-09T18:27:02Z",
+      "hunk": "@@ -736,6 +736,10 @@ def reviewers_with_open_threads(\n     by_id = threads_by_id(threads)\n     logins: set[str] = set()\n     for c in classifications:\n+        # The synthetic PR conversation is only for side-level routing, not\n+        # for assigning per-reviewer open-thread badges.",
+      "id": "PRRT_kwDOSUeMrM6IP9gS",
+      "opened": "2026-06-09T18:27:02Z",
+      "path": ".github/scripts/pull-request-dashboard/dashboard.py",
+      "replies": [
+        {
+          "at": "2026-06-09T18:38:57Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/22304e45faebf888b14cdd8ac2751cacd4e17438.\n\nReworded the comment to say the synthetic PR conversation contributes to the PR routing bucket but is not a reviewer-owned discussion thread for badges.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/272#discussion_r3383012386"
+        }
+      ],
+      "reviewed": "841c8f4a09b58a73472018405d0d8b22c89c686b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/272#discussion_r3382946067"
+    }
+  ]
+}

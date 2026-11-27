@@ -1,0 +1,25 @@
+{
+  "head": "b0613b2ee79f177b232ed6152b2e39fbfddacf49",
+  "merge": "6a078147fef2e09abb5d73bd8c1a705594be2e60",
+  "merged": "2026-05-06T02:30:26Z",
+  "missing_roots": 0,
+  "number": 18613,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "idk if you've seen all the code[ scanning alerts](https://github.com/open-telemetry/opentelemetry-java-instrumentation/security/code-scanning/264) related to having a toplevel `write` permission, but they'd prefer it be scoped to the job level (even though it seems silly since theres only 1 job)",
+      "created": "2026-05-05T20:28:22Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+name: Rerun failed daily jobs\n+\n+on:\n+  workflow_run:\n+    workflows:\n+      - \"Build (daily)\"\n+      - \"Build (daily --no-build-cache)\"\n+      - \"Daily GraalVM native tests\"\n+    types:\n+      - completed\n+\n+concurrency:\n+  group: rerun-failed-daily-jobs\n+  cancel-in-progress: false\n+\n+permissions:\n+  actions: write",
+      "id": "PRRT_kwDODJKVX85_xsT2",
+      "opened": "2026-05-05T20:28:27Z",
+      "path": ".github/workflows/rerun-failed-daily-jobs.yml",
+      "replies": [],
+      "reviewed": "cfd03b934b8bfcc1a5ecbcd479ae6375714df968",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18613#discussion_r3191369419"
+    }
+  ]
+}

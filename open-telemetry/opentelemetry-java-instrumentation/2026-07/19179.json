@@ -1,0 +1,73 @@
+{
+  "head": "d8d7681138901e0a9ae99d551c85875fb34db5dd",
+  "merge": "0b9e77c48bf44728080fadb2233440a677e76c67",
+  "merged": "2026-07-10T18:11:38Z",
+  "missing_roots": 0,
+  "number": 19179,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This guard reads the process-global `SemconvStability` value instead of the `v3_preview` value obtained from the `OpenTelemetry` passed to this constructor (line 95). Library callers can supply an `ExtendedOpenTelemetry` without installing it globally, so declarative v3 preview still accepts these removed logging aliases. Pass the constructor's `v3Preview` value into `getConfig` and use it here.",
+      "created": "2026-07-10T15:43:13Z",
+      "hunk": "@@ -131,18 +132,20 @@ private static String getConfig(\n     if (value != null) {\n       return value;\n     }\n-    value = config.getString(oldDeclarativeKey);\n-    if (value != null) {\n-      if (warnedDeprecatedProperties.add(oldProperty)) {\n-        logger.warning(\n-            \"The \"\n-                + oldProperty\n-                + \" setting and the equivalent declarative configuration property\"\n-                + \" are deprecated and will be removed in 3.0. Use \"\n-                + newProperty\n-                + \" or equivalent declarative configuration instead.\");\n+    if (!SemconvStability.v3Preview()) {",
+      "id": "PRRT_kwDODJKVX86P758l",
+      "opened": "2026-07-10T15:43:14Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+      "replies": [
+        {
+          "at": "2026-07-10T16:32:25Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/278c17bf0fdcf8d3bb2c79114d3c8ee054403efe.\n\nCommonConfig now passes the v3 preview value resolved from the supplied OpenTelemetry instance into its deprecated logging-key lookups.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19179#discussion_r3560472370"
+        }
+      ],
+      "reviewed": "3ff9c9b5981db3943fbaff4145e6404b510956fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19179#discussion_r3560172974"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `SemconvStability.v3Preview()` is resolved from `GlobalOpenTelemetry`, while this method resolves the alias from its `openTelemetry` argument. For library JDBC usage, a declarative `common.v3_preview: true` on the supplied `ExtendedOpenTelemetry` is therefore ignored unless that instance is also global, and the deprecated `database` alias remains active. Resolve `v3_preview` from `commonConfig`, falling back to the global value only when absent.",
+      "created": "2026-07-10T15:43:13Z",
+      "hunk": "@@ -75,15 +75,17 @@ private static Boolean getCommonSqlCommenterEnabled(OpenTelemetry openTelemetry)\n       return value;\n     }\n \n-    // this variant was never a regular (non-declarative) configuration property name\n-    Boolean deprecatedValue =\n-        commonConfig.get(\"database\").get(\"sqlcommenter/development\").getBoolean(\"enabled\");\n-    if (deprecatedValue != null) {\n-      warnIfDeprecatedDeclarativeConfigurationUsed(\n-          \"instrumentation/development: java: common: database:\"\n-              + \" sqlcommenter/development: enabled\",\n-          \"instrumentation/development: java: common: db: sqlcommenter/development: enabled\");\n-      return deprecatedValue;\n+    if (!SemconvStability.v3Preview()) {",
+      "id": "PRRT_kwDODJKVX86P759E",
+      "opened": "2026-07-10T15:43:14Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfig.java",
+      "replies": [
+        {
+          "at": "2026-07-10T16:32:27Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/14e7be5bdf59e62bfb950f1f8ec230e1bc35da82.\n\nDbConfig now resolves v3 preview from the supplied OpenTelemetry instance through the new SemconvStability overload.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19179#discussion_r3560472544"
+        }
+      ],
+      "reviewed": "3ff9c9b5981db3943fbaff4145e6404b510956fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19179#discussion_r3560173019"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The deprecated keys are read from the supplied `OpenTelemetry`, but this v3-preview check is resolved from `GlobalOpenTelemetry`. When library autoconfiguration uses a non-global `ExtendedOpenTelemetry` with declarative `common.v3_preview: true`, these aliases are still honored. Resolve the flag from the same common configuration object and pass it into this helper.",
+      "created": "2026-07-10T15:43:14Z",
+      "hunk": "@@ -68,32 +69,37 @@ private static String getConfig(\n     if (value != null) {\n       return value;\n     }\n-    value = config.getString(oldDeclarativeKey);\n-    if (value != null) {\n-      logDeprecationWarning(\n-          oldProperty,\n-          \"The \"\n-              + oldProperty\n-              + \" setting and the equivalent declarative configuration property\"\n-              + \" are deprecated and will be removed in 3.0. Use \"\n-              + newProperty\n-              + \" or equivalent declarative configuration instead.\");\n-      return value;\n+    boolean v3Preview = SemconvStability.v3Preview();",
+      "id": "PRRT_kwDODJKVX86P759s",
+      "opened": "2026-07-10T15:43:14Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+      "replies": [
+        {
+          "at": "2026-07-10T16:32:29Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6cc7cf09a73ddf2f2237c94b16f5447bb9e6db74.\n\nContextDataKeys now resolves v3 preview from its supplied OpenTelemetry instance and threads that value through all logging-key lookups.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19179#discussion_r3560472740"
+        }
+      ],
+      "reviewed": "3ff9c9b5981db3943fbaff4145e6404b510956fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19179#discussion_r3560173069"
+    }
+  ]
+}

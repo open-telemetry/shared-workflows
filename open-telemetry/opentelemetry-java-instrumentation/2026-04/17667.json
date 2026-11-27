@@ -1,0 +1,40 @@
+{
+  "head": "dddd680c9cb6c6e4379fbc5374fdeb3d0094d33b",
+  "merge": "907e3e5bb25750fb47835a1bcbfa71b784989e3a",
+  "merged": "2026-04-07T23:03:54Z",
+  "missing_roots": 0,
+  "number": 17667,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n   * @deprecated Use {@link RuntimeTelemetry#builder(OpenTelemetry)} in the {@code\n   *     runtime-telemetry} module instead.\n```",
+      "created": "2026-04-07T22:15:20Z",
+      "hunk": "@@ -52,8 +52,9 @@ public RuntimeMetricsBuilder emitExperimentalTelemetry() {\n   /**\n    * Enable the capture of the jvm.gc.cause attribute with the jvm.gc.duration metric.\n    *\n-   * @deprecated Use {@link RuntimeTelemetry#builder(OpenTelemetry)} in the {@code\n-   *     runtime-telemetry} module instead.\n+   * @deprecated Use {@link RuntimeTelemetry} in the {@code runtime-telemetry} module instead and\n+   *     set {@code otel.instrumentation.runtime-telemetry.capture-gc-cause=true} when you need the\n+   *     legacy opt-in behavior.",
+      "id": "PRRT_kwDODJKVX855ai0t",
+      "opened": "2026-04-07T22:15:20Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/main/java/io/opentelemetry/instrumentation/runtimemetrics/java8/RuntimeMetricsBuilder.java",
+      "replies": [],
+      "reviewed": "d4cdf044f1686ec6a0027749f1fb5daaed915408",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17667#discussion_r3048152568"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-07T22:15:38Z",
+      "hunk": "@@ -52,6 +52,8 @@ public RuntimeMetricsBuilder emitExperimentalTelemetry() {\n   /**\n    * Enable the capture of the jvm.gc.cause attribute with the jvm.gc.duration metric.\n    *\n+   * @deprecated Use {@link RuntimeTelemetry} in the {@code runtime-telemetry} module instead and\n+   *     set {@code otel.instrumentation.runtime-telemetry.capture-gc-cause=true} when you need the",
+      "id": "PRRT_kwDODJKVX855ajAT",
+      "opened": "2026-04-07T22:15:38Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/main/java/io/opentelemetry/instrumentation/runtimemetrics/java8/RuntimeMetricsBuilder.java",
+      "replies": [],
+      "reviewed": "b0a9014f1182ebc45a435a0eb8a565b70313ace4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17667#discussion_r3048153622"
+    }
+  ]
+}

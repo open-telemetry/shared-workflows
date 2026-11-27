@@ -1,0 +1,88 @@
+{
+  "head": "15f0bb82a326af99d449efea477859774b0dd528",
+  "merge": "d0c3e54463460fe9a7c57dbb1b93e6a859099096",
+  "merged": "2026-09-29T07:32:07Z",
+  "missing_roots": 0,
+  "number": 20258,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This verifies only the bridge translation in isolation; all agent-backed tasks still launch with the deprecated `common.experimental.controller/view-telemetry` properties. Consequently the new stable flat names never drive actual controller/view span emission in tests, and their unchanged `metadataConfig` values are copied verbatim into generated `instrumentation-list.yaml` `when:` clauses. Update the affected task `jvmArgs` and `metadataConfig` strings to the stable names while retaining these unit tests for fallback compatibility.",
+      "created": "2026-09-25T20:47:24Z",
+      "hunk": "@@ -38,17 +39,33 @@ void testTranslateName_regularName() {\n         .isFalse();\n   }\n \n-  @Test\n-  void testTranslateName_withDevelopmentSuffix_noExperimental() {\n+  @ParameterizedTest\n+  @ValueSource(strings = {\"controller\", \"view\"})\n+  void testTranslateName_stableTelemetry(String telemetry) {",
+      "id": "PRRT_kwDODJKVX86mJqJL",
+      "opened": "2026-09-25T20:47:25Z",
+      "path": "declarative-config-bridge/src/test/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigPropertiesTest.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:43:30Z",
+          "body": "Addressed in 5e0c69465e725cfec5cd30a59f657a7fa48e16c3.\n\nFixed in the verified source changes 5e0c69465e725cfec5cd30a59f657a7fa48e16c3.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20258#discussion_r4109400707"
+        }
+      ],
+      "reviewed": "e76b453427a521853ba66fdc207723a686eeb1ea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20258#discussion_r4108498422"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Performance] This now resolves the stable and fallback trees on every accessor call. `RatpackSingletons.updateSpanNames()` calls `controllerTelemetryEnabled()` for every request (`instrumentation/ratpack/ratpack-1.4/.../RatpackSingletons.java:33`), so the common disabled case performs repeated structured-config allocations/lookups and constructs the deprecated path on the request hot path. Resolve both telemetry booleans once in the constructor, as this class already does for messaging receive telemetry, and have the accessors return the cached values.",
+      "created": "2026-09-25T20:47:24Z",
+      "hunk": "@@ -38,11 +43,38 @@ public ExperimentalConfig(OpenTelemetry openTelemetry) {\n   }\n \n   public boolean controllerTelemetryEnabled() {\n-    return commonConfig.get(\"controller_telemetry/development\").getBoolean(\"enabled\", false);\n+    return telemetryEnabled(\"controller_telemetry\");\n   }\n \n   public boolean viewTelemetryEnabled() {\n-    return commonConfig.get(\"view_telemetry/development\").getBoolean(\"enabled\", false);\n+    return telemetryEnabled(\"view_telemetry\");\n+  }\n+\n+  private boolean telemetryEnabled(String name) {\n+    Boolean enabled = commonConfig.get(name).getBoolean(\"enabled\");",
+      "id": "PRRT_kwDODJKVX86mJqJs",
+      "opened": "2026-09-25T20:47:25Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/bootstrap/internal/ExperimentalConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:43:33Z",
+          "body": "Addressed in 5e0c69465e725cfec5cd30a59f657a7fa48e16c3.\n\nFixed in the verified source changes 5e0c69465e725cfec5cd30a59f657a7fa48e16c3.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20258#discussion_r4109400828"
+        }
+      ],
+      "reviewed": "e76b453427a521853ba66fdc207723a686eeb1ea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20258#discussion_r4108498484"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This v3-preview gate conflicts with the repository's deprecation policy for unstable names: `.github/agents/knowledge/config-property-stability.md:264-270` explicitly requires `experimental`/`preview`-marked deprecated properties to remain ungated. Otherwise preview users silently lose a still-supported experimental setting even though such names can follow the normal minor-release removal schedule. Apply the fallback and warning regardless of `v3_preview`, and update the preview-specific test and migration text accordingly.",
+      "created": "2026-09-25T20:47:25Z",
+      "hunk": "@@ -38,11 +43,38 @@ public ExperimentalConfig(OpenTelemetry openTelemetry) {\n   }\n \n   public boolean controllerTelemetryEnabled() {\n-    return commonConfig.get(\"controller_telemetry/development\").getBoolean(\"enabled\", false);\n+    return telemetryEnabled(\"controller_telemetry\");\n   }\n \n   public boolean viewTelemetryEnabled() {\n-    return commonConfig.get(\"view_telemetry/development\").getBoolean(\"enabled\", false);\n+    return telemetryEnabled(\"view_telemetry\");\n+  }\n+\n+  private boolean telemetryEnabled(String name) {\n+    Boolean enabled = commonConfig.get(name).getBoolean(\"enabled\");\n+    if (enabled != null) {\n+      return enabled;\n+    }\n+    // Keep the deprecated /development spelling until 3.0.\n+    if (!commonConfig.getBoolean(\"v3_preview\", false)) {\n+      enabled = commonConfig.get(name + \"/development\").getBoolean(\"enabled\");",
+      "id": "PRRT_kwDODJKVX86mJqKL",
+      "opened": "2026-09-25T20:47:25Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/bootstrap/internal/ExperimentalConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:43:35Z",
+          "body": "Addressed in 5e0c69465e725cfec5cd30a59f657a7fa48e16c3.\n\nFixed in the verified source changes 5e0c69465e725cfec5cd30a59f657a7fa48e16c3.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20258#discussion_r4109400960"
+        }
+      ],
+      "reviewed": "e76b453427a521853ba66fdc207723a686eeb1ea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20258#discussion_r4108498527"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This migration note omits the v3-preview exception: the implementation ignores both deprecated names and emits no warning in that mode. As written, “remain fallbacks until 3.0 and warn when applied” can lead preview users to expect behavior they do not receive; qualify the fallback behavior and mention that v3-preview ignores the old names.",
+      "created": "2026-09-27T04:53:27Z",
+      "hunk": "@@ -17,6 +17,11 @@\n \n ### 🚫 Deprecations\n \n+- Deprecate `otel.instrumentation.common.experimental.controller-telemetry.enabled` and\n+  `otel.instrumentation.common.experimental.view-telemetry.enabled` in favor of\n+  `otel.instrumentation.common.controller-telemetry.enabled` and\n+  `otel.instrumentation.common.view-telemetry.enabled`, respectively. The deprecated names remain\n+  fallbacks until 3.0 and warn when applied.",
+      "id": "PRRT_kwDODJKVX86mXdN_",
+      "opened": "2026-09-27T04:53:27Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "3cb8d57a066a8f0a950a76efd4ff4e70bfc2e60c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20258#discussion_r4114131131"
+    }
+  ]
+}

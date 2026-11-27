@@ -1,0 +1,91 @@
+{
+  "head": "d32f757afeb7f009cf6eaed799cf6b1ae89895b9",
+  "merge": "11658bba3eb02448618ddf1fc52789a3fc2937cc",
+  "merged": "2026-08-05T03:26:23Z",
+  "missing_roots": 0,
+  "number": 341,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There is trailing whitespace after \"other\" in the workflow metric note, which folds into the generated Markdown as a double-space (\"other  operations\"). Removing the trailing space keeps the generated docs clean and avoids noisy diffs.",
+      "created": "2026-06-24T04:39:58Z",
+      "hunk": "@@ -100,14 +100,24 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n-  - name: gen_ai.workflow.duration\n+  - name: gen_ai.invoke_workflow.duration\n     annotations:\n       code_generation:\n         metric_value_type: double\n-    brief: 'GenAI workflow duration.'\n+    brief: 'Records duration of GenAI workflow.'\n     note: >\n-      This metric instrument describes an operation that executes a coordinated process\n-      composed of multiple agents or other operations involving generative AI.\n+      Represents the end-to-end duration of a workflow execution,\n+      measured from the point where application code initiates the workflow to the point where the workflow completes,\n+      independent of workflow complexity.\n+\n+      A workflow is a coordinated process composed of multiple agents or other \n+      operations involving generative AI.",
+      "id": "PRRT_kwDOSUeMrM6LymEa",
+      "opened": "2026-06-24T04:39:59Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "42cb4a684942a8012468cebbd4320298e8402e9f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/341#discussion_r3464562502"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The rename to `gen_ai.invoke_workflow.duration` looks incomplete: the `gen_ai.invoke_agent.duration` metric note later in this same file still references the old `gen_ai.workflow.duration` name (see around lines 142-149), which also leaves stale text in the generated docs (`docs/gen-ai/gen-ai-metrics.md` in the invoke_agent footnote). Please update those references and re-run the doc generation so the spec is internally consistent.",
+      "created": "2026-06-24T04:39:58Z",
+      "hunk": "@@ -100,14 +100,24 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n-  - name: gen_ai.workflow.duration\n+  - name: gen_ai.invoke_workflow.duration\n     annotations:\n       code_generation:\n         metric_value_type: double\n-    brief: 'GenAI workflow duration.'\n+    brief: 'Records duration of GenAI workflow.'\n     note: >",
+      "id": "PRRT_kwDOSUeMrM6LymEn",
+      "opened": "2026-06-24T04:39:59Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "42cb4a684942a8012468cebbd4320298e8402e9f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/341#discussion_r3464562515"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "Just curious, did we want to remove this?",
+      "created": "2026-06-30T18:30:40Z",
+      "hunk": "@@ -875,34 +875,25 @@ applicable `aws.bedrock.*` attributes and are not expected to include\n \n ## Generative AI workflow metrics\n \n-Individual systems may include additional system-specific attributes.",
+      "id": "PRRT_kwDOSUeMrM6NX19X",
+      "opened": "2026-06-30T18:35:00Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-07-01T04:15:02Z",
+          "body": "This is now in the metric note in yaml, rendered below.\n\nI returned \n\n> Individual systems may include additional system-specific attributes.\n>  Refer to system-specific documentation, if available.\n\nto the note",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/341#discussion_r3503243971"
+        }
+      ],
+      "reviewed": "7a607d23ab70284028f0c906a51cd6b8b66b7830",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/341#discussion_r3501036354"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`changelog.d/126.enhancement.md` still says the next release adds `gen_ai.workflow.duration`, and Towncrier will render that fragment together with this one. Since the old name was never released, this would advertise an intermediate name and then rename it in the same release. Please update fragment 126 to name `gen_ai.invoke_workflow.duration` and drop this redundant fragment so the release notes describe only the API consumers will receive.",
+      "created": "2026-08-04T21:16:58Z",
+      "hunk": "@@ -0,0 +1 @@\n+Rename unreleased `gen_ai.workflow.duration` to `gen_ai.invoke_workflow.duration` name to align with operation name and span type.",
+      "id": "PRRT_kwDOSUeMrM6WeR6B",
+      "opened": "2026-08-04T23:40:04Z",
+      "path": "changelog.d/341.enhancement.md",
+      "replies": [],
+      "reviewed": "31a944fc5a337018b23ff40afcb884a6a9c77360",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/341#discussion_r3716249139"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The span type registered in `spans.yaml` is `gen_ai.invoke_workflow.internal`, and the `gen_ai.invoke_agent.duration` note just below points at `gen_ai.invoke_agent.internal`. Since this PR is about aligning names with the span type, worth matching the reference here too.\n\n```suggestion\n      When this metric is reported alongside a `gen_ai.invoke_workflow.internal` span, the metric value SHOULD be the same as the span duration.\n```\n\nNeeds a `make generate-all` afterwards so the docs table picks it up.",
+      "created": "2026-08-04T21:31:47Z",
+      "hunk": "@@ -119,18 +119,28 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n-  - name: gen_ai.workflow.duration\n+  - name: gen_ai.invoke_workflow.duration\n     requirement_level: recommended\n     annotations:\n       code_generation:\n         metric_value_type: double\n-    brief: 'GenAI workflow duration.'\n+    brief: 'Records duration of GenAI workflow.'\n     note: >\n-      This metric instrument describes an operation that executes a coordinated process\n-      composed of multiple agents or other operations involving generative AI.\n+      Represents the end-to-end duration of a workflow execution, measured from the point\n+      where application code initiates the workflow to the point where the workflow completes,\n+      independent of workflow complexity.\n \n-      When this metric is reported alongside a `gen_ai.invoke_workflow` span, the metric\n-      value SHOULD be the same as the span duration.\n+      A workflow is a coordinated process composed of multiple agents or other\n+      operations involving generative AI.\n+\n+      If instrumentation measures only a single provider-facing client operation\n+      (for example, one model API call), `gen_ai.client.operation.duration` SHOULD be used instead.\n+      Instrumentation MAY emit both metrics for the same request path when both boundaries are available.\n+\n+      When this metric is reported alongside a `gen_ai.invoke_workflow` span, the metric value SHOULD be the same as the span duration.",
+      "id": "PRRT_kwDOSUeMrM6Wef1D",
+      "opened": "2026-08-04T23:40:04Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "31a944fc5a337018b23ff40afcb884a6a9c77360",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/341#discussion_r3716332677"
+    }
+  ]
+}

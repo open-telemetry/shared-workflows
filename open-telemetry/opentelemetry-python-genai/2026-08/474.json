@@ -1,0 +1,120 @@
+{
+  "head": "cf04e61d55deb0f22837a5781251b099f297aff1",
+  "merge": "bc85a0c71c2009eeb41ba10465a967518bd1359b",
+  "merged": "2026-08-31T23:20:47Z",
+  "missing_roots": 0,
+  "number": 474,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "conversation id is not defined on inference spans - please suggest adding it in https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md#inference before proceeding with this change. It should also appear on the corresponding event.\n\nOnce the semconv change lands, do not pass it as a start-time parameter to `handler.inference()`. Only sampling-relevant params go at start time; add it as a settable property on `InferenceInvocation`.",
+      "created": "2026-08-26T22:52:41Z",
+      "hunk": "@@ -314,6 +314,7 @@ def inference(\n         server_address: str | None = None,\n         server_port: int | None = None,\n         operation_name: str | None = None,\n+        conversation_id: str | None = None,",
+      "id": "PRRT_kwDOSbspP86co_lv",
+      "opened": "2026-08-26T22:55:11Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-08-27T00:17:25Z",
+          "body": "Thanks! Just to confirm, it seems like `gen_ai.conversation.id` is already part of the inference span's [semconv](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md#inference) and the corresponding [event](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-events.md). Am I looking at the right place?\r\nI've updated the PR so that `conversation_id` is no longer part of start attribute, also it was already in `_get_attributes` so that `_maybe_create_event` will pick it up as well. Thanks for catching this!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/474#discussion_r3867715261"
+        },
+        {
+          "at": "2026-08-31T23:09:43Z",
+          "body": "sorry, you're absolutely right!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/474#discussion_r3899220553"
+        }
+      ],
+      "reviewed": "8f2d49fab9a487bcd7f0b49c295ab2374462b641",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/474#discussion_r3867332923"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Because `_get_metric_attributes()` calls `_get_start_attributes()`, this adds `gen_ai.conversation.id` to duration and token metrics. It cannot go on metrics as it has high cardinality.",
+      "created": "2026-08-26T22:52:41Z",
+      "hunk": "@@ -138,6 +140,7 @@ def _get_start_attributes(self) -> dict[str, AttributeValue]:\n             (GenAI.GEN_AI_PROVIDER_NAME, self._provider),\n             (server_attributes.SERVER_ADDRESS, self._server_address),\n             (server_attributes.SERVER_PORT, self._server_port),\n+            (GenAI.GEN_AI_CONVERSATION_ID, self.conversation_id),",
+      "id": "PRRT_kwDOSbspP86co_lx",
+      "opened": "2026-08-26T22:55:11Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-08-27T00:10:56Z",
+          "body": "thanks for catching this! I've updated this part to avoid sending this with metrics.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/474#discussion_r3867687105"
+        }
+      ],
+      "reviewed": "8f2d49fab9a487bcd7f0b49c295ab2374462b641",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/474#discussion_r3867332926"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Could you rebase your PR. A recent PR merge already added this editable dependency",
+      "created": "2026-08-27T17:29:00Z",
+      "hunk": "@@ -22,11 +22,11 @@\n \n \n \n+# Drop this once opentelemetry-util-genai 1.2b0 is published.",
+      "id": "PRRT_kwDOSbspP86c6ZcI",
+      "opened": "2026-08-27T17:29:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.oldest.txt",
+      "replies": [
+        {
+          "at": "2026-08-28T09:20:05Z",
+          "body": "Sure! Just rebased",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/474#discussion_r3879439851"
+        }
+      ],
+      "reviewed": "1f27410e1191cd4287b1282d1a44137fda79c75a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/474#discussion_r3874159083"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The parent lookup, and with it the whole `_InvocationState.conversation_id` plumbing, looks redundant: LangChain merges a run's config metadata into every descendant run, so a nested callback already receives `thread_id`/`session_id`/`conversation_id` in its own `metadata`.\n\nChecked with langchain-core 1.6.1 / langgraph 1.x: an id set once via `with_config({\"metadata\": ...})` or via `configurable.thread_id` reaches the metadata of every chain, chat and tool callback below it, including a model call made inside a tool body that never forwards the config:\n\n```\ntool ask   {'thread_id': 't1'}   parent=False\nchat       {'thread_id': 't1'}   parent=True\n```\n\nIf there is a case where metadata does not propagate, a test that fails without the inheritance would pin it down. Otherwise resolving from `metadata` alone drops the extra `add_invocation_state` parameter, the `_InvocationState` field and `get_conversation_id`.",
+      "created": "2026-08-28T22:55:09Z",
+      "hunk": "@@ -632,6 +645,19 @@ def on_retriever_error(\n         if not invocation.span.is_recording():\n             self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n+    def _resolve_conversation_id(\n+        self, metadata: dict[str, Any] | None, parent_run_id: UUID | None\n+    ) -> str | None:\n+        if metadata:\n+            for key in CONVERSATION_ID_METADATA_KEYS:\n+                conversation_id = metadata.get(key)\n+                if conversation_id:\n+                    return str(conversation_id)\n+\n+        # The application attaches the id to a single point in the chain, so a\n+        # run without one of its own tries to inherit from its nearest ancestor.\n+        return self._invocation_manager.get_conversation_id(parent_run_id)",
+      "id": "PRRT_kwDOSbspP86dUwdB",
+      "opened": "2026-08-28T22:56:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-08-31T00:57:53Z",
+          "body": "Thanks for calling it out, I checked and it turns out what you said is correct! \r\nI've removed the parent lookup, also removed the field from `_InvocationState`, now `conversation.id` comes from metadata only. Sorry for the confusion.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/474#discussion_r3891064959"
+        }
+      ],
+      "reviewed": "f408fe4bc5d80e288918ed59a1c220bc353ae525",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/474#discussion_r3884556030"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: dead branch. Every caller passes a value that `_resolve_conversation_id` already resolved from the parent, so the `else` only runs from tests. Two places implementing inheritance can drift - keep one.",
+      "created": "2026-08-28T22:55:09Z",
+      "hunk": "@@ -39,12 +41,24 @@ def add_invocation_state(\n             parent_invocation_state = self._invocations[parent_run_id]\n             parent_invocation_state.children.append(run_id)\n \n+        invocation_state.conversation_id = (",
+      "id": "PRRT_kwDOSbspP86dUwdG",
+      "opened": "2026-08-28T22:56:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/invocation_manager.py",
+      "replies": [
+        {
+          "at": "2026-08-31T00:58:03Z",
+          "body": "Thanks! This one went away with the same change that removes `conversation_id` from `_InvocationState`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/474#discussion_r3891065400"
+        }
+      ],
+      "reviewed": "f408fe4bc5d80e288918ed59a1c220bc353ae525",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/474#discussion_r3884556037"
+    }
+  ]
+}

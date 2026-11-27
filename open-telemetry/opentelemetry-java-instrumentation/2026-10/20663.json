@@ -1,0 +1,31 @@
+{
+  "head": "ed15e582327f37af58e0c97d6af390ece3dbd8ee",
+  "merge": "88879e8526cb9cf19713509eddddafdaea31c175",
+  "merged": "2026-10-19T07:08:50Z",
+  "missing_roots": 0,
+  "number": 20663,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please defer the entire Reactor Kafka javaagent migration from this PR and restore this build script to its pre-PR contents. I am limiting the initial rollout to direct `testing { suites { named<JvmTestSuite>(\"test\") { executions { ... } } } }` conversions. This module involves multiple suites, unit-test exclusions, and default-versus-custom-suite configuration, so leave its existing test wiring unchanged for a later rollout. Keep the Reactor Netty and RxJava migrations in this PR.",
+      "created": "2026-10-17T19:24:30Z",
+      "hunk": "@@ -107,11 +102,27 @@ testing {\n           implementation(\"io.projectreactor:reactor-core:3.4.+\")\n         }\n       }\n+    }\n \n-      targets {\n-        all {\n-          testTask.configure {\n-            systemProperty(\"hasConsumerGroup\", true)\n+    withType<JvmTestSuite>().matching { !it.name.endsWith(\"unitTests\", ignoreCase = true) }.configureEach {",
+      "id": "PRRT_kwDODJKVX86tjlV2",
+      "opened": "2026-10-17T19:24:30Z",
+      "path": "instrumentation/reactor/reactor-kafka-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T19:33:06Z",
+          "body": "Restored the entire Reactor Kafka build script to its exact pre-PR contents in ed15e582. Reactor Netty and RxJava migrations are unchanged. Kafka’s targeted `check` passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20663#discussion_r4304172847"
+        }
+      ],
+      "reviewed": "10c0eea43df36890fc33d24c3c42306ead39f6c1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20663#discussion_r4304143603"
+    }
+  ]
+}

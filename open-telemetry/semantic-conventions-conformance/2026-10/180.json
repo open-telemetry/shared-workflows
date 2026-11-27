@@ -1,0 +1,151 @@
+{
+  "head": "eae31065af7ca92d19415748684b5eb743e6e781",
+  "merge": "1860208da093aed477c27fe14f9f35fcb4852c4b",
+  "merged": "2026-10-01T16:49:17Z",
+  "missing_roots": 0,
+  "number": 180,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This state machine cannot distinguish an absent scope after a present scope. Weaver v0.26.1 emits one resource marker, then a scope marker only for OTLP scope groups whose scope exists; for two groups under the same resource (`scope A`, then no scope), the flattened report is effectively `resource, scope A, signal A, signal B`. `current` therefore remains A and a contracted `signal B` incorrectly passes instead of reporting a missing scope. The report representation needs an explicit null/boundary marker (or per-signal scope metadata), which this loop must consume by resetting `current`; please also add a regression for this ordering.",
+      "created": "2026-09-06T06:57:07Z",
+      "hunk": "@@ -121,11 +129,122 @@ def check(spec: ScenarioSpec, report: LiveCheckReport) -> Findings:\n                     seen=seen_events(statistics),\n                 )\n             ),\n+            *_check_instrumentation_scope(spec, report),\n         ],\n         violations=_check_violations(spec, report),\n     )\n \n \n+def _check_instrumentation_scope(\n+    spec: ScenarioSpec, report: LiveCheckReport\n+) -> list[str]:\n+    expected = spec.instrumentation_scope\n+    if expected is None:\n+        return []\n+\n+    failures: list[str] = []\n+    current: ObservedInstrumentationScope | None = None\n+    for value in report[\"samples\"]:\n+        if not isinstance(value, Mapping):\n+            continue\n+        sample = cast(\"Mapping[str, object]\", value)\n+        if \"resource\" in sample:\n+            current = None\n+        if \"instrumentation_scope\" in sample:\n+            current = _observed_scope(sample[\"instrumentation_scope\"])\n+            continue",
+      "id": "PRRT_kwDOTuzK5c6fp5Ei",
+      "opened": "2026-09-06T06:57:08Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_checks.py",
+      "replies": [],
+      "reviewed": "95c754aa55088ab99968b1f7ca7ddd556355e2bd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/180#discussion_r3943240378"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This rule only evaluates Weaver's standalone `instrumentation_scope` sample. Weaver v0.26.1 emits that sample only when either the OTLP scope or its schema URL exists, so a signal with no scope produces no finding at all. Consequently an exact `name`/`version`/`schema_url` expectation—or `{present: true}`—incorrectly passes when the entire scope is absent. Please also evaluate top-level signal samples via `input.instrumentation_scope` and treat a missing scope as an empty object (while avoiding duplicate findings for child samples).",
+      "created": "2026-09-06T18:30:04Z",
+      "hunk": "@@ -0,0 +1,89 @@\n+# Instrumentation scope expectations come from the scenario being run. The\n+# runner renders this template into the policy directory before starting\n+# weaver, replacing the marker below with a Rego object.\n+\n+package live_check_advice\n+\n+import rego.v1\n+\n+_otel_scope_expectation := __INSTRUMENTATION_SCOPE_EXPECTATION__\n+\n+deny contains _otel_scope_finding(field, expected, actual, scope) if {\n+\tscope := input.sample.instrumentation_scope\n+\tsome field, expected in _otel_scope_expectation\n+\tactual := object.get(scope, field, null)\n+\tnot _otel_scope_matches(expected, actual)",
+      "id": "PRRT_kwDOTuzK5c6fuDQn",
+      "opened": "2026-09-06T18:30:04Z",
+      "path": "tools/runner/src/opentelemetry/conformance/policies/instrumentation_scope_validation.rego.template",
+      "replies": [],
+      "reviewed": "e8dfa722c5dbabf91ac47054b9566bc7646a90f4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/180#discussion_r3944876191"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This fixed output name silently overwrites a declared advice policy with the same valid filename after it has been copied above, removing the user's policy from the Weaver run. Detect the collision and fail with a clear `SpecError` (or generate under a guaranteed reserved name) instead of replacing configured input.",
+      "created": "2026-09-06T18:30:04Z",
+      "hunk": "@@ -257,6 +259,33 @@ def start_weaver() -> WeaverLiveCheck:\n             stderr=completed.stderr,\n         )\n \n+    @contextmanager\n+    def _scenario_policies(\n+        self, scenario: ScenarioSpec, weaver: WeaverSpec\n+    ) -> Generator[str | None, None, None]:\n+        \"\"\"Add this scenario's scope expectation to its advice policies.\"\"\"\n+        declared = (\n+            self._resolve_path(weaver.policies) if weaver.policies else None\n+        )\n+        if scenario.instrumentation_scope is None:\n+            yield declared\n+            return\n+\n+        with TemporaryDirectory(prefix=\"otel-conformance-policies-\") as root:\n+            policies = Path(root)\n+            if declared:\n+                source = Path(declared)\n+                if source.is_dir():\n+                    for policy in source.glob(\"*.rego\"):\n+                        shutil.copy(policy, policies / policy.name)\n+                else:\n+                    shutil.copy(source, policies / source.name)\n+            (policies / \"instrumentation_scope_validation.rego\").write_text(\n+                render_scope_policy(scenario.instrumentation_scope),\n+                encoding=\"utf-8\",\n+            )",
+      "id": "PRRT_kwDOTuzK5c6fuDQv",
+      "opened": "2026-09-06T18:30:04Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_session.py",
+      "replies": [],
+      "reviewed": "e8dfa722c5dbabf91ac47054b9566bc7646a90f4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/180#discussion_r3944876203"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "An explicitly declared `name: null` is accepted here as `None`. If it is the only key, the non-empty-map check passes but `render()` emits an empty expectation, so a seemingly configured scope check silently performs no validation. When `name` is present, require a non-empty string; reserve `None` for an omitted key.\n\nThis issue also appears on line 685 of the same file.",
+      "created": "2026-09-06T18:30:04Z",
+      "hunk": "@@ -337,6 +348,41 @@ def _parse_matcher(value: object, where: str) -> AttributeMatcher:\n     return AttributeMatcher(distinct=distinct)\n \n \n+def _parse_scope_field(value: object, where: str) -> AttributeMatcher:\n+    if isinstance(value, str) and value:\n+        return AttributeMatcher(equals=value)\n+    if not isinstance(value, Mapping):\n+        raise SpecError(\n+            f\"{where}: expected a non-empty string or a presence matcher\"\n+        )\n+\n+    matcher = cast(\"Mapping[str, object]\", value)\n+    _check_keys(matcher, (\"present\",), where)\n+    if set(matcher) != {\"present\"} or not isinstance(matcher[\"present\"], bool):\n+        raise SpecError(f\"{where}: present must be a boolean\")\n+    return AttributeMatcher(present=matcher[\"present\"])\n+\n+\n+def _parse_instrumentation_scope(\n+    value: object, where: str\n+) -> InstrumentationScopeExpectation:\n+    scope = _require_mapping(value, where)\n+    _check_keys(scope, (\"name\", \"version\", \"schema_url\"), where)\n+    if not scope:\n+        raise SpecError(f\"{where}: declare at least one field to check\")\n+    return InstrumentationScopeExpectation(\n+        name=_optional_string(scope, \"name\", where),",
+      "id": "PRRT_kwDOTuzK5c6fuDQz",
+      "opened": "2026-09-06T18:30:04Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_spec.py",
+      "replies": [],
+      "reviewed": "e8dfa722c5dbabf91ac47054b9566bc7646a90f4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/180#discussion_r3944876208"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Promise.all` rejects as soon as one provider's flush fails, so `flushBeforeShutdown` enters `sdk.shutdown()` while the other trace/log flush may still be running. This violates the required \"await both before shutdown\" ordering and can lose telemetry from the still-running flush. Wait for both provider promises to settle within the shared deadline, then propagate a rejected result before proceeding to metrics.",
+      "created": "2026-09-07T03:32:04Z",
+      "hunk": "@@ -18,16 +18,59 @@\n const { NodeSDK } = require(\"@opentelemetry/sdk-node\");\n const { requireEnv } = require(\"@otel-conformance/scenario-support\");\n \n+const FLUSH_TIMEOUT_MILLIS = 15_000;\n+\n+function remaining(deadline) {\n+  return Math.max(0, deadline - performance.now());\n+}\n+\n+async function within(promise, timeoutMillis, phase) {\n+  let timer;\n+  const timeout = new Promise((_, reject) => {\n+    timer = setTimeout(\n+      () => reject(new Error(`${phase} flush timed out`)),\n+      timeoutMillis,\n+    );\n+  });\n+  try {\n+    await Promise.race([promise, timeout]);\n+  } finally {\n+    clearTimeout(timer);\n+  }\n+}\n+\n+async function flushBeforeShutdown(sdk) {\n+  const deadline = performance.now() + FLUSH_TIMEOUT_MILLIS;\n+  // NodeSDK exposes only shutdown publicly. The pinned implementation retains\n+  // its providers here, so the adapter can order their flushes.\n+  const traceAndLogProviders = [\n+    sdk._tracerProvider,\n+    sdk._loggerProvider,\n+  ].filter(Boolean);\n+  await within(\n+    Promise.all(traceAndLogProviders.map((provider) => provider.forceFlush())),\n+    remaining(deadline),\n+    \"trace and log\",\n+  );",
+      "id": "PRRT_kwDOTuzK5c6fxtV1",
+      "opened": "2026-09-07T03:32:04Z",
+      "path": "tools/js/scenario-sdk/index.js",
+      "replies": [],
+      "reviewed": "8d09f70cf782aeb014e20119edd0450136b7a727",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/180#discussion_r3946344102"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This owning-scope test is skipped in CI: the job that installs Weaver and runs `tools/http/runner/tests` does not install `opentelemetry-exporter-otlp-proto-grpc`, and `opentelemetry-test-utils` does not provide that dependency. Consequently the new span-specific policy path is never executed. Install the exporter in that job and make this import mandatory so regressions fail instead of silently skipping.",
+      "created": "2026-09-07T03:32:04Z",
+      "hunk": "@@ -0,0 +1,218 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Instrumentation scope expectations are recorded as weaver findings.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+import subprocess\n+from pathlib import Path\n+from typing import Any\n+\n+import pytest\n+\n+from http_conformance import DOMAIN\n+from opentelemetry.conformance import WeaverNotInstalledError, check_weaver\n+from opentelemetry.conformance._scope_policy import render\n+from opentelemetry.conformance._spec import (\n+    AttributeMatcher,\n+    InstrumentationScopeExpectation,\n+    SpanExpectation,\n+    SpanMatch,\n+)\n+\n+\n+def test_scope_findings_are_in_weaver_report(tmp_path: Path) -> None:\n+    try:\n+        check_weaver()\n+        registry = DOMAIN.registry\n+    except (WeaverNotInstalledError, OSError, RuntimeError) as error:\n+        pytest.skip(f\"scope policy test unavailable: {error}\")\n+\n+    policies = tmp_path / \"policies\"\n+    policies.mkdir()\n+    (policies / \"instrumentation_scope_validation.rego\").write_text(\n+        render(None),\n+        encoding=\"utf-8\",\n+    )\n+    input_path = tmp_path / \"input.json\"\n+    input_path.write_text(\n+        json.dumps(\n+            [\n+                {\n+                    \"instrumentation_scope\": {\n+                        \"name\": \"has-schema\",\n+                        \"version\": \"1.0.0\",\n+                        \"schema_url\": \"https://example.test/schema/1.0.0\",\n+                        \"attributes\": [],\n+                    }\n+                },\n+                {\n+                    \"instrumentation_scope\": {\n+                        \"name\": \"missing-schema\",\n+                        \"version\": \"1.0.0\",\n+                        \"schema_url\": \"\",\n+                        \"attributes\": [],\n+                    }\n+                },\n+                {\n+                    \"span\": {\n+                        \"name\": \"missing-scope\",\n+                        \"kind\": \"client\",\n+                        \"attributes\": [],\n+                    }\n+                },\n+            ]\n+        ),\n+        encoding=\"utf-8\",\n+    )\n+    report_dir = tmp_path / \"report\"\n+\n+    result = subprocess.run(\n+        [\n+            \"weaver\",\n+            \"registry\",\n+            \"live-check\",\n+            \"--quiet\",\n+            \"--registry\",\n+            str(registry),\n+            \"--input-source\",\n+            str(input_path),\n+            \"--advice-policies\",\n+            str(policies),\n+            \"--format\",\n+            \"json\",\n+            \"--fail-on\",\n+            \"none\",\n+            \"--no-stream\",\n+            \"--output\",\n+            str(report_dir),\n+        ],\n+        capture_output=True,\n+        text=True,\n+        check=False,\n+    )\n+    assert result.returncode == 0, result.stderr\n+\n+    report: dict[str, Any] = json.loads(\n+        (report_dir / \"live_check.json\").read_text(encoding=\"utf-8\")\n+    )\n+    scopes = {\n+        scope[\"name\"]: scope[\"live_check_result\"][\"all_advice\"]\n+        for sample in report[\"samples\"]\n+        if (scope := sample.get(\"instrumentation_scope\")) is not None\n+    }\n+    assert scopes[\"has-schema\"] == []\n+    assert [finding[\"id\"] for finding in scopes[\"missing-schema\"]] == [\n+        \"instrumentation_scope_schema_url_missing\"\n+    ]\n+    assert scopes[\"missing-schema\"][0][\"message\"] == (\n+        \"Instrumentation scope 'missing-schema' does not have schema_url.\"\n+    )\n+    unscoped_span = next(\n+        sample[\"span\"]\n+        for sample in report[\"samples\"]\n+        if sample.get(\"span\", {}).get(\"name\") == \"missing-scope\"\n+    )\n+    findings = unscoped_span[\"live_check_result\"][\"all_advice\"]\n+    assert {finding[\"id\"]: finding[\"message\"] for finding in findings} == {\n+        \"instrumentation_scope_name_missing\": (\n+            \"Instrumentation scope '<missing>' does not have name.\"\n+        ),\n+        \"instrumentation_scope_schema_url_missing\": (\n+            \"Instrumentation scope '<missing>' does not have schema_url.\"\n+        ),\n+    }\n+    assert all(\n+        finding[\"context\"]\n+        == {\"actual\": None, \"expected\": {\"present\": True}}\n+        and finding[\"level\"] == \"violation\"\n+        and finding[\"signal_name\"] == \"missing-scope\"\n+        and finding[\"signal_type\"] == \"span\"\n+        and finding[\"type\"] == \"PolicyFinding\"\n+        for finding in findings\n+    )\n+\n+\n+def test_signal_scope_expectation_uses_owning_scope(tmp_path: Path) -> None:\n+    try:\n+        check_weaver()\n+        registry = DOMAIN.registry\n+    except (WeaverNotInstalledError, OSError, RuntimeError) as error:\n+        pytest.skip(f\"scope policy test unavailable: {error}\")\n+    trace = pytest.importorskip(\"opentelemetry.trace\")\n+    trace_exporter = pytest.importorskip(\n+        \"opentelemetry.exporter.otlp.proto.grpc.trace_exporter\"\n+    )",
+      "id": "PRRT_kwDOTuzK5c6fxtVl",
+      "opened": "2026-09-07T03:32:04Z",
+      "path": "tools/http/runner/tests/test_instrumentation_scope_policy.py",
+      "replies": [],
+      "reviewed": "8d09f70cf782aeb014e20119edd0450136b7a727",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/180#discussion_r3946344073"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "let's find means to suppress it for certain scopes. This one is know and not related to the scenario",
+      "created": "2026-09-08T18:23:11Z",
+      "hunk": "@@ -60,5 +60,42 @@\n       ]\n     }\n   },\n-  \"findings\": []\n+  \"findings\": [\n+    {\n+      \"id\": \"instrumentation_scope_schema_url_missing\",\n+      \"message\": \"Instrumentation scope 'io.opentelemetry.exporters.otlp-grpc' does not have schema_url.\",",
+      "id": "PRRT_kwDOTuzK5c6gXEWj",
+      "opened": "2026-09-08T18:23:11Z",
+      "path": "scenarios/database/java/mariadb/jdbc/opentelemetry-javaagent/data.json",
+      "replies": [],
+      "reviewed": "40edc280594b78b06731d354bc0127ee898d143f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/180#discussion_r3960975808"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "An explicit matched-span `schema_url: {present: false}` (or `name: {present: false}`) cannot pass when that field is absent. This unconditional scope-level default still emits `instrumentation_scope_schema_url_missing`, and the missing-scope branch at lines 18–22 does the same when the span has no scope. That contradicts the documented rule that defaults apply only to omitted fields. Apply the matched field expectation in preference to the default in both paths, and test absent fields with and without an attached scope.",
+      "created": "2026-09-29T19:55:49Z",
+      "hunk": "@@ -0,0 +1,161 @@\n+# Instrumentation scope expectations come from the scenario being run. The\n+# runner renders this template into the policy directory before starting\n+# weaver, replacing the marker below with a Rego object.\n+\n+package live_check_advice\n+\n+import rego.v1\n+\n+_otel_scope_expectation := __INSTRUMENTATION_SCOPE_EXPECTATION__\n+\n+deny contains _otel_scope_finding(field, expected, actual, scope) if {\n+\tscope := input.sample.instrumentation_scope\n+\tsome field, expected in _otel_scope_expectation.global\n+\tactual := _otel_scope_field(scope, field)\n+\tnot _otel_scope_matches(expected, actual)",
+      "id": "PRRT_kwDOTuzK5c6nRPAj",
+      "opened": "2026-09-29T19:55:49Z",
+      "path": "tools/runner/src/opentelemetry/conformance/policies/instrumentation_scope_validation.rego.template",
+      "replies": [],
+      "reviewed": "b2ba2cd983c46076373a170d08f84188f36de276",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/180#discussion_r4137705328"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The scope policy matches a span using every raw `span.attributes` value, but the runner's `selects()` matches only attributes retained by `carried_attributes()`, which excludes values with Weaver `type_mismatch` advice. If a match attribute is rejected, the runner treats the span as unmatched while this policy can still attach its scope expectations to it. Align these selectors so scope findings apply to the same spans as count and attribute checks.",
+      "created": "2026-09-29T19:55:49Z",
+      "hunk": "@@ -0,0 +1,161 @@\n+# Instrumentation scope expectations come from the scenario being run. The\n+# runner renders this template into the policy directory before starting\n+# weaver, replacing the marker below with a Rego object.\n+\n+package live_check_advice\n+\n+import rego.v1\n+\n+_otel_scope_expectation := __INSTRUMENTATION_SCOPE_EXPECTATION__\n+\n+deny contains _otel_scope_finding(field, expected, actual, scope) if {\n+\tscope := input.sample.instrumentation_scope\n+\tsome field, expected in _otel_scope_expectation.global\n+\tactual := _otel_scope_field(scope, field)\n+\tnot _otel_scope_matches(expected, actual)\n+}\n+\n+deny contains _otel_signal_scope_finding(field, expected, null, null) if {\n+\t_otel_scope_signal(input.sample)\n+\tinput.instrumentation_scope == null\n+\tsome field, expected in _otel_scope_expectation.global\n+\tnot _otel_scope_matches(expected, null)\n+}\n+\n+deny contains _otel_signal_scope_finding(field, expected, actual, scope) if {\n+\tspan := input.sample.span\n+\tscope := object.get(input, \"instrumentation_scope\", null)\n+\tsome signal_expectation in _otel_scope_expectation.spans\n+\t_otel_scope_span_matches(span, signal_expectation.match)\n+\tsome field, expected in signal_expectation.scope\n+\tactual := _otel_scope_field(scope, field)\n+\tnot _otel_scope_matches(expected, actual)\n+}\n+\n+_otel_scope_signal(sample) if {\n+\tis_object(object.get(sample, \"span\", null))\n+}\n+\n+_otel_scope_signal(sample) if {\n+\tis_object(object.get(sample, \"metric\", null))\n+}\n+\n+_otel_scope_signal(sample) if {\n+\tis_object(object.get(sample, \"log\", null))\n+}\n+\n+_otel_scope_signal(sample) if {\n+\tis_object(object.get(sample, \"profile\", null))\n+}\n+\n+_otel_scope_span_matches(span, expected) if {\n+\tevery name, value in expected.attributes {\n+\t\t_otel_scope_span_attr_value(span, name) == value\n+\t}\n+\tobject.get(expected, \"kind\", span.kind) == span.kind\n+}\n+\n+_otel_scope_span_attr_value(span, name) := attribute.value if {\n+\tsome attribute in span.attributes\n+\tattribute.name == name",
+      "id": "PRRT_kwDOTuzK5c6nRPBH",
+      "opened": "2026-09-29T19:55:49Z",
+      "path": "tools/runner/src/opentelemetry/conformance/policies/instrumentation_scope_validation.rego.template",
+      "replies": [
+        {
+          "at": "2026-10-01T03:17:48Z",
+          "body": "Deferring this. Weaver evaluates span policies before attribute validation, so type-mismatch advice is unavailable here. Aligning selectors requires broader changes for an edge case involving already-invalid telemetry.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/180#discussion_r4151485108"
+        }
+      ],
+      "reviewed": "b2ba2cd983c46076373a170d08f84188f36de276",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/180#discussion_r4137705380"
+    }
+  ]
+}

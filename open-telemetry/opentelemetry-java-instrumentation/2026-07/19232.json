@@ -1,0 +1,91 @@
+{
+  "head": "7f33d818e9779620c0687ac8af400d67f3a8f506",
+  "merge": "a105817082ae22488ebdac7a5e57054ae7392859",
+  "merged": "2026-07-15T23:26:31Z",
+  "missing_roots": 0,
+  "number": 19232,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\ncode injection via template expansion: may expand into attacker-controllable code\n\n[Show more details](https://github.com/open-telemetry/opentelemetry-java-instrumentation/security/code-scanning/651)",
+      "created": "2026-07-15T17:08:07Z",
+      "hunk": "@@ -0,0 +1,110 @@\n+name: Auto-update gh-aw lockfiles\n+\n+on:\n+  push:\n+    branches:\n+      - 'renovate/**'\n+    paths:\n+      - '.github/workflows/build-common.yml'\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.ref }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  generate:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          persist-credentials: false\n+\n+      - name: Read pinned gh-aw version\n+        id: version\n+        run: |\n+          version=$(sed -nE 's/.*gh extension install github\\/gh-aw --pin (v[0-9]+\\.[0-9]+\\.[0-9]+).*/\\1/p' \\\n+            .github/workflows/build-common.yml)\n+          if [[ ! $version =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then\n+            echo \"Unable to read a single pinned gh-aw version: $version\" >&2\n+            exit 1\n+          fi\n+          echo \"version=$version\" >> \"$GITHUB_OUTPUT\"\n+\n+      - name: Install pinned gh-aw compiler\n+        env:\n+          GH_TOKEN: ${{ github.token }}\n+        run: gh extension install github/gh-aw --pin \"${{ steps.version.outputs.version }}\"",
+      "id": "PRRT_kwDODJKVX86RLrFL",
+      "opened": "2026-07-15T17:08:07Z",
+      "path": ".github/workflows/auto-update-gh-aw-lockfiles.yml",
+      "replies": [],
+      "reviewed": "2083f40e3a5dc7593eb385785345e398d5d5d6d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19232#discussion_r3589304226"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\ncode injection via template expansion: may expand into attacker-controllable code\n\n[Show more details](https://github.com/open-telemetry/opentelemetry-java-instrumentation/security/code-scanning/652)",
+      "created": "2026-07-15T17:08:07Z",
+      "hunk": "@@ -0,0 +1,110 @@\n+name: Auto-update gh-aw lockfiles\n+\n+on:\n+  push:\n+    branches:\n+      - 'renovate/**'\n+    paths:\n+      - '.github/workflows/build-common.yml'\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.ref }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  generate:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          persist-credentials: false\n+\n+      - name: Read pinned gh-aw version\n+        id: version\n+        run: |\n+          version=$(sed -nE 's/.*gh extension install github\\/gh-aw --pin (v[0-9]+\\.[0-9]+\\.[0-9]+).*/\\1/p' \\\n+            .github/workflows/build-common.yml)\n+          if [[ ! $version =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then\n+            echo \"Unable to read a single pinned gh-aw version: $version\" >&2\n+            exit 1\n+          fi\n+          echo \"version=$version\" >> \"$GITHUB_OUTPUT\"\n+\n+      - name: Install pinned gh-aw compiler\n+        env:\n+          GH_TOKEN: ${{ github.token }}\n+        run: gh extension install github/gh-aw --pin \"${{ steps.version.outputs.version }}\"\n+\n+      - name: Regenerate agentic workflow lockfiles\n+        env:\n+          GH_TOKEN: ${{ github.token }}\n+        run: >-\n+          gh aw compile\n+          --action-tag \"${{ steps.version.outputs.version }}\"",
+      "id": "PRRT_kwDODJKVX86RLrFk",
+      "opened": "2026-07-15T17:08:07Z",
+      "path": ".github/workflows/auto-update-gh-aw-lockfiles.yml",
+      "replies": [],
+      "reviewed": "2083f40e3a5dc7593eb385785345e398d5d5d6d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19232#discussion_r3589304259"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\ncredential persistence through GitHub Actions artifacts: does not set persist-credentials: false\n\n[Show more details](https://github.com/open-telemetry/opentelemetry-java-instrumentation/security/code-scanning/650)",
+      "created": "2026-07-15T17:08:07Z",
+      "hunk": "@@ -0,0 +1,110 @@\n+name: Auto-update gh-aw lockfiles\n+\n+on:\n+  push:\n+    branches:\n+      - 'renovate/**'\n+    paths:\n+      - '.github/workflows/build-common.yml'\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.ref }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  generate:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          persist-credentials: false\n+\n+      - name: Read pinned gh-aw version\n+        id: version\n+        run: |\n+          version=$(sed -nE 's/.*gh extension install github\\/gh-aw --pin (v[0-9]+\\.[0-9]+\\.[0-9]+).*/\\1/p' \\\n+            .github/workflows/build-common.yml)\n+          if [[ ! $version =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then\n+            echo \"Unable to read a single pinned gh-aw version: $version\" >&2\n+            exit 1\n+          fi\n+          echo \"version=$version\" >> \"$GITHUB_OUTPUT\"\n+\n+      - name: Install pinned gh-aw compiler\n+        env:\n+          GH_TOKEN: ${{ github.token }}\n+        run: gh extension install github/gh-aw --pin \"${{ steps.version.outputs.version }}\"\n+\n+      - name: Regenerate agentic workflow lockfiles\n+        env:\n+          GH_TOKEN: ${{ github.token }}\n+        run: >-\n+          gh aw compile\n+          --action-tag \"${{ steps.version.outputs.version }}\"\n+          --approve\n+          --no-check-update\n+\n+      - name: Create generated-files patch\n+        run: |\n+          git diff --binary -- \\\n+            .github/aw/actions-lock.json \\\n+            '.github/workflows/*.lock.yml' > gh-aw-lockfiles.patch\n+\n+      - name: Upload generated-files patch\n+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1\n+        with:\n+          name: gh-aw-lockfiles\n+          path: gh-aw-lockfiles.patch\n+\n+  apply:\n+    runs-on: ubuntu-latest\n+    needs: generate\n+    steps:\n+      - name: Download generated-files patch\n+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n+        with:\n+          name: gh-aw-lockfiles\n+          path: ${{ runner.temp }}\n+\n+      - name: Check patch\n+        id: patch\n+        working-directory: ${{ runner.temp }}\n+        run: |\n+          if [ ! -s gh-aw-lockfiles.patch ]; then\n+            exit 0\n+          fi\n+          while IFS= read -r path; do\n+            case \"$path\" in\n+              .github/aw/actions-lock.json | .github/workflows/*.lock.yml) ;;\n+              *)\n+                echo \"Unexpected path in generated patch: $path\" >&2\n+                exit 1\n+                ;;\n+            esac\n+          done < <(git apply --numstat gh-aw-lockfiles.patch | cut -f3)\n+          echo \"exists=true\" >> \"$GITHUB_OUTPUT\"\n+\n+      - name: Create otelbot token\n+        if: steps.patch.outputs.exists == 'true'\n+        id: otelbot-token\n+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0\n+        with:\n+          client-id: ${{ vars.OTELBOT_JAVA_INSTRUMENTATION_CLIENT_ID }}\n+          private-key: ${{ secrets.OTELBOT_JAVA_INSTRUMENTATION_PRIVATE_KEY }}\n+          permission-contents: write\n+\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        if: steps.patch.outputs.exists == 'true'\n+        with:\n+          token: ${{ steps.otelbot-token.outputs.token }}",
+      "id": "PRRT_kwDODJKVX86RLrFz",
+      "opened": "2026-07-15T17:08:07Z",
+      "path": ".github/workflows/auto-update-gh-aw-lockfiles.yml",
+      "replies": [],
+      "reviewed": "2083f40e3a5dc7593eb385785345e398d5d5d6d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19232#discussion_r3589304273"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The generated patch is expected to edit `.github/workflows/*.lock.yml`, but this installation token requests only Contents access. GitHub requires the Workflows repository permission for Git access that edits Actions files; this repository already documents the resulting push rejection in `.github/workflows/update-latest-dep-versions.yml:73-77`. Request `workflows: write` as well (and ensure the app installation grants it), otherwise the final `git push` cannot publish the regenerated lockfiles.",
+      "created": "2026-07-15T19:32:28Z",
+      "hunk": "@@ -0,0 +1,105 @@\n+name: Auto-update gh-aw lockfiles\n+\n+on:\n+  push:\n+    branches:\n+      - 'renovate/**'\n+    paths:\n+      - '.github/workflows/build-common.yml'\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.ref }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  generate:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          persist-credentials: false\n+\n+      - name: Regenerate agentic workflow lockfiles\n+        env:\n+          GH_TOKEN: ${{ github.token }}\n+        run: |\n+          version=$(sed -nE 's/.*gh extension install github\\/gh-aw --pin (v[0-9]+\\.[0-9]+\\.[0-9]+).*/\\1/p' \\\n+            .github/workflows/build-common.yml)\n+          if [[ ! $version =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then\n+            echo \"Unable to read a single pinned gh-aw version: $version\" >&2\n+            exit 1\n+          fi\n+          gh extension install github/gh-aw --pin \"$version\"\n+          gh aw compile --action-tag \"$version\" --approve --no-check-update\n+\n+      - name: Create generated-files patch\n+        run: |\n+          files=(\n+            .github/aw/actions-lock.json\n+            .github/workflows/*.lock.yml\n+          )\n+          git add -N -- \"${files[@]}\"\n+          git diff --binary -- \"${files[@]}\" > gh-aw-lockfiles.patch\n+\n+      - name: Upload generated-files patch\n+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1\n+        with:\n+          name: gh-aw-lockfiles\n+          path: gh-aw-lockfiles.patch\n+\n+  apply:\n+    runs-on: ubuntu-latest\n+    needs: generate\n+    steps:\n+      - name: Download generated-files patch\n+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n+        with:\n+          name: gh-aw-lockfiles\n+          path: ${{ runner.temp }}\n+\n+      - name: Check patch\n+        id: patch\n+        working-directory: ${{ runner.temp }}\n+        run: |\n+          if [ ! -s gh-aw-lockfiles.patch ]; then\n+            exit 0\n+          fi\n+          while IFS= read -r path; do\n+            case \"$path\" in\n+              .github/aw/actions-lock.json |\n+              .github/workflows/*.lock.yml) ;;\n+              *)\n+                echo \"Unexpected path in generated patch: $path\" >&2\n+                exit 1\n+                ;;\n+            esac\n+          done < <(git apply --numstat gh-aw-lockfiles.patch | cut -f3)\n+          echo \"exists=true\" >> \"$GITHUB_OUTPUT\"\n+\n+      - name: Create otelbot token\n+        if: steps.patch.outputs.exists == 'true'\n+        id: otelbot-token\n+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0\n+        with:\n+          client-id: ${{ vars.OTELBOT_JAVA_INSTRUMENTATION_CLIENT_ID }}\n+          private-key: ${{ secrets.OTELBOT_JAVA_INSTRUMENTATION_PRIVATE_KEY }}\n+          permission-contents: write",
+      "id": "PRRT_kwDODJKVX86ROH4Z",
+      "opened": "2026-07-15T19:32:29Z",
+      "path": ".github/workflows/auto-update-gh-aw-lockfiles.yml",
+      "replies": [
+        {
+          "at": "2026-07-15T20:03:10Z",
+          "body": "Fixed in 7f33d818e9 by requesting `permission-workflows: write`. The private App registration now grants Workflows write; its organization installation permission update is still awaiting approval, so I am leaving this thread open until that is applied.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19232#discussion_r3590391721"
+        }
+      ],
+      "reviewed": "f966c8da696e910eee94dfc36f363b870f49c427",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19232#discussion_r3590205718"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this appears to be resolved",
+      "created": "2026-07-15T20:14:33Z",
+      "hunk": "@@ -44,20 +44,10 @@ timeout-minutes: 30\n \n environment: protected\n \n-# Disable strict mode so we can opt out of the AWF agent sandbox below.\n-strict: false\n-\n engine:\n   id: copilot\n   model: ${{ vars.MODULE_CLEANUP_MODEL || 'gpt-5' }}\n \n-# Disable the AWF sandbox so copilot-cli connects directly to\n-# api.githubcopilot.com. In sandboxed Copilot workflows, gh-aw enables\n-# Copilot BYOK/offline mode but does not set responses wire-API routing\n-# for GPT-5-family models yet. See https://github.com/github/gh-aw/issues/31241.\n-sandbox:\n-  agent: false",
+      "id": "PRRT_kwDODJKVX86ROyW8",
+      "opened": "2026-07-15T20:14:32Z",
+      "path": ".github/workflows/module-cleanup.md",
+      "replies": [],
+      "reviewed": "7f33d818e9779620c0687ac8af400d67f3a8f506",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19232#discussion_r3590454492"
+    }
+  ]
+}

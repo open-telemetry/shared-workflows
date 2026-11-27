@@ -1,0 +1,31 @@
+{
+  "head": "8a0d1415f03f5195a3b26c88564f8cfc13df8420",
+  "merge": "6e7f203b0a453ae4d103bcbd8e8809f7561cd340",
+  "merged": "2026-05-18T22:19:28Z",
+  "missing_roots": 0,
+  "number": 21,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Can we also bump the test deps so we know it's working? https://github.com/open-telemetry/opentelemetry-python-genai/blob/58b3c46c41933b75493893b8bb799df1ba3f8c53/instrumentation/opentelemetry-instrumentation-google-genai/tests/requirements.latest.txt#L42",
+      "created": "2026-05-18T15:35:28Z",
+      "hunk": "@@ -33,7 +33,7 @@ def __init__(\n     # Inherited, abstract function from 'BaseInstrumentor'. Even though 'self' is\n     # not used in the definition, a method is required per the API contract.\n     def instrumentation_dependencies(self) -> Collection[str]:  # pylint: disable=no-self-use\n-        return [\"google-genai>=1.0.0,<2\"]\n+        return [\"google-genai>=1.0.0,<3\"]",
+      "id": "PRRT_kwDOSbspP86C4sX4",
+      "opened": "2026-05-18T15:35:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/instrumentor.py",
+      "replies": [
+        {
+          "at": "2026-05-18T19:29:43Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/21#discussion_r3261534033"
+        }
+      ],
+      "reviewed": "4a2cd4c5a35b22218b37c9393c468f25e0d5f74f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/21#discussion_r3260140278"
+    }
+  ]
+}

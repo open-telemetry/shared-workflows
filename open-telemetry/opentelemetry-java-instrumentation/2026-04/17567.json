@@ -1,0 +1,55 @@
+{
+  "head": "0c09917b788027b2b1ebaf4aa32e99ebf137f3bf",
+  "merge": "a98c0321c9304cab0a9b4bfb8240b7fefaa2ea51",
+  "merged": "2026-04-05T20:54:46Z",
+  "missing_roots": 0,
+  "number": 17567,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-05T20:11:02Z",
+      "hunk": "@@ -180,6 +181,8 @@ void testStartingWithOtelSpan() {\n     io.opencensus.trace.Tracer ocTracer = Tracing.getTracer();\n     Tracer otelTracer = testing.getOpenTelemetry().getTracer(\"test\");\n ",
+      "id": "PRRT_kwDODJKVX8547Ttp",
+      "opened": "2026-04-05T20:11:02Z",
+      "path": "instrumentation/opencensus-shim/testing/src/test/java/io/opentelemetry/opencensusshim/JavaagentInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "a251da18d135c491fe2d02382f194d700a63c9c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17567#discussion_r3037300261"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-05T20:11:10Z",
+      "hunk": "@@ -219,6 +220,8 @@ void testStartingWithOpenCensusSpan() {\n     io.opencensus.trace.Tracer ocTracer = Tracing.getTracer();\n     Tracer otelTracer = testing.getOpenTelemetry().getTracer(\"test\");\n ",
+      "id": "PRRT_kwDODJKVX8547Tu7",
+      "opened": "2026-04-05T20:11:10Z",
+      "path": "instrumentation/opencensus-shim/testing/src/test/java/io/opentelemetry/opencensusshim/JavaagentInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "a251da18d135c491fe2d02382f194d700a63c9c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17567#discussion_r3037300363"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-05T20:11:22Z",
+      "hunk": "@@ -252,6 +253,8 @@ void testStartingWithOpenCensusSpan() {\n   void testNestedOpenCensusSpans() {\n     io.opencensus.trace.Tracer ocTracer = Tracing.getTracer();\n ",
+      "id": "PRRT_kwDODJKVX8547Txs",
+      "opened": "2026-04-05T20:11:22Z",
+      "path": "instrumentation/opencensus-shim/testing/src/test/java/io/opentelemetry/opencensusshim/JavaagentInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "a251da18d135c491fe2d02382f194d700a63c9c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17567#discussion_r3037300576"
+    }
+  ]
+}

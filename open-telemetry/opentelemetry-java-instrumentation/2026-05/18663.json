@@ -1,0 +1,31 @@
+{
+  "head": "933d7676408a240df0b0f9cb83175556c33cda68",
+  "merge": "dfc6acc158dfa32e814da5ce3cb02a1e0c4f7c7d",
+  "merged": "2026-05-10T23:07:37Z",
+  "missing_roots": 0,
+  "number": 18663,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description mentions the workflow failing in a `validate_multi_secret.sh` step when `COPILOT_GITHUB_TOKEN` is unavailable, but the regenerated lock workflow no longer includes that secret-validation step (or the related `secret_verification_result` output). If the goal is still to fail fast with a clear error when the token is missing/misconfigured, consider reintroducing secret validation in an `environment: protected` job (or update the PR description to reflect the new behavior).",
+      "created": "2026-05-09T20:49:38Z",
+      "hunk": "@@ -139,11 +138,6 @@ jobs:\n             setupGlobals(core, github, context, exec, io, getOctokit);\n             const { main } = require('${{ runner.temp }}/gh-aw/actions/generate_aw_info.cjs');\n             await main(core, context);\n-      - name: Validate COPILOT_GITHUB_TOKEN secret\n-        id: validate-secret\n-        run: bash \"${RUNNER_TEMP}/gh-aw/actions/validate_multi_secret.sh\" COPILOT_GITHUB_TOKEN 'GitHub Copilot CLI' https://github.github.com/gh-aw/reference/engines/#github-copilot-default\n-        env:\n-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}\n       - name: Checkout .github and .agents folders\n         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2",
+      "id": "PRRT_kwDODJKVX86A2kPO",
+      "opened": "2026-05-09T20:49:38Z",
+      "path": ".github/workflows/pr-review.lock.yml",
+      "replies": [
+        {
+          "at": "2026-05-10T23:06:27Z",
+          "body": "The validate-secret step isn't missing because this PR removed it — `gh-aw` omits the runtime `validate_multi_secret.sh` preflight (and the `secret_verification_result` output) whenever the workflow declares `environment: protected`, since the environment gate already enforces secret presence. Same shape as the compiled `module-cleanup.lock.yml`, which also has no validate-secret step.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18663#discussion_r3215669502"
+        }
+      ],
+      "reviewed": "933d7676408a240df0b0f9cb83175556c33cda68",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18663#discussion_r3213873937"
+    }
+  ]
+}

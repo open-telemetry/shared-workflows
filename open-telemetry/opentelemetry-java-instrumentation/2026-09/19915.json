@@ -1,0 +1,229 @@
+{
+  "head": "27be27cb407f1572ab8af61bfdb2efb5d012fa28",
+  "merge": "6214dcf724d8dec65632f2c38f77e8d92e80f9c0",
+  "merged": "2026-09-02T12:13:59Z",
+  "missing_roots": 0,
+  "number": 19915,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This unconditional rollback can overwrite a newer successful registration of the same listener. For example, registration A publishes its name, registration B then publishes and succeeds (concurrently or reentrantly from a synchronous callback), and A subsequently throws; A now restores its stale previous value, so later callbacks no longer report B's subscription. Track a per-registration generation/token and restore only when the failing attempt still owns the listener's current value.",
+      "created": "2026-08-29T22:07:25Z",
+      "hunk": "@@ -92,19 +92,26 @@ public static void stopSpan(\n   @SuppressWarnings(\"unused\")\n   public static class SetMessageListenerAdvice {\n \n-    // the name is recorded after registration rather than before, so that a setMessageListener\n-    // call that throws leaves the listener's previous subscription name in place; that is what\n-    // makes tracking and rolling back in-flight registrations unnecessary\n-    //\n-    // the trade-off is that a message the provider dispatches before setMessageListener returns\n-    // reports no subscription name instead of the wrong one\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static String onEnter(\n+        @Advice.This MessageConsumer consumer,\n+        @Advice.Argument(0) @Nullable MessageListener messageListener) {\n+      if (messageListener == null) {\n+        return null;\n+      }\n+      String previousSubscriptionName = JmsSubscriptionNames.get(messageListener);\n+      JmsSubscriptionNames.copyToListener(consumer, messageListener);\n+      return previousSubscriptionName;\n+    }\n+\n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n     public static void onExit(\n-        @Advice.This MessageConsumer consumer,\n         @Advice.Argument(0) @Nullable MessageListener messageListener,\n+        @Advice.Enter @Nullable String previousSubscriptionName,\n         @Advice.Thrown @Nullable Throwable throwable) {\n-      if (throwable == null) {\n-        JmsSubscriptionNames.copyToListener(consumer, messageListener);\n+      if (throwable != null && messageListener != null) {\n+        JmsSubscriptionNames.set(messageListener, previousSubscriptionName);",
+      "id": "PRRT_kwDODJKVX86ddAU4",
+      "opened": "2026-08-29T22:07:26Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsMessageConsumerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-30T03:39:20Z",
+          "body": "Addressed in c3875a138c27d2431634808d4044b6e8905a287c.\n\nAnalysis: Each registration now publishes a unique token under the listener lock. Failed calls mark their token and restore prior state only when their token still owns the listener. The rollback skips failed overlapping registrations. Bootstrap-loaded Object arrays keep token identity valid when a listener comes from a child classloader.\n\nUpsides: A stale failure cannot overwrite a newer successful registration. Reentrant and concurrent failures return to the latest valid subscription. The same behavior now has regression coverage in JMS 1.1 and JMS 3.0, including the existing child-classloader cases.\n\nDownsides: Listener registration now takes a short synchronization block and allocates a small token array.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888376461"
+        }
+      ],
+      "reviewed": "44890d062c42c8ff613aac0d04c15a5b75485fb9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3887804472"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This unconditional rollback can overwrite a newer successful registration of the same listener. For example, registration A publishes its name, registration B then publishes and succeeds (concurrently or reentrantly from a synchronous callback), and A subsequently throws; A now restores its stale previous value, so later callbacks no longer report B's subscription. Track a per-registration generation/token and restore only when the failing attempt still owns the listener's current value.",
+      "created": "2026-08-29T22:07:26Z",
+      "hunk": "@@ -92,19 +92,26 @@ public static void stopSpan(\n   @SuppressWarnings(\"unused\")\n   public static class SetMessageListenerAdvice {\n \n-    // the name is recorded after registration rather than before, so that a setMessageListener\n-    // call that throws leaves the listener's previous subscription name in place; that is what\n-    // makes tracking and rolling back in-flight registrations unnecessary\n-    //\n-    // the trade-off is that a message the provider dispatches before setMessageListener returns\n-    // reports no subscription name instead of the wrong one\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static String onEnter(\n+        @Advice.This MessageConsumer consumer,\n+        @Advice.Argument(0) @Nullable MessageListener messageListener) {\n+      if (messageListener == null) {\n+        return null;\n+      }\n+      String previousSubscriptionName = JmsSubscriptionNames.get(messageListener);\n+      JmsSubscriptionNames.copyToListener(consumer, messageListener);\n+      return previousSubscriptionName;\n+    }\n+\n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n     public static void onExit(\n-        @Advice.This MessageConsumer consumer,\n         @Advice.Argument(0) @Nullable MessageListener messageListener,\n+        @Advice.Enter @Nullable String previousSubscriptionName,\n         @Advice.Thrown @Nullable Throwable throwable) {\n-      if (throwable == null) {\n-        JmsSubscriptionNames.copyToListener(consumer, messageListener);\n+      if (throwable != null && messageListener != null) {\n+        JmsSubscriptionNames.set(messageListener, previousSubscriptionName);",
+      "id": "PRRT_kwDODJKVX86ddAVB",
+      "opened": "2026-08-29T22:07:26Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageConsumerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-30T03:39:22Z",
+          "body": "Addressed in c3875a138c27d2431634808d4044b6e8905a287c.\n\nAnalysis: Each registration now publishes a unique token under the listener lock. Failed calls mark their token and restore prior state only when their token still owns the listener. The rollback skips failed overlapping registrations. Bootstrap-loaded Object arrays keep token identity valid when a listener comes from a child classloader.\n\nUpsides: A stale failure cannot overwrite a newer successful registration. Reentrant and concurrent failures return to the latest valid subscription. The same behavior now has regression coverage in JMS 1.1 and JMS 3.0, including the existing child-classloader cases.\n\nDownsides: Listener registration now takes a short synchronization block and allocates a small token array.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888376518"
+        }
+      ],
+      "reviewed": "44890d062c42c8ff613aac0d04c15a5b75485fb9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3887804481"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Avoid locking the application-owned listener object here. If application code holds this monitor while waiting for another thread to finish `setMessageListener(listener)`, the advice now blocks on the same monitor and deadlocks, although the uninstrumented call would complete. The adjacent Spring JMS instrumentation explicitly uses an agent-owned lock for this reason (`spring-jms-2.0/.../SpringJmsSubscriptionNames.java:19-20`). Please keep a stable agent-owned per-listener state in the virtual field (using an agent-owned lock only to initialize it) and synchronize on that state instead.",
+      "created": "2026-08-30T03:43:11Z",
+      "hunk": "@@ -38,12 +42,51 @@ public static void set(Message message, @Nullable String subscriptionName) {\n     MESSAGE_SUBSCRIPTION_NAME.set(message, subscriptionName);\n   }\n \n-  public static void copyToListener(\n+  @Nullable\n+  public static Object beginListenerRegistration(\n       MessageConsumer consumer, @Nullable MessageListener messageListener) {\n     if (messageListener == null) {\n+      return null;\n+    }\n+    synchronized (messageListener) {",
+      "id": "PRRT_kwDODJKVX86degPr",
+      "opened": "2026-08-30T03:43:12Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsSubscriptionNames.java",
+      "replies": [
+        {
+          "at": "2026-08-30T03:52:29Z",
+          "body": "Addressed in 95fade66ad0479454c02b9740e3f9ee647c4d333.\n\nAnalysis: Each listener now has stable agent-owned state in its virtual field. Registration and callback reads synchronize on a private lock stored in that state. A separate agent-owned lock protects only state initialization. The Object-array state remains safe when helpers run from different classloaders.\n\nUpsides: Application code can hold the listener monitor while another thread registers it without deadlocking in advice. Registration generation updates remain atomic, and child-classloader listeners still share the same state.\n\nDownsides: Each observed listener now retains one extra lock object for the life of its virtual-field entry.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888398683"
+        }
+      ],
+      "reviewed": "c3875a138c27d2431634808d4044b6e8905a287c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888382504"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Avoid locking the application-owned listener object here. If application code holds this monitor while waiting for another thread to finish `setMessageListener(listener)`, the advice now blocks on the same monitor and deadlocks, although the uninstrumented call would complete. The adjacent Spring JMS instrumentation explicitly uses an agent-owned lock for this reason (`spring-jms-6.0/.../SpringJmsSubscriptionNames.java:19-20`). Please keep a stable agent-owned per-listener state in the virtual field (using an agent-owned lock only to initialize it) and synchronize on that state instead.",
+      "created": "2026-08-30T03:43:12Z",
+      "hunk": "@@ -38,12 +42,51 @@ public static void set(Message message, @Nullable String subscriptionName) {\n     MESSAGE_SUBSCRIPTION_NAME.set(message, subscriptionName);\n   }\n \n-  public static void copyToListener(\n+  @Nullable\n+  public static Object beginListenerRegistration(\n       MessageConsumer consumer, @Nullable MessageListener messageListener) {\n     if (messageListener == null) {\n+      return null;\n+    }\n+    synchronized (messageListener) {",
+      "id": "PRRT_kwDODJKVX86degPz",
+      "opened": "2026-08-30T03:43:12Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsSubscriptionNames.java",
+      "replies": [
+        {
+          "at": "2026-08-30T03:52:31Z",
+          "body": "Addressed in 95fade66ad0479454c02b9740e3f9ee647c4d333.\n\nAnalysis: Each listener now has stable agent-owned state in its virtual field. Registration and callback reads synchronize on a private lock stored in that state. A separate agent-owned lock protects only state initialization. The Object-array state remains safe when helpers run from different classloaders.\n\nUpsides: Application code can hold the listener monitor while another thread registers it without deadlocking in advice. Registration generation updates remain atomic, and child-classloader listeners still share the same state.\n\nDownsides: Each observed listener now retains one extra lock object for the life of its virtual-field entry.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888398700"
+        }
+      ],
+      "reviewed": "c3875a138c27d2431634808d4044b6e8905a287c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888382515"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new rollback loop is not exercised by the added overlap test: that test has the newer registration succeed, so it returns at the `succeeded` branch and never skips a failed predecessor here. Please add a deterministic two-failure overlap case (A begins, B begins, A fails while B is pending, then B fails) and assert that the original subscription is restored; this is the concurrency ordering this loop specifically handles.",
+      "created": "2026-08-30T03:59:30Z",
+      "hunk": "@@ -38,12 +45,51 @@ public static void set(Message message, @Nullable String subscriptionName) {\n     MESSAGE_SUBSCRIPTION_NAME.set(message, subscriptionName);\n   }\n \n-  public static void copyToListener(\n+  @Nullable\n+  public static Object beginListenerRegistration(\n       MessageConsumer consumer, @Nullable MessageListener messageListener) {\n     if (messageListener == null) {\n+      return null;\n+    }\n+    Object[] state = listenerState(messageListener);\n+    synchronized (state[STATE_LOCK_INDEX]) {\n+      Object[] registration = {\n+        CONSUMER_SUBSCRIPTION_NAME.get(consumer), state[CURRENT_REGISTRATION_INDEX], false\n+      };\n+      state[CURRENT_REGISTRATION_INDEX] = registration;\n+      return registration;\n+    }\n+  }\n+\n+  public static void endListenerRegistration(\n+      @Nullable MessageListener messageListener,\n+      @Nullable Object registrationToken,\n+      boolean succeeded) {\n+    if (messageListener == null || registrationToken == null) {\n       return;\n     }\n-    LISTENER_SUBSCRIPTION_NAME.set(messageListener, CONSUMER_SUBSCRIPTION_NAME.get(consumer));\n+    Object[] registration = (Object[]) registrationToken;\n+    Object[] state = listenerState(messageListener);\n+    synchronized (state[STATE_LOCK_INDEX]) {\n+      if (succeeded) {\n+        registration[REGISTRATION_PREVIOUS_INDEX] = null;\n+        return;\n+      }\n+\n+      registration[REGISTRATION_FAILED_INDEX] = true;\n+      if (state[CURRENT_REGISTRATION_INDEX] != registration) {\n+        return;\n+      }\n+\n+      Object[] previous = (Object[]) registration[REGISTRATION_PREVIOUS_INDEX];\n+      while (previous != null && Boolean.TRUE.equals(previous[REGISTRATION_FAILED_INDEX])) {\n+        Object[] failedRegistration = previous;\n+        previous = (Object[]) previous[REGISTRATION_PREVIOUS_INDEX];\n+        failedRegistration[REGISTRATION_PREVIOUS_INDEX] = null;\n+      }",
+      "id": "PRRT_kwDODJKVX86dek1D",
+      "opened": "2026-08-30T03:59:31Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsSubscriptionNames.java",
+      "replies": [
+        {
+          "at": "2026-08-30T04:06:22Z",
+          "body": "Addressed in b71fadfeafbe602642d3e87f7296dc16a131d5f9.\n\nAnalysis: The new tests coordinate two proxy consumers so the older attempt fails while the newer attempt remains pending. The newer attempt then fails, which forces rollback to skip the failed predecessor and restore the original successful subscription.\n\nUpsides: Both JMS versions now exercise the rollback loop's failed-predecessor branch with a fixed ordering instead of timing-dependent concurrency.\n\nDownsides: Each module adds an asynchronous proxy test and waits up to ten seconds if the ordering logic deadlocks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888422411"
+        }
+      ],
+      "reviewed": "95fade66ad0479454c02b9740e3f9ee647c4d333",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888410436"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new rollback loop is not exercised by the added overlap test: that test has the newer registration succeed, so it returns at the `succeeded` branch and never skips a failed predecessor here. Please add a deterministic two-failure overlap case (A begins, B begins, A fails while B is pending, then B fails) and assert that the original subscription is restored; this is the concurrency ordering this loop specifically handles.",
+      "created": "2026-08-30T03:59:31Z",
+      "hunk": "@@ -38,12 +45,51 @@ public static void set(Message message, @Nullable String subscriptionName) {\n     MESSAGE_SUBSCRIPTION_NAME.set(message, subscriptionName);\n   }\n \n-  public static void copyToListener(\n+  @Nullable\n+  public static Object beginListenerRegistration(\n       MessageConsumer consumer, @Nullable MessageListener messageListener) {\n     if (messageListener == null) {\n+      return null;\n+    }\n+    Object[] state = listenerState(messageListener);\n+    synchronized (state[STATE_LOCK_INDEX]) {\n+      Object[] registration = {\n+        CONSUMER_SUBSCRIPTION_NAME.get(consumer), state[CURRENT_REGISTRATION_INDEX], false\n+      };\n+      state[CURRENT_REGISTRATION_INDEX] = registration;\n+      return registration;\n+    }\n+  }\n+\n+  public static void endListenerRegistration(\n+      @Nullable MessageListener messageListener,\n+      @Nullable Object registrationToken,\n+      boolean succeeded) {\n+    if (messageListener == null || registrationToken == null) {\n       return;\n     }\n-    LISTENER_SUBSCRIPTION_NAME.set(messageListener, CONSUMER_SUBSCRIPTION_NAME.get(consumer));\n+    Object[] registration = (Object[]) registrationToken;\n+    Object[] state = listenerState(messageListener);\n+    synchronized (state[STATE_LOCK_INDEX]) {\n+      if (succeeded) {\n+        registration[REGISTRATION_PREVIOUS_INDEX] = null;\n+        return;\n+      }\n+\n+      registration[REGISTRATION_FAILED_INDEX] = true;\n+      if (state[CURRENT_REGISTRATION_INDEX] != registration) {\n+        return;\n+      }\n+\n+      Object[] previous = (Object[]) registration[REGISTRATION_PREVIOUS_INDEX];\n+      while (previous != null && Boolean.TRUE.equals(previous[REGISTRATION_FAILED_INDEX])) {\n+        Object[] failedRegistration = previous;\n+        previous = (Object[]) previous[REGISTRATION_PREVIOUS_INDEX];\n+        failedRegistration[REGISTRATION_PREVIOUS_INDEX] = null;\n+      }",
+      "id": "PRRT_kwDODJKVX86dek1P",
+      "opened": "2026-08-30T03:59:31Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsSubscriptionNames.java",
+      "replies": [
+        {
+          "at": "2026-08-30T04:06:24Z",
+          "body": "Addressed in b71fadfeafbe602642d3e87f7296dc16a131d5f9.\n\nAnalysis: The new tests coordinate two proxy consumers so the older attempt fails while the newer attempt remains pending. The newer attempt then fails, which forces rollback to skip the failed predecessor and restore the original successful subscription.\n\nUpsides: Both JMS versions now exercise the rollback loop's failed-predecessor branch with a fixed ordering instead of timing-dependent concurrency.\n\nDownsides: Each module adds an asynchronous proxy test and waits up to ten seconds if the ordering logic deadlocks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888422449"
+        }
+      ],
+      "reviewed": "95fade66ad0479454c02b9740e3f9ee647c4d333",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888410454"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The initialization monitor is static to this injected helper copy, while `JmsSubscriptionNames` can be injected separately into different application classloaders. Two consumers from sibling loaders can therefore both observe a null virtual field, lock different `initializationLock` objects, and overwrite each other's state; a later failed registration can then erase a successful one. Synchronize initialization on a bootstrap-shared object such as `LISTENER_SUBSCRIPTION_STATE` itself (and remove the per-copy lock) so there is exactly one state array per listener.",
+      "created": "2026-08-30T04:11:43Z",
+      "hunk": "@@ -58,7 +104,31 @@ public static String get(Message message) {\n \n   @Nullable\n   public static String get(MessageListener messageListener) {\n-    return LISTENER_SUBSCRIPTION_NAME.get(messageListener);\n+    Object[] state = LISTENER_SUBSCRIPTION_STATE.get(messageListener);\n+    if (state == null) {\n+      return null;\n+    }\n+    synchronized (state[STATE_LOCK_INDEX]) {\n+      Object[] registration = (Object[]) state[CURRENT_REGISTRATION_INDEX];\n+      return registration == null\n+          ? null\n+          : (String) registration[REGISTRATION_SUBSCRIPTION_NAME_INDEX];\n+    }\n+  }\n+\n+  private static Object[] listenerState(MessageListener messageListener) {\n+    Object[] state = LISTENER_SUBSCRIPTION_STATE.get(messageListener);\n+    if (state != null) {\n+      return state;\n+    }\n+    synchronized (initializationLock) {",
+      "id": "PRRT_kwDODJKVX86deoRH",
+      "opened": "2026-08-30T04:11:44Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsSubscriptionNames.java",
+      "replies": [
+        {
+          "at": "2026-08-30T04:17:31Z",
+          "body": "Addressed in c821e15c3e6e52ba098e911c312c19226afe031f.\n\nAnalysis: VirtualField returns the same bootstrap-shared handle to every injected helper copy. Using that handle for the initialization monitor makes the double-checked state creation atomic across sibling application classloaders.\n\nUpsides: Competing helper copies cannot replace the listener state or lose a registration generation.\n\nDownsides: First-time state creation for different listeners briefly shares one module-wide monitor.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888441081"
+        }
+      ],
+      "reviewed": "b71fadfeafbe602642d3e87f7296dc16a131d5f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888431454"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The initialization monitor is static to this injected helper copy, while `JmsSubscriptionNames` can be injected separately into different application classloaders. Two consumers from sibling loaders can therefore both observe a null virtual field, lock different `initializationLock` objects, and overwrite each other's state; a later failed registration can then erase a successful one. Synchronize initialization on a bootstrap-shared object such as `LISTENER_SUBSCRIPTION_STATE` itself (and remove the per-copy lock) so there is exactly one state array per listener.",
+      "created": "2026-08-30T04:11:44Z",
+      "hunk": "@@ -58,7 +104,31 @@ public static String get(Message message) {\n \n   @Nullable\n   public static String get(MessageListener messageListener) {\n-    return LISTENER_SUBSCRIPTION_NAME.get(messageListener);\n+    Object[] state = LISTENER_SUBSCRIPTION_STATE.get(messageListener);\n+    if (state == null) {\n+      return null;\n+    }\n+    synchronized (state[STATE_LOCK_INDEX]) {\n+      Object[] registration = (Object[]) state[CURRENT_REGISTRATION_INDEX];\n+      return registration == null\n+          ? null\n+          : (String) registration[REGISTRATION_SUBSCRIPTION_NAME_INDEX];\n+    }\n+  }\n+\n+  private static Object[] listenerState(MessageListener messageListener) {\n+    Object[] state = LISTENER_SUBSCRIPTION_STATE.get(messageListener);\n+    if (state != null) {\n+      return state;\n+    }\n+    synchronized (initializationLock) {",
+      "id": "PRRT_kwDODJKVX86deoRP",
+      "opened": "2026-08-30T04:11:44Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsSubscriptionNames.java",
+      "replies": [
+        {
+          "at": "2026-08-30T04:17:33Z",
+          "body": "Addressed in c821e15c3e6e52ba098e911c312c19226afe031f.\n\nAnalysis: VirtualField returns the same bootstrap-shared handle to every injected helper copy. Using that handle for the initialization monitor makes the double-checked state creation atomic across sibling application classloaders.\n\nUpsides: Competing helper copies cannot replace the listener state or lose a registration generation.\n\nDownsides: First-time state creation for different listeners briefly shares one module-wide monitor.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888441144"
+        }
+      ],
+      "reviewed": "b71fadfeafbe602642d3e87f7296dc16a131d5f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3888431464"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This rollback can overwrite a newer successful registration of the same listener. If registration A publishes its name, registration B then publishes and succeeds (concurrently or reentrantly), and A subsequently throws, A restores its stale prior value and later callbacks lose B's subscription name. Track a per-registration token/generation and restore only if the failing attempt still owns the listener's current state.",
+      "created": "2026-08-30T18:39:47Z",
+      "hunk": "@@ -92,19 +92,26 @@ public static void stopSpan(\n   @SuppressWarnings(\"unused\")\n   public static class SetMessageListenerAdvice {\n \n-    // the name is recorded after registration rather than before, so that a setMessageListener\n-    // call that throws leaves the listener's previous subscription name in place; that is what\n-    // makes tracking and rolling back in-flight registrations unnecessary\n-    //\n-    // the trade-off is that a message the provider dispatches before setMessageListener returns\n-    // reports no subscription name instead of the wrong one\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static String onEnter(\n+        @Advice.This MessageConsumer consumer,\n+        @Advice.Argument(0) @Nullable MessageListener messageListener) {\n+      if (messageListener == null) {\n+        return null;\n+      }\n+      String previousSubscriptionName = JmsSubscriptionNames.get(messageListener);\n+      JmsSubscriptionNames.copyToListener(consumer, messageListener);\n+      return previousSubscriptionName;\n+    }\n+\n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n     public static void onExit(\n-        @Advice.This MessageConsumer consumer,\n         @Advice.Argument(0) @Nullable MessageListener messageListener,\n+        @Advice.Enter @Nullable String previousSubscriptionName,\n         @Advice.Thrown @Nullable Throwable throwable) {\n-      if (throwable == null) {\n-        JmsSubscriptionNames.copyToListener(consumer, messageListener);\n+      if (throwable != null && messageListener != null) {\n+        JmsSubscriptionNames.set(messageListener, previousSubscriptionName);",
+      "id": "PRRT_kwDODJKVX86djM4d",
+      "opened": "2026-08-30T18:39:48Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsMessageConsumerInstrumentation.java",
+      "replies": [],
+      "reviewed": "0aaca17187d4df3a06e2aed932c67e4c0505a57c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3890204555"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This rollback can overwrite a newer successful registration of the same listener. If registration A publishes its name, registration B then publishes and succeeds (concurrently or reentrantly), and A subsequently throws, A restores its stale prior value and later callbacks lose B's subscription name. Track a per-registration token/generation and restore only if the failing attempt still owns the listener's current state.",
+      "created": "2026-08-30T18:39:48Z",
+      "hunk": "@@ -92,19 +92,26 @@ public static void stopSpan(\n   @SuppressWarnings(\"unused\")\n   public static class SetMessageListenerAdvice {\n \n-    // the name is recorded after registration rather than before, so that a setMessageListener\n-    // call that throws leaves the listener's previous subscription name in place; that is what\n-    // makes tracking and rolling back in-flight registrations unnecessary\n-    //\n-    // the trade-off is that a message the provider dispatches before setMessageListener returns\n-    // reports no subscription name instead of the wrong one\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static String onEnter(\n+        @Advice.This MessageConsumer consumer,\n+        @Advice.Argument(0) @Nullable MessageListener messageListener) {\n+      if (messageListener == null) {\n+        return null;\n+      }\n+      String previousSubscriptionName = JmsSubscriptionNames.get(messageListener);\n+      JmsSubscriptionNames.copyToListener(consumer, messageListener);\n+      return previousSubscriptionName;\n+    }\n+\n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n     public static void onExit(\n-        @Advice.This MessageConsumer consumer,\n         @Advice.Argument(0) @Nullable MessageListener messageListener,\n+        @Advice.Enter @Nullable String previousSubscriptionName,\n         @Advice.Thrown @Nullable Throwable throwable) {\n-      if (throwable == null) {\n-        JmsSubscriptionNames.copyToListener(consumer, messageListener);\n+      if (throwable != null && messageListener != null) {\n+        JmsSubscriptionNames.set(messageListener, previousSubscriptionName);",
+      "id": "PRRT_kwDODJKVX86djM4l",
+      "opened": "2026-08-30T18:39:48Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageConsumerInstrumentation.java",
+      "replies": [],
+      "reviewed": "0aaca17187d4df3a06e2aed932c67e4c0505a57c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3890204567"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Handling the exception and rolling back isn't probably too useful. The assumption is that every listener is attached to only one consumer as otherwise we'd overwrite the name. If attaching fails for some reason then it isn't a big deal as the listener won't be getting messages anyway. If we wan't to clean up then probably setting the name to null would be enought.",
+      "created": "2026-08-31T11:13:28Z",
+      "hunk": "@@ -92,19 +92,26 @@ public static void stopSpan(\n   @SuppressWarnings(\"unused\")\n   public static class SetMessageListenerAdvice {\n \n-    // the name is recorded after registration rather than before, so that a setMessageListener\n-    // call that throws leaves the listener's previous subscription name in place; that is what\n-    // makes tracking and rolling back in-flight registrations unnecessary\n-    //\n-    // the trade-off is that a message the provider dispatches before setMessageListener returns\n-    // reports no subscription name instead of the wrong one\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static String onEnter(\n+        @Advice.This MessageConsumer consumer,\n+        @Advice.Argument(0) @Nullable MessageListener messageListener) {\n+      if (messageListener == null) {\n+        return null;\n+      }\n+      String previousSubscriptionName = JmsSubscriptionNames.get(messageListener);\n+      JmsSubscriptionNames.copyToListener(consumer, messageListener);\n+      return previousSubscriptionName;\n+    }\n+\n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n     public static void onExit(\n-        @Advice.This MessageConsumer consumer,\n         @Advice.Argument(0) @Nullable MessageListener messageListener,\n+        @Advice.Enter @Nullable String previousSubscriptionName,\n         @Advice.Thrown @Nullable Throwable throwable) {\n-      if (throwable == null) {\n-        JmsSubscriptionNames.copyToListener(consumer, messageListener);\n+      if (throwable != null && messageListener != null) {",
+      "id": "PRRT_kwDODJKVX86dsrk5",
+      "opened": "2026-08-31T11:13:28Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageConsumerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-01T23:29:39Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915/commits/27be27cb407f1572ab8af61bfdb2efb5d012fa28",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3909354262"
+        }
+      ],
+      "reviewed": "0aaca17187d4df3a06e2aed932c67e4c0505a57c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19915#discussion_r3893916180"
+    }
+  ]
+}

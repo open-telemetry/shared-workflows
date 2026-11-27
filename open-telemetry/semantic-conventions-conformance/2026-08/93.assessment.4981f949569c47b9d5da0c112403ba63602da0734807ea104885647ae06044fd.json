@@ -1,0 +1,69 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "209635c7fe03894b7fb33bb224083ba1a560834701c486d4947590712f445fcc",
+  "input_digest": "4981f949569c47b9d5da0c112403ba63602da0734807ea104885647ae06044fd",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/169c5db77d0feeec1223abbdea706a744b48aa7c/scenarios/gen-ai/python/litellm/native/scenarios/embeddings.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/911f697089118e05e23f9971c1575bb2507c85c1/scenarios/gen-ai/python/litellm/native/embeddings.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6b83No",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/4cc5ec4120ecd2d6910bab2fe408132aa16a4aec/scenarios/gen-ai/python/litellm/scenarios/inference.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/4cc5ec4120ecd2d6910bab2fe408132aa16a4aec/scenarios/gen-ai/python/openai/scenarios/inference.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/911f697089118e05e23f9971c1575bb2507c85c1/scenarios/gen-ai/python/litellm/scenarios/inference.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dEs1t",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/4cc5ec4120ecd2d6910bab2fe408132aa16a4aec/scenarios/gen-ai/python/litellm/scenarios/streaming.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/911f697089118e05e23f9971c1575bb2507c85c1/scenarios/gen-ai/python/litellm/scenarios/streaming.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dEs2G",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/92e7bbe9037ff8179e2348e1bc5dd96d43be2b80/scenarios/gen-ai/python/litellm/native/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/92e7bbe9037ff8179e2348e1bc5dd96d43be2b80/scenarios/gen-ai/python/litellm/native/embeddings.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/911f697089118e05e23f9971c1575bb2507c85c1/scenarios/gen-ai/python/litellm/native/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/911f697089118e05e23f9971c1575bb2507c85c1/scenarios/gen-ai/python/litellm/native/embeddings.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dP913",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/92e7bbe9037ff8179e2348e1bc5dd96d43be2b80/tools/runner/pyproject.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/92e7bbe9037ff8179e2348e1bc5dd96d43be2b80/tools/runner/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/911f697089118e05e23f9971c1575bb2507c85c1/tools/runner/pyproject.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/911f697089118e05e23f9971c1575bb2507c85c1/tools/runner/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dP917",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

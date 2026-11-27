@@ -1,0 +1,25 @@
+{
+  "head": "c5c4e8f8e0598295d144091f79e23901d1a0ee3f",
+  "merge": "9889118c1c6f194c57d13b94361b2e9646dcbc8f",
+  "merged": "2026-07-15T18:35:43Z",
+  "missing_roots": 0,
+  "number": 19140,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The public extension API method `InstrumentationModule.isIndyModule()` is removed here, but the contributor docs still reference it (e.g. `docs/contributing/writing-instrumentation-module.md` around the “Indy modules and transition” section). After this change, that documentation becomes inaccurate/misleading for extension authors and should be updated/removed in the same release/PR series (also consider whether an explicit changelog entry for the removal is needed, since `CHANGELOG.md` currently only mentions the deprecation).",
+      "created": "2026-07-07T13:36:50Z",
+      "hunk": "@@ -116,20 +116,6 @@ public boolean isHelperClass(String className) {\n     return false;\n   }\n \n-  /**\n-   * Note this is an experimental feature until phase 1 of <a\n-   * href=\"https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/8999\">\n-   * implementing the invokedynamic based instrumentation mechanism</a> is complete. Instrumentation\n-   * modules that override this to true (recommended) must use the inline=false Invoke Dynamic style\n-   * of Byte Buddy advices which calls out to helper classes in their own classloader, thus enabling\n-   * better isolation, best practice code development, avoids shading and enables standard debugging\n-   * techniques. The non-inlining of advice will be enforced by muzzle (TODO)\n-   */\n-  @Deprecated // to be removed in next release\n-  public boolean isIndyModule() {\n-    return false;\n-  }\n-\n   /** Register resource names to inject into the user's class loader. */\n   public void registerHelperResources(HelperResourceBuilder helperResourceBuilder) {}",
+      "id": "PRRT_kwDODJKVX86O7gyO",
+      "opened": "2026-07-07T13:36:51Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/InstrumentationModule.java",
+      "replies": [],
+      "reviewed": "b8111942dd1447c36992cfc702a5f8c8b0417e3d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19140#discussion_r3536881752"
+    }
+  ]
+}

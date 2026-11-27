@@ -1,0 +1,163 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "bc4a9010c9776b386a8e9972284eb7bb48ce46ef62fedd6149a136b0dcfe4bce",
+  "input_digest": "8089293e37f1df1c8a4bebc899eaefabd0afe8d4150b85cf75267df275214706",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fc4a9eb4d8ac525a282b1487e93b58ac5611f803/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/869670a94ef8f555972865c7c6eb2631daad62d9"
+      ],
+      "id": "PRRT_kwDODJKVX85uAScy",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85uV_ob",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a5cf070acc41d0ab5e8de7b74cf761487a100e5/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/287b28b1aa2711ff68e5105a333f85350e402b91"
+      ],
+      "id": "PRRT_kwDODJKVX85uiFSX",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a5cf070acc41d0ab5e8de7b74cf761487a100e5/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/287b28b1aa2711ff68e5105a333f85350e402b91"
+      ],
+      "id": "PRRT_kwDODJKVX85uiGPI",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a5cf070acc41d0ab5e8de7b74cf761487a100e5/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a5cf070acc41d0ab5e8de7b74cf761487a100e5/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/efc5ca83a99f82ef740579e5d3b304ba23d864bd"
+      ],
+      "id": "PRRT_kwDODJKVX85uiHLq",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a5cf070acc41d0ab5e8de7b74cf761487a100e5/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/83ffb47d3afc0e61f9c912a318624f584a3d5de0"
+      ],
+      "id": "PRRT_kwDODJKVX85uiHPI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a5cf070acc41d0ab5e8de7b74cf761487a100e5/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcCommonAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1a5cf070acc41d0ab5e8de7b74cf761487a100e5/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcCommonAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/287b28b1aa2711ff68e5105a333f85350e402b91"
+      ],
+      "id": "PRRT_kwDODJKVX85uiOmp",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69a898a53d729dbbf670b747841661d2c30c6d87/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/83ffb47d3afc0e61f9c912a318624f584a3d5de0"
+      ],
+      "id": "PRRT_kwDODJKVX85wRk5_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69a898a53d729dbbf670b747841661d2c30c6d87/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/83ffb47d3afc0e61f9c912a318624f584a3d5de0"
+      ],
+      "id": "PRRT_kwDODJKVX85wR4Pt",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69a898a53d729dbbf670b747841661d2c30c6d87/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcCommonAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcCommonAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/83ffb47d3afc0e61f9c912a318624f584a3d5de0"
+      ],
+      "id": "PRRT_kwDODJKVX85wR4fb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69a898a53d729dbbf670b747841661d2c30c6d87/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/83ffb47d3afc0e61f9c912a318624f584a3d5de0"
+      ],
+      "id": "PRRT_kwDODJKVX85wR6PY",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69a898a53d729dbbf670b747841661d2c30c6d87/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/83ffb47d3afc0e61f9c912a318624f584a3d5de0"
+      ],
+      "id": "PRRT_kwDODJKVX85wR6p-",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e06b3a56b83a54778e3b31ecad0e83a4f748cd51/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e06b3a56b83a54778e3b31ecad0e83a4f748cd51/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55c6d218a5bd3c3213887c7962f5b617472cd1f2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcSpanNameExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX85wdtCx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "341393579445f413e0e218f9c8b54876793691f3",
+  "merge": "bc6fb28e07747ee5a63af3996b274dc08de24f53",
+  "merged": "2026-08-25T05:59:18Z",
+  "missing_roots": 0,
+  "number": 19738,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The source `test` suite enables receive telemetry at lines 136–142, but the generated `testExperimental` task only enables Kafka experimental attributes, so that variant runs with receive telemetry disabled and does not preserve the source suite's setting as described. Derive the receive-telemetry flag from the suite and include it in both the JVM arguments and `metadataConfig`, as the Vert.x variants do.",
+      "created": "2026-08-24T21:52:14Z",
+      "hunk": "@@ -83,14 +83,21 @@ tasks {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n-  val testExperimental = register<Test>(\"testExperimental\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-\n-    jvmArgs(\"-Dotel.instrumentation.kafka.experimental-span-attributes=true\")\n-    systemProperty(\"metadataConfig\", \"otel.instrumentation.kafka.experimental-span-attributes=true\")\n-    systemProperty(\"hasConsumerGroup\", otelProps.testLatestDeps)\n-  }\n+  val experimentalSuites = testing.suites.withType(JvmTestSuite::class)\n+    .map { suite ->\n+      register<Test>(\"${suite.name}Experimental\") {\n+        testClassesDirs = suite.sources.output.classesDirs\n+        classpath = suite.sources.runtimeClasspath\n+\n+        jvmArgs(\"-Dotel.instrumentation.kafka.experimental-span-attributes=true\")\n+        systemProperty(\"metadataConfig\", \"otel.instrumentation.kafka.experimental-span-attributes=true\")\n+        systemProperty(\n+          \"hasConsumerGroup\",\n+          if (suite.name == \"test\") otelProps.testLatestDeps else true,\n+        )",
+      "id": "PRRT_kwDODJKVX86b3Y34",
+      "opened": "2026-08-24T21:52:14Z",
+      "path": "instrumentation/reactor/reactor-kafka-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-24T21:59:19Z",
+          "body": "Addressed in 4dc170e2f64c0f72a8ea64ddd6722628c4e6967c.\n\nAnalysis: The experimental task copies each suite's test classes and classpath but does not copy the default suite's receive-telemetry setting. Deriving that setting from the suite keeps the default variant enabled and the version-specific variants disabled. The metadata configuration includes the non-default true value only for the default suite, which matches the Vert.x variant pattern.\n\nUpsides: Each experimental variant now preserves its source suite's receive-telemetry behavior. Metadata collection also records the effective non-default setting.\n\nDownsides: The mapping depends on the built-in suite retaining the name `test`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19738#discussion_r3847814356"
+        }
+      ],
+      "reviewed": "b7d333b2abf737e7397a902da347529e51cae8eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19738#discussion_r3847769054"
+    }
+  ]
+}

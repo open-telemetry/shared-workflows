@@ -1,0 +1,429 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1cb7c1d0282648a1046b9789353e54ef5bb44ce32e0169d8ea991fbdb4288df7",
+  "input_digest": "64015b47b85dd46c73078dffa9cf931d3c1a041bada9472228fbdea5c5eb731e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1f3471448d9f52ef970ceebb072effb8b1154aa4/tools/database/runner/tests/test_sql_contract.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/runner/tests/test_sql_contract.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6d9RAN",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/c22a25fb3418b8a73cda315c59ddf17a1383ea70/scenarios/database/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6d-ju2",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a87348b9bc1946d2ab89afa28289b8de6d83dd6a/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eLedk",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a87348b9bc1946d2ab89afa28289b8de6d83dd6a/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eLeeN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a87348b9bc1946d2ab89afa28289b8de6d83dd6a/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/java/shared/jdbc/scenarios/src/test/java/io/opentelemetry/conformance/database/jdbc/JdbcScenarioTest.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eLeer",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a87348b9bc1946d2ab89afa28289b8de6d83dd6a/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/test/java/io/opentelemetry/conformance/database/sql/SqlContractTest.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eLefF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f246e0414ba4ea3567a2ce652c45bfbba8fe8ee5/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/java/shared/jdbc/scenarios/src/test/java/io/opentelemetry/conformance/database/jdbc/JdbcScenarioTest.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eNN-Y",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f246e0414ba4ea3567a2ce652c45bfbba8fe8ee5/tools/database/sql-test-client/java/src/test/java/io/opentelemetry/conformance/database/sql/SqlContractTest.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f246e0414ba4ea3567a2ce652c45bfbba8fe8ee5/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/test/java/io/opentelemetry/conformance/database/sql/SqlContractTest.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eNN-z",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f246e0414ba4ea3567a2ce652c45bfbba8fe8ee5/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eNN_D",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f1d7c0c2bc931b732d272aa105e9aa4a88bf6be1/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f1d7c0c2bc931b732d272aa105e9aa4a88bf6be1/scenarios/database/java/shared/jdbc/scenarios/build.gradle.kts",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/java/shared/jdbc/scenarios/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eNsqV",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f1d7c0c2bc931b732d272aa105e9aa4a88bf6be1/tools/database/sql-test-client/java/src/test/java/io/opentelemetry/conformance/database/sql/SqlContractTest.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/test/java/io/opentelemetry/conformance/database/sql/SqlContractTest.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eNsrk",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7b4250c7e5787acd9925deb376e18e76241a48c1/tools/database/runner/tests/test_sql_contract.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/runner/tests/test_sql_contract.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eQDZK",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7b4250c7e5787acd9925deb376e18e76241a48c1/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eQDa5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7b4250c7e5787acd9925deb376e18e76241a48c1/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eQDaN",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/35a9cb05167b25d42b9c997289054db0ab86c70b/scenarios/database/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eQrt2",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/35a9cb05167b25d42b9c997289054db0ab86c70b/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/test/java/io/opentelemetry/conformance/database/sql/SqlContractTest.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eQru_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/35a9cb05167b25d42b9c997289054db0ab86c70b/tools/database/sql-test-client/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eQrum",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/35a9cb05167b25d42b9c997289054db0ab86c70b/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/35a9cb05167b25d42b9c997289054db0ab86c70b/tools/database/sql-test-client/java/src/test/java/io/opentelemetry/conformance/database/sql/SqlContractTest.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/test/java/io/opentelemetry/conformance/database/sql/SqlContractTest.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/17aa968f0aae06a83d406c94ee6362ba47f3d3eb"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eQrvQ",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/35a9cb05167b25d42b9c997289054db0ab86c70b/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/test/java/io/opentelemetry/conformance/database/sql/SqlContractTest.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eQrv8",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/35a9cb05167b25d42b9c997289054db0ab86c70b/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/35a9cb05167b25d42b9c997289054db0ab86c70b/tools/database/sql-test-client/java/src/test/java/io/opentelemetry/conformance/database/sql/SqlContractTest.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/17aa968f0aae06a83d406c94ee6362ba47f3d3eb"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eQrvj",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/35a9cb05167b25d42b9c997289054db0ab86c70b/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eQrwM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/35a9cb05167b25d42b9c997289054db0ab86c70b/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6eQrwf",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d7c6f52580b0eade8f4d3cf92b3daa8c410335da/tools/database/sql-test-client/java/gradle/wrapper/gradle-wrapper.properties",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d7c6f52580b0eade8f4d3cf92b3daa8c410335da/tools/database/sql-test-client/java/gradlew",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/gradle/wrapper/gradle-wrapper.properties",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/gradle/wrapper/gradle-wrapper.jar",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/gradlew",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/build.gradle.kts",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/b2af645d88e8709d57dd3b4d306683898a95f457"
+      ],
+      "id": "PRRT_kwDOTuzK5c6nWi_T",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d7c6f52580b0eade8f4d3cf92b3daa8c410335da/tools/http/test-client/java/gradle/wrapper/gradle-wrapper.properties",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d7c6f52580b0eade8f4d3cf92b3daa8c410335da/tools/http/test-client/java/gradlew",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/http/test-client/java/gradle/wrapper/gradle-wrapper.properties",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/http/test-client/java/gradle/wrapper/gradle-wrapper.jar",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/http/test-client/java/gradlew",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/b2af645d88e8709d57dd3b4d306683898a95f457"
+      ],
+      "id": "PRRT_kwDOTuzK5c6nWi_3",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/acdab1b629cf425b78a1ae894a6e5a4d86be2d25"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tE-dT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/sql-test-client/contracts/postgresql.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/sql-test-client/contracts/mariadb.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/contracts/postgresql.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/contracts/mariadb.yaml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tE-fI",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/sql-test-client/contracts/mariadb.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/scenarios/database/java/shared/jdbc/scenarios/src/main/java/io/opentelemetry/conformance/database/jdbc/JdbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/contracts/mariadb.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/c0acaff0596947f8969a964bee5bcc466f1295bf"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tE-gT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/fc6bf154b3ab641830da856e3cbfd22827c3096a"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tE-hO",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/runner/src/opentelemetry/conformance/_spec.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/runner/src/opentelemetry/conformance/_spec.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tE-iY",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/sql-test-client/java/gradle/wrapper/gradle-wrapper.properties",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/gradle/wrapper/gradle-wrapper.properties",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/sql-test-client/java/gradlew",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/gradlew",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/gradle/wrapper/gradle-wrapper.jar",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/http/test-client/java/gradle/wrapper/gradle-wrapper.properties",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/http/test-client/java/gradle/wrapper/gradle-wrapper.properties",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/df2ed70114a1ab016adbba26e33a371059341171"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tE-jk",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/runner/src/database_conformance/__init__.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/runner/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/runner/src/database_conformance/__init__.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/runner/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/12c51e1afc8ca202ec31e915757dd459519de8c1"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tE-kR",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/runner/tests/test_sql_contract.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/runner/tests/test_sql_contract.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/2819b991fb8e6830a1d129ada1e36830734a8817"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tE-lq",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/sql-test-client/java/build.gradle.kts",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/build.gradle.kts",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/31cb017bc4b2b48c82950077d8584b398fdcb8d4"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tE-nB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fce177d68f4ef734c7c1254a4f231cf9ed4bda25/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17aa968f0aae06a83d406c94ee6362ba47f3d3eb/tools/database/sql-test-client/java/src/main/java/io/opentelemetry/conformance/database/sql/SqlContract.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/00bbe436290ec4ac4ffd1b961798e887b639d5ee"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tE-oE",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

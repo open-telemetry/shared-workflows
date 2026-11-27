@@ -1,0 +1,61 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "49eeaea9bb3c228dd41bb50b7e1dd5d67841cfd9be86535b6e100571f5a152d2",
+  "input_digest": "98ca8d9916c800789ffa67ec1f7d70ba8681bd81f9c2e58a6932e2f1f8419181",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/896f939d0f37a3906aed54cddd26dfbccd76f912/instrumentation/netty/netty-4.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/netty/v4_1/ChannelPipelineTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11a15c7a4255b22f8df3bb74761879edb58a5900/instrumentation/netty/netty-4.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/netty/v4_1/ChannelPipelineTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/40fd0cf34440ae1c38b9712616e697849201d9df"
+      ],
+      "id": "PRRT_kwDODJKVX86JHnK3",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/896f939d0f37a3906aed54cddd26dfbccd76f912/scripts/migrate-parameterized-tests.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11a15c7a4255b22f8df3bb74761879edb58a5900/scripts/migrate-parameterized-tests.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11a15c7a4255b22f8df3bb74761879edb58a5900/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/StaticImportFormatter.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/40fd0cf34440ae1c38b9712616e697849201d9df"
+      ],
+      "id": "PRRT_kwDODJKVX86JHnLi",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/896f939d0f37a3906aed54cddd26dfbccd76f912/instrumentation/kubernetes-client-7.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/kubernetesclient/v7_0/KubernetesRequestUtilsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/896f939d0f37a3906aed54cddd26dfbccd76f912/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/StaticImportFormatter.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11a15c7a4255b22f8df3bb74761879edb58a5900/instrumentation/kubernetes-client-7.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/kubernetesclient/v7_0/KubernetesRequestUtilsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11a15c7a4255b22f8df3bb74761879edb58a5900/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/StaticImportFormatter.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/40fd0cf34440ae1c38b9712616e697849201d9df"
+      ],
+      "id": "PRRT_kwDODJKVX86JLSCF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/06f9f0f6d63178f13d52d08f900679266493587a/scripts/migrate-parameterized-tests.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11a15c7a4255b22f8df3bb74761879edb58a5900/scripts/migrate-parameterized-tests.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/06f9f0f6d63178f13d52d08f900679266493587a...cd872207e12eb9517ec560a892ee5df7e281f96c",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cd872207e12eb9517ec560a892ee5df7e281f96c"
+      ],
+      "id": "PRRT_kwDODJKVX86OPHkH",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "953d6ac3fe03a52ba1dc67597a5885da062724a1",
+  "merge": "becdeada85060980c2338a924ec8229dc5b4a234",
+  "merged": "2026-09-08T17:51:13Z",
+  "missing_roots": 0,
+  "number": 19864,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This only snapshots targets when callers use `builder.build()`. Cassandra exposes `Cluster.buildFrom(Initializer)` as a public construction path in every supported 3.x version, and `Cluster.Builder` implements `Initializer`; `Cluster.buildFrom(builder)` therefore bypasses this advice and all spans from that cluster omit the configured stable target. Please capture/store the target on that construction path as well (for example by instrumenting `Cluster.buildFrom` or the `Cluster(Initializer)` constructor when the initializer is a builder), and cover the direct API in a test.",
+      "created": "2026-09-08T00:08:46Z",
+      "hunk": "@@ -0,0 +1,75 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v3_0;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+\n+import com.datastax.driver.core.Cluster;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class CassandraBuilderInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.datastax.driver.core.Cluster$Builder\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"addContactPoint\", \"addContactPoints\", \"addContactPointsWithPorts\"),\n+        getClass().getName() + \"$AddContactPointsAdvice\");\n+    transformer.applyAdviceToMethod(named(\"build\"), getClass().getName() + \"$BuildAdvice\");",
+      "id": "PRRT_kwDODJKVX86gDZDq",
+      "opened": "2026-09-08T00:08:46Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraBuilderInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-08T01:20:45Z",
+          "body": "Addressed in 043e865e00d5cb4e9abec30dc626d6104b2e489d.\n\nAnalysis: `Cluster.Builder.build()` delegates to `Cluster.buildFrom(Initializer)` throughout the supported 3.x range. Instrumenting that shared factory captures targets for both construction APIs. The advice stores a target only when the initializer is a `Cluster.Builder`, and it reads the effective port from the returned cluster configuration.\n\nUpsides: Direct `Cluster.buildFrom(builder)` calls now retain the configured stable server target. The existing builder path and the direct API share one storage path, and the new test covers the bypass reported in the review.\n\nDownsides: The module adds one transformation to `Cluster.buildFrom` and one runtime type check per cluster construction.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19864#discussion_r3953539835"
+        }
+      ],
+      "reviewed": "8bb1b23d3ea78561569c99cc58e751ee79481a19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19864#discussion_r3953276304"
+    }
+  ]
+}

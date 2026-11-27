@@ -1,0 +1,215 @@
+{
+  "head": "41c9430d390b1bbbf05f0ad6aa8bf57f18e7ecf8",
+  "merge": "a408e14ef0f009b9e90d00c765be03f6a245dd97",
+  "merged": "2026-10-28T00:57:43Z",
+  "missing_roots": 0,
+  "number": 796,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Embedder` delegates string-model embedding calls to LiteLLM (the hosted-model tests mock `dspy.clients.embedding._get_litellm`), so wrapping `__call__`/`acall` here creates a second `embeddings` client span whenever the underlying LiteLLM instrumentation is enabled. The instrumentation operation-ownership rule in `instrumentation/AGENTS.md` requires leaving delegated model calls to the underlying library; this should be removed or limited to a DSPy-owned operation rather than emitting duplicate embedding spans.",
+      "created": "2026-09-25T15:21:56Z",
+      "hunk": "@@ -218,6 +226,20 @@ def patch_dspy(handler: TelemetryHandler) -> None:\n                 _react_aforward(handler, \"dspy.ReActV2\"),\n             )\n \n+    if hasattr(dspy, \"Embedder\"):\n+        embedder_module = dspy.Embedder.__module__\n+        embedder_name = dspy.Embedder.__name__\n+        _wrap_function(\n+            embedder_module,",
+      "id": "PRRT_kwDOSbspP86mDg6d",
+      "opened": "2026-09-25T15:21:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "7b889babdd24a8e0be8147d20a12286ac477f3bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4105981729"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This conformance fallback has the same failure mode as the unit-test fixture: if DSPy has no NumPy support, `np.array` raises `AttributeError` (or `np` is `None`), so the fallback assignment is never reached. Use `getattr(dspy.clients.embedding, \"np\", None) is None` rather than catching `ImportError`.",
+      "created": "2026-09-25T15:21:57Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: Embedder execution for DSPy.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+from opentelemetry.instrumentation.genai.dspy import DSPyInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import (\n+    ExpectedViolation,\n+    Scenario,\n+)\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+class _FallbackArray:\n+    def __init__(self, data: list[Any]) -> None:\n+        self._data = data\n+        if data and isinstance(data[0], list):\n+            self.shape: tuple[int, ...] = (len(data), len(data[0]))\n+            self.size = len(data) * len(data[0])\n+        else:\n+            self.shape = (len(data),)\n+            self.size = len(data)\n+\n+    def __getitem__(self, idx: int) -> Any:\n+        item = self._data[idx]\n+        return _FallbackArray(item) if isinstance(item, list) else item\n+\n+\n+class _FallbackNP:\n+    float32 = float\n+\n+    @staticmethod\n+    def array(data: Any, dtype: Any = None) -> _FallbackArray:\n+        if isinstance(data, _FallbackArray):\n+            return data\n+        return _FallbackArray(list(data))\n+\n+\n+def _dummy_embedder(texts: list[str], **kwargs: Any) -> list[list[float]]:\n+    return [[0.1, 0.2, 0.3, 0.4] for _ in texts]\n+\n+\n+class EmbedderScenario(Scenario):\n+    expected_spans = {\"embeddings\": 1}\n+    expected_metrics = (\"gen_ai.client.operation.duration\",)\n+    expected_violations = (\n+        ExpectedViolation(\n+            advice_id=\"genai_expected_attribute_missing\",\n+            message_substring=\"gen_ai.response.model\",\n+        ),\n+        ExpectedViolation(\n+            advice_id=\"genai_expected_attribute_missing\",\n+            message_substring=\"gen_ai.usage.input_tokens\",\n+        ),\n+    )\n+\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None:\n+        import dspy.clients.embedding\n+\n+        try:\n+            _ = dspy.clients.embedding.np.array\n+        except ImportError:\n+            dspy.clients.embedding.np = _FallbackNP()",
+      "id": "PRRT_kwDOSbspP86mDg72",
+      "opened": "2026-09-25T15:21:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/conformance/embedder.py",
+      "replies": [],
+      "reviewed": "7b889babdd24a8e0be8147d20a12286ac477f3bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4105981877"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "DSPy `Embedder` stores constructor-level provider options in `instance.kwargs`, not `default_kwargs`. As written, options such as `dimensions`, `encoding_format`, and `api_base` passed to the constructor are omitted from `merged_kwargs`, so the span loses the request encoding and server attributes (and any configured dimension before response inference). Read `kwargs` (or support both attribute names) here before applying per-call overrides.",
+      "created": "2026-09-25T15:21:57Z",
+      "hunk": "@@ -508,3 +534,84 @@ def traced_method(\n             return result\n \n     return traced_method\n+\n+\n+def _extract_encoding_formats(\n+    merged_kwargs: Mapping[str, object],\n+) -> list[str] | None:\n+    encoding_format = merged_kwargs.get(\"encoding_format\")\n+    if encoding_format is None:\n+        encoding_format = merged_kwargs.get(\"encoding_formats\")\n+    if isinstance(encoding_format, str) and encoding_format:\n+        return [encoding_format]\n+    if is_sequence(encoding_format):\n+        formats = [str(fmt) for fmt in encoding_format if fmt is not None]\n+        return formats or None\n+    return None\n+\n+\n+def _start_embedding_invocation(\n+    handler: TelemetryHandler,\n+    instance: Embedder,\n+    kwargs: dict[str, Any],\n+) -> EmbeddingInvocation:\n+    provider, request_model = resolve_embedder_provider_and_model(instance)\n+\n+    merged_kwargs: dict[str, object] = {}\n+    default_kwargs: object = getattr(instance, \"default_kwargs\", None)\n+    if is_mapping(default_kwargs):\n+        merged_kwargs.update(default_kwargs)\n+    merged_kwargs.update(kwargs)",
+      "id": "PRRT_kwDOSbspP86mDg7L",
+      "opened": "2026-09-25T15:21:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "7b889babdd24a8e0be8147d20a12286ac477f3bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4105981805"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When NumPy is unavailable, DSPy can expose `np` as `None` (or omit the attribute); in either case accessing `.array` raises `AttributeError`, not `ImportError`, so this fallback is skipped and the new tests fail in the supported no-NumPy setup. Check the attribute with `getattr(..., \"np\", None)` instead.",
+      "created": "2026-09-25T15:21:58Z",
+      "hunk": "@@ -0,0 +1,388 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for DSPy Embedder instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+import copy\n+from types import SimpleNamespace\n+from typing import Any\n+from unittest.mock import AsyncMock, MagicMock\n+\n+import dspy\n+import dspy.clients.embedding\n+import pytest\n+\n+from opentelemetry.instrumentation.genai.dspy import DSPyInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.metrics.export import InMemoryMetricReader\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAI,\n+)\n+from opentelemetry.semconv.attributes import (\n+    error_attributes,\n+    server_attributes,\n+)\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+from opentelemetry.trace import StatusCode\n+\n+\n+class _FallbackArray:\n+    def __init__(self, data: list[Any]) -> None:\n+        self._data = data\n+        if data and isinstance(data[0], list):\n+            self.shape: tuple[int, ...] = (len(data), len(data[0]))\n+            self.size = len(data) * len(data[0])\n+        else:\n+            self.shape = (len(data),)\n+            self.size = len(data)\n+\n+    def __getitem__(self, idx: int) -> Any:\n+        item = self._data[idx]\n+        return _FallbackArray(item) if isinstance(item, list) else item\n+\n+\n+class _FallbackNP:\n+    float32 = float\n+\n+    @staticmethod\n+    def array(data: Any, dtype: Any = None) -> _FallbackArray:\n+        if isinstance(data, _FallbackArray):\n+            return data\n+        return _FallbackArray(list(data))\n+\n+\n+@pytest.fixture(autouse=True)\n+def _ensure_embedder_np(monkeypatch: pytest.MonkeyPatch) -> None:\n+    try:\n+        _ = dspy.clients.embedding.np.array\n+    except ImportError:\n+        monkeypatch.setattr(dspy.clients.embedding, \"np\", _FallbackNP())",
+      "id": "PRRT_kwDOSbspP86mDg8g",
+      "opened": "2026-09-25T15:21:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/test_embedder.py",
+      "replies": [],
+      "reviewed": "7b889babdd24a8e0be8147d20a12286ac477f3bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4105981937"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`Embedder.__call__` splits inputs into batches and calls `litellm.embedding` once per batch. This wrapper treats those separate model-client calls as one embedding operation. With #859, it would suppress their spans and retain only the last batch’s token usage. Could we either move instrumentation inside DSPy’s batch loop, around each model call, or leave hosted-model telemetry to downstream instrumentation? Please add sync/async coverage with both instrumentations enabled to verify per-call spans and metrics.",
+      "created": "2026-10-11T17:28:15Z",
+      "hunk": "@@ -713,3 +739,89 @@ def traced_method(\n             _in_retrieval_invocation.reset(token)\n \n     return traced_method\n+\n+\n+def _extract_encoding_formats(\n+    merged_kwargs: Mapping[str, object],\n+) -> list[str] | None:\n+    encoding_format = merged_kwargs.get(\"encoding_format\")\n+    if encoding_format is None:\n+        encoding_format = merged_kwargs.get(\"encoding_formats\")\n+    if isinstance(encoding_format, str) and encoding_format:\n+        return [encoding_format]\n+    if is_sequence(encoding_format):\n+        formats = [str(fmt) for fmt in encoding_format if fmt is not None]\n+        return formats or None\n+    return None\n+\n+\n+def _start_embedding_invocation(\n+    handler: TelemetryHandler,\n+    instance: Embedder,\n+    kwargs: dict[str, Any],\n+) -> EmbeddingInvocation:\n+    provider, request_model = resolve_embedder_provider_and_model(instance)\n+\n+    merged_kwargs: dict[str, object] = {}\n+    # Embedder stores init kwargs in default_kwargs unlike other DSPy modules that use kwargs;\n+    # both are supported with call-time kwargs taking highest precedence.\n+    init_kwargs: object = getattr(instance, \"kwargs\", None)\n+    if is_mapping(init_kwargs):\n+        merged_kwargs.update(init_kwargs)\n+    default_kwargs: object = getattr(instance, \"default_kwargs\", None)\n+    if is_mapping(default_kwargs):\n+        merged_kwargs.update(default_kwargs)\n+    merged_kwargs.update(kwargs)\n+\n+    api_base = merged_kwargs.get(\"api_base\")\n+    if api_base is None:\n+        api_base = merged_kwargs.get(\"base_url\")\n+    server_address, server_port = extract_server_address_and_port(api_base)\n+\n+    invocation = handler.embedding(\n+        provider=provider,\n+        request_model=request_model,\n+        server_address=server_address,\n+        server_port=server_port,\n+    )\n+\n+    invocation.dimension_count = safe_int(merged_kwargs.get(\"dimensions\"))\n+    invocation.encoding_formats = _extract_encoding_formats(merged_kwargs)\n+\n+    return invocation\n+\n+\n+def _embedder_call(\n+    handler: TelemetryHandler,\n+) -> Callable[..., Any]:\n+    def traced_method(\n+        wrapped: Callable[..., Any],\n+        instance: Embedder,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Any:\n+        invocation = _start_embedding_invocation(handler, instance, kwargs)\n+        with invocation:\n+            result = wrapped(*args, **kwargs)",
+      "id": "PRRT_kwDOSbspP86rPzFZ",
+      "opened": "2026-10-11T17:29:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [
+        {
+          "at": "2026-10-12T15:49:39Z",
+          "body": "Having 1 span for this is kind of nice.. it is ultimately 1 function call by the user.. and we are monkey patching the public API target dspy exposes.. but we do lose the token usage metrics and response model attributes and latency/result of each network call..\r\n\r\nNote we don't have instrumentation for `litellm`, they are natively instrumented so it'll take some time for them to support the suppression thing.. Also we could point the user to `litellm` to get detailed per-request spans, another reason to just instrument the higher level method.\r\n\r\n`Embedder.call` also can be called with a string (in which case `litellm` is invoked) or with a function (this is supposedly for when you are running an embedder model locally or using something like `FastEmbed` or `ONNX` which i don't fully understand).. `dspy` also has a cache layer on top of each batch call which I think we want to see spans for ??\r\n\r\nI think we want instrumentation here.. so I could leave it as is or move it down to within the batch loop and also monkey patch the caching layer so we get a span per-cache-hit or per-network/function call..\r\n\r\nShould i proceed with moving it down to a lower level ? WDYT?\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4249910190"
+        },
+        {
+          "at": "2026-10-20T02:46:05Z",
+          "body": "I'd move it down to each model call inside the batch loop, for both the LiteLLM path and the callable path. Each span then carries its own model, usage and latency, and token metrics stay correct. Cache hits don't call a model, so I'd skip them rather than emit an embeddings client span. A DSPy-level parent span for the whole user call could come later, but that isn't in semconv yet. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4320956703"
+        },
+        {
+          "at": "2026-10-21T19:45:05Z",
+          "body": "OK SG, moved the monkey patching down to the lite llm layer.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4341209964"
+        }
+      ],
+      "reviewed": "ad9ec99909354b983e29ff9793df5bc55af1d495",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4242507117"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Function names aren't model names: `dspy.Embedder(SentenceTransformer(\"sentence-transformers/all-MiniLM-L6-v2\").encode)` (the example from the DSPy docs) produces `embeddings encode` with `gen_ai.request.model=\"encode\"`; plain functions and lambdas give `_custom_embed_fn` / `<lambda>`. What about only using an explicit `model_name` and leaving it unset otherwise?\n\n```suggestion\n        model_name_attr = getattr(model, \"model_name\", None) or getattr(\n            bound_self, \"model_name\", None\n        )\n        return \"unknown\", str(model_name_attr) if model_name_attr else None\n```\n\n```python\nclass _SentenceTransformerLike:\n    \"\"\"Like SentenceTransformer: no `model_name` attribute.\"\"\"\n\n    def encode(self, texts, **kwargs):\n        return [[0.1, 0.2] for _ in texts]\n\n\ndef _custom_embed_fn(texts, **kwargs):\n    return [[0.1, 0.2] for _ in texts]\n\n\n@pytest.mark.parametrize(\n    \"model\",\n    [\n        pytest.param(_SentenceTransformerLike().encode, id=\"bound_method\"),\n        pytest.param(_custom_embed_fn, id=\"function\"),\n        pytest.param(lambda texts, **kw: [[0.1] for _ in texts], id=\"lambda\"),\n    ],\n)\ndef test_callable_without_model_name_has_no_request_model(\n    model, tracer_provider, logger_provider, meter_provider, span_exporter\n):\n    with instrument(\n        DSPyInstrumentor(),\n        tracer_provider=tracer_provider,\n        logger_provider=logger_provider,\n        meter_provider=meter_provider,\n    ):\n        dspy.Embedder(model, caching=False)([\"hello\"])\n\n    (span,) = span_exporter.get_finished_spans()\n    assert span.name == \"embeddings\"\n    assert GenAI.GEN_AI_REQUEST_MODEL not in span.attributes\n```\n",
+      "created": "2026-10-22T19:48:14Z",
+      "hunk": "@@ -140,8 +151,88 @@ def parse_provider_and_model(\n         model_name = model_name.strip()\n         if \"-\" in provider:\n             provider = provider.split(\"-\")[-1]\n-        return provider, model_name\n-    return None, model_str.strip() if model_str else None\n+        return provider, model_name or None\n+    return None, model_str.strip() or None\n+\n+\n+_MODEL_PREFIX_TO_PROVIDER: tuple[tuple[str, str], ...] = (\n+    (\"text-embedding-\", GenAiProviderNameValues.OPENAI.value),\n+    (\"embed-\", GenAiProviderNameValues.COHERE.value),\n+    (\"amazon.titan-embed\", GenAiProviderNameValues.AWS_BEDROCK.value),\n+    (\"gemini-embedding\", GenAiProviderNameValues.GCP_GEMINI.value),\n+    (\"mistral-embed\", GenAiProviderNameValues.MISTRAL_AI.value),\n+)\n+\n+\n+def resolve_embedder_provider_and_model(\n+    model_or_instance: Any,\n+) -> tuple[str, str | None]:\n+    \"\"\"Resolve (gen_ai.provider.name, gen_ai.request.model) from a DSPy Embedder or model.\"\"\"\n+    if hasattr(model_or_instance, \"model\"):\n+        model = getattr(model_or_instance, \"model\", None)\n+    else:\n+        model = model_or_instance\n+    if isinstance(model, str):\n+        provider_raw, model_name = parse_provider_and_model(model)\n+        if provider_raw:\n+            return (\n+                _KNOWN_PROVIDERS.get(provider_raw) or provider_raw,\n+                model_name,\n+            )\n+        model_lower = (model_name or \"\").lower()\n+        for prefix, provider in _MODEL_PREFIX_TO_PROVIDER:\n+            if model_lower.startswith(prefix):\n+                return provider, model_name\n+        return \"dspy\", model_name\n+\n+    if callable(model):\n+        bound_self = getattr(model, \"__self__\", None)\n+        model_name_attr = (\n+            getattr(model, \"model_name\", None)\n+            or getattr(bound_self, \"model_name\", None)\n+            or getattr(model, \"__name__\", None)\n+            or type(model).__name__\n+        )\n+        return \"dspy\", str(model_name_attr) if model_name_attr else None",
+      "id": "PRRT_kwDOSbspP86vWjNJ",
+      "opened": "2026-10-22T21:18:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-23T17:09:30Z",
+          "body": "Ack, leaving it unset when its not there SG...",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4362226625"
+        }
+      ],
+      "reviewed": "6a91aea70a8b0ec547c5c7cd8196aba1589951a9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4352806688"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`dspy` isn't the provider here, and `resolve_provider` for LMs falls back to `unknown`. Could we use the same fallback (here and below) so provider-based dashboards don't get a fake `dspy` provider?\n\n```suggestion\n        return \"unknown\", model_name\n```",
+      "created": "2026-10-22T19:48:15Z",
+      "hunk": "@@ -140,8 +151,88 @@ def parse_provider_and_model(\n         model_name = model_name.strip()\n         if \"-\" in provider:\n             provider = provider.split(\"-\")[-1]\n-        return provider, model_name\n-    return None, model_str.strip() if model_str else None\n+        return provider, model_name or None\n+    return None, model_str.strip() or None\n+\n+\n+_MODEL_PREFIX_TO_PROVIDER: tuple[tuple[str, str], ...] = (\n+    (\"text-embedding-\", GenAiProviderNameValues.OPENAI.value),\n+    (\"embed-\", GenAiProviderNameValues.COHERE.value),\n+    (\"amazon.titan-embed\", GenAiProviderNameValues.AWS_BEDROCK.value),\n+    (\"gemini-embedding\", GenAiProviderNameValues.GCP_GEMINI.value),\n+    (\"mistral-embed\", GenAiProviderNameValues.MISTRAL_AI.value),\n+)\n+\n+\n+def resolve_embedder_provider_and_model(\n+    model_or_instance: Any,\n+) -> tuple[str, str | None]:\n+    \"\"\"Resolve (gen_ai.provider.name, gen_ai.request.model) from a DSPy Embedder or model.\"\"\"\n+    if hasattr(model_or_instance, \"model\"):\n+        model = getattr(model_or_instance, \"model\", None)\n+    else:\n+        model = model_or_instance\n+    if isinstance(model, str):\n+        provider_raw, model_name = parse_provider_and_model(model)\n+        if provider_raw:\n+            return (\n+                _KNOWN_PROVIDERS.get(provider_raw) or provider_raw,\n+                model_name,\n+            )\n+        model_lower = (model_name or \"\").lower()\n+        for prefix, provider in _MODEL_PREFIX_TO_PROVIDER:\n+            if model_lower.startswith(prefix):\n+                return provider, model_name\n+        return \"dspy\", model_name",
+      "id": "PRRT_kwDOSbspP86vWjNc",
+      "opened": "2026-10-22T21:18:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/utils.py",
+      "replies": [],
+      "reviewed": "6a91aea70a8b0ec547c5c7cd8196aba1589951a9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4352806714"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this now always receives the model, not the `Embedder`, so this branch only kicks in for callables that happen to have a `.model` attribute and resolves the wrong thing for them.\n\n```suggestion\n    model = model_or_instance\n```",
+      "created": "2026-10-22T19:48:15Z",
+      "hunk": "@@ -140,8 +151,88 @@ def parse_provider_and_model(\n         model_name = model_name.strip()\n         if \"-\" in provider:\n             provider = provider.split(\"-\")[-1]\n-        return provider, model_name\n-    return None, model_str.strip() if model_str else None\n+        return provider, model_name or None\n+    return None, model_str.strip() or None\n+\n+\n+_MODEL_PREFIX_TO_PROVIDER: tuple[tuple[str, str], ...] = (\n+    (\"text-embedding-\", GenAiProviderNameValues.OPENAI.value),\n+    (\"embed-\", GenAiProviderNameValues.COHERE.value),\n+    (\"amazon.titan-embed\", GenAiProviderNameValues.AWS_BEDROCK.value),\n+    (\"gemini-embedding\", GenAiProviderNameValues.GCP_GEMINI.value),\n+    (\"mistral-embed\", GenAiProviderNameValues.MISTRAL_AI.value),\n+)\n+\n+\n+def resolve_embedder_provider_and_model(\n+    model_or_instance: Any,\n+) -> tuple[str, str | None]:\n+    \"\"\"Resolve (gen_ai.provider.name, gen_ai.request.model) from a DSPy Embedder or model.\"\"\"\n+    if hasattr(model_or_instance, \"model\"):\n+        model = getattr(model_or_instance, \"model\", None)\n+    else:\n+        model = model_or_instance",
+      "id": "PRRT_kwDOSbspP86vWjNh",
+      "opened": "2026-10-22T21:18:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-23T17:10:16Z",
+          "body": "ack fixed.. use model_or_instance instead..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4362233218"
+        }
+      ],
+      "reviewed": "6a91aea70a8b0ec547c5c7cd8196aba1589951a9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4352806724"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `batch_inputs` is unused here (and `_extract_model_and_batch_inputs` only computes it for this call).\n\n```suggestion\n```\n",
+      "created": "2026-10-22T19:48:15Z",
+      "hunk": "@@ -1144,3 +1191,182 @@ def traced_method(\n             _in_retrieval_invocation.reset(token)\n \n     return traced_method\n+\n+\n+def _extract_encoding_formats(\n+    merged_kwargs: Mapping[str, object],\n+) -> list[str] | None:\n+    encoding_format = merged_kwargs.get(\"encoding_format\")\n+    if encoding_format is None:\n+        encoding_format = merged_kwargs.get(\"encoding_formats\")\n+    if isinstance(encoding_format, str) and encoding_format:\n+        return [encoding_format]\n+    if is_sequence(encoding_format):\n+        formats = [str(fmt) for fmt in encoding_format if fmt is not None]\n+        return formats or None\n+    return None\n+\n+\n+def _record_litellm_response(\n+    invocation: EmbeddingInvocation, response: Any\n+) -> None:\n+    if response is None:\n+        return\n+\n+    model: object = getattr(response, \"model\", None)\n+    if model is None and is_mapping(response):\n+        model = response.get(\"model\")\n+    if isinstance(model, str) and model:\n+        invocation.response_model_name = model\n+\n+    usage: object = getattr(response, \"usage\", None)\n+    if usage is None and is_mapping(response):\n+        usage = response.get(\"usage\")\n+\n+    if usage is not None:\n+        prompt_tokens: object = getattr(usage, \"prompt_tokens\", None)\n+        if prompt_tokens is None and is_mapping(usage):\n+            prompt_tokens = usage.get(\"prompt_tokens\")\n+        if prompt_tokens is None:\n+            prompt_tokens = getattr(usage, \"input_tokens\", None)\n+            if prompt_tokens is None and is_mapping(usage):\n+                prompt_tokens = usage.get(\"input_tokens\")\n+\n+        tokens_int = safe_int(prompt_tokens)\n+        if tokens_int is not None:\n+            invocation.input_tokens = tokens_int\n+\n+\n+class _LiteLLMProxy(_ObjectProxy):\n+    \"\"\"Proxy around LiteLLM module to capture embedding responses.\"\"\"\n+\n+    def __init__(\n+        self,\n+        wrapped: Any,\n+        invocation: EmbeddingInvocation,\n+    ) -> None:\n+        super().__init__(wrapped)\n+        self._self_invocation = invocation\n+\n+    def embedding(self, *args: Any, **kwargs: Any) -> Any:\n+        response = self.__wrapped__.embedding(*args, **kwargs)\n+        _record_litellm_response(self._self_invocation, response)\n+        return response\n+\n+    async def aembedding(self, *args: Any, **kwargs: Any) -> Any:\n+        response = await self.__wrapped__.aembedding(*args, **kwargs)\n+        _record_litellm_response(self._self_invocation, response)\n+        return response\n+\n+\n+def _wrap_get_litellm() -> Callable[..., Any]:\n+    def traced_method(\n+        wrapped: Callable[..., Any],\n+        instance: Any,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Any:\n+        litellm_module = wrapped(*args, **kwargs)\n+        inv = _active_embedding_invocation.get()\n+        if inv is not None:\n+            return _LiteLLMProxy(litellm_module, inv)\n+        return litellm_module\n+\n+    return traced_method\n+\n+\n+def _extract_model_and_batch_inputs(\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> tuple[Any, list[str]]:\n+    model = args[0] if len(args) > 0 else kwargs.get(\"model\")\n+    batch_inputs: object = (\n+        args[1]\n+        if len(args) > 1\n+        else kwargs.get(\"batch_inputs\", kwargs.get(\"input\", []))\n+    )\n+    if isinstance(batch_inputs, str):\n+        return model, [batch_inputs]\n+    if is_sequence(batch_inputs):\n+        return model, [str(inp) for inp in batch_inputs]\n+    return model, []\n+\n+\n+def _start_embedding_invocation(\n+    handler: TelemetryHandler,\n+    model: Any,\n+    batch_inputs: Sequence[str],",
+      "id": "PRRT_kwDOSbspP86vWjNt",
+      "opened": "2026-10-22T21:18:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "6a91aea70a8b0ec547c5c7cd8196aba1589951a9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4352806742"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: when the dimension can't be inferred from the result, this overwrites the requested `dimensions` with `None`.\n\n```suggestion\n                dimension_count = extract_embedding_dimension(result)\n                if dimension_count is not None:\n                    invocation.dimension_count = dimension_count\n```\n\nSame in the async wrapper.",
+      "created": "2026-10-23T21:34:56Z",
+      "hunk": "@@ -1144,3 +1191,167 @@ def traced_method(\n             _in_retrieval_invocation.reset(token)\n \n     return traced_method\n+\n+\n+def _extract_encoding_formats(\n+    merged_kwargs: Mapping[str, object],\n+) -> list[str] | None:\n+    encoding_format = merged_kwargs.get(\"encoding_format\")\n+    if encoding_format is None:\n+        encoding_format = merged_kwargs.get(\"encoding_formats\")\n+    if isinstance(encoding_format, str) and encoding_format:\n+        return [encoding_format]\n+    if is_sequence(encoding_format):\n+        formats = [str(fmt) for fmt in encoding_format if fmt is not None]\n+        return formats or None\n+    return None\n+\n+\n+def _record_litellm_response(\n+    invocation: EmbeddingInvocation, response: Any\n+) -> None:\n+    if response is None:\n+        return\n+\n+    model: object = getattr(response, \"model\", None)\n+    if model is None and is_mapping(response):\n+        model = response.get(\"model\")\n+    if isinstance(model, str) and model:\n+        invocation.response_model_name = model\n+\n+    usage: object = getattr(response, \"usage\", None)\n+    if usage is None and is_mapping(response):\n+        usage = response.get(\"usage\")\n+\n+    if usage is not None:\n+        prompt_tokens: object = getattr(usage, \"prompt_tokens\", None)\n+        if prompt_tokens is None and is_mapping(usage):\n+            prompt_tokens = usage.get(\"prompt_tokens\")\n+        if prompt_tokens is None:\n+            prompt_tokens = getattr(usage, \"input_tokens\", None)\n+            if prompt_tokens is None and is_mapping(usage):\n+                prompt_tokens = usage.get(\"input_tokens\")\n+\n+        tokens_int = safe_int(prompt_tokens)\n+        if tokens_int is not None:\n+            invocation.input_tokens = tokens_int\n+\n+\n+class _LiteLLMProxy(_ObjectProxy):\n+    \"\"\"Proxy around LiteLLM module to capture embedding responses.\"\"\"\n+\n+    def __init__(\n+        self,\n+        wrapped: Any,\n+        invocation: EmbeddingInvocation,\n+    ) -> None:\n+        super().__init__(wrapped)\n+        self._self_invocation = invocation\n+\n+    def embedding(self, *args: Any, **kwargs: Any) -> Any:\n+        response = self.__wrapped__.embedding(*args, **kwargs)\n+        _record_litellm_response(self._self_invocation, response)\n+        return response\n+\n+    async def aembedding(self, *args: Any, **kwargs: Any) -> Any:\n+        response = await self.__wrapped__.aembedding(*args, **kwargs)\n+        _record_litellm_response(self._self_invocation, response)\n+        return response\n+\n+\n+def _wrap_get_litellm() -> Callable[..., Any]:\n+    def traced_method(\n+        wrapped: Callable[..., Any],\n+        instance: Any,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Any:\n+        litellm_module = wrapped(*args, **kwargs)\n+        inv = _active_embedding_invocation.get()\n+        if inv is not None:\n+            return _LiteLLMProxy(litellm_module, inv)\n+        return litellm_module\n+\n+    return traced_method\n+\n+\n+def _extract_model(\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> Any:\n+    return args[0] if len(args) > 0 else kwargs.get(\"model\")\n+\n+\n+def _start_embedding_invocation(\n+    handler: TelemetryHandler,\n+    model: Any,\n+    kwargs: Mapping[str, Any],\n+) -> EmbeddingInvocation:\n+    provider, request_model = resolve_embedder_provider_and_model(model)\n+\n+    api_base = kwargs.get(\"api_base\")\n+    if api_base is None:\n+        api_base = kwargs.get(\"base_url\")\n+    server_address, server_port = extract_server_address_and_port(api_base)\n+\n+    invocation = handler.embedding(\n+        provider=provider,\n+        request_model=request_model,\n+        server_address=server_address,\n+        server_port=server_port,\n+    )\n+\n+    invocation.dimension_count = safe_int(kwargs.get(\"dimensions\"))\n+    invocation.encoding_formats = _extract_encoding_formats(kwargs)\n+\n+    return invocation\n+\n+\n+def _embedder_compute_embeddings(\n+    handler: TelemetryHandler,\n+) -> Callable[..., Any]:\n+    def traced_method(\n+        wrapped: Callable[..., Any],\n+        instance: Any,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Any:\n+        model = _extract_model(args, kwargs)\n+        invocation = _start_embedding_invocation(handler, model, kwargs)\n+        token = _active_embedding_invocation.set(invocation)\n+        try:\n+            with invocation:\n+                result = wrapped(*args, **kwargs)\n+                invocation.dimension_count = extract_embedding_dimension(\n+                    result\n+                )",
+      "id": "PRRT_kwDOSbspP86vx90f",
+      "opened": "2026-10-23T21:38:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [
+        {
+          "at": "2026-10-26T18:48:03Z",
+          "body": "Ack, applied fix",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4381167561"
+        }
+      ],
+      "reviewed": "8c645b3aa95d4fce99606bc065757d3359ea3997",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4364428140"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this only covers the local-callable path, so `gen_ai.response.model` / `gen_ai.usage.input_tokens` end up as declared violations. What about adding a hosted-model scenario (LiteLLM path, mocked like in `test_sync_embedder_hosted_model` or via VCR) so those attributes get validated against semconv too?",
+      "created": "2026-10-23T21:34:56Z",
+      "hunk": "@@ -0,0 +1,62 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: Embedder execution for DSPy.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+import dspy\n+\n+from opentelemetry.instrumentation.genai.dspy import DSPyInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import (\n+    ExpectedViolation,\n+    Scenario,\n+)\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+def _dummy_embedder(texts: list[str], **kwargs: Any) -> list[list[float]]:\n+    return [[0.1, 0.2, 0.3, 0.4] for _ in texts]\n+\n+\n+class EmbedderScenario(Scenario):\n+    expected_spans = {\"embeddings\": 1}\n+    expected_metrics = (\"gen_ai.client.operation.duration\",)\n+    expected_violations = (\n+        ExpectedViolation(\n+            advice_id=\"genai_expected_attribute_missing\",\n+            message_substring=\"gen_ai.response.model\",\n+        ),\n+        ExpectedViolation(\n+            advice_id=\"genai_expected_attribute_missing\",\n+            message_substring=\"gen_ai.usage.input_tokens\",\n+        ),\n+    )\n+\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None:\n+        with instrument(\n+            DSPyInstrumentor(),\n+            tracer_provider=tracer_provider,\n+            logger_provider=logger_provider,\n+            meter_provider=meter_provider,\n+            content_capture=\"SPAN_ONLY\",\n+        ):\n+            embedder = dspy.Embedder(\n+                _dummy_embedder,\n+                caching=False,\n+                encoding_format=\"float\",\n+                api_base=\"https://api.openai.com:443/v1\",\n+            )",
+      "id": "PRRT_kwDOSbspP86vx90r",
+      "opened": "2026-10-23T21:38:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/conformance/embedder.py",
+      "replies": [
+        {
+          "at": "2026-10-26T18:48:30Z",
+          "body": "Ack added a conformance test covering this scenario",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4381171754"
+        }
+      ],
+      "reviewed": "8c645b3aa95d4fce99606bc065757d3359ea3997",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/796#discussion_r4364428157"
+    }
+  ]
+}

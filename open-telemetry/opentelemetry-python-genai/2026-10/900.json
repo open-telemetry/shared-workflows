@@ -1,0 +1,91 @@
+{
+  "head": "70895cd70c599f8d06e3ca7546f3b14fe9463394",
+  "merge": "404042b3de85170f222b1462d6ba2040b3631405",
+  "merged": "2026-10-20T02:59:33Z",
+  "missing_roots": 0,
+  "number": 900,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Streaming compaction is detected only from a terminal response here. `_ResponseStreamMixin.process_event()` ignores `response.output_item.added/done`, so closing the stream or encountering a network or caller error after consuming a compaction item but before the terminal response leaves `gen_ai.conversation.compacted` unset. Set `conversation_compacted = True` when a compaction output-item event is observed, independently of content capture, and add sync/async early-close and error regression tests.",
+      "created": "2026-10-14T23:47:45Z",
+      "hunk": "@@ -978,6 +988,9 @@ def set_invocation_response_attributes(\n     if finish_reasons:\n         invocation.finish_reasons = finish_reasons\n \n+    if _has_compaction_item(response.output):\n+        invocation.conversation_compacted = True",
+      "id": "PRRT_kwDOSbspP86skHrD",
+      "opened": "2026-10-14T23:47:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "b2db59d362e60d6c571313c9e7af50e56dfc4c5b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/900#discussion_r4277487206"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This misses compaction items supplied through an iterator, such as `input=iter(COMPACTED_INPUT)`. `extract_params()` normalizes non-Sequence input to `None`, and the sync/async wrappers apply this check before SDK consumption without inspecting the input afterward. If the response contains no new compaction item, the span incorrectly leaves `gen_ai.conversation.compacted` unset. Observe consumed input through the shared iterator-capture path and detect compaction after SDK serialization, including lazy stream entry, without draining or replaying the iterator. Keep detection independent of content capture and add sync/async iterator-input regression tests.",
+      "created": "2026-10-15T22:58:54Z",
+      "hunk": "@@ -862,6 +886,9 @@ def apply_request_attributes(\n             params.output_type\n         )\n \n+    if _has_compaction_item(params.input):\n+        invocation.conversation_compacted = True",
+      "id": "PRRT_kwDOSbspP86s_2am",
+      "opened": "2026-10-15T22:58:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-15T23:02:34Z",
+          "body": "OpenAI types input as List and can't send iterators as both 2.x and 3.x raise TypeError during JSON serialization, so this path can't happen.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/900#discussion_r4289144764"
+        }
+      ],
+      "reviewed": "b0327f053dee374df1a813d93068e0a9a01b483b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/900#discussion_r4289122003"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `FetchResponseStreamWrapper` inherits `process_event`, so a streamed `responses.retrieve` replay sets `conversation_compacted` on a `FetchResponseInvocation`. It has no such field. \r\n\r\nConsider adding attribute to fetch span or separating inference from fetching response here.",
+      "created": "2026-10-16T02:45:00Z",
+      "hunk": "@@ -232,6 +234,9 @@ def process_event(self, event: ResponseStreamEvent[TextFormatT]) -> None:\n             if model:\n                 self._self_invocation.response_model_name = model\n \n+        if set_stream_event_attributes is not None:\n+            set_stream_event_attributes(self._self_invocation, event)",
+      "id": "PRRT_kwDOSbspP86tCuuH",
+      "opened": "2026-10-16T02:50:24Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_wrappers.py",
+      "replies": [],
+      "reviewed": "b0327f053dee374df1a813d93068e0a9a01b483b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/900#discussion_r4290350935"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: both compaction cassettes were recorded with `gpt-5.4` (and an `AsyncOpenAI` user agent), but the sync/async tests send `REASONING_MODEL` (`gpt-5.1`). They only pass because VCR doesn't match on body. Maybe use `gpt-5.4` here, like the conformance scenario does?",
+      "created": "2026-10-16T02:45:00Z",
+      "hunk": "@@ -383,6 +389,181 @@ def test_responses_create_basic(\n     )\n     assert GenAIAttributes.GEN_AI_INPUT_MESSAGES not in span.attributes\n     assert GenAIAttributes.GEN_AI_OUTPUT_MESSAGES not in span.attributes\n+    assert GEN_AI_CONVERSATION_COMPACTED not in span.attributes\n+\n+\n+@pytest.mark.cassette(\"test_responses_create_basic[content_mode0]\")\n+@pytest.mark.vcr()\n+def test_responses_create_records_compacted_input(\n+    span_exporter, openai_client, instrument_no_content\n+):\n+    _skip_if_not_latest()\n+\n+    openai_client.responses.create(\n+        model=DEFAULT_MODEL,\n+        instructions=SYSTEM_INSTRUCTIONS,\n+        input=COMPACTED_INPUT,\n+        stream=False,\n+    )\n+\n+    (span,) = span_exporter.get_finished_spans()\n+    assert span.attributes[GEN_AI_CONVERSATION_COMPACTED] is True\n+\n+\n+@pytest.mark.vcr()\n+@pytest.mark.skipif(\n+    not _has_context_management_param,\n+    reason=\"openai SDK too old to support 'context_management' on Responses.create\",\n+)\n+def test_responses_create_records_server_compaction(\n+    span_exporter, openai_client, instrument_no_content\n+):\n+    _skip_if_not_latest()\n+\n+    response = openai_client.responses.create(\n+        model=REASONING_MODEL,",
+      "id": "PRRT_kwDOSbspP86tCuuO",
+      "opened": "2026-10-16T02:50:24Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_responses.py",
+      "replies": [],
+      "reviewed": "b0327f053dee374df1a813d93068e0a9a01b483b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/900#discussion_r4290350950"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `_requires_context_management` is defined after the first two compaction tests, which repeat the same `skipif` inline. Same thing in `test_async_responses.py`. Maybe define it once, above those tests, and use it everywhere?",
+      "created": "2026-10-16T02:45:00Z",
+      "hunk": "@@ -383,6 +389,181 @@ def test_responses_create_basic(\n     )\n     assert GenAIAttributes.GEN_AI_INPUT_MESSAGES not in span.attributes\n     assert GenAIAttributes.GEN_AI_OUTPUT_MESSAGES not in span.attributes\n+    assert GEN_AI_CONVERSATION_COMPACTED not in span.attributes\n+\n+\n+@pytest.mark.cassette(\"test_responses_create_basic[content_mode0]\")\n+@pytest.mark.vcr()\n+def test_responses_create_records_compacted_input(\n+    span_exporter, openai_client, instrument_no_content\n+):\n+    _skip_if_not_latest()\n+\n+    openai_client.responses.create(\n+        model=DEFAULT_MODEL,\n+        instructions=SYSTEM_INSTRUCTIONS,\n+        input=COMPACTED_INPUT,\n+        stream=False,\n+    )\n+\n+    (span,) = span_exporter.get_finished_spans()\n+    assert span.attributes[GEN_AI_CONVERSATION_COMPACTED] is True\n+\n+\n+@pytest.mark.vcr()\n+@pytest.mark.skipif(\n+    not _has_context_management_param,\n+    reason=\"openai SDK too old to support 'context_management' on Responses.create\",\n+)\n+def test_responses_create_records_server_compaction(\n+    span_exporter, openai_client, instrument_no_content\n+):\n+    _skip_if_not_latest()\n+\n+    response = openai_client.responses.create(\n+        model=REASONING_MODEL,\n+        instructions=SYSTEM_INSTRUCTIONS,\n+        input=COMPACTION_TRIGGER_INPUT,\n+        context_management=COMPACTION_CONTEXT_MANAGEMENT,\n+        stream=False,\n+    )\n+\n+    assert any(item.type == \"compaction\" for item in response.output)\n+    (span,) = span_exporter.get_finished_spans()\n+    assert span.attributes[GEN_AI_CONVERSATION_COMPACTED] is True\n+\n+\n+@pytest.mark.vcr()\n+@pytest.mark.skipif(\n+    not _has_context_management_param,\n+    reason=\"openai SDK too old to support 'context_management' on Responses.create\",\n+)\n+def test_responses_create_streaming_records_server_compaction(\n+    span_exporter, openai_client, instrument_no_content\n+):\n+    _skip_if_not_latest()\n+\n+    with openai_client.responses.create(\n+        model=REASONING_MODEL,\n+        instructions=SYSTEM_INSTRUCTIONS,\n+        input=COMPACTION_TRIGGER_INPUT,\n+        context_management=COMPACTION_CONTEXT_MANAGEMENT,\n+        stream=True,\n+    ) as stream:\n+        response = _collect_completed_response(stream)\n+\n+    assert any(item.type == \"compaction\" for item in response.output)\n+    (span,) = span_exporter.get_finished_spans()\n+    assert span.attributes[GEN_AI_CONVERSATION_COMPACTED] is True\n+\n+\n+SERVER_COMPACTION_STREAM_CASSETTE = (\n+    \"test_responses_create_streaming_records_server_compaction[content_mode0]\"\n+)\n+_requires_context_management = pytest.mark.skipif(\n+    not _has_context_management_param,\n+    reason=\"openai SDK too old to support 'context_management' on Responses.create\",\n+)",
+      "id": "PRRT_kwDOSbspP86tCuuR",
+      "opened": "2026-10-16T02:50:24Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_responses.py",
+      "replies": [],
+      "reviewed": "b0327f053dee374df1a813d93068e0a9a01b483b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/900#discussion_r4290350953"
+    }
+  ]
+}

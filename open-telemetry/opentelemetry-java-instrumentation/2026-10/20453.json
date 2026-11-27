@@ -1,0 +1,112 @@
+{
+  "head": "82411d81afd11c69c2f9e57e26553e122ac8c23b",
+  "merge": "2acd9a5f1153e725a3b80e9b90ad55b385576fe8",
+  "merged": "2026-10-09T09:03:00Z",
+  "missing_roots": 0,
+  "number": 20453,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "package-private?",
+      "created": "2026-10-08T19:01:10Z",
+      "hunk": "@@ -63,8 +58,8 @@ private static String truncateQuerySummary(@Nullable String querySummary) {\n   @Nullable\n   public abstract String getQueryText();\n \n+  /** Returns the parsed operation name, or null when no operation was analyzed. */\n   @Nullable\n-  @Deprecated // to be changed to package-private in 3.0\n   public abstract String getOperationName();",
+      "id": "PRRT_kwDODJKVX86qgtRJ",
+      "opened": "2026-10-08T19:01:10Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuery.java",
+      "replies": [],
+      "reviewed": "77342ccaa93015e89ff0b5434571c3a3dce681e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20453#discussion_r4223006168"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "package-private?",
+      "created": "2026-10-08T19:01:16Z",
+      "hunk": "@@ -73,7 +68,6 @@ private static String truncateQuerySummary(@Nullable String querySummary) {\n    * @see #getStoredProcedureName()\n    */\n   @Nullable\n-  @Deprecated // to be changed to package-private in 3.0\n   public abstract String getCollectionName();",
+      "id": "PRRT_kwDODJKVX86qgtYt",
+      "opened": "2026-10-08T19:01:15Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuery.java",
+      "replies": [],
+      "reviewed": "77342ccaa93015e89ff0b5434571c3a3dce681e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20453#discussion_r4223006960"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-08T19:03:35Z",
+      "hunk": "@@ -42,9 +42,10 @@ val generateJflex = tasks.register<JavaExec>(\"generateJflex\") {\n \n   doFirst {\n     val outputDir = outputDirProvider.get().asFile\n+    outputDir.deleteRecursively()",
+      "id": "PRRT_kwDODJKVX86qgwqy",
+      "opened": "2026-10-08T19:03:35Z",
+      "path": "instrumentation-api-incubator/build.gradle.kts",
+      "replies": [],
+      "reviewed": "77342ccaa93015e89ff0b5434571c3a3dce681e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20453#discussion_r4223028474"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  `createWithSummary`.\n```",
+      "created": "2026-10-09T02:19:17Z",
+      "hunk": "@@ -156,7 +156,15 @@\n - Remove `SqlQueryAnalyzer.analyzeWithSummary` from\n   `io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator` for 3.0.\n   Use `SqlQueryAnalyzer.analyze`, which now always produces query summaries when sanitization is\n-  enabled. The public `SqlQuery` factory signatures are unchanged.\n+  enabled.\n+- Remove `SqlQuery.createWithSummary(queryText, storedProcedureName, querySummary)` from\n+  `io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator`.\n+  Use `SqlQuery.create(queryText, null, null, storedProcedureName, querySummary)` instead.\n+  The existing three-argument `SqlQuery.create(queryText, operationName, target)` retains its\n+  operation/collection and stored-procedure semantics; it is not a replacement for\n+  `createWithSummary`. `SqlQuery.getOperationName()` and `getCollectionName()` remain public\n+  and are no longer deprecated, so direct consumers of parsed operation and collection names\n+  require no migration.",
+      "id": "PRRT_kwDODJKVX86qn1gX",
+      "opened": "2026-10-09T02:19:16Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "880b4e04eaa217ab746914a9dcd477281a350ec6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20453#discussion_r4226009338"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Renaming the JFlex input/class does not remove previously generated files from this output directory. On an incremental checkout, `AutoSqlSanitizerWithSummary.java` remains in the source set and still calls the removed `createWithSummary` methods, causing compilation to fail. Clear the generated directory before invoking JFlex.",
+      "created": "2026-10-09T02:45:20Z",
+      "hunk": "@@ -44,7 +44,7 @@ val generateJflex = tasks.register<JavaExec>(\"generateJflex\") {\n     val outputDir = outputDirProvider.get().asFile\n     outputDir.mkdirs()\n     val specFiles = listOf(\n-      sourceDir.asFile.resolve(\"SqlSanitizerWithSummary.jflex\"),\n+      sourceDir.asFile.resolve(\"SqlSanitizer.jflex\"),",
+      "id": "PRRT_kwDODJKVX86qoIob",
+      "opened": "2026-10-09T02:45:20Z",
+      "path": "instrumentation-api-incubator/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-09T05:43:53Z",
+          "body": "Addressed in 82411d81afd11c69c2f9e57e26553e122ac8c23b.\n\nAnalysis: At frozen build.gradle.kts lines 43-51, mkdirs and JFlex --nobak do not remove obsolete generated files. The source set includes the whole output directory and SqlQuery no longer defines createWithSummary. Checked recursive deletion now precedes generation. Tests with the obsolete factory-calling source and a nested stale file verify removal, current sanitizer creation, successful compilation, and configuration-cache reuse.\n\nUpsides: Prevents incremental-checkout compilation failures and explicitly reports cleanup failures instead of compiling stale sources.\n\nDownsides: Regeneration performs a recursive deletion limited to the dedicated JFlex output directory.\n\n<!-- copilot-loop:971fa401756788e6f6a1758b2b431d885887e72bcf61a05ad3108fcc8bbb47ec:4226135407:df28884863fb49e0b51a28d4e6554dc7 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20453#discussion_r4227006433"
+        }
+      ],
+      "reviewed": "768b211e0d6cb6640e9395967d7be2c7aa7a5616",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20453#discussion_r4226135407"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "the only usage outside of the package is in a test",
+      "created": "2026-10-09T08:59:31Z",
+      "hunk": "@@ -73,7 +68,6 @@ private static String truncateQuerySummary(@Nullable String querySummary) {\n    * @see #getStoredProcedureName()\n    */\n   @Nullable\n-  @Deprecated // to be changed to package-private in 3.0\n   public abstract String getCollectionName();",
+      "id": "PRRT_kwDODJKVX86qtql6",
+      "opened": "2026-10-09T08:59:31Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuery.java",
+      "replies": [
+        {
+          "at": "2026-10-09T09:01:04Z",
+          "body": "the same also applies to `getStoredProcedureName`, but keeping these is fine too",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20453#discussion_r4228427222"
+        }
+      ],
+      "reviewed": "82411d81afd11c69c2f9e57e26553e122ac8c23b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20453#discussion_r4228415421"
+    }
+  ]
+}

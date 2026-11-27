@@ -1,0 +1,136 @@
+{
+  "head": "4537936108add1edc5a0361ce60f38ed3ea3a54c",
+  "merge": "5c82a72c2a801c503d67dfc2467fb9bfc9a1ba52",
+  "merged": "2026-09-30T02:30:28Z",
+  "missing_roots": 0,
+  "number": 20144,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The module still advertises Camel support for `[2.19,3)` (`build.gradle.kts:9`), but Camel 2.19's `KafkaFetchRecords` has no `doRun()` method, so this matcher never applies there. Camel 2.19 batches therefore are not marked as Camel-owned and the Kafka client iterator advice still creates duplicate process spans. Match the 2.19 `run()` path as well, while guarding the null consumer seen on the newer outer `run()`.",
+      "created": "2026-09-13T22:25:54Z",
+      "hunk": "@@ -25,25 +24,16 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n-    transformer.applyAdviceToMethod(named(\"run\"), getClass().getName() + \"$RunAdvice\");\n+    transformer.applyAdviceToMethod(named(\"doRun\"), getClass().getName() + \"$DoRunAdvice\");",
+      "id": "PRRT_kwDODJKVX86h8iju",
+      "opened": "2026-09-13T22:25:54Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/KafkaFetchRecordsInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-14T18:05:42Z",
+          "body": "Addressed in 3bd81da3ef8f0e4baf6fc33847b0dc8c4abd619c.\n\nAnalysis: Camel 2.19 initializes the consumer before entering run(), while Camel 2.20 and later initialize it inside run() and perform polling in doRun(). Matching both methods covers the supported range. The null guard makes the Camel 2.20+ wrapper invocation a no-op until doRun() starts with an initialized consumer.\n\nUpsides: Camel 2.19 batches now use Camel delivery ownership, while newer Camel versions retain their existing ownership behavior without relying on suppressed null failures.\n\nDownsides: Camel 2.20 and later execute one additional no-op advice call when the outer run() starts.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4008094544"
+        }
+      ],
+      "reviewed": "cfac17d771c23458b3318dc47daf1ea61ee72f19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4001096261"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With the `MessagingTelemetryState` propagation removed above, this process instrumenter now unconditionally records `messaging.client.consumed.messages` for every Camel delivery. When Kafka, JMS, or SQS client instrumentation already recorded the consumed-message signal, this emits a second count; consumed-message deduplication is explicitly separate from this ownership change and tracked in #20214. Preserve the existing signal-aware customization until that follow-up implements the replacement.",
+      "created": "2026-09-24T06:46:56Z",
+      "hunk": "@@ -110,11 +106,6 @@ private static Instrumenter<CamelRequest, Void> createMessagingInstrumenter(\n     }\n     if (operationType == PROCESS && emitStableMessagingSemconv()) {\n       builder.addOperationMetrics(MessagingProcessMetrics.get());\n-      builder.addContextCustomizer(\n-          (context, request, startAttributes) ->\n-              messageTelemetry().contains(request.getExchange().getIn(), RECEIVE, CONSUMED_MESSAGES)\n-                  ? add(context, RECEIVE, CONSUMED_MESSAGES)\n-                  : context);\n       builder.addOperationMetrics(MessagingConsumerMetrics.getConsumedMessages());",
+      "id": "PRRT_kwDODJKVX86leBjl",
+      "opened": "2026-09-24T06:46:57Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-24T07:05:17Z",
+          "body": "Addressed in d62902f3101930de81366d627ce013d71c5c847b.\n\nFixed in the verified source changes d62902f3101930de81366d627ce013d71c5c847b.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4090850662"
+        }
+      ],
+      "reviewed": "0195913425c11fdd49cf29e6ea14859918131f59",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4090716589"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This handoff calls `SqsProcessTracing`, whose implementation recognizes deliveries with `messages instanceof TracingList`. With the agent's indy mode, Camel and AWS SDK instrumentations use separate module class loaders and therefore separate copies of `TracingList`; the Camel helper will see the AWS SDK's traced list as an ordinary `List`, so the SDK process span is not suppressed and Camel emits a duplicate process span. Put this handoff marker in shared/bootstrap state (or otherwise make it class-loader independent) and add an indy regression test.",
+      "created": "2026-09-24T07:13:23Z",
+      "hunk": "@@ -0,0 +1,44 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.camel.v2_20;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.instrumentation.awssdk.v1_11.internal.SqsProcessTracing;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.List;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class SqsConsumerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.camel.component.aws.sqs.SqsConsumer\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"createExchanges\").and(takesArgument(0, List.class)),\n+        getClass().getName() + \"$CreateExchangesAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class CreateExchangesAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.Argument(0) List<?> messages) {\n+      if (emitStableMessagingSemconv()) {\n+        SqsProcessTracing.markProcessingOwnedOutsideSqsSdk(messages);",
+      "id": "PRRT_kwDODJKVX86lefaz",
+      "opened": "2026-09-24T07:13:24Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SqsConsumerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-24T07:34:51Z",
+          "body": "Addressed in 1850a0a022bb42647173a033c99cd3e5d8737163, 80893c42b4ec6a163060eb851e20345f873529f8.\n\nFixed in the verified source changes 1850a0a022bb42647173a033c99cd3e5d8737163, 80893c42b4ec6a163060eb851e20345f873529f8.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4091063220"
+        }
+      ],
+      "reviewed": "d62902f3101930de81366d627ce013d71c5c847b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4090904176"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use hasClassesNamed(\"org.apache.camel.component.aws.sqs.SqsConsumer\", \"com.amazonaws.services.sqs.model.Message\")",
+      "created": "2026-09-29T15:37:00Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.camel.v2_20;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static java.util.Arrays.asList;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.List;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+@AutoService(InstrumentationModule.class)\n+public class ApacheCamelAwsSqsInstrumentationModule extends InstrumentationModule {\n+\n+  public ApacheCamelAwsSqsInstrumentationModule() {\n+    super(\"camel\", \"camel-2.20\", \"camel-aws-sqs\");\n+  }\n+\n+  @Override\n+  public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n+    return hasClassesNamed(\"org.apache.camel.component.aws.sqs.SqsConsumer\")",
+      "id": "PRRT_kwDODJKVX86nLfhI",
+      "opened": "2026-09-29T15:37:00Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/ApacheCamelAwsSqsInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-29T18:19:00Z",
+          "body": "df3bbc22c5b9a58537e09b0681137f27274e4061",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4136844471"
+        }
+      ],
+      "reviewed": "d66ec8733845755480f60a164c92bec84f87679d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4135353832"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could consider using the cleanup extension",
+      "created": "2026-09-29T15:42:55Z",
+      "hunk": "@@ -0,0 +1,123 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.camel.v2_20;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.amazonaws.auth.AWSStaticCredentialsProvider;\n+import com.amazonaws.auth.BasicAWSCredentials;\n+import com.amazonaws.client.builder.AwsClientBuilder;\n+import com.amazonaws.services.sqs.AmazonSQSAsyncClient;\n+import com.amazonaws.services.sqs.model.Message;\n+import com.amazonaws.services.sqs.model.ReceiveMessageResult;\n+import com.sun.net.httpserver.HttpServer;\n+import io.opentelemetry.instrumentation.test.utils.PortUtils;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.net.InetSocketAddress;\n+import java.util.List;\n+import java.util.Queue;\n+import org.apache.camel.Exchange;\n+import org.apache.camel.component.aws.sqs.SqsComponent;\n+import org.apache.camel.component.aws.sqs.SqsConfiguration;\n+import org.apache.camel.component.aws.sqs.SqsConsumer;\n+import org.apache.camel.component.aws.sqs.SqsEndpoint;\n+import org.apache.camel.impl.DefaultCamelContext;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class SqsCamelOwnershipInstrumentationTest {\n+\n+  private static final boolean CAMEL_DISABLED = Boolean.getBoolean(\"testCamelDisabled\");\n+  private static final boolean ADAPTER_DISABLED = Boolean.getBoolean(\"testAdapterDisabled\");\n+  private static final String RECEIVE_RESPONSE =\n+      \"<ReceiveMessageResponse xmlns=\\\"http://queue.amazonaws.com/doc/2012-11-05/\\\">\"\n+          + \"<ReceiveMessageResult><Message><MessageId>message-id</MessageId>\"\n+          + \"<ReceiptHandle>receipt-handle</ReceiptHandle>\"\n+          + \"<MD5OfBody>841a2d689ad86bd1611447453c22c6fc</MD5OfBody>\"\n+          + \"<Body>body</Body></Message></ReceiveMessageResult>\"\n+          + \"<ResponseMetadata><RequestId>request-id</RequestId></ResponseMetadata>\"\n+          + \"</ReceiveMessageResponse>\";\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Test\n+  void selectsCamelTraversalWithoutSuppressingOtherResponses() throws Exception {\n+    HttpServer server =\n+        HttpServer.create(new InetSocketAddress(\"localhost\", PortUtils.findOpenPort()), 0);\n+    server.createContext(\n+        \"/\",\n+        httpExchange -> {\n+          byte[] response = RECEIVE_RESPONSE.getBytes(UTF_8);\n+          httpExchange.getResponseHeaders().add(\"Content-Type\", \"text/xml\");\n+          httpExchange.sendResponseHeaders(200, response.length);\n+          httpExchange.getResponseBody().write(response);\n+          httpExchange.close();\n+        });\n+    server.start();\n+\n+    AmazonSQSAsyncClient client =\n+        (AmazonSQSAsyncClient)\n+            AmazonSQSAsyncClient.asyncBuilder()\n+                .withCredentials(\n+                    new AWSStaticCredentialsProvider(new BasicAWSCredentials(\"key\", \"secret\")))\n+                .withEndpointConfiguration(\n+                    new AwsClientBuilder.EndpointConfiguration(\n+                        \"http://localhost:\" + server.getAddress().getPort(), \"us-east-1\"))\n+                .build();\n+    try {\n+      DefaultCamelContext camelContext = new DefaultCamelContext();\n+      SqsComponent component = new SqsComponent();\n+      component.setCamelContext(camelContext);\n+      SqsEndpoint endpoint = new SqsEndpoint(\"aws-sqs://test\", component, new SqsConfiguration());\n+      TestSqsConsumer consumer = new TestSqsConsumer(endpoint);\n+      String queueUrl = \"http://localhost:\" + server.getAddress().getPort() + \"/000000000000/test\";\n+      testing.runWithSpan(\n+          \"parent\",\n+          () -> {\n+            ReceiveMessageResult result = client.receiveMessage(queueUrl);\n+            assertThat(consumer.exchanges(result.getMessages())).hasSize(1);\n+            for (Message message : client.receiveMessage(queueUrl).getMessages()) {\n+              testing.runWithSpan(\"nested\", () -> assertThat(message.getBody()).isEqualTo(\"body\"));\n+            }\n+          });\n+      testing.waitForTraces(1);\n+      assertThat(testing.spans())\n+          .filteredOn(\n+              span ->\n+                  span.getName().equals(\"process test\") || span.getName().equals(\"test process\"))\n+          .hasSize(emitStableMessagingSemconv() && !CAMEL_DISABLED && !ADAPTER_DISABLED ? 1 : 2);\n+      assertThat(testing.spans())\n+          .filteredOn(span -> span.getName().equals(\"nested\"))\n+          .singleElement()\n+          .satisfies(\n+              nested ->\n+                  assertThat(testing.spans())\n+                      .filteredOn(span -> span.getSpanId().equals(nested.getParentSpanId()))\n+                      .singleElement()\n+                      .satisfies(\n+                          process ->\n+                              assertThat(process.getInstrumentationScopeInfo().getName())\n+                                  .isEqualTo(\"io.opentelemetry.aws-sdk-1.11\")));\n+    } finally {\n+      client.shutdown();",
+      "id": "PRRT_kwDODJKVX86nLo1K",
+      "opened": "2026-09-29T15:42:55Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SqsCamelOwnershipInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-09-29T18:18:59Z",
+          "body": "77e4dcf876e8a0a07d0ff76d0a340211fd90eeb2",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4136844397"
+        }
+      ],
+      "reviewed": "d66ec8733845755480f60a164c92bec84f87679d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4135414577"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "It might be possible to avoid reflection by marking the classes neede here as exposed. Then they should be visible in the test class loader. Exposing the classes could be conditional on a flag, might need to move the test to a suite to ensure that the default configuration wors too. Idk whether this would be worth the effort.",
+      "created": "2026-09-29T15:47:50Z",
+      "hunk": "@@ -0,0 +1,95 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.camel.v2_20;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.javaagent.bootstrap.kafka.KafkaConsumerBatchState;\n+import io.opentelemetry.javaagent.testing.common.AgentClassLoaderAccess;\n+import java.lang.reflect.Method;\n+import java.util.function.BooleanSupplier;\n+import org.apache.kafka.clients.consumer.ConsumerRecord;\n+import org.apache.kafka.clients.consumer.ConsumerRecords;\n+import org.apache.kafka.clients.consumer.KafkaConsumer;\n+import org.apache.kafka.clients.consumer.TestKafkaConsumerFactory;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n+\n+class KafkaCamelPollInstrumentationTest {\n+\n+  private static final boolean CAMEL_DISABLED = Boolean.getBoolean(\"testCamelDisabled\");\n+  private static final boolean ADAPTER_DISABLED = Boolean.getBoolean(\"testAdapterDisabled\");\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  void marksOnlyCamelProcessingAfterKafkaPoll(boolean camelConsumer) throws Exception {\n+    ConsumerRecord<String, String> record = new ConsumerRecord<>(\"test\", 0, 0, \"key\", \"value\");\n+    KafkaConsumer<String, String> consumer = TestKafkaConsumerFactory.create(record);\n+    ClassLoader classLoader = consumer.getClass().getClassLoader();\n+    if (Boolean.getBoolean(\"otel.javaagent.experimental.indy\")",
+      "id": "PRRT_kwDODJKVX86nLww_",
+      "opened": "2026-09-29T15:47:50Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/KafkaCamelPollInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-09-29T21:15:59Z",
+          "body": "yeah this is a weird test, fixed: 850f635725d431779404e989fa8ea5eab3d29c95",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4138408777"
+        }
+      ],
+      "reviewed": "d66ec8733845755480f60a164c92bec84f87679d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144#discussion_r4135465058"
+    }
+  ]
+}

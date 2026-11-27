@@ -1,0 +1,52 @@
+{
+  "head": "d37b220991435fbc65299da83ecf6cdf4c2c472e",
+  "merge": "6508c81c3118a3f40e0e8de0e6fabd55a4e8e521",
+  "merged": "2026-08-24T14:55:25Z",
+  "missing_roots": 0,
+  "number": 19758,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Keep this helper private: the only call site is `copySupplier()` in this class, so exposing it publicly is broader than necessary.",
+      "created": "2026-08-22T02:34:41Z",
+      "hunk": "@@ -87,6 +89,20 @@ public static CouchbaseRequestInfo get(Context context) {\n \n   public abstract boolean isMethodCall();\n \n+  public CouchbaseRequestInfo copy() {",
+      "id": "PRRT_kwDODJKVX86bVtB1",
+      "opened": "2026-08-22T02:34:41Z",
+      "path": "instrumentation/couchbase/couchbase-common-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v2_0/CouchbaseRequestInfo.java",
+      "replies": [
+        {
+          "at": "2026-08-22T21:36:09Z",
+          "body": "Addressed in 9f4af17574efcf4cb4443d6594a45fbe3a1b2eb4.\n\nAnalysis: CouchbaseRequestInfo.copy is an implementation detail used only by copySupplier. Private visibility is sufficient and follows the repository's least-access rule.\n\nUpsides: The class exposes only the supplier API needed by callers and prevents direct use of an internal copy helper.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19758#discussion_r3837073736"
+        }
+      ],
+      "reviewed": "2c8ddafd6e2c84ec9f4bd7fa1451bc82a1ef8077",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19758#discussion_r3834858599"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Static factory entry points should be placed below the fields and immediately above the constructors, rather than after the construction section.",
+      "created": "2026-08-22T02:34:41Z",
+      "hunk": "@@ -9,25 +9,42 @@\n import io.opentelemetry.context.Scope;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n import java.util.concurrent.atomic.AtomicReference;\n+import java.util.function.Supplier;\n import rx.Observable;\n import rx.OpenTelemetryTracingUtil;\n import rx.Subscriber;\n \n public final class TracedOnSubscribe<T, REQUEST> implements Observable.OnSubscribe<T> {\n   private final Observable.OnSubscribe<T> delegate;\n   private final Instrumenter<REQUEST, ?> instrumenter;\n-  private final REQUEST request;\n+  private final Supplier<REQUEST> requestFactory;\n   private final Context parentContext;\n \n   public TracedOnSubscribe(\n       Observable<T> originalObservable, Instrumenter<REQUEST, ?> instrumenter, REQUEST request) {\n     delegate = OpenTelemetryTracingUtil.extractOnSubscribe(originalObservable);\n     this.instrumenter = instrumenter;\n-    this.request = request;\n+    this.requestFactory = () -> request;\n+    parentContext = Context.current();\n+  }\n \n+  private TracedOnSubscribe(\n+      Observable<T> originalObservable,\n+      Instrumenter<REQUEST, ?> instrumenter,\n+      Supplier<REQUEST> requestFactory) {\n+    delegate = OpenTelemetryTracingUtil.extractOnSubscribe(originalObservable);\n+    this.instrumenter = instrumenter;\n+    this.requestFactory = requestFactory;\n     parentContext = Context.current();\n   }\n \n+  public static <T, REQUEST> TracedOnSubscribe<T, REQUEST> perSubscription(\n+      Observable<T> originalObservable,\n+      Instrumenter<REQUEST, ?> instrumenter,\n+      Supplier<REQUEST> requestFactory) {\n+    return new TracedOnSubscribe<>(originalObservable, instrumenter, requestFactory);",
+      "id": "PRRT_kwDODJKVX86bVtBr",
+      "opened": "2026-08-22T02:34:41Z",
+      "path": "instrumentation/rxjava/rxjava-1.0/library/src/main/java/io/opentelemetry/instrumentation/rxjava/v1_0/TracedOnSubscribe.java",
+      "replies": [
+        {
+          "at": "2026-08-22T21:36:08Z",
+          "body": "Addressed in cd19736646b3995a261a19c3161fba9085e60181.\n\nAnalysis: TracedOnSubscribe exposes perSubscription as a static construction entry point. Moving it directly below the fields groups it with the constructors and follows the repository's class organization rule.\n\nUpsides: Readers can find every construction entry point in one section, and the class now matches the repository style guide.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19758#discussion_r3837073695"
+        }
+      ],
+      "reviewed": "2c8ddafd6e2c84ec9f4bd7fa1451bc82a1ef8077",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19758#discussion_r3834858578"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "4b17f23dbb1ae363c3dd825cd9105bc90029a883",
+  "merge": "381f99d4c484eea1f4c129ddb4a31f2ef8d27a1d",
+  "merged": "2026-03-04T17:19:37Z",
+  "missing_roots": 0,
+  "number": 16371,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "https://hc.apache.org/httpcomponents-core-5.4.x/current/httpcore5/apidocs/org/apache/hc/core5/http/HttpRequest.html#getAuthority--",
+      "created": "2026-03-04T15:55:26Z",
+      "hunk": "@@ -118,12 +118,21 @@ public String getNetworkProtocolVersion(HttpRequest request, @Nullable HttpRespo\n   @Override\n   @Nullable\n   public String getServerAddress(HttpRequest request) {\n-    return request.getAuthority().getHostName();\n+    URIAuthority authority = request.getAuthority();\n+    if (authority == null) {\n+      return null;\n+    }",
+      "id": "PRRT_kwDODJKVX85yGKue",
+      "opened": "2026-03-04T15:55:26Z",
+      "path": "instrumentation/apache-httpclient/apache-httpclient-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpclient/v5_0/ApacheHttpClientHttpAttributesGetter.java",
+      "replies": [],
+      "reviewed": "4b17f23dbb1ae363c3dd825cd9105bc90029a883",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16371#discussion_r2884604459"
+    }
+  ]
+}

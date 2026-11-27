@@ -1,0 +1,31 @@
+{
+  "head": "204f707b4fa1394190911bd048078d930a5dece9",
+  "merge": "6cc80a656df9de9338345103cb13b9e0e81f8f3f",
+  "merged": "2026-08-03T07:14:27Z",
+  "missing_roots": 0,
+  "number": 19365,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Checking only for the bare `$$Lambda` token also rejects ordinary bounded predicates whose text contains that valid literal, such as a static `GET(\"/docs/$$Lambda\")` route, causing its `http.route` to disappear. Please match the generated lambda identity shape (including the JDK-specific suffix and identity portion) instead, and cover a literal route containing this token with a regression test.",
+      "created": "2026-08-01T15:52:59Z",
+      "hunk": "@@ -34,15 +36,16 @@ public void accept(HandlerFunction<?> handler) {\n \n   @Nullable\n   private static String parsePredicateString(RouterFunction<?> routerFunction) {\n-    String routerFunctionString = routerFunction.toString();\n+    // the handler function is frequently a lambda, so it has to be stripped before looking for a\n+    // lambda predicate\n+    String predicate = HANDLER_FUNCTION_REGEX.matcher(routerFunction.toString()).replaceFirst(\"\");\n     // Router functions containing lambda predicates should not end up in span tags since they are\n-    // confusing\n-    if (routerFunctionString.startsWith(\n-        \"org.springframework.web.reactive.function.server.RequestPredicates$$Lambda$\")) {\n+    // confusing. Lambda class names look like \"Foo$$Lambda$14/0x...\" before jdk 21 and\n+    // \"Foo$$Lambda/0x...\" starting from jdk 21.\n+    if (predicate.contains(\"$$Lambda\")) {",
+      "id": "PRRT_kwDODJKVX86VpMhJ",
+      "opened": "2026-08-01T15:53:00Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/webflux/v5_0/server/RouteOnSuccess.java",
+      "replies": [
+        {
+          "at": "2026-08-01T16:03:29Z",
+          "body": "I'd rather keep the loose check here.\n\nMatching the identity shape is what caused this bug in the first place. That shape is not stable across the jdks we support -- same lambda, four different names:\n\n```\n1.8.0_482  => L$$Lambda$1/471910020\n11.0.31    => L$$Lambda$1/0x0000000800060840\n17.0.19    => L$$Lambda$1/0x000001bc81000bf8\n21.0.11    => L$$Lambda/0x0000027c97000c08\n```\n\nNote java 8 uses a decimal identity rather than `0x`, so a pattern anchored on the hex form would silently stop matching there, and that failure mode is invisible until someone reports a high-cardinality route. Openj9 adds more variants on top of this.\n\nThe two failure modes aren't symmetric. Being too loose drops the route for a path that literally contains `$$Lambda`, and we fall back to a lower-cardinality span name. Being too strict puts a per-instance identity hash into `http.route`, which is the unbounded-cardinality metrics bug this PR fixes. I'd take the first one.\n\nA path segment containing `$$Lambda` also isn't something I think we need to design around -- `$` is legal in a path but this is a contrived route, and the cost of guessing wrong the other way is much higher.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19365#discussion_r3695993091"
+        }
+      ],
+      "reviewed": "204f707b4fa1394190911bd048078d930a5dece9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19365#discussion_r3695973980"
+    }
+  ]
+}

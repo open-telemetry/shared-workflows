@@ -1,0 +1,25 @@
+{
+  "head": "b983b64698770c5137b067f8ad8072990e1b0ed0",
+  "merge": "c13225e2ba1869a31f36d49d5b4808e76ed372ea",
+  "merged": "2026-05-09T21:26:21Z",
+  "missing_roots": 0,
+  "number": 18664,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new guidance is a bit ambiguous/contradictory: it says “Do not comment on … imports” and “brace placement”, which could be interpreted as suppressing import- or brace-related correctness findings (e.g., unused imports that break compilation, missing/unbalanced braces). Consider tightening wording to explicitly scope this to Spotless-only concerns (import ordering/grouping/unused removal, brace *style*), while still allowing comments on import/brace issues that affect correctness/buildability.\n",
+      "created": "2026-05-09T20:48:04Z",
+      "hunk": "@@ -5,6 +5,10 @@ separately later in the PR lifecycle. **Prefer silence over uncertainty.** Only\n flag substantive issues on changed lines. Skip stylistic preferences not listed\n below. Do not nitpick.\n \n+Do not comment on Spotless-covered formatting: indentation, wrapping, alignment,\n+brace placement, imports, or whitespace. Do not ask authors to run the\n+formatter. Only flag formatting that causes or hides a real correctness problem.",
+      "id": "PRRT_kwDODJKVX86A2j49",
+      "opened": "2026-05-09T20:48:05Z",
+      "path": ".github/copilot-instructions.md",
+      "replies": [],
+      "reviewed": "afd6e20b7e97fc61e88b2046b66a7f28ba7eacef",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18664#discussion_r3213872144"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "head": "2703a2a8d9eaf93ede05d629f13b434c0a712e84",
+  "merge": "5233c7f7ee051f073a1882c2afcfe7e6d3227504",
+  "merged": "2026-08-26T14:42:40Z",
+  "missing_roots": 0,
+  "number": 19769,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using the pool object directly loses the previous identity semantics for accepted subclasses/implementations. `GenericObjectPool` and `GenericKeyedObjectPool` are extensible, and the public API accepts their MXBean interfaces, so callers can provide objects with value-based or mutable `equals`/`hashCode`. `ConcurrentHashMap` can then merge two distinct pools, or fail to remove a callback after its hash changes, leaving stale metrics. Keep the identity-key wrapper (or an equivalent concurrent identity map).",
+      "created": "2026-08-24T03:33:29Z",
+      "hunk": "@@ -62,7 +63,7 @@ private static void registerMetrics(\n       IntSupplier maxTotal,\n       IntSupplier waiters) {\n     poolMetrics.computeIfAbsent(\n-        new IdentityPoolKey(pool),\n+        pool,",
+      "id": "PRRT_kwDODJKVX86bkkTG",
+      "opened": "2026-08-24T03:33:29Z",
+      "path": "instrumentation/apache-commons-pool-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/v2_0/CommonsPoolMetrics.java",
+      "replies": [
+        {
+          "at": "2026-08-24T14:53:39Z",
+          "body": "Addressed in 9324bce197c376bccee944ac0013fce5f4450cae.\n\nAnalysis: The registration API accepts MXBean interfaces and extensible pool classes. An identity wrapper prevents custom or mutable equals and hashCode implementations from merging distinct pool registrations or making unregister lookup fail.\n\nUpsides: Distinct pool instances retain separate callbacks, and unregisterMetrics reliably finds the callback even if a pool's value state changes.\n\nDownsides: Each map lookup allocates a short-lived identity-key wrapper.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19769#discussion_r3844638062"
+        }
+      ],
+      "reviewed": "2c57bb7e80d48b06a3de6d5ccc2b0cd7649ce5f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19769#discussion_r3840529799"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This does not actually prove that only one callback was registered. The metric helpers use `anySatisfy` and validate attributes rather than callback count or recorded values; duplicate observations for the same instrument and attributes can be coalesced, while an extra matching metric is also ignored. Register the second time under a distinct pool name and explicitly assert that name is absent (or otherwise expose/count callback invocations), so the test fails if `computeIfAbsent` creates a second callback.",
+      "created": "2026-08-24T03:33:29Z",
+      "hunk": "@@ -126,6 +126,31 @@ void shouldReusePoolNameAfterShutdown() throws Exception {\n     assertNoMetrics();\n   }\n \n+  @Test\n+  void shouldRegisterSamePoolInstanceIdempotently() throws Exception {\n+    String poolName = \"duplicateRegistrationPool\";\n+    GenericObjectPool<Object> pool = createGenericObjectPool(poolName, false);\n+    Object borrowed = null;\n+    try {\n+      // registering the same pool instance twice must not create a second callback: otherwise\n+      // the metrics below would be reported twice (once per callback) and fail the assertion\n+      configure(pool, poolName);\n+      configure(pool, poolName);\n+\n+      borrowed = pool.borrowObject();\n+\n+      assertGenericObjectPoolMetrics(poolName);",
+      "id": "PRRT_kwDODJKVX86bkkTV",
+      "opened": "2026-08-24T03:33:29Z",
+      "path": "instrumentation/apache-commons-pool-2.0/testing/src/main/java/io/opentelemetry/instrumentation/apachecommonspool/AbstractCommonsPoolInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-08-24T14:53:40Z",
+          "body": "Addressed in ab8dfbe3fb7fd550ff9ba27eadfee8824c2f5a41.\n\nAnalysis: Repeating registration with the same pool name cannot distinguish one callback from duplicate callbacks because the metric reader can coalesce identical observations. A distinct second name makes any duplicate callback visible in point attributes.\n\nUpsides: The test now fails if registration creates a second callback, and it checks the idempotent behavior without relying on metric coalescing details.\n\nDownsides: The test adds one scan across the module's metric points.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19769#discussion_r3844638289"
+        }
+      ],
+      "reviewed": "2c57bb7e80d48b06a3de6d5ccc2b0cd7649ce5f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19769#discussion_r3840529817"
+    }
+  ]
+}

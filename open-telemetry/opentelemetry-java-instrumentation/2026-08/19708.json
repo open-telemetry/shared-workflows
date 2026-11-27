@@ -1,0 +1,31 @@
+{
+  "head": "b2965e711db59d59dbe02c1565067997890cc37e",
+  "merge": "ae20313c959988df9a1a177dcaac696b60078e24",
+  "merged": "2026-08-20T00:22:05Z",
+  "missing_roots": 0,
+  "number": 19708,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think the instrumentation in `elasticsearch-java` also uses these.",
+      "created": "2026-08-19T15:59:24Z",
+      "hunk": "@@ -150,8 +152,17 @@ void elasticsearchIndex() throws IOException {\n                                 URL_FULL,\n                                 httpHost.toURI() + \"/test-index/_doc/test-id?timeout=10s\"),\n                             equalTo(\n-                                DB_ELASTICSEARCH_PATH_PARTS.getAttributeKey(\"index\"), \"test-index\"),\n-                            equalTo(DB_ELASTICSEARCH_PATH_PARTS.getAttributeKey(\"id\"), \"test-id\")),\n+                                DB_ELASTICSEARCH_PATH_PARTS.getAttributeKey(\"index\"),",
+      "id": "PRRT_kwDODJKVX86ah6fJ",
+      "opened": "2026-08-19T15:59:24Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-api-client-7.16/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/api/client/v7_16/ElasticsearchClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-20T00:21:55Z",
+          "body": "opened https://github.com/elastic/elasticsearch-java/issues/1321",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19708#discussion_r3817727558"
+        }
+      ],
+      "reviewed": "693629166145f0e7451334cfe0caff1c32613925",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19708#discussion_r3814615202"
+    }
+  ]
+}

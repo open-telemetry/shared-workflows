@@ -1,0 +1,73 @@
+{
+  "head": "1b4a78903f9fd37d7792271368b063334aa09d27",
+  "merge": "0b9555d1c8665d5383a10d09a75625766564cea6",
+  "merged": "2026-10-17T19:13:03Z",
+  "missing_roots": 0,
+  "number": 525,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n      This attribute SHOULD be set to the identifier received from the model or provider\n      if and only if one was suppled.\n```\n\nInstrumentation uses whatever comes through client library API. If it happens to generate something local, there is no way for instrumentation to know - so SHOULD instead of MUST. \n\nAlso suggesting to make it more concise.",
+      "created": "2026-09-29T21:42:45Z",
+      "hunk": "@@ -477,7 +477,11 @@ attributes:\n     stability: development\n   - key: gen_ai.tool.call.id\n     type: string\n-    brief: The tool call identifier.\n+    brief: The tool call identifier supplied by the model or provider.\n+    note: |\n+      This attribute MUST carry the identifier generated and supplied by the model or provider.\n+      Instrumentations MUST NOT synthesize, generate, or fall back to local identifiers\n+      (such as memory addresses or sequential counters) when no provider identifier is available.",
+      "id": "PRRT_kwDOSUeMrM6nTdJG",
+      "opened": "2026-09-29T21:42:56Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-03T03:53:50Z",
+          "body": "Addressed in 0e48b81 using the suggested SHOULD wording, with the spelling corrected. The changelog and PR description now reflect the client-library observation boundary, and the registry and documentation were regenerated. Weaver policy checks pass.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/525#discussion_r4171596361"
+        }
+      ],
+      "reviewed": "5c0c59033f9d7d56b0ac93051fabb4d8aad14504",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/525#discussion_r4138630713"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this duplicates the requirement level set when attribute is referenced. let's keep it there \n\n```suggestion\n```",
+      "created": "2026-10-12T18:41:43Z",
+      "hunk": "@@ -520,7 +520,10 @@ attributes:\n     stability: development\n   - key: gen_ai.tool.call.id\n     type: string\n-    brief: The tool call identifier.\n+    brief: The tool call identifier supplied by the model or provider.\n+    note: |\n+      This attribute SHOULD be set to the identifier received from the model or provider\n+      if and only if one was supplied.",
+      "id": "PRRT_kwDOSUeMrM6rlN1v",
+      "opened": "2026-10-12T18:42:30Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-12T22:01:50Z",
+          "body": "Done in 7bb5148. I removed the registry note; the condition is now expressed at the execute_tool attribute reference, where its requirement level is defined.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/525#discussion_r4252713292"
+        }
+      ],
+      "reviewed": "255493ae7d1c5322a5a89fbb60287dd358a820e3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/525#discussion_r4251271640"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n          conditionally_required: If and only if the model or provider supplied a tool call identifier.\n```",
+      "created": "2026-10-12T18:41:58Z",
+      "hunk": "@@ -611,7 +611,7 @@ spans:\n         sampling_relevant: true\n       - ref: gen_ai.tool.call.id\n         requirement_level:\n-          recommended: If available.\n+          conditionally_required: If the model or provider supplied a tool call identifier.",
+      "id": "PRRT_kwDOSUeMrM6rlOJV",
+      "opened": "2026-10-12T18:42:30Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-12T22:01:52Z",
+          "body": "Updated in 7bb5148: the execute_tool reference now says “If and only if the model or provider supplied a tool call identifier.” The registry description remains neutral.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/525#discussion_r4252713438"
+        }
+      ],
+      "reviewed": "255493ae7d1c5322a5a89fbb60287dd358a820e3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/525#discussion_r4251273604"
+    }
+  ]
+}

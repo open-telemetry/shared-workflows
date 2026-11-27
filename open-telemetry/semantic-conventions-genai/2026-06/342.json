@@ -1,0 +1,97 @@
+{
+  "head": "40ba556d6f546dbc2fcc1b389819e267c90cda23",
+  "merge": "e153ed94728993acd0ee6a958559032ca8b20afe",
+  "merged": "2026-06-26T16:07:55Z",
+  "missing_roots": 0,
+  "number": 342,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "AGENT.md is currently a verbatim copy of CLAUDE.md. Without an explicit note, these two files are likely to drift over time and give contributors conflicting guidance.",
+      "created": "2026-06-24T07:24:22Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+OpenTelemetry **GenAI semantic conventions**: spans, metrics, and events for",
+      "id": "PRRT_kwDOSUeMrM6L0jE3",
+      "opened": "2026-06-24T07:24:23Z",
+      "path": "AGENT.md",
+      "replies": [],
+      "reviewed": "cede3ae7dd5b329588ff44f0d95e5a11044b279c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/342#discussion_r3465273863"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The intro paragraph lists `spans.yaml`, `metrics.yaml`, and `events.yaml` without the `model/<namespace>/` prefix, which can be confusing since those files live under each namespace directory (as shown in CONTRIBUTING.md). Consider using an explicit path pattern here for clarity.",
+      "created": "2026-06-24T07:24:23Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+OpenTelemetry **GenAI semantic conventions**: spans, metrics, and events for\n+GenAI clients, MCP, and provider-specific conventions. Attributes live in\n+`model/<namespace>/registry.yaml`; signals in `spans.yaml`, `metrics.yaml`,\n+`events.yaml`. Human docs are in `docs/gen-ai/`; runnable proofs in `reference/`.",
+      "id": "PRRT_kwDOSUeMrM6L0jFK",
+      "opened": "2026-06-24T07:24:23Z",
+      "path": "AGENT.md",
+      "replies": [],
+      "reviewed": "cede3ae7dd5b329588ff44f0d95e5a11044b279c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/342#discussion_r3465273891"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it's a trick. Happy to remove if people think it's a problem",
+      "created": "2026-06-24T07:28:48Z",
+      "hunk": "@@ -0,0 +1,60 @@\n+OpenTelemetry **GenAI semantic conventions**: spans, metrics, and events for\n+GenAI clients, MCP, and provider-specific conventions. Attributes live in\n+`model/<namespace>/registry.yaml`; signals in `model/<namespace>/{spans,metrics,events}.yaml`. Human docs are in `docs/gen-ai/`; runnable proofs in `reference/`.\n+\n+## How to contribute conventions\n+\n+1. **Be concise.** Short `brief`/`note` text. Small, focused PRs — phase large\n+   changes across several.\n+2. **Be actionable.** Tell instrumentation authors how to collect telemetry and\n+   consumers how to interpret it. Keep justification out of the conventions —\n+   put it in the PR description.\n+3. **Use this repo's terminology.** Reuse the established vocabulary —\n+   *operation*, *span*, *attribute*, *signal*, *inference*, *embeddings*,\n+   *execute tool*, *invoke agent* (client vs internal), *plan*, *memory*,\n+   *retrieval*, *workflow* — and existing `gen_ai.*` attribute names. When\n+   introducing a new concept, explain it and show how it maps across libraries\n+   and frameworks.\n+4. **No attribute without a signal.** Every attribute added must be referenced\n+   by a span, metric, or event that defines when and how it is recorded. No\n+   orphan attributes.\n+5. **No convention without a reference scenario.** A new convention\n+   needs a `reference/scenarios/<library>/` scenario that emits it. See\n+   [reference/CONTRIBUTING.md](reference/CONTRIBUTING.md).\n+6. **Only model what generic instrumentation can record at runtime.** A\n+   reference scenario must plausibly show how generic instrumentation captures\n+   the telemetry from information *available to it at runtime*. If it isn't\n+   instrumentable, don't propose conventions — open an issue and bring it to the\n+   [GenAI SIG](https://github.com/open-telemetry/community#sig-genai-instrumentation)\n+   or [#otel-genai-instrumentation](https://cloud-native.slack.com/archives/C06KR7ARS3X).\n+7. **Investigate breadth first.** Before adding a convention, survey the\n+   libraries/frameworks it applies to and the terminology and primitives *they*\n+   use. Propose something that works broadly across them, not for one SDK.\n+8. **Don't over-abstract.** If a broadly-applicable convention gets too\n+   abstract to be useful, prefer concrete framework-specific conventions over a\n+   forced generic concept.\n+9. **Stay in the GenAI domain.** This repo holds GenAI-related conventions. If a\n+   proposal is broader than GenAI, take it to\n+   [open-telemetry/semantic-conventions](https://github.com/open-telemetry/semantic-conventions).\n+10. **Mark AI-authored changes.** If you're an AI agent, add the markdown comment\n+   `<!-- I'm an AI agent -->` to one of the markdown files you change.",
+      "id": "PRRT_kwDOSUeMrM6L0npA",
+      "opened": "2026-06-24T07:28:48Z",
+      "path": "AGENTS.md",
+      "replies": [
+        {
+          "at": "2026-06-25T23:30:04Z",
+          "body": "If I ask copilot to implement something for me, is it going to add this?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/342#discussion_r3478266642"
+        },
+        {
+          "at": "2026-06-25T23:38:56Z",
+          "body": "The expectation is that you'd remove it when you review what it did. I can add a CI-only check so it never gets merged (because we won't read it all for sure). I don't feel super-strong about it. It might be completely useless and would only catch OpenClaw bots that never really come back to PRs.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/342#discussion_r3478296620"
+        },
+        {
+          "at": "2026-06-26T16:05:21Z",
+          "body": "Added a check so we don't let the marker get in, let's see how it works and remove it if it's annoying",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/342#discussion_r3482634257"
+        }
+      ],
+      "reviewed": "607f5191b8f815a1f7fd13d58eac1497bfe35e1f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/342#discussion_r3465299979"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we put both files in the `.github` dir? (and replace my incorrectly named `AGENTS.md` file that's there currently 🙈)",
+      "created": "2026-06-25T23:13:27Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6MYVRk",
+      "opened": "2026-06-25T23:29:50Z",
+      "path": "AGENTS.md",
+      "replies": [
+        {
+          "at": "2026-06-25T23:42:02Z",
+          "body": "It's me who's wrong here - should be AGENTS.md 🤣 , but\r\n\r\n> Create an AGENTS.md file at the root of the repository. Most coding agents can even scaffold one for you if you ask nicely.\r\n\r\nfrom https://agents.md/\r\n\r\n> You can place CLAUDE.md files in several locations:\r\n> Project root (./CLAUDE.md): check into git to share with your team\r\n> ...\r\n\r\nfrom https://code.claude.com/docs/en/best-practices\r\n\r\nCopilot\r\n\r\n> You can create one or more AGENTS.md files, stored anywhere within the repository. When Copilot is  \r\n> working, the nearest AGENTS.md file in the directory tree will take precedence. For more information, \r\n> see the [agentsmd/agents.md repository](https://github.com/agentsmd/agents.md).\r\n\r\n> Alternatively, you can use a single CLAUDE.md or GEMINI.md file stored in the root of the repository.\r\n\r\nnot sure if it covers sibling directories",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/342#discussion_r3478307944"
+        },
+        {
+          "at": "2026-06-25T23:54:48Z",
+          "body": "Merged existing one in https://github.com/open-telemetry/semantic-conventions-genai/pull/342/changes/04ddd6d5c0d847b1afa44b53ba3278ac27559907 - I didn't know it was there ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/342#discussion_r3478360032"
+        }
+      ],
+      "reviewed": "607f5191b8f815a1f7fd13d58eac1497bfe35e1f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/342#discussion_r3478211578"
+    }
+  ]
+}

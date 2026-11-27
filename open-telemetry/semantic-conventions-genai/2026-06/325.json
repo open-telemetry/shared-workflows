@@ -1,0 +1,94 @@
+{
+  "head": "63f30a4f88586b26d189c9bf34e27241681f345d",
+  "merge": "b028dceecdad117461a785c3af35315e7184e813",
+  "merged": "2026-06-28T17:39:41Z",
+  "missing_roots": 0,
+  "number": 325,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`request_input` can be a string or dict (OpenAI Responses allows `input` to be a string, array, etc.). As written, iterating over a string will yield characters and `item.get(...)` will raise an AttributeError. Normalize `input` to a list of dict-like items (or empty list) before checking for `function_call_output`.",
+      "created": "2026-06-19T14:04:32Z",
+      "hunk": "@@ -352,6 +377,10 @@ def embeddings(deployment=None):\n @bp.route(\"/openai/v1/responses\", methods=[\"POST\"])\n def responses():\n     body = request.get_json(silent=True) or {}\n+    request_input = body.get(\"input\") or []\n+    if body.get(\"tools\") and not any(item.get(\"type\") == \"function_call_output\" for item in request_input):\n+        return _responses_tool_call_response(body)",
+      "id": "PRRT_kwDOSUeMrM6K2nZ0",
+      "opened": "2026-06-19T14:04:33Z",
+      "path": "reference/src/semconv_genai/mock_server/openai.py",
+      "replies": [
+        {
+          "at": "2026-06-19T14:06:49Z",
+          "body": "Applied in eavanvalkenburg/semantic-conventions-genai@9e410b5. The Responses input is now normalized to dict-like list items before checking for function_call_output.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/325#discussion_r3442970768"
+        }
+      ],
+      "reviewed": "e22f9b55b6af47ccc617f88bcf7867e18f3d29b0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/325#discussion_r3442957804"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For Responses-style tool definitions, the tool name is typically under `tool[\"function\"][\"name\"]` (similar to the chat-completions mock above). Using `tool.get(\"name\")` will usually be `None`, which makes the mock ignore any non-default tool name the client sends.",
+      "created": "2026-06-19T14:04:33Z",
+      "hunk": "@@ -125,12 +125,37 @@\n     ],\n     \"usage\": {\n         \"input_tokens\": 25,\n+        \"input_tokens_details\": {\n+            \"cached_tokens\": 5,\n+        },\n         \"output_tokens\": 12,\n+        \"output_tokens_details\": {\n+            \"reasoning_tokens\": 3,\n+        },\n         \"total_tokens\": 37,\n     },\n }\n \n \n+def _responses_tool_call_response(body):\n+    response = copy.deepcopy(RESPONSES_RESPONSE)\n+    response[\"id\"] = \"resp-mock-tool-001\"\n+    response[\"model\"] = body.get(\"model\", response[\"model\"])\n+    tool = body.get(\"tools\", [{}])[0]\n+    tool_name = tool.get(\"name\")",
+      "id": "PRRT_kwDOSUeMrM6K2naT",
+      "opened": "2026-06-19T14:04:33Z",
+      "path": "reference/src/semconv_genai/mock_server/openai.py",
+      "replies": [
+        {
+          "at": "2026-06-19T14:06:51Z",
+          "body": "Applied in eavanvalkenburg/semantic-conventions-genai@9e410b5. The Responses tool name now checks both the top-level Responses shape and the nested function.name shape.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/325#discussion_r3442970930"
+        }
+      ],
+      "reviewed": "e22f9b55b6af47ccc617f88bcf7867e18f3d29b0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/325#discussion_r3442957847"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why agent-framework creates inference spans? it's usually the responsibility of LLM client rather than agentic framework",
+      "created": "2026-06-23T02:32:46Z",
+      "hunk": "@@ -6,17 +6,17 @@\n \n | Attribute | Supporting Libraries |\n | --- | --- |\n-| gen_ai.operation.name | [anthropic], [autogen], [aws-bedrock], [azure-ai-inference], [azure-openai], [claude-agent-sdk], [cohere], [crewai], [dspy], [google-adk], [google-genai], [groq], [instructor], [langchain], [litellm], [llamaindex], [mistralai], [openai], [openai-agents], [pydantic-ai], [vertexai] |\n-| gen_ai.provider.name | [anthropic], [autogen], [aws-bedrock], [azure-ai-inference], [azure-openai], [claude-agent-sdk], [cohere], [crewai], [dspy], [google-adk], [google-genai], [groq], [instructor], [langchain], [litellm], [llamaindex], [mistralai], [openai], [openai-agents], [pydantic-ai], [vertexai] |\n+| gen_ai.operation.name | [agent-framework], [anthropic], [autogen], [aws-bedrock], [azure-ai-inference], [azure-openai], [claude-agent-sdk], [cohere], [crewai], [dspy], [google-adk], [google-genai], [groq], [instructor], [langchain], [litellm], [llamaindex], [mistralai], [openai], [openai-agents], [pydantic-ai], [vertexai] |",
+      "id": "PRRT_kwDOSUeMrM6LcvBV",
+      "opened": "2026-06-23T02:37:27Z",
+      "path": "reference/reports/inference-span.md",
+      "replies": [
+        {
+          "at": "2026-06-23T06:57:13Z",
+          "body": "so, just like pydantic-ai, crewai, openai-agents, langchain this does seem to be the standard, and during testing we do not see multiple inference spans being generated. We also do not only support openai as the underlying library, but a broad range of inference services, so we can't rely on oai spans.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/325#discussion_r3457650832"
+        }
+      ],
+      "reviewed": "4e4166a992887351944b52d4ec88ffe2b9650e70",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/325#discussion_r3456643931"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it seems we should produce workflow span here",
+      "created": "2026-06-23T02:34:02Z",
+      "hunk": "@@ -0,0 +1,108 @@\n+\"\"\"Native telemetry scenario for Microsoft Agent Framework.\"\"\"\n+\n+import asyncio\n+import os\n+from typing import Annotated\n+\n+from reference_shared import flush_and_shutdown, setup_otel\n+\n+MOCK_BASE_URL = os.environ[\"MOCK_LLM_URL\"] + \"/v1\"\n+\n+\n+async def run_agent_tool_call():\n+    \"\"\"Scenario: Agent Framework agent execution with native telemetry.\"\"\"\n+    from agent_framework import Agent, tool\n+    from agent_framework.observability import enable_sensitive_telemetry\n+    from agent_framework.openai import OpenAIChatClient\n+\n+    print(\"  [agent_run] agent with tool calling (native telemetry)\")\n+\n+    enable_sensitive_telemetry(force=True)\n+\n+    @tool(approval_mode=\"never_require\")\n+    def get_weather(\n+        location: Annotated[str, \"The location to get the weather for.\"],\n+    ) -> str:\n+        \"\"\"Get the weather for a given location.\"\"\"\n+        return f\"Sunny in {location}\"\n+\n+    client = OpenAIChatClient(\n+        model=\"gpt-4o-mini\",\n+        base_url=MOCK_BASE_URL,\n+        api_key=\"mock-key\",\n+    )\n+    agent = Agent(\n+        client=client,\n+        id=\"weather-agent\",\n+        name=\"WeatherAgent\",\n+        description=\"Answers weather questions with a function tool.\",\n+        instructions=\"You are a helpful weather agent.\",\n+        tools=[get_weather],\n+    )\n+\n+    result = await agent.run(\n+        \"What's the weather in Seattle?\",\n+        options={\n+            \"temperature\": 0.2,\n+            \"top_p\": 0.9,\n+            \"max_tokens\": 64,\n+        },\n+    )\n+    print(f\"    -> {result.text[:60]}\")\n+\n+\n+async def run_agent_workflow():\n+    \"\"\"Scenario: Agent Framework workflow execution with native telemetry.\"\"\"\n+    from agent_framework import Agent, WorkflowBuilder\n+    from agent_framework.observability import enable_sensitive_telemetry\n+    from agent_framework.openai import OpenAIChatClient\n+\n+    print(\"  [workflow] two-agent workflow (native telemetry)\")\n+\n+    enable_sensitive_telemetry(force=True)\n+\n+    client = OpenAIChatClient(\n+        model=\"gpt-4o-mini\",\n+        base_url=MOCK_BASE_URL,\n+        api_key=\"mock-key\",\n+    )\n+    writer_agent = Agent(\n+        client=client,\n+        name=\"writer\",\n+        instructions=\"You are a concise copy writer.\",\n+    )\n+    reviewer_agent = Agent(\n+        client=client,\n+        name=\"reviewer\",\n+        instructions=\"You review slogans and suggest one short improvement.\",\n+    )\n+    workflow = (\n+        WorkflowBuilder(\n+            start_executor=writer_agent,\n+            name=\"slogan_review_workflow\",\n+            description=\"Drafts and reviews a short slogan.\",\n+            output_from=[reviewer_agent],\n+        )\n+        .add_edge(writer_agent, reviewer_agent)\n+        .build()\n+    )\n+\n+    result = await workflow.run(\"Create a slogan for a compact electric van.\")",
+      "id": "PRRT_kwDOSUeMrM6Lcv_P",
+      "opened": "2026-06-23T02:37:27Z",
+      "path": "reference/scenarios/agent-framework/scenario.py",
+      "replies": [
+        {
+          "at": "2026-06-23T06:58:30Z",
+          "body": "to instrument workflows with the otel convention for that is on our backlog, I hadn't seen that spec before, so once we add that in the same way (we already have spans in the workflows, but need to update them) then we can rerun, but wanted to ensure we show we do have workflows themselves.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/325#discussion_r3457656826"
+        }
+      ],
+      "reviewed": "4e4166a992887351944b52d4ec88ffe2b9650e70",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/325#discussion_r3456649477"
+    }
+  ]
+}

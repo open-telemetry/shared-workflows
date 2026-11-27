@@ -1,0 +1,52 @@
+{
+  "head": "5a468ba1c4bc6b0cdc269c0579211a19f0014653",
+  "merge": "36b4e466423e7073ff854d301e0fc3cc2a3c200a",
+  "merged": "2026-03-19T20:17:11Z",
+  "missing_roots": 0,
+  "number": 16749,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use `getter` here instead of creating new object",
+      "created": "2026-03-19T12:42:36Z",
+      "hunk": "@@ -90,11 +90,11 @@ public static Instrumenter<DbRequest, Void> createStatementInstrumenter(\n \n   public static Instrumenter<DataSource, DbInfo> createDataSourceInstrumenter(\n       OpenTelemetry openTelemetry, boolean enabled) {\n-    DataSourceCodeAttributesGetter getter = DataSourceCodeAttributesGetter.INSTANCE;\n+    DataSourceCodeAttributesGetter getter = new DataSourceCodeAttributesGetter();\n     return Instrumenter.<DataSource, DbInfo>builder(\n             openTelemetry, INSTRUMENTATION_NAME, CodeSpanNameExtractor.create(getter))\n         .addAttributesExtractor(CodeAttributesExtractor.create(getter))\n-        .addAttributesExtractor(DataSourceDbAttributesExtractor.INSTANCE)\n+        .addAttributesExtractor(new DataSourceDbAttributesExtractor())",
+      "id": "PRRT_kwDODJKVX851clkT",
+      "opened": "2026-03-19T12:42:36Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-03-19T15:37:08Z",
+          "body": "@copilot do this",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16749#discussion_r2960892970"
+        }
+      ],
+      "reviewed": "ed31dcefd394cdb631b07cee0bc8a1867200fe35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16749#discussion_r2959792413"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could place `JdbcAttributesGetter` into a variable",
+      "created": "2026-03-19T12:43:39Z",
+      "hunk": "@@ -76,9 +76,9 @@ public static Instrumenter<DbRequest, Void> createStatementInstrumenter(\n     return Instrumenter.<DbRequest, Void>builder(\n             openTelemetry,\n             INSTRUMENTATION_NAME,\n-            DbClientSpanNameExtractor.create(JdbcAttributesGetter.INSTANCE))\n+            DbClientSpanNameExtractor.create(new JdbcAttributesGetter()))\n         .addAttributesExtractor(\n-            SqlClientAttributesExtractor.builder(JdbcAttributesGetter.INSTANCE)\n+            SqlClientAttributesExtractor.builder(new JdbcAttributesGetter())",
+      "id": "PRRT_kwDODJKVX851cmlm",
+      "opened": "2026-03-19T12:43:39Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-03-19T15:37:08Z",
+          "body": "@copilot do this",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16749#discussion_r2960892204"
+        }
+      ],
+      "reviewed": "ed31dcefd394cdb631b07cee0bc8a1867200fe35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16749#discussion_r2959798058"
+    }
+  ]
+}

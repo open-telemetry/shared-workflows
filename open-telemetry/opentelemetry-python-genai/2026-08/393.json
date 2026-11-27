@@ -1,0 +1,124 @@
+{
+  "head": "75a6acece10b3cf13a73c2522b529a5adbb18f1f",
+  "merge": "06009cba67a3e13223c80cf2ab60967f78f06df9",
+  "merged": "2026-08-19T23:18:11Z",
+  "missing_roots": 0,
+  "number": 393,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "@copilot is this necessary? it's ok to have tests that don't test anything given that opentelemetry-instrumentation-httpx might get support for httpx2",
+      "created": "2026-08-15T16:32:46Z",
+      "hunk": "@@ -18,10 +18,14 @@\n \n import json\n \n-import httpx\n import pytest\n from openai import AsyncOpenAI, OpenAI\n \n+# This module tests interop with opentelemetry-instrumentation-httpx, which\n+# only applies when openai uses httpx (v1/v2). Skip the entire module when\n+# httpx is not installed (e.g. openai v3+, which uses httpx2 instead).\n+httpx = pytest.importorskip(\"httpx\")",
+      "id": "PRRT_kwDOSbspP86ZheNc",
+      "opened": "2026-08-15T16:32:46Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_raw_response_httpx_interop.py",
+      "replies": [
+        {
+          "at": "2026-08-15T16:35:16Z",
+          "body": "Agreed — removed the dedicated `pytest.importorskip(\"httpx\")`. Moved `import httpx` after the existing `pytest.importorskip(\"opentelemetry.instrumentation.httpx\")` instead: since that package depends on `httpx`, the existing skip already handles the httpx-absent case gracefully. This keeps the module alive for when httpx2 support lands in `opentelemetry-instrumentation-httpx`. (commit `refactor(openai): rely on existing importorskip...`)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789773992"
+        }
+      ],
+      "reviewed": "cb66e2bec3529baf30268a5dd6a33ace4cbec107",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789769563"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "@copilot are we fixing this https://github.com/open-telemetry/opentelemetry-python-contrib/issues/4953 here? ",
+      "created": "2026-08-15T16:33:53Z",
+      "hunk": "@@ -0,0 +1 @@\n+Extend supported version range for the openai library to include v3.",
+      "id": "PRRT_kwDOSbspP86Zheis",
+      "opened": "2026-08-15T16:33:53Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/.changelog/393.changed",
+      "replies": [
+        {
+          "at": "2026-08-15T16:36:34Z",
+          "body": "I wasn't able to load that issue to confirm, but based on the title/context: if opentelemetry-python-contrib #4953 is about the httpx instrumentation breaking with openai v3 (due to httpx2), then yes, this PR addresses the same root cause — the hard `import httpx` in this instrumentation. If you can confirm, the changelog fragment type could be changed to `fixed` and the description updated to reference the issue. Let me know and I'll update it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789776164"
+        },
+        {
+          "at": "2026-08-15T16:44:38Z",
+          "body": "here's the body @copilot \r\n\r\nI don't think we're fixing  it- the issue is about us not populating server.address / port\r\n\r\n## Describe your environment\r\n\r\n- OS: macOS 15 (arm64)\r\n- Python: 3.13.13\r\n- Package version: `opentelemetry-instrumentation-openai-v2` 2.4b0\r\n- Related: `openai` 3.0.0, `httpx` 0.28.1, `httpx2` 2.10.0\r\n\r\n## What happened?\r\n\r\nSpans produced for OpenAI SDK calls no longer carry the `server.address` (or `server.port`) attribute\r\nwhen the installed `openai` is 3.x. The same code against `openai` 2.54.0 records them normally.\r\n\r\nThe cause is in `instrumentation/openai_v2/utils.py`:\r\n\r\n```python\r\nfrom httpx import URL          # line 23\r\n...\r\ndef get_server_address_and_port(client_instance):     # line 98\r\n    base_client = getattr(client_instance, \"_client\", None)\r\n    base_url = getattr(base_client, \"base_url\", None)\r\n    if not base_url:\r\n        return None, None\r\n    address = None\r\n    port = None\r\n    if isinstance(base_url, URL):        # httpx.URL\r\n        address = base_url.host\r\n        port = base_url.port\r\n    elif isinstance(base_url, str):\r\n        url = urlparse(base_url)\r\n        address = url.hostname\r\n        port = url.port\r\n    ...\r\n```\r\n\r\n`openai` 3.x builds on **`httpx2`**, so `client._client.base_url` is an **`httpx2.URL`**. It is neither an\r\n`httpx.URL` nor a `str`, so both branches are skipped and the function returns `(None, None)`. Because the\r\nvalues are only set when truthy, the attributes are dropped silently, with no warning and no error.\r\n\r\n## Steps to reproduce\r\n\r\n```python\r\nfrom openai import OpenAI\r\nfrom opentelemetry.instrumentation.openai_v2.utils import get_server_address_and_port\r\n\r\nclient = OpenAI(base_url=\"https://openrouter.ai/api/v1\", api_key=\"x\")\r\nprint(type(client._client.base_url))                      # <class 'httpx2.URL'>\r\nprint(get_server_address_and_port(client.chat.completions))\r\n# openai 2.54.0 -> ('openrouter.ai', None)\r\n# openai 3.0.0  -> (None, None)\r\n```\r\n\r\nEnd to end, with a real request through the instrumentor, the emitted span attributes are:\r\n\r\n```\r\nopenai 2.54.0: gen_ai.operation.name, gen_ai.provider.name, gen_ai.request.model,\r\n               gen_ai.response.finish_reasons, gen_ai.response.id, gen_ai.response.model,\r\n               gen_ai.usage.input_tokens, gen_ai.usage.output_tokens, server.address\r\nopenai 3.0.0 : (identical, minus server.address)\r\n```\r\n\r\n## Expected result\r\n\r\n`server.address` and `server.port` are recorded regardless of which URL type the SDK uses internally, as\r\nrequired by the semantic conventions for client spans.\r\n\r\n## Actual result\r\n\r\nBoth attributes are absent on `openai` 3.x.\r\n\r\n## Why it matters beyond a missing attribute\r\n\r\n`gen_ai.provider.name` names the **SDK**, not the operator of the endpoint. For anything reached through\r\nthe OpenAI-compatible protocol, such as a router or gateway, an Azure OpenAI deployment, or a self-hosted\r\nvLLM or Ollama server, `server.address` is the only attribute distinguishing them. Without it, all of these are\r\nindistinguishable from a direct `api.openai.com` call, so consumers that attribute traffic per provider or\r\nper region will silently misattribute it. It fails quietly, which makes it easy to miss in a version bump.\r\n\r\n## Suggested fix\r\n\r\nAvoid the type check and read the URL structurally, which also covers any future URL implementation:\r\n\r\n```python\r\ndef get_server_address_and_port(client_instance):\r\n    base_client = getattr(client_instance, \"_client\", None)\r\n    base_url = getattr(base_client, \"base_url\", None)\r\n    if not base_url:\r\n        return None, None\r\n\r\n    address = getattr(base_url, \"host\", None)\r\n    port = getattr(base_url, \"port\", None)\r\n    if not address:                       # plain string base_url\r\n        parsed = urlparse(str(base_url))\r\n        address, port = parsed.hostname, parsed.port\r\n\r\n    if port == 443:\r\n        port = None\r\n    return address, port\r\n```\r\n\r\nBoth `httpx.URL` and `httpx2.URL` expose `.host` / `.port`, so this keeps existing behaviour and fixes\r\n3.x. A regression test asserting `server.address` is present for a non-default `base_url` would catch the\r\nnext recurrence. The current tests pass with the attribute missing.\r\n\r\nI'm happy to open a PR with the fix and the test if that's useful.\r\n\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789791564"
+        },
+        {
+          "at": "2026-08-15T16:47:58Z",
+          "body": "This PR now also fixes that — `get_server_address_and_port` uses `getattr(base_url, \"host\", None)` instead of `isinstance(httpx.URL)`, so `server.address`/`server.port` are recorded correctly with both `httpx.URL` (openai v1/v2) and `httpx2.URL` (openai v3). Added `.changelog/393.fixed` for the bug fix.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789797598"
+        }
+      ],
+      "reviewed": "cb66e2bec3529baf30268a5dd6a33ace4cbec107",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789771452"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "@copilot add tiny comment explaining we need to getaddr here because we have httpx.url or httpx2.url depending on openai version",
+      "created": "2026-08-15T16:55:39Z",
+      "hunk": "@@ -72,13 +67,11 @@ def get_server_address_and_port(\n     base_url = getattr(base_client, \"base_url\", None)\n     if not base_url:\n         return None, None\n-    address = None\n-    port = None\n-    if isinstance(base_url, URL):\n-        address = base_url.host\n-        port = base_url.port\n-    elif isinstance(base_url, str):\n-        url = urlparse(base_url)\n+\n+    address = getattr(base_url, \"host\", None)",
+      "id": "PRRT_kwDOSbspP86ZhlRI",
+      "opened": "2026-08-15T16:55:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-15T16:56:26Z",
+          "body": "Done — added a comment above the `getattr` calls explaining that openai v1/v2 uses `httpx.URL` while v3 uses `httpx2.URL`, and both expose `.host`/`.port`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789811885"
+        }
+      ],
+      "reviewed": "40cc95b851cb83bd77625d5539db67c436aa8b99",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789810591"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`import httpx` will raise ImportError (failing collection) in environments where `opentelemetry.instrumentation.httpx` is installed but `httpx` is not (e.g. openai v3+). If the intent is to auto-skip this module when `httpx` is unavailable, use `pytest.importorskip(\"httpx\")` for the `httpx` import as well.",
+      "created": "2026-08-15T17:00:13Z",
+      "hunk": "@@ -18,15 +18,17 @@\n \n import json\n \n-import httpx\n import pytest\n from openai import AsyncOpenAI, OpenAI\n \n # Only pinned in requirements.latest.txt; oldest envs skip this module.\n+# When httpx is not installed (e.g. openai v3+), this import will also skip.\n HTTPXClientInstrumentor = pytest.importorskip(\n     \"opentelemetry.instrumentation.httpx\"\n ).HTTPXClientInstrumentor\n \n+import httpx  # noqa: E402",
+      "id": "PRRT_kwDOSbspP86Zhmu_",
+      "opened": "2026-08-15T17:00:14Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_raw_response_httpx_interop.py",
+      "replies": [],
+      "reviewed": "5836af32b38113065429416482cef66ac7c0e071",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789819229"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With `openai==3.1.0` and only `httpx2` pinned here, the `test_raw_response_httpx_interop.py` module (which depends on `opentelemetry.instrumentation.httpx` and `httpx`) will now be skipped in the `latest` factor, and `opentelemetry-instrumentation-httpx` no longer appears to be installed anywhere in the repo. This effectively drops CI coverage for the httpx interop path that still matters for supported openai <3 versions. Consider moving the interop dependency + test execution to an env/factor that uses an httpx-based openai version (or adding a dedicated interop factor) so the interaction remains exercised.",
+      "created": "2026-08-15T17:00:14Z",
+      "hunk": "@@ -37,17 +37,16 @@\n # This variant of the requirements aims to test the system using\n # the newest supported version of external dependencies.\n \n-openai==2.52.0\n+openai==3.1.0\n # older pydantic is required for PyPy < 3.11\n pydantic==2.12.5\n-httpx==0.28.1\n+httpx2==2.7.0\n # older jiter is required for PyPy < 3.11",
+      "id": "PRRT_kwDOSbspP86ZhmvM",
+      "opened": "2026-08-15T17:00:14Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/requirements.latest.txt",
+      "replies": [
+        {
+          "at": "2026-08-15T17:02:20Z",
+          "body": "@copilot can you add another testing variant for openai to validate latest v2 version in addition to v3 ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789823717"
+        },
+        {
+          "at": "2026-08-15T17:04:45Z",
+          "body": "Added a `latest2` tox factor (`py3{10,11,12,13,14}-test-instrumentation-genai-openai-latest2`) backed by `tests/requirements.latest2.txt` pinned to `openai==2.54.0` + `httpx==0.28.1` + `opentelemetry-instrumentation-httpx`. This keeps the httpx interop tests running under CI while `latest` continues to cover openai v3.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789827847"
+        }
+      ],
+      "reviewed": "5836af32b38113065429416482cef66ac7c0e071",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789819244"
+    }
+  ]
+}

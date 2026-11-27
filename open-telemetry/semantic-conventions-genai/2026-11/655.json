@@ -1,0 +1,382 @@
+{
+  "head": "46c9e232faa351143ac454a75995caf516238bfb",
+  "merge": "191fc4e326af702a9a8f66de2926de4f2df08717",
+  "merged": "2026-11-24T22:28:42Z",
+  "missing_roots": 0,
+  "number": 655,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The existing streaming reference histogram does not demonstrate these new boundaries: `_time_to_first_chunk` in `reference/scenarios/openai/scenario.py:24-28` has no `explicit_bucket_boundaries_advisory`, and `setup_otel()` supplies no override. Add this boundary list to that histogram so the changed recommendation has a matching reference implementation, as required by the repository's reference guidance.",
+      "created": "2026-11-17T18:42:01Z",
+      "hunk": "@@ -647,7 +647,7 @@ reported following their own conventions.\n \n ### Metric: `gen_ai.client.inference.time_to_first_chunk`\n \n-This metric SHOULD be specified with [ExplicitBucketBoundaries] of [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92].\n+This metric SHOULD be specified with [ExplicitBucketBoundaries] of [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60].",
+      "id": "PRRT_kwDOSUeMrM64mCyT",
+      "opened": "2026-11-17T18:42:02Z",
+      "path": "docs/gen-ai/client-inference.md",
+      "replies": [
+        {
+          "at": "2026-11-17T23:09:50Z",
+          "body": "Added the recommended 12 explicit bucket boundaries, from 0.01 to 60 seconds, to `_time_to_first_chunk` in acc2d958.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4607039640"
+        }
+      ],
+      "reviewed": "11162fd3e49aad89e23cb2af7d99ba178562e6ed",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4604125612"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-11-17T23:12:48Z",
+      "hunk": "@@ -16,6 +16,8 @@ Assistants API is covered by the `openai-assistants` scenario).\n \n Streaming TTFC is recorded on the span and metric at the first non-empty text, refusal, audio data/transcript, or function-call name/argument delta. Role, ID, usage, and empty deltas do not stop the timer.\n \n+The TTFC histogram uses the recommended explicit bucket boundaries from 0.01 to 60 seconds.\n+",
+      "id": "PRRT_kwDOSUeMrM64s1eW",
+      "opened": "2026-11-17T23:12:48Z",
+      "path": "reference/scenarios/openai/README.md",
+      "replies": [],
+      "reviewed": "acc2d958cb0645c7527243a73b71e6e458c716ec",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4607066058"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "This entry says the new buckets apply to all GenAI duration histogram recommendations. Two GenAI duration histograms still use the old powers-of-two boundaries `[0.01, 0.02, 0.04, ..., 40.96, 81.92]`:\n\n- `gen_ai.client.invoke_agent.duration`, in `docs/gen-ai/client-invoke-agent.md` (line 436). Its reference emitters in `reference/scenarios/{aws-bedrock-agent,openai-assistants,azure-ai-foundry,google-genai}/scenario.py` also still use the old buckets.\n- `gen_ai.retrieval.duration`, in `docs/gen-ai/retrieval.md` (line 96). Its reference emitters in `reference/scenarios/{langchain,llamaindex,haystack}/scenario.py` also still use the old buckets.\n\nThis leaves the client invoke-agent metric out of step with its siblings: `gen_ai.client.inference.duration`, `gen_ai.client.embeddings.duration` and `gen_ai.execute_tool.duration`. It also leaves the retrieval metric inconsistent. Please update these two metrics and their reference emitters too. For a remote agent call, the new `gen_ai.invoke_agent.duration` layout may fit better than the 60-second client layout. If leaving them out is intentional, narrow this changelog entry so it doesn't cover them.",
+      "created": "2026-11-23T21:07:08Z",
+      "hunk": "@@ -0,0 +1 @@\n+Use decimal `1, 2.5, 5` subdivisions and boundaries aligned with minutes, hours, and days for GenAI and MCP duration histogram recommendations.",
+      "id": "PRRT_kwDOSUeMrM67EUuO",
+      "opened": "2026-11-23T21:07:07Z",
+      "path": "changelog.d/655.breaking.md",
+      "replies": [
+        {
+          "at": "2026-11-23T22:44:17Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655/changes/258b6d2bdeb3aed53edf93c49ecb54ebb09765ae",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4673026366"
+        }
+      ],
+      "reviewed": "7b45e907dc09414977e5f007b80bbd068f5e07ae",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4672030560"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This revised layout has no matching reference histogram. The OpenAI streaming scenario records only time to first chunk at `reference/scenarios/openai/scenario.py:648-651`, and no scenario emits `gen_ai.client.inference.time_per_output_chunk`. Add a histogram with these boundaries and record intervals between successive SDK chunks in that scenario, as required for convention updates by `CONTRIBUTING.md:74-79`.",
+      "created": "2026-11-23T22:52:05Z",
+      "hunk": "@@ -774,7 +774,7 @@ reported following their own conventions.\n \n ### Metric: `gen_ai.client.inference.time_per_output_chunk`\n \n-This metric SHOULD be specified with [ExplicitBucketBoundaries] of [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92].\n+This metric SHOULD be specified with [ExplicitBucketBoundaries] of [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60].",
+      "id": "PRRT_kwDOSUeMrM67Gy8t",
+      "opened": "2026-11-23T22:52:07Z",
+      "path": "docs/gen-ai/client-inference.md",
+      "replies": [
+        {
+          "at": "2026-11-24T19:06:34Z",
+          "body": "The OpenAI reference now records the interval between consecutive output chunks using the new buckets. It skips metadata-only chunks, so they don't reset the timer.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685122078"
+        }
+      ],
+      "reviewed": "e76f579a9e998d96070a00849eed765ab3f5489e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4673099608"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "No reference scenario emits `gen_ai.server.request.duration`, so the changed server-request layout is not demonstrated by the client-duration updates. `CONTRIBUTING.md:74-79` requires matching reference updates for convention changes. Add a server-library scenario that measures request duration at the server boundary and records it with these buckets, or defer this recommendation change until that example is available.",
+      "created": "2026-11-23T22:52:05Z",
+      "hunk": "@@ -201,7 +201,7 @@ This metric reports the model server\n latency in terms of time spent per request.\n \n This metric SHOULD be specified with [ExplicitBucketBoundaries] of\n-[0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92].\n+[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60].",
+      "id": "PRRT_kwDOSUeMrM67Gy9Z",
+      "opened": "2026-11-23T22:52:07Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-11-24T19:06:34Z",
+          "body": "The Transformers Serve reference now records request duration from entry into the completion handler through the end of the streamed response, with the new buckets.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685122073"
+        }
+      ],
+      "reviewed": "e76f579a9e998d96070a00849eed765ab3f5489e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4673099670"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The reference scenarios do not emit `gen_ai.server.time_to_first_token`. The updated OpenAI time-to-first-chunk histogram measures a client-side interval, not the server's queue and prefill timing, so it does not demonstrate this changed recommendation. Add a server-library reference using observable first-token timing and these boundaries, or defer this change, to meet `CONTRIBUTING.md:74-79`.",
+      "created": "2026-11-23T22:52:06Z",
+      "hunk": "@@ -473,7 +473,7 @@ requests. It is calculated at a request level and is reported as a histogram\n using the buckets mentioned below.\n \n This metric SHOULD be specified with [ExplicitBucketBoundaries] of\n-[0.001, 0.005, 0.01, 0.02, 0.04, 0.06, 0.08, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0].\n+[0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10].",
+      "id": "PRRT_kwDOSUeMrM67Gy-Z",
+      "opened": "2026-11-23T22:52:07Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-11-24T19:06:34Z",
+          "body": "The Transformers Serve reference now measures from entry into the completion handler to the first generated token observed by the server streamer, using the new buckets. It doesn't use client-side chunk arrival.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685122046"
+        }
+      ],
+      "reviewed": "e76f579a9e998d96070a00849eed765ab3f5489e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4673099767"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "No reference scenario emits `gen_ai.server.time_per_output_token`, so neither the new 1 ms lower boundary nor the 1 s overflow threshold has a matching runnable example. For the reference requirement in `CONTRIBUTING.md:74-79`, add a server-library scenario that derives the measurement from server timing and output-token counts and records it with this layout, or defer this change.",
+      "created": "2026-11-23T22:52:06Z",
+      "hunk": "@@ -344,7 +344,7 @@ token. This is important in measuring the performance of the decode phase of LLM\n inference.\n \n This metric SHOULD be specified with [ExplicitBucketBoundaries] of\n-[0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0, 2.5].\n+[0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1].",
+      "id": "PRRT_kwDOSUeMrM67Gy94",
+      "opened": "2026-11-23T22:52:07Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-11-24T19:06:34Z",
+          "body": "The Transformers Serve reference now subtracts time to first token from request duration and divides by the number of remaining output tokens counted by the server streamer. The histogram uses the 1 ms to 1 s boundaries.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685122059"
+        }
+      ],
+      "reviewed": "e76f579a9e998d96070a00849eed765ab3f5489e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4673099716"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Both MCP operation-duration histograms still use `_MCP_DURATION_BUCKETS` in `reference/scenarios/mcp/scenario.py:44-62`, which contains `0.02`, `0.2`, and `2` instead of the revised thresholds. Replace those values with `0.025`, `0.25`, and `2.5` to provide the matching reference update required by `CONTRIBUTING.md:74-79`. The same fix covers the server recommendation at `docs/gen-ai/mcp.md:767`.",
+      "created": "2026-11-23T22:52:06Z",
+      "hunk": "@@ -598,7 +598,7 @@ reported following their own conventions.\n \n This metric SHOULD be specified with\n [`ExplicitBucketBoundaries`](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.55.0/specification/metrics/api.md#instrument-advisory-parameters)\n-of `[ 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 30, 60, 120, 300 ]`.\n+of `[ 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300 ]`.",
+      "id": "PRRT_kwDOSUeMrM67Gy_E",
+      "opened": "2026-11-23T22:52:07Z",
+      "path": "docs/gen-ai/mcp.md",
+      "replies": [
+        {
+          "at": "2026-11-24T19:06:33Z",
+          "body": "Updated the bucket list shared by both MCP operation histograms to use `0.025`, `0.25`, and `2.5` seconds.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685122028"
+        }
+      ],
+      "reviewed": "e76f579a9e998d96070a00849eed765ab3f5489e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4673099832"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The MCP reference emits only operation-duration histograms; neither its scenario nor its `data.json` includes `mcp.client.session.duration`. This leaves the changed session layout without the reference update required by `CONTRIBUTING.md:74-79`. Demonstrate it by measuring the SDK client's session lifecycle and recording the duration with these boundaries, or defer this recommendation change.",
+      "created": "2026-11-23T22:52:06Z",
+      "hunk": "@@ -934,7 +934,7 @@ reported following their own conventions.\n \n This metric SHOULD be specified with\n [`ExplicitBucketBoundaries`](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.55.0/specification/metrics/api.md#instrument-advisory-parameters)\n-of `[ 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 30, 60, 120, 300 ]`.\n+of `[ 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300 ]`.",
+      "id": "PRRT_kwDOSUeMrM67Gy_m",
+      "opened": "2026-11-23T22:52:07Z",
+      "path": "docs/gen-ai/mcp.md",
+      "replies": [
+        {
+          "at": "2026-11-24T19:06:33Z",
+          "body": "The MCP client reference now records session duration from transport startup through termination using the revised buckets.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685122013"
+        }
+      ],
+      "reviewed": "e76f579a9e998d96070a00849eed765ab3f5489e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4673099884"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "No reference scenario emits `mcp.server.session.duration`; the MCP server reference measures requests through middleware but does not record session lifetimes. Add a measurement at the SDK server's session lifecycle boundary with this bucket list, or defer the session recommendation change. Otherwise this convention update lacks the matching reference required by `CONTRIBUTING.md:74-79`.",
+      "created": "2026-11-23T22:52:07Z",
+      "hunk": "@@ -1006,7 +1006,7 @@ it's RECOMMENDED to:\n \n This metric SHOULD be specified with\n [`ExplicitBucketBoundaries`](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.55.0/specification/metrics/api.md#instrument-advisory-parameters)\n-of `[ 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 30, 60, 120, 300 ]`.\n+of `[ 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300 ]`.",
+      "id": "PRRT_kwDOSUeMrM67GzAG",
+      "opened": "2026-11-23T22:52:07Z",
+      "path": "docs/gen-ai/mcp.md",
+      "replies": [
+        {
+          "at": "2026-11-24T19:06:34Z",
+          "body": "The MCP server reference now records session duration around the SDK's stateful connection loop with the revised buckets. It records only initialized sessions and reads the negotiated protocol version from the session.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685122067"
+        }
+      ],
+      "reviewed": "e76f579a9e998d96070a00849eed765ab3f5489e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4673099933"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The only supporting scenario, `google-adk`, still uses ADK's native tool histogram with the old doubling boundaries ending at 81.92 seconds, also present in the [upstream bucket list](https://github.com/google/adk-python/blob/825a44c5dfb72cd14d5d037a8f42a27c7bf62292/src/google/adk/telemetry/_metrics.py#L113-L121). Changing `_invoke_duration` does not change this histogram, so the reference run does not demonstrate the revised tool-duration layout. Pass a `View` for `gen_ai.execute_tool.duration` with `ExplicitBucketHistogramAggregation` and these boundaries through `setup_otel(metric_views=...)`, and update the scenario README to satisfy `CONTRIBUTING.md:74-79`.",
+      "created": "2026-11-24T19:13:39Z",
+      "hunk": "@@ -905,7 +905,7 @@ classify the failure.\n \n ### Metric: `gen_ai.execute_tool.duration`\n \n-This metric SHOULD be specified with [ExplicitBucketBoundaries] of [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92].\n+This metric SHOULD be specified with [ExplicitBucketBoundaries] of [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60].",
+      "id": "PRRT_kwDOSUeMrM67i2jb",
+      "opened": "2026-11-24T19:13:40Z",
+      "path": "docs/gen-ai/execute-tool.md",
+      "replies": [
+        {
+          "at": "2026-11-24T19:34:48Z",
+          "body": "The Google ADK reference now creates `gen_ai.execute_tool.duration` with the revised `explicit_bucket_boundaries_advisory` and lets ADK’s existing recorder supply the timings and attributes. I used instrument advice instead of an SDK View so the scenario demonstrates what instrumentation should supply, not how an operator can override it. The scenario README documents this.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685457925"
+        }
+      ],
+      "reviewed": "e95c21e4f56365da9ab7bc3236400e16f79d26a7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685207776"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The only supporting scenario, `adk_a2a`, uses a native histogram whose [OTel factory supplies no bucket advice](https://github.com/open-telemetry/opentelemetry-python/blob/b63fee68c1b816addaaa402d484f875241d07d66/opentelemetry-semantic-conventions/src/opentelemetry/semconv/_incubating/metrics/gen_ai_metrics.py#L12-L18), and it passes no aggregation override to `setup_otel()`. Its reference run therefore does not demonstrate this revised layout. Pass a `View` with `ExplicitBucketHistogramAggregation` and these boundaries through `setup_otel(metric_views=...)` in `adk_a2a`, and update its README to satisfy `CONTRIBUTING.md:74-79`.",
+      "created": "2026-11-24T19:13:39Z",
+      "hunk": "@@ -53,7 +53,7 @@ Inference token metrics (`gen_ai.client.inference.usage.*` counters and\n \n ### Metric: `gen_ai.client.operation.duration`\n \n-This metric SHOULD be specified with [ExplicitBucketBoundaries] of [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92].\n+This metric SHOULD be specified with [ExplicitBucketBoundaries] of [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60].",
+      "id": "PRRT_kwDOSUeMrM67i2kS",
+      "opened": "2026-11-24T19:13:40Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-11-24T19:34:48Z",
+          "body": "The ADK A2A reference now creates `gen_ai.client.operation.duration` with the revised `explicit_bucket_boundaries_advisory`. ADK still records the original timings and attributes. The README documents the instrument-level advice; no SDK aggregation override is needed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685457980"
+        }
+      ],
+      "reviewed": "e95c21e4f56365da9ab7bc3236400e16f79d26a7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685207867"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "`gen_ai.server.request.duration` is recorded only after `async for chunk in chunks` finishes normally. Two cases skip all of that code:\n\n- **Client disconnect:** if the client disconnects mid-stream, Starlette cancels or closes the generator. `CancelledError` or `GeneratorExit` is raised at `yield chunk`.\n- **Body iterator error:** if the wrapped iterator raises, the exception propagates past the loop.\n\nIn both cases no measurement is emitted, and the `generation_failed` branch never runs. Failed or aborted requests then disappear from the duration histogram. This contradicts the README, which says the duration covers the request through the end of the streamed response and that failures are tagged with `error.type`.\n\nThe fix is to record the duration in `finally` and classify abnormal exits. Token histograms can stay limited to successful completions. The suggestion below keeps lines 109-113 unchanged.\n\n```suggestion\n            error_type = \"generation_failed\"\n            try:\n                async for chunk in chunks:\n                    yield chunk\n                if timing.completed:\n                    error_type = None\n            except BaseException as error:\n                error_type = type(error).__qualname__\n                raise\n            finally:\n                duration = perf_counter() - started_at\n                _request_duration.record(duration, attributes if error_type is None else attributes | {\"error.type\": error_type})\n            if error_type is not None:\n                return\n```",
+      "created": "2026-11-24T20:09:00Z",
+      "hunk": "@@ -0,0 +1,187 @@\n+\"\"\"Reference server timing for Transformers Serve.\"\"\"\n+\n+import asyncio\n+import json\n+from collections.abc import AsyncIterator\n+from contextvars import ContextVar\n+from dataclasses import dataclass\n+from functools import partial\n+from pathlib import Path\n+from tempfile import TemporaryDirectory\n+from time import perf_counter\n+from unittest.mock import patch\n+\n+import httpx\n+import torch\n+from reference_shared import flush_and_shutdown, reference_meter, setup_otel\n+from starlette.responses import JSONResponse, StreamingResponse\n+from tokenizers import Tokenizer\n+from tokenizers.models import WordLevel\n+from tokenizers.pre_tokenizers import Whitespace\n+from transformers import GPT2Config, GPT2LMHeadModel, PreTrainedTokenizerFast\n+from transformers.cli.serving import server\n+from transformers.cli.serving import utils as serving_utils\n+from transformers.cli.serving.chat_completion import ChatCompletionHandler\n+from transformers.cli.serving.completion import CompletionHandler\n+from transformers.cli.serving.model_manager import ModelManager\n+from transformers.cli.serving.response import ResponseHandler\n+from transformers.cli.serving.systemone import SystemOneHandler\n+from transformers.cli.serving.transcription import TranscriptionHandler\n+from transformers.cli.serving.utils import DirectStreamer, GenerationState\n+\n+_reference_meter = reference_meter()\n+_request_duration = _reference_meter.create_histogram(\n+    \"gen_ai.server.request.duration\",\n+    unit=\"s\",\n+    description=\"Duration of a model server request.\",\n+    explicit_bucket_boundaries_advisory=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60],\n+)\n+_time_to_first_token = _reference_meter.create_histogram(\n+    \"gen_ai.server.time_to_first_token\",\n+    unit=\"s\",\n+    description=\"Time to generate the first output token.\",\n+    explicit_bucket_boundaries_advisory=[0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],\n+)\n+_time_per_output_token = _reference_meter.create_histogram(\n+    \"gen_ai.server.time_per_output_token\",\n+    unit=\"s\",\n+    description=\"Time per output token generated after the first token.\",\n+    explicit_bucket_boundaries_advisory=[0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1],\n+)\n+\n+\n+@dataclass\n+class TokenTiming:\n+    first_token_at: float | None = None\n+    output_tokens: int = 0\n+    completed: bool = False\n+\n+\n+_token_timing = ContextVar[TokenTiming | None](\"token_timing\", default=None)\n+\n+\n+class ReferenceStreamer(DirectStreamer):\n+    def __init__(self, tokenizer, loop, queue, response_parser=None):\n+        super().__init__(tokenizer, loop, queue, response_parser=response_parser)\n+        # The server creates the streamer on the request thread and calls put on the inference thread.\n+        self._timing = _token_timing.get()\n+\n+    def put(self, value: torch.Tensor) -> None:\n+        generated_at = perf_counter()\n+        super().put(value)\n+        if self._timing is not None and self.total_tokens > 0:\n+            if self._timing.first_token_at is None:\n+                self._timing.first_token_at = generated_at\n+            self._timing.output_tokens = self.total_tokens\n+\n+    def end(self) -> None:\n+        if self._timing is not None:\n+            self._timing.completed = True\n+        super().end()\n+\n+\n+class ReferenceCompletionHandler(CompletionHandler):\n+    async def handle_request(self, body: dict, request_id: str) -> StreamingResponse | JSONResponse:\n+        started_at = perf_counter()\n+        timing = TokenTiming()\n+        context = _token_timing.set(timing)\n+        try:\n+            response = await super().handle_request(body, request_id)\n+        finally:\n+            _token_timing.reset(context)\n+        if not isinstance(response, StreamingResponse):\n+            return response\n+\n+        attributes = {\"gen_ai.operation.name\": \"text_completion\", \"gen_ai.provider.name\": \"transformers\"}\n+        request_model = body.get(\"model\")\n+        if isinstance(request_model, str):\n+            attributes[\"gen_ai.request.model\"] = request_model\n+        chunks = response.body_iterator\n+\n+        async def record_stream_duration() -> AsyncIterator[str | bytes | memoryview]:\n+            async for chunk in chunks:\n+                yield chunk\n+            duration = perf_counter() - started_at\n+            if not timing.completed:\n+                _request_duration.record(duration, attributes | {\"error.type\": \"generation_failed\"})\n+                return\n+            _request_duration.record(duration, attributes)",
+      "id": "PRRT_kwDOSUeMrM67kXH1",
+      "opened": "2026-11-24T20:09:00Z",
+      "path": "reference/scenarios/transformers/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-24T20:30:31Z",
+          "body": "Fixed in e19d66d3. Request duration is recorded once at the ASGI response boundary, so it covers iterator errors and disconnects while Starlette is sending a chunk. Token histograms are still recorded only on success. A focused check with Starlette exercised a disconnect during send.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4686126029"
+        }
+      ],
+      "reviewed": "f8d0af8243a1ece46716a5d84dd73867c6e184c5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685867859"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] The last-item exception can go. An empty delta counts toward neither time to first chunk nor time per output chunk, so adding an empty event after the final output leaves every asserted timing unchanged: 0.5 s to the first chunk and 0.4 s between chunks. The single-delta and empty-list cases are also unaffected. This removes the `enumerate` call, the index arithmetic and the branch.\n\n```suggestion\n            for delta in output_deltas:\n                advance(0.3)\n                yield f\"data: {json.dumps(chunk(delta))}\\n\\n\".encode()\n                advance(0.1)\n                yield f\"data: {json.dumps(chunk({}))}\\n\\n\".encode()\n```",
+      "created": "2026-11-24T20:09:01Z",
+      "hunk": "@@ -718,9 +716,12 @@ def events():\n             ):\n                 advance(0.01)\n                 yield f\"data: {json.dumps(chunk(delta))}\\n\\n\".encode()\n-            for delta in output_deltas:\n+            for index, delta in enumerate(output_deltas):\n                 advance(0.3)\n                 yield f\"data: {json.dumps(chunk(delta))}\\n\\n\".encode()\n+                if index + 1 < len(output_deltas):\n+                    advance(0.1)\n+                    yield f\"data: {json.dumps(chunk({}))}\\n\\n\".encode()",
+      "id": "PRRT_kwDOSUeMrM67kXIf",
+      "opened": "2026-11-24T20:09:00Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-24T20:30:31Z",
+          "body": "Simplified in 4bff7c78. The fixture now emits an empty delta after every output delta, including the last one. The asserted output chunk timings are unchanged.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4686126063"
+        }
+      ],
+      "reviewed": "f8d0af8243a1ece46716a5d84dd73867c6e184c5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4685867929"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The three server histograms omit available dimensions: the resolved model returned in completion events and the server endpoint exposed by the response's ASGI scope. This leaves `gen_ai.response.model`, `server.address`, and `server.port` undemonstrated, contrary to `.github/instructions/evaluate-reference.instructions.md:47`. Capture the resolved model and endpoint at those library boundaries, carry them into the histogram attributes, and regenerate the scenario data and reports.",
+      "created": "2026-11-24T20:58:02Z",
+      "hunk": "@@ -0,0 +1,229 @@\n+\"\"\"Reference server timing for Transformers Serve.\"\"\"\n+\n+import asyncio\n+import json\n+from contextvars import ContextVar\n+from dataclasses import dataclass\n+from functools import partial\n+from pathlib import Path\n+from tempfile import TemporaryDirectory\n+from time import perf_counter\n+from unittest.mock import patch\n+\n+import httpx\n+import torch\n+from reference_shared import flush_and_shutdown, reference_meter, setup_otel\n+from starlette.responses import JSONResponse, StreamingResponse\n+from starlette.types import Message, Receive, Scope, Send\n+from tokenizers import Tokenizer\n+from tokenizers.models import WordLevel\n+from tokenizers.pre_tokenizers import Whitespace\n+from transformers import GPT2Config, GPT2LMHeadModel, PreTrainedTokenizerFast\n+from transformers.cli.serving import server\n+from transformers.cli.serving import utils as serving_utils\n+from transformers.cli.serving.chat_completion import ChatCompletionHandler\n+from transformers.cli.serving.completion import CompletionHandler\n+from transformers.cli.serving.model_manager import ModelManager\n+from transformers.cli.serving.response import ResponseHandler\n+from transformers.cli.serving.systemone import SystemOneHandler\n+from transformers.cli.serving.transcription import TranscriptionHandler\n+from transformers.cli.serving.utils import DirectStreamer, GenerationState\n+\n+_reference_meter = reference_meter()\n+_request_duration = _reference_meter.create_histogram(\n+    \"gen_ai.server.request.duration\",\n+    unit=\"s\",\n+    description=\"Duration of a model server request.\",\n+    explicit_bucket_boundaries_advisory=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60],\n+)\n+_time_to_first_token = _reference_meter.create_histogram(\n+    \"gen_ai.server.time_to_first_token\",\n+    unit=\"s\",\n+    description=\"Time to generate the first output token.\",\n+    explicit_bucket_boundaries_advisory=[0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],\n+)\n+_time_per_output_token = _reference_meter.create_histogram(\n+    \"gen_ai.server.time_per_output_token\",\n+    unit=\"s\",\n+    description=\"Time per output token generated after the first token.\",\n+    explicit_bucket_boundaries_advisory=[0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1],\n+)\n+\n+\n+@dataclass\n+class TokenTiming:\n+    first_token_at: float | None = None\n+    output_tokens: int = 0\n+    completed: bool = False\n+\n+\n+_token_timing = ContextVar[TokenTiming | None](\"token_timing\", default=None)\n+\n+\n+class ReferenceStreamer(DirectStreamer):\n+    def __init__(self, tokenizer, loop, queue, response_parser=None):\n+        super().__init__(tokenizer, loop, queue, response_parser=response_parser)\n+        # The server creates the streamer on the request thread and calls put on the inference thread.\n+        self._timing = _token_timing.get()\n+\n+    def put(self, value: torch.Tensor) -> None:\n+        generated_at = perf_counter()\n+        super().put(value)\n+        if self._timing is not None and self.total_tokens > 0:\n+            if self._timing.first_token_at is None:\n+                self._timing.first_token_at = generated_at\n+            self._timing.output_tokens = self.total_tokens\n+\n+    def end(self) -> None:\n+        if self._timing is not None:\n+            self._timing.completed = True\n+        super().end()\n+\n+\n+class ReferenceStreamingResponse(StreamingResponse):\n+    def __init__(\n+        self, response: StreamingResponse, started_at: float, timing: TokenTiming, attributes: dict[str, str]\n+    ) -> None:\n+        super().__init__(\n+            response.body_iterator,\n+            status_code=response.status_code,\n+            media_type=response.media_type,\n+            background=response.background,\n+        )\n+        self.raw_headers = response.raw_headers\n+        self.started_at = started_at\n+        self.timing = timing\n+        self.metric_attributes = attributes\n+\n+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:\n+        response_finished = False\n+\n+        async def send_body(message: Message) -> None:\n+            nonlocal response_finished\n+            await send(message)\n+            if message[\"type\"] == \"http.response.body\" and not message.get(\"more_body\", False):\n+                response_finished = True\n+\n+        attributes = self.metric_attributes\n+        error_type: str | None = None\n+        try:\n+            await super().__call__(scope, receive, send_body)\n+        except (asyncio.CancelledError, Exception) as error:\n+            error_type = type(error).__qualname__\n+            raise\n+        else:\n+            if not response_finished:\n+                error_type = \"client_disconnected\"\n+            elif not self.timing.completed:\n+                error_type = \"generation_failed\"\n+        finally:\n+            duration = perf_counter() - self.started_at\n+            duration_attributes = attributes if error_type is None else attributes | {\"error.type\": error_type}\n+            _request_duration.record(duration, duration_attributes)\n+\n+        if error_type is None and self.timing.first_token_at is not None:\n+            ttft = self.timing.first_token_at - self.started_at\n+            _time_to_first_token.record(ttft, attributes)\n+            if self.timing.output_tokens > 1:\n+                _time_per_output_token.record((duration - ttft) / (self.timing.output_tokens - 1), attributes)\n+\n+\n+class ReferenceCompletionHandler(CompletionHandler):\n+    async def handle_request(self, body: dict, request_id: str) -> StreamingResponse | JSONResponse:\n+        started_at = perf_counter()\n+        timing = TokenTiming()\n+        attributes = {\"gen_ai.operation.name\": \"text_completion\", \"gen_ai.provider.name\": \"transformers\"}",
+      "id": "PRRT_kwDOSUeMrM67lrYk",
+      "opened": "2026-11-24T20:58:02Z",
+      "path": "reference/scenarios/transformers/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-24T21:03:33Z",
+          "body": "Fixed in `b1e2a198`. All three streaming histograms now use the model ID returned by Transformers Serve's model resolution and the address and port from the ASGI scope. The expected telemetry snapshot and coverage reports reflect those attributes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4686514956"
+        }
+      ],
+      "reviewed": "64e81c1893ff2c33f596c65093aa6c883d69dc4c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4686450971"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "This scenario should not report the model-call timing as `gen_ai.client.operation.duration`. The new README (line 7) says ADK's native instrumentation \"times the Gemini call\", so this is an inference timing. Two existing rules rule that out:\n\n- The spec note on this metric (`model/gen-ai/metrics.yaml`, rendered in `docs/gen-ai/gen-ai-metrics.md`) says it SHOULD NOT be reported for inference operations; use `gen_ai.client.inference.duration` instead.\n- `reference/AGENTS.md` says a library that delegates the model call to another instrumentable library (here `google-genai`) must not emit inference telemetry. That telemetry belongs to the underlying client.\n\nThis PR goes further than leaving ADK's existing emission in place. It patches a reference-owned histogram into `_client_operation_duration` and marks the README row \"Should be instrumented here: Yes\". That makes the scenario look like the endorsed way to capture this metric. Please drop the patch, and change the README row to record that ADK's native metric doesn't comply with the spec instead of calling it implemented.",
+      "created": "2026-11-24T21:41:21Z",
+      "hunk": "@@ -57,6 +58,12 @@ async def run():\n         }\n     )\n     tp, lp, mp = setup_otel(resource=resource)\n+    operation_duration = reference_meter().create_histogram(\n+        \"gen_ai.client.operation.duration\",\n+        unit=\"s\",\n+        description=\"GenAI operation duration.\",\n+        explicit_bucket_boundaries_advisory=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60],\n+    )",
+      "id": "PRRT_kwDOSUeMrM67mzud",
+      "opened": "2026-11-24T21:41:21Z",
+      "path": "reference/scenarios/adk_a2a/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-24T22:21:45Z",
+          "body": "Fixed in d730973d. The A2A scenario drops ADK’s native `gen_ai.client.operation.duration` instead of replacing its histogram. The README and coverage report no longer count the delegated Gemini call as coverage for that metric.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4687341088"
+        }
+      ],
+      "reviewed": "b1e2a198c054b5197a3246be3eee7349acac7459",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4686936377"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "When `handle_request` raises, it records `gen_ai.server.request.duration` with an `attributes` dict that never contains `server.address` or `server.port`. Those keys are only added later, in `ReferenceStreamingResponse.__call__` from the ASGI scope.\n\nThe rejected streaming request this scenario exercises takes this path. So its `error.type` data point has fewer dimensions than the successful request to the same endpoint, and any error-rate query that filters by `server.address` misses it. The README says the scenario records the server address and port from the ASGI scope, and nothing limits that to successful requests.\n\nPlease capture the endpoint before `handle_request` runs, so the failure record carries the same server attributes. For example, a small ASGI middleware could set a ContextVar from `scope[\"server\"]`.",
+      "created": "2026-11-24T21:41:21Z",
+      "hunk": "@@ -0,0 +1,246 @@\n+\"\"\"Reference server timing for Transformers Serve.\"\"\"\n+\n+import asyncio\n+import json\n+from contextvars import ContextVar\n+from dataclasses import dataclass\n+from functools import partial\n+from pathlib import Path\n+from tempfile import TemporaryDirectory\n+from time import perf_counter\n+from unittest.mock import patch\n+\n+import httpx\n+import torch\n+from reference_shared import flush_and_shutdown, reference_meter, setup_otel\n+from starlette.responses import JSONResponse, StreamingResponse\n+from starlette.types import Message, Receive, Scope, Send\n+from tokenizers import Tokenizer\n+from tokenizers.models import WordLevel\n+from tokenizers.pre_tokenizers import Whitespace\n+from transformers import GPT2Config, GPT2LMHeadModel, PreTrainedModel, PreTrainedTokenizerFast, ProcessorMixin\n+from transformers.cli.serving import server\n+from transformers.cli.serving import utils as serving_utils\n+from transformers.cli.serving.chat_completion import ChatCompletionHandler\n+from transformers.cli.serving.completion import CompletionHandler\n+from transformers.cli.serving.model_manager import ModelManager\n+from transformers.cli.serving.response import ResponseHandler\n+from transformers.cli.serving.systemone import SystemOneHandler\n+from transformers.cli.serving.transcription import TranscriptionHandler\n+from transformers.cli.serving.utils import DirectStreamer, GenerationState\n+\n+_reference_meter = reference_meter()\n+_request_duration = _reference_meter.create_histogram(\n+    \"gen_ai.server.request.duration\",\n+    unit=\"s\",\n+    description=\"Duration of a model server request.\",\n+    explicit_bucket_boundaries_advisory=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60],\n+)\n+_time_to_first_token = _reference_meter.create_histogram(\n+    \"gen_ai.server.time_to_first_token\",\n+    unit=\"s\",\n+    description=\"Time to generate the first output token.\",\n+    explicit_bucket_boundaries_advisory=[0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],\n+)\n+_time_per_output_token = _reference_meter.create_histogram(\n+    \"gen_ai.server.time_per_output_token\",\n+    unit=\"s\",\n+    description=\"Time per output token generated after the first token.\",\n+    explicit_bucket_boundaries_advisory=[0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1],\n+)\n+\n+\n+@dataclass\n+class TokenTiming:\n+    first_token_at: float | None = None\n+    output_tokens: int = 0\n+    completed: bool = False\n+    response_model: str | None = None\n+\n+\n+_token_timing = ContextVar[TokenTiming | None](\"token_timing\", default=None)\n+\n+\n+class ReferenceStreamer(DirectStreamer):\n+    def __init__(self, tokenizer, loop, queue, response_parser=None):\n+        super().__init__(tokenizer, loop, queue, response_parser=response_parser)\n+        # The server creates the streamer on the request thread and calls put on the inference thread.\n+        self._timing = _token_timing.get()\n+\n+    def put(self, value: torch.Tensor) -> None:\n+        generated_at = perf_counter()\n+        super().put(value)\n+        if self._timing is not None and self.total_tokens > 0:\n+            if self._timing.first_token_at is None:\n+                self._timing.first_token_at = generated_at\n+            self._timing.output_tokens = self.total_tokens\n+\n+    def end(self) -> None:\n+        if self._timing is not None:\n+            self._timing.completed = True\n+        super().end()\n+\n+\n+class ReferenceStreamingResponse(StreamingResponse):\n+    def __init__(\n+        self, response: StreamingResponse, started_at: float, timing: TokenTiming, attributes: dict[str, str | int]\n+    ) -> None:\n+        super().__init__(\n+            response.body_iterator,\n+            status_code=response.status_code,\n+            media_type=response.media_type,\n+            background=response.background,\n+        )\n+        self.raw_headers = response.raw_headers\n+        self.started_at = started_at\n+        self.timing = timing\n+        self.metric_attributes = attributes\n+\n+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:\n+        response_finished = False\n+\n+        async def send_body(message: Message) -> None:\n+            nonlocal response_finished\n+            await send(message)\n+            if message[\"type\"] == \"http.response.body\" and not message.get(\"more_body\", False):\n+                response_finished = True\n+\n+        attributes = self.metric_attributes\n+        if self.timing.response_model is not None:\n+            attributes[\"gen_ai.response.model\"] = self.timing.response_model\n+        endpoint = scope.get(\"server\")\n+        if endpoint is not None and endpoint[1] is not None:\n+            attributes[\"server.address\"], attributes[\"server.port\"] = endpoint\n+\n+        error_type: str | None = None\n+        try:\n+            await super().__call__(scope, receive, send_body)\n+        except (asyncio.CancelledError, Exception) as error:\n+            error_type = type(error).__qualname__\n+            raise\n+        else:\n+            if not response_finished:\n+                error_type = \"client_disconnected\"\n+            elif not self.timing.completed:\n+                error_type = \"generation_failed\"\n+        finally:\n+            duration = perf_counter() - self.started_at\n+            duration_attributes = attributes if error_type is None else attributes | {\"error.type\": error_type}\n+            _request_duration.record(duration, duration_attributes)\n+\n+        if error_type is None and self.timing.first_token_at is not None:\n+            ttft = self.timing.first_token_at - self.started_at\n+            _time_to_first_token.record(ttft, attributes)\n+            if self.timing.output_tokens > 1:\n+                _time_per_output_token.record((duration - ttft) / (self.timing.output_tokens - 1), attributes)\n+\n+\n+class ReferenceCompletionHandler(CompletionHandler):\n+    def _resolve_model(self, body: dict) -> tuple[str, PreTrainedModel, ProcessorMixin | PreTrainedTokenizerFast]:\n+        model_id, model, processor = super()._resolve_model(body)\n+        timing = _token_timing.get()\n+        if timing is not None:\n+            timing.response_model = model_id\n+        return model_id, model, processor\n+\n+    async def handle_request(self, body: dict, request_id: str) -> StreamingResponse | JSONResponse:\n+        started_at = perf_counter()\n+        timing = TokenTiming()\n+        attributes: dict[str, str | int] = {\n+            \"gen_ai.operation.name\": \"text_completion\",\n+            \"gen_ai.provider.name\": \"transformers\",\n+        }\n+        error_type: str | None = None\n+        context = _token_timing.set(timing)\n+        try:\n+            response = await super().handle_request(body, request_id)\n+        except (asyncio.CancelledError, Exception) as error:\n+            error_type = type(error).__qualname__\n+            raise\n+        finally:\n+            _token_timing.reset(context)\n+            request_model = body.get(\"model\")\n+            if isinstance(request_model, str):\n+                attributes[\"gen_ai.request.model\"] = request_model\n+            if error_type is not None and body.get(\"stream\"):\n+                _request_duration.record(perf_counter() - started_at, attributes | {\"error.type\": error_type})",
+      "id": "PRRT_kwDOSUeMrM67mzug",
+      "opened": "2026-11-24T21:41:21Z",
+      "path": "reference/scenarios/transformers/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-24T22:21:45Z",
+          "body": "Fixed in e3e3f248. The ASGI middleware captures the endpoint before the completion handler runs, so successful and rejected requests both record `server.address` and `server.port`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4687341112"
+        }
+      ],
+      "reviewed": "b1e2a198c054b5197a3246be3eee7349acac7459",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4686936385"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] `error_type` exists only to pass failure state from `except` to `finally`. If you set `gen_ai.request.model` before the call, you can record the failure where it is caught. `finally` then only does cleanup, and the extra conditional goes away.\n\n```suggestion\n        request_model = body.get(\"model\")\n        if isinstance(request_model, str):\n            attributes[\"gen_ai.request.model\"] = request_model\n        context = _token_timing.set(timing)\n        try:\n            response = await super().handle_request(body, request_id)\n        except (asyncio.CancelledError, Exception) as error:\n            if body.get(\"stream\"):\n                error_attributes = attributes | {\"error.type\": type(error).__qualname__}\n                _request_duration.record(perf_counter() - started_at, error_attributes)\n            raise\n        finally:\n            _token_timing.reset(context)\n```",
+      "created": "2026-11-24T21:41:21Z",
+      "hunk": "@@ -0,0 +1,246 @@\n+\"\"\"Reference server timing for Transformers Serve.\"\"\"\n+\n+import asyncio\n+import json\n+from contextvars import ContextVar\n+from dataclasses import dataclass\n+from functools import partial\n+from pathlib import Path\n+from tempfile import TemporaryDirectory\n+from time import perf_counter\n+from unittest.mock import patch\n+\n+import httpx\n+import torch\n+from reference_shared import flush_and_shutdown, reference_meter, setup_otel\n+from starlette.responses import JSONResponse, StreamingResponse\n+from starlette.types import Message, Receive, Scope, Send\n+from tokenizers import Tokenizer\n+from tokenizers.models import WordLevel\n+from tokenizers.pre_tokenizers import Whitespace\n+from transformers import GPT2Config, GPT2LMHeadModel, PreTrainedModel, PreTrainedTokenizerFast, ProcessorMixin\n+from transformers.cli.serving import server\n+from transformers.cli.serving import utils as serving_utils\n+from transformers.cli.serving.chat_completion import ChatCompletionHandler\n+from transformers.cli.serving.completion import CompletionHandler\n+from transformers.cli.serving.model_manager import ModelManager\n+from transformers.cli.serving.response import ResponseHandler\n+from transformers.cli.serving.systemone import SystemOneHandler\n+from transformers.cli.serving.transcription import TranscriptionHandler\n+from transformers.cli.serving.utils import DirectStreamer, GenerationState\n+\n+_reference_meter = reference_meter()\n+_request_duration = _reference_meter.create_histogram(\n+    \"gen_ai.server.request.duration\",\n+    unit=\"s\",\n+    description=\"Duration of a model server request.\",\n+    explicit_bucket_boundaries_advisory=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60],\n+)\n+_time_to_first_token = _reference_meter.create_histogram(\n+    \"gen_ai.server.time_to_first_token\",\n+    unit=\"s\",\n+    description=\"Time to generate the first output token.\",\n+    explicit_bucket_boundaries_advisory=[0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],\n+)\n+_time_per_output_token = _reference_meter.create_histogram(\n+    \"gen_ai.server.time_per_output_token\",\n+    unit=\"s\",\n+    description=\"Time per output token generated after the first token.\",\n+    explicit_bucket_boundaries_advisory=[0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1],\n+)\n+\n+\n+@dataclass\n+class TokenTiming:\n+    first_token_at: float | None = None\n+    output_tokens: int = 0\n+    completed: bool = False\n+    response_model: str | None = None\n+\n+\n+_token_timing = ContextVar[TokenTiming | None](\"token_timing\", default=None)\n+\n+\n+class ReferenceStreamer(DirectStreamer):\n+    def __init__(self, tokenizer, loop, queue, response_parser=None):\n+        super().__init__(tokenizer, loop, queue, response_parser=response_parser)\n+        # The server creates the streamer on the request thread and calls put on the inference thread.\n+        self._timing = _token_timing.get()\n+\n+    def put(self, value: torch.Tensor) -> None:\n+        generated_at = perf_counter()\n+        super().put(value)\n+        if self._timing is not None and self.total_tokens > 0:\n+            if self._timing.first_token_at is None:\n+                self._timing.first_token_at = generated_at\n+            self._timing.output_tokens = self.total_tokens\n+\n+    def end(self) -> None:\n+        if self._timing is not None:\n+            self._timing.completed = True\n+        super().end()\n+\n+\n+class ReferenceStreamingResponse(StreamingResponse):\n+    def __init__(\n+        self, response: StreamingResponse, started_at: float, timing: TokenTiming, attributes: dict[str, str | int]\n+    ) -> None:\n+        super().__init__(\n+            response.body_iterator,\n+            status_code=response.status_code,\n+            media_type=response.media_type,\n+            background=response.background,\n+        )\n+        self.raw_headers = response.raw_headers\n+        self.started_at = started_at\n+        self.timing = timing\n+        self.metric_attributes = attributes\n+\n+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:\n+        response_finished = False\n+\n+        async def send_body(message: Message) -> None:\n+            nonlocal response_finished\n+            await send(message)\n+            if message[\"type\"] == \"http.response.body\" and not message.get(\"more_body\", False):\n+                response_finished = True\n+\n+        attributes = self.metric_attributes\n+        if self.timing.response_model is not None:\n+            attributes[\"gen_ai.response.model\"] = self.timing.response_model\n+        endpoint = scope.get(\"server\")\n+        if endpoint is not None and endpoint[1] is not None:\n+            attributes[\"server.address\"], attributes[\"server.port\"] = endpoint\n+\n+        error_type: str | None = None\n+        try:\n+            await super().__call__(scope, receive, send_body)\n+        except (asyncio.CancelledError, Exception) as error:\n+            error_type = type(error).__qualname__\n+            raise\n+        else:\n+            if not response_finished:\n+                error_type = \"client_disconnected\"\n+            elif not self.timing.completed:\n+                error_type = \"generation_failed\"\n+        finally:\n+            duration = perf_counter() - self.started_at\n+            duration_attributes = attributes if error_type is None else attributes | {\"error.type\": error_type}\n+            _request_duration.record(duration, duration_attributes)\n+\n+        if error_type is None and self.timing.first_token_at is not None:\n+            ttft = self.timing.first_token_at - self.started_at\n+            _time_to_first_token.record(ttft, attributes)\n+            if self.timing.output_tokens > 1:\n+                _time_per_output_token.record((duration - ttft) / (self.timing.output_tokens - 1), attributes)\n+\n+\n+class ReferenceCompletionHandler(CompletionHandler):\n+    def _resolve_model(self, body: dict) -> tuple[str, PreTrainedModel, ProcessorMixin | PreTrainedTokenizerFast]:\n+        model_id, model, processor = super()._resolve_model(body)\n+        timing = _token_timing.get()\n+        if timing is not None:\n+            timing.response_model = model_id\n+        return model_id, model, processor\n+\n+    async def handle_request(self, body: dict, request_id: str) -> StreamingResponse | JSONResponse:\n+        started_at = perf_counter()\n+        timing = TokenTiming()\n+        attributes: dict[str, str | int] = {\n+            \"gen_ai.operation.name\": \"text_completion\",\n+            \"gen_ai.provider.name\": \"transformers\",\n+        }\n+        error_type: str | None = None\n+        context = _token_timing.set(timing)\n+        try:\n+            response = await super().handle_request(body, request_id)\n+        except (asyncio.CancelledError, Exception) as error:\n+            error_type = type(error).__qualname__\n+            raise\n+        finally:\n+            _token_timing.reset(context)\n+            request_model = body.get(\"model\")\n+            if isinstance(request_model, str):\n+                attributes[\"gen_ai.request.model\"] = request_model\n+            if error_type is not None and body.get(\"stream\"):\n+                _request_duration.record(perf_counter() - started_at, attributes | {\"error.type\": error_type})",
+      "id": "PRRT_kwDOSUeMrM67mzuk",
+      "opened": "2026-11-24T21:41:21Z",
+      "path": "reference/scenarios/transformers/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-24T22:21:45Z",
+          "body": "Applied in 46c9e232. Capturing `gen_ai.request.model` before the call also preserves the original model ID when Transformers rewrites `body[\"model\"]` during resolution. The exception handler records the failure, and `finally` only resets the context.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4687341099"
+        }
+      ],
+      "reviewed": "b1e2a198c054b5197a3246be3eee7349acac7459",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/655#discussion_r4686936393"
+    }
+  ]
+}

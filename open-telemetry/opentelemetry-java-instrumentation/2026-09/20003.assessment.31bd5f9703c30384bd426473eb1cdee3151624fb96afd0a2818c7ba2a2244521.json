@@ -1,0 +1,32 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b7fec0937353703350d1bce311873e7234289c71e9cf0676f638ce52c970bfa5",
+  "input_digest": "31bd5f9703c30384bd426473eb1cdee3151624fb96afd0a2818c7ba2a2244521",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd35d7886d3cf6e224c0d7e454cabc9725549e6a/benchmark-overhead/src/test/java/io/opentelemetry/startup/StartupReport.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/289cd047b9959a89193863479032c9eda07ac20e/benchmark-overhead/src/test/java/io/opentelemetry/startup/StartupReport.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/289cd047b9959a89193863479032c9eda07ac20e/benchmark-overhead/src/test/java/io/opentelemetry/startup/StartupReportTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86fnpdl",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2cac8bd1ab8c4f17d8c8111f6a764db75f161b0e/benchmark-overhead/src/test/java/io/opentelemetry/startup/StartupTimings.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/289cd047b9959a89193863479032c9eda07ac20e/benchmark-overhead/src/test/java/io/opentelemetry/startup/StartupTimings.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gWGPO",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

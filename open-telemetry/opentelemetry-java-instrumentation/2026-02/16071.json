@@ -1,0 +1,148 @@
+{
+  "head": "5dfabd7a13d535cdc215071e94b3c742e07114ae",
+  "merge": "3c4ca65f479ee1e1e3ead7c60734a2ed617b4e9c",
+  "merged": "2026-02-10T17:06:20Z",
+  "missing_roots": 0,
+  "number": 16071,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Interface methods in Java are implicitly public. The explicit \"public\" keyword on these method declarations is redundant and inconsistent with other interfaces in the codebase (e.g., CodeAttributesGetter, MessagingAttributesGetter, DbClientAttributesGetter). Remove the \"public\" modifiers from these method declarations.\n```suggestion\n  boolean isEmpty();\n\n  @Nullable\n  String resolveService(String host, @Nullable Integer port, Supplier<String> pathSupplier);\n```",
+      "created": "2026-01-30T17:53:39Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.service;\n+\n+import static java.util.Collections.emptyList;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.service.internal.ServicePeerResolverImpl;\n+import java.util.HashMap;\n+import java.util.Map;\n+import java.util.function.Supplier;\n+import javax.annotation.Nullable;\n+\n+public interface ServicePeerResolver {\n+\n+  public boolean isEmpty();\n+\n+  @Nullable\n+  public String resolveService(String host, @Nullable Integer port, Supplier<String> pathSupplier);",
+      "id": "PRRT_kwDODJKVX85r6i--",
+      "opened": "2026-01-30T17:53:40Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/ServicePeerResolver.java",
+      "replies": [],
+      "reviewed": "daf0171e158a89e8a2ffe8078df1806907f653db",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16071#discussion_r2747356531"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot confirm that this is just a copy of the old PeerServiceResolver.java",
+      "created": "2026-01-30T17:56:55Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85r6lM2",
+      "opened": "2026-01-30T17:56:55Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/ServicePeerResolver.java",
+      "replies": [
+        {
+          "at": "2026-01-30T18:10:38Z",
+          "body": "apparently this doesn't work",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16071#discussion_r2747417919"
+        }
+      ],
+      "reviewed": "a30a25d2edc2e92373d113188a074f10a796b659",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16071#discussion_r2747369436"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "see https://github.com/open-telemetry/opentelemetry-configuration/pull/526",
+      "created": "2026-02-07T17:14:10Z",
+      "hunk": "@@ -28,7 +28,7 @@\n public final class ConfigPropertiesBackedDeclarativeConfigProperties\n     implements DeclarativeConfigProperties {\n \n-  private static final String GENERAL_PEER_SERVICE_MAPPING = \"general.peer.service_mapping\";\n+  private static final String JAVA_COMMON_SERVICE_PEER_MAPPING = \"java.common.service_peer_mapping\";",
+      "id": "PRRT_kwDODJKVX85tRal8",
+      "opened": "2026-02-08T21:28:03Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [],
+      "reviewed": "0106a81bec626306cad6f36202490ed7ba88885c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16071#discussion_r2777804211"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Some of this copied from `PeerServiceResolverImpl.java`\n\n> git diff upstream/main:instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/net/PeerServiceResolverImpl.java instrumentation-api-incubator/src/main/java/io/opentelemetry/\ninstrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java\n\n````diff\ndiff --git a/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/net/PeerServiceResolverImpl.java b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java\nindex cc741640fb..d7d7f5faed 100644\n--- a/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/net/PeerServiceResolverImpl.java\n+++ b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java\n@@ -3,51 +3,125 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.instrumentation.api.incubator.semconv.net;\n+package io.opentelemetry.instrumentation.api.incubator.semconv.service.peer.internal;\n \n+import static java.util.Collections.emptyList;\n import static java.util.Comparator.comparing;\n import static java.util.Comparator.naturalOrder;\n import static java.util.Comparator.nullsFirst;\n \n import com.google.auto.value.AutoValue;\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n import io.opentelemetry.instrumentation.api.incubator.semconv.net.internal.UrlParser;\n+import io.opentelemetry.instrumentation.api.internal.SemconvStability;\n import java.util.Comparator;\n import java.util.HashMap;\n import java.util.Map;\n+import java.util.function.BiConsumer;\n import java.util.function.Supplier;\n import javax.annotation.Nullable;\n \n-class PeerServiceResolverImpl implements PeerServiceResolver {\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class ServicePeerResolver {\n+\n+  // copied from PeerIncubatingAttributes\n+  private static final AttributeKey<String> PEER_SERVICE = AttributeKey.stringKey(\"peer.service\");\n+  // copied from ServiceIncubatingAttributes\n+  private static final AttributeKey<String> SERVICE_PEER_NAME =\n+      AttributeKey.stringKey(\"service.peer.name\");\n+  private static final AttributeKey<String> SERVICE_PEER_NAMESPACE =\n+      AttributeKey.stringKey(\"service.peer.namespace\");\n \n   private static final Comparator<ServiceMatcher> matcherComparator =\n       nullsFirst(\n           comparing(ServiceMatcher::getPort, nullsFirst(naturalOrder()))\n               .thenComparing(comparing(ServiceMatcher::getPath, nullsFirst(naturalOrder()))));\n \n-  private final Map<String, Map<ServiceMatcher, String>> mapping = new HashMap<>();\n-\n-  PeerServiceResolverImpl(Map<String, String> peerServiceMapping) {\n-    peerServiceMapping.forEach(\n-        (key, serviceName) -> {\n-          String url = \"https://\" + key;\n-          String host = UrlParser.getHost(url);\n-          Integer port = UrlParser.getPort(url);\n-          String path = UrlParser.getPath(url);\n-          Map<ServiceMatcher, String> matchers =\n-              mapping.computeIfAbsent(host, x -> new HashMap<>());\n-          matchers.putIfAbsent(ServiceMatcher.create(port, path), serviceName);\n-        });\n+  private final Map<String, Map<ServiceMatcher, ServicePeer>> servicePeerMapping = new HashMap<>();\n+\n+  public ServicePeerResolver(OpenTelemetry openTelemetry) {\n+    DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\")\n+        .getStructuredList(\"service_peer_mapping\", emptyList())\n+        .forEach(\n+            entry -> {\n+              String peer = entry.getString(\"peer\");\n+              String serviceName = entry.getString(\"service_name\");\n+              String serviceNamespace = entry.getString(\"service_namespace\");\n+              if (peer != null && (serviceName != null || serviceNamespace != null)) {\n+                addMapping(peer, serviceName, serviceNamespace);\n+              }\n+            });\n+  }\n+\n+  @SuppressWarnings(\"deprecation\") // used by deprecated PeerServiceResolver\n+  public ServicePeerResolver(Map<String, String> peerServiceNameMapping) {\n+    peerServiceNameMapping.forEach((peer, serviceName) -> addMapping(peer, serviceName, null));\n+  }\n+\n+  private void addMapping(\n+      String peer, @Nullable String serviceName, @Nullable String serviceNamespace) {\n+    if (serviceName == null && serviceNamespace == null) {\n+      return;\n+    }\n+    ServicePeer info = new ServicePeer(serviceName, serviceNamespace);\n+    String url = \"https://\" + peer;\n+    String host = UrlParser.getHost(url);\n+    Integer port = UrlParser.getPort(url);\n+    String path = UrlParser.getPath(url);\n+    Map<ServiceMatcher, ServicePeer> matchers =\n+        servicePeerMapping.computeIfAbsent(host, x -> new HashMap<>());\n+    matchers.putIfAbsent(ServiceMatcher.create(port, path), info);\n   }\n \n-  @Override\n   public boolean isEmpty() {\n-    return mapping.isEmpty();\n+    return servicePeerMapping.isEmpty();\n+  }\n+\n+  @SuppressWarnings(\"deprecation\") // old semconv\n+  public void resolve(\n+      String host,\n+      @Nullable Integer port,\n+      Supplier<String> pathSupplier,\n+      BiConsumer<AttributeKey<String>, String> attributeSetter) {\n+    ServicePeer servicePeer = resolveServicePeer(host, port, pathSupplier);\n+    if (servicePeer == null) {\n+      return;\n+    }\n+\n+    String name = servicePeer.name;\n+    if (name != null) {\n+      if (SemconvStability.emitOldServicePeerSemconv()) {\n+        attributeSetter.accept(PEER_SERVICE, name);\n+      }\n+      if (SemconvStability.emitStableServicePeerSemconv()) {\n+        attributeSetter.accept(SERVICE_PEER_NAME, name);\n+      }\n+    }\n+    if (SemconvStability.emitStableServicePeerSemconv()) {\n+      String namespace = servicePeer.namespace;\n+      if (namespace != null) {\n+        attributeSetter.accept(SERVICE_PEER_NAMESPACE, namespace);\n+      }\n+    }\n+  }\n+\n+  // TODO: remove this method when deprecated PeerServiceResolver is removed\n+  @Nullable\n+  public String resolveServiceName(\n+      String host, @Nullable Integer port, Supplier<String> pathSupplier) {\n+    ServicePeer peer = resolveServicePeer(host, port, pathSupplier);\n+    return peer != null ? peer.name : null;\n   }\n \n-  @Override\n   @Nullable\n-  public String resolveService(String host, @Nullable Integer port, Supplier<String> pathSupplier) {\n-    Map<ServiceMatcher, String> matchers = mapping.get(host);\n+  ServicePeer resolveServicePeer(\n+      String host, @Nullable Integer port, Supplier<String> pathSupplier) {\n+    Map<ServiceMatcher, ServicePeer> matchers = servicePeerMapping.get(host);\n     if (matchers == null) {\n       return null;\n     }\n@@ -58,11 +132,31 @@ class PeerServiceResolverImpl implements PeerServiceResolver {\n         .orElse(null);\n   }\n \n+  // TODO: remove this method when deprecated PeerServiceResolver is removed\n+  @SuppressWarnings(\"deprecation\") // bridges deprecated PeerServiceResolver\n+  public static ServicePeerResolver fromPeerServiceResolver(\n+      io.opentelemetry.instrumentation.api.incubator.semconv.net.PeerServiceResolver resolver) {\n+    return new ServicePeerResolver(new HashMap<>()) {\n+      @Override\n+      public boolean isEmpty() {\n+        return resolver.isEmpty();\n+      }\n+\n+      @Override\n+      @Nullable\n+      ServicePeer resolveServicePeer(\n+          String host, @Nullable Integer port, Supplier<String> pathSupplier) {\n+        String serviceName = resolver.resolveService(host, port, pathSupplier);\n+        return serviceName != null ? new ServicePeer(serviceName, null) : null;\n+      }\n+    };\n+  }\n+\n   @AutoValue\n   abstract static class ServiceMatcher {\n \n     static ServiceMatcher create(@Nullable Integer port, @Nullable String path) {\n-      return new AutoValue_PeerServiceResolverImpl_ServiceMatcher(port, path);\n+      return new AutoValue_ServicePeerResolver_ServiceMatcher(port, path);\n     }\n \n     @Nullable\n@@ -92,4 +186,15 @@ class PeerServiceResolverImpl implements PeerServiceResolver {\n       return true;\n     }\n   }\n+\n+  private static final class ServicePeer {\n+\n+    @Nullable private final String name;\n+    @Nullable private final String namespace;\n+\n+    ServicePeer(@Nullable String name, @Nullable String namespace) {\n+      this.name = name;\n+      this.namespace = namespace;\n+    }\n+  }\n }\n````",
+      "created": "2026-02-08T21:27:29Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85tXgFi",
+      "opened": "2026-02-08T21:28:03Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java",
+      "replies": [],
+      "reviewed": "1ac5f186f0208f4eaacc1813b5d7d3f4917d4e6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16071#discussion_r2779892072"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could make final",
+      "created": "2026-02-10T15:05:07Z",
+      "hunk": "@@ -0,0 +1,200 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.service.peer.internal;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Comparator.comparing;\n+import static java.util.Comparator.naturalOrder;\n+import static java.util.Comparator.nullsFirst;\n+\n+import com.google.auto.value.AutoValue;\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.net.internal.UrlParser;\n+import io.opentelemetry.instrumentation.api.internal.SemconvStability;\n+import java.util.Comparator;\n+import java.util.HashMap;\n+import java.util.Map;\n+import java.util.function.BiConsumer;\n+import java.util.function.Supplier;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class ServicePeerResolver {",
+      "id": "PRRT_kwDODJKVX85tw3cJ",
+      "opened": "2026-02-10T15:05:07Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java",
+      "replies": [
+        {
+          "at": "2026-02-10T16:17:06Z",
+          "body": "it's currently being subclassed as part of the backcompat story",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16071#discussion_r2788932280"
+        }
+      ],
+      "reviewed": "1ac5f186f0208f4eaacc1813b5d7d3f4917d4e6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16071#discussion_r2788508240"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether we should emit a warning when user has specified invalid configuration. Idk whether there are other places where this could also apply.",
+      "created": "2026-02-10T15:10:21Z",
+      "hunk": "@@ -0,0 +1,200 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.service.peer.internal;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Comparator.comparing;\n+import static java.util.Comparator.naturalOrder;\n+import static java.util.Comparator.nullsFirst;\n+\n+import com.google.auto.value.AutoValue;\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.net.internal.UrlParser;\n+import io.opentelemetry.instrumentation.api.internal.SemconvStability;\n+import java.util.Comparator;\n+import java.util.HashMap;\n+import java.util.Map;\n+import java.util.function.BiConsumer;\n+import java.util.function.Supplier;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class ServicePeerResolver {\n+\n+  // copied from PeerIncubatingAttributes\n+  private static final AttributeKey<String> PEER_SERVICE = AttributeKey.stringKey(\"peer.service\");\n+  // copied from ServiceIncubatingAttributes\n+  private static final AttributeKey<String> SERVICE_PEER_NAME =\n+      AttributeKey.stringKey(\"service.peer.name\");\n+  private static final AttributeKey<String> SERVICE_PEER_NAMESPACE =\n+      AttributeKey.stringKey(\"service.peer.namespace\");\n+\n+  private static final Comparator<ServiceMatcher> matcherComparator =\n+      nullsFirst(\n+          comparing(ServiceMatcher::getPort, nullsFirst(naturalOrder()))\n+              .thenComparing(comparing(ServiceMatcher::getPath, nullsFirst(naturalOrder()))));\n+\n+  private final Map<String, Map<ServiceMatcher, ServicePeer>> servicePeerMapping = new HashMap<>();\n+\n+  public ServicePeerResolver(OpenTelemetry openTelemetry) {\n+    DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\")\n+        .getStructuredList(\"service_peer_mapping\", emptyList())\n+        .forEach(\n+            entry -> {\n+              String peer = entry.getString(\"peer\");\n+              String serviceName = entry.getString(\"service_name\");\n+              String serviceNamespace = entry.getString(\"service_namespace\");\n+              if (peer != null && (serviceName != null || serviceNamespace != null)) {",
+      "id": "PRRT_kwDODJKVX85tw9dJ",
+      "opened": "2026-02-10T15:10:21Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java",
+      "replies": [],
+      "reviewed": "1ac5f186f0208f4eaacc1813b5d7d3f4917d4e6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16071#discussion_r2788540214"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`https://` feels random, is it here only to satisfy the url parser?",
+      "created": "2026-02-10T15:21:43Z",
+      "hunk": "@@ -0,0 +1,200 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.service.peer.internal;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Comparator.comparing;\n+import static java.util.Comparator.naturalOrder;\n+import static java.util.Comparator.nullsFirst;\n+\n+import com.google.auto.value.AutoValue;\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.net.internal.UrlParser;\n+import io.opentelemetry.instrumentation.api.internal.SemconvStability;\n+import java.util.Comparator;\n+import java.util.HashMap;\n+import java.util.Map;\n+import java.util.function.BiConsumer;\n+import java.util.function.Supplier;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class ServicePeerResolver {\n+\n+  // copied from PeerIncubatingAttributes\n+  private static final AttributeKey<String> PEER_SERVICE = AttributeKey.stringKey(\"peer.service\");\n+  // copied from ServiceIncubatingAttributes\n+  private static final AttributeKey<String> SERVICE_PEER_NAME =\n+      AttributeKey.stringKey(\"service.peer.name\");\n+  private static final AttributeKey<String> SERVICE_PEER_NAMESPACE =\n+      AttributeKey.stringKey(\"service.peer.namespace\");\n+\n+  private static final Comparator<ServiceMatcher> matcherComparator =\n+      nullsFirst(\n+          comparing(ServiceMatcher::getPort, nullsFirst(naturalOrder()))\n+              .thenComparing(comparing(ServiceMatcher::getPath, nullsFirst(naturalOrder()))));\n+\n+  private final Map<String, Map<ServiceMatcher, ServicePeer>> servicePeerMapping = new HashMap<>();\n+\n+  public ServicePeerResolver(OpenTelemetry openTelemetry) {\n+    DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\")\n+        .getStructuredList(\"service_peer_mapping\", emptyList())\n+        .forEach(\n+            entry -> {\n+              String peer = entry.getString(\"peer\");\n+              String serviceName = entry.getString(\"service_name\");\n+              String serviceNamespace = entry.getString(\"service_namespace\");\n+              if (peer != null && (serviceName != null || serviceNamespace != null)) {\n+                addMapping(peer, serviceName, serviceNamespace);\n+              }\n+            });\n+  }\n+\n+  @SuppressWarnings(\"deprecation\") // used by deprecated PeerServiceResolver\n+  public ServicePeerResolver(Map<String, String> peerServiceNameMapping) {\n+    peerServiceNameMapping.forEach((peer, serviceName) -> addMapping(peer, serviceName, null));\n+  }\n+\n+  private void addMapping(\n+      String peer, @Nullable String serviceName, @Nullable String serviceNamespace) {\n+    if (serviceName == null && serviceNamespace == null) {\n+      return;\n+    }\n+    ServicePeer info = new ServicePeer(serviceName, serviceNamespace);\n+    String url = \"https://\" + peer;",
+      "id": "PRRT_kwDODJKVX85txJxN",
+      "opened": "2026-02-10T15:21:43Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java",
+      "replies": [
+        {
+          "at": "2026-02-10T16:16:32Z",
+          "body": "yeah, added comment (this is carried over from `PeerServiceResolverImpl.java`)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16071#discussion_r2788928877"
+        }
+      ],
+      "reviewed": "1ac5f186f0208f4eaacc1813b5d7d3f4917d4e6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16071#discussion_r2788607317"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "intellij says that the `comparing` isn't needed",
+      "created": "2026-02-10T15:50:59Z",
+      "hunk": "@@ -0,0 +1,200 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.service.peer.internal;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Comparator.comparing;\n+import static java.util.Comparator.naturalOrder;\n+import static java.util.Comparator.nullsFirst;\n+\n+import com.google.auto.value.AutoValue;\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.net.internal.UrlParser;\n+import io.opentelemetry.instrumentation.api.internal.SemconvStability;\n+import java.util.Comparator;\n+import java.util.HashMap;\n+import java.util.Map;\n+import java.util.function.BiConsumer;\n+import java.util.function.Supplier;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class ServicePeerResolver {\n+\n+  // copied from PeerIncubatingAttributes\n+  private static final AttributeKey<String> PEER_SERVICE = AttributeKey.stringKey(\"peer.service\");\n+  // copied from ServiceIncubatingAttributes\n+  private static final AttributeKey<String> SERVICE_PEER_NAME =\n+      AttributeKey.stringKey(\"service.peer.name\");\n+  private static final AttributeKey<String> SERVICE_PEER_NAMESPACE =\n+      AttributeKey.stringKey(\"service.peer.namespace\");\n+\n+  private static final Comparator<ServiceMatcher> matcherComparator =\n+      nullsFirst(\n+          comparing(ServiceMatcher::getPort, nullsFirst(naturalOrder()))\n+              .thenComparing(comparing(ServiceMatcher::getPath, nullsFirst(naturalOrder()))));",
+      "id": "PRRT_kwDODJKVX85txo68",
+      "opened": "2026-02-10T15:50:58Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/service/peer/internal/ServicePeerResolver.java",
+      "replies": [],
+      "reviewed": "1ac5f186f0208f4eaacc1813b5d7d3f4917d4e6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16071#discussion_r2788779374"
+    }
+  ]
+}

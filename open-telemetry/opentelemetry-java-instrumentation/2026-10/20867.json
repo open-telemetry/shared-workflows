@@ -1,0 +1,115 @@
+{
+  "head": "9954c797d7cf30202d7b050cbb4d05c8c64a59e2",
+  "merge": "9784f7d91962b4caeea2787846de186e9d2aea66",
+  "merged": "2026-10-23T15:50:48Z",
+  "missing_roots": 0,
+  "number": 20867,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with these two changes.\n\nIn `docs/contributing/writing-instrumentation.md`, replace the newly added paragraph about factory and builder return types with this shorter wording:\n\nFactories and builders for instrumented library objects should return the library's interface or base class when it provides the full caller-facing contract. Concrete types are appropriate when required for supported setup or framework integration. This rule does not apply to OpenTelemetry-defined types or SPIs.\n\nRemove only the newly added `perSubscriptionReturnsOnSubscribe` test from `instrumentation/rxjava/rxjava-1.0/library/src/test/java/io/opentelemetry/instrumentation/rxjava/v1_0/TracedOnSubscribeTest.java`. Keep all pre-existing tests, the `TracedOnSubscribe.perSubscription()` return-type change, and the rule in `.github/instructions/instrumentation-library.instructions.md` unchanged. Do not add a replacement test.\n\nKeep the change scoped to those two edits. Apply the repository's scoped formatting and run the relevant existing RxJava library tests.",
+      "created": "2026-10-22T18:27:54Z",
+      "hunk": "@@ -164,6 +164,14 @@ instrumented library: some of them expose interceptor/listener interfaces that c\n into the library, some others have a library interface that you can use to implement a decorator that\n emits telemetry when used.\n \n+When a factory or builder returns an instrumented implementation of an existing underlying-library",
+      "id": "PRRT_kwDODJKVX86vUu-i",
+      "opened": "2026-10-22T18:27:53Z",
+      "path": "docs/contributing/writing-instrumentation.md",
+      "replies": [
+        {
+          "at": "2026-10-22T18:33:59Z",
+          "body": "Applied in 696046f6. The guide now uses the shorter wording, and only the added test was removed; the existing tests, production return-type change, and library instruction are unchanged. RxJava library tests and scoped formatting pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20867#discussion_r4352089115"
+        }
+      ],
+      "reviewed": "156050fc38018678e21ac784b8e7df1f4a75d90c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20867#discussion_r4352029363"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Changing this public factory's return type in the published `io.opentelemetry.instrumentation:opentelemetry-rxjava-1.0` artifact changes its JVM method descriptor. Previously compiled callers will fail with `NoSuchMethodError`, even if they assign the result to `Observable.OnSubscribe`; source callers assigning it to `TracedOnSubscribe` also lose compatibility. Preserve and deprecate the existing signature, and introduce the interface-returning factory under a different name. Include the replacement and removal timing in the deprecation Javadoc and add a deprecation CHANGELOG entry. The old signature can be removed in a subsequent alpha release.",
+      "created": "2026-10-22T18:34:26Z",
+      "hunk": "@@ -20,7 +20,7 @@ public final class TracedOnSubscribe<T, REQUEST> implements Observable.OnSubscri\n   private final Supplier<REQUEST> requestFactory;\n   private final Context parentContext;\n \n-  public static <T, REQUEST> TracedOnSubscribe<T, REQUEST> perSubscription(\n+  public static <T, REQUEST> Observable.OnSubscribe<T> perSubscription(",
+      "id": "PRRT_kwDODJKVX86vU4qg",
+      "opened": "2026-10-22T18:34:26Z",
+      "path": "instrumentation/rxjava/rxjava-1.0/library/src/main/java/io/opentelemetry/instrumentation/rxjava/v1_0/TracedOnSubscribe.java",
+      "replies": [
+        {
+          "at": "2026-10-22T18:44:12Z",
+          "body": "The binary and source break is intentional for this alpha artifact. The requested change is to the existing factory's return type, not to introduce another factory name. No stable API is changed. Commit 2271d09e records the break under the Unreleased non-stable API heading, and the PR description explains the result-type migration and recompilation requirement. Retaining the old signature is not required for this intentional alpha API change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20867#discussion_r4352191174"
+        }
+      ],
+      "reviewed": "156050fc38018678e21ac784b8e7df1f4a75d90c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20867#discussion_r4352093782"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the remaining compatibility documentation from the original assignment. Do not create another PR.\n\nThe original cloud task explicitly requested a concise breaking-change changelog entry for changing TracedOnSubscribe.perSubscription(...) from TracedOnSubscribe<T, REQUEST> to rx.Observable.OnSubscribe<T>. The current PR diff at 696046f6de4e1ab88a366f560050fefde6d11a79 contains the return-type change and both convention documents, but no CHANGELOG.md entry. The RxJava 1.0 library is a published alpha artifact, and this changes the factory's JVM descriptor and can break source declarations using its concrete result type.\n\nAdd only the concise entry required by CONTRIBUTING.md under the appropriate Unreleased breaking-changes-to-non-stable-APIs heading. Describe the changed return type directly without redundant explanations. Preserve the latest user-requested shorter wording in docs/contributing/writing-instrumentation.md, the rule in .github/instructions/instrumentation-library.instructions.md, the production return-type change, and all existing tests. The user explicitly requested removal of the newly added perSubscriptionReturnsOnSubscribe test; do not restore it or add a replacement test.\n\nKeep this coding follow-up limited to the missing changelog entry. Use the repository's scoped Markdown formatting/linting as appropriate. Do not change PR titles or descriptions, modify other APIs, post extra comments, or wait for CI.",
+      "created": "2026-10-22T18:37:06Z",
+      "hunk": "@@ -20,7 +20,7 @@ public final class TracedOnSubscribe<T, REQUEST> implements Observable.OnSubscri\n   private final Supplier<REQUEST> requestFactory;\n   private final Context parentContext;\n \n-  public static <T, REQUEST> TracedOnSubscribe<T, REQUEST> perSubscription(\n+  public static <T, REQUEST> Observable.OnSubscribe<T> perSubscription(",
+      "id": "PRRT_kwDODJKVX86vU8rf",
+      "opened": "2026-10-22T18:37:06Z",
+      "path": "instrumentation/rxjava/rxjava-1.0/library/src/main/java/io/opentelemetry/instrumentation/rxjava/v1_0/TracedOnSubscribe.java",
+      "replies": [
+        {
+          "at": "2026-10-22T18:41:39Z",
+          "body": "Added the concise breaking-change entry to the Unreleased changelog in 2271d09e.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20867#discussion_r4352165700"
+        }
+      ],
+      "reviewed": "696046f6de4e1ab88a366f560050fefde6d11a79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20867#discussion_r4352120756"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This changes the source and binary signature of `TracedOnSubscribe.perSubscription()` in the published `opentelemetry-rxjava-1.0` alpha API. Existing compiled callers need recompilation, but the release documentation does not mention the break. `CONTRIBUTING.md:22–29` requires a breaking-change entry under `Unreleased` in addition to migration notes in the PR description. Please add a concise entry under the non-stable API breaking-changes heading naming the new `Observable.OnSubscribe<T>` return type.",
+      "created": "2026-10-22T18:42:42Z",
+      "hunk": "@@ -20,7 +20,7 @@ public final class TracedOnSubscribe<T, REQUEST> implements Observable.OnSubscri\n   private final Supplier<REQUEST> requestFactory;\n   private final Context parentContext;\n \n-  public static <T, REQUEST> TracedOnSubscribe<T, REQUEST> perSubscription(\n+  public static <T, REQUEST> Observable.OnSubscribe<T> perSubscription(",
+      "id": "PRRT_kwDODJKVX86vVFBr",
+      "opened": "2026-10-22T18:42:43Z",
+      "path": "instrumentation/rxjava/rxjava-1.0/library/src/main/java/io/opentelemetry/instrumentation/rxjava/v1_0/TracedOnSubscribe.java",
+      "replies": [
+        {
+          "at": "2026-10-22T18:44:20Z",
+          "body": "Added in 2271d09e under Unreleased > Breaking changes to non-stable APIs. The entry names the old and new return types and tells consumers to recompile; the PR description also includes migration guidance.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20867#discussion_r4352192486"
+        }
+      ],
+      "reviewed": "696046f6de4e1ab88a366f560050fefde6d11a79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20867#discussion_r4352176551"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Maybe should also include what library this class belongs to.",
+      "created": "2026-10-23T05:35:59Z",
+      "hunk": "@@ -302,6 +302,8 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- `TracedOnSubscribe.perSubscription(...)` now returns `Observable.OnSubscribe<T>` instead of",
+      "id": "PRRT_kwDODJKVX86vfJHj",
+      "opened": "2026-10-23T05:35:59Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-23T15:50:41Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20899",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20867#discussion_r4361441497"
+        }
+      ],
+      "reviewed": "9954c797d7cf30202d7b050cbb4d05c8c64a59e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20867#discussion_r4356472011"
+    }
+  ]
+}

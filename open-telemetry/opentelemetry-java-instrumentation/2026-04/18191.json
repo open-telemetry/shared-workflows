@@ -1,0 +1,40 @@
+{
+  "head": "9f9af1a34eaa92cac7a2b72626afce3c51a41548",
+  "merge": "b561aa53d415712e0cd5b05ff77aaa80e75c19c3",
+  "merged": "2026-04-22T22:25:23Z",
+  "missing_roots": 0,
+  "number": 18191,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "👍 ",
+      "created": "2026-04-22T22:23:31Z",
+      "hunk": "@@ -71,7 +71,7 @@ class LogEventToReplay implements LogEvent {\n \n   @Override\n   public LogEvent toImmutable() {\n-    return null;\n+    return this;",
+      "id": "PRRT_kwDODJKVX8587oE-",
+      "opened": "2026-04-22T22:23:31Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/LogEventToReplay.java",
+      "replies": [],
+      "reviewed": "9f9af1a34eaa92cac7a2b72626afce3c51a41548",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18191#discussion_r3127218611"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "👍 ",
+      "created": "2026-04-22T22:24:14Z",
+      "hunk": "@@ -118,14 +121,15 @@ public Message getMessage() {\n \n   @Override\n   public long getTimeMillis() {\n-    return 0;\n+    return instant.getEpochMillisecond();",
+      "id": "PRRT_kwDODJKVX8587oh4",
+      "opened": "2026-04-22T22:24:13Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/LogEventToReplay.java",
+      "replies": [],
+      "reviewed": "9f9af1a34eaa92cac7a2b72626afce3c51a41548",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18191#discussion_r3127221158"
+    }
+  ]
+}

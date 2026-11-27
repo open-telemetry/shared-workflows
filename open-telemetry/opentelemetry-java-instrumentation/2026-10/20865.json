@@ -1,0 +1,88 @@
+{
+  "head": "de6575ee9fcfab9c8067aeaf235abebc867868df",
+  "merge": "c66ac79adc922301f8f2a6a277eb5f4487658058",
+  "merged": "2026-10-23T05:21:41Z",
+  "missing_roots": 0,
+  "number": 20865,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the following user-directed revision. The user explicitly said: `super(\"spark-2.4\", \"spark-2.3\", \"spark\");` followed by \"I don't Want to preserve 2.3 anywhere\" and \"next release from main is 3.0, so we can make breaking change\". This supersedes the original assignment's instruction to preserve Spark 2.3 aliases and scope identity.\n\nUse `super(\"spark-2.4\", \"spark\")` with no `spark-2.3` compatibility alias. Remove all newly added 2.3 preservation, including `scope_name: io.opentelemetry.spark-2.3` in `instrumentation/spark-2.4/metadata.yaml` and the `instrumentation-docs` model, analyzer, and test changes added solely for that override. Keep this a focused Spark minimum-version correction, not a new generic metadata feature.\n\nUse consistent 2.4 identities in the module directory, Gradle registration, Java packages, supported-library docs, generated instrumentation catalog, scope metadata, and actual scope-version lookup. Do not preserve or deprecate old 2.3 selectors or scope names as executable compatibility behavior. Historical old-name mentions are acceptable only where necessary in a concise 3.0 breaking-change changelog/migration note. Retain the versionless `spark` selector.\n\nKeep `library(\"com.sparkjava:spark-core:2.4\")`, Muzzle `[2.4,)` with `assertInverse=true`, and the `spark.route.Routes` classloader landmark introduced in 2.4 so Muzzle actually rejects 2.3. Preserve the existing route enrichment on 2.4+. Do not add 2.3 instrumentation or change generic Muzzle logic. Ensure generated catalog/docs are consistent; the current PR diff has not updated `docs/instrumentation-list.yaml`.\n\nAdd a short entry under the existing breaking-change heading in `CHANGELOG.md` for the real selector/scope identity changes, without claiming the removal of previously working Spark 2.3 route enrichment. Follow CONTRIBUTING.md and the repository's changelog guidance. Run the narrow formatting, Spark 2.4 integration test, and Muzzle/inverse validation appropriate to this change when feasible; report genuine limitations in execution evidence. Do not wait for CI, create another PR, dispatch other tasks, or make unrelated changes.",
+      "created": "2026-10-22T18:15:12Z",
+      "hunk": "@@ -3,20 +3,28 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.spark.v2_3;\n+package io.opentelemetry.javaagent.instrumentation.spark.v2_4;\n \n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n import static java.util.Collections.singletonList;\n \n import com.google.auto.service.AutoService;\n import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import java.util.List;\n+import net.bytebuddy.matcher.ElementMatcher;\n \n @AutoService(InstrumentationModule.class)\n public class SparkInstrumentationModule extends InstrumentationModule {\n \n   public SparkInstrumentationModule() {\n-    super(\"spark-2.3\", \"spark\");\n+    super(\"spark-2.4\", \"spark-2.3\", \"spark\");",
+      "id": "PRRT_kwDODJKVX86vUcUf",
+      "opened": "2026-10-22T18:15:12Z",
+      "path": "instrumentation/spark-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spark/v2_4/SparkInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-10-22T18:31:39Z",
+          "body": "Implemented in `99c4e0e5`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20865#discussion_r4352066112"
+        }
+      ],
+      "reviewed": "27cd85590cb251060f80a4e16863538ba804a88a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20865#discussion_r4351905204"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The scope-filter migration is misleading: `SparkRouteUpdater` only enriches an existing HTTP-server context through `HttpServerRoute.update`; it emits no telemetry under a Spark scope. The catalog identity change therefore does not require changing telemetry scope filters. Describe the minimum-version and selector changes instead, and omit the repeated replacement instruction as required by `CONTRIBUTING.md:15–18`.",
+      "created": "2026-10-22T18:41:59Z",
+      "hunk": "@@ -4,6 +4,8 @@\n \n ### ⚠️ Breaking changes\n \n+- Spark Java instrumentation now uses the `spark-2.4` selector and\n+  `io.opentelemetry.spark-2.4` scope. Replace the `spark-2.3` selector and update scope filters.",
+      "id": "PRRT_kwDODJKVX86vVD8H",
+      "opened": "2026-10-22T18:42:00Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-22T18:55:09Z",
+          "body": "Fixed in de6575ee9fcf. The changelog now records only the selector rename, without a scope-filter migration or a repeated replacement instruction.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20865#discussion_r4352296534"
+        }
+      ],
+      "reviewed": "99c4e0e5e707efb4a218c76e298e7f232bf4f04c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20865#discussion_r4352169372"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Please revert the edits to this generated catalog. `.github/instructions/instrumentation-list.instructions.md:7–8` reserves updates for `.github/workflows/metadata-update.yml`; that nightly workflow will pick up the renamed module and updated Muzzle range.",
+      "created": "2026-10-22T18:42:00Z",
+      "hunk": "@@ -18934,19 +18934,19 @@ libraries:\n     event_refs:\n     - rpc.client.call.exception-fadee4e0\n     - rpc.server.call.exception-738e89fe\n-- name: spark-2.3\n+- name: spark-2.4",
+      "id": "PRRT_kwDODJKVX86vVD9V",
+      "opened": "2026-10-22T18:42:00Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-10-22T18:55:16Z",
+          "body": "Fixed in de6575ee9fcf. The generated catalog is no longer in the PR diff; the nightly workflow will pick up the renamed module and corrected minimum from source.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20865#discussion_r4352297759"
+        }
+      ],
+      "reviewed": "99c4e0e5e707efb4a218c76e298e7f232bf4f04c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20865#discussion_r4352169500"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with these two small, in-scope documentation corrections from Copilot review 5619162058. The runtime/module changes and the user's 3.0 decision remain settled: use only `super(\"spark-2.4\", \"spark\")`, retain no executable Spark 2.3 alias or scope-preservation code, and keep the 2.4 baseline and actual Muzzle rejection of 2.3 unchanged.\n\nIn CHANGELOG.md, remove the misleading emitted-scope/filter migration. SparkRouteUpdater only calls HttpServerRoute.update on an existing HTTP-server context and emits no telemetry under a Spark scope, so no scope-filter migration is required. Keep one concise breaking-change entry for the real selector rename, for example: \"Rename the Spark Java instrumentation selector from `spark-2.3` to `spark-2.4`.\" Do not repeat an obvious replacement instruction or describe removal of previously working 2.3 route enrichment.\n\nRemove this PR's edits to docs/instrumentation-list.yaml so that generated file no longer appears in the PR diff. The verified `.github/instructions/instrumentation-list.instructions.md` says not to edit it; `.github/workflows/metadata-update.yml` regenerates it nightly from source. Use the PR's base/merge-base version, not unrelated later main changes. This corrects my earlier over-specific instruction to update the catalog in this PR. Keep the renamed module, its source metadata, Muzzle range/classloader gate, supported-libraries documentation, and FOSSA/Gradle references as they are.\n\nLimit the correction to these two documentation issues. Do not change intended behavior, add compatibility aliases, redesign metadata or Muzzle, create another PR, dispatch tasks, wait for CI, or post replies. Documentation-only corrections need no builds or behavior tests. Check the final actual PR diff to ensure the generated catalog is absent and the changelog describes only the real selector change.",
+      "created": "2026-10-22T18:48:36Z",
+      "hunk": "@@ -4,6 +4,8 @@\n \n ### ⚠️ Breaking changes\n ",
+      "id": "PRRT_kwDODJKVX86vVNyx",
+      "opened": "2026-10-22T18:48:36Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "99c4e0e5e707efb4a218c76e298e7f232bf4f04c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20865#discussion_r4352234636"
+    }
+  ]
+}

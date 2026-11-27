@@ -1,0 +1,107 @@
+{
+  "head": "d35793838e660b736fad7854459f5d00f6642668",
+  "merge": "b9921a822f12f6a5f9cb378d6c660f1109183b82",
+  "merged": "2026-11-07T04:07:25Z",
+  "missing_roots": 0,
+  "number": 1040,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): Since _attach now runs as a wrapt post-import hook, what happens if something in it raises? For example, _handler could fail to import on some llama-index-core version. wrapt calls the hook during import llama_index.core and doesn't catch exceptions, so I think the error would reach the app's own import and crash it. Before this change, the same error was raised inside instrument(), where opentelemetry-instrument catches and logs it, and the app keeps running without llama-index spans. Would it make sense to catch and log here, so a failure only turns off the instrumentation?\n\n```python\n    def _attach(self, _module: ModuleType) -> None:\n        if self._handler is None or self._span_handler is not None:\n            return\n        try:\n            from llama_index.core import (  # pylint: disable=import-outside-toplevel\n                instrumentation,\n            )\n\n            from opentelemetry.instrumentation.genai.llama_index._handler import (  # pylint: disable=import-outside-toplevel\n                LlamaIndexSpanHandler,\n            )\n\n            span_handler = LlamaIndexSpanHandler(self._handler)\n            dispatcher = cast(\n                _Dispatcher, getattr(instrumentation, \"get_dispatcher\")()\n            )\n            dispatcher.add_span_handler(span_handler)\n        except Exception:  # pylint: disable=broad-exception-caught\n            _logger.exception(\"Failed to attach LlamaIndex span handler\")\n            return\n        self._span_handler = span_handler\n```\n",
+      "created": "2026-11-05T01:25:09Z",
+      "hunk": "@@ -81,19 +86,40 @@ def _instrument(self, **kwargs: Any) -> None:\n             instrumentation_scope_name=__package__,\n             instrumentation_scope_version=__version__,\n         )\n-        span_handler = LlamaIndexSpanHandler(handler)\n-        dispatcher = cast(\n-            _Dispatcher, getattr(instrumentation, \"get_dispatcher\")()\n-        )\n-        dispatcher.add_span_handler(span_handler)\n+\n         self._handler = handler\n-        self._span_handler = span_handler\n+\n+        register_post_import_hook(self._attach, \"llama_index.core\")\n \n     def _uninstrument(self, **kwargs: Any) -> None:\n+        self._handler = None\n+        if self._span_handler is None:\n+            return\n+        from llama_index.core import (\n+            instrumentation,  # pylint: disable=import-outside-toplevel\n+        )\n+\n         dispatcher = cast(\n             _Dispatcher, getattr(instrumentation, \"get_dispatcher\")()\n         )\n         if self._span_handler in dispatcher.span_handlers:\n             dispatcher.span_handlers.remove(self._span_handler)\n         self._span_handler = None\n-        self._handler = None\n+\n+    def _attach(self, _module: ModuleType) -> None:",
+      "id": "PRRT_kwDOSbspP86z4aW_",
+      "opened": "2026-11-05T01:25:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/__init__.py",
+      "replies": [
+        {
+          "at": "2026-11-06T06:54:54Z",
+          "body": "You're right we need this",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1040#discussion_r4489833806"
+        },
+        {
+          "at": "2026-11-06T07:17:48Z",
+          "body": "Added the change and a testcase, let me know what you think :)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1040#discussion_r4489980991"
+        },
+        {
+          "at": "2026-11-06T13:14:54Z",
+          "body": "Looks good. Thanks a lot.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1040#discussion_r4492788300"
+        }
+      ],
+      "reviewed": "ff083b673827bc58ee4431c8d0018d4361ba6bd5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1040#discussion_r4475479246"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`uv.lock` looks regenerated from a stale state: besides adding `wrapt`, it drops the `python_full_version < '3.15'` markers and changes `numpy`/`pyee` resolutions on 3.14. Could you reset it to main and re-lock so only the `wrapt` entries change?\n\n```sh\ngit checkout origin/main -- uv.lock && uv lock\n```",
+      "created": "2026-11-06T22:32:06Z",
+      "hunk": "@@ -29,6 +29,7 @@ dependencies = [\n   \"opentelemetry-instrumentation >= 0.64b0, <1\",\n   \"opentelemetry-semantic-conventions >= 0.64b0, <1\",\n   \"opentelemetry-util-genai >= 1.3b0.dev, <2\",\n+  \"wrapt >= 1.17.0, < 3.0.0\",",
+      "id": "PRRT_kwDOSbspP860t_YY",
+      "opened": "2026-11-06T22:33:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-11-07T03:10:38Z",
+          "body": "done!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1040#discussion_r4499796168"
+        }
+      ],
+      "reviewed": "f6d2d18cb122700deca38911c0492e25da4869c8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1040#discussion_r4498309634"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Changelog entries should describe the user-visible effect without implementation details.\n\n```suggestion\nFix startup crash on Python 3.15 when auto-instrumenting llama-index.\n```",
+      "created": "2026-11-06T22:32:06Z",
+      "hunk": "@@ -0,0 +1 @@\n+Fix llama-index related startup crash related to autoinstrumentation on Python 3.15 by registering problem code as a hook to be called when it is actually needed rather than during startup.",
+      "id": "PRRT_kwDOSbspP860t_YZ",
+      "opened": "2026-11-06T22:33:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/.changelog/1040.fixed",
+      "replies": [],
+      "reviewed": "f6d2d18cb122700deca38911c0492e25da4869c8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1040#discussion_r4498309638"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `uninstrument` doesn't remove the hook, it clears `_handler` so the hook no-ops.\n\n```suggestion\n    # The hook stays registered after uninstrument, but must not attach.\n```",
+      "created": "2026-11-06T22:32:06Z",
+      "hunk": "@@ -62,3 +66,87 @@ def test_uninstrument_after_reinstantiation() -> None:\n     # Re-instantiate the singleton: __init__ should not reset _span_handler\n     LlamaIndexInstrumentor().uninstrument()\n     assert span_handler not in get_dispatcher().span_handlers\n+\n+\n+# These tests run in a fresh interpreter: llama_index.core is already imported\n+# in this one, which makes the post-import hook fire immediately.\n+_SETUP = \"\"\"\n+from opentelemetry.instrumentation.genai.llama_index import (\n+    LlamaIndexInstrumentor,\n+)\n+\n+instrumentor = LlamaIndexInstrumentor()\n+\"\"\"\n+\n+\n+def _run_in_fresh_interpreter(test_body: str) -> None:\n+    script = _SETUP + textwrap.dedent(test_body)\n+    subprocess.run([sys.executable, \"-c\", script], check=True)\n+\n+\n+def test_instrument_does_not_import_llama_index() -> None:\n+    # Importing llama_index.core during auto-instrumentation startup crashes\n+    # pydantic-core on Python 3.15, so instrument() must defer the import.\n+    _run_in_fresh_interpreter(\n+        \"\"\"\n+        import sys\n+\n+        instrumentor.instrument()\n+\n+        assert \"llama_index.core\" not in sys.modules\n+        \"\"\"\n+    )\n+\n+\n+def test_uninstrument_before_import_does_not_attach() -> None:\n+    # uninstrument must remove the registered hook().",
+      "id": "PRRT_kwDOSbspP860t_Yb",
+      "opened": "2026-11-06T22:33:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/test_instrumentor.py",
+      "replies": [],
+      "reviewed": "f6d2d18cb122700deca38911c0492e25da4869c8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1040#discussion_r4498309643"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: duplicate hooks are still registered, `_attach` just skips once a handler is attached.\n\n```suggestion\n    # Each instrument() registers another hook; only the first one may attach.\n```",
+      "created": "2026-11-06T22:32:06Z",
+      "hunk": "@@ -62,3 +66,87 @@ def test_uninstrument_after_reinstantiation() -> None:\n     # Re-instantiate the singleton: __init__ should not reset _span_handler\n     LlamaIndexInstrumentor().uninstrument()\n     assert span_handler not in get_dispatcher().span_handlers\n+\n+\n+# These tests run in a fresh interpreter: llama_index.core is already imported\n+# in this one, which makes the post-import hook fire immediately.\n+_SETUP = \"\"\"\n+from opentelemetry.instrumentation.genai.llama_index import (\n+    LlamaIndexInstrumentor,\n+)\n+\n+instrumentor = LlamaIndexInstrumentor()\n+\"\"\"\n+\n+\n+def _run_in_fresh_interpreter(test_body: str) -> None:\n+    script = _SETUP + textwrap.dedent(test_body)\n+    subprocess.run([sys.executable, \"-c\", script], check=True)\n+\n+\n+def test_instrument_does_not_import_llama_index() -> None:\n+    # Importing llama_index.core during auto-instrumentation startup crashes\n+    # pydantic-core on Python 3.15, so instrument() must defer the import.\n+    _run_in_fresh_interpreter(\n+        \"\"\"\n+        import sys\n+\n+        instrumentor.instrument()\n+\n+        assert \"llama_index.core\" not in sys.modules\n+        \"\"\"\n+    )\n+\n+\n+def test_uninstrument_before_import_does_not_attach() -> None:\n+    # uninstrument must remove the registered hook().\n+    _run_in_fresh_interpreter(\n+        \"\"\"\n+        instrumentor.instrument()\n+        instrumentor.uninstrument()\n+\n+        from llama_index.core.instrumentation import get_dispatcher\n+\n+        handlers = [type(h).__name__ for h in get_dispatcher().span_handlers]\n+        assert handlers == [\"NullSpanHandler\"]\n+        assert instrumentor._span_handler is None\n+        \"\"\"\n+    )\n+\n+\n+def test_reinstrument_before_import_attaches_once() -> None:\n+    # Each instrument() registers a hook, so later calls must not register\n+    # a duplicate hook.",
+      "id": "PRRT_kwDOSbspP860t_Ye",
+      "opened": "2026-11-06T22:33:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/test_instrumentor.py",
+      "replies": [],
+      "reviewed": "f6d2d18cb122700deca38911c0492e25da4869c8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1040#discussion_r4498309649"
+    }
+  ]
+}

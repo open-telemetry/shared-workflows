@@ -1,0 +1,115 @@
+{
+  "head": "74f15fcad4332bdf856149bf09e4b38da772e1c3",
+  "merge": "3dce284854ba8605d01c53197c8651c06d3578b3",
+  "merged": "2026-10-21T06:11:47Z",
+  "missing_roots": 0,
+  "number": 20783,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the following scoped change. Do not create a follow-up PR as a workaround.\n\nIn `instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcAttributesGetter.java`, replace the exhaustive `RpcErrorType` switch in `getErrorType` with a bounded range check: for a `SofaRpcException`, emit `Integer.toString(errorType)` when the code is between 100 and 299 inclusive; return null for values outside that range. Preserve the null return for unrelated exceptions, so the existing RPC extractor provides the exception-class fallback. `RpcErrorType.UNKNOWN` is 0 and must continue to use that fallback. Remove any import made unused by the change.\n\nAdd a short source comment explaining that SOFA RPC defines server error categories in 100-199 and client error categories in 200-299, and that accepting only these ranges bounds cardinality while accommodating additional categories. Include this versioned upstream reference directly in the comment: https://github.com/sofastack/sofa-rpc/blob/v5.14.3/core/exception/src/main/java/com/alipay/sofa/rpc/core/exception/RpcErrorType.java . These ranges also exist in the baseline 5.4.0 release. Newer releases define `CLIENT_CALL_TYPE = 260`, which the current switch omits.\n\nKeep the shared mapping for both client and server spans. Do not filter the ranges by span kind, suppress codes based on the `CLIENT_` or `SERVER_` prefixes, add exemptions for `SERVER_CLOSED` or `SERVER_NETWORK`, or change existing span-status, exception-recording, response-extraction, or asynchronous-lifecycle behavior. The numeric ranges classify an exception already observed; they do not determine whether an operation failed. Server spans can legitimately observe a client-category exception when a service lets a downstream RPC failure escape.\n\nExtend the focused tests in `instrumentation/sofa-rpc-5.4/library/src/test/java/io/opentelemetry/instrumentation/sofarpc/v5_4/TracingFilterTest.java` to verify inclusive boundaries 100 and 299, the 199/200 boundary between categories, numeric code 260, and fallback immediately outside the accepted range at 99 and 300. Exercise the shared range behavior on both client and server spans, including a server-category code on a client span and a client-category code on a server span. Use the literal numeric value 260 rather than referencing the newer `CLIENT_CALL_TYPE` constant, so compilation remains compatible with the 5.4.0 dependency. Preserve the existing success, UNKNOWN/out-of-range and unrelated-exception fallback, response-error, asynchronous-completion, and real client-timeout coverage. Success must remain without error.type, and legacy and duplicate telemetry behavior must remain unchanged.\n\nRun the narrow module `spotlessApply` task before validating the focused tests in the existing legacy, RPC-preview, and duplicate-semconv suites. Do not run spotlessCheck first. Use the repository's existing Gradle tasks and report any validation blockers accurately.\n\nUpdate the PR description only as needed to describe range-based classification rather than only named/recognized constants. Clarify that UNKNOWN and out-of-range values retain the exception-class fallback. Preserve the existing PR's draft state and template content; do not add validation checklists or unrelated documentation or changes. Commit and push the implementation to this PR's existing head branch.",
+      "created": "2026-10-20T21:25:37Z",
+      "hunk": "@@ -45,4 +47,36 @@ public String getRpcMethod(SofaRpcRequest request) {\n     }\n     return null;\n   }\n+\n+  @Override\n+  @Nullable\n+  public String getErrorType(\n+      SofaRpcRequest request, @Nullable SofaResponse response, @Nullable Throwable error) {\n+    if (!(error instanceof SofaRpcException)) {\n+      return null;\n+    }\n+\n+    int errorType = ((SofaRpcException) error).getErrorType();\n+    switch (errorType) {\n+      case RpcErrorType.SERVER_BUSY:\n+      case RpcErrorType.SERVER_CLOSED:\n+      case RpcErrorType.SERVER_NOT_FOUND_INVOKER:",
+      "id": "PRRT_kwDODJKVX86uiAPF",
+      "opened": "2026-10-20T21:25:36Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-20T21:36:13Z",
+          "body": "Implemented and pushed as `e4535616`. The getter now emits error types for 100–299, with UNKNOWN and out-of-range codes falling back to the exception class. Added requested cross-span boundary tests; `spotlessApply` and all three focused suites passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20783#discussion_r4330591566"
+        }
+      ],
+      "reviewed": "f74c1f45f6f81b601ea9eb7eea4b8da77da63650",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20783#discussion_r4330491272"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot delete this file",
+      "created": "2026-10-20T21:49:07Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86uigkj",
+      "opened": "2026-10-20T21:49:07Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/test/java/io/opentelemetry/instrumentation/sofarpc/v5_4/TracingFilterTest.java",
+      "replies": [
+        {
+          "at": "2026-10-20T21:55:34Z",
+          "body": "Deleted the file and pushed the change as `a25c2e8e`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20783#discussion_r4330759201"
+        }
+      ],
+      "reviewed": "e453561608a106e50e9ceee4937ddf537fcff139",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20783#discussion_r4330706271"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This checks membership in the entire 100–299 range, not membership in the defined `RpcErrorType` categories. Any unknown code within that range is emitted numerically, bypassing the exception-class fallback promised in the PR description. Restrict numeric classification to supported category values and return null for other codes. If accepting reserved or future values is intentional, reconcile that broader contract with the description instead.",
+      "created": "2026-10-20T22:16:25Z",
+      "hunk": "@@ -45,4 +46,22 @@ public String getRpcMethod(SofaRpcRequest request) {\n     }\n     return null;\n   }\n+\n+  @Override\n+  @Nullable\n+  public String getErrorType(\n+      SofaRpcRequest request, @Nullable SofaResponse response, @Nullable Throwable error) {\n+    if (!(error instanceof SofaRpcException)) {\n+      return null;\n+    }\n+\n+    int errorType = ((SofaRpcException) error).getErrorType();\n+    // SOFA RPC defines server error categories in 100-199 and client error categories in 200-299.\n+    // Accepting only these ranges bounds cardinality while accommodating additional categories.\n+    // https://github.com/sofastack/sofa-rpc/blob/v5.14.3/core/exception/src/main/java/com/alipay/sofa/rpc/core/exception/RpcErrorType.java\n+    if (errorType >= 100 && errorType <= 299) {\n+      return Integer.toString(errorType);",
+      "id": "PRRT_kwDODJKVX86ujAiE",
+      "opened": "2026-10-20T22:16:26Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-21T01:49:15Z",
+          "body": "PR description is updated now",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20783#discussion_r4332212549"
+        }
+      ],
+      "reviewed": "a25c2e8eab0be5fc924b7abdf9adce21f526e89c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20783#discussion_r4330920322"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The updated test covers only a synchronous client timeout (`200`). The async test succeeds, and the existing server-error fixtures use other exception types, leaving structured server/error-response failures, failed async completion, and unsupported `SofaRpcException` codes uncovered. Add representative integration cases for the server/error-response and async paths, asserting span and duration-metric `error.type` in preview and `/dup` modes. Add focused coverage that unsupported codes retain the exception-class fallback.",
+      "created": "2026-10-20T22:16:25Z",
+      "hunk": "@@ -45,4 +46,22 @@ public String getRpcMethod(SofaRpcRequest request) {\n     }\n     return null;\n   }\n+\n+  @Override\n+  @Nullable\n+  public String getErrorType(\n+      SofaRpcRequest request, @Nullable SofaResponse response, @Nullable Throwable error) {\n+    if (!(error instanceof SofaRpcException)) {\n+      return null;\n+    }\n+\n+    int errorType = ((SofaRpcException) error).getErrorType();\n+    // SOFA RPC defines server error categories in 100-199 and client error categories in 200-299.\n+    // Accepting only these ranges bounds cardinality while accommodating additional categories.\n+    // https://github.com/sofastack/sofa-rpc/blob/v5.14.3/core/exception/src/main/java/com/alipay/sofa/rpc/core/exception/RpcErrorType.java\n+    if (errorType >= 100 && errorType <= 299) {\n+      return Integer.toString(errorType);\n+    }\n+    return null;",
+      "id": "PRRT_kwDODJKVX86ujAif",
+      "opened": "2026-10-20T22:16:26Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-21T02:22:14Z",
+          "body": "Updated in 74f15fca. The existing RPC-exception integration test now runs in synchronous and future modes against a real service throwing `SofaRpcException(SERVER_BIZ)`. It reuses the client/server span and duration-metric assertions, expecting `error.type=\"160\"` in preview and `/dup` modes.\n\nThe separate business-exception test still covers exception-class fallback for unrelated exceptions. Kept this scoped to integration coverage rather than adding an unsupported-code unit-test matrix.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20783#discussion_r4332377323"
+        }
+      ],
+      "reviewed": "a25c2e8eab0be5fc924b7abdf9adce21f526e89c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20783#discussion_r4330920361"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the following focused integration-test change. Do not create a follow-up PR as a workaround.\n\nReuse `testSofaRpcRpcException()` in `instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java` rather than adding a separate test with duplicated assertions. Parameterize the existing integration test for synchronous and future-based invocation using SOFA's `INVOKER_TYPE_FUTURE` for the asynchronous case. For future mode, invoke the service and retrieve the result with `SofaResponseFuture.getResponse(...)` inside the parent-span operation so the actual asynchronous failure is observed.\n\nChange the existing `throwException()` fixture in `instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/impl/ErrorServiceImpl.java` from `SofaRpcRuntimeException` to `new SofaRpcException(RpcErrorType.SERVER_BIZ, \"RPC error\")`. Reuse the current service operation; do not add a service method. Update the existing exception expectations and the client/server span and duration-metric assertions to expect the structured error category `\"160\"` in RPC preview and `/dup` modes. Preserve the existing legacy assertions and exception-event/log behavior, with the expected exception type updated for this fixture. Keep the separate business-exception test unchanged so exception-class fallback remains covered.\n\nThe purpose is one compact integration scenario that verifies server-side numeric classification, preservation of the category across real RPC serialization, and extraction from the asynchronous error response. SOFA RPC 5.4.0 and 5.14.3 put a service-thrown exception in `SofaResponse.appResponse`; their future callback calls `onAsyncResponse(..., response, null)` before completing the future exceptionally. The instrumentation must classify the exception inside that response, not merely the exception later thrown when retrieving the future.\n\nDo not add unit tests, mocks, new test classes, or an unsupported-code test matrix. Do not restore the deleted `TracingFilterTest.java`. Reuse existing telemetry assertion blocks and existing semconv variants. Keep the production range-based classifier and unrelated production behavior unchanged. Limit the implementation to the shared integration test and its existing error-service implementation unless a directly necessary adjustment is demonstrated.\n\nRun the narrow relevant `spotlessApply` task before validating the affected integration tests through the existing legacy, RPC-preview, and `/dup` suites. Do not run `spotlessCheck` first. Report validation blockers accurately. Commit and push the intended changes to this PR's existing head repository and branch.",
+      "created": "2026-10-21T02:01:31Z",
+      "hunk": "@@ -862,11 +862,7 @@ RPC_SYSTEM_NAME, emitPreviewRpcSemconv() ? \"sofarpc\" : null),\n                                 satisfies(\n                                     NETWORK_PEER_PORT, AbstractSofaRpcTest::assertNetworkPeerPort),\n                                 satisfies(NETWORK_TYPE, AbstractSofaRpcTest::assertNetworkType),\n-                                equalTo(\n-                                    ERROR_TYPE,\n-                                    emitPreviewRpcSemconv()\n-                                        ? SofaTimeOutException.class.getName()\n-                                        : null))\n+                                equalTo(ERROR_TYPE, emitPreviewRpcSemconv() ? \"200\" : null))",
+      "id": "PRRT_kwDODJKVX86umI6w",
+      "opened": "2026-10-21T02:01:31Z",
+      "path": "instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java",
+      "replies": [
+        {
+          "at": "2026-10-21T02:11:43Z",
+          "body": "Updated in `74f15fca`: the shared integration test now covers synchronous and future invocation with `SERVER_BIZ`, and asserts `error.type` 160 for spans and preview duration metrics across legacy, preview, and `/dup` modes. The focused tests passed in library, autoconfigure, and javaagent suites.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20783#discussion_r4332324640"
+        }
+      ],
+      "reviewed": "a25c2e8eab0be5fc924b7abdf9adce21f526e89c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20783#discussion_r4332273853"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "head": "15b2a0a8f687a31440221716a8622739b6cbda20",
+  "merge": "d614b25fa086a03f7fe4dc6669f12ab8112ff5fb",
+  "merged": "2026-08-18T01:36:59Z",
+  "missing_roots": 0,
+  "number": 19618,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "It should be possible to build a custom runtime image with jlink that doesn't include rmi. I guess it wouldn't fail but just log an exception similarly to how we handle instrumentations compiled with unsupported class version. Imo using the class name works best for classes that are loaded for sure like `String` or are going to be probably loaded anyway. For stuff that the application or agent wouldn't otherwise load we are probably better off using the name to avoid loading extra classes.",
+      "created": "2026-08-16T15:19:58Z",
+      "hunk": "@@ -29,9 +30,7 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n-        named(\"invoke\")\n-            .and(takesArgument(0, named(\"java.rmi.Remote\")))\n-            .and(takesArgument(1, Method.class)),\n+        named(\"invoke\").and(takesArgument(0, Remote.class)).and(takesArgument(1, Method.class)),",
+      "id": "PRRT_kwDODJKVX86ZnpRG",
+      "opened": "2026-08-16T15:19:58Z",
+      "path": "instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/client/UnicastRefInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-16T15:35:20Z",
+          "body": "Good catch. Updated in 4982400a68. The RMI, JDBC, and Java HTTP client matchers now keep `named(...)` for types from optional JDK modules, and the rule now requires a class-literal type to be present in every supported runtime image.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19618#discussion_r3792116150"
+        }
+      ],
+      "reviewed": "53854574033788c873c46d1e05b0dcac19884d7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19618#discussion_r3792080933"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "java.util.logging is not in java.base",
+      "created": "2026-08-17T11:20:35Z",
+      "hunk": "@@ -30,10 +30,7 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n-        isPublic()\n-            .and(named(\"log\"))\n-            .and(takesArguments(1))\n-            .and(takesArgument(0, named(\"java.util.logging.LogRecord\"))),\n+        isPublic().and(named(\"log\")).and(takesArguments(1)).and(takesArgument(0, LogRecord.class)),",
+      "id": "PRRT_kwDODJKVX86ZxslE",
+      "opened": "2026-08-17T11:20:35Z",
+      "path": "instrumentation/java-util-logging/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jul/JavaUtilLoggingInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-17T17:04:28Z",
+          "body": "Good catch. I restored `named(...)` for `java.util.logging.LogRecord` and replaced the broad `java.base` wording with an exact, non-recursive allowlist of packages that already use direct matcher class literals in the repository.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19618#discussion_r3797411024"
+        },
+        {
+          "at": "2026-08-17T17:11:42Z",
+          "body": "I improved the rule to name known safe `java.base` packages directly to hopefully avoid mistakes",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19618#discussion_r3797448187"
+        }
+      ],
+      "reviewed": "4982400a68e07180603631f5fd7ff20760017548",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19618#discussion_r3795889804"
+    }
+  ]
+}

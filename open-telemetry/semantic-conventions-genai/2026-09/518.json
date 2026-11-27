@@ -1,0 +1,31 @@
+{
+  "head": "b6fe4ddae1f66cf1a8cea572ecc2811d73a0c548",
+  "merge": "be23fcc250f72e6f740c96d05fa6f12fbee3d71a",
+  "merged": "2026-09-16T00:38:16Z",
+  "missing_roots": 0,
+  "number": 518,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "maybe just \n\n```suggestion\n          conditionally_required: If available.\n```\n\n?",
+      "created": "2026-09-15T05:10:15Z",
+      "hunk": "@@ -608,6 +608,9 @@ spans:\n         sampling_relevant: true\n       - ref: gen_ai.agent.name\n         sampling_relevant: true\n+      - ref: gen_ai.conversation.id\n+        requirement_level:\n+          conditionally_required: If and only if the instrumented library has one readily available, or the user application provides one through OpenTelemetry context or library-specific mechanisms.",
+      "id": "PRRT_kwDOSUeMrM6iYUY4",
+      "opened": "2026-09-15T05:10:54Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-09-15T05:25:12Z",
+          "body": "sounds good! do we need to apply this to the other spans as well?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/518#discussion_r4012230937"
+        }
+      ],
+      "reviewed": "60a5d4435ccc1ded9c6af92eb6835edc755a11c7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/518#discussion_r4012139580"
+    }
+  ]
+}

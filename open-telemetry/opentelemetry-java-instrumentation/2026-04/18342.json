@@ -1,0 +1,25 @@
+{
+  "head": "395cadb8a9b4c14856b211319b1af690d0ed1424",
+  "merge": "d85abc6291faa0843fcbf0bf25617fa8a01d562c",
+  "merged": "2026-04-27T20:29:57Z",
+  "missing_roots": 0,
+  "number": 18342,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-27T20:08:21Z",
+      "hunk": "@@ -5,3 +5,9 @@ display_name: Kotlin Coroutines\n features:\n   - CONTEXT_PROPAGATION\n library_link: https://github.com/Kotlin/kotlinx.coroutines\n+configurations:\n+  - name: otel.instrumentation.kotlinx-coroutines.check-class\n+    declarative_name: java.kotlinx_coroutines.check_class\n+    type: boolean\n+    description: Determines whether to validate transformed coroutine bytecode with ASM `CheckClassAdapter`.\n+    default: false",
+      "id": "PRRT_kwDODJKVX8598dDd",
+      "opened": "2026-04-27T20:08:21Z",
+      "path": "instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "4cfb56496737adbb24f6120a233071fc6ec18e57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18342#discussion_r3149891267"
+    }
+  ]
+}

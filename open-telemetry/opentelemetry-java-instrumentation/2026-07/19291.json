@@ -1,0 +1,40 @@
+{
+  "head": "aa20151cdab5cc609368501e1773abe1e9e6a875",
+  "merge": "03670ca6bf83d9551d53b948e498e1ae01f1c1c5",
+  "merged": "2026-07-21T17:30:48Z",
+  "missing_roots": 0,
+  "number": 19291,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR adds a 2.30.0 release entry and bumps snapshots to 2.31.0, but the API diff baseline remains 2.29.0. This can cause API-compat checks/docs to compare against an older release than intended; consider updating `apidiffBaselineVersion` to `2.30.0` (and regenerating associated apidiff artifacts) so the baseline matches the latest released version.",
+      "created": "2026-07-21T16:00:09Z",
+      "hunk": "@@ -1,5 +1,5 @@\n-val stableVersion = \"2.30.0-SNAPSHOT\"\n-val alphaVersion = \"2.30.0-alpha-SNAPSHOT\"\n+val stableVersion = \"2.31.0-SNAPSHOT\"\n+val alphaVersion = \"2.31.0-alpha-SNAPSHOT\"\n \n val apidiffBaselineVersion = \"2.29.0\"",
+      "id": "PRRT_kwDODJKVX86So-hf",
+      "opened": "2026-07-21T16:00:09Z",
+      "path": "version.gradle.kts",
+      "replies": [],
+      "reviewed": "aa20151cdab5cc609368501e1773abe1e9e6a875",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19291#discussion_r3623675987"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These apidiff headers are updated to `2.31.0-SNAPSHOT` but still compare against `2.29.0`. If 2.30.0 has been released (per CHANGELOG), the 'latest' jar reference should likely be `2.30.0` instead, and the apidiff outputs should be regenerated for a consistent 'current vs latest' comparison.",
+      "created": "2026-07-21T16:00:09Z",
+      "hunk": "@@ -1,2 +1,2 @@\n-Comparing source compatibility of opentelemetry-instrumentation-api-2.30.0-SNAPSHOT.jar against opentelemetry-instrumentation-api-2.29.0.jar\n+Comparing source compatibility of opentelemetry-instrumentation-api-2.31.0-SNAPSHOT.jar against opentelemetry-instrumentation-api-2.29.0.jar",
+      "id": "PRRT_kwDODJKVX86So-iB",
+      "opened": "2026-07-21T16:00:09Z",
+      "path": "docs/apidiffs/current_vs_latest/opentelemetry-instrumentation-api.txt",
+      "replies": [],
+      "reviewed": "aa20151cdab5cc609368501e1773abe1e9e6a875",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19291#discussion_r3623676028"
+    }
+  ]
+}

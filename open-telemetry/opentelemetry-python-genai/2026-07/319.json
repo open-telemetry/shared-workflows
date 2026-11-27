@@ -1,0 +1,106 @@
+{
+  "head": "2ee05411796a235e4c6bf68487c3591d01933aa9",
+  "merge": "54777ea8e7ad1564ea8fdf2946d2d462eee0ff1f",
+  "merged": "2026-07-28T18:28:51Z",
+  "missing_roots": 0,
+  "number": 319,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`pytest.mark.vcr()` wraps the test in a cassette automatically (pytest-vcr). Because this test also uses `vcr.use_cassette(...)`, the marker will cause nested cassette usage (and always tries the default cassette name), which can raise errors or make playback use the wrong cassette. Drop the marker here and rely on the explicit `vcr.use_cassette(...)` like the other OpenAI tests in this file.",
+      "created": "2026-07-28T16:07:55Z",
+      "hunk": "@@ -804,3 +817,86 @@ def test_chat_anthropic_claude_sonnet_stop_sequences_constructor_fallback(\n         gen_ai_attributes.GEN_AI_REQUEST_STOP_SEQUENCES\n     )\n     assert stop_sequences == (\"STOP\",)\n+\n+\n+@pytest.mark.vcr()\n+@pytest.mark.skipif(\n+    not _supports_reasoning_token_details,\n+    reason=\"langchain-openai < 0.2.1 does not surface reasoning token details\",\n+)",
+      "id": "PRRT_kwDOSbspP86Ud-da",
+      "opened": "2026-07-28T16:07:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [],
+      "reviewed": "90f0df597ab9a550584bae112dc8e6bfff5f6cad",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/319#discussion_r3667229578"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`vcr.use_cassette(...)` is passed a name without the `.yaml` suffix, but the committed cassettes are named `*.yaml` and other `use_cassette` call sites in this repo always include the extension. Add the `.yaml` suffix so cassette lookup is unambiguous and consistent.",
+      "created": "2026-07-28T16:07:55Z",
+      "hunk": "@@ -804,3 +817,86 @@ def test_chat_anthropic_claude_sonnet_stop_sequences_constructor_fallback(\n         gen_ai_attributes.GEN_AI_REQUEST_STOP_SEQUENCES\n     )\n     assert stop_sequences == (\"STOP\",)\n+\n+\n+@pytest.mark.vcr()\n+@pytest.mark.skipif(\n+    not _supports_reasoning_token_details,\n+    reason=\"langchain-openai < 0.2.1 does not surface reasoning token details\",\n+)\n+def test_chat_openai_reasoning_token_details(\n+    span_exporter, start_instrumentation, chat_openai_reasoning, vcr\n+):\n+    messages = [\n+        SystemMessage(content=\"You are a careful mathematical reasoner.\"),\n+        HumanMessage(\n+            content=(\n+                \"A snail climbs a 12 meter well. Each day it climbs up 3 \"\n+                \"meters, and each night it slides back 2 meters. On which day \"\n+                \"does it first reach the top? Think through it step by step.\"\n+            )\n+        ),\n+    ]\n+\n+    # Older langchain-openai sends an explicit ``n``/``temperature`` on the\n+    # request body while newer versions omit them, so the recorded bodies\n+    # differ. Pick the cassette recorded for the installed version instead of\n+    # fuzzy-matching a single cassette across both.\n+    payload = chat_openai_reasoning._get_request_payload(messages, stop=None)\n+    suffix = \"_old\" if \"n\" in payload else \"\"\n+    with vcr.use_cassette(f\"test_chat_openai_reasoning_token_details{suffix}\"):\n+        chat_openai_reasoning.invoke(messages)",
+      "id": "PRRT_kwDOSbspP86Ud-dt",
+      "opened": "2026-07-28T16:07:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [],
+      "reviewed": "90f0df597ab9a550584bae112dc8e6bfff5f6cad",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/319#discussion_r3667229609"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The cassette used by this test reports `usage.input_tokens: 13` (and cache token details are a separate breakdown). The test currently asserts `gen_ai.usage.input_tokens == 22`, which is inconsistent with the recorded response and with how the instrumentation sets `llm_invocation.input_tokens` from `usage_metadata['input_tokens']`. Update the expected value to match the recorded input token count.",
+      "created": "2026-07-28T16:07:55Z",
+      "hunk": "@@ -804,3 +817,86 @@ def test_chat_anthropic_claude_sonnet_stop_sequences_constructor_fallback(\n         gen_ai_attributes.GEN_AI_REQUEST_STOP_SEQUENCES\n     )\n     assert stop_sequences == (\"STOP\",)\n+\n+\n+@pytest.mark.vcr()\n+@pytest.mark.skipif(\n+    not _supports_reasoning_token_details,\n+    reason=\"langchain-openai < 0.2.1 does not surface reasoning token details\",\n+)\n+def test_chat_openai_reasoning_token_details(\n+    span_exporter, start_instrumentation, chat_openai_reasoning, vcr\n+):\n+    messages = [\n+        SystemMessage(content=\"You are a careful mathematical reasoner.\"),\n+        HumanMessage(\n+            content=(\n+                \"A snail climbs a 12 meter well. Each day it climbs up 3 \"\n+                \"meters, and each night it slides back 2 meters. On which day \"\n+                \"does it first reach the top? Think through it step by step.\"\n+            )\n+        ),\n+    ]\n+\n+    # Older langchain-openai sends an explicit ``n``/``temperature`` on the\n+    # request body while newer versions omit them, so the recorded bodies\n+    # differ. Pick the cassette recorded for the installed version instead of\n+    # fuzzy-matching a single cassette across both.\n+    payload = chat_openai_reasoning._get_request_payload(messages, stop=None)\n+    suffix = \"_old\" if \"n\" in payload else \"\"\n+    with vcr.use_cassette(f\"test_chat_openai_reasoning_token_details{suffix}\"):\n+        chat_openai_reasoning.invoke(messages)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+\n+    assert (\n+        span.attributes.get(gen_ai_attributes.GEN_AI_USAGE_INPUT_TOKENS) == 63\n+    )\n+\n+    assert (\n+        span.attributes.get(gen_ai_attributes.GEN_AI_USAGE_OUTPUT_TOKENS)\n+        == 1284\n+    )\n+\n+    assert (\n+        span.attributes.get(\n+            gen_ai_attributes.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS\n+        )\n+        == 1088\n+    )\n+\n+\n+@pytest.mark.vcr()\n+def test_chat_anthropic_claude_sonnet_cache_token_details(\n+    span_exporter, start_instrumentation, chat_anthropic_claude_sonnet\n+):\n+    messages = [\n+        SystemMessage(content=\"You are a helpful assistant!\"),\n+        HumanMessage(content=\"What is the capital of France?\"),\n+    ]\n+\n+    chat_anthropic_claude_sonnet.invoke(messages)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+\n+    assert (\n+        span.attributes.get(\n+            gen_ai_attributes.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS\n+        )\n+        == 5\n+    )\n+\n+    assert (\n+        span.attributes.get(\n+            gen_ai_attributes.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS\n+        )\n+        == 4\n+    )\n+\n+    assert (\n+        span.attributes.get(gen_ai_attributes.GEN_AI_USAGE_INPUT_TOKENS) == 22\n+    )",
+      "id": "PRRT_kwDOSbspP86Ud-eF",
+      "opened": "2026-07-28T16:07:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [],
+      "reviewed": "90f0df597ab9a550584bae112dc8e6bfff5f6cad",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/319#discussion_r3667229639"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The changelog fragment text is grammatically awkward (\"Add recording tests coverage\"). Since towncrier fragments are user-facing release notes, please rephrase to a clear one-liner.",
+      "created": "2026-07-28T16:07:56Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add recording tests coverage for token usage attributes",
+      "id": "PRRT_kwDOSbspP86Ud-e9",
+      "opened": "2026-07-28T16:07:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/319.added",
+      "replies": [],
+      "reviewed": "90f0df597ab9a550584bae112dc8e6bfff5f6cad",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/319#discussion_r3667229709"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The repo guideline for AI-synthesized cassettes requires the file to start with an explicit `# TODO: this is generated by AI, re-record` comment so it is easy to find and re-record later. The current header uses different wording; please switch the first line to the required text.",
+      "created": "2026-07-28T16:07:56Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+# TODO: This cassette is AI-generated. Re-record it\n+# against the live Anthropic API once an ANTHROPIC_API_KEY is available so the\n+# token counts are authentic.",
+      "id": "PRRT_kwDOSbspP86Ud-ea",
+      "opened": "2026-07-28T16:07:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/cassettes/test_chat_anthropic_claude_sonnet_cache_token_details.yaml",
+      "replies": [],
+      "reviewed": "90f0df597ab9a550584bae112dc8e6bfff5f6cad",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/319#discussion_r3667229663"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: test-only changes don't need changelog",
+      "created": "2026-07-28T17:54:10Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add test coverage for token usage attributes",
+      "id": "PRRT_kwDOSbspP86Uf7bY",
+      "opened": "2026-07-28T17:54:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/319.added",
+      "replies": [
+        {
+          "at": "2026-07-28T17:55:44Z",
+          "body": "Could you please help adding the Skip Changelog label? Thanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/319#discussion_r3667982926"
+        }
+      ],
+      "reviewed": "638d21a5e619e559a6f61b32ececc32edcff1630",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/319#discussion_r3667972164"
+    }
+  ]
+}

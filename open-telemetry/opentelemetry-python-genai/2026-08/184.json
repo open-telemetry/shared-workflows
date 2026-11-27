@@ -1,0 +1,230 @@
+{
+  "head": "37949a9caa1639ee137292eac3bff15ca9b5af2f",
+  "merge": "1fb08061ad038fdc438680d7015eaedfe7d84231",
+  "merged": "2026-08-07T02:30:43Z",
+  "missing_roots": 0,
+  "number": 184,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "which operation name it's reported as? This should not be an inference span - no inference has happened, no tokens burned. It seems it looks like `chat`, but it does not seem right. \n\nWe need to add conventions for this first.",
+      "created": "2026-06-30T14:19:09Z",
+      "hunk": "@@ -184,6 +184,94 @@ async def test_async_responses_create_basic(\n     assert GenAIAttributes.GEN_AI_OUTPUT_MESSAGES not in span.attributes\n \n \n+RETRIEVE_RESPONSE_ID = (\n+    \"resp_0f4faba17dcd0f1e0069e2f3e4907881909179832ba1237025\"\n+)\n+RETRIEVE_MISSING_RESPONSE_ID = (\n+    \"resp_doesnotexist0000000000000000000000000000000000\"\n+)\n+\n+\n+@pytest.mark.asyncio()\n+async def test_async_responses_retrieve_basic(\n+    span_exporter, async_openai_client, instrument_no_content, vcr\n+):\n+    _skip_if_not_latest()\n+\n+    with vcr.use_cassette(\n+        \"test_async_responses_retrieve_basic[content_mode0].yaml\"\n+    ):\n+        response = await async_openai_client.responses.retrieve(\n+            RETRIEVE_RESPONSE_ID\n+        )\n+\n+    (span,) = span_exporter.get_finished_spans()\n+    # retrieve carries no request model/input; telemetry comes from the\n+    # fetched response only.\n+    assert GenAIAttributes.GEN_AI_REQUEST_MODEL not in span.attributes\n+    assert (\n+        span.attributes[GenAIAttributes.GEN_AI_RESPONSE_MODEL]\n+        == response.model\n+    )\n+    assert span.attributes[GenAIAttributes.GEN_AI_RESPONSE_ID] == response.id\n+    assert (\n+        span.attributes[GenAIAttributes.GEN_AI_USAGE_INPUT_TOKENS]\n+        == response.usage.input_tokens\n+    )\n+    assert (\n+        span.attributes[GenAIAttributes.GEN_AI_USAGE_OUTPUT_TOKENS]\n+        == response.usage.output_tokens\n+    )\n+    assert span.attributes[GenAIAttributes.GEN_AI_RESPONSE_FINISH_REASONS] == (\n+        \"stop\",\n+    )\n+    assert GenAIAttributes.GEN_AI_INPUT_MESSAGES not in span.attributes\n+    assert GenAIAttributes.GEN_AI_OUTPUT_MESSAGES not in span.attributes\n+\n+\n+@pytest.mark.asyncio()\n+async def test_async_responses_retrieve_captures_content(\n+    span_exporter, async_openai_client, instrument_with_content, vcr\n+):\n+    _skip_if_not_latest()\n+\n+    with vcr.use_cassette(\n+        \"test_async_responses_retrieve_captures_content[content_mode0].yaml\"\n+    ):\n+        response = await async_openai_client.responses.retrieve(\n+            RETRIEVE_RESPONSE_ID\n+        )\n+\n+    (span,) = span_exporter.get_finished_spans()\n+    assert_messages_attribute(\n+        span.attributes[GenAIAttributes.GEN_AI_OUTPUT_MESSAGES],\n+        format_simple_expected_output_message(response.output_text),\n+    )\n+    # retrieve has no request-side input messages to capture.",
+      "id": "PRRT_kwDOSbspP86NTaT2",
+      "opened": "2026-06-30T14:19:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_async_responses.py",
+      "replies": [
+        {
+          "at": "2026-06-30T21:59:07Z",
+          "body": "Created a follow-up PR that adds the necessary work to genai semantic conventions: https://github.com/open-telemetry/semantic-conventions-genai/pull/353",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3502069434"
+        },
+        {
+          "at": "2026-06-30T22:22:32Z",
+          "body": "Should we close this until that pr is merged?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3502162405"
+        },
+        {
+          "at": "2026-08-04T18:14:37Z",
+          "body": "Above merged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3715076437"
+        }
+      ],
+      "reviewed": "13645fbf89a77e6d50250c3d7a0315e8e25e6573",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3499441601"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we check status too?",
+      "created": "2026-07-31T23:07:01Z",
+      "hunk": "@@ -197,6 +197,94 @@ async def test_async_responses_create_basic(\n     assert GenAIAttributes.GEN_AI_OUTPUT_MESSAGES not in span.attributes\n \n \n+RETRIEVE_RESPONSE_ID = (\n+    \"resp_0f4faba17dcd0f1e0069e2f3e4907881909179832ba1237025\"\n+)\n+RETRIEVE_MISSING_RESPONSE_ID = (\n+    \"resp_doesnotexist0000000000000000000000000000000000\"\n+)\n+\n+\n+@pytest.mark.asyncio()\n+async def test_async_responses_retrieve_basic(\n+    span_exporter, async_openai_client, instrument_no_content, vcr\n+):\n+    _skip_if_not_latest()\n+\n+    with vcr.use_cassette(\n+        \"test_async_responses_retrieve_basic[content_mode0].yaml\"\n+    ):\n+        response = await async_openai_client.responses.retrieve(\n+            RETRIEVE_RESPONSE_ID\n+        )\n+\n+    (span,) = span_exporter.get_finished_spans()\n+    # retrieve carries no request model/input; telemetry comes from the\n+    # fetched response only.\n+    assert GenAIAttributes.GEN_AI_REQUEST_MODEL not in span.attributes\n+    assert (\n+        span.attributes[GenAIAttributes.GEN_AI_RESPONSE_MODEL]\n+        == response.model\n+    )\n+    assert span.attributes[GenAIAttributes.GEN_AI_RESPONSE_ID] == response.id\n+    assert (\n+        span.attributes[GenAIAttributes.GEN_AI_USAGE_INPUT_TOKENS]\n+        == response.usage.input_tokens\n+    )\n+    assert (\n+        span.attributes[GenAIAttributes.GEN_AI_USAGE_OUTPUT_TOKENS]\n+        == response.usage.output_tokens\n+    )\n+    assert span.attributes[GenAIAttributes.GEN_AI_RESPONSE_FINISH_REASONS] == (",
+      "id": "PRRT_kwDOSbspP86VjiuM",
+      "opened": "2026-08-03T19:36:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_async_responses.py",
+      "replies": [
+        {
+          "at": "2026-08-04T18:13:29Z",
+          "body": "Helper now asserts `gen_ai.response.status` on each fetch test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3715069141"
+        }
+      ],
+      "reviewed": "09bab0a4258d15a27d2706501422022076d9fafd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3693853725"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "let's check operation name and span name",
+      "created": "2026-07-31T23:09:16Z",
+      "hunk": "@@ -197,6 +197,94 @@ async def test_async_responses_create_basic(\n     assert GenAIAttributes.GEN_AI_OUTPUT_MESSAGES not in span.attributes\n \n \n+RETRIEVE_RESPONSE_ID = (\n+    \"resp_0f4faba17dcd0f1e0069e2f3e4907881909179832ba1237025\"\n+)\n+RETRIEVE_MISSING_RESPONSE_ID = (\n+    \"resp_doesnotexist0000000000000000000000000000000000\"\n+)\n+\n+\n+@pytest.mark.asyncio()\n+async def test_async_responses_retrieve_basic(\n+    span_exporter, async_openai_client, instrument_no_content, vcr\n+):\n+    _skip_if_not_latest()\n+\n+    with vcr.use_cassette(\n+        \"test_async_responses_retrieve_basic[content_mode0].yaml\"\n+    ):\n+        response = await async_openai_client.responses.retrieve(\n+            RETRIEVE_RESPONSE_ID\n+        )\n+\n+    (span,) = span_exporter.get_finished_spans()\n+    # retrieve carries no request model/input; telemetry comes from the\n+    # fetched response only.\n+    assert GenAIAttributes.GEN_AI_REQUEST_MODEL not in span.attributes",
+      "id": "PRRT_kwDOSbspP86Vjj6p",
+      "opened": "2026-08-03T19:36:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_async_responses.py",
+      "replies": [
+        {
+          "at": "2026-08-04T18:13:34Z",
+          "body": "Added a shared helper, `assert_fetch_response_attributes()` to check these.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3715069598"
+        }
+      ],
+      "reviewed": "09bab0a4258d15a27d2706501422022076d9fafd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3693860593"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this would produce inference `chat` span instead of fetch_response ",
+      "created": "2026-08-03T19:36:04Z",
+      "hunk": "@@ -188,6 +188,22 @@ def _instrument(self, **kwargs):\n                 async_responses_stream(handler),\n             )\n \n+            # retrieve() fetches a stored response by id without going through\n+            # create(), so wrap it separately. The result is a Response, so the\n+            # create wrappers extract its telemetry correctly.\n+            if hasattr(responses_module.Responses, \"retrieve\"):\n+                wrap_function_wrapper(\n+                    \"openai.resources.responses.responses\",\n+                    \"Responses.retrieve\",\n+                    responses_create(handler),",
+      "id": "PRRT_kwDOSbspP86WGZ83",
+      "opened": "2026-08-03T19:36:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-04T18:13:36Z",
+          "body": "Added a dedicated `responses_retrieve` and `async_responses_retrieve` wrapper and used those instead. This uses the new `handler.fetch_response()` and now produces `gen_ai.olperation.name=fetch_response`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3715069875"
+        }
+      ],
+      "reviewed": "2903ef1fcd5dc4352f914301263dc8d69e73a0a7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3707131212"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "we should have it already for responses - https://github.com/open-telemetry/opentelemetry-python-genai/blob/9d925935ad1a9056cfcb9501de7326da78184c28/instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py#L458, let's reuse it \n\nit seems _is_streamed_raw_response would be useful there too btw.",
+      "created": "2026-08-05T04:47:26Z",
+      "hunk": "@@ -45,6 +55,39 @@\n     \"OpenAIAsyncStream[Any]\", \"AsyncResponseStream[Any]\"\n ]\n \n+# Set by the SDK's ``with_streaming_response`` helpers to mark a request whose\n+# body the caller reads lazily.\n+_RAW_RESPONSE_HEADER = \"x-stainless-raw-response\"\n+\n+\n+def _is_streamed_raw_response(kwargs: dict[str, Any]) -> bool:\n+    extra_headers = kwargs.get(\"extra_headers\")\n+    if not isinstance(extra_headers, Mapping):\n+        return False\n+    return any(\n+        key.lower() == _RAW_RESPONSE_HEADER and value == \"stream\"\n+        for key, value in extra_headers.items()\n+    )\n+\n+\n+def _parse_raw_response(result: object, kwargs: dict[str, Any]) -> object:\n+    \"\"\"Return the payload of a non-streaming ``with_raw_response`` result.\n+\n+    A non-streaming raw response has already read its body and the SDK memoizes\n+    ``parse()``, so deserializing it here does not change what the caller sees.\n+    On the async client ``parse()`` returns an awaitable, which the caller\n+    awaits.\n+\n+    ``with_streaming_response`` hands back a raw response whose body has *not*\n+    been read yet; parsing it would consume the body before the caller asks for\n+    it, so those calls are left alone.\n+    \"\"\"\n+    if _is_streamed_raw_response(kwargs) or not isinstance(\n+        result, ParsableResponse\n+    ):\n+        return result\n+    return result.parse()",
+      "id": "PRRT_kwDOSbspP86Wi0og",
+      "opened": "2026-08-05T05:05:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch_responses.py",
+      "replies": [
+        {
+          "at": "2026-08-05T21:31:18Z",
+          "body": "Moved response detection/parsing to `response_extractors.py` and now reuse it for inference and fetch-response extraction.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3724187522"
+        }
+      ],
+      "reviewed": "a47f40441341d91a3796898543b3708e1955c2f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3718011122"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this is probably also necessary in https://github.com/open-telemetry/opentelemetry-python-genai/blob/9d925935ad1a9056cfcb9501de7326da78184c28/instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py#L466",
+      "created": "2026-08-05T04:52:23Z",
+      "hunk": "@@ -191,6 +234,176 @@ async def traced_method(\n     )\n \n \n+def _get_retrieve_response_id(\n+    args: tuple[Any, ...], kwargs: dict[str, Any]\n+) -> str | None:\n+    \"\"\"Return the ``response_id`` a ``responses.retrieve`` call was made with.\"\"\"\n+    response_id = args[0] if args else kwargs.get(\"response_id\")\n+    return response_id if isinstance(response_id, str) else None\n+\n+\n+def _get_stream_cursor(kwargs: dict[str, Any]) -> str | None:\n+    \"\"\"Return the ``starting_after`` cursor a streamed fetch resumes from.\"\"\"\n+    starting_after = kwargs.get(\"starting_after\")\n+    if not value_is_set(starting_after):\n+        return None\n+    return str(starting_after)\n+\n+\n+def _start_fetch_response_invocation(\n+    handler: TelemetryHandler,\n+    instance: \"Responses | AsyncResponses\",\n+    response_id: str,\n+    kwargs: dict[str, Any],\n+) -> FetchResponseInvocation:\n+    invocation = handler.fetch_response(\n+        **get_fetch_response_creation_kwargs(response_id, instance)\n+    )\n+    invocation.stream_cursor = _get_stream_cursor(kwargs)\n+    invocation.attributes[OpenAIAttributes.OPENAI_API_TYPE] = (\n+        OpenAIAttributes.OpenaiApiTypeValues.RESPONSES.value\n+    )\n+    return invocation\n+\n+\n+def responses_retrieve(\n+    handler: TelemetryHandler,\n+) -> Callable[\n+    ...,\n+    Union[\n+        ResponseResult,\n+        ResponseStreamResult,\n+        FetchResponseStreamWrapper[Any],\n+    ],\n+]:\n+    \"\"\"Wrap ``Responses.retrieve`` to trace fetching a stored response by id.\n+\n+    Traces :meth:`openai.resources.responses.responses.Responses.retrieve`.\n+    Fetching a stored response performs no inference and consumes no tokens, so\n+    it is reported as a ``fetch_response`` operation rather than as an\n+    inference call.\n+    \"\"\"\n+\n+    capture_content = handler.should_capture_content()\n+\n+    def traced_method(\n+        wrapped: Callable[..., Union[ResponseResult, ResponseStreamResult]],\n+        instance: \"Responses\",\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Union[\n+        ResponseResult,\n+        ResponseStreamResult,\n+        FetchResponseStreamWrapper[Any],\n+    ]:\n+        response_id = _get_retrieve_response_id(args, kwargs)\n+        if response_id is None:\n+            # gen_ai.response.id is required on a fetch_response span and the\n+            # SDK rejects the call without it, so leave it untraced.\n+            return wrapped(*args, **kwargs)\n+\n+        invocation = _start_fetch_response_invocation(\n+            handler, instance, response_id, kwargs\n+        )\n+\n+        try:\n+            result = wrapped(*args, **kwargs)\n+            if is_streaming(kwargs):\n+                return wrap_stream_result(\n+                    FetchResponseStreamWrapper,\n+                    result,\n+                    invocation,\n+                    capture_content,\n+                )\n+\n+            set_fetch_response_attributes(\n+                invocation,\n+                _parse_raw_response(result, kwargs),\n+                capture_content,\n+            )\n+            invocation.stop()\n+            return result\n+        except Exception as error:\n+            invocation.fail(error)\n+            raise\n+\n+    return cast(\n+        'Callable[..., Union[\"ResponseResult\", \"ResponseStreamResult\", FetchResponseStreamWrapper[Any]]]',\n+        traced_method,\n+    )\n+\n+\n+def async_responses_retrieve(\n+    handler: TelemetryHandler,\n+) -> Callable[\n+    ...,\n+    Awaitable[\n+        Union[\n+            ResponseResult,\n+            AsyncResponseStreamResult,\n+            AsyncFetchResponseStreamWrapper[Any],\n+        ]\n+    ],\n+]:\n+    \"\"\"Wrap ``AsyncResponses.retrieve`` to trace fetching a stored response by id.\n+\n+    Traces :meth:`openai.resources.responses.responses.AsyncResponses.retrieve`.\n+    Fetching a stored response performs no inference and consumes no tokens, so\n+    it is reported as a ``fetch_response`` operation rather than as an\n+    inference call.\n+    \"\"\"\n+\n+    capture_content = handler.should_capture_content()\n+\n+    async def traced_method(\n+        wrapped: Callable[\n+            ...,\n+            Awaitable[Union[ResponseResult, AsyncResponseStreamResult]],\n+        ],\n+        instance: \"AsyncResponses\",\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Union[\n+        ResponseResult,\n+        AsyncResponseStreamResult,\n+        AsyncFetchResponseStreamWrapper[Any],\n+    ]:\n+        response_id = _get_retrieve_response_id(args, kwargs)\n+        if response_id is None:\n+            # gen_ai.response.id is required on a fetch_response span and the\n+            # SDK rejects the call without it, so leave it untraced.\n+            return await wrapped(*args, **kwargs)\n+\n+        invocation = _start_fetch_response_invocation(\n+            handler, instance, response_id, kwargs\n+        )\n+\n+        try:\n+            result = await wrapped(*args, **kwargs)\n+            if is_streaming(kwargs):\n+                return wrap_stream_result(\n+                    AsyncFetchResponseStreamWrapper,\n+                    result,\n+                    invocation,\n+                    capture_content,\n+                )\n+\n+            parsed = _parse_raw_response(result, kwargs)\n+            if inspect.isawaitable(parsed):\n+                parsed = await parsed",
+      "id": "PRRT_kwDOSbspP86Wi3yY",
+      "opened": "2026-08-05T05:05:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch_responses.py",
+      "replies": [
+        {
+          "at": "2026-08-05T21:37:57Z",
+          "body": "Added in `response_extractors.py`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3724244544"
+        }
+      ],
+      "reviewed": "a47f40441341d91a3796898543b3708e1955c2f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3718029261"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can we align fetch and responses create finish reasons - there is a related helper above - _finish_reason_from_status and responses.create also returns status. we should use the same helpers for both",
+      "created": "2026-08-05T04:56:50Z",
+      "hunk": "@@ -265,6 +271,91 @@ def _finish_reason_from_status(status: str | None) -> str | None:\n     return None\n \n \n+# `incomplete_details.reason` values that map onto a cross-provider finish\n+# reason; an unrecognized reason is reported as-is.\n+_INCOMPLETE_REASON_TO_FINISH_REASON = {\n+    \"max_output_tokens\": \"length\",\n+    \"content_filter\": \"content_filter\",\n+}\n+\n+\n+def get_fetched_finish_reasons(response: \"Response | None\") -> list[str]:",
+      "id": "PRRT_kwDOSbspP86Wi6jn",
+      "opened": "2026-08-05T05:05:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-08-05T22:02:19Z",
+          "body": "Create and fetch now use the same logic.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3724382521"
+        }
+      ],
+      "reviewed": "a47f40441341d91a3796898543b3708e1955c2f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3718046352"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nice! we should set it on responses.create too",
+      "created": "2026-08-05T04:59:57Z",
+      "hunk": "@@ -191,6 +234,176 @@ async def traced_method(\n     )\n \n \n+def _get_retrieve_response_id(\n+    args: tuple[Any, ...], kwargs: dict[str, Any]\n+) -> str | None:\n+    \"\"\"Return the ``response_id`` a ``responses.retrieve`` call was made with.\"\"\"\n+    response_id = args[0] if args else kwargs.get(\"response_id\")\n+    return response_id if isinstance(response_id, str) else None\n+\n+\n+def _get_stream_cursor(kwargs: dict[str, Any]) -> str | None:\n+    \"\"\"Return the ``starting_after`` cursor a streamed fetch resumes from.\"\"\"\n+    starting_after = kwargs.get(\"starting_after\")\n+    if not value_is_set(starting_after):\n+        return None\n+    return str(starting_after)\n+\n+\n+def _start_fetch_response_invocation(\n+    handler: TelemetryHandler,\n+    instance: \"Responses | AsyncResponses\",\n+    response_id: str,\n+    kwargs: dict[str, Any],\n+) -> FetchResponseInvocation:\n+    invocation = handler.fetch_response(\n+        **get_fetch_response_creation_kwargs(response_id, instance)\n+    )\n+    invocation.stream_cursor = _get_stream_cursor(kwargs)\n+    invocation.attributes[OpenAIAttributes.OPENAI_API_TYPE] = (",
+      "id": "PRRT_kwDOSbspP86Wi8Ts",
+      "opened": "2026-08-05T05:05:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch_responses.py",
+      "replies": [
+        {
+          "at": "2026-08-05T22:14:48Z",
+          "body": "I've set this value on all Responses now",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3724450829"
+        }
+      ],
+      "reviewed": "a47f40441341d91a3796898543b3708e1955c2f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3718057157"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "we should also set gen_ai.request.stream when there was streaming",
+      "created": "2026-08-05T05:03:43Z",
+      "hunk": "@@ -0,0 +1,181 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+from typing import Final\n+\n+from opentelemetry._logs import Logger\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAI,\n+)\n+from opentelemetry.semconv.attributes import server_attributes\n+from opentelemetry.trace import SpanKind, Tracer\n+from opentelemetry.util.genai._invocation import (\n+    Error,\n+    GenAIInvocation,\n+    get_content_attributes,\n+)\n+from opentelemetry.util.genai.completion_hook import CompletionHook\n+from opentelemetry.util.genai.metrics import InvocationMetricsRecorder\n+from opentelemetry.util.genai.types import (\n+    ErrorTypeResolver,\n+    MessagePart,\n+    OutputMessage,\n+    ToolDefinition,\n+)\n+from opentelemetry.util.types import AttributeValue\n+\n+# TODO: Migrate to gen_ai_attributes constants once available in the semconv\n+# package. Added to the GenAI semantic conventions in\n+# https://github.com/open-telemetry/semantic-conventions-genai/pull/353.\n+_FETCH_RESPONSE_OPERATION_NAME: Final = \"fetch_response\"\n+_GEN_AI_REQUEST_STREAM_CURSOR: Final = \"gen_ai.request.stream_cursor\"\n+_GEN_AI_RESPONSE_STATUS: Final = \"gen_ai.response.status\"\n+\n+\n+class FetchResponseInvocation(GenAIInvocation):\n+    \"\"\"Represents a single fetch of a previously generated model response.\n+\n+    Use handler.fetch_response() rather than constructing this directly.\n+\n+    Reference: https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md#fetch-response\n+\n+    The operation performs no inference and consumes no tokens: it returns a\n+    response produced by an earlier operation. Any token counts carried on the\n+    fetched response describe that original generation and MUST NOT be reported\n+    here, so this invocation deliberately exposes no token usage fields.\n+\n+    Semantic convention attributes for fetch response spans:\n+    - gen_ai.operation.name: \"fetch_response\" (Required)\n+    - gen_ai.provider.name: Provider name (Required)\n+    - gen_ai.response.id: Identifier of the response being fetched (Required)\n+    - error.type: Error type when the fetch itself failed (Conditionally Required)\n+    - gen_ai.request.stream_cursor: Set from ``stream_cursor`` when the fetch\n+      resumes a streamed response from a prior position (Conditionally Required)\n+    - server.port: Set only when ``server_port`` is provided (Conditionally Required)\n+    - gen_ai.response.finish_reasons: Outcome of the original generation\n+      (Recommended)\n+    - gen_ai.response.model: Set from ``response_model_name`` (Recommended)\n+    - gen_ai.response.status: Lifecycle status of the fetched response\n+      (Recommended)\n+    - server.address: Set only when ``server_address`` is provided (Recommended)\n+    - gen_ai.output.messages, gen_ai.system_instructions,\n+      gen_ai.tool.definitions: content carried on the fetched response,\n+      recorded on the span only when content capturing is enabled (Opt-In).\n+      A fetched response does not carry the original input messages, so\n+      gen_ai.input.messages is never set.\n+\n+    A fetched response whose *original* generation failed is not a failure of\n+    the fetch: report it through ``response_status`` and ``finish_reasons`` and\n+    still call ``stop()``. Only call ``fail()`` when the fetch call itself\n+    failed.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        tracer: Tracer,\n+        metrics_recorder: InvocationMetricsRecorder,\n+        logger: Logger,\n+        completion_hook: CompletionHook,\n+        provider: str,\n+        *,\n+        response_id: str,\n+        server_address: str | None = None,\n+        server_port: int | None = None,\n+        error_type_resolver: ErrorTypeResolver | None = None,\n+    ) -> None:\n+        \"\"\"Use handler.fetch_response() rather than calling this directly.\"\"\"\n+        super().__init__(\n+            tracer,\n+            metrics_recorder,\n+            logger,\n+            completion_hook,\n+            operation_name=_FETCH_RESPONSE_OPERATION_NAME,\n+            # The response identifier is high cardinality, so semconv keeps it\n+            # out of the span name.\n+            span_name=_FETCH_RESPONSE_OPERATION_NAME,\n+            span_kind=SpanKind.CLIENT,\n+            error_type_resolver=error_type_resolver,\n+        )\n+        self._provider: str = provider\n+        self._response_id: str = response_id\n+        self._server_address: str | None = server_address\n+        self._server_port: int | None = server_port\n+        self.response_model_name: str | None = None\n+        self.response_status: str | None = None\n+        self.finish_reasons: list[str] | None = None\n+        self.stream_cursor: str | None = None\n+        self.output_messages: list[OutputMessage] = []\n+        self.system_instruction: list[MessagePart] = []\n+        self.tool_definitions: list[ToolDefinition] | None = None\n+        self._start(self._get_start_attributes())\n+\n+    @property\n+    def response_id(self) -> str:\n+        \"\"\"The identifier of the response being fetched.\"\"\"\n+        return self._response_id\n+\n+    def _get_start_attributes(self) -> dict[str, AttributeValue]:\n+        \"\"\"Return attributes known at span creation time.\"\"\"\n+        optional_attrs: tuple[tuple[str, AttributeValue | None], ...] = (\n+            (server_attributes.SERVER_ADDRESS, self._server_address),\n+            (server_attributes.SERVER_PORT, self._server_port),\n+        )\n+        return {\n+            GenAI.GEN_AI_OPERATION_NAME: self._operation_name,\n+            GenAI.GEN_AI_PROVIDER_NAME: self._provider,\n+            GenAI.GEN_AI_RESPONSE_ID: self._response_id,\n+            **{k: v for k, v in optional_attrs if v is not None},\n+        }\n+\n+    def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n+        # response_id intentionally excluded — high cardinality.\n+        optional_attrs: tuple[tuple[str, AttributeValue | None], ...] = (\n+            (GenAI.GEN_AI_RESPONSE_MODEL, self.response_model_name),\n+            (server_attributes.SERVER_ADDRESS, self._server_address),\n+            (server_attributes.SERVER_PORT, self._server_port),\n+        )\n+        attrs: dict[str, AttributeValue] = {\n+            GenAI.GEN_AI_OPERATION_NAME: self._operation_name,\n+            GenAI.GEN_AI_PROVIDER_NAME: self._provider,\n+            **{k: v for k, v in optional_attrs if v is not None},\n+        }\n+        attrs.update(self.metric_attributes)\n+        return attrs\n+\n+    def _get_attributes(self) -> dict[str, AttributeValue]:\n+        optional_attrs: tuple[tuple[str, AttributeValue | None], ...] = (\n+            (_GEN_AI_REQUEST_STREAM_CURSOR, self.stream_cursor),",
+      "id": "PRRT_kwDOSbspP86Wi-h-",
+      "opened": "2026-08-05T05:05:12Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_fetch_response_invocation.py",
+      "replies": [
+        {
+          "at": "2026-08-05T22:24:34Z",
+          "body": "The `TelemetryHandler.fetch_resopnse()` now accepts if the request is streamed and records it at span creation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3724497842"
+        }
+      ],
+      "reviewed": "a47f40441341d91a3796898543b3708e1955c2f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3718070878"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is `hasattr(responses_module.Responses, \"retrieve\"):` necessary?",
+      "created": "2026-08-05T05:04:47Z",
+      "hunk": "@@ -188,6 +190,22 @@ def _instrument(self, **kwargs):\n                 async_responses_stream(handler),\n             )\n \n+            # retrieve() fetches a stored response by id. No inference happens\n+            # and no tokens are consumed, so it is traced as a fetch_response\n+            # operation rather than through the create wrappers.\n+            if hasattr(responses_module.Responses, \"retrieve\"):",
+      "id": "PRRT_kwDOSbspP86Wi_ET",
+      "opened": "2026-08-05T05:05:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-05T22:28:55Z",
+          "body": "I've confirmed the `hasattr` check here is unnecessary since `_get_responses_module()` already gates the block.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3724517880"
+        }
+      ],
+      "reviewed": "a47f40441341d91a3796898543b3708e1955c2f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/184#discussion_r3718074248"
+    }
+  ]
+}

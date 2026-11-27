@@ -1,0 +1,199 @@
+{
+  "head": "25d72bedda2fea8f3aa08f01b1ff69ab41ddbdd4",
+  "merge": "a7621bd10ab7a9a1415c2b1082f130e9504cf0c9",
+  "merged": "2026-09-09T14:26:41Z",
+  "missing_roots": 0,
+  "number": 19834,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This mixes the Java client and core-io version lines. The module targets core-io 1.0–1.5 (`metadata.yaml:3-5`), so the core-io cutoff is 1.6.0; 2.6.0 is the Java client cutoff.",
+      "created": "2026-08-26T21:44:28Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.network.v2_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.couchbase.network.v2_0.VirtualFieldHelper.COUCHBASE_REQUEST_INFO;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import com.couchbase.client.core.message.CouchbaseRequest;\n+import com.couchbase.client.deps.io.netty.channel.ChannelHandlerContext;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v2_0.CouchbaseRequestInfo;\n+import java.util.List;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class CouchbaseNetworkInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.couchbase.client.core.endpoint.AbstractGenericHandler\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // encode(ChannelHandlerContext ctx, REQUEST msg, List<Object> out)\n+    transformer.applyAdviceToMethod(\n+        named(\"encode\")\n+            .and(takesArguments(3))\n+            .and(\n+                takesArgument(\n+                    0, named(\"com.couchbase.client.deps.io.netty.channel.ChannelHandlerContext\")))\n+            .and(takesArgument(2, List.class)),\n+        getClass().getName() + \"$CouchbaseNetworkAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class CouchbaseNetworkAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void addNetworkTagsToSpan(\n+        @Advice.Argument(0) ChannelHandlerContext channelHandlerContext,\n+        @Advice.Argument(1) CouchbaseRequest request) {\n+\n+      CouchbaseRequestInfo requestInfo = COUCHBASE_REQUEST_INFO.get(request);\n+      if (requestInfo != null) {\n+        // core-io before 2.6.0 has no reliable, version-stable way to read the node string the",
+      "id": "PRRT_kwDODJKVX86coFDm",
+      "opened": "2026-08-26T21:44:29Z",
+      "path": "instrumentation/couchbase/couchbase-network-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/network/v2_0/CouchbaseNetworkInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-27T07:05:47Z",
+          "body": "Addressed in 416424dadeb385c2f2a0223f2d9ac6d6d5a2e7d9.\n\nAnalysis: The comments name core-io APIs but use the Couchbase Java client 2.6.0 boundary. This module covers core-io 1.0 through 1.5, and core-io 1.6.0 introduces the APIs used by the Couchbase 2.6 instrumentation. Update every affected production and test comment to name the core-io 1.6.0 cutoff.\n\nUpsides: The comments now distinguish core-io versions from Java client versions and agree with the module metadata and class-loader boundary.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3869471868"
+        }
+      ],
+      "reviewed": "02e5f3ec2fa650345f03643facd3b55949401b67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3866969355"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This mixes the Java client and core-io version lines. The module targets core-io 1.0–1.5 (`metadata.yaml:3-5`), so the core-io cutoff is 1.6.0; 2.6.0 is the Java client cutoff.",
+      "created": "2026-08-26T21:44:28Z",
+      "hunk": "@@ -0,0 +1,59 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.network.v2_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.couchbase.network.v2_0.VirtualFieldHelper.COUCHBASE_REQUEST_INFO;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import com.couchbase.client.core.message.CouchbaseRequest;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v2_0.CouchbaseRequestInfo;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class CouchbaseCoreInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.couchbase.client.core.CouchbaseCore\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isPublic()\n+            .and(takesArgument(0, named(\"com.couchbase.client.core.message.CouchbaseRequest\")))\n+            .and(named(\"send\")),\n+        getClass().getName() + \"$CouchbaseCoreAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class CouchbaseCoreAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void bridgeRequestInfoToRequest(@Advice.Argument(0) CouchbaseRequest request) {\n+      CouchbaseRequestInfo requestInfo = COUCHBASE_REQUEST_INFO.get(request);\n+      if (requestInfo != null) {\n+        return;\n+      }\n+\n+      Context currentContext = Java8BytecodeBridge.currentContext();\n+      requestInfo = CouchbaseRequestInfo.get(currentContext);\n+      if (requestInfo != null) {\n+        // The scope from the initial rxJava subscribe is not available to the networking layer\n+        // To transfer the request info it is added to the context store. Unlike couchbase-2.6,\n+        // core-io before 2.6.0 has no CouchbaseRequest.operationId() to record here.",
+      "id": "PRRT_kwDODJKVX86coFEB",
+      "opened": "2026-08-26T21:44:29Z",
+      "path": "instrumentation/couchbase/couchbase-network-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/network/v2_0/CouchbaseCoreInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-27T07:05:48Z",
+          "body": "Addressed in 416424dadeb385c2f2a0223f2d9ac6d6d5a2e7d9.\n\nAnalysis: The comments name core-io APIs but use the Couchbase Java client 2.6.0 boundary. This module covers core-io 1.0 through 1.5, and core-io 1.6.0 introduces the APIs used by the Couchbase 2.6 instrumentation. Update every affected production and test comment to name the core-io 1.6.0 cutoff.\n\nUpsides: The comments now distinguish core-io versions from Java client versions and agree with the module metadata and class-loader boundary.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3869471995"
+        }
+      ],
+      "reviewed": "02e5f3ec2fa650345f03643facd3b55949401b67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3866969392"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This mixes the Java client and core-io version lines. The core-io cutoff is 1.6.0; 2.6.0 refers to the Java client release.\n\nThis issue also appears in the following locations of the same file:\n- line 126\n- line 136",
+      "created": "2026-08-26T21:44:28Z",
+      "hunk": "@@ -111,6 +111,37 @@ protected boolean includesConfiguredServerTarget() {\n     return false;\n   }\n \n+  /**\n+   * Override to return false in subclasses that capture the network peer but not the local socket\n+   * address, because core-io before 2.6.0 has no field to read it from (e.g., 2.0-2.5). Defaults to",
+      "id": "PRRT_kwDODJKVX86coFEb",
+      "opened": "2026-08-26T21:44:29Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/AbstractCouchbaseTest.java",
+      "replies": [
+        {
+          "at": "2026-08-27T07:05:50Z",
+          "body": "Addressed in 416424dadeb385c2f2a0223f2d9ac6d6d5a2e7d9.\n\nAnalysis: The comments name core-io APIs but use the Couchbase Java client 2.6.0 boundary. This module covers core-io 1.0 through 1.5, and core-io 1.6.0 introduces the APIs used by the Couchbase 2.6 instrumentation. Update every affected production and test comment to name the core-io 1.6.0 cutoff.\n\nUpsides: The comments now distinguish core-io versions from Java client versions and agree with the module metadata and class-loader boundary.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3869472164"
+        }
+      ],
+      "reviewed": "02e5f3ec2fa650345f03643facd3b55949401b67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3866969425"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The core-io release boundary is 1.6.0; 2.6.0 is the corresponding Java client boundary.\n\nThis issue also appears on line 49 of the same file.",
+      "created": "2026-08-26T21:44:29Z",
+      "hunk": "@@ -31,6 +33,29 @@ protected boolean includesConfiguredServerTarget() {\n     return true;\n   }\n \n+  @Override\n+  protected boolean includesNetworkAttributes() {\n+    return true;\n+  }\n+\n+  @Override\n+  protected boolean includesLocalAddressAttribute() {\n+    // core-io before 2.6.0 has no localSocket field to capture it from.",
+      "id": "PRRT_kwDODJKVX86coFEx",
+      "opened": "2026-08-26T21:44:29Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-27T07:05:51Z",
+          "body": "Addressed in 416424dadeb385c2f2a0223f2d9ac6d6d5a2e7d9.\n\nAnalysis: The comments name core-io APIs but use the Couchbase Java client 2.6.0 boundary. This module covers core-io 1.0 through 1.5, and core-io 1.6.0 introduces the APIs used by the Couchbase 2.6 instrumentation. Update every affected production and test comment to name the core-io 1.6.0 cutoff.\n\nUpsides: The comments now distinguish core-io versions from Java client versions and agree with the module metadata and class-loader boundary.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3869472325"
+        }
+      ],
+      "reviewed": "02e5f3ec2fa650345f03643facd3b55949401b67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3866969451"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The core-io release boundary is 1.6.0; 2.6.0 is the corresponding Java client boundary.\n\nThis issue also appears on line 41 of the same file.",
+      "created": "2026-08-26T21:44:29Z",
+      "hunk": "@@ -25,6 +25,29 @@ protected boolean includesConfiguredServerTarget() {\n     return true;\n   }\n \n+  @Override\n+  protected boolean includesNetworkAttributes() {\n+    return true;\n+  }\n+\n+  @Override\n+  protected boolean includesLocalAddressAttribute() {\n+    // core-io before 2.6.0 has no localSocket field to capture it from.",
+      "id": "PRRT_kwDODJKVX86coFF5",
+      "opened": "2026-08-26T21:44:29Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/springdata/CouchbaseSpringRepositoryTest.java",
+      "replies": [
+        {
+          "at": "2026-08-27T07:05:56Z",
+          "body": "Addressed in 416424dadeb385c2f2a0223f2d9ac6d6d5a2e7d9.\n\nAnalysis: The comments name core-io APIs but use the Couchbase Java client 2.6.0 boundary. This module covers core-io 1.0 through 1.5, and core-io 1.6.0 introduces the APIs used by the Couchbase 2.6 instrumentation. Update every affected production and test comment to name the core-io 1.6.0 cutoff.\n\nUpsides: The comments now distinguish core-io versions from Java client versions and agree with the module metadata and class-loader boundary.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3869472747"
+        }
+      ],
+      "reviewed": "02e5f3ec2fa650345f03643facd3b55949401b67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3866969551"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The core-io release boundary is 1.6.0; 2.6.0 is the corresponding Java client boundary.\n\nThis issue also appears on line 38 of the same file.",
+      "created": "2026-08-26T21:44:29Z",
+      "hunk": "@@ -21,4 +21,27 @@ protected DefaultCouchbaseEnvironment.Builder envBuilder(\n   protected boolean includesConfiguredServerTarget() {\n     return true;\n   }\n+\n+  @Override\n+  protected boolean includesNetworkAttributes() {\n+    return true;\n+  }\n+\n+  @Override\n+  protected boolean includesLocalAddressAttribute() {\n+    // core-io before 2.6.0 has no localSocket field to capture it from.",
+      "id": "PRRT_kwDODJKVX86coFFL",
+      "opened": "2026-08-26T21:44:29Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-27T07:05:53Z",
+          "body": "Addressed in 416424dadeb385c2f2a0223f2d9ac6d6d5a2e7d9.\n\nAnalysis: The comments name core-io APIs but use the Couchbase Java client 2.6.0 boundary. This module covers core-io 1.0 through 1.5, and core-io 1.6.0 introduces the APIs used by the Couchbase 2.6 instrumentation. Update every affected production and test comment to name the core-io 1.6.0 cutoff.\n\nUpsides: The comments now distinguish core-io versions from Java client versions and agree with the module metadata and class-loader boundary.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3869472482"
+        }
+      ],
+      "reviewed": "02e5f3ec2fa650345f03643facd3b55949401b67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3866969489"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The core-io release boundary is 1.6.0; 2.6.0 is the corresponding Java client boundary.\n\nThis issue also appears on line 39 of the same file.",
+      "created": "2026-08-26T21:44:29Z",
+      "hunk": "@@ -22,4 +22,27 @@ protected DefaultCouchbaseEnvironment.Builder envBuilder(\n   protected boolean includesConfiguredServerTarget() {\n     return true;\n   }\n+\n+  @Override\n+  protected boolean includesNetworkAttributes() {\n+    return true;\n+  }\n+\n+  @Override\n+  protected boolean includesLocalAddressAttribute() {\n+    // core-io before 2.6.0 has no localSocket field to capture it from.",
+      "id": "PRRT_kwDODJKVX86coFFj",
+      "opened": "2026-08-26T21:44:29Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/springdata/CouchbaseSpringTemplateTest.java",
+      "replies": [
+        {
+          "at": "2026-08-27T07:05:54Z",
+          "body": "Addressed in 416424dadeb385c2f2a0223f2d9ac6d6d5a2e7d9.\n\nAnalysis: The comments name core-io APIs but use the Couchbase Java client 2.6.0 boundary. This module covers core-io 1.0 through 1.5, and core-io 1.6.0 introduces the APIs used by the Couchbase 2.6 instrumentation. Update every affected production and test comment to name the core-io 1.6.0 cutoff.\n\nUpsides: The comments now distinguish core-io versions from Java client versions and agree with the module metadata and class-loader boundary.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3869472594"
+        }
+      ],
+      "reviewed": "02e5f3ec2fa650345f03643facd3b55949401b67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3866969523"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Use the shared `couchbase` instrumentation name here. With the new `couchbase-network` primary name, `otel.instrumentation.couchbase.enabled=true` does not enable this module when `otel.instrumentation.common.default-enabled=false`, so opt-in Couchbase users will not receive the peer attributes; conversely, disabling `couchbase` alone leaves this advice enabled. Every other Couchbase module uses `couchbase` as its primary name (for example, `couchbase-2.0` and `couchbase-2.6`). Keep the version-specific name as the alias.",
+      "created": "2026-08-26T21:50:51Z",
+      "hunk": "@@ -0,0 +1,36 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.network.v2_0;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static java.util.Arrays.asList;\n+import static net.bytebuddy.matcher.ElementMatchers.not;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.List;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+@AutoService(InstrumentationModule.class)\n+public class CouchbaseInstrumentationModule extends InstrumentationModule {\n+\n+  public CouchbaseInstrumentationModule() {\n+    super(\"couchbase-network\", \"couchbase-network-2.0\");",
+      "id": "PRRT_kwDODJKVX86coLNj",
+      "opened": "2026-08-26T21:50:52Z",
+      "path": "instrumentation/couchbase/couchbase-network-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/network/v2_0/CouchbaseInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-08-27T07:05:57Z",
+          "body": "Addressed in 27d4610f6ddf9c38a2549f30189ff6c690655f3e.\n\nAnalysis: Instrumentation enablement resolves the primary name and aliases as equivalent controls. Using `couchbase-network` as the primary name separates this supporting module from the shared `couchbase` toggle used by every Couchbase client module. Use `couchbase` as the primary name and keep `couchbase-network-2.0` as the version-specific alias.\n\nUpsides: The common Couchbase toggle now enables and disables the network advice with the rest of the Couchbase instrumentation. The alias still supports precise control of this module.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3869472887"
+        }
+      ],
+      "reviewed": "e6a302e9e858088e1cca8050136046235ce6098a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3867007223"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Skip this bridge when stable database semantic conventions are disabled. In legacy mode the companion network advice returns before reading the virtual field, so every Couchbase request currently incurs the context/virtual-field work and retains `requestInfo` without producing any attributes. Add the same `emitStableDatabaseSemconv()` guard at method entry.",
+      "created": "2026-08-31T07:50:06Z",
+      "hunk": "@@ -0,0 +1,59 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.network.v2_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.couchbase.network.v2_0.VirtualFieldHelper.COUCHBASE_REQUEST_INFO;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import com.couchbase.client.core.message.CouchbaseRequest;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v2_0.CouchbaseRequestInfo;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class CouchbaseCoreInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.couchbase.client.core.CouchbaseCore\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isPublic()\n+            .and(takesArgument(0, named(\"com.couchbase.client.core.message.CouchbaseRequest\")))\n+            .and(named(\"send\")),\n+        getClass().getName() + \"$CouchbaseCoreAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class CouchbaseCoreAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void bridgeRequestInfoToRequest(@Advice.Argument(0) CouchbaseRequest request) {",
+      "id": "PRRT_kwDODJKVX86dpX-7",
+      "opened": "2026-08-31T07:50:07Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/network/CouchbaseCoreNetworkInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-31T07:56:49Z",
+          "body": "Addressed in aae1701f749336886aec61ca0caf24583726f86f.\n\nAnalysis: The network advice reads the bridged request info only when stable database semantic conventions are enabled. The matching guard prevents legacy mode from storing request info that no advice uses.\n\nUpsides: Avoids an unnecessary context lookup, virtual-field access, and request retention in legacy mode.\n\nDownsides: Adds one semconv mode check to each instrumented send call.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3892663094"
+        }
+      ],
+      "reviewed": "cc2268ac7a958e7696c41e0c8176ebafab0f54cf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19834#discussion_r3892623603"
+    }
+  ]
+}

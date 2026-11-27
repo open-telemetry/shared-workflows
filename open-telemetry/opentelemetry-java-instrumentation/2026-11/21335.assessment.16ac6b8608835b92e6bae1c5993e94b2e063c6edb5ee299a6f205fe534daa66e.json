@@ -1,0 +1,71 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "3e3693d2b326f5063bf213f737d015b4c6051220b3ab96aaca4a59406cc60e3a",
+  "input_digest": "16ac6b8608835b92e6bae1c5993e94b2e063c6edb5ee299a6f205fe534daa66e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1df54fcc5d8a7512064e4a866440cc5c682b00cf/instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/cpu/ContextSwitchRateHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e98e78fbb56bb2bc15c5e248926b48e84853b0e3/instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/cpu/ContextSwitchRateHandler.java"
+      ],
+      "id": "PRRT_kwDODJKVX864yZUh",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX8641iCd",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9a4ca15008a5c67e70475054060bec1987903a5/instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/OpenTelemetryGauge.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e98e78fbb56bb2bc15c5e248926b48e84853b0e3/instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/OpenTelemetryGauge.java"
+      ],
+      "id": "PRRT_kwDODJKVX865yKkA",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5d801bd723172c3aa1978ded4c0ff22c380338c4/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/metrics/internal/MetricCallbackRegistration.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5d801bd723172c3aa1978ded4c0ff22c380338c4/instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/cpu/ContextSwitchRateHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5d801bd723172c3aa1978ded4c0ff22c380338c4/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/metrics/internal/MetricCallbackRegistrationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e98e78fbb56bb2bc15c5e248926b48e84853b0e3/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/metrics/internal/MetricCallbackRegistration.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e98e78fbb56bb2bc15c5e248926b48e84853b0e3/.github/instructions/instrumentation-state.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e98e78fbb56bb2bc15c5e248926b48e84853b0e3/instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/cpu/ContextSwitchRateHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e98e78fbb56bb2bc15c5e248926b48e84853b0e3/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/metrics/internal/MetricCallbackRegistrationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX865zJ2b",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1699d572b79972054e6b23e63a9d62b873373735/.github/instructions/instrumentation-state.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1699d572b79972054e6b23e63a9d62b873373735/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/metrics/internal/MetricCallbackRegistration.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e98e78fbb56bb2bc15c5e248926b48e84853b0e3/.github/instructions/instrumentation-state.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/04d0575c9325141b1cb04593ae369ed1c217c6a5"
+      ],
+      "id": "PRRT_kwDODJKVX866qElR",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX866qddO",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX866qElR",
+      "status": "duplicate"
+    }
+  ]
+}

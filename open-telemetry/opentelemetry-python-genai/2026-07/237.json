@@ -1,0 +1,25 @@
+{
+  "head": "e607058435e82c860ee143df3724d82b55e35e62",
+  "merge": "6e2cee37b9aa7fb4aab4d369809565b8e9ac7b15",
+  "merged": "2026-07-09T20:51:10Z",
+  "missing_roots": 0,
+  "number": 237,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Add a brief rationale for the OpenAI SDK pin so future dependency bumps don’t inadvertently remove it and reintroduce the upstream crash (openai-agents-python#3772).",
+      "created": "2026-07-09T20:39:07Z",
+      "hunk": "@@ -38,6 +38,7 @@\n # the newest supported version of external dependencies.\n \n openai-agents==0.18.0\n+openai~=2.44.0",
+      "id": "PRRT_kwDOSbspP86PsxZt",
+      "opened": "2026-07-09T20:39:08Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/requirements.latest.txt",
+      "replies": [],
+      "reviewed": "229103539e8cc8dd94569a794fc6c26f0b5a1751",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/237#discussion_r3554670304"
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "69b1151ea01ac684ced64d9417e3611162d5eef6988cb5825caf33ad77e1bfbc",
+  "input_digest": "1203ae58e510d97767c4f07d83bf651b701f240995f3a43ac93b60b079a978ef",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76a2a0bfa36c73ba66905559194b4bee37af15c7"
+      ],
+      "id": "PRRT_kwDODJKVX86JD0U3",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76a2a0bfa36c73ba66905559194b4bee37af15c7"
+      ],
+      "id": "PRRT_kwDODJKVX86JD0Ud",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76a2a0bfa36c73ba66905559194b4bee37af15c7"
+      ],
+      "id": "PRRT_kwDODJKVX86JD0V1",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76a2a0bfa36c73ba66905559194b4bee37af15c7"
+      ],
+      "id": "PRRT_kwDODJKVX86JD0VD",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86JD0VT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76a2a0bfa36c73ba66905559194b4bee37af15c7",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d913c3b6ff2e19d7862df909b6179d24b92d1677"
+      ],
+      "id": "PRRT_kwDODJKVX86JD0Vk",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76a2a0bfa36c73ba66905559194b4bee37af15c7"
+      ],
+      "id": "PRRT_kwDODJKVX86JD0W4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76a2a0bfa36c73ba66905559194b4bee37af15c7",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/docs/instrumentation-list.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86JD0WC",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/docs/instrumentation-list.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86JD0Wb",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/instrumentation/ratpack/ratpack-1.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76a2a0bfa36c73ba66905559194b4bee37af15c7"
+      ],
+      "id": "PRRT_kwDODJKVX86KQwF_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76a2a0bfa36c73ba66905559194b4bee37af15c7"
+      ],
+      "id": "PRRT_kwDODJKVX86KRup2",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76a2a0bfa36c73ba66905559194b4bee37af15c7"
+      ],
+      "id": "PRRT_kwDODJKVX86KRu1n",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76a2a0bfa36c73ba66905559194b4bee37af15c7"
+      ],
+      "id": "PRRT_kwDODJKVX86KRx2B",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6085e52b96d9afb208adfbee85f89f205fced8c/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ddc053ae775eb2eb5a7f85feb2390707a5ff242d"
+      ],
+      "id": "PRRT_kwDODJKVX86KRzA2",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/93ba95b6e9c89826ddc6b22dee2f60c95c5972df/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d913c3b6ff2e19d7862df909b6179d24b92d1677"
+      ],
+      "id": "PRRT_kwDODJKVX86U3nJE",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/93ba95b6e9c89826ddc6b22dee2f60c95c5972df/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddc053ae775eb2eb5a7f85feb2390707a5ff242d/instrumentation/spring/spring-webflux/spring-webflux-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d913c3b6ff2e19d7862df909b6179d24b92d1677"
+      ],
+      "id": "PRRT_kwDODJKVX86U3okU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

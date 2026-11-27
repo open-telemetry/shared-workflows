@@ -1,0 +1,36 @@
+{
+  "head": "78f3350012df30aac7aedf09861053d2de1b100b",
+  "merge": "dac7e25686a26258f932dd78f36d0e6568708938",
+  "merged": "2026-07-08T16:56:46Z",
+  "missing_roots": 0,
+  "number": 202,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can we just drop it? We don't need to set OTEL_SEMCONV_STABILITY_OPT_IN anymore",
+      "created": "2026-07-08T05:31:16Z",
+      "hunk": "@@ -68,17 +68,18 @@ def instrument_with_content(\n                 tracer_provider=tracer_provider,\n                 logger_provider=logger_provider,\n                 meter_provider=meter_provider,\n-                semconv=\"gen_ai_latest_experimental\",\n                 content_capture=\"SPAN_ONLY\",\n             ) as instrumentor:\n                 yield instrumentor\n \n-    ``semconv`` is forwarded to ``OTEL_SEMCONV_STABILITY_OPT_IN``;\n-    ``content_capture`` to ``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT``;\n+    ``semconv`` is forwarded to ``OTEL_SEMCONV_STABILITY_OPT_IN`` and",
+      "id": "PRRT_kwDOSbspP86PICHW",
+      "opened": "2026-07-08T05:31:16Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/instrumentor.py",
+      "replies": [
+        {
+          "at": "2026-07-08T11:07:01Z",
+          "body": "You're right — with 117.removed / 110.removed the code reading the opt-in is already gone, so rather than changing the default I'll drop the `semconv` plumbing (the `OTEL_SEMCONV_STABILITY_OPT_IN` mapping) from the helper entirely.\r\n\r\nThe two remaining explicit `semconv` call sites — anthropic's `stable` fixture and openai's content-mode parametrization — should be no-ops now that nothing reads the flag, so I'd clean those up in the same pass.\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/202#discussion_r3543407063"
+        },
+        {
+          "at": "2026-07-08T12:51:50Z",
+          "body": "Confirmed — `content_capture` alone is enough, and nothing reads `OTEL_SEMCONV_STABILITY_OPT_IN` anymore (its code was removed from util-genai and google-genai; no instrumentation src reads it). So I dropped the `semconv` / `OTEL_SEMCONV_STABILITY_OPT_IN` plumbing from the helper and the now-dead `semconv=` call sites, including anthropic's `stable` fixture, in the latest commit.\n\nOne deliberate non-change: I left the openai `content_mode` fixture's tuple shape intact — its parametrize id is what the VCR cassette filenames key off, so reshaping it would orphan ~40 cassettes. Its now-unused flag (and the leftover `OTEL_SEMCONV_STABILITY_OPT_IN` setenvs in the langchain/openai tests) are dead too; happy to clean those up in a follow-up if you'd like.\n\nResolving this thread.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/202#discussion_r3544056482"
+        }
+      ],
+      "reviewed": "4c125a36cef7c4d29852b3e0906676ae126b98e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/202#discussion_r3541436321"
+    }
+  ]
+}

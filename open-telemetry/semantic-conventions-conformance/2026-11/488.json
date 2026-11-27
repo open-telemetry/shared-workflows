@@ -1,0 +1,167 @@
+{
+  "head": "6341cd6ba946c77ee4ed8100cff30876d4467d4c",
+  "merge": "46b7a1aaa21eeac84faad1088c357369b2c713c2",
+  "merged": "2026-11-16T17:40:52Z",
+  "missing_roots": 0,
+  "number": 488,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "`servlet` has `opentelemetry-javaagent` and `opentelemetry-library` packages but no `servlet:obi`. Is that intentional? If so, could you add a short note in the README? Otherwise its OBI cell is just missing from the parity heatmap.",
+      "created": "2026-11-11T23:23:49Z",
+      "hunk": "@@ -36,29 +40,35 @@ include(\"java-http-client:opentelemetry-library\")\n include(\"java-http-server:scenarios\")\n include(\"java-http-server:opentelemetry-javaagent\")\n include(\"java-http-server:opentelemetry-library\")\n+include(\"java-http-server:obi\")\n include(\"jetty-httpclient:scenarios\")\n include(\"jetty-httpclient:opentelemetry-javaagent\")\n include(\"jetty-httpclient:opentelemetry-library\")\n include(\"jodd-http:scenarios\")\n include(\"jodd-http:opentelemetry-javaagent\")\n include(\"ktor:scenarios\")\n include(\"ktor:opentelemetry-library\")\n+include(\"ktor:obi\")\n include(\"netty:scenarios\")\n include(\"netty:opentelemetry-javaagent\")\n include(\"netty:opentelemetry-library\")\n+include(\"netty:obi\")\n include(\"okhttp:scenarios\")\n include(\"okhttp:opentelemetry-javaagent\")\n include(\"okhttp:opentelemetry-library\")\n include(\"pekko-http:scenarios\")\n include(\"pekko-http:opentelemetry-javaagent\")\n+include(\"pekko-http:obi\")\n include(\"ratpack:scenarios\")\n include(\"ratpack:opentelemetry-javaagent\")\n include(\"ratpack:opentelemetry-library\")\n+include(\"ratpack:obi\")\n include(\"reactor-netty:scenarios\")\n include(\"reactor-netty:opentelemetry-javaagent\")\n include(\"restlet:scenarios\")\n include(\"restlet:opentelemetry-javaagent\")\n include(\"restlet:opentelemetry-library\")\n+include(\"restlet:obi\")\n include(\"servlet:scenarios\")\n include(\"servlet:opentelemetry-javaagent\")\n include(\"servlet:opentelemetry-library\")",
+      "id": "PRRT_kwDOTuzK5c62Zgx2",
+      "opened": "2026-11-11T23:27:27Z",
+      "path": "scenarios/http/java/settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-15T15:26:01Z",
+          "body": "This is due to an issue i encountered trying to instrument it with OBI (open-telemetry/opentelemetry-ebpf-instrumentation#4244)\r\nso i omitted it for now and will add it once it is done",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4578996629"
+        },
+        {
+          "at": "2026-11-15T23:22:29Z",
+          "body": "Thanks for the note! Maybe worth opening an issue here to track re-adding servlet:obi once #4244 is fixed?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4580713213"
+        },
+        {
+          "at": "2026-11-16T10:13:43Z",
+          "body": "done in https://github.com/open-telemetry/semantic-conventions-conformance/issues/498",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4584426243"
+        }
+      ],
+      "reviewed": "57f43151631be4e6aacd5bf902b45675a35b203a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4544343133"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "The baselines only record attribute keys, so this claim isn't checked: a span with a heuristic `/users/*` route still matches. The gate also opens once `instrumented_processes` counts the JVM. If OBI's Java route discovery finishes after that, the first requests could get the heuristic route. Did you check the actual `http.route` values in a run? If not, maybe soften the wording. (I haven't reproduced this; it's a guess.)",
+      "created": "2026-11-11T23:23:49Z",
+      "hunk": "@@ -9,17 +9,33 @@ pinned in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).\n \n `opentelemetry-javaagent` projects attach the full Java agent.\n `opentelemetry-library` projects initialize the SDK and install one explicit\n-library instrumentation.\n+library instrumentation. `obi` projects install nothing: they wait at\n+[`otel-conformance-obi`](../../../tools/obi)'s gate, and OBI instruments them\n+from outside.\n+\n+OBI reads route templates from the Spring annotations on the classpath, so the\n+Spring WebFlux and Spring Web MVC `obi` packages report the declared routes.",
+      "id": "PRRT_kwDOTuzK5c62Zgx5",
+      "opened": "2026-11-11T23:27:27Z",
+      "path": "scenarios/http/java/README.md",
+      "replies": [
+        {
+          "at": "2026-11-15T15:28:52Z",
+          "body": "You're right that the baselines don't check it. I softened the README to say OBI can read the Spring annotations, and that the baselines record keys, not values.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4579006291"
+        }
+      ],
+      "reviewed": "57f43151631be4e6aacd5bf902b45675a35b203a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4544343141"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Suggestion (not blocking): `readAllBytes()` on a named pipe (FIFO) throws `IOException: Illegal seek` on JDK 21. It calls `position()`, which does an `lseek` that returns `ESPIPE` on a FIFO. I reproduced it with both `Files.newInputStream(fifo)` and `new FileInputStream(fifo)` on 21.0.7. Both work on 17 and 25.\n\nThe HTTP scenarios all run on 25/27, so nothing hits this today. But `scenarios/database/java` compiles `scenario-support` with a Java 21 toolchain for HBase, so a future Java 21 OBI scenario would fail with `waiting at the gate: Illegal seek`. A plain read loop works on every JDK we build with:\n\n```java\nvar received = new ByteArrayOutputStream();\nbyte[] buffer = new byte[8];\nfor (int n; (n = pipe.read(buffer)) != -1; ) {\n  received.write(buffer, 0, n);\n}\n```",
+      "created": "2026-11-11T23:23:49Z",
+      "hunk": "@@ -0,0 +1,48 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.scenario;\n+\n+import java.io.IOException;\n+import java.io.InputStream;\n+import java.nio.file.Files;\n+import java.nio.file.Path;\n+import java.util.Arrays;\n+\n+/** The scenario side of {@code otel-conformance-obi run}'s gate. */\n+public final class ScenarioGate {\n+  static final String GATE_VARIABLE = \"OTEL_CONFORMANCE_GATE\";\n+  private static final byte[] RELEASE = {'1'};\n+\n+  private ScenarioGate() {}\n+\n+  /**\n+   * Reads the named pipe in {@code OTEL_CONFORMANCE_GATE} until the launcher closes it, and fails\n+   * unless the launcher released the gate first. Returns at once when the variable is unset.\n+   */\n+  public static void waitAtGate() {\n+    waitAtGate(System.getenv(GATE_VARIABLE));\n+  }\n+\n+  static void waitAtGate(String gate) {\n+    if (gate == null || gate.isEmpty()) {\n+      return;\n+    }\n+    InputStream pipe;\n+    try {\n+      pipe = Files.newInputStream(Path.of(gate));\n+    } catch (IOException error) {\n+      throw new IllegalStateException(\"reaching the gate: \" + error.getMessage(), error);\n+    }\n+    byte[] received;\n+    try (pipe) {\n+      received = pipe.readAllBytes();",
+      "id": "PRRT_kwDOTuzK5c62Zgxf",
+      "opened": "2026-11-11T23:27:27Z",
+      "path": "tools/java/scenario-support/src/main/java/io/opentelemetry/conformance/scenario/ScenarioGate.java",
+      "replies": [
+        {
+          "at": "2026-11-15T15:26:41Z",
+          "body": "Thanks! done",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4578999012"
+        }
+      ],
+      "reviewed": "57f43151631be4e6aacd5bf902b45675a35b203a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4544343095"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "`gateHolding` writes a regular temp file, so no test opens a real FIFO. The blocking open, blocking read and end-of-input path that `otel-conformance-obi` depends on aren't tested, and that's why the JDK 21 `Illegal seek` above passes every test here. Could one test create the gate with `mkfifo` (skipped when not on Linux) and write the release byte from a second thread?",
+      "created": "2026-11-11T23:23:49Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.scenario;\n+\n+import static org.junit.jupiter.api.Assertions.assertEquals;\n+import static org.junit.jupiter.api.Assertions.assertThrows;\n+import static org.junit.jupiter.api.Assertions.assertTrue;\n+\n+import java.nio.file.Files;\n+import java.nio.file.Path;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.io.TempDir;\n+\n+class ScenarioGateTest {\n+  @TempDir Path directory;\n+\n+  @Test\n+  void theGateIsNamedByTheLaunchersVariable() {\n+    assertEquals(\"OTEL_CONFORMANCE_GATE\", ScenarioGate.GATE_VARIABLE);\n+  }\n+\n+  @Test\n+  void noGateReturnsAtOnce() {\n+    ScenarioGate.waitAtGate((String) null);\n+    ScenarioGate.waitAtGate(\"\");\n+  }\n+\n+  @Test\n+  void releasedGateLetsTheScenarioRun() throws Exception {\n+    ScenarioGate.waitAtGate(gateHolding(new byte[] {'1'}));\n+  }\n+\n+  @Test\n+  void gateClosedWithoutReleaseFails() throws Exception {\n+    assertEquals(\"the launcher closed the gate without releasing it\", failure(new byte[0]));\n+  }\n+\n+  @Test\n+  void anythingButTheReleaseFails() throws Exception {\n+    assertEquals(\"the launcher closed the gate without releasing it\", failure(new byte[] {'0'}));\n+    assertEquals(\n+        \"the launcher closed the gate without releasing it\", failure(new byte[] {'1', '1'}));\n+  }\n+\n+  @Test\n+  void unreachableGateFails() {\n+    IllegalStateException error =\n+        assertThrows(\n+            IllegalStateException.class,\n+            () -> ScenarioGate.waitAtGate(directory.resolve(\"missing\").toString()));\n+    assertTrue(error.getMessage().startsWith(\"reaching the gate: \"), error.getMessage());\n+  }\n+\n+  private String failure(byte[] written) throws Exception {\n+    String gate = gateHolding(written);\n+    return assertThrows(IllegalStateException.class, () -> ScenarioGate.waitAtGate(gate))\n+        .getMessage();\n+  }\n+\n+  private String gateHolding(byte[] written) throws Exception {",
+      "id": "PRRT_kwDOTuzK5c62Zgxo",
+      "opened": "2026-11-11T23:27:27Z",
+      "path": "tools/java/scenario-support/src/test/java/io/opentelemetry/conformance/scenario/ScenarioGateTest.java",
+      "replies": [
+        {
+          "at": "2026-11-15T15:26:56Z",
+          "body": "Added two mkfifo tests (Linux only), with the launcher side writing from a second thread. With the old readAllBytes() they fail on Java 21 with waiting at the gate: Illegal seek; with the loop they pass on 21 and 25.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4579000018"
+        }
+      ],
+      "reviewed": "57f43151631be4e6aacd5bf902b45675a35b203a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4544343107"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: this checks that the constant equals its own text. A test that would actually catch drift would compare it to the Python launcher's `GATE_VARIABLE`, or you could drop this test. Also on line 26, the `(String) null` cast isn't needed: there's only one single-argument overload.",
+      "created": "2026-11-11T23:23:49Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.scenario;\n+\n+import static org.junit.jupiter.api.Assertions.assertEquals;\n+import static org.junit.jupiter.api.Assertions.assertThrows;\n+import static org.junit.jupiter.api.Assertions.assertTrue;\n+\n+import java.nio.file.Files;\n+import java.nio.file.Path;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.io.TempDir;\n+\n+class ScenarioGateTest {\n+  @TempDir Path directory;\n+\n+  @Test\n+  void theGateIsNamedByTheLaunchersVariable() {",
+      "id": "PRRT_kwDOTuzK5c62Zgxu",
+      "opened": "2026-11-11T23:27:27Z",
+      "path": "tools/java/scenario-support/src/test/java/io/opentelemetry/conformance/scenario/ScenarioGateTest.java",
+      "replies": [
+        {
+          "at": "2026-11-15T15:27:05Z",
+          "body": "Dropped both",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4579000497"
+        }
+      ],
+      "reviewed": "57f43151631be4e6aacd5bf902b45675a35b203a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4544343116"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Question about the design: the gate call is repeated in 14 launcher `main`s. Go does it once (`scenario.Run`/`RunServer` call `WaitAtGate`), and `waitAtGate()` already does nothing when `OTEL_CONFORMANCE_GATE` is unset. Did you consider calling it once from the shared launcher path? Then the `obi` projects wouldn't each need a hand-written `main`, and the upcoming client and database OBI packages would get it for free. I can see why you kept `ScenarioLauncher` untouched, so I'm fine either way.",
+      "created": "2026-11-11T23:23:49Z",
+      "hunk": "@@ -0,0 +1,15 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+import io.opentelemetry.conformance.http.akkahttp.AkkaHttpServerScenario;\n+import io.opentelemetry.conformance.scenario.ScenarioGate;\n+\n+public final class AkkaHttpObiServerScenario {\n+  private AkkaHttpObiServerScenario() {}\n+\n+  public static void main(String[] args) throws Exception {\n+    ScenarioGate.waitAtGate();",
+      "id": "PRRT_kwDOTuzK5c62Zgxx",
+      "opened": "2026-11-11T23:27:27Z",
+      "path": "scenarios/http/java/akka-http/obi/src/main/java/AkkaHttpObiServerScenario.java",
+      "replies": [
+        {
+          "at": "2026-11-15T15:28:12Z",
+          "body": "Thats a good point, I changed it so the ScenarioLauncher waits at the gate before it calls the scenario's main (a no-op when OTEL_CONFORMANCE_GATE is unset), each shared server scenario has a main, and the obi projects have no sources of their own; their run: lines name the shared class.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4579004081"
+        }
+      ],
+      "reviewed": "57f43151631be4e6aacd5bf902b45675a35b203a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4544343121"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: a no-argument `run()` overload on `SpringWebMvcServerScenario`, like `ServletServerScenario` already has, would keep the pass-through filter in the shared workload and make this launcher look like the other 13.",
+      "created": "2026-11-11T23:23:49Z",
+      "hunk": "@@ -0,0 +1,15 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+import io.opentelemetry.conformance.http.springwebmvc.SpringWebMvcServerScenario;\n+import io.opentelemetry.conformance.scenario.ScenarioGate;\n+\n+public final class SpringWebMvcObiServerScenario {\n+  private SpringWebMvcObiServerScenario() {}\n+\n+  public static void main(String[] args) throws Exception {\n+    ScenarioGate.waitAtGate();\n+    SpringWebMvcServerScenario.run((request, response, chain) -> chain.doFilter(request, response));",
+      "id": "PRRT_kwDOTuzK5c62Zgxy",
+      "opened": "2026-11-11T23:27:27Z",
+      "path": "scenarios/http/java/spring-webmvc/obi/src/main/java/SpringWebMvcObiServerScenario.java",
+      "replies": [
+        {
+          "at": "2026-11-15T15:28:31Z",
+          "body": "Added SpringWebMvcServerScenario.run() with the pass-through filter; the obi launcher it was for is gone with the change above.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4579005096"
+        }
+      ],
+      "reviewed": "57f43151631be4e6aacd5bf902b45675a35b203a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/488#discussion_r4544343126"
+    }
+  ]
+}

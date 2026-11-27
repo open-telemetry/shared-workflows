@@ -1,0 +1,73 @@
+{
+  "head": "a01f854ebf1593c6bb0bf45c28eaa45760df4100",
+  "merge": "4d88f223091e3c5bda9aa20c83d01b6731f632cf",
+  "merged": "2026-10-31T04:34:59Z",
+  "missing_roots": 0,
+  "number": 383,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with one narrowly scoped correction to the new tools/runner/tests/test_scenario_matrix.py tests. The automatic four-way sharding behavior and the current PR scope should remain unchanged.\n\nThe delivered test module invokes subprocess.run and subprocess.check_output without Windows no-window creation flags, including the standalone Python CLI and tracked-files tests that run on Windows. Repository instructions require every Python subprocess capable of starting a console program on Windows to use CREATE_NO_WINDOW, centralize that launch behavior, and cover it with regression tests. The Linux-only integration test also has subprocess launches and should use the same helper consistently.\n\nReuse an appropriate existing helper if available, or add a small test-local helper that applies subprocess.CREATE_NO_WINDOW on Windows and zero creation flags elsewhere, preserving each call's current capture, input, check, cwd, and environment behavior. Route every subprocess launch introduced by this test module through that helper. Add focused regression coverage of the Windows and non-Windows launch options without actually opening a console. Run the focused scenario-matrix tests and relevant lint/type checks. Do not expand into unrelated test cleanup, production-runner changes, or other workflow changes.",
+      "created": "2026-10-24T20:23:19Z",
+      "hunk": "@@ -0,0 +1,228 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import json\n+import os\n+import subprocess\n+import sys\n+from collections import Counter\n+from pathlib import Path\n+\n+import pytest\n+import yaml\n+\n+from opentelemetry.conformance import _scenario_matrix\n+from opentelemetry.conformance._scenario_matrix import SHARD_COUNTS, matrix\n+\n+REPO = Path(__file__).resolve().parents[3]\n+\n+\n+def scenario_paths(group: str, libraries: list[str]) -> list[str]:\n+    return [\n+        f\"scenarios/{group}/{library}/{instrumentation}/{variant}/conformance.yaml\"\n+        for library in libraries\n+        for instrumentation in (\"native\", \"instrumented\")\n+        for variant in (\"client\", \"server\")\n+    ]\n+\n+\n+@pytest.mark.parametrize(\"group\", [\"gen-ai/python\", \"http/java\"])\n+def test_sorted_round_robin_keeps_all_library_variants(group: str) -> None:\n+    libraries = [\"zebra\", \"beta\", \"delta\", \"alpha\", \"gamma\", \"epsilon\"]\n+    paths = scenario_paths(group, libraries)\n+    jobs = matrix(paths)[\"include\"]\n+    assert jobs == matrix(reversed(paths + paths))[\"include\"]\n+    assert len(jobs) == 4\n+    assert len({job[\"matrix_id\"] for job in jobs}) == 4\n+    selected: list[str] = []\n+    for index, job in enumerate(jobs):\n+        roots = job[\"scenario_roots\"].splitlines()\n+        assert roots == [\n+            f\"scenarios/{group}/{library}\"\n+            for library in sorted(libraries)[index::4]\n+        ]\n+        selected.extend(\n+            path for path in paths if any(path.startswith(r + \"/\") for r in roots)\n+        )\n+        assert job[\"cache_dependency_glob\"].splitlines() == [\n+            f\"{root}/**/uv.lock\" for root in roots\n+        ]\n+        assert job[\"report_paths\"].splitlines() == [\n+            f\"{root}/**/output/weaver-reports/*.json\" for root in roots\n+        ]\n+    assert Counter(selected) == Counter(paths)\n+\n+\n+@pytest.mark.parametrize(\"count\", [1, 2, 3, 8])\n+def test_only_the_count_needs_to_change(count: int) -> None:\n+    libraries = [\"a\", \"b\", \"c\", \"d\", \"e\"]\n+    jobs = matrix(\n+        scenario_paths(\"http/java\", libraries), {\"http-java\": count}\n+    )[\"include\"]\n+    assert len(jobs) == min(count, len(libraries))\n+    assert [job[\"scenario_roots\"].splitlines() for job in jobs] == [\n+        [f\"scenarios/http/java/{name}\" for name in libraries[index::count]]\n+        for index in range(min(count, len(libraries)))\n+    ]\n+\n+\n+def test_new_libraries_are_automatically_included() -> None:\n+    paths = scenario_paths(\"gen-ai/python\", [\"a\", \"b\"])\n+    before = matrix(paths)[\"include\"]\n+    after = matrix(paths + scenario_paths(\"gen-ai/python\", [\"c\"]))[\"include\"]\n+    assert len(before) == 2\n+    assert len(after) == 3\n+    assert after[-1][\"scenario_roots\"] == \"scenarios/gen-ai/python/c\"\n+\n+\n+def test_empty_groups_do_not_launch_jobs() -> None:\n+    assert matrix([]) == {\"include\": []}\n+    jobs = matrix(scenario_paths(\"http/python\", [\"a\"]))[\"include\"]\n+    assert [job[\"matrix_id\"] for job in jobs] == [\"http-python\"]\n+\n+\n+@pytest.mark.parametrize(\"count\", [0, -1, True, 1.5, \"4\", None])\n+def test_invalid_counts_fail_even_for_absent_groups(count: object) -> None:\n+    with pytest.raises(ValueError, match=\"invalid shard count\"):\n+        matrix([], {\"http-java\": count})  # type: ignore[dict-item]\n+\n+\n+def test_other_groups_and_ruby_keep_their_existing_grouping() -> None:\n+    paths = scenario_paths(\"database/java\", [\"a\", \"b\"])\n+    paths += scenario_paths(\"http/ruby\", [\"a\", \"b\"])\n+    jobs = matrix(paths)[\"include\"]\n+    assert jobs[0][\"matrix_id\"] == \"database-java\"\n+    assert jobs[0][\"scenario_roots\"] == \"scenarios/database/java\"\n+    assert [job[\"scenario_roots\"] for job in jobs[1:]] == sorted(\n+        path.removesuffix(\"/conformance.yaml\")\n+        for path in paths\n+        if \"/ruby/\" in path\n+    )\n+    for job in jobs[1:]:\n+        assert job[\"matrix_id\"] == job[\"scenario_roots\"].removeprefix(\n+            \"scenarios/\"\n+        ).replace(\"/\", \"-\")\n+\n+\n+@pytest.mark.parametrize(\n+    \"path\",\n+    [\n+        \"conformance.yaml\",\n+        \"elsewhere/http/java/a/conformance.yaml\",\n+        \"scenarios/http/java/conformance.yaml\",\n+        \"scenarios/http/java/../conformance.yaml\",\n+    ],\n+)\n+def test_malformed_paths_fail(path: str) -> None:\n+    with pytest.raises(ValueError):\n+        matrix([path])\n+\n+\n+@pytest.mark.parametrize(\"paths\", [\"\", \"invalid\\n\"])\n+def test_cli_rejects_empty_or_invalid_discovery(paths: str) -> None:\n+    result = subprocess.run(",
+      "id": "PRRT_kwDOTuzK5c6v7aTK",
+      "opened": "2026-10-24T20:23:19Z",
+      "path": "tools/runner/tests/test_scenario_matrix.py",
+      "replies": [
+        {
+          "at": "2026-10-24T20:26:10Z",
+          "body": "Added a shared subprocess helper applying `CREATE_NO_WINDOW` on Windows and zero flags elsewhere, routed every launch through it, and added mocked platform-option coverage. Focused tests, Ruff, and Pyright pass. Commit: `49afe0c`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/383#discussion_r4368409775"
+        }
+      ],
+      "reviewed": "856c5b8398f55970581480b1287f3c78c95e5bee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/383#discussion_r4368402318"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the small test simplifications below, without changing automatic sharding behavior or expanding the PR scope.\n\nIn tools/runner/tests/test_scenario_matrix.py, replace the generic subprocess_call helper, which accepts an arbitrary callable and requires Any, Callable, and TypeVar, with a small typed helper around subprocess.run returning subprocess.CompletedProcess[str]. Replace subprocess.check_output uses with the new helper and .stdout. Preserve each launch's input, capture, check, cwd, and environment behavior. Keep centralized CREATE_NO_WINDOW handling on Windows and zero flags elsewhere, and retain regression coverage for both platforms.\n\nShorten the helper's mocked regression test so it verifies platform flag selection, argument forwarding, and the returned result without repeating the current long list of sample keyword arguments. Remove test_new_libraries_are_automatically_included, whose coverage overlaps the round-robin, configurable-count, and tracked-scenarios standalone-CLI tests. Retain those tests and the workflow integration test, including failure continuation, assigned-root patch isolation, and combining nonoverlapping patches.\n\nLeave the production matrix builder and workflow unchanged. Run the focused scenario-matrix tests and applicable lint/type checks. Do not create another PR.",
+      "created": "2026-10-24T21:20:45Z",
+      "hunk": "@@ -0,0 +1,286 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import json\n+import os\n+import subprocess\n+import sys\n+from collections import Counter\n+from pathlib import Path\n+from typing import Any, Callable, TypeVar\n+from unittest.mock import Mock\n+\n+import pytest\n+import yaml\n+\n+from opentelemetry.conformance import _scenario_matrix\n+from opentelemetry.conformance._scenario_matrix import SHARD_COUNTS, matrix\n+\n+REPO = Path(__file__).resolve().parents[3]\n+_T = TypeVar(\"_T\")\n+\n+\n+def subprocess_call(call: Callable[..., _T], *args: Any, **kwargs: Any) -> _T:\n+    return call(\n+        *args,",
+      "id": "PRRT_kwDOTuzK5c6v7y6B",
+      "opened": "2026-10-24T21:20:45Z",
+      "path": "tools/runner/tests/test_scenario_matrix.py",
+      "replies": [
+        {
+          "at": "2026-10-24T21:23:28Z",
+          "body": "Updated in `86d1a65`: simplified the typed `subprocess.run` wrapper and platform test, preserved launch behavior, and removed the overlapping test. Syntax/whitespace checks passed; pytest, Ruff, and Pyright aren’t installed in this sandbox.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/383#discussion_r4368568692"
+        }
+      ],
+      "reviewed": "f6ef9f1de690eae6e4a2bf65ebab941dbfa55d76",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/383#discussion_r4368561916"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the lint regression from commit 86d1a65 directly on this PR. In tools/runner/tests/test_scenario_matrix.py:27, the new run_subprocess helper's input parameter triggers Ruff A002, \"Function argument `input` is shadowing a Python builtin\". The failed job is https://github.com/open-telemetry/semantic-conventions-conformance/actions/runs/40133975334/job/120994371954?pr=383 and used Ruff 0.17.2.\n\nRename the helper parameter to a non-builtin name such as input_text and update every helper call site, including the platform regression test. Continue forwarding its value through subprocess.run(input=...), and keep the mock assertion checking the actual subprocess keyword \"input\". Preserve the existing subprocess options, Windows CREATE_NO_WINDOW behavior, all remaining tests, and sharding behavior. Do not suppress A002 or weaken lint configuration. Leave production code and workflows unchanged.\n\nRun Ruff on the changed test file using the repository configuration and the focused scenario-matrix tests. If required validation tools are missing, install the relevant existing development dependencies rather than relying on syntax-only checks; report any genuine installation or validation blocker accurately. Keep this follow-up limited to this regression and do not create another PR.",
+      "created": "2026-10-24T21:37:26Z",
+      "hunk": "@@ -0,0 +1,270 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import json\n+import os\n+import subprocess\n+import sys\n+from collections import Counter\n+from collections.abc import Mapping, Sequence\n+from pathlib import Path\n+from unittest.mock import Mock\n+\n+import pytest\n+import yaml\n+\n+from opentelemetry.conformance import _scenario_matrix\n+from opentelemetry.conformance._scenario_matrix import SHARD_COUNTS, matrix\n+\n+REPO = Path(__file__).resolve().parents[3]\n+\n+\n+def run_subprocess(\n+    args: Sequence[str],\n+    *,\n+    input: str | None = None,",
+      "id": "PRRT_kwDOTuzK5c6v75Rc",
+      "opened": "2026-10-24T21:37:26Z",
+      "path": "tools/runner/tests/test_scenario_matrix.py",
+      "replies": [
+        {
+          "at": "2026-10-24T21:40:27Z",
+          "body": "Renamed the helper parameter to `input_text` and updated its call sites while preserving forwarding as `subprocess.run(input=...)`. Ruff 0.17.2 and all 24 focused tests pass. Commit: `a01f854`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/383#discussion_r4368612252"
+        }
+      ],
+      "reviewed": "86d1a65f9d070f362ad930047409fc8ba2e8dd0d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/383#discussion_r4368604079"
+    }
+  ]
+}

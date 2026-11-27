@@ -1,0 +1,88 @@
+{
+  "head": "0ee475a8f494c11f34e08ab53e17ecf9eb5924cb",
+  "merge": "8ed6c3ba80bac4b1742d7562d31384620d11b055",
+  "merged": "2026-11-24T15:08:28Z",
+  "missing_roots": 0,
+  "number": 21441,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly on `open-telemetry/opentelemetry-java-instrumentation:otelbot/instruction-audit-45314413847`; do not open a follow-up PR as a workaround. Keep the branch GitHub Copilot cloud agent assigns, including any platform-assigned follow-up branch if GitHub creates one. Do not rename it or create a replacement branch.\n\nIn `JmxTelemetryBuilder`, define one private static final `EXCLUDE_ALL` selector using `IncludeExclude.builder().setExcluded(\"*\").build()`. Reuse it for both bundled filter field defaults and both setters' `isEmpty()` branches, rather than rebuilding the same immutable selector four times. Keep the PR's behavior: an empty selector resets the corresponding filter to its none-by-default value, including after a prior nonempty setter call; nonempty selectors, including exclusion-only selectors, still pass through unchanged. Do not change `IncludeExclude`, the all-by-default `setMetrics` filter, Java agent behavior, or rename the public methods. Keep the change focused and run the relevant JMX library tests if feasible.",
+      "created": "2026-11-24T03:17:09Z",
+      "hunk": "@@ -136,25 +136,37 @@ public JmxTelemetryBuilder setMetrics(IncludeExclude metrics) {\n   /**\n    * Configure which systems should have their internal metrics automatically registered.\n    *\n+   * <p>An absent or empty selector registers no systems. With only excluded patterns, every\n+   * system not excluded is selected. Use an included pattern of {@code \"*\"} to select all\n+   * systems.\n+   *\n    * @param systemFilter system filter\n    * @return this\n    */\n   @CanIgnoreReturnValue\n   public JmxTelemetryBuilder setInternalMetricsSystemFilter(IncludeExclude systemFilter) {\n-    internalMetricsSystemFilter = requireNonNull(systemFilter, \"systemFilter\");\n+    requireNonNull(systemFilter, \"systemFilter\");\n+    internalMetricsSystemFilter =\n+        systemFilter.isEmpty() ? IncludeExclude.builder().setExcluded(\"*\").build() : systemFilter;\n     return this;\n   }\n \n   /**\n    * Configure which unstable internal metrics should be enabled, unless enabled they are\n    * filtered-out.\n    *\n+   * <p>An absent or empty selector enables no unstable internal metrics. With only excluded\n+   * patterns, every unstable internal metric not excluded is selected. Use an included pattern\n+   * of {@code \"*\"} to select all unstable internal metrics.\n+   *\n    * @param metricsFilter metric filter\n    * @return this\n    */\n   @CanIgnoreReturnValue\n   public JmxTelemetryBuilder setInternalMetricsUnstableMetricsFilter(IncludeExclude metricsFilter) {\n-    internalMetricsUnstableMetricsFilter = requireNonNull(metricsFilter, \"metricsFilter\");\n+    requireNonNull(metricsFilter, \"metricsFilter\");\n+    internalMetricsUnstableMetricsFilter =\n+        metricsFilter.isEmpty() ? IncludeExclude.builder().setExcluded(\"*\").build() : metricsFilter;",
+      "id": "PRRT_kwDODJKVX867LURg",
+      "opened": "2026-11-24T03:17:09Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "5154a3a85da4d9f6e6534262e0f1041500ccceaf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21441#discussion_r4675085922"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The tests do not verify that an empty unstable-metrics selector resets a previously enabled selector: `includeNothingByDefault` disables all bundled systems, while this branch starts with unstable metrics already disabled. Both tests would pass if the unstable setter ignored empty selectors. Enable unstable metrics before resetting to empty here, keeping the JVM system selected so the existing metric assertion checks the reset.",
+      "created": "2026-11-24T03:34:07Z",
+      "hunk": "@@ -249,6 +260,8 @@ void bundledAndCustomJvmSchemas(boolean includeUnstable) throws Exception {\n     if (includeUnstable) {\n       builder.setInternalMetricsUnstableMetricsFilter(\n           IncludeExclude.builder().setIncluded(\"jvm.memory.init\").build());\n+    } else {\n+      builder.setInternalMetricsUnstableMetricsFilter(IncludeExclude.builder().build());",
+      "id": "PRRT_kwDODJKVX867Li66",
+      "opened": "2026-11-24T03:34:08Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryTest.java",
+      "replies": [
+        {
+          "at": "2026-11-24T03:47:57Z",
+          "body": "Fixed in `cbcb654aeb`. The test now enables `jvm.memory.init` before passing an empty selector, while keeping the JVM system selected. It checks that the bundled metric is filtered out and the custom metric with the same name is still collected.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21441#discussion_r4675266460"
+        }
+      ],
+      "reviewed": "5fad1ecb26be21c113e082c06de1edce88fb4be1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21441#discussion_r4675185569"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Passing an empty selector previously selected all bundled systems (or all unstable bundled metrics), so existing library configurations now silently stop collecting those metrics. `CONTRIBUTING.md:21–32` requires an Unreleased CHANGELOG entry for behavioral changes requiring migration, but this PR has none. Please add an entry covering both setters and the explicit `setIncluded(\"*\")` replacement; the PR description alone does not provide release-note guidance.",
+      "created": "2026-11-24T03:34:07Z",
+      "hunk": "@@ -136,25 +137,34 @@ public JmxTelemetryBuilder setMetrics(IncludeExclude metrics) {\n   /**\n    * Configure which systems should have their internal metrics automatically registered.\n    *\n+   * <p>An absent or empty selector registers no systems. With only excluded patterns, every system\n+   * not excluded is selected. Use an included pattern of {@code \"*\"} to select all systems.\n+   *\n    * @param systemFilter system filter\n    * @return this\n    */\n   @CanIgnoreReturnValue\n   public JmxTelemetryBuilder setInternalMetricsSystemFilter(IncludeExclude systemFilter) {\n-    internalMetricsSystemFilter = requireNonNull(systemFilter, \"systemFilter\");\n+    requireNonNull(systemFilter, \"systemFilter\");\n+    internalMetricsSystemFilter = systemFilter.isEmpty() ? EXCLUDE_ALL : systemFilter;",
+      "id": "PRRT_kwDODJKVX867Li7P",
+      "opened": "2026-11-24T03:34:08Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-11-24T03:47:57Z",
+          "body": "Added an Unreleased changelog entry in `cbcb654aeb` covering both setters and the explicit wildcard selector that preserves the previous select-all behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21441#discussion_r4675266459"
+        }
+      ],
+      "reviewed": "5fad1ecb26be21c113e082c06de1edce88fb4be1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21441#discussion_r4675185598"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly on `open-telemetry/opentelemetry-java-instrumentation:otelbot/instruction-audit-45314413847`; do not open a follow-up PR as a workaround. Keep the branch GitHub Copilot cloud agent assigns, including any platform-assigned follow-up branch if GitHub creates one. Do not rename it or create a replacement branch.\n\nAddress two verified review findings. In `JmxTelemetryTest.bundledAndCustomJvmSchemas`, enable `jvm.memory.init` first, then pass an empty unstable-metrics selector in the case where unstable metrics should be disabled. Keep the JVM system selected and retain the assertions that the bundled unstable metric is absent while the custom metric with the same name remains. The regression should fail if the setter ignores an empty selector instead of resetting it.\n\nAdd a short entry under the Unreleased breaking changes in `CHANGELOG.md` explaining that an explicitly empty selector now selects nothing for `setInternalMetricsSystemFilter` and `setInternalMetricsUnstableMetricsFilter`, and that callers can use `IncludeExclude.builder().setIncluded(\"*\").build()` to keep the previous select-all behavior. The user explicitly requested no `breaking change` label; do not add or request one. Preserve the existing production code and defaults-first README. Keep the changes scoped to the test and changelog, and run the focused JMX library test and repository Markdown formatter if feasible.",
+      "created": "2026-11-24T03:37:08Z",
+      "hunk": "@@ -249,6 +260,8 @@ void bundledAndCustomJvmSchemas(boolean includeUnstable) throws Exception {\n     if (includeUnstable) {\n       builder.setInternalMetricsUnstableMetricsFilter(\n           IncludeExclude.builder().setIncluded(\"jvm.memory.init\").build());\n+    } else {\n+      builder.setInternalMetricsUnstableMetricsFilter(IncludeExclude.builder().build());",
+      "id": "PRRT_kwDODJKVX867Llej",
+      "opened": "2026-11-24T03:37:08Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryTest.java",
+      "replies": [
+        {
+          "at": "2026-11-24T03:44:51Z",
+          "body": "Done in `cbcb654a`: the test now opts `jvm.memory.init` in before resetting the unstable selector to empty, and the Unreleased breaking-changes entry documents both setters and the explicit wildcard replacement. No breaking-change label was added or requested.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21441#discussion_r4675248251"
+        }
+      ],
+      "reviewed": "5fad1ecb26be21c113e082c06de1edce88fb4be1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21441#discussion_r4675202950"
+    }
+  ]
+}

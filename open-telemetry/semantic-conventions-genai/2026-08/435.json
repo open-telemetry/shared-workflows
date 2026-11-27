@@ -1,0 +1,61 @@
+{
+  "head": "a12c59e1630867c880f5e14ad77c15a314efabe1",
+  "merge": "4a39b6ef1363fab57bc40e18c82abb32cc89ebcd",
+  "merged": "2026-08-05T14:13:31Z",
+  "missing_roots": 0,
+  "number": 435,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-08-05T01:02:34Z",
+      "hunk": "@@ -7,3 +7,12 @@ applyTo: \"model/**/*.yaml\"\n When `conditionally_required:` or `recommended:` carries an inline condition\n note, write the note as one or more **complete sentences**: capitalize the\n first word and end with a period.\n+\n+# Links to upstream docs\n+\n+Write links into open-telemetry/semantic-conventions as ordinary URLs pinned to\n+a version, e.g. `https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/docs/...`.\n+Don't use a template placeholder — this YAML is published as-is and read\n+directly by other repos. `make generate-all` rewrites the version in every such\n+link to match the `model/manifest.yaml` dependency, so it stays current on its\n+own.",
+      "id": "PRRT_kwDOSUeMrM6Wgynb",
+      "opened": "2026-08-05T01:02:34Z",
+      "path": ".github/instructions/model-style.instructions.md",
+      "replies": [],
+      "reviewed": "47d7a8cb08895db5bb55b2e7809e2b9133c9f4b0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/435#discussion_r3717216003"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The branch filter pattern `'renovate/**/*'` won’t match Renovate’s typical single-segment branches like `renovate/dependency-name` (it requires at least one additional `/`). This would prevent the workflow from running on most Renovate branches.",
+      "created": "2026-08-05T02:43:13Z",
+      "hunk": "@@ -0,0 +1,104 @@\n+name: Auto-update generated files\n+\n+# Renovate bumps a pin but doesn't regenerate what derives from it — upstream doc\n+# links, for example, follow the semantic-conventions tag in model/manifest.yaml.\n+# CI's generated-docs check would fail, so regenerate here and push the result\n+# back to the branch instead of leaving `make generate-all` to a maintainer.\n+\n+on:\n+  push:\n+    branches:\n+      - 'renovate/**/*'\n+",
+      "id": "PRRT_kwDOSUeMrM6Whq0w",
+      "opened": "2026-08-05T02:43:13Z",
+      "path": ".github/workflows/auto-update-generated-files.yml",
+      "replies": [],
+      "reviewed": "2b2a84bbca51831b3d5d12d6e1d8ca89d63f1b86",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/435#discussion_r3717559643"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If this script is invoked without a version argument (e.g., if `SEMCONV_VERSION` extraction fails), it errors with an unhelpful “unbound variable” message due to `set -u`. Add an explicit argument check so failures clearly explain what went wrong and how to fix it.",
+      "created": "2026-08-05T02:43:13Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+#!/bin/bash\n+#\n+# Rewrite pinned links into open-telemetry/semantic-conventions so they match\n+# the upstream version this repo depends on.\n+#\n+# Model YAML is published and consumed directly by downstream repos, so links\n+# in `brief` and `note` text have to be real URLs rather than a template\n+# placeholder. That leaves the version duplicated across every link, so this\n+# script rewrites them all from the single source of truth: the pinned git tag\n+# in the `model/manifest.yaml` dependency.\n+#\n+# Run via `make update-upstream-links`, which `make generate-all` includes. CI\n+# fails if committed files do not match what this produces.\n+#\n+# Usage: update-upstream-links.sh v1.44.0\n+\n+set -euo pipefail\n+\n+VERSION=$1\n+\n+URL_PREFIX=\"https://github.com/open-telemetry/semantic-conventions/blob/\"\n+",
+      "id": "PRRT_kwDOSUeMrM6Whq1F",
+      "opened": "2026-08-05T02:43:13Z",
+      "path": ".github/scripts/update-upstream-links.sh",
+      "replies": [
+        {
+          "at": "2026-08-05T04:11:12Z",
+          "body": "Addressed in a12c59e1630867c880f5e14ad77c15a314efabe1: Added an explicit argument check that prints the usage and points at \\make update-upstream-links\\ instead of failing with a bare unbound-variable error.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/435#discussion_r3717870813"
+        }
+      ],
+      "reviewed": "2b2a84bbca51831b3d5d12d6e1d8ca89d63f1b86",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/435#discussion_r3717559674"
+    }
+  ]
+}

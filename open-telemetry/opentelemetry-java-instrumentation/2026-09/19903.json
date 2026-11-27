@@ -1,0 +1,52 @@
+{
+  "head": "5134fcc82274c09ab569ccf71c49558d9900afb6",
+  "merge": "24ef7d80aa412f8e6c9c0674223fd6f26de498ae",
+  "merged": "2026-09-09T22:12:40Z",
+  "missing_roots": 0,
+  "number": 19903,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Test code should not add `@Nullable` annotations. Please remove both parameter annotations here and the now-unused import.",
+      "created": "2026-08-28T20:42:14Z",
+      "hunk": "@@ -189,6 +197,90 @@ void shouldRecordMetrics() throws IOException {\n \n     getTesting().waitForTraces(1);\n \n-    assertDurationMetric(getTesting(), getInstrumentationName(), DB_OPERATION_NAME, DB_SYSTEM_NAME);\n+    assertDurationMetric(\n+        getTesting(),\n+        getInstrumentationName(),\n+        DB_OPERATION_NAME,\n+        DB_SYSTEM_NAME,\n+        NETWORK_PEER_ADDRESS,\n+        NETWORK_PEER_PORT,\n+        SERVER_ADDRESS,\n+        SERVER_PORT);\n+  }\n+\n+  @Test\n+  void configuredNodeListIsTheWholeTarget() throws Exception {\n+    RestClient nodeListClient =\n+        buildRestClient(addressOfHostThatIsDown(), opensearch.getHttpHostAddress());\n+    cleanup.deferCleanup(nodeListClient);\n+\n+    nodeListClient.performRequest(new Request(\"GET\", \"_cluster/health\"));\n+\n+    assertConfiguredTarget(nodeList());\n+  }\n+\n+  @Test\n+  void theTargetDoesNotFollowLaterNodeChanges() throws Exception {\n+    RestClient singleNodeClient = buildRestClient(opensearch.getHttpHostAddress());\n+    cleanup.deferCleanup(singleNodeClient);\n+    // a client is given new nodes when it is sniffed; the configured target must not follow them\n+    resetNodes(singleNodeClient, opensearch.getHttpHostAddress(), addressOfHostThatIsDown());\n+\n+    singleNodeClient.performRequest(new Request(\"GET\", \"_cluster/health\"));\n+\n+    assertConfiguredTarget(null);\n+  }\n+\n+  private String addressOfHostThatIsDown() {\n+    // nothing listens on this port, so a request is served by the running server after a retry\n+    return httpHost.getScheme() + \"://\" + httpHost.getHost() + \":61\";\n+  }\n+\n+  private String nodeList() {\n+    return httpHost.getHost() + \":61,\" + httpHost.getHost() + \":\" + httpHost.getPort();\n+  }\n+\n+  private String openSearchSpanName() {\n+    // the stable span name falls back to the target, because opensearch has no namespace or\n+    // collection to name\n+    return emitStableDatabaseSemconv()\n+        ? \"GET \" + httpHost.getHost() + \":\" + httpHost.getPort()\n+        : \"GET\";\n+  }\n+\n+  private List<AttributeAssertion> openSearchAttributes() {\n+    return openSearchAttributes(\n+        emitStableDatabaseSemconv() ? httpHost.getHost() : null,\n+        emitStableDatabaseSemconv() ? Long.valueOf(httpHost.getPort()) : null);\n+  }\n+\n+  private List<AttributeAssertion> openSearchAttributes(\n+      @Nullable String serverAddress, @Nullable Long serverPort) {",
+      "id": "PRRT_kwDODJKVX86dTIIG",
+      "opened": "2026-08-28T20:42:14Z",
+      "path": "instrumentation/opensearch/opensearch-rest-common-1.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/AbstractOpenSearchRestTest.java",
+      "replies": [
+        {
+          "at": "2026-08-28T23:19:38Z",
+          "body": "Addressed in de40c45b2376b09cec15427f63ec82e2a10b7576.\n\nAnalysis: The nullable values remain valid Java arguments without test-code annotations. Removing the two parameter annotations also leaves the import unused, so the import must be removed with them.\n\nUpsides: The shared test fixture follows the repository rule against `@Nullable` in test code and no longer carries an unused import.\n\nDownsides: The method signature no longer documents nullability through annotations, but its callers and conditional expected values make that use clear.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19903#discussion_r3884653541"
+        }
+      ],
+      "reviewed": "34758aed84aacb457a4f130b049b2de4e09675db",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19903#discussion_r3883907937"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new formatter's credential/path/query stripping and IPv6 bracket handling are not exercised by the localhost integration tests. Please add focused unit coverage for null/empty endpoints, absent ports, IPv6, and credential/path/query removal, analogous to `ElasticsearchServerTargetTest`, so malformed targets or sensitive host text cannot regress unnoticed.",
+      "created": "2026-08-28T20:42:14Z",
+      "hunk": "@@ -0,0 +1,104 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.rest.common.v1_0;\n+\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+public class OpenSearchServerTarget {\n+\n+  private final String address;\n+  @Nullable private final Integer port;\n+\n+  @Nullable\n+  public static OpenSearchServerTarget of(@Nullable List<Endpoint> endpoints) {\n+    if (endpoints == null || endpoints.isEmpty()) {\n+      return null;\n+    }\n+    if (endpoints.size() == 1) {\n+      Endpoint endpoint = endpoints.get(0);\n+      if (endpoint.host == null) {\n+        return null;\n+      }\n+      return new OpenSearchServerTarget(endpoint.host, endpoint.port >= 0 ? endpoint.port : null);\n+    }\n+    String group = renderGroup(endpoints);\n+    return group == null ? null : new OpenSearchServerTarget(group, null);\n+  }\n+\n+  private OpenSearchServerTarget(String address, @Nullable Integer port) {\n+    this.address = address;\n+    this.port = port;\n+  }\n+\n+  @Nullable\n+  private static String renderGroup(List<Endpoint> endpoints) {\n+    StringBuilder group = new StringBuilder();\n+    for (int i = 0; i < endpoints.size(); i++) {\n+      Endpoint endpoint = endpoints.get(i);\n+      if (endpoint.host == null) {\n+        return null;\n+      }\n+      if (i > 0) {\n+        group.append(',');\n+      }\n+      if (endpoint.host.indexOf(':') >= 0 && !endpoint.host.startsWith(\"[\")) {\n+        group.append('[').append(endpoint.host).append(']');\n+      } else {\n+        group.append(endpoint.host);\n+      }\n+      if (endpoint.port >= 0) {\n+        group.append(':').append(endpoint.port);\n+      }\n+    }\n+    return group.toString();\n+  }\n+\n+  public String getAddress() {\n+    return address;\n+  }\n+\n+  @Nullable\n+  public Integer getPort() {\n+    return port;\n+  }\n+\n+  public static class Endpoint {\n+\n+    @Nullable private final String host;\n+    private final int port;\n+\n+    public Endpoint(@Nullable String host, int port) {\n+      this.host = sanitizeHost(host);\n+      this.port = port;\n+    }\n+\n+    @Nullable\n+    private static String sanitizeHost(@Nullable String hostName) {",
+      "id": "PRRT_kwDODJKVX86dTIIk",
+      "opened": "2026-08-28T20:42:14Z",
+      "path": "instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-08-28T23:19:40Z",
+          "body": "Addressed in e10203dd7d1972a6352e59ddecddff3f35638f32.\n\nAnalysis: The integration tests use normal localhost endpoints and cannot exercise the formatter's sanitization branches. A plain Java unit-test module can load the javaagent helper directly without the instrumented test class loader hiding its nested Endpoint class.\n\nUpsides: The tests now cover null and empty endpoint lists, absent ports, single and grouped IPv6 addresses, credential stripping, path/query/fragment stripping, and malformed sanitized hosts. Sensitive input and invalid targets can no longer regress without a focused test failure.\n\nDownsides: The new unit-test module adds a small amount of Gradle configuration and test execution time.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19903#discussion_r3884653664"
+        }
+      ],
+      "reviewed": "34758aed84aacb457a4f130b049b2de4e09675db",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19903#discussion_r3883907975"
+    }
+  ]
+}

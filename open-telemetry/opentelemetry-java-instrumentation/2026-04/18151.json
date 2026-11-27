@@ -1,0 +1,31 @@
+{
+  "head": "443566a1206b1c28f32ad952eacd859389a1e16c",
+  "merge": "5ea99d5f64f17429c15c94ffb6d9017028984ef1",
+  "merged": "2026-04-22T04:06:23Z",
+  "missing_roots": 0,
+  "number": 18151,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot revert this change (and allow throws Exception here and in callers)",
+      "created": "2026-04-22T03:30:07Z",
+      "hunk": "@@ -12,12 +12,16 @@\n import java.sql.PreparedStatement;\n import java.sql.Statement;\n \n-public class ProxyStatementFactory {\n+class ProxyStatementFactory {\n \n-  public static Statement proxyStatementWithCustomClassLoader(Statement statement)\n-      throws Exception {\n+  static Statement proxyStatementWithCustomClassLoader(Statement statement) {\n     TestClassLoader classLoader = new TestClassLoader(ProxyStatementFactory.class.getClassLoader());\n-    Class<?> testInterface = classLoader.loadClass(TestInterface.class.getName());\n+    Class<?> testInterface;\n+    try {\n+      testInterface = classLoader.loadClass(TestInterface.class.getName());\n+    } catch (ClassNotFoundException e) {\n+      throw new IllegalStateException(\"failed to load test interface\", e);\n+    }",
+      "id": "PRRT_kwDODJKVX858rC0x",
+      "opened": "2026-04-22T03:30:07Z",
+      "path": "instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/ProxyStatementFactory.java",
+      "replies": [
+        {
+          "at": "2026-04-22T03:36:21Z",
+          "body": "Updated in 443566a1: reverted that change by restoring `throws Exception` in `ProxyStatementFactory.proxyStatementWithCustomClassLoader(...)` and in the caller `testProxyStatement()`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18151#discussion_r3121423023"
+        }
+      ],
+      "reviewed": "4ae053766da289c0ed2ed29dc1ea0aae5a535da5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18151#discussion_r3121408513"
+    }
+  ]
+}

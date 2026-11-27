@@ -1,0 +1,52 @@
+{
+  "head": "24d0070ec8c2543edc3bcbe0419ca396b28df57f",
+  "merge": "7246d76da83a1b9dde6708acd43cb9b3e469cb9a",
+  "merged": "2026-07-11T15:29:09Z",
+  "missing_roots": 0,
+  "number": 19184,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "System.getProperty(...) / System.getenv(...) can throw SecurityException under a SecurityManager or other restricted runtimes, which would propagate out of getString() and potentially break instrumentation initialization. Consider swallowing SecurityException and treating it as \"not set\" (returning null) to keep this helper safe to call.",
+      "created": "2026-07-10T18:17:18Z",
+      "hunk": "@@ -0,0 +1,126 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.internal;\n+\n+import static java.util.stream.Collectors.toList;\n+\n+import java.util.Arrays;\n+import java.util.List;\n+import java.util.Locale;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Reads OpenTelemetry configuration from JVM system properties, falling back to the corresponding\n+ * environment variables.\n+ *\n+ * <p>For library instrumentation, prefer programmatic configuration. Direct property lookup is\n+ * needed only when a programmatic configuration surface cannot be exposed. Once declarative\n+ * instrumentation configuration is stable, use it instead. Current examples include library\n+ * instrumentation entry points loaded through an SPI, driver, or similar mechanism.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class SystemProperty {\n+\n+  /**\n+   * Returns the boolean value of the given property name from system properties and environment\n+   * variables.\n+   *\n+   * <p>It's recommended to use {@link io.opentelemetry.api.incubator.config.ConfigProvider} instead\n+   * to support Declarative Config.\n+   */\n+  public static boolean getBoolean(String propertyName, boolean defaultValue) {\n+    Boolean value = getBoolean(propertyName);\n+    return value == null ? defaultValue : value;\n+  }\n+\n+  /**\n+   * Returns the boolean value of the given property name from system properties and environment\n+   * variables.\n+   *\n+   * <p>It's recommended to use {@link io.opentelemetry.api.incubator.config.ConfigProvider} instead\n+   * to support Declarative Config.\n+   */\n+  @Nullable\n+  public static Boolean getBoolean(String propertyName) {\n+    String strValue = getString(propertyName);\n+    return strValue == null ? null : Boolean.parseBoolean(strValue);\n+  }\n+\n+  /**\n+   * Returns the int value of the given property name from system properties and environment\n+   * variables.\n+   *\n+   * <p>It's recommended to use {@link io.opentelemetry.api.incubator.config.ConfigProvider} instead\n+   * to support Declarative Config.\n+   */\n+  public static int getInt(String propertyName, int defaultValue) {\n+    String strValue = getString(propertyName);\n+    if (strValue == null) {\n+      return defaultValue;\n+    }\n+    try {\n+      return Integer.parseInt(strValue);\n+    } catch (NumberFormatException ignored) {\n+      return defaultValue;\n+    }\n+  }\n+\n+  /**\n+   * Returns the string value of the given property name from system properties and environment\n+   * variables.\n+   *\n+   * <p>It's recommended to use {@link io.opentelemetry.api.incubator.config.ConfigProvider} instead\n+   * to support Declarative Config.\n+   */\n+  @Nullable\n+  public static String getString(String propertyName) {\n+    String value = System.getProperty(propertyName);\n+    if (value != null) {\n+      return value;\n+    }\n+    return System.getenv(toEnvVarName(propertyName));",
+      "id": "PRRT_kwDODJKVX86P-boS",
+      "opened": "2026-07-10T18:17:18Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SystemProperty.java",
+      "replies": [
+        {
+          "at": "2026-07-10T18:31:56Z",
+          "body": "No code change needed. This PR intentionally keeps `SystemProperty` behavior like-for-like with `ConfigPropertiesUtil`; adding `SecurityException` handling would be unrelated hardening.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19184#discussion_r3561180714"
+        }
+      ],
+      "reviewed": "56811d1df8c99e2808826109485230e0fc93f81d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19184#discussion_r3561100105"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This call site passes three positional boolean literals, which is easy to misread and accidentally reorder when the factory signature evolves. Using named arguments via inline comments (or local variables) would make the intent of each flag clear.",
+      "created": "2026-07-10T18:17:18Z",
+      "hunk": "@@ -115,7 +115,7 @@ private static DbInfo getDbInfo() {\n \n   private static OpenTelemetryConnection getConnection(OpenTelemetry openTelemetry) {\n     Instrumenter<DbRequest, Void> statementInstrumenter =\n-        createStatementInstrumenter(openTelemetry);\n+        createStatementInstrumenter(openTelemetry, true, true, false);\n     Instrumenter<DbRequest, Void> transactionInstrumenter =\n         createTransactionInstrumenter(openTelemetry, true);",
+      "id": "PRRT_kwDODJKVX86P-bor",
+      "opened": "2026-07-10T18:17:18Z",
+      "path": "instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/OpenTelemetryConnectionTest.java",
+      "replies": [
+        {
+          "at": "2026-07-10T18:31:58Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/09c9c6af16. Added inline parameter-name comments for the three boolean arguments.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19184#discussion_r3561180866"
+        }
+      ],
+      "reviewed": "56811d1df8c99e2808826109485230e0fc93f81d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19184#discussion_r3561100140"
+    }
+  ]
+}

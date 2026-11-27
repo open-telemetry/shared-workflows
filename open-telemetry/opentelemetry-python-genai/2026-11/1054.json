@@ -1,0 +1,161 @@
+{
+  "head": "651cdccffab05bb2a9099237defc33d98abae76c",
+  "merge": "8129d09bdf5685e112587adc8187be22866a9bd4",
+  "merged": "2026-11-20T05:07:41Z",
+  "missing_roots": 0,
+  "number": 1054,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`finalize_on_close` runs its callback in `finally`, so an HTTP-response close failure ends an unread chat span without an error and prevents later failure finalization; the async callback at line 249 has the same issue, including cancellation during `aclose()`. Extend both shared helpers with a failure callback, wire `_finalize_failure` for exceptions while preserving their propagation, and reserve `_finalize_success` for successful cleanup. Add sync and async regression tests for failed response cleanup, including async cancellation.",
+      "created": "2026-11-06T17:44:41Z",
+      "hunk": "@@ -208,6 +210,17 @@ def __init__(\n         self._self_service_tier = None\n         self._self_usage = None\n \n+    @property\n+    def response(self):\n+        # ChatCompletionStream (chat.completions.stream()) closes this HTTP\n+        # response directly instead of the stream, so that close has to\n+        # finalize telemetry too.\n+        return finalize_on_close(\n+            self._self_stream.response,\n+            self._finalize_success,",
+      "id": "PRRT_kwDOSbspP860n-tT",
+      "opened": "2026-11-06T17:44:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/chat_wrappers.py",
+      "replies": [
+        {
+          "at": "2026-11-06T17:55:46Z",
+          "body": "This comes from the shared `finalize_on_close` helper from #390, so the Responses and Anthropic wrappers have the same gap when the response close raises. Fixing it means changing util and going through the API check, so I would handle it in a separate PR and keep this one focused on #1042.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4495812911"
+        }
+      ],
+      "reviewed": "12c8e5d3794f64d36bc4c11a6447048c23db6bc1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4495705809"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new early-break tests cover successful cleanup, but the existing caller-exception tests use `create(stream=True)` and do not exercise this helper's HTTP-response close path. Add sync and async tests that raise inside `chat.completions.stream()` before draining it, asserting unchanged exception propagation and a finalized span with the matching `error.type`, as required by the [streaming error-path guidance](../../instrumentation/AGENTS.md#tests). The same coverage gap applies to `tests/test_async_chat_completions.py:1381`.",
+      "created": "2026-11-06T17:44:42Z",
+      "hunk": "@@ -1595,6 +1595,24 @@ def test_chat_completion_streaming_not_complete(\n         )\n \n \n+def test_chat_completion_stream_helper_not_complete(",
+      "id": "PRRT_kwDOSbspP860n-uS",
+      "opened": "2026-11-06T17:44:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_completions.py",
+      "replies": [
+        {
+          "at": "2026-11-06T17:56:37Z",
+          "body": "I confirmed this locally. If you raise inside a `chat.completions.stream()` block, the span ends with no `error.type`. The SDK's `ChatCompletionStreamManager.__exit__` just calls `close()` and never passes the exception along, so the stream wrapper never sees it. On main the span doesn't end at all until GC, so this was already broken, but it should record the error.\r\n\r\nThe proper fix is wrapping `chat.completions.stream()` with a manager wrapper like `ResponseStreamManagerWrapper` so `__exit__` can see the exception. I can add that here with sync and async tests, unless maintainers would rather keep this PR small and take it as a follow-up.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4495820940"
+        },
+        {
+          "at": "2026-11-07T04:26:59Z",
+          "body": "Thanks for checking! Let's handle it in this PR. A stream manager wrapper similar to what Responses does sounds like the right direction. Tests for raising inside the block (sync and async) would be great too.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4500089788"
+        },
+        {
+          "at": "2026-11-07T04:40:04Z",
+          "body": "I added it in ab790f53. `chat.completions.stream()` is now wrapped with `ChatStreamManagerWrapper` / `AsyncChatStreamManagerWrapper`, and there are sync and async tests that raise inside the block and check the span ends with the right `error.type`.\r\n\r\nOne difference from Responses is that I didn't subclass `SyncStreamManagerWrapper`. `ChatCompletionStream` yields its own event types instead of `ChatCompletionChunk`s, so `ChatStreamWrapper` can't wrap the stream the user gets back. Instead, the manager enters by calling the instrumented `create()`, which already builds the `ChatStreamWrapper` and owns the span. The manager wrapper picks that up through a context var on entry, and in `__exit__` it passes the caller's exception to it before the SDK closes the response. Users still get the SDK's own `ChatCompletionStream`.\r\n\r\nI'd be happy to restructure it to go through the shared base class if you'd prefer.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4500128090"
+        }
+      ],
+      "reviewed": "12c8e5d3794f64d36bc4c11a6447048c23db6bc1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4495705903"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: could you add a return type here (and on the async one)? `_raw_response.py` already has the `httpx`/`httpx2` import you can reuse.\n\n```suggestion\n    def response(self) -> _http_lib.Response:\n```",
+      "created": "2026-11-07T04:14:18Z",
+      "hunk": "@@ -208,6 +210,17 @@ def __init__(\n         self._self_service_tier = None\n         self._self_usage = None\n \n+    @property\n+    def response(self):",
+      "id": "PRRT_kwDOSbspP860x_6X",
+      "opened": "2026-11-07T04:26:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/chat_wrappers.py",
+      "replies": [
+        {
+          "at": "2026-11-07T04:39:04Z",
+          "body": "Done in ab790f53. Both `response` properties now return `_http_lib.Response`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4500125487"
+        }
+      ],
+      "reviewed": "12c8e5d3794f64d36bc4c11a6447048c23db6bc1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4500038028"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Could these use the SDK types instead of `object`? `ChatCompletionStreamManager[ResponseFormatT]` in, `ChatCompletionStream[ResponseFormatT]` out (imported under `TYPE_CHECKING`), similar to how `ResponseStreamManagerWrapper` is typed. Same for the async wrapper.",
+      "created": "2026-11-07T04:56:03Z",
+      "hunk": "@@ -227,9 +259,87 @@ def __init__(\n         self._self_response_id = None\n         self._self_service_tier = None\n         self._self_usage = None\n+        _register_entered_chat_stream(self)\n+\n+    @property\n+    def response(self) -> _http_lib.Response:\n+        # See ChatStreamWrapper.response.\n+        return finalize_on_aclose(\n+            self._self_stream.response,\n+            self._finalize_success,\n+            execution_context=self._execution_context,\n+        )\n+\n+\n+class ChatStreamManagerWrapper(ObjectProxy):\n+    \"\"\"Wrapper for the manager returned by ``chat.completions.stream()``.\n+\n+    The SDK manager's ``__exit__`` only closes the stream and drops the\n+    caller's exception, so it is recorded on the chat stream wrapper first.\n+    \"\"\"\n+\n+    def __init__(self, manager: object) -> None:\n+        super().__init__(manager)\n+        self._self_stream_wrapper: ChatStreamWrapper | None = None\n+\n+    def __enter__(self) -> object:",
+      "id": "PRRT_kwDOSbspP860yVym",
+      "opened": "2026-11-07T05:07:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/chat_wrappers.py",
+      "replies": [
+        {
+          "at": "2026-11-07T05:27:40Z",
+          "body": "Done in cd838862. The manager wrappers now take `ChatCompletionStreamManager[ResponseFormatT]` and return `ChatCompletionStream[ResponseFormatT]` (async ones use the async types).",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4500286509"
+        }
+      ],
+      "reviewed": "ab790f536ca047778e61f01a930fdbd5a72ba444",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4500183593"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Since `chat.completions.stream()` is now patched, it'd be good to have a happy-path test that drains it fully (sync and async) and checks the usual span attributes (response id/model, finish reasons, usage, output messages). Nothing exercises the full path through the helper today.",
+      "created": "2026-11-07T04:56:04Z",
+      "hunk": "@@ -1595,6 +1595,44 @@ def test_chat_completion_streaming_not_complete(\n         )\n \n \n+def test_chat_completion_stream_helper_not_complete(",
+      "id": "PRRT_kwDOSbspP860yVyt",
+      "opened": "2026-11-07T05:07:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_completions.py",
+      "replies": [
+        {
+          "at": "2026-11-07T05:27:55Z",
+          "body": "Added in cd838862. There are sync and async tests now that read the whole stream through `get_final_completion()` and check response id/model, usage, finish reason, and the output messages, using the same cassettes as the `create(stream=True)` streaming tests.\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4500287195"
+        }
+      ],
+      "reviewed": "ab790f536ca047778e61f01a930fdbd5a72ba444",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4500183603"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If an HTTP hook opens another `create(stream=True)` request during manager entry, its wrapper registers first, so `entered[0]` selects the unrelated stream; a caller exception then closes/fails that stream while the outer span ends successfully. Select the enclosing request's wrapper, which registers last on this entry path, and add sync/async public-client regressions with reentrant hooks. Apply the same selection change in the async manager at lines 344–345.",
+      "created": "2026-11-12T04:01:19Z",
+      "hunk": "@@ -227,9 +270,97 @@ def __init__(\n         self._self_response_id = None\n         self._self_service_tier = None\n         self._self_usage = None\n+        _register_entered_chat_stream(self)\n+\n+    @property\n+    def response(self) -> _http_lib.Response:\n+        # See ChatStreamWrapper.response.\n+        return finalize_on_aclose(\n+            self._self_stream.response,\n+            self._finalize_success,\n+            execution_context=self._execution_context,\n+        )\n+\n+\n+class ChatStreamManagerWrapper(ObjectProxy, Generic[ResponseFormatT]):\n+    \"\"\"Wrapper for the manager returned by ``chat.completions.stream()``.\n+\n+    The SDK manager's ``__exit__`` only closes the stream and drops the\n+    caller's exception, so it is recorded on the chat stream wrapper first.\n+    \"\"\"\n+\n+    def __init__(\n+        self, manager: ChatCompletionStreamManager[ResponseFormatT]\n+    ) -> None:\n+        super().__init__(manager)\n+        self._self_stream_wrapper: ChatStreamWrapper | None = None\n+\n+    def __enter__(self) -> ChatCompletionStream[ResponseFormatT]:\n+        entered: list[ChatStreamWrapper | AsyncChatStreamWrapper] = []\n+        token = _entered_chat_streams.set(entered)\n+        try:\n+            stream = cast(\n+                \"ChatCompletionStream[ResponseFormatT]\",\n+                self.__wrapped__.__enter__(),\n+            )\n+        finally:\n+            _entered_chat_streams.reset(token)\n+        if entered and isinstance(entered[0], ChatStreamWrapper):\n+            self._self_stream_wrapper = entered[0]",
+      "id": "PRRT_kwDOSbspP862dhTi",
+      "opened": "2026-11-12T04:01:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/chat_wrappers.py",
+      "replies": [
+        {
+          "at": "2026-11-19T19:28:29Z",
+          "body": "Fixed in dc5e2a10. If a hook opens another `create(stream=True)` while the manager is entering, that stream's wrapper gets registered first, so `entered[0]` picked the wrong one and the outer span never recorded the caller's exception. Both managers now use `entered[-1]`. The outer request's wrapper is only created after its response arrives, so it's always registered last.\n\nI also added sync and async tests that open a nested stream from an httpx response hook, raise inside the block, and check the error lands on the outer span. Both fail without the fix.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4633953324"
+        }
+      ],
+      "reviewed": "3041165f9f3dea013374c387e5a6a524ce335c31",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4546111663"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: could these get type annotations, like `responses_stream` in `patch_responses.py`?\n\n```suggestion\ndef chat_completions_stream(\n    wrapped: Callable[..., ChatCompletionStreamManager[Any]],\n    instance: Completions,\n    args: tuple[Any, ...],\n    kwargs: dict[str, Any],\n) -> ChatStreamManagerWrapper[Any]:\n    \"\"\"Wrap the manager returned by `Completions.stream`.\"\"\"\n    return ChatStreamManagerWrapper(wrapped(*args, **kwargs))\n\n\ndef async_chat_completions_stream(\n    wrapped: Callable[..., AsyncChatCompletionStreamManager[Any]],\n    instance: AsyncCompletions,\n    args: tuple[Any, ...],\n    kwargs: dict[str, Any],\n) -> AsyncChatStreamManagerWrapper[Any]:\n    \"\"\"Wrap the manager returned by `AsyncCompletions.stream`.\"\"\"\n    return AsyncChatStreamManagerWrapper(wrapped(*args, **kwargs))\n```",
+      "created": "2026-11-20T04:32:44Z",
+      "hunk": "@@ -123,6 +128,16 @@ async def traced_method(wrapped, instance, args, kwargs):\n     return traced_method\n \n \n+def chat_completions_stream(wrapped, instance, args, kwargs):\n+    \"\"\"Wrap the manager returned by `Completions.stream`.\"\"\"\n+    return ChatStreamManagerWrapper(wrapped(*args, **kwargs))\n+\n+\n+def async_chat_completions_stream(wrapped, instance, args, kwargs):\n+    \"\"\"Wrap the manager returned by `AsyncCompletions.stream`.\"\"\"\n+    return AsyncChatStreamManagerWrapper(wrapped(*args, **kwargs))",
+      "id": "PRRT_kwDOSbspP8651loR",
+      "opened": "2026-11-20T04:36:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch.py",
+      "replies": [],
+      "reviewed": "69b26b1dd53e1b531daaa7c5327a92bde5f06454",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1054#discussion_r4638498993"
+    }
+  ]
+}

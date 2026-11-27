@@ -1,0 +1,25 @@
+{
+  "head": "b6075488ccd9d1366a6b6f0f223b8dfc8da306ef",
+  "merge": "06a73057c9b66c2234573c20afa3feae71dfaf4e",
+  "merged": "2026-10-12T05:51:13Z",
+  "missing_roots": 0,
+  "number": 308,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This instrumentation upgrade changes the environment that produces the conformance results, but the PR does not include a regenerated `data.json`. The GenAI scenario contract requires rerunning this implementation and committing the resulting snapshot so coverage reflects v3.0.3 and the CI regeneration check does not find an uncommitted diff.",
+      "created": "2026-10-12T02:18:30Z",
+      "hunk": "@@ -4,7 +4,7 @@ version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n     \"anthropic==1.11.0\",\n-    \"openinference-instrumentation-anthropic==2.1.7\",\n+    \"openinference-instrumentation-anthropic==3.0.3\",",
+      "id": "PRRT_kwDOTuzK5c6rT4ag",
+      "opened": "2026-10-12T02:18:30Z",
+      "path": "scenarios/gen-ai/python/anthropic/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "1c916ecc8a6642fcb85ecb804471f01eb63af1b4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/308#discussion_r4244207446"
+    }
+  ]
+}

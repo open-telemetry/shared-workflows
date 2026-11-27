@@ -1,0 +1,40 @@
+{
+  "head": "196227c69540e3e087646e6741d35caf958a5d37",
+  "merge": "4018236948ed693f066f425e464c2bdcfd15f0fb",
+  "merged": "2026-04-18T16:50:40Z",
+  "missing_roots": 0,
+  "number": 17915,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // added in azure-core 1.14.0\n    return hasClassesNamed(\"com.azure.core.util.tracing.Tracer\")\n        // added in azure-core 1.19.0\n        .and(not(hasClassesNamed(\"com.azure.core.util.tracing.StartSpanOptions\")))\n        // added in azure-core-tracing-opentelemetry 1.0.0-beta.47 (native OTel support)\n        .and(not(hasClassesNamed(\"com.azure.core.tracing.opentelemetry.OpenTelemetryTracer\")));\n```",
+      "created": "2026-04-18T16:33:49Z",
+      "hunk": "@@ -46,12 +46,19 @@ public List<String> exposedClassNames() {\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n-    // added in azure-core 1.14.0\n-    return hasClassesNamed(\"com.azure.core.util.tracing.Tracer\")\n-        // added in azure-core 1.19.0\n-        .and(not(hasClassesNamed(\"com.azure.core.util.tracing.StartSpanOptions\")))\n-        // added in azure-core-tracing-opentelemetry 1.0.0-beta.47 (native OTel support)\n-        .and(not(hasClassesNamed(\"com.azure.core.tracing.opentelemetry.OpenTelemetryTracer\")));\n+    return hasClassesNamed(\n+            // added in azure-core 1.14.0\n+            \"com.azure.core.util.tracing.Tracer\")\n+        .and(\n+            not(\n+                hasClassesNamed(\n+                    // added in azure-core 1.19.0\n+                    \"com.azure.core.util.tracing.StartSpanOptions\")))\n+        .and(\n+            not(\n+                hasClassesNamed(\n+                    // added in azure-core-tracing-opentelemetry 1.0.0-beta.47 (native OTel support)\n+                    \"com.azure.core.tracing.opentelemetry.OpenTelemetryTracer\")));",
+      "id": "PRRT_kwDODJKVX8579DtH",
+      "opened": "2026-04-18T16:33:49Z",
+      "path": "instrumentation/azure-core/azure-core-1.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/azurecore/v1_14/AzureSdkInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "b5db8929cb2367560982f7ba5cc1bb4b6f9f4190",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17915#discussion_r3105481809"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-18T16:34:10Z",
+      "hunk": "@@ -46,6 +46,18 @@ public List<String> exposedClassNames() {\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n+    return hasClassesNamed(\n+            // added in azure-core 1.14.0\n+            \"com.azure.core.util.tracing.Tracer\")\n+        .and(\n+            not(\n+                hasClassesNamed(\n+                    // added in azure-core 1.19.0\n+                    \"com.azure.core.util.tracing.StartSpanOptions\")))\n+        .and(\n+            not(\n+                hasClassesNamed(\n+                    // added in azure-core-tracing-opentelemetry 1.0.0-beta.47 (native OTel support)",
+      "id": "PRRT_kwDODJKVX8579Dx4",
+      "opened": "2026-04-18T16:34:10Z",
+      "path": "instrumentation/azure-core/azure-core-1.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/azurecore/v1_14/AzureSdkInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "46bb13be1495c237b916cc077b6b7529b537a985",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17915#discussion_r3105482167"
+    }
+  ]
+}

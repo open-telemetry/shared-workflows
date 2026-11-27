@@ -1,0 +1,40 @@
+{
+  "head": "d94ad240b85bb97eb602f32cc7f604fe09d03450",
+  "merge": "82d89d872f08647bf5acde2105f5ac554d3523ab",
+  "merged": "2026-11-03T06:26:51Z",
+  "missing_roots": 0,
+  "number": 435,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These `metrics` blocks turn measurement-only scenarios into exact metric-name assertions, contrary to `scenarios/gen-ai/README.md:174–183`. Missing or renamed metrics then fail the scenario instead of remaining measured instrumentation gaps. Remove all three blocks (also lines 26–28 and 32–35); the runner collects emitted metrics and registry findings without them.",
+      "created": "2026-11-02T19:54:38Z",
+      "hunk": "@@ -17,6 +17,19 @@ env:\n scenarios:\n   invoke_agent:\n     run: uv run --frozen --project . otel-conformance-python invoke_agent.py\n+    metrics:\n+      - gen_ai.client.token.usage\n+      - operation.cost\n \n   automatic_tool_calling:\n     run: uv run --frozen --project . otel-conformance-python automatic_tool_calling.py\n+    metrics:\n+      - gen_ai.client.token.usage\n+      - operation.cost\n+\n+  streaming:\n+    run: uv run --frozen --project . otel-conformance-python streaming.py\n+    metrics:\n+      - gen_ai.client.token.usage\n+      - gen_ai.client.operation.time_to_first_chunk\n+      - operation.cost",
+      "id": "PRRT_kwDOTuzK5c6y1oCu",
+      "opened": "2026-11-02T19:54:39Z",
+      "path": "scenarios/gen-ai/python/pydantic-ai/native/conformance.yaml",
+      "replies": [],
+      "reviewed": "1b71de77caf284d8c671996b4869311786474040",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/435#discussion_r4447043536"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The streaming contract requires every supported sampling option (`scenarios/gen-ai/README.md:71–76`), but this request only sets max tokens and temperature. Omitting the other options exercised by `python/openai/scenarios/streaming.py` makes missing request-attribute coverage reflect the scenario rather than the instrumentation. Set the supported options to the sibling values and regenerate `data.json`; OpenAI's unsupported top-k can remain omitted.",
+      "created": "2026-11-02T19:54:39Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a streamed Pydantic AI agent run.\n+\n+Consume the response to the end so the instrumentation records token usage\n+and time to first chunk before the launcher flushes metrics.\n+\"\"\"\n+\n+import asyncio\n+\n+from pydantic_ai import Agent\n+from pydantic_ai.models.openai import OpenAIChatModel\n+from pydantic_ai.settings import ModelSettings\n+\n+agent = Agent(\n+    OpenAIChatModel(\"gpt-4o-mini\"),\n+    name=\"weather_assistant\",\n+    system_prompt=\"You are a helpful assistant.\",\n+    model_settings=ModelSettings(max_tokens=100, temperature=0.5),",
+      "id": "PRRT_kwDOTuzK5c6y1oDs",
+      "opened": "2026-11-02T19:54:39Z",
+      "path": "scenarios/gen-ai/python/pydantic-ai/scenarios/streaming.py",
+      "replies": [],
+      "reviewed": "1b71de77caf284d8c671996b4869311786474040",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/435#discussion_r4447043632"
+    }
+  ]
+}

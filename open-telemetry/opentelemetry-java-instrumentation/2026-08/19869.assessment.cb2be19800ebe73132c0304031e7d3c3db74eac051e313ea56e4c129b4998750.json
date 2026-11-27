@@ -1,0 +1,62 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8457cebf8ee35efcb631af9d72dc18a803c439b043c79387c8f11a55d69070b0",
+  "input_digest": "cb2be19800ebe73132c0304031e7d3c3db74eac051e313ea56e4c129b4998750",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3d38fbd18e669eb92e74022ffd924d9a292b53f0/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchQuerySanitizationDisabledTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aef9c66c1663faf0a032808a2c289ea2f2b35d7e/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchQuerySanitizationDisabledTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c3lb0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3d38fbd18e669eb92e74022ffd924d9a292b53f0/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aef9c66c1663faf0a032808a2c289ea2f2b35d7e/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c3lbB",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86c58Gk",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86c3lbB",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0e6a4df5f2ed2a34c98b88a7e2c57f7fcbe8ff57/instrumentation/opensearch/opensearch-java-3.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aef9c66c1663faf0a032808a2c289ea2f2b35d7e/instrumentation/opensearch/opensearch-java-3.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7f1e4ec02f63f0a7a4a07e6012bfcd6ddc2ff2fe"
+      ],
+      "id": "PRRT_kwDODJKVX86c58G-",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e24c26bb403d8c93a30c76f8119d73ab78c4dcf2/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aef9c66c1663faf0a032808a2c289ea2f2b35d7e/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e24c26bb403d8c93a30c76f8119d73ab78c4dcf2/instrumentation/opensearch/opensearch-java-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aef9c66c1663faf0a032808a2c289ea2f2b35d7e/instrumentation/opensearch/opensearch-java-3.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86dF9KR",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

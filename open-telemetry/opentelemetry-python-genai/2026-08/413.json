@@ -1,0 +1,40 @@
+{
+  "head": "e377f112d9f5f0d18eb6d4aa145875a64ec386b7",
+  "merge": "42219801162ea10d71620f05a972dd64bd975f78",
+  "merged": "2026-08-20T00:38:58Z",
+  "missing_roots": 0,
+  "number": 413,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For self-hosted runners, it’s safer/more explicit to include the `self-hosted` label in `runs-on` (e.g. `runs-on: [self-hosted, cncf-ubuntu-2-8-x86]`). This avoids any future ambiguity if a GitHub-hosted runner label ever overlaps and makes the intent clear to tooling/readers.",
+      "created": "2026-08-19T21:49:00Z",
+      "hunk": "@@ -20,7 +20,7 @@ jobs:\n   # new tox env automatically extends CI without editing workflow YAML.\n   prepare:\n     name: prepare-matrix\n-    runs-on: ubuntu-latest\n+    runs-on: cncf-ubuntu-2-8-x86",
+      "id": "PRRT_kwDOSbspP86an7kF",
+      "opened": "2026-08-19T21:49:01Z",
+      "path": ".github/workflows/ci.yml",
+      "replies": [],
+      "reviewed": "e377f112d9f5f0d18eb6d4aa145875a64ec386b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/413#discussion_r3816968588"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The runner label is duplicated across many workflows, which makes future runner migrations/error fixes repetitive. Consider centralizing the runner label via a repo/org variable (e.g. `vars.LINUX_RUNNER`) and using an expression in `runs-on`, so it can be changed in one place.",
+      "created": "2026-08-19T21:49:01Z",
+      "hunk": "@@ -23,7 +23,7 @@ jobs:\n \n   spellcheck:\n     name: spellcheck\n-    runs-on: ubuntu-latest\n+    runs-on: cncf-ubuntu-2-8-x86",
+      "id": "PRRT_kwDOSbspP86an7kS",
+      "opened": "2026-08-19T21:49:01Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "e377f112d9f5f0d18eb6d4aa145875a64ec386b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/413#discussion_r3816968616"
+    }
+  ]
+}

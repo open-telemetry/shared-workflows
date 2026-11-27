@@ -1,0 +1,73 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a0dface45cec3d46db8ca28e8a09a9601067a60442714403e46f9f9720dc17fa",
+  "input_digest": "4e46e66c252144399102ff74af6fab0ad6e38c17bf54caa05d20b9198866a7b8",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f60e037089449c263f5cef07056f2cc3f63e2f5e/instrumentation/redisson/redisson-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_0/MasterSlaveConnectionManagerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f60e037089449c263f5cef07056f2cc3f63e2f5e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonServerTargets.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1f1a5fe58b66a2aa90041a24cc662c0a4ee74bde/instrumentation/redisson/redisson-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_0/MasterSlaveConnectionManagerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1f1a5fe58b66a2aa90041a24cc662c0a4ee74bde/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonServerTargets.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1f1a5fe58b66a2aa90041a24cc662c0a4ee74bde/instrumentation/redisson/redisson-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_0/RedisConnectionInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hVKIz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f60e037089449c263f5cef07056f2cc3f63e2f5e/instrumentation/redisson/redisson-3.17/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_17/MasterSlaveConnectionManagerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f60e037089449c263f5cef07056f2cc3f63e2f5e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonServerTargets.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1f1a5fe58b66a2aa90041a24cc662c0a4ee74bde/instrumentation/redisson/redisson-3.17/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_17/MasterSlaveConnectionManagerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1f1a5fe58b66a2aa90041a24cc662c0a4ee74bde/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonServerTargets.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hVKJU",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f60e037089449c263f5cef07056f2cc3f63e2f5e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonServerTargets.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f60e037089449c263f5cef07056f2cc3f63e2f5e/instrumentation/redisson/redisson-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_0/MasterSlaveConnectionManagerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1f1a5fe58b66a2aa90041a24cc662c0a4ee74bde/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonServerTargets.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1f1a5fe58b66a2aa90041a24cc662c0a4ee74bde/instrumentation/redisson/redisson-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_0/MasterSlaveConnectionManagerInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hVKJo",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/737354d8edf3ca4566a91c89dcd65e83d474de67/instrumentation/redisson/redisson-3.17/javaagent/src/main/java/org/redisson/config/ConfigServerTargetUtil317.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1f1a5fe58b66a2aa90041a24cc662c0a4ee74bde/instrumentation/redisson/redisson-3.17/javaagent/src/main/java/org/redisson/config/ConfigServerTargetUtil317.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d51fb7c139ce2e3ff343b9b1f0db5619ea46fafe"
+      ],
+      "id": "PRRT_kwDODJKVX86j2bH-",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/737354d8edf3ca4566a91c89dcd65e83d474de67/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/RedisServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1f1a5fe58b66a2aa90041a24cc662c0a4ee74bde/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/RedisServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/59865b6d02c20e73faba2e096e9de480f0972a67"
+      ],
+      "id": "PRRT_kwDODJKVX86j2fcN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "5c5f32ff6fc40a64718b23abd30e233e554607f6",
+  "merge": "3393af5afe26cc8a2ebcedffe6ffbfd9d8a62e84",
+  "merged": "2026-09-04T21:47:03Z",
+  "missing_roots": 0,
+  "number": 625,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): Can we use a type here instead of object?",
+      "created": "2026-09-04T19:33:50Z",
+      "hunk": "@@ -95,6 +95,7 @@ class ResponseRequestParams:\n     service_tier: str | None = None\n     temperature: float | None = None\n     output_type: str | None = None\n+    tools: Sequence[object] | None = None",
+      "id": "PRRT_kwDOSbspP86fa8Jk",
+      "opened": "2026-09-04T20:18:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-09-04T21:25:05Z",
+          "body": "Sure, thanks for catching this!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/625#discussion_r3937981450"
+        }
+      ],
+      "reviewed": "db828b702b97fa2667490c862aefc17f7bcb78f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/625#discussion_r3937333492"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking):  Could this accept reusable non-Sequence iterables while explicitly skipping one-shot Iterators? The OpenAI SDK accepts `Iterable[ToolParam]` the current narrowing omits valid iterable collections from telemetry, while consuming a generator would exhaust SDK input.",
+      "created": "2026-09-04T20:18:10Z",
+      "hunk": "@@ -295,10 +298,10 @@ def _finish_reason_from_status(\n     return None\n \n \n-def get_tool_definitions_from_response(\n-    response: Response | None,\n+def get_tool_definitions(",
+      "id": "PRRT_kwDOSbspP86fbrCM",
+      "opened": "2026-09-04T20:18:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "a0f286b3953afd231930caaa0e5698324007c7c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/625#discussion_r3937624971"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "a2f97b012d98dbcac3c5a0cf82c87f89c83cff0d",
+  "merge": "6397efbc94f123b9c92d9f23bc2e6e454bb8b5a2",
+  "merged": "2026-03-27T11:42:41Z",
+  "missing_roots": 0,
+  "number": 16936,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "feels like overkill",
+      "created": "2026-03-22T17:16:55Z",
+      "hunk": "@@ -29,14 +29,22 @@ static void setUp() {\n   }\n \n   @AfterAll\n-  static void tearDown() {\n+  static void tearDown() throws Exception {\n+    Exception failure = null;\n     for (AutoCloseable observable : observables) {\n       try {\n         observable.close();\n       } catch (Exception e) {\n-        // ignore\n+        if (failure == null) {",
+      "id": "PRRT_kwDODJKVX851-8rM",
+      "opened": "2026-03-22T17:16:55Z",
+      "path": "instrumentation/oshi/library/src/test/java/io/opentelemetry/instrumentation/oshi/SystemMetricsTest.java",
+      "replies": [],
+      "reviewed": "85bf3a665884cc498f5fa23c39c296c461d594d7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16936#discussion_r2971792032"
+    }
+  ]
+}

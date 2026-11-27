@@ -1,0 +1,67 @@
+{
+  "head": "32e36b6fd7e55db1712df274f322729941015946",
+  "merge": "79edac70672b2d52bfa35b8b5727b6370e566261",
+  "merged": "2026-01-12T19:24:57Z",
+  "missing_roots": 0,
+  "number": 15817,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "🎉 ",
+      "created": "2026-01-12T19:01:10Z",
+      "hunk": "@@ -1,89 +0,0 @@\n-/*\n- * Copyright The OpenTelemetry Authors\n- * SPDX-License-Identifier: Apache-2.0\n- */\n-\n-package io.opentelemetry.instrumentation.api.incubator.config.internal;\n-\n-import static io.opentelemetry.api.incubator.config.DeclarativeConfigProperties.empty;\n-\n-import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n-import io.opentelemetry.common.ComponentLoader;\n-import java.util.List;\n-import java.util.Set;\n-import javax.annotation.Nullable;\n-\n-/**\n- * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n- * any time.\n- */\n-public final class ExtendedDeclarativeConfigProperties implements DeclarativeConfigProperties {",
+      "id": "PRRT_kwDODJKVX85pCkmO",
+      "opened": "2026-01-12T19:06:36Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/ExtendedDeclarativeConfigProperties.java",
+      "replies": [],
+      "reviewed": "32e36b6fd7e55db1712df274f322729941015946",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15817#discussion_r2683515740"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "what was reason for this change?",
+      "created": "2026-01-12T19:04:13Z",
+      "hunk": "@@ -93,8 +94,8 @@ private static Stream<Arguments> instrumentationEnabledParams() {\n   }\n \n   private static OpenTelemetry createOpenTelemetry(ConfigProperties config) {\n-    ExtendedOpenTelemetry otel = mock(ExtendedOpenTelemetry.class);\n-    ConfigProvider configProvider = mock(ConfigProvider.class);\n+    ExtendedOpenTelemetry otel = spy(ExtendedOpenTelemetry.class);\n+    ConfigProvider configProvider = spy(ConfigProvider.class);",
+      "id": "PRRT_kwDODJKVX85pCmN5",
+      "opened": "2026-01-12T19:06:36Z",
+      "path": "javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationModuleInstallerTest.java",
+      "replies": [
+        {
+          "at": "2026-01-12T19:14:13Z",
+          "body": "This enables the default method on both interfaces to be called ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15817#discussion_r2683553526"
+        }
+      ],
+      "reviewed": "32e36b6fd7e55db1712df274f322729941015946",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15817#discussion_r2683524144"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "why doesn't this affect other metric tests? do they not use satisfies \"exactly\"? if not, we could do that here for consistency",
+      "created": "2026-01-12T19:06:23Z",
+      "hunk": "@@ -137,6 +137,8 @@ void testConsumeNonPartitionedTopicUsingReceive() throws Exception {\n \n     assertThat(testing.metrics())\n         .satisfiesExactlyInAnyOrder(\n+            metric -> assertThat(metric).hasName(\"otel.sdk.span.started\"),\n+            metric -> assertThat(metric).hasName(\"otel.sdk.span.live\"),",
+      "id": "PRRT_kwDODJKVX85pCnU4",
+      "opened": "2026-01-12T19:06:36Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/PulsarClientTest.java",
+      "replies": [
+        {
+          "at": "2026-01-12T19:14:56Z",
+          "body": "Good point - let me do that in a follow up PR ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15817#discussion_r2683555663"
+        }
+      ],
+      "reviewed": "32e36b6fd7e55db1712df274f322729941015946",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15817#discussion_r2683530046"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "0e53b3ede9ea134d570e37f41be6158fcbe5286a",
+  "merge": "84164577e803dd8b54f36c17a5e0b5237a072d78",
+  "merged": "2026-03-19T14:56:07Z",
+  "missing_roots": 0,
+  "number": 16487,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  // A no-op ContinuationInterceptor that forces withContext to actually intercept (and later\n  // restore) coroutine thread-context elements. Without this wrapper, Ktor 3.x's Unconfined\n  // event-loop dispatcher can skip restoration, leaking the OpenTelemetry context across requests.\n  // See https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/16430\n  private val emptyInterceptor = object : ContinuationInterceptor {\n```",
+      "created": "2026-03-16T04:10:36Z",
+      "hunk": "@@ -18,14 +18,27 @@ import io.opentelemetry.instrumentation.api.internal.InstrumenterUtil\n import io.opentelemetry.instrumentation.ktor.common.v2_0.AbstractKtorServerTelemetryBuilder\n import io.opentelemetry.instrumentation.ktor.common.v2_0.ApplicationRequestGetter\n import kotlinx.coroutines.withContext\n+import kotlin.coroutines.Continuation\n+import kotlin.coroutines.ContinuationInterceptor\n \n /**\n  * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n  * any time.\n  */\n object KtorServerTelemetryUtil {\n+  val emptyInterceptor = object : ContinuationInterceptor {",
+      "id": "PRRT_kwDODJKVX850eNoM",
+      "opened": "2026-03-16T04:10:40Z",
+      "path": "instrumentation/ktor/ktor-common-2.0/library/src/main/kotlin/io/opentelemetry/instrumentation/ktor/common/v2_0/internal/KtorServerTelemetryUtil.kt",
+      "replies": [
+        {
+          "at": "2026-03-19T09:02:09Z",
+          "body": "I'm not sure that this comment is completely correct. I added a slightly different one.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16487#discussion_r2958699033"
+        }
+      ],
+      "reviewed": "85912595306916ca2f9e5b5aacdbbf8d6af2118b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16487#discussion_r2938041623"
+    }
+  ]
+}

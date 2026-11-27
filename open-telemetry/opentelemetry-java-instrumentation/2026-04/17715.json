@@ -1,0 +1,31 @@
+{
+  "head": "3eafd00e8f68d615864c8ed29c0e5d598d124dc2",
+  "merge": "d62ef19980789a4e54b39bcbd26025ed811785d6",
+  "merged": "2026-04-09T16:13:31Z",
+  "missing_roots": 0,
+  "number": 17715,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I'd personally go with something simpler like\n`result.add(TimeUtils.nanosToUnit(b, timeUnit == null ? TimeUnit.NANOSECONDS : timeUnit));`",
+      "created": "2026-04-09T12:31:59Z",
+      "hunk": "@@ -40,10 +41,15 @@ private static List<Double> computeBuckets(\n     double timeUnitMultiplier = timeUnit == null ? 1.0 : TimeUtils.nanosToUnit(1, timeUnit);\n     List<Double> result = new ArrayList<>(buckets.size());\n     for (double b : buckets) {\n-      result.add(b * timeUnitMultiplier);\n+      // use BigDecimal to avoid precision loss when multiplying by timeUnitMultiplier\n+      result.add(preciseCalculateBucket(b, timeUnitMultiplier));",
+      "id": "PRRT_kwDODJKVX8552Huc",
+      "opened": "2026-04-09T12:31:59Z",
+      "path": "instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/HistogramAdviceUtil.java",
+      "replies": [
+        {
+          "at": "2026-04-09T13:14:46Z",
+          "body": "you are right, i changed to simple implement",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17715#discussion_r3058057888"
+        }
+      ],
+      "reviewed": "9183a48a085dcbe53f13bd0c6f6486f9dafe4794",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17715#discussion_r3057807478"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "head": "dfd6b8ea93aa933b269dca4b2ea029884fc13581",
+  "merge": "b537fa85c0fc9b204acc92530396a2046ba8c803",
+  "merged": "2026-09-14T01:45:51Z",
+  "missing_roots": 0,
+  "number": 652,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`get_tool_definitions(params.tools)` iterates over `tools`. In the `create()` wrappers, `_create_invocation()` runs *before* calling the underlying Anthropic method, so if a caller passes `tools` as a one-shot iterator/generator, the instrumentation will exhaust it and the SDK will see an empty tool list (behavior change). Consider materializing non-list/tuple iterables to a list and writing it back into `kwargs`/`params` before computing telemetry.",
+      "created": "2026-09-08T07:45:50Z",
+      "hunk": "@@ -249,6 +250,9 @@ def _create_invocation(\n     invocation.system_instruction = (\n         get_system_instruction(params.system) if capture_content else []\n     )\n+    invocation.tool_definitions = (\n+        get_tool_definitions(params.tools) if capture_content else None\n+    )",
+      "id": "PRRT_kwDOSbspP86gJF8S",
+      "opened": "2026-09-08T07:45:51Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-09T23:44:20Z",
+          "body": "good catch, updated this.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/652#discussion_r3974025436"
+        }
+      ],
+      "reviewed": "5408a5264c2dad0e554bce56d96681ad1297ad8a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/652#discussion_r3955515028"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The `gen_ai.tool.definitions` attribute is recommended (not opt-in). Per the [semconv schema](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/model/gen-ai/gen-ai-tool-definitions.json), only the large optional properties (`description` and `parameters`) should be excluded by default, while `name` and `type` are required.\r\n\r\nPlease populate `invocation.tool_definitions` unconditionally with the required properties (`name`, `type`), while keeping the content-capture guard around `description` and `parameters` in the instrumentation for performance reasons.",
+      "created": "2026-09-08T19:49:47Z",
+      "hunk": "@@ -249,6 +250,9 @@ def _create_invocation(\n     invocation.system_instruction = (\n         get_system_instruction(params.system) if capture_content else []\n     )\n+    invocation.tool_definitions = (\n+        get_tool_definitions(params.tools) if capture_content else None\n+    )\n     invocation.attributes = attributes",
+      "id": "PRRT_kwDOSbspP86gYzB9",
+      "opened": "2026-09-08T19:49:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-09T23:40:02Z",
+          "body": "It seems like `gen_ai.tool.definitions` is still opt-in at this moment ([semconv](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md#L110)), I'm wondering if we're moving this to recommended in the near future.\r\nI think one inconsistency here is that `gen_ai.tool.definitions` is `opt-in` but `description` and `parameters` have a nested level of `opt-in` based on that. But `ContentCapturingMode` isn't granular enough to distinguish this `opt-in` and `opt-in's opt-in`.\r\nMaybe in this PR, I can proceed with only emitting `name` and `type` when content capture is off, then open an issue to discuss more granularity for `ContentCapturingMode`? Or we can put this PR on hold until we have a solution",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/652#discussion_r3973999029"
+        },
+        {
+          "at": "2026-09-11T21:40:08Z",
+          "body": "Sorry for the confusion, you're absolutely right. I created an issue to follow up in the conventions - https://github.com/open-telemetry/semantic-conventions-genai/issues/512\r\n\r\nI think your PR is correct as is.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/652#discussion_r3993603261"
+        }
+      ],
+      "reviewed": "5408a5264c2dad0e554bce56d96681ad1297ad8a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/652#discussion_r3961659950"
+    }
+  ]
+}

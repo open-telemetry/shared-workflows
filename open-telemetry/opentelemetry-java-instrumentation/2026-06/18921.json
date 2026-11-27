@@ -1,0 +1,31 @@
+{
+  "head": "008af681348afb9a8809ff2f57bec5da74c58885",
+  "merge": "2d3f00040b7b1cf33ca3940356a67807f4f4cc36",
+  "merged": "2026-06-08T06:10:11Z",
+  "missing_roots": 0,
+  "number": 18921,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[API] The method is marked as temporary via a line comment, but it remains a public API without a deprecation marker. If it’s intended to be removed/inlined in 3.0, it should be annotated with `@Deprecated` (as is done elsewhere in this module) so downstream callers get a clear signal during the transition.",
+      "created": "2026-06-06T21:09:46Z",
+      "hunk": "@@ -52,7 +55,7 @@ private static SqlQuery analyzeImpl(String query, SqlDialect dialect) {\n     return AutoSqlSanitizer.sanitize(query, dialect);\n   }\n \n-  /** Analyze and extract query summary. */\n+  // To be removed in 3.0 (or rather, inlined into analyze() above)\n   public SqlQuery analyzeWithSummary(@Nullable String query, SqlDialect dialect) {\n     if (!querySanitizationEnabled || query == null) {",
+      "id": "PRRT_kwDODJKVX86HmpsO",
+      "opened": "2026-06-06T21:09:46Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzer.java",
+      "replies": [
+        {
+          "at": "2026-06-06T22:02:35Z",
+          "body": "I don't want to mark it as deprecated because there's no replacement at this time",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18921#discussion_r3368330390"
+        }
+      ],
+      "reviewed": "4d478c479d4fe27f0dafb1c1a77e98d1dc798dc8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18921#discussion_r3368238694"
+    }
+  ]
+}

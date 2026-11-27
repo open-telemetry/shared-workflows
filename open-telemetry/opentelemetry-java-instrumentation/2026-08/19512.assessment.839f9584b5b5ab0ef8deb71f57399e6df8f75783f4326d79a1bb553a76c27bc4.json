@@ -1,0 +1,40 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d854749620e3780c6b73d8f59ed1c391ff50ab7469747b147f8ac81849e63d8a",
+  "input_digest": "839f9584b5b5ab0ef8deb71f57399e6df8f75783f4326d79a1bb553a76c27bc4",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/917ab2948cf858ef5442749acbacc5b3a2fe9fa8/instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/activemq.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ba8458d42e15ba53dc6b4fb091d228584dc2e25f/instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/activemq.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/917ab2948cf858ef5442749acbacc5b3a2fe9fa8/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/ActiveMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ba8458d42e15ba53dc6b4fb091d228584dc2e25f/instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/ActiveMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2c889bd83198822ccfb4a1625ce1ca4a27edb9f8"
+      ],
+      "id": "PRRT_kwDODJKVX86YRe0p",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/917ab2948cf858ef5442749acbacc5b3a2fe9fa8/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ba8458d42e15ba53dc6b4fb091d228584dc2e25f/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/503e0c0cde1f426fa697d04d190da2394d0d6216"
+      ],
+      "id": "PRRT_kwDODJKVX86YRe1S",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86YR2lE",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

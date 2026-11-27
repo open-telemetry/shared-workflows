@@ -1,0 +1,31 @@
+{
+  "head": "53c728243e3c2e67b3a4075be8cea1be7e991e76",
+  "merge": "7414edf18ee4cd914be22e83c14557022ebe4a7f",
+  "merged": "2026-09-22T05:49:45Z",
+  "missing_roots": 0,
+  "number": 20210,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This manager will advance the build JDK in `.java-version`, but `CONTRIBUTING.md:49,81` and `docs/contributing/running-tests.md:25` still hard-code Java 21 as the required/default build version. The first Renovate bump to 25 will therefore leave contributor documentation incorrect. Please update those references as part of the same Renovate dependency, or make the documentation point readers to `.java-version` instead.",
+      "created": "2026-09-22T03:01:18Z",
+      "hunk": "@@ -446,6 +460,19 @@\n         'gh extension install github/gh-aw --pin (?<currentValue>v\\\\d+\\\\.\\\\d+\\\\.\\\\d+)',\n       ],\n     },\n+    {\n+      // Build JDK updates are LTS-only; explicit java-version markers below track every major.\n+      customType: 'regex',",
+      "id": "PRRT_kwDODJKVX86klhtB",
+      "opened": "2026-09-22T03:01:19Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-09-22T03:15:51Z",
+          "body": "Added .github/instructions/java-version.instructions.md",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20210#discussion_r4068178088"
+        }
+      ],
+      "reviewed": "7b522c92f96e3ff06fb6ee128510bd4120e0626f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20210#discussion_r4068127647"
+    }
+  ]
+}

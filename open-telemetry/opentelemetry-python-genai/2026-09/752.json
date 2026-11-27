@@ -1,0 +1,193 @@
+{
+  "head": "5aac52bcb02ccce2642908a0c80e39aafec1e94f",
+  "merge": "6f69095c81fff8825ced9266d3b3bdc30be18259",
+  "merged": "2026-09-22T05:39:13Z",
+  "missing_roots": 0,
+  "number": 752,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "_interaction_request() returns getattr(body, \"__dict__\", body) for request.body models. For Pydantic v2 models this can include defaulted fields (not just explicitly supplied ones), which risks recording gen_ai.request.* attributes even when the caller didn’t set them—contradicting the README/PR claim that only explicitly supplied configuration is captured. Prefer dumping only “unset-excluded” fields when model_dump() is available, and fall back to __dict__ only when there’s no structured dump API.",
+      "created": "2026-09-21T00:42:17Z",
+      "hunk": "@@ -512,10 +517,114 @@ def _maybe_get_tool_definitions(\n     return definitions if definitions else None\n \n \n+def _interaction_request(kwargs: dict[str, Any]) -> object:\n+    body = _get_field(kwargs.get(\"request\"), \"body\")\n+    if body is None:\n+        return kwargs\n+    # Read stored model fields without triggering SDK deprecation warnings.\n+    return getattr(body, \"__dict__\", body)\n+",
+      "id": "PRRT_kwDOSbspP86kNV_v",
+      "opened": "2026-09-21T00:42:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-09-21T02:04:51Z",
+          "body": "Changed it to record only settings the caller explicitly supplied, not SDK defaults. It reads field metadata without serializing the request, so lazy content stays untouched.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4058840090"
+        }
+      ],
+      "reviewed": "d401655d790f23a4550cfaff70499d883fa175fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4058616662"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Can we de-AI this section a bit? I think it can be either removed (we don't list the details for each operation) or collapsed to 1-2 sentences.",
+      "created": "2026-09-21T04:29:09Z",
+      "hunk": "@@ -115,6 +115,30 @@ captured using the following environment variables:\n If both variables are set, the includes list is applied first, then the\n excludes list filters the result further.\n \n+Interactions request parameters",
+      "id": "PRRT_kwDOSbspP86kPARe",
+      "opened": "2026-09-21T04:43:46Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/README.rst",
+      "replies": [
+        {
+          "at": "2026-09-21T16:07:41Z",
+          "body": "Makes sense, removed this section to clean this up",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4063995634"
+        }
+      ],
+      "reviewed": "6f87c92513d2cc9dfd106f14f144ebbdbb97a698",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4059266829"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    if mime_type.startswith(\"text/\"):\n        return output_types.TEXT.value\n```\nPrefix matching here (like `image/` and `audio/`) would also catch types like `text/markdown` or `text/x.enum`.",
+      "created": "2026-09-21T04:41:14Z",
+      "hunk": "@@ -512,10 +517,124 @@ def _maybe_get_tool_definitions(\n     return definitions if definitions else None\n \n \n+def _explicit_request_fields(value: object) -> object:\n+    fields = getattr(value, \"__dict__\", value)\n+    supplied = getattr(value, \"model_fields_set\", None)\n+    if isinstance(fields, dict) and isinstance(supplied, set):\n+        # Model dumps can serialize lazy content; stored fields also avoid\n+        # invoking the SDK's deprecated property accessors.\n+        extra = getattr(value, \"model_extra\", None)\n+        if isinstance(extra, dict):\n+            fields = fields | extra\n+        return {name: fields[name] for name in supplied if name in fields}\n+    return fields\n+\n+\n+def _interaction_request(kwargs: dict[str, Any]) -> object:\n+    body = _get_field(kwargs.get(\"request\"), \"body\")\n+    return _explicit_request_fields(body) if body is not None else kwargs\n+\n+\n+def _is_interaction_stream(response: object, request: object) -> bool:\n+    if isinstance(response, (Stream, AsyncStream)):\n+        return True\n+    if isinstance(response, Interaction):\n+        return False\n+    return bool(_get_field(request, \"stream\"))\n+\n+\n+def _output_type_from_mime_type(mime_type: object) -> str | None:\n+    if not isinstance(mime_type, str):\n+        return None\n+    mime_type = mime_type.partition(\";\")[0].strip().lower()\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if mime_type == \"application/json\" or mime_type.endswith(\"+json\"):\n+        return output_types.JSON.value\n+    if mime_type == \"text/plain\":\n+        return output_types.TEXT.value",
+      "id": "PRRT_kwDOSbspP86kPGY4",
+      "opened": "2026-09-21T04:43:46Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [],
+      "reviewed": "6f87c92513d2cc9dfd106f14f144ebbdbb97a698",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4059304069"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    if format_type in (\n        \"object\",\n        \"array\",\n        \"string\",\n        \"number\",\n        \"integer\",\n        \"boolean\",\n        \"null\",\n        \"json\",\n        \"json_object\",\n        \"json_schema\",\n    ):\n        return output_types.JSON.value\n```\nMight be worth including common JSON format names too.",
+      "created": "2026-09-21T04:41:31Z",
+      "hunk": "@@ -512,10 +517,124 @@ def _maybe_get_tool_definitions(\n     return definitions if definitions else None\n \n \n+def _explicit_request_fields(value: object) -> object:\n+    fields = getattr(value, \"__dict__\", value)\n+    supplied = getattr(value, \"model_fields_set\", None)\n+    if isinstance(fields, dict) and isinstance(supplied, set):\n+        # Model dumps can serialize lazy content; stored fields also avoid\n+        # invoking the SDK's deprecated property accessors.\n+        extra = getattr(value, \"model_extra\", None)\n+        if isinstance(extra, dict):\n+            fields = fields | extra\n+        return {name: fields[name] for name in supplied if name in fields}\n+    return fields\n+\n+\n+def _interaction_request(kwargs: dict[str, Any]) -> object:\n+    body = _get_field(kwargs.get(\"request\"), \"body\")\n+    return _explicit_request_fields(body) if body is not None else kwargs\n+\n+\n+def _is_interaction_stream(response: object, request: object) -> bool:\n+    if isinstance(response, (Stream, AsyncStream)):\n+        return True\n+    if isinstance(response, Interaction):\n+        return False\n+    return bool(_get_field(request, \"stream\"))\n+\n+\n+def _output_type_from_mime_type(mime_type: object) -> str | None:\n+    if not isinstance(mime_type, str):\n+        return None\n+    mime_type = mime_type.partition(\";\")[0].strip().lower()\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if mime_type == \"application/json\" or mime_type.endswith(\"+json\"):\n+        return output_types.JSON.value\n+    if mime_type == \"text/plain\":\n+        return output_types.TEXT.value\n+    if mime_type.startswith(\"image/\"):\n+        return output_types.IMAGE.value\n+    if mime_type.startswith(\"audio/\"):\n+        return output_types.SPEECH.value\n+    return None\n+\n+\n+def _output_type_from_format(response_format: object) -> str | None:\n+    if isinstance(response_format, (list, tuple)):\n+        output_types = {\n+            _output_type_from_format(item) for item in response_format\n+        }\n+        return output_types.pop() if len(output_types) == 1 else None\n+\n+    output_type = _output_type_from_mime_type(\n+        _get_field(response_format, \"mime_type\")\n+    )\n+    if output_type is not None:\n+        return output_type\n+\n+    format_type = _get_field(response_format, \"type\")\n+    if not isinstance(format_type, str):\n+        return None\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if format_type == \"text\":\n+        return output_types.TEXT.value\n+    if format_type == \"image\":\n+        return output_types.IMAGE.value\n+    if format_type == \"audio\":\n+        return output_types.SPEECH.value\n+    if format_type in (\n+        \"object\",\n+        \"array\",\n+        \"string\",\n+        \"number\",\n+        \"integer\",\n+        \"boolean\",\n+        \"null\",\n+    ):\n+        return output_types.JSON.value",
+      "id": "PRRT_kwDOSbspP86kPGjO",
+      "opened": "2026-09-21T04:43:46Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-09-21T16:32:26Z",
+          "body": "Added `json`, `json_object`, and `json_schema` here and updated the test request params",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4064241019"
+        }
+      ],
+      "reviewed": "6f87c92513d2cc9dfd106f14f144ebbdbb97a698",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4059304969"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    for name in (\"temperature\", \"top_p\"):\n        value = _get_field(config, name)\n        if (\n            isinstance(value, (int, float))\n            and not isinstance(value, bool)\n            and math.isfinite(value)\n            and value >= 0\n        ):\n            setattr(invocation, name, float(value))\n```\n`math.isfinite` could be simpler than checking against `float_info`.",
+      "created": "2026-09-21T04:41:48Z",
+      "hunk": "@@ -512,10 +517,124 @@ def _maybe_get_tool_definitions(\n     return definitions if definitions else None\n \n \n+def _explicit_request_fields(value: object) -> object:\n+    fields = getattr(value, \"__dict__\", value)\n+    supplied = getattr(value, \"model_fields_set\", None)\n+    if isinstance(fields, dict) and isinstance(supplied, set):\n+        # Model dumps can serialize lazy content; stored fields also avoid\n+        # invoking the SDK's deprecated property accessors.\n+        extra = getattr(value, \"model_extra\", None)\n+        if isinstance(extra, dict):\n+            fields = fields | extra\n+        return {name: fields[name] for name in supplied if name in fields}\n+    return fields\n+\n+\n+def _interaction_request(kwargs: dict[str, Any]) -> object:\n+    body = _get_field(kwargs.get(\"request\"), \"body\")\n+    return _explicit_request_fields(body) if body is not None else kwargs\n+\n+\n+def _is_interaction_stream(response: object, request: object) -> bool:\n+    if isinstance(response, (Stream, AsyncStream)):\n+        return True\n+    if isinstance(response, Interaction):\n+        return False\n+    return bool(_get_field(request, \"stream\"))\n+\n+\n+def _output_type_from_mime_type(mime_type: object) -> str | None:\n+    if not isinstance(mime_type, str):\n+        return None\n+    mime_type = mime_type.partition(\";\")[0].strip().lower()\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if mime_type == \"application/json\" or mime_type.endswith(\"+json\"):\n+        return output_types.JSON.value\n+    if mime_type == \"text/plain\":\n+        return output_types.TEXT.value\n+    if mime_type.startswith(\"image/\"):\n+        return output_types.IMAGE.value\n+    if mime_type.startswith(\"audio/\"):\n+        return output_types.SPEECH.value\n+    return None\n+\n+\n+def _output_type_from_format(response_format: object) -> str | None:\n+    if isinstance(response_format, (list, tuple)):\n+        output_types = {\n+            _output_type_from_format(item) for item in response_format\n+        }\n+        return output_types.pop() if len(output_types) == 1 else None\n+\n+    output_type = _output_type_from_mime_type(\n+        _get_field(response_format, \"mime_type\")\n+    )\n+    if output_type is not None:\n+        return output_type\n+\n+    format_type = _get_field(response_format, \"type\")\n+    if not isinstance(format_type, str):\n+        return None\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if format_type == \"text\":\n+        return output_types.TEXT.value\n+    if format_type == \"image\":\n+        return output_types.IMAGE.value\n+    if format_type == \"audio\":\n+        return output_types.SPEECH.value\n+    if format_type in (\n+        \"object\",\n+        \"array\",\n+        \"string\",\n+        \"number\",\n+        \"integer\",\n+        \"boolean\",\n+        \"null\",\n+    ):\n+        return output_types.JSON.value\n+    return None\n+\n+\n+def _apply_interaction_request_attributes(\n+    invocation: InferenceInvocation | RemoteAgentInvocation,\n+    request: object,\n+) -> None:\n+    config = _explicit_request_fields(_get_field(request, \"generation_config\"))\n+    for name in (\"temperature\", \"top_p\"):\n+        value = _get_field(config, name)\n+        if (\n+            isinstance(value, (int, float))\n+            and not isinstance(value, bool)\n+            and -float_info.max <= value <= float_info.max\n+        ):\n+            setattr(invocation, name, float(value))",
+      "id": "PRRT_kwDOSbspP86kPGs8",
+      "opened": "2026-09-21T04:43:46Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-09-21T16:41:15Z",
+          "body": "Updated to use `math.isfinite`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4064308378"
+        }
+      ],
+      "reviewed": "6f87c92513d2cc9dfd106f14f144ebbdbb97a698",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4059305901"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    if (\n        isinstance(stop_sequences, (list, tuple))\n        and stop_sequences\n        and all(isinstance(item, str) for item in stop_sequences)\n    ):\n        invocation.stop_sequences = list(stop_sequences)\n```\nConsider checking that `stop_sequences` is non-empty so `[]` is not recorded as an attribute.",
+      "created": "2026-09-21T04:42:02Z",
+      "hunk": "@@ -512,10 +517,124 @@ def _maybe_get_tool_definitions(\n     return definitions if definitions else None\n \n \n+def _explicit_request_fields(value: object) -> object:\n+    fields = getattr(value, \"__dict__\", value)\n+    supplied = getattr(value, \"model_fields_set\", None)\n+    if isinstance(fields, dict) and isinstance(supplied, set):\n+        # Model dumps can serialize lazy content; stored fields also avoid\n+        # invoking the SDK's deprecated property accessors.\n+        extra = getattr(value, \"model_extra\", None)\n+        if isinstance(extra, dict):\n+            fields = fields | extra\n+        return {name: fields[name] for name in supplied if name in fields}\n+    return fields\n+\n+\n+def _interaction_request(kwargs: dict[str, Any]) -> object:\n+    body = _get_field(kwargs.get(\"request\"), \"body\")\n+    return _explicit_request_fields(body) if body is not None else kwargs\n+\n+\n+def _is_interaction_stream(response: object, request: object) -> bool:\n+    if isinstance(response, (Stream, AsyncStream)):\n+        return True\n+    if isinstance(response, Interaction):\n+        return False\n+    return bool(_get_field(request, \"stream\"))\n+\n+\n+def _output_type_from_mime_type(mime_type: object) -> str | None:\n+    if not isinstance(mime_type, str):\n+        return None\n+    mime_type = mime_type.partition(\";\")[0].strip().lower()\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if mime_type == \"application/json\" or mime_type.endswith(\"+json\"):\n+        return output_types.JSON.value\n+    if mime_type == \"text/plain\":\n+        return output_types.TEXT.value\n+    if mime_type.startswith(\"image/\"):\n+        return output_types.IMAGE.value\n+    if mime_type.startswith(\"audio/\"):\n+        return output_types.SPEECH.value\n+    return None\n+\n+\n+def _output_type_from_format(response_format: object) -> str | None:\n+    if isinstance(response_format, (list, tuple)):\n+        output_types = {\n+            _output_type_from_format(item) for item in response_format\n+        }\n+        return output_types.pop() if len(output_types) == 1 else None\n+\n+    output_type = _output_type_from_mime_type(\n+        _get_field(response_format, \"mime_type\")\n+    )\n+    if output_type is not None:\n+        return output_type\n+\n+    format_type = _get_field(response_format, \"type\")\n+    if not isinstance(format_type, str):\n+        return None\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if format_type == \"text\":\n+        return output_types.TEXT.value\n+    if format_type == \"image\":\n+        return output_types.IMAGE.value\n+    if format_type == \"audio\":\n+        return output_types.SPEECH.value\n+    if format_type in (\n+        \"object\",\n+        \"array\",\n+        \"string\",\n+        \"number\",\n+        \"integer\",\n+        \"boolean\",\n+        \"null\",\n+    ):\n+        return output_types.JSON.value\n+    return None\n+\n+\n+def _apply_interaction_request_attributes(\n+    invocation: InferenceInvocation | RemoteAgentInvocation,\n+    request: object,\n+) -> None:\n+    config = _explicit_request_fields(_get_field(request, \"generation_config\"))\n+    for name in (\"temperature\", \"top_p\"):\n+        value = _get_field(config, name)\n+        if (\n+            isinstance(value, (int, float))\n+            and not isinstance(value, bool)\n+            and -float_info.max <= value <= float_info.max\n+        ):\n+            setattr(invocation, name, float(value))\n+\n+    max_tokens = _get_field(config, \"max_output_tokens\")\n+    if isinstance(max_tokens, int) and not isinstance(max_tokens, bool):\n+        invocation.max_tokens = max_tokens\n+    seed = _get_field(config, \"seed\")\n+    if isinstance(seed, int) and not isinstance(seed, bool):\n+        invocation.seed = seed\n+    stop_sequences = _get_field(config, \"stop_sequences\")\n+    if isinstance(stop_sequences, (list, tuple)) and all(\n+        isinstance(item, str) for item in stop_sequences\n+    ):\n+        invocation.stop_sequences = list(stop_sequences)",
+      "id": "PRRT_kwDOSbspP86kPG0e",
+      "opened": "2026-09-21T04:43:46Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-09-21T16:45:36Z",
+          "body": "Added a check on `stop_sequences`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4064341390"
+        }
+      ],
+      "reviewed": "6f87c92513d2cc9dfd106f14f144ebbdbb97a698",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4059306610"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "btw why do we even need to protect from it, if top_p is invalid float, the SDK would throw, why do we need to validate boundaries?",
+      "created": "2026-09-21T16:58:06Z",
+      "hunk": "@@ -512,10 +518,132 @@ def _maybe_get_tool_definitions(\n     return definitions if definitions else None\n \n \n+def _explicit_request_fields(value: object) -> object:\n+    fields = getattr(value, \"__dict__\", value)\n+    supplied = getattr(value, \"model_fields_set\", None)\n+    if isinstance(fields, dict) and isinstance(supplied, set):\n+        # Model dumps can serialize lazy content; stored fields also avoid\n+        # invoking the SDK's deprecated property accessors.\n+        extra = getattr(value, \"model_extra\", None)\n+        if isinstance(extra, dict):\n+            fields = fields | extra\n+        return {name: fields[name] for name in supplied if name in fields}\n+    return fields\n+\n+\n+def _interaction_request(kwargs: dict[str, Any]) -> object:\n+    body = _get_field(kwargs.get(\"request\"), \"body\")\n+    return _explicit_request_fields(body) if body is not None else kwargs\n+\n+\n+def _is_interaction_stream(response: object, request: object) -> bool:\n+    if isinstance(response, (Stream, AsyncStream)):\n+        return True\n+    if isinstance(response, Interaction):\n+        return False\n+    return bool(_get_field(request, \"stream\"))\n+\n+\n+def _output_type_from_mime_type(mime_type: object) -> str | None:\n+    if not isinstance(mime_type, str):\n+        return None\n+    mime_type = mime_type.partition(\";\")[0].strip().lower()\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if mime_type == \"application/json\" or mime_type.endswith(\"+json\"):\n+        return output_types.JSON.value\n+    if mime_type.startswith(\"text/\"):\n+        return output_types.TEXT.value\n+    if mime_type.startswith(\"image/\"):\n+        return output_types.IMAGE.value\n+    if mime_type.startswith(\"audio/\"):\n+        return output_types.SPEECH.value\n+    return None\n+\n+\n+def _output_type_from_format(response_format: object) -> str | None:\n+    if isinstance(response_format, (list, tuple)):\n+        output_types = {\n+            _output_type_from_format(item) for item in response_format\n+        }\n+        return output_types.pop() if len(output_types) == 1 else None\n+\n+    output_type = _output_type_from_mime_type(\n+        _get_field(response_format, \"mime_type\")\n+    )\n+    if output_type is not None:\n+        return output_type\n+\n+    format_type = _get_field(response_format, \"type\")\n+    if not isinstance(format_type, str):\n+        return None\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if format_type == \"text\":\n+        return output_types.TEXT.value\n+    if format_type == \"image\":\n+        return output_types.IMAGE.value\n+    if format_type == \"audio\":\n+        return output_types.SPEECH.value\n+    if format_type in (\n+        \"object\",\n+        \"array\",\n+        \"string\",\n+        \"number\",\n+        \"integer\",\n+        \"boolean\",\n+        \"null\",\n+        \"json\",\n+        \"json_object\",\n+        \"json_schema\",\n+    ):\n+        return output_types.JSON.value\n+    return None\n+\n+\n+def _apply_interaction_request_attributes(\n+    invocation: InferenceInvocation | RemoteAgentInvocation,\n+    request: object,\n+) -> None:\n+    config = _explicit_request_fields(_get_field(request, \"generation_config\"))\n+    for name in (\"temperature\", \"top_p\"):\n+        value = _get_field(config, name)\n+        if isinstance(value, int) and value > float_info.max:\n+            continue",
+      "id": "PRRT_kwDOSbspP86kcUZp",
+      "opened": "2026-09-21T17:01:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-09-21T17:30:16Z",
+          "body": "We convert the value before calling the SDK, so a huge integer could make our instrumentation throw first. This guard just skips recording it and lets the SDK handle the original value. Although it's definitely an unlikely edge case.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4064714562"
+        }
+      ],
+      "reviewed": "d099ba94c7f5b04f21c4f9c4aff080b3cbafb79a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4064440150"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why do we have a loop here? please copy over method _coerse_float from some other place in this repo and call it for individual properties.\n\nAnd the let's use typed invocatio.top_p | temperature setters.",
+      "created": "2026-09-21T17:00:06Z",
+      "hunk": "@@ -512,10 +518,132 @@ def _maybe_get_tool_definitions(\n     return definitions if definitions else None\n \n \n+def _explicit_request_fields(value: object) -> object:\n+    fields = getattr(value, \"__dict__\", value)\n+    supplied = getattr(value, \"model_fields_set\", None)\n+    if isinstance(fields, dict) and isinstance(supplied, set):\n+        # Model dumps can serialize lazy content; stored fields also avoid\n+        # invoking the SDK's deprecated property accessors.\n+        extra = getattr(value, \"model_extra\", None)\n+        if isinstance(extra, dict):\n+            fields = fields | extra\n+        return {name: fields[name] for name in supplied if name in fields}\n+    return fields\n+\n+\n+def _interaction_request(kwargs: dict[str, Any]) -> object:\n+    body = _get_field(kwargs.get(\"request\"), \"body\")\n+    return _explicit_request_fields(body) if body is not None else kwargs\n+\n+\n+def _is_interaction_stream(response: object, request: object) -> bool:\n+    if isinstance(response, (Stream, AsyncStream)):\n+        return True\n+    if isinstance(response, Interaction):\n+        return False\n+    return bool(_get_field(request, \"stream\"))\n+\n+\n+def _output_type_from_mime_type(mime_type: object) -> str | None:\n+    if not isinstance(mime_type, str):\n+        return None\n+    mime_type = mime_type.partition(\";\")[0].strip().lower()\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if mime_type == \"application/json\" or mime_type.endswith(\"+json\"):\n+        return output_types.JSON.value\n+    if mime_type.startswith(\"text/\"):\n+        return output_types.TEXT.value\n+    if mime_type.startswith(\"image/\"):\n+        return output_types.IMAGE.value\n+    if mime_type.startswith(\"audio/\"):\n+        return output_types.SPEECH.value\n+    return None\n+\n+\n+def _output_type_from_format(response_format: object) -> str | None:\n+    if isinstance(response_format, (list, tuple)):\n+        output_types = {\n+            _output_type_from_format(item) for item in response_format\n+        }\n+        return output_types.pop() if len(output_types) == 1 else None\n+\n+    output_type = _output_type_from_mime_type(\n+        _get_field(response_format, \"mime_type\")\n+    )\n+    if output_type is not None:\n+        return output_type\n+\n+    format_type = _get_field(response_format, \"type\")\n+    if not isinstance(format_type, str):\n+        return None\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if format_type == \"text\":\n+        return output_types.TEXT.value\n+    if format_type == \"image\":\n+        return output_types.IMAGE.value\n+    if format_type == \"audio\":\n+        return output_types.SPEECH.value\n+    if format_type in (\n+        \"object\",\n+        \"array\",\n+        \"string\",\n+        \"number\",\n+        \"integer\",\n+        \"boolean\",\n+        \"null\",\n+        \"json\",\n+        \"json_object\",\n+        \"json_schema\",\n+    ):\n+        return output_types.JSON.value\n+    return None\n+\n+\n+def _apply_interaction_request_attributes(\n+    invocation: InferenceInvocation | RemoteAgentInvocation,\n+    request: object,\n+) -> None:\n+    config = _explicit_request_fields(_get_field(request, \"generation_config\"))\n+    for name in (\"temperature\", \"top_p\"):",
+      "id": "PRRT_kwDOSbspP86kcXP3",
+      "opened": "2026-09-21T17:01:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-09-21T18:02:23Z",
+          "body": "Moved the existing conversion checks into `_coerce_float` and replaced the loop with explicit `invocation.temperature` and `invocation.top_p` assignments",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4064970940"
+        }
+      ],
+      "reviewed": "d099ba94c7f5b04f21c4f9c4aff080b3cbafb79a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4064458516"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is there a specific type we can use instead of object?",
+      "created": "2026-09-21T17:00:54Z",
+      "hunk": "@@ -512,10 +518,132 @@ def _maybe_get_tool_definitions(\n     return definitions if definitions else None\n \n \n+def _explicit_request_fields(value: object) -> object:\n+    fields = getattr(value, \"__dict__\", value)\n+    supplied = getattr(value, \"model_fields_set\", None)\n+    if isinstance(fields, dict) and isinstance(supplied, set):\n+        # Model dumps can serialize lazy content; stored fields also avoid\n+        # invoking the SDK's deprecated property accessors.\n+        extra = getattr(value, \"model_extra\", None)\n+        if isinstance(extra, dict):\n+            fields = fields | extra\n+        return {name: fields[name] for name in supplied if name in fields}\n+    return fields\n+\n+\n+def _interaction_request(kwargs: dict[str, Any]) -> object:\n+    body = _get_field(kwargs.get(\"request\"), \"body\")\n+    return _explicit_request_fields(body) if body is not None else kwargs\n+\n+\n+def _is_interaction_stream(response: object, request: object) -> bool:\n+    if isinstance(response, (Stream, AsyncStream)):\n+        return True\n+    if isinstance(response, Interaction):\n+        return False\n+    return bool(_get_field(request, \"stream\"))\n+\n+\n+def _output_type_from_mime_type(mime_type: object) -> str | None:\n+    if not isinstance(mime_type, str):\n+        return None\n+    mime_type = mime_type.partition(\";\")[0].strip().lower()\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if mime_type == \"application/json\" or mime_type.endswith(\"+json\"):\n+        return output_types.JSON.value\n+    if mime_type.startswith(\"text/\"):\n+        return output_types.TEXT.value\n+    if mime_type.startswith(\"image/\"):\n+        return output_types.IMAGE.value\n+    if mime_type.startswith(\"audio/\"):\n+        return output_types.SPEECH.value\n+    return None\n+\n+\n+def _output_type_from_format(response_format: object) -> str | None:\n+    if isinstance(response_format, (list, tuple)):\n+        output_types = {\n+            _output_type_from_format(item) for item in response_format\n+        }\n+        return output_types.pop() if len(output_types) == 1 else None\n+\n+    output_type = _output_type_from_mime_type(\n+        _get_field(response_format, \"mime_type\")\n+    )\n+    if output_type is not None:\n+        return output_type\n+\n+    format_type = _get_field(response_format, \"type\")\n+    if not isinstance(format_type, str):\n+        return None\n+    output_types = GenAIAttributes.GenAiOutputTypeValues\n+    if format_type == \"text\":\n+        return output_types.TEXT.value\n+    if format_type == \"image\":\n+        return output_types.IMAGE.value\n+    if format_type == \"audio\":\n+        return output_types.SPEECH.value\n+    if format_type in (\n+        \"object\",\n+        \"array\",\n+        \"string\",\n+        \"number\",\n+        \"integer\",\n+        \"boolean\",\n+        \"null\",\n+        \"json\",\n+        \"json_object\",\n+        \"json_schema\",\n+    ):\n+        return output_types.JSON.value\n+    return None\n+\n+\n+def _apply_interaction_request_attributes(\n+    invocation: InferenceInvocation | RemoteAgentInvocation,\n+    request: object,\n+) -> None:\n+    config = _explicit_request_fields(_get_field(request, \"generation_config\"))\n+    for name in (\"temperature\", \"top_p\"):\n+        value = _get_field(config, name)\n+        if isinstance(value, int) and value > float_info.max:\n+            continue\n+        if (\n+            isinstance(value, (int, float))\n+            and not isinstance(value, bool)\n+            and value >= 0\n+            and math.isfinite(value)\n+        ):\n+            setattr(invocation, name, float(value))\n+\n+    max_tokens = _get_field(config, \"max_output_tokens\")\n+    if isinstance(max_tokens, int) and not isinstance(max_tokens, bool):\n+        invocation.max_tokens = max_tokens\n+    seed = _get_field(config, \"seed\")\n+    if isinstance(seed, int) and not isinstance(seed, bool):\n+        invocation.seed = seed\n+    stop_sequences = _get_field(config, \"stop_sequences\")\n+    if (\n+        isinstance(stop_sequences, (list, tuple))\n+        and stop_sequences\n+        and all(isinstance(item, str) for item in stop_sequences)\n+    ):\n+        invocation.stop_sequences = list(stop_sequences)\n+\n+    response_format = _get_field(request, \"response_format\")\n+    invocation.output_type = _output_type_from_format(response_format)\n+    if invocation.output_type is None and not isinstance(\n+        response_format, (list, tuple)\n+    ):\n+        invocation.output_type = _output_type_from_mime_type(\n+            _get_field(request, \"response_mime_type\")\n+        )\n+\n+\n def _start_interactions_invocation(\n     telemetry_handler: TelemetryHandler,\n     instance: InteractionsResource | AsyncInteractionsResource,\n-    kwargs: dict[str, Any],\n+    request: object,",
+      "id": "PRRT_kwDOSbspP86kcYaq",
+      "opened": "2026-09-21T17:01:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-09-21T18:22:30Z",
+          "body": "Changed this to `Mapping[str, object]` and updated the request helpers to match.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4065123498"
+        }
+      ],
+      "reviewed": "d099ba94c7f5b04f21c4f9c4aff080b3cbafb79a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/752#discussion_r4064465977"
+    }
+  ]
+}

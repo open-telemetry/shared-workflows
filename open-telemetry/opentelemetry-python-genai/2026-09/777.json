@@ -1,0 +1,31 @@
+{
+  "head": "fc9a820060c41fbb92a54ad14b20bad2120fdc95",
+  "merge": "65abfde35bb13fd8cb46e79de6da08931a50c86f",
+  "merged": "2026-09-24T08:38:49Z",
+  "missing_roots": 0,
+  "number": 777,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nplease don't let AI add comments that are not helpful or relevant to the future readers",
+      "created": "2026-09-23T16:35:22Z",
+      "hunk": "@@ -11,9 +11,12 @@ Metrics capture token usage and performance data.\n \n Note: ``.env`` file configures additional environment variables:\n \n-- ``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true`` configures OpenAI instrumentation to capture content on events.\n - ``OTEL_LOGS_EXPORTER=otlp`` to specify exporter type.\n \n+Embeddings instrumentation does not currently record input content, so\n+``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`` has no effect in this\n+example (see `#541 <https://github.com/open-telemetry/opentelemetry-python-genai/issues/541>`_).",
+      "id": "PRRT_kwDOSbspP86lPlhl",
+      "opened": "2026-09-23T16:35:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/examples/embeddings/README.rst",
+      "replies": [
+        {
+          "at": "2026-09-23T23:16:55Z",
+          "body": "Removed in fc9a820.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/777#discussion_r4088240427"
+        }
+      ],
+      "reviewed": "2e7be3e5dfa45d12deaf26c848c2854443d9dae2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/777#discussion_r4084841584"
+    }
+  ]
+}

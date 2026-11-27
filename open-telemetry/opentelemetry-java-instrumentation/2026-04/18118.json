@@ -1,0 +1,25 @@
+{
+  "head": "0867e360c6aea5f848b7b2c4b7e1d4f47807e86d",
+  "merge": "aebdbc79b176a5393996b6a3d97f7165785dc7b4",
+  "merged": "2026-04-22T22:46:14Z",
+  "missing_roots": 0,
+  "number": 18118,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18168",
+      "created": "2026-04-22T22:46:06Z",
+      "hunk": "@@ -25,7 +25,6 @@ class CouchbaseQuerySanitizerTest {\n   @MethodSource(\"providesArguments\")\n   void testShouldNormalizeStringQuery(Parameter parameter) {\n     String normalized = CouchbaseQuerySanitizer.analyze(parameter.query).getQueryText();\n-    assertThat(normalized).isNotNull();",
+      "id": "PRRT_kwDODJKVX85871M1",
+      "opened": "2026-04-22T22:46:06Z",
+      "path": "instrumentation/couchbase/couchbase-common-2.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v2_0/CouchbaseQuerySanitizerTest.java",
+      "replies": [],
+      "reviewed": "0867e360c6aea5f848b7b2c4b7e1d4f47807e86d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18118#discussion_r3127289362"
+    }
+  ]
+}

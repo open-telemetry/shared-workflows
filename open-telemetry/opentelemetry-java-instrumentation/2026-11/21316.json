@@ -1,0 +1,115 @@
+{
+  "head": "7564efde6c2a1dd097f76bc0a818c36b63d597c2",
+  "merge": "7100ef01076495c26d7787c95621ca1bdf8b0e45",
+  "merged": "2026-11-17T17:13:38Z",
+  "missing_roots": 0,
+  "number": 21316,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This switches the Play smoke-test dependencies to a Maven `-SNAPSHOT`, which Gradle treats as changing; rebuilding the same commit can therefore resolve different artifacts if the snapshot is republished. Keep `3.1.0-M9` until another released milestone is available, consistent with the snapshot exclusion already used for the Play plugin in `.github/renovate.json5:127-132`.",
+      "created": "2026-11-17T00:36:59Z",
+      "hunk": "@@ -17,7 +17,7 @@ play {\n }\n \n dependencies {\n-  val playVersion = \"3.1.0-M9\"\n+  val playVersion = \"3.1.0-M10-70074814-SNAPSHOT\"",
+      "id": "PRRT_kwDODJKVX864NjLc",
+      "opened": "2026-11-17T00:36:59Z",
+      "path": "smoke-tests/images/play/build.gradle.kts",
+      "replies": [],
+      "reviewed": "b1703b2e98f85d0d7919d894338486271c4233a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21316#discussion_r4593688474"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n  val playVersion = \"3.1.0-M9\"\n```",
+      "created": "2026-11-17T07:48:38Z",
+      "hunk": "@@ -17,7 +17,7 @@ play {\n }\n \n dependencies {\n-  val playVersion = \"3.1.0-M9\"\n+  val playVersion = \"3.1.0-M10-70074814-SNAPSHOT\"",
+      "id": "PRRT_kwDODJKVX864UraE",
+      "opened": "2026-11-17T07:48:38Z",
+      "path": "smoke-tests/images/play/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c5f8863ba55b7188c77e772202d8a981838bcdb5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21316#discussion_r4596720224"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n  id(\"com.diffplug.spotless\") version \"8.10.4\"\n```",
+      "created": "2026-11-17T10:57:51Z",
+      "hunk": "@@ -1,6 +1,6 @@\n plugins {\n   id(\"java\")\n-  id(\"com.diffplug.spotless\") version \"8.10.4\"\n+  id(\"com.diffplug.spotless\") version \"8.11.0\"",
+      "id": "PRRT_kwDODJKVX864ZKHo",
+      "opened": "2026-11-17T10:57:51Z",
+      "path": "benchmark-overhead/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e16a2673ae74d7c1aa54eef8d02f91ca50ef7a6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21316#discussion_r4598612420"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n  id(\"com.diffplug.spotless\") version \"8.10.4\"\n```",
+      "created": "2026-11-17T10:58:12Z",
+      "hunk": "@@ -1,7 +1,7 @@\n plugins {\n   `kotlin-dsl`\n   // When updating, update below in dependencies too\n-  id(\"com.diffplug.spotless\") version \"8.10.4\"\n+  id(\"com.diffplug.spotless\") version \"8.11.0\"",
+      "id": "PRRT_kwDODJKVX864ZKqr",
+      "opened": "2026-11-17T10:58:12Z",
+      "path": "conventions/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e16a2673ae74d7c1aa54eef8d02f91ca50ef7a6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21316#discussion_r4598616105"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n  implementation(\"com.diffplug.spotless:spotless-plugin-gradle:8.10.4\")\n```",
+      "created": "2026-11-17T10:58:27Z",
+      "hunk": "@@ -54,7 +54,7 @@ dependencies {\n   implementation(\"org.apache.maven:maven-aether-provider:3.3.9\")\n \n   // When updating, update above in plugins too\n-  implementation(\"com.diffplug.spotless:spotless-plugin-gradle:8.10.4\")\n+  implementation(\"com.diffplug.spotless:spotless-plugin-gradle:8.11.0\")",
+      "id": "PRRT_kwDODJKVX864ZLF3",
+      "opened": "2026-11-17T10:58:27Z",
+      "path": "conventions/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e16a2673ae74d7c1aa54eef8d02f91ca50ef7a6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21316#discussion_r4598618825"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n  implementation(\"com.diffplug.spotless:spotless-plugin-gradle:8.10.4\")\n```",
+      "created": "2026-11-17T10:58:43Z",
+      "hunk": "@@ -8,7 +8,7 @@ repositories {\n }\n \n dependencies {\n-  implementation(\"com.diffplug.spotless:spotless-plugin-gradle:8.10.4\")\n+  implementation(\"com.diffplug.spotless:spotless-plugin-gradle:8.11.0\")",
+      "id": "PRRT_kwDODJKVX864ZLrC",
+      "opened": "2026-11-17T10:58:43Z",
+      "path": "examples/distro/buildSrc/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e16a2673ae74d7c1aa54eef8d02f91ca50ef7a6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21316#discussion_r4598622343"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n  id(\"com.diffplug.spotless\") version \"8.10.4\"\n```",
+      "created": "2026-11-17T10:58:57Z",
+      "hunk": "@@ -13,7 +13,7 @@ plugins {\n   See https://imperceptiblethoughts.com/shadow/ for more details about Shadow plugin.\n    */\n   id(\"com.gradleup.shadow\") version \"9.6.1\"\n-  id(\"com.diffplug.spotless\") version \"8.10.4\"\n+  id(\"com.diffplug.spotless\") version \"8.11.0\"",
+      "id": "PRRT_kwDODJKVX864ZMHh",
+      "opened": "2026-11-17T10:58:57Z",
+      "path": "examples/extension/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e16a2673ae74d7c1aa54eef8d02f91ca50ef7a6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21316#discussion_r4598625079"
+    }
+  ]
+}

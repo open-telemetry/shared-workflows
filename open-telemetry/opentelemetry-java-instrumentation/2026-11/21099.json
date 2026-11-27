@@ -1,0 +1,55 @@
+{
+  "head": "e9744f50c44a388df46c0bcaea1cabfba1a04412",
+  "merge": "e9fd02f224e35089afafa64084977dd1e9127331",
+  "merged": "2026-11-02T04:05:49Z",
+  "missing_roots": 0,
+  "number": 21099,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The final clause repeats the peer-attribute removal already described at the start of this entry. The repository's changelog guidance asks entries to omit repetition and obvious consequences. Keep the removal statement and destination-grouping guidance, but drop this repeated explanation.",
+      "created": "2026-10-31T13:44:08Z",
+      "hunk": "@@ -4,6 +4,10 @@\n \n ### ⚠️ Breaking changes\n \n+- Apache HttpClient 4.3 library instrumentation no longer automatically emits\n+  `network.peer.address` or `network.peer.port` inferred from the route target.\n+  Use `server.address` and `server.port` for logical destination grouping;\n+  actual socket peer information is no longer provided by this integration.",
+      "id": "PRRT_kwDODJKVX86yRQAs",
+      "opened": "2026-10-31T13:44:09Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "db85c4561d7389f5527002a1304be37ee46a3235",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21099#discussion_r4431900214"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this code is tricky\n```suggestion\n\nString host = uri.getHost();\nbyte[] addressBytes = InetAddress.getByName(host).getAddress();\n\n// Store the host in the InetAddress to avoid potentially slow reverse DNS during test setup.\n// HttpCore 4.4's HttpHost constructor calls InetAddress.getHostName().\nInetAddress targetAddress = InetAddress.getByAddress(host, addressBytes);\n\n// Give HttpHost the destination IP so the test fails if it is incorrectly reported as the network peer.\nHttpHost target = new HttpHost(targetAddress, uri.getPort(), uri.getScheme());\n```",
+      "created": "2026-11-01T23:05:23Z",
+      "hunk": "@@ -117,6 +135,78 @@ protected void configure(HttpClientTestOptions.Builder optionsBuilder) {\n   @Nested\n   class ApacheClientHostRequestTest extends ApacheHttpClientTest<BasicHttpRequest> {\n \n+    @Override\n+    protected void configure(HttpClientTestOptions.Builder optionsBuilder) {\n+      super.configure(optionsBuilder);\n+      optionsBuilder.setTestProxy(true).setExpectProxyNetworkPeerAttributes(false);\n+    }\n+\n+    @Test\n+    void requestWithInetAddress() throws IOException {\n+      int serverPort = resolveAddress(\"/success\").getPort();\n+      HttpHost target =\n+          new HttpHost(\n+              InetAddress.getByAddress(\"127.0.0.1\", new byte[] {127, 0, 0, 1}), serverPort, \"http\");\n+      URI expectedUri = URI.create(target.toURI() + \"/success\");\n+\n+      int responseCode =\n+          getClient(expectedUri)\n+              .execute(\n+                  target,\n+                  new BasicHttpRequest(\"GET\", \"/success\"),\n+                  AbstractApacheHttpClientTest::getResponseCode);\n+      assertThat(responseCode).isEqualTo(200);\n+\n+      testing.waitAndAssertTraces(\n+          trace ->\n+              trace.hasSpansSatisfyingExactly(\n+                  span -> assertClientSpanWithoutPeer(span, expectedUri),\n+                  span -> assertServerSpan(span).hasParent(trace.getSpan(0))));\n+    }\n+\n+    @Override\n+    public int sendRequestWithProxy(\n+        BasicHttpRequest request,\n+        String method,\n+        URI uri,\n+        Map<String, String> headers,\n+        InetSocketAddress proxyAddress)\n+        throws IOException {\n+      // Keep an explicit address so the regression exercises target-derived peer attributes.\n+      // Preserve the hostname to avoid reverse DNS when HttpCore 4.4 reads it.\n+      InetAddress targetAddress =\n+          InetAddress.getByAddress(\n+              uri.getHost(), InetAddress.getByName(uri.getHost()).getAddress());\n+      HttpHost target = new HttpHost(targetAddress, uri.getPort(), uri.getScheme());",
+      "id": "PRRT_kwDODJKVX86yfWya",
+      "opened": "2026-11-01T23:07:41Z",
+      "path": "instrumentation/apache-httpclient/apache-httpclient-4.3/testing/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v4_3/AbstractApacheHttpClientTest.java",
+      "replies": [],
+      "reviewed": "327ae9b9f7c81ba10ed37a0832b2809681af68a1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21099#discussion_r4437737459"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "do you think this test is still needed?",
+      "created": "2026-11-01T23:07:30Z",
+      "hunk": "@@ -117,6 +135,78 @@ protected void configure(HttpClientTestOptions.Builder optionsBuilder) {\n   @Nested\n   class ApacheClientHostRequestTest extends ApacheHttpClientTest<BasicHttpRequest> {\n \n+    @Override\n+    protected void configure(HttpClientTestOptions.Builder optionsBuilder) {\n+      super.configure(optionsBuilder);\n+      optionsBuilder.setTestProxy(true).setExpectProxyNetworkPeerAttributes(false);\n+    }\n+\n+    @Test\n+    void requestWithInetAddress() throws IOException {",
+      "id": "PRRT_kwDODJKVX86yfXvJ",
+      "opened": "2026-11-01T23:07:41Z",
+      "path": "instrumentation/apache-httpclient/apache-httpclient-4.3/testing/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v4_3/AbstractApacheHttpClientTest.java",
+      "replies": [],
+      "reviewed": "327ae9b9f7c81ba10ed37a0832b2809681af68a1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21099#discussion_r4437743951"
+    }
+  ]
+}

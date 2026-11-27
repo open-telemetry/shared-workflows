@@ -1,0 +1,25 @@
+{
+  "head": "4562a3d445b9a1e3eb1c881fbc46081a78034a47",
+  "merge": "63485ae9dd6ad4657a8efa2f98192f6c8cba6257",
+  "merged": "2026-05-01T20:05:04Z",
+  "missing_roots": 0,
+  "number": 18490,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-05-01T19:45:42Z",
+      "hunk": "@@ -18,6 +18,7 @@ dependencies {\n   implementation(project(\":instrumentation:ratpack:ratpack-1.7:library\"))\n \n   testImplementation(project(\":instrumentation:ratpack:ratpack-1.4:testing\"))\n+  testInstrumentation(project(\":instrumentation:netty:netty-4.1:javaagent\"))",
+      "id": "PRRT_kwDODJKVX85_CiYI",
+      "opened": "2026-05-01T19:45:42Z",
+      "path": "instrumentation/ratpack/ratpack-1.7/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d523b93d4576214f5b1abec6dfa275f8a6ef38be",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18490#discussion_r3174882134"
+    }
+  ]
+}

@@ -1,0 +1,219 @@
+{
+  "head": "e23f93ac35cee4db4c0585d5bbc3755521ea519f",
+  "merge": "a7571eaa5401aa60d8a829ade479bb29048990c4",
+  "merged": "2026-06-09T14:48:38Z",
+  "missing_roots": 0,
+  "number": 18893,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This adds a GenAI exception event extractor (affecting behavior when `otel.semconv.exception.signal.preview=logs`), but there is no OpenAI instrumentation test that verifies exceptions are emitted as log records with event name `gen_ai.client.operation.exception` and `Severity.WARN`. The existing tests already assert GenAI log records for other events, so adding a failure-path test here would help prevent regressions in the preview mode.",
+      "created": "2026-06-03T22:13:05Z",
+      "hunk": "@@ -49,22 +51,25 @@ public OpenAITelemetryBuilder setCaptureMessageContent(boolean captureMessageCon\n   public OpenAITelemetry build() {\n     ChatAttributesGetter chatAttributesGetter = new ChatAttributesGetter();\n     Instrumenter<ChatCompletionCreateParams, ChatCompletion> chatInstrumenter =\n-        Instrumenter.<ChatCompletionCreateParams, ChatCompletion>builder(\n-                openTelemetry,\n-                INSTRUMENTATION_NAME,\n-                GenAiSpanNameExtractor.create(chatAttributesGetter))\n-            .addAttributesExtractor(GenAiAttributesExtractor.create(chatAttributesGetter))\n-            .addOperationMetrics(GenAiClientMetrics.get())\n+        setGenAiClientExceptionEventExtractor(\n+                Instrumenter.<ChatCompletionCreateParams, ChatCompletion>builder(\n+                        openTelemetry,\n+                        INSTRUMENTATION_NAME,\n+                        GenAiSpanNameExtractor.create(chatAttributesGetter))",
+      "id": "PRRT_kwDODJKVX86G6EVD",
+      "opened": "2026-06-03T22:13:06Z",
+      "path": "instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/OpenAITelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-06-04T00:42:27Z",
+          "body": "Added a failure-path test. `AbstractEmbeddingsTest.connectionError` (connects to a dead port, so no external service needed) is now mode-aware: under `emitExceptionAsLogs()` it asserts a `gen_ai.client.operation.exception` log record with `Severity.WARN` and the exception attributes, and otherwise asserts the span exception event. This runs via a new per-module `testExceptionSignalLogs` Gradle task (library + javaagent). A `GenAiExceptionEventExtractorsTest` unit test in `instrumentation-api-incubator` covers the extractor directly as well.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3352747985"
+        }
+      ],
+      "reviewed": "4603f5943c3468fa5b40de69a50a9ab97468fd58",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3352238293"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The PR description says “GenAI client instrumentations” emit exceptions as logs under the preview flag, but in this repo there are other GenAI client instrumentations (e.g., AWS SDK Bedrock runtime uses `GenAi*` extractors) that still don't configure an exception event extractor. Consider applying the same `setGenAiClientExceptionEventExtractor(...)` (or equivalent) there too, or narrowing the PR description/scope to OpenAI only.",
+      "created": "2026-06-03T22:13:06Z",
+      "hunk": "@@ -49,22 +51,25 @@ public OpenAITelemetryBuilder setCaptureMessageContent(boolean captureMessageCon\n   public OpenAITelemetry build() {\n     ChatAttributesGetter chatAttributesGetter = new ChatAttributesGetter();\n     Instrumenter<ChatCompletionCreateParams, ChatCompletion> chatInstrumenter =\n-        Instrumenter.<ChatCompletionCreateParams, ChatCompletion>builder(\n-                openTelemetry,\n-                INSTRUMENTATION_NAME,\n-                GenAiSpanNameExtractor.create(chatAttributesGetter))\n-            .addAttributesExtractor(GenAiAttributesExtractor.create(chatAttributesGetter))\n-            .addOperationMetrics(GenAiClientMetrics.get())\n+        setGenAiClientExceptionEventExtractor(",
+      "id": "PRRT_kwDODJKVX86G6EVi",
+      "opened": "2026-06-03T22:13:06Z",
+      "path": "instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/OpenAITelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-06-04T23:07:42Z",
+          "body": "Good catch on the description. The AWS SDK Bedrock runtime GenAI instrumenter is handled in the stacked follow-up PR #18894, where `bedrockRuntimeInstrumenter()` calls `setGenAiClientExceptionEventExtractor(...)` alongside the other AWS SDK instrumenters (DynamoDB=DB, SQS=messaging). Keeping all AWS SDK wiring in one PR avoids splitting those changes across PRs. I have narrowed this PR description to the OpenAI GenAI instrumentation and added a pointer to #18894.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3359395986"
+        }
+      ],
+      "reviewed": "4603f5943c3468fa5b40de69a50a9ab97468fd58",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3352238327"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new `testExceptionSignalLogs` task does not set `testLatestDeps`, but `AbstractOpenAiTest` selects its helper based on `TestLatestDeps.testLatestDeps()`, which is driven by the `testLatestDeps` *system property* (cached at class init). As a result, when running with `-PtestLatestDeps=true`, the normal `test` task and this new task can execute the same tests against different helpers/expectations.\n\nSet the same `testLatestDeps` system property on this task to keep behavior consistent with the main `test` task.",
+      "created": "2026-06-04T23:13:59Z",
+      "hunk": "@@ -13,4 +13,18 @@ tasks {\n   test {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n+\n+  val testExceptionSignalLogs by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"EmbeddingsTest\")\n+    }\n+    jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n+  }",
+      "id": "PRRT_kwDODJKVX86HOFFj",
+      "opened": "2026-06-04T23:13:59Z",
+      "path": "instrumentation/openai/openai-java-1.1/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-05T00:14:40Z",
+          "body": "Fixed. The OpenAI library now applies `systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)` via `withType<Test>().configureEach`, so both the default `test` task and `testExceptionSignalLogs` use the same helper selection path from `AbstractOpenAiTest`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3359587793"
+        }
+      ],
+      "reviewed": "21d59664a9edeeafa77eb655678138c11294f21e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3359419058"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new `testExceptionSignalLogs` task doesn’t inherit the system properties configured on the main `test` task (`testLatestDeps` and `collectMetadata`). `testLatestDeps` is used (and cached) by `TestLatestDeps.testLatestDeps()` in the OpenAI test base, so running with `-PtestLatestDeps=true` can make this task execute with different helper/expectations than the normal tests; and `collectMetadata` should match the rest of the javaagent test runs.\n\nMirror the relevant system properties from the `test` task here.",
+      "created": "2026-06-04T23:13:59Z",
+      "hunk": "@@ -29,4 +29,19 @@ tasks {\n     systemProperty(\"otel.instrumentation.genai.capture-message-content\", \"true\")\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n+\n+  val testExceptionSignalLogs by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    systemProperty(\"otel.instrumentation.genai.capture-message-content\", \"true\")\n+    filter {\n+      includeTestsMatching(\"EmbeddingsTest\")\n+    }\n+    jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n+  }",
+      "id": "PRRT_kwDODJKVX86HOFFu",
+      "opened": "2026-06-04T23:13:59Z",
+      "path": "instrumentation/openai/openai-java-1.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-04T23:52:54Z",
+          "body": "Good catch. Mirrored the relevant system properties onto both `testExceptionSignalLogs` tasks: the javaagent task now sets `testLatestDeps` and `collectMetadata` (plus `metadataConfig=otel.semconv.exception.signal.preview=logs`, matching the other preview/semconv tasks), and the library task sets `testLatestDeps`. `testLatestDeps` is justified here since `AbstractOpenAiTest` reads it via `TestLatestDeps.testLatestDeps()` to select the test helper.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3359528530"
+        },
+        {
+          "at": "2026-06-05T00:01:57Z",
+          "body": "Follow-up: I refined this to configure the shared properties via `withType<Test>().configureEach` instead of duplicating them in `test` and `testExceptionSignalLogs`. The javaagent module now applies `testLatestDeps`, `collectMetadata`, and message capture to all Test tasks; the library module applies `testLatestDeps` to all Test tasks. `metadataConfig=otel.semconv.exception.signal.preview=logs` remains only on the preview-mode task.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3359553690"
+        }
+      ],
+      "reviewed": "21d59664a9edeeafa77eb655678138c11294f21e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3359419073"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] In `connectionError`, the span assertion only checks `hasException(thrown)` when span-events mode is enabled, but it doesn’t assert the *absence* of an exception event when running in `otel.semconv.exception.signal.preview=logs` (logs-only) mode. That means a regression that double-emits (span event + log) would still pass this test.\n\nYou can make this mode-aware assertion stricter by always calling `hasException(...)` with a conditional value (as done in `InstrumenterTest`).",
+      "created": "2026-06-05T00:26:30Z",
+      "hunk": "@@ -239,19 +250,26 @@ void connectionError() {\n             trace ->\n                 trace.hasSpansSatisfyingExactly(\n                     maybeWithTransportSpan(\n-                        span ->\n-                            span.hasName(\"embeddings text-embedding-3-small\")\n-                                .hasKind(SpanKind.CLIENT)\n-                                .hasException(thrown)\n-                                .hasAttributesSatisfyingExactly(\n-                                    equalTo(GEN_AI_PROVIDER_NAME, OPENAI),\n-                                    equalTo(GEN_AI_OPERATION_NAME, EMBEDDINGS),\n-                                    equalTo(GEN_AI_REQUEST_MODEL, MODEL),\n-                                    // Newer versions of the library populate base64 when unset by\n-                                    // the user.\n-                                    satisfies(\n-                                        GEN_AI_REQUEST_ENCODING_FORMATS,\n-                                        val -> val.isIn(singletonList(\"base64\"), null))))));\n+                        span -> {\n+                          span.hasName(\"embeddings text-embedding-3-small\")\n+                              .hasKind(SpanKind.CLIENT)\n+                              .hasAttributesSatisfyingExactly(\n+                                  equalTo(GEN_AI_PROVIDER_NAME, OPENAI),\n+                                  equalTo(GEN_AI_OPERATION_NAME, EMBEDDINGS),\n+                                  equalTo(GEN_AI_REQUEST_MODEL, MODEL),\n+                                  // Newer versions of the library populate base64 when unset by\n+                                  // the user.\n+                                  satisfies(\n+                                      GEN_AI_REQUEST_ENCODING_FORMATS,\n+                                      val -> val.isIn(singletonList(\"base64\"), null)));\n+                          if (emitExceptionAsSpanEvents()) {\n+                            span.hasException(thrown);\n+                          }",
+      "id": "PRRT_kwDODJKVX86HOr6G",
+      "opened": "2026-06-05T00:26:30Z",
+      "path": "instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractEmbeddingsTest.java",
+      "replies": [
+        {
+          "at": "2026-06-05T20:51:08Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/14dea278713fee9ea18df9e980a5b39e5483e9dd.\n\nThe span assertion is now unconditional and mode-aware, so logs-only mode asserts that no span exception event was emitted.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3365320517"
+        }
+      ],
+      "reviewed": "a4f6a6d87e2f973412c33a2d7a381cd7bf81782f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3359632355"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The preview-mode `testExceptionSignalLogs` task only runs `EmbeddingsTest`, so the Chat instrumenter wiring added in this PR (`setGenAiClientExceptionEventExtractor(chatBuilder)`) isn’t validated under `otel.semconv.exception.signal.preview=logs`. In particular, `AbstractChatTest.connectionError()` currently asserts `span.hasException(thrown)` unconditionally, which is incompatible with logs-only mode and would hide regressions until someone runs ChatTest with the preview flag.\n\nConsider extending the preview-mode test task to also cover `ChatTest` (and updating `AbstractChatTest.connectionError()` to be mode-aware like `AbstractEmbeddingsTest`).",
+      "created": "2026-06-05T20:57:34Z",
+      "hunk": "@@ -10,7 +10,21 @@ dependencies {\n }\n \n tasks {\n-  test {\n+  withType<Test>().configureEach {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n+\n+  val testExceptionSignalLogs by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"EmbeddingsTest\")\n+    }\n+    jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")",
+      "id": "PRRT_kwDODJKVX86HeonF",
+      "opened": "2026-06-05T20:57:34Z",
+      "path": "instrumentation/openai/openai-java-1.1/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-06T00:45:24Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/382940574113e802c2d4b754e6c439fc931291dd.\n\nRemoved the library preview-task filter so the full suite runs under `otel.semconv.exception.signal.preview=logs`, and made the shared chat failure-path assertions mode-aware.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3366084198"
+        }
+      ],
+      "reviewed": "14dea278713fee9ea18df9e980a5b39e5483e9dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3365349575"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The javaagent preview-mode `testExceptionSignalLogs` task filters down to `EmbeddingsTest` only, so Chat exception behavior isn’t exercised under `otel.semconv.exception.signal.preview=logs` even though this PR also wires the exception extractor into the chat instrumenter. This can allow regressions (or an incompatible `AbstractChatTest.connectionError()` assertion) to slip through.\n\nConsider including `ChatTest` in this task as well, and making the chat failure-path assertion mode-aware (similar to the embeddings test).",
+      "created": "2026-06-05T20:57:34Z",
+      "hunk": "@@ -22,11 +22,26 @@ dependencies {\n }\n \n tasks {\n-  test {\n+  withType<Test>().configureEach {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n     // TODO run tests both with and without genai message capture\n \n     systemProperty(\"otel.instrumentation.genai.capture-message-content\", \"true\")\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n+\n+  val testExceptionSignalLogs by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"EmbeddingsTest\")\n+    }\n+    jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv.exception.signal.preview=logs\")",
+      "id": "PRRT_kwDODJKVX86Heonb",
+      "opened": "2026-06-05T20:57:34Z",
+      "path": "instrumentation/openai/openai-java-1.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-06T00:45:27Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/382940574113e802c2d4b754e6c439fc931291dd.\n\nRemoved the javaagent preview-task filter so the full suite runs under `otel.semconv.exception.signal.preview=logs`, and added the chat transport exception-log expectation for the javaagent case.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3366084380"
+        }
+      ],
+      "reviewed": "14dea278713fee9ea18df9e980a5b39e5483e9dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3365349607"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `hasTotalAttributeCount(3)` is redundant here because `hasAttributesSatisfyingExactly(...)` already enforces an exact attribute count for the record. Keeping both makes the assertion noisier without adding coverage.",
+      "created": "2026-06-06T00:49:30Z",
+      "hunk": "@@ -45,4 +53,23 @@ protected List<Consumer<SpanDataAssert>> maybeWithTransportSpan(Consumer<SpanDat\n     result.add(s -> s.hasName(\"POST\"));\n     return result;\n   }\n+\n+  @Override\n+  protected List<Consumer<LogRecordDataAssert>> maybeWithTransportExceptionLog(\n+      Consumer<LogRecordDataAssert> logRecord) {\n+    List<Consumer<LogRecordDataAssert>> result = new ArrayList<>();\n+    result.add(\n+        transportLog ->\n+            transportLog\n+                .hasSeverity(Severity.WARN)\n+                .hasEventName(\"http.client.request.exception\")\n+                .hasAttributesSatisfyingExactly(\n+                    equalTo(EXCEPTION_TYPE, \"java.net.ConnectException\"),\n+                    satisfies(\n+                        EXCEPTION_MESSAGE, val -> val.startsWith(\"Failed to connect to localhost\")),\n+                    satisfies(EXCEPTION_STACKTRACE, val -> val.isNotNull()))\n+                .hasTotalAttributeCount(3));",
+      "id": "PRRT_kwDODJKVX86Hgrvg",
+      "opened": "2026-06-06T00:49:31Z",
+      "path": "instrumentation/openai/openai-java-1.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/openai/v1_1/ChatTest.java",
+      "replies": [
+        {
+          "at": "2026-06-06T00:56:28Z",
+          "body": "```suggestion\n                    satisfies(EXCEPTION_STACKTRACE, val -> val.isNotNull())));\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3366129266"
+        }
+      ],
+      "reviewed": "382940574113e802c2d4b754e6c439fc931291dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3366101093"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `hasTotalAttributeCount(3)` is redundant here because `hasAttributesSatisfyingExactly(...)` already enforces an exact attribute count for the record. Keeping both makes the assertion noisier without adding coverage.",
+      "created": "2026-06-06T00:49:30Z",
+      "hunk": "@@ -45,4 +53,23 @@ protected List<Consumer<SpanDataAssert>> maybeWithTransportSpan(Consumer<SpanDat\n     result.add(s -> s.hasName(\"POST\"));\n     return result;\n   }\n+\n+  @Override\n+  protected List<Consumer<LogRecordDataAssert>> maybeWithTransportExceptionLog(\n+      Consumer<LogRecordDataAssert> logRecord) {\n+    List<Consumer<LogRecordDataAssert>> result = new ArrayList<>();\n+    result.add(\n+        transportLog ->\n+            transportLog\n+                .hasSeverity(Severity.WARN)\n+                .hasEventName(\"http.client.request.exception\")\n+                .hasAttributesSatisfyingExactly(\n+                    equalTo(EXCEPTION_TYPE, \"java.net.ConnectException\"),\n+                    satisfies(\n+                        EXCEPTION_MESSAGE, val -> val.startsWith(\"Failed to connect to localhost\")),\n+                    satisfies(EXCEPTION_STACKTRACE, val -> val.isNotNull()))\n+                .hasTotalAttributeCount(3));",
+      "id": "PRRT_kwDODJKVX86Hgrvt",
+      "opened": "2026-06-06T00:49:31Z",
+      "path": "instrumentation/openai/openai-java-1.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/openai/v1_1/EmbeddingsTest.java",
+      "replies": [],
+      "reviewed": "382940574113e802c2d4b754e6c439fc931291dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3366101115"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This test is effectively a no-op under the default build: `SemconvExceptionSignal.emitExceptionAsLogs()` is computed once at class init from the JVM’s `-Dotel.semconv.exception.signal.preview` (or declarative config). Since this module’s tests aren’t launched with that flag, the test will usually take the `else` branch and never validate the extractor behavior.\n\nTo make this test actually cover the preview behavior, set the system property to `logs` *before* the instrumenter is used (so `SemconvExceptionSignal` is initialized with the right value), and then assert the emitted log record. If `emitExceptionAsLogs()` is still false, fail fast (it indicates the flag was not applied early enough / requires a separate JVM test task).",
+      "created": "2026-06-07T01:14:44Z",
+      "hunk": "@@ -0,0 +1,57 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.genai.internal;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvExceptionSignal.emitExceptionAsLogs;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.satisfies;\n+import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_MESSAGE;\n+import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_STACKTRACE;\n+import static io.opentelemetry.semconv.ExceptionAttributes.EXCEPTION_TYPE;\n+\n+import io.opentelemetry.api.logs.Severity;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n+import io.opentelemetry.sdk.logs.data.LogRecordData;\n+import io.opentelemetry.sdk.testing.junit5.OpenTelemetryExtension;\n+import java.util.List;\n+import org.assertj.core.api.AbstractAssert;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class GenAiExceptionEventExtractorsTest {\n+\n+  @RegisterExtension\n+  static final OpenTelemetryExtension otelTesting = OpenTelemetryExtension.create();\n+\n+  @Test\n+  void genAiClientExceptionLog() {\n+    InstrumenterBuilder<String, String> builder =\n+        Instrumenter.builder(otelTesting.getOpenTelemetry(), \"test\", unused -> \"span\");\n+    GenAiExceptionEventExtractors.setGenAiClientExceptionEventExtractor(builder);\n+    Instrumenter<String, String> instrumenter = builder.buildInstrumenter();\n+\n+    Context context = instrumenter.start(Context.root(), \"request\");\n+    IllegalStateException error = new IllegalStateException(\"test\");\n+    instrumenter.end(context, \"request\", \"response\", error);\n+\n+    List<LogRecordData> logs = otelTesting.getLogRecords();\n+    if (emitExceptionAsLogs()) {\n+      assertThat(logs).hasSize(1);\n+      assertThat(logs.get(0))\n+          .hasSeverity(Severity.WARN)\n+          .hasEventName(\"gen_ai.client.operation.exception\")\n+          .hasAttributesSatisfyingExactly(\n+              equalTo(EXCEPTION_TYPE, \"java.lang.IllegalStateException\"),\n+              equalTo(EXCEPTION_MESSAGE, \"test\"),\n+              satisfies(EXCEPTION_STACKTRACE, AbstractAssert::isNotNull));\n+    } else {\n+      assertThat(logs).isEmpty();\n+    }",
+      "id": "PRRT_kwDODJKVX86HnjNe",
+      "opened": "2026-06-07T01:14:44Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/internal/GenAiExceptionEventExtractorsTest.java",
+      "replies": [
+        {
+          "at": "2026-06-09T14:48:12Z",
+          "body": "No code change needed. This is already covered by the existing `testExceptionSignalLogs` task in `instrumentation-api-incubator/build.gradle.kts`, which runs with `-Dotel.semconv.exception.signal.preview=logs` and is wired into `check`; this matches the existing `DbExceptionEventExtractorsTest` pattern.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3381581089"
+        }
+      ],
+      "reviewed": "e23f93ac35cee4db4c0585d5bbc3755521ea519f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18893#discussion_r3368553340"
+    }
+  ]
+}

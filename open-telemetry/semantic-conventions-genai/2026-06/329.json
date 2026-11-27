@@ -1,0 +1,52 @@
+{
+  "head": "5e15b5214fee0e19879c15a590ab81bdc9dfc0c3",
+  "merge": "4c8addb53718b544134be47e256237026fe88875",
+  "merged": "2026-06-22T16:59:59Z",
+  "missing_roots": 0,
+  "number": 329,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The workflow checks for review comments (API call) before checking whether the guidance comment has already been posted. On subsequent review submissions this does unnecessary work and consumes API quota even though the job will exit once it finds the marker.\n\nConsider checking for an existing guidance comment first, then only querying the review's inline comments when the marker isn't present.",
+      "created": "2026-06-19T21:08:58Z",
+      "hunk": "@@ -179,14 +176,14 @@ jobs:\n             | wc -l \\",
+      "id": "PRRT_kwDOSUeMrM6K7N8U",
+      "opened": "2026-06-19T21:08:58Z",
+      "path": ".github/workflows/pull-request-dashboard.yml",
+      "replies": [
+        {
+          "at": "2026-06-19T21:18:07Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/pull/329/commits/bf686aead76e70388bf6fd6f308c1258ab5d32b5.\n\nMoved the existing guidance marker check ahead of the review-comment count so later review submissions skip before querying inline comments.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/329#discussion_r3444592058"
+        }
+      ],
+      "reviewed": "d9a75cb404bd28fd270a4e39f60e36dfc1612c39",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/329#discussion_r3444569381"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The posted guidance text says to \"reply to each thread\", but the next paragraph says automation accepts either a reply *or* marking the thread resolved. That mismatch can confuse authors (e.g., “Apply suggestion” resolves without a reply).\n\nSuggest aligning the wording to explicitly allow resolving threads without requiring a reply.",
+      "created": "2026-06-19T21:08:58Z",
+      "hunk": "@@ -196,14 +193,11 @@ jobs:\n \n           body=$(cat <<EOF\n           ${MARKER}\n-          Copilot has reviewed this PR. Copilot's suggestions aren't always correct or applicable, so please evaluate each comment on its merits and then handle it in one of these ways:\n+          This PR has review comments. Review suggestions, whether from maintainers or automated reviewers, aren't always correct or required. Please evaluate each comment on its merits, then reply to each thread with the outcome.",
+      "id": "PRRT_kwDOSUeMrM6K7N8h",
+      "opened": "2026-06-19T21:08:58Z",
+      "path": ".github/workflows/pull-request-dashboard.yml",
+      "replies": [
+        {
+          "at": "2026-06-19T21:18:10Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/pull/329/commits/5e15b5214fee0e19879c15a590ab81bdc9dfc0c3.\n\nChanged the guidance to ask for a clear outcome on each thread, matching the reply-or-resolved automation behavior.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/329#discussion_r3444592192"
+        }
+      ],
+      "reviewed": "d9a75cb404bd28fd270a4e39f60e36dfc1612c39",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/329#discussion_r3444569398"
+    }
+  ]
+}

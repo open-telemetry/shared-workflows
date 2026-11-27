@@ -1,0 +1,31 @@
+{
+  "head": "9597b014b1bde51702595c1ae364e9fc8fb52ca4",
+  "merge": "c2d057e8d1352b09645fc3f249815017c034c435",
+  "merged": "2026-05-04T03:14:04Z",
+  "missing_roots": 0,
+  "number": 18326,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider using the enum singleton as it is more compact, a bunch of `HttpServerResponseMutator`s already use it",
+      "created": "2026-04-27T07:13:56Z",
+      "hunk": "@@ -12,6 +12,10 @@\n \n public class GrizzlyHttpResponseMutator implements HttpServerResponseMutator<HttpResponsePacket> {\n \n+  public static final GrizzlyHttpResponseMutator INSTANCE = new GrizzlyHttpResponseMutator();",
+      "id": "PRRT_kwDODJKVX859v0gB",
+      "opened": "2026-04-27T07:13:56Z",
+      "path": "instrumentation/grizzly-2.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/grizzly/v2_3/GrizzlyHttpResponseMutator.java",
+      "replies": [
+        {
+          "at": "2026-05-04T02:42:40Z",
+          "body": "yeah, makes sense\n\nit would be nice to have a consistent story for when / whether we use enum singleton pattern\n\nI did a quick check and looks like we have pretty even split of enum singleton INSTANCE to class singleton INSTANCE.\n\nI'm good with any range of never to always or something in the middle\n\nmaybe just embrace them? (except maybe for public library classes in order to preserve flexibility)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18326#discussion_r3179184140"
+        }
+      ],
+      "reviewed": "c15f431d69cb4f3e9dd148ab78c4f415cdee818b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18326#discussion_r3145470576"
+    }
+  ]
+}

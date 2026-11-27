@@ -1,0 +1,46 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b623eceb0f78e4d409c073e7570ed940a4a29daf2c6f63ae005e6fd4f25be5c5",
+  "input_digest": "34fa68a2eef9ce0cf53093d9245d0b66731192fa5802e547c0187cc4edc1584a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e6c4f441769026f799ac13ecf446c15fb24bb72/.github/scripts/flaky-test-remediation/1-select-flaky-test.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/91d8c7d2cb6aec64ab9f78eefac29bd853a9b053/.github/scripts/flaky-test-remediation/1-select-flaky-test.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/91d8c7d2cb6aec64ab9f78eefac29bd853a9b053",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/91d8c7d2cb6aec64ab9f78eefac29bd853a9b053/.github/scripts/flaky-test-remediation/test_select_flaky_test.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/469f8ba0570f1b3af3456bbbf579aba0b0e8ded8"
+      ],
+      "id": "PRRT_kwDODJKVX86dWVZm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e6c4f441769026f799ac13ecf446c15fb24bb72/.github/workflows/flaky-test-remediation.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/91d8c7d2cb6aec64ab9f78eefac29bd853a9b053/.github/workflows/flaky-test-remediation.yml"
+      ],
+      "id": "PRRT_kwDODJKVX86dWVZ1",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fc3c3ab86de75b362c9901ad3bcb3df4fff23863/.github/scripts/flaky-test-remediation/3-open-pr.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/91d8c7d2cb6aec64ab9f78eefac29bd853a9b053/.github/scripts/flaky-test-remediation/3-open-pr.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b4f674b47b8fa06550f3f2e9fae6ac4268e964a0"
+      ],
+      "id": "PRRT_kwDODJKVX86dbnnx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

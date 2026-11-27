@@ -1,0 +1,31 @@
+{
+  "head": "9a1815d982be07ed6ae6c69d033678eb6d3dbb25",
+  "merge": "2f06b55b9f1e1054553838970cab7cc8f9eff339",
+  "merged": "2026-07-21T13:22:50Z",
+  "missing_roots": 0,
+  "number": 19285,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The old-semconv branch only proves that the value is some string other than the registry target, so it would still pass if the provider-host restoration returned any incorrect address. Since setup forces Dubbo's local address to the loopback address, assert that exact resolved provider host to lock in the regression this PR fixes.",
+      "created": "2026-07-21T04:40:02Z",
+      "hunk": "@@ -178,8 +180,19 @@ void testRegistryModeServerAddress() throws Exception {\n                                     emitStableRpcSemconv()\n                                         ? \"org.apache.dubbo.rpc.service.GenericService/$invoke\"\n                                         : \"$invoke\"),\n-                                equalTo(SERVER_ADDRESS, expectedServerAddress),\n-                                equalTo(SERVER_PORT, null),\n+                                satisfies(\n+                                    SERVER_ADDRESS,\n+                                    val -> {\n+                                      if (emitStableRpcSemconv()) {\n+                                        val.isEqualTo(expectedServerAddress);\n+                                      } else {\n+                                        // registry override is gated behind the stable rpc semconv;\n+                                        // under the old semconv the resolved provider host is used\n+                                        val.isInstanceOf(String.class)\n+                                            .isNotEqualTo(expectedServerAddress);",
+      "id": "PRRT_kwDODJKVX86SdgX1",
+      "opened": "2026-07-21T04:40:02Z",
+      "path": "instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboRegistryTest.java",
+      "replies": [
+        {
+          "at": "2026-07-21T12:00:04Z",
+          "body": "Good catch. The exact resolved provider host turned out to be environment-dependent — locally it resolves to the machine's real LAN IP (e.g. `10.0.0.187`) rather than the forced loopback, and it differs again on CI runners, so asserting an exact host would be flaky. I've strengthened the old-semconv assertion to `asString().isNotEqualTo(expectedServerAddress).doesNotContain(\"/\")`, which locks in that `server.address` is a bare provider host and not a registry url/target (the registry target always contains `/`). This also surfaced and fixed a related gap: under old semconv the client `server.address` reverts to the provider host, so `peer.service` now resolves on the client span under latest deps — added that assertion too.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19285#discussion_r3621897646"
+        }
+      ],
+      "reviewed": "b854e441a652070c9148d1c5c18942cf3dd8ebec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19285#discussion_r3619484379"
+    }
+  ]
+}

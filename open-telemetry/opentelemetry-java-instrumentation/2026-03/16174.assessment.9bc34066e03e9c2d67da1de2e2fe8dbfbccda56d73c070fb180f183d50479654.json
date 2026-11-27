@@ -1,0 +1,48 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ebd9de95ddd483ea1ca667d0abd512b5e2a95deeaa9f4536ff3500deaa3b4690",
+  "input_digest": "9bc34066e03e9c2d67da1de2e2fe8dbfbccda56d73c070fb180f183d50479654",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02ea0ec4712f534413b7fd2b052d42982a06b99a/instrumentation/jmx-metrics/library/jvm.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02ea0ec4712f534413b7fd2b052d42982a06b99a/instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/jvm.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/674303681eeffd33d1a9d8558e793dea19df865d/instrumentation/jmx-metrics/library/jvm.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/674303681eeffd33d1a9d8558e793dea19df865d/instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/jvm.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/160dfd20be028ee0db44b9b41d90c57d41277587"
+      ],
+      "id": "PRRT_kwDODJKVX85uyzEn",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e1e2cb4abdf75c23eac8c54b363fd8c05df83ea2/instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/test/java/io/opentelemetry/instrumentation/runtimemetrics/java8/internal/ExperimentalFileDescriptorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e1e2cb4abdf75c23eac8c54b363fd8c05df83ea2/instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/main/java/io/opentelemetry/instrumentation/runtimemetrics/java8/internal/ExperimentalFileDescriptor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/674303681eeffd33d1a9d8558e793dea19df865d/instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/test/java/io/opentelemetry/instrumentation/runtimemetrics/java8/internal/FileDescriptorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/674303681eeffd33d1a9d8558e793dea19df865d/instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/main/java/io/opentelemetry/instrumentation/runtimemetrics/java8/internal/FileDescriptor.java"
+      ],
+      "id": "PRRT_kwDODJKVX85u0p_m",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/38b2692ce6cc2c116f53efda04c60a6ee7e4ae07/instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/test/java/io/opentelemetry/instrumentation/runtimemetrics/java8/internal/FileDescriptorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/674303681eeffd33d1a9d8558e793dea19df865d/instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/test/java/io/opentelemetry/instrumentation/runtimemetrics/java8/internal/FileDescriptorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/03118454f4096a8bdd24add2eabd233913cb19b6"
+      ],
+      "id": "PRRT_kwDODJKVX85wyBaY",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "7c88b51fd47b01bb131cc60f7d9eed1fd19d7125",
+  "merge": "2e53d628892cd117d5fb9e2257eb509316137754",
+  "merged": "2026-11-17T17:14:51Z",
+  "missing_roots": 0,
+  "number": 21310,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Moving the reporter tests into `testMetrics` leaves them out of metadata collection because `.github/scripts/instrumentations.sh:354-356` still lists only the three variants that now exclude them. Add `kafka:kafka-clients:kafka-clients-0.11:javaagent:testMetrics` to `TEST_LATEST_DEPS_INSTRUMENTATIONS` to preserve collection of supported metrics, as required by `instrumentation-docs/readme.md:13-19`. Leave `metadataConfig` unset for this whole-module enablement, per `.github/instructions/instrumentation-gradle.instructions.md:68-69`.",
+      "created": "2026-11-16T13:04:04Z",
+      "hunk": "@@ -58,34 +58,36 @@ testing.suites {\n       include(\"**/KafkaClientSuppressReceiveSpansTest.*\")\n     }\n \n-    register(\"Disabled\") {\n-      filter {\n-        includeTestsMatching(\"*DefaultEnablementTest\")\n-      }\n-    }\n-\n     register(\"ReceiveTelemetry\") {\n       filter {\n         excludeTestsMatching(\"KafkaClientPropagationDisabledTest\")\n         excludeTestsMatching(\"KafkaClientSuppressReceiveSpansTest\")\n+        excludeTestsMatching(\"OpenTelemetryMetricsReporterTest\")\n       }\n       telemetryConfig(\n         \"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\",\n         \"true\",\n       )\n-      jvmArgs(\"-Dotel.instrumentation.kafka-clients-metrics.enabled=true\")\n     }\n \n     register(\"Experimental\") {\n       filter {\n         excludeTestsMatching(\"KafkaClientPropagationDisabledTest\")\n         excludeTestsMatching(\"KafkaClientSuppressReceiveSpansTest\")\n+        excludeTestsMatching(\"OpenTelemetryMetricsReporterTest\")\n       }\n       telemetryConfig(\n         \"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\",\n         \"true\",\n       )\n       telemetryConfig(\"otel.instrumentation.kafka.experimental-span-attributes\", \"true\")\n+    }\n+\n+    register(\"Metrics\") {",
+      "id": "PRRT_kwDODJKVX8637xs0",
+      "opened": "2026-11-16T13:04:04Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "89d4d3b705bad2504ee31c1a758d899b0d42572e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21310#discussion_r4586060798"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  [Testing] Keep the metrics variant in metadata collection**\n\nWhen `instrumentation-docs/collect.sh` runs, it still invokes only the Kafka agent `test`, `testExperimental`, and `testReceiveTelemetry` tasks listed at `.github/scripts/instrumentations.sh:354-356`; none now enables native metrics. The script also deletes the module's `.telemetry` directory first, so the next regeneration drops the supported `kafka.*` metric inventory altogether. `.github/instructions/instrumentation-gradle.instructions.md` requires collecting “default telemetry and supported non-default telemetry modes.” Add `testMetrics` to `TEST_LATEST_DEPS_INSTRUMENTATIONS` so making metrics default-off does not stop documenting them.\n\nAGENTS.md reference: [AGENTS.md:L20-L24](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/89d4d3b705bad2504ee31c1a758d899b0d42572e/AGENTS.md#L20-L24)\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-11-16T13:05:54Z",
+      "hunk": "@@ -58,34 +58,36 @@ testing.suites {\n       include(\"**/KafkaClientSuppressReceiveSpansTest.*\")\n     }\n \n-    register(\"Disabled\") {\n-      filter {\n-        includeTestsMatching(\"*DefaultEnablementTest\")\n-      }\n-    }\n-\n     register(\"ReceiveTelemetry\") {\n       filter {\n         excludeTestsMatching(\"KafkaClientPropagationDisabledTest\")\n         excludeTestsMatching(\"KafkaClientSuppressReceiveSpansTest\")\n+        excludeTestsMatching(\"OpenTelemetryMetricsReporterTest\")\n       }\n       telemetryConfig(\n         \"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\",\n         \"true\",\n       )\n-      jvmArgs(\"-Dotel.instrumentation.kafka-clients-metrics.enabled=true\")\n     }\n \n     register(\"Experimental\") {\n       filter {\n         excludeTestsMatching(\"KafkaClientPropagationDisabledTest\")\n         excludeTestsMatching(\"KafkaClientSuppressReceiveSpansTest\")\n+        excludeTestsMatching(\"OpenTelemetryMetricsReporterTest\")\n       }\n       telemetryConfig(\n         \"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\",\n         \"true\",\n       )\n       telemetryConfig(\"otel.instrumentation.kafka.experimental-span-attributes\", \"true\")\n+    }\n+\n+    register(\"Metrics\") {",
+      "id": "PRRT_kwDODJKVX86370b-",
+      "opened": "2026-11-16T13:05:54Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "89d4d3b705bad2504ee31c1a758d899b0d42572e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21310#discussion_r4586079058"
+    }
+  ]
+}

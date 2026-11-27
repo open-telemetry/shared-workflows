@@ -1,0 +1,153 @@
+{
+  "head": "e57750386ceab2513f30aef1a4e68509974bf511",
+  "merge": "be30e0c903ded55d555ea2efaf591cd3eb62d130",
+  "merged": "2026-01-09T22:20:00Z",
+  "missing_roots": 0,
+  "number": 15792,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "zeitlinger"
+      },
+      "body": "@laurit you added this initially - did I get the intention right?",
+      "created": "2026-01-08T07:34:12Z",
+      "hunk": "@@ -34,8 +33,8 @@ public List<TypeInstrumentation> typeInstrumentations() {\n   }\n \n   @Override\n-  public boolean defaultEnabled(ConfigProperties config) {\n-    // using a system property here will enable the instrumentation when declarative config is used\n-    return Boolean.getBoolean(\"otel.instrumentation.deny-unsafe.enabled\");\n+  public boolean defaultEnabled() {",
+      "id": "PRRT_kwDODJKVX85oeebq",
+      "opened": "2026-01-08T07:34:12Z",
+      "path": "testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/instrumentation/DenyUnsafeInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-01-08T07:47:07Z",
+          "body": "The intention is to have this instrumentation disabled by default and enable it only for `25-deny-unsafe` tests in the test matrix. As far as I can tell now this instrumentation is never enabled so I'd expect that you'll see failing tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2671259075"
+        },
+        {
+          "at": "2026-01-08T07:55:30Z",
+          "body": "yes, but is should have been enabled with `-Dotel.instrumentation.deny-unsafe.enabled=true` - have to find out why that is not working",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2671294492"
+        },
+        {
+          "at": "2026-01-08T08:01:19Z",
+          "body": "oh, the problem is that we also need to add this setting to declarative config yaml files..",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2671313893"
+        },
+        {
+          "at": "2026-01-08T08:49:51Z",
+          "body": "> oh, the problem is that we also need to add this setting to declarative config yaml files..\r\n\r\nWhich we don't really want to do so we just read the system property here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2671461722"
+        }
+      ],
+      "reviewed": "28066c434086eb6b89f0ca61c00517d5169199b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2671218905"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "to me using `UnsupportedOperationException` like this does not make sense",
+      "created": "2026-01-08T07:51:38Z",
+      "hunk": "@@ -64,13 +64,20 @@ public InstrumentationModuleInstaller(Instrumentation instrumentation) {\n     this.instrumentation = instrumentation;\n   }\n \n+  // Need to call deprecated API for backward compatibility with modules that haven't migrated\n+  @SuppressWarnings(\"deprecation\")\n   AgentBuilder install(\n       InstrumentationModule instrumentationModule,\n       AgentBuilder parentAgentBuilder,\n       ConfigProperties config) {\n-    if (!isInstrumentationEnabled(\n-        instrumentationModule.instrumentationNames(),\n-        instrumentationModule.defaultEnabled(config))) {\n+    boolean defaultEnabled;\n+    try {\n+      defaultEnabled = instrumentationModule.defaultEnabled();\n+    } catch (UnsupportedOperationException e) {",
+      "id": "PRRT_kwDODJKVX85oeo4P",
+      "opened": "2026-01-08T07:51:38Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationModuleInstaller.java",
+      "replies": [
+        {
+          "at": "2026-01-08T07:56:58Z",
+          "body": "the idea is to find out if the module is ported to the new javaagent version - not sure if we need to have this kind of backwards compatibility",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2671298751"
+        },
+        {
+          "at": "2026-01-08T08:51:48Z",
+          "body": "I believe we need the backwards compatibility. It is just that the implementation is strange. Usually here you'd call the old deprecated method and have that call the new method.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2671468322"
+        },
+        {
+          "at": "2026-01-08T11:54:03Z",
+          "body": "good idea - let me try that",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2672060038"
+        },
+        {
+          "at": "2026-01-08T13:49:16Z",
+          "body": "oh, your proposal doesn't work, because the old method takes a param",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2672434679"
+        },
+        {
+          "at": "2026-01-08T14:40:59Z",
+          "body": "> because the old method takes a param\r\n\r\nyou can call the old method that takes the parameter and have that call the new one that doesn't take parameters",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2672625179"
+        }
+      ],
+      "reviewed": "28066c434086eb6b89f0ca61c00517d5169199b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2671277794"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "how about \"otel.javaagent.testing.deny-unsafe\" (since it's only for CI)",
+      "created": "2026-01-08T16:33:45Z",
+      "hunk": "@@ -34,8 +33,12 @@ public List<TypeInstrumentation> typeInstrumentations() {\n   }\n \n   @Override\n-  public boolean defaultEnabled(ConfigProperties config) {\n-    // using a system property here will enable the instrumentation when declarative config is used\n+  public boolean defaultEnabled() {\n+    // We're using a system property here will enable the instrumentation even when declarative\n+    // config is used.\n+    // Otherwise, we'd need to patch YAML files to enable this instrumentation.\n+    // It's still possible to enable/disable it via declarative config, this just controls the\n+    // default.\n     return Boolean.getBoolean(\"otel.instrumentation.deny-unsafe.enabled\");",
+      "id": "PRRT_kwDODJKVX85oj3oY",
+      "opened": "2026-01-08T16:36:54Z",
+      "path": "testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/instrumentation/DenyUnsafeInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "3fbe450a1dab2e5f35ec134e60a21549bc0eb6d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2673059472"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n    return super.defaultEnabled() && ExperimentalConfig.get().controllerTelemetryEnabled();\r\n```",
+      "created": "2026-01-08T16:36:01Z",
+      "hunk": "@@ -27,9 +27,10 @@ public List<TypeInstrumentation> typeInstrumentations() {\n   }\n \n   @Override\n-  public boolean defaultEnabled(ConfigProperties config) {\n+  public boolean defaultEnabled() {\n     // this instrumentation only produces controller telemetry\n-    return super.defaultEnabled(config) && ExperimentalConfig.get().controllerTelemetryEnabled();\n+    return AgentConfig.instrumentationMode().equals(\"default\")\n+        && ExperimentalConfig.get().controllerTelemetryEnabled();",
+      "id": "PRRT_kwDODJKVX85oj4-z",
+      "opened": "2026-01-08T16:36:54Z",
+      "path": "instrumentation/spring/spring-ws-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/ws/v2_0/SpringWsInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "3fbe450a1dab2e5f35ec134e60a21549bc0eb6d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2673066904"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Better to read this from EarlyInitAgentConfig?",
+      "created": "2026-01-09T15:50:13Z",
+      "hunk": "@@ -21,10 +22,12 @@ public ApplicationLoggingInstrumentationModule() {\n   }\n \n   @Override\n-  public boolean defaultEnabled(ConfigProperties config) {\n+  public boolean defaultEnabled() {\n     // only enable this instrumentation if the application logger is enabled\n-    return super.defaultEnabled(config)\n-        && \"application\".equals(config.getString(\"otel.javaagent.logging\"));\n+    String logging =\n+        DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"agent\")\n+            .getString(\"logging\");",
+      "id": "PRRT_kwDODJKVX85oubKm",
+      "opened": "2026-01-09T15:53:14Z",
+      "path": "instrumentation/internal/internal-application-logger/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/logging/ApplicationLoggingInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-01-09T16:32:16Z",
+          "body": "I was just waiting for the other PR :smile: ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2676842267"
+        }
+      ],
+      "reviewed": "8e6c9f3b77b61769caf947a3b93ab5f258863937",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2676692803"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think this comment isn't need now it's clear based on `otel.javaagent.testing.*` prefix\r\n```suggestion\r\n```",
+      "created": "2026-01-09T15:52:35Z",
+      "hunk": "@@ -34,8 +33,13 @@ public List<TypeInstrumentation> typeInstrumentations() {\n   }\n \n   @Override\n-  public boolean defaultEnabled(ConfigProperties config) {\n-    // using a system property here will enable the instrumentation when declarative config is used\n-    return Boolean.getBoolean(\"otel.instrumentation.deny-unsafe.enabled\");\n+  public boolean defaultEnabled() {\n+    // This setting is for testing purposes only.\n+    // We're using a system property here will enable the instrumentation even when declarative\n+    // config is used.\n+    // Otherwise, we'd need to patch YAML files to enable this instrumentation.\n+    // It's still possible to enable/disable it via declarative config, this just controls the\n+    // default.",
+      "id": "PRRT_kwDODJKVX85oucqD",
+      "opened": "2026-01-09T15:53:14Z",
+      "path": "testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/instrumentation/DenyUnsafeInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "8e6c9f3b77b61769caf947a3b93ab5f258863937",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15792#discussion_r2676700621"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "head": "3e3f0b7327efdc88d1cfc817d90553f6d9707e36",
+  "merge": "eec410cf51a811a6fd3e5a561f3bd36cd100cd85",
+  "merged": "2026-09-02T18:48:21Z",
+  "missing_roots": 0,
+  "number": 506,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment above `Role` links to semconv `main` and only references the output-messages schema, but `Role` is used for both input and output messages and the repo pins semconv by `SEMCONV_GENAI_REF`. Consider referencing the schema paths (input + output) and the pin instead of a `main` URL to avoid drift/link rot.",
+      "created": "2026-08-31T02:37:39Z",
+      "hunk": "@@ -300,15 +300,23 @@ class GenericToolDefinition:\n ]\n \n \n+# https://github.com/open-telemetry/semantic-conventions-genai/blob/main/model/gen-ai/gen-ai-output-messages.json",
+      "id": "PRRT_kwDOSbspP86dmJYJ",
+      "opened": "2026-08-31T02:37:40Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "2488bf66af40e33740b2975460d347c2e04bb9cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/506#discussion_r3891353483"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test currently asserts a whitespace-sensitive JSON substring (\"\\\"role\\\":\\\"assistant\\\"\") which could break if `gen_ai_json_dumps` formatting changes even when the encoded value is correct. Parsing the JSON and asserting the decoded field keeps the test focused on behavior.",
+      "created": "2026-08-31T02:37:40Z",
+      "hunk": "@@ -980,3 +983,24 @@ def test_inference_finish_does_not_duplicate_start_attributes(self):\n class AnyNonNone:\n     def __eq__(self, other):\n         return other is not None\n+\n+\n+class TestRole(unittest.TestCase):\n+    def test_values_match_semantic_conventions(self):\n+        self.assertEqual(\n+            {role.value for role in Role},\n+            {\"system\", \"user\", \"assistant\", \"tool\"},\n+        )\n+\n+    def test_serializes_as_a_bare_string(self):\n+        \"\"\"A member set on a message must reach the wire as its value.\"\"\"\n+        message = OutputMessage(\n+            role=Role.ASSISTANT,\n+            parts=[TextPart(content=\"hi\")],\n+            finish_reason=\"stop\",\n+        )\n+\n+        serialized = gen_ai_json_dumps(asdict(message))\n+\n+        self.assertIn('\"role\":\"assistant\"', serialized)\n+        self.assertNotIn(\"Role.\", serialized)",
+      "id": "PRRT_kwDOSbspP86dmJYZ",
+      "opened": "2026-08-31T02:37:40Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils.py",
+      "replies": [
+        {
+          "at": "2026-08-31T02:43:35Z",
+          "body": "updated",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/506#discussion_r3891371338"
+        }
+      ],
+      "reviewed": "2488bf66af40e33740b2975460d347c2e04bb9cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/506#discussion_r3891353503"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    role: str\n```\nSince `Role` inherits from `str` (`class Role(str, Enum)`), `role: str` already accepts `Role` instances.",
+      "created": "2026-08-31T23:18:45Z",
+      "hunk": "@@ -300,15 +300,23 @@ class GenericToolDefinition:\n ]\n \n \n+# Semconv schemas: model/gen-ai/gen-ai-{input,output}-messages.json (pinned by SEMCONV_GENAI_REF).\n+class Role(str, Enum):\n+    SYSTEM = \"system\"\n+    USER = \"user\"\n+    ASSISTANT = \"assistant\"\n+    TOOL = \"tool\"\n+\n+\n @dataclass()\n class InputMessage:\n-    role: str\n+    role: str | Role",
+      "id": "PRRT_kwDOSbspP86d6SA4",
+      "opened": "2026-08-31T23:21:01Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "13b420a01273c3ac87abe6c81e3bb29dbce4d7b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/506#discussion_r3899271344"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\ndef _normalize_role(message: BaseMessage) -> str | None:\n    for message_class, role in _ROLE_BY_CLASS:\n        if isinstance(message, message_class):\n            return role.value\n    return None\n```\nReturning `str | None` lets callers apply context-specific defaults (e.g. `_normalize_role(msg) or \"user\"` for input messages vs `or \"assistant\"` for output messages) instead of falling back to `message.type` which leaks LangChain AST type names like `\"chat\"` or `\"remove\"`.",
+      "created": "2026-08-31T23:18:45Z",
+      "hunk": "@@ -73,18 +77,20 @@ def normalize_provider(metadata: dict[str, Any] | None) -> str | None:\n     return _PROVIDER_NAME_OVERRIDES.get(raw, raw)\n \n \n-# LangChain ``BaseMessage.type`` -> spec ``role`` value. Anything not in the\n-# map is passed through unchanged so future LangChain message types still emit\n-# telemetry without code changes here.\n-_ROLE_MAP: dict[str, str] = {\n-    \"human\": \"user\",\n-    \"ai\": \"assistant\",\n-    \"function\": \"tool\",\n-}\n+_ROLE_BY_CLASS: tuple[tuple[type[BaseMessage], Role], ...] = (\n+    (ToolMessage, Role.TOOL),\n+    (FunctionMessage, Role.TOOL),\n+    (AIMessage, Role.ASSISTANT),\n+    (HumanMessage, Role.USER),\n+    (SystemMessage, Role.SYSTEM),\n+)\n \n \n def _normalize_role(message: BaseMessage) -> str:\n-    return _ROLE_MAP.get(message.type, message.type)\n+    for message_class, role in _ROLE_BY_CLASS:\n+        if isinstance(message, message_class):\n+            return role.value\n+    return message.type",
+      "id": "PRRT_kwDOSbspP86d6SAv",
+      "opened": "2026-08-31T23:21:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-01T23:05:37Z",
+          "body": "thanks! updated this part, also added special handling for `ChatMessage` whichcan carry an arbitrary role.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/506#discussion_r3909193377"
+        }
+      ],
+      "reviewed": "13b420a01273c3ac87abe6c81e3bb29dbce4d7b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/506#discussion_r3899271332"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nice! mind creating an issue to start using it in other instrumentations? ",
+      "created": "2026-08-31T23:20:38Z",
+      "hunk": "@@ -300,15 +300,23 @@ class GenericToolDefinition:\n ]\n \n \n+# Semconv schemas: model/gen-ai/gen-ai-{input,output}-messages.json (pinned by SEMCONV_GENAI_REF).\n+class Role(str, Enum):",
+      "id": "PRRT_kwDOSbspP86d6Tzx",
+      "opened": "2026-08-31T23:21:01Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [
+        {
+          "at": "2026-09-01T23:10:58Z",
+          "body": "sure! created a new issue to track this: https://github.com/open-telemetry/opentelemetry-python-genai/issues/534",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/506#discussion_r3909230082"
+        }
+      ],
+      "reviewed": "13b420a01273c3ac87abe6c81e3bb29dbce4d7b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/506#discussion_r3899282673"
+    }
+  ]
+}

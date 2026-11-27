@@ -1,0 +1,25 @@
+{
+  "head": "82edc146a296dda48eb78d6d09403e53e02e7287",
+  "merge": "6c56b4286e2b094b5a89579250c079e8080cde6f",
+  "merged": "2026-07-08T17:34:24Z",
+  "missing_roots": 0,
+  "number": 19115,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getDestinationName` can now return `null`, and while `createMessageWithTopic` was updated to guard against this, the parallel `createMessageWithQueue` (line 56) was not. When `getQueueName()` throws (e.g. a `JMSException` from the provider), `getDestinationName` returns `null` and `queueName.startsWith(TIBCO_TMP_PREFIX)` will throw a `NullPointerException`. The queue path needs the same null guard that was added to the topic path here.",
+      "created": "2026-07-02T08:41:33Z",
+      "hunk": "@@ -62,17 +62,19 @@ private static MessageWithDestination createMessageWithTopic(\n       MessageAdapter message, DestinationAdapter topic) {\n \n     String topicName = getDestinationName(topic, DestinationAdapter::getTopicName);\n-    boolean temporary = topic.isTemporaryTopic() || topicName.startsWith(TIBCO_TMP_PREFIX);\n+    boolean temporary =\n+        topic.isTemporaryTopic() || (topicName != null && topicName.startsWith(TIBCO_TMP_PREFIX));",
+      "id": "PRRT_kwDODJKVX86N1PtE",
+      "opened": "2026-07-02T08:41:34Z",
+      "path": "instrumentation/jms/jms-common-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/common/v1_1/MessageWithDestination.java",
+      "replies": [],
+      "reviewed": "90891b15acb96ee0803aada4bb5f8377d1a1f0d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19115#discussion_r3511638813"
+    }
+  ]
+}

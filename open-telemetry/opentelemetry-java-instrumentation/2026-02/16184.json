@@ -1,0 +1,25 @@
+{
+  "head": "a999e6a7e5091aeabb92b41303c98aea06c6db15",
+  "merge": "c99e8cf19232624bd4212415111967a258e578c8",
+  "merged": "2026-02-16T17:05:13Z",
+  "missing_roots": 0,
+  "number": 16184,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I find it unlikely that `EXPLAIN` is used outside the db tools.",
+      "created": "2026-02-16T07:47:15Z",
+      "hunk": "@@ -890,6 +890,15 @@ WHITESPACE           = [ \\t\\r\\n]+\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n+  \"EXPLAIN\" {",
+      "id": "PRRT_kwDODJKVX85uyNGI",
+      "opened": "2026-02-16T07:47:14Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [],
+      "reviewed": "843fd6c2107ae9d192bd938ba8b7733ce8690ab4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16184#discussion_r2811067086"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "head": "2dc52cdee9bd6f4c9c40c96e5b9bbffac6c04a5e",
+  "merge": "185456df48354460c2c5a727c6534347a835228e",
+  "merged": "2026-09-09T22:12:41Z",
+  "missing_roots": 0,
+  "number": 19904,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A delimiter before `@` can expose credentials instead of dropping the target. For example, parsing `user:123/secret@os.example` truncates to `user:123`, then emits `server.address=user` and `server.port=123`. Reject an `@` found after the first path/query/fragment delimiter before truncating; the existing `userinfoAfterAuthorityHasNoTarget` test should exercise `OpenSearchConfiguredHost.parse(...)` so this path is covered.",
+      "created": "2026-08-28T21:06:48Z",
+      "hunk": "@@ -0,0 +1,53 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.javaagent.instrumentation.opensearch.rest.common.v1_0.OpenSearchServerTarget;\n+import javax.annotation.Nullable;\n+\n+public class OpenSearchConfiguredHost {\n+\n+  @Nullable\n+  public static OpenSearchServerTarget parse(@Nullable String host) {\n+    if (host == null) {\n+      return null;\n+    }\n+\n+    String rest = host;\n+    int schemeEnd = rest.indexOf(\"://\");\n+    if (schemeEnd >= 0) {\n+      rest = rest.substring(schemeEnd + 3);\n+    }\n+\n+    // the endpoint may carry a path prefix, a query string or a fragment, none of which belong to\n+    // the target; credentials are dropped by the endpoint itself\n+    for (int i = 0; i < rest.length(); i++) {\n+      char c = rest.charAt(i);\n+      if (c == '/' || c == '?' || c == '#') {\n+        rest = rest.substring(0, i);\n+        break;\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86dTdxw",
+      "opened": "2026-08-28T21:06:48Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHost.java",
+      "replies": [
+        {
+          "at": "2026-08-28T23:15:38Z",
+          "body": "Addressed in 4e8b4e8a243ebf6c828ca1681a57f9001c67a450.\n\nAnalysis: OpenSearchConfiguredHost truncated the endpoint before the shared endpoint sanitizer could see an `@` after a path, query, or fragment delimiter. A numeric credential segment could then become a port. Rejecting this shape before truncation preserves the sanitizer's conservative credential handling, and the regression test now covers the parser for all three delimiter types.\n\nUpsides: Prevents credentials from becoming server target attributes and adds focused parser coverage for path, query, and fragment inputs.\n\nDownsides: An endpoint whose path, query, or fragment legitimately contains `@` now produces no configured target. This conservative loss of target data avoids exposing possible credentials.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19904#discussion_r3884639886"
+        }
+      ],
+      "reviewed": "3d63d40640dbaaa32fee9670afe82d33d7f050a9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19904#discussion_r3884041279"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A malformed port is treated as part of the address instead of causing the stable target to be omitted. For example, `os.example:not-a-port` reaches this catch and is later emitted as `server.address=os.example:not-a-port`, contrary to the stated safe-parsing behavior. Please reject malformed authorities here (while handling IPv6 explicitly) rather than preserving the unparsed value.",
+      "created": "2026-08-30T00:22:41Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.javaagent.instrumentation.opensearch.rest.common.v1_0.OpenSearchServerTarget;\n+import javax.annotation.Nullable;\n+\n+public class OpenSearchConfiguredHost {\n+\n+  @Nullable\n+  public static OpenSearchServerTarget parse(@Nullable String host) {\n+    if (host == null) {\n+      return null;\n+    }\n+\n+    String rest = host;\n+    int schemeEnd = rest.indexOf(\"://\");\n+    if (schemeEnd >= 0) {\n+      rest = rest.substring(schemeEnd + 3);\n+    }\n+\n+    // the endpoint may carry a path prefix, a query string or a fragment, none of which belong to\n+    // the target; credentials are dropped by the endpoint itself\n+    for (int i = 0; i < rest.length(); i++) {\n+      char c = rest.charAt(i);\n+      if (c == '/' || c == '?' || c == '#') {\n+        if (rest.indexOf('@', i) >= 0) {\n+          return null;\n+        }\n+        rest = rest.substring(0, i);\n+        break;\n+      }\n+    }\n+\n+    int port = -1;\n+    int portStart = rest.lastIndexOf(':');\n+    if (portStart >= 0 && rest.indexOf(']', portStart) < 0) {\n+      try {\n+        port = Integer.parseInt(rest.substring(portStart + 1));\n+        rest = rest.substring(0, portStart);\n+      } catch (NumberFormatException ignored) {\n+        // not a port, keep the authority as it is\n+      }",
+      "id": "PRRT_kwDODJKVX86ddpwP",
+      "opened": "2026-08-30T00:22:41Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHost.java",
+      "replies": [
+        {
+          "at": "2026-08-30T00:39:04Z",
+          "body": "Addressed in bcdbb03b60010db27e89d972affa7ccaedfd84e3.\n\nAnalysis: The parser kept an authority after port parsing failed, which let malformed ports become server.address values. The parser now separates userinfo from the host, handles bracketed IPv6 before looking for a port, and rejects malformed brackets, nonnumeric ports, out-of-range ports, and unbracketed IPv6 authorities.\n\nUpsides: Stable server attributes no longer contain malformed authorities. Valid bracketed IPv6 addresses and authorities with userinfo keep their existing behavior.\n\nDownsides: Invalid authorities now omit the stable target instead of preserving part of the input.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19904#discussion_r3888084756"
+        }
+      ],
+      "reviewed": "f61058c5f218a6961e2f57ef928d958d247ff773",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19904#discussion_r3888054520"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Only treat `://` as a scheme separator when it occurs in a valid leading scheme. As written, a URL-valued path/query/fragment bypasses the sanitizer: `os.example?token=https://secret.example` is reduced to `secret.example` and emitted as `server.address`, rather than retaining `os.example` and dropping the sensitive query. This contradicts the target sanitization requirement.",
+      "created": "2026-08-30T00:48:51Z",
+      "hunk": "@@ -0,0 +1,79 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.javaagent.instrumentation.opensearch.rest.common.v1_0.OpenSearchServerTarget;\n+import javax.annotation.Nullable;\n+\n+public class OpenSearchConfiguredHost {\n+\n+  @Nullable\n+  public static OpenSearchServerTarget parse(@Nullable String host) {\n+    if (host == null) {\n+      return null;\n+    }\n+\n+    String rest = host;\n+    int schemeEnd = rest.indexOf(\"://\");\n+    if (schemeEnd >= 0) {\n+      rest = rest.substring(schemeEnd + 3);\n+    }",
+      "id": "PRRT_kwDODJKVX86ddxaX",
+      "opened": "2026-08-30T00:48:52Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHost.java",
+      "replies": [
+        {
+          "at": "2026-08-30T00:53:22Z",
+          "body": "Addressed in 8d84e92d7446e4ae3a037e0da19bc8d0bfed24d0.\n\nAnalysis: The parser used the first `://` anywhere in the configured value as a scheme separator. It now strips a scheme only when the input starts with an RFC 3986 scheme prefix, so URLs inside paths, queries, or fragments remain subject to delimiter sanitization.\n\nUpsides: URL-valued endpoint suffixes can no longer replace the configured server address. Valid schemes, including schemes with digits, plus signs, hyphens, or periods, still work.\n\nDownsides: The parser now keeps invalid nonleading scheme-like text for normal authority sanitization instead of treating it as a scheme.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19904#discussion_r3888108434"
+        }
+      ],
+      "reviewed": "bcdbb03b60010db27e89d972affa7ccaedfd84e3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19904#discussion_r3888101092"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "a bit surprising that user@pass can appear after /?# Seems to be tested in `userinfoAfterAuthorityHasNoTarget`",
+      "created": "2026-09-09T11:45:29Z",
+      "hunk": "@@ -0,0 +1,132 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbServerTarget;\n+import io.opentelemetry.javaagent.instrumentation.opensearch.rest.common.v1_0.OpenSearchServerTarget;\n+import javax.annotation.Nullable;\n+\n+public class OpenSearchConfiguredHost {\n+\n+  private static final int NO_PORT = -1;\n+  private static final int INVALID = -2;\n+\n+  @Nullable\n+  public static DbServerTarget parse(@Nullable String host) {\n+    return parse(host, \"\");\n+  }\n+\n+  @Nullable\n+  public static DbServerTarget parse(@Nullable String host, String defaultScheme) {\n+    if (host == null) {\n+      return null;\n+    }\n+\n+    OpenSearchServerTarget.Endpoint endpoint = parseEndpoint(host, defaultScheme);\n+    return endpoint == null ? null : OpenSearchServerTarget.of(singletonList(endpoint));\n+  }\n+\n+  @Nullable\n+  private static OpenSearchServerTarget.Endpoint parseEndpoint(String host, String defaultScheme) {\n+    String rest = host;\n+    String scheme = defaultScheme;\n+    int schemeEnd = rest.indexOf(\"://\");\n+    if (hasValidScheme(rest, schemeEnd)) {\n+      scheme = rest.substring(0, schemeEnd);\n+      rest = rest.substring(schemeEnd + 3);\n+    }\n+\n+    rest = stripEndpointSuffix(rest);\n+    if (rest == null) {\n+      return null;\n+    }\n+\n+    int hostStart = rest.lastIndexOf('@') + 1;\n+    int portStart = findPortStart(rest, hostStart);\n+    if (portStart == INVALID) {\n+      return null;\n+    }\n+\n+    int port = parsePort(rest, portStart);\n+    if (port == INVALID) {\n+      return null;\n+    }\n+\n+    String hostName =\n+        portStart == NO_PORT ? rest.substring(hostStart) : rest.substring(hostStart, portStart);\n+    return new OpenSearchServerTarget.Endpoint(hostName, port, scheme);\n+  }\n+\n+  @Nullable\n+  private static String stripEndpointSuffix(String value) {\n+    // The endpoint may carry a path prefix, a query string or a fragment, none of which belong to\n+    // the target.\n+    for (int i = 0; i < value.length(); i++) {\n+      char c = value.charAt(i);\n+      if (c == '/' || c == '?' || c == '#') {\n+        return value.indexOf('@', i) >= 0 ? null : value.substring(0, i);",
+      "id": "PRRT_kwDODJKVX86golxK",
+      "opened": "2026-09-09T11:45:29Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHost.java",
+      "replies": [
+        {
+          "at": "2026-09-09T18:37:57Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19904/commits/edf14c995b38b8b9fdccc37225722169f735c115",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19904#discussion_r3971808053"
+        }
+      ],
+      "reviewed": "322231689af967896b58d316119cae2dc88fdf7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19904#discussion_r3967963520"
+    }
+  ]
+}

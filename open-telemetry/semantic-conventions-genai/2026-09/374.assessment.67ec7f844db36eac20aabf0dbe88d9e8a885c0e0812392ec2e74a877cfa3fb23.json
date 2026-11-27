@@ -1,0 +1,274 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c6822a22c1f4d673cb6bde6d82f2329ad6e1da55ddac80a67820a4cf944349b2",
+  "input_digest": "67ec7f844db36eac20aabf0dbe88d9e8a885c0e0812392ec2e74a877cfa3fb23",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f98296a544724af9e4aae50d70a6388a02ee1f3d/reference/scenarios/openai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f98296a544724af9e4aae50d70a6388a02ee1f3d/reference/scenarios/openai/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/reference/scenarios/openai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/reference/scenarios/openai/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/3270254c03feaed4b14ffd4c5be5a88df6ab26f8"
+      ],
+      "id": "PRRT_kwDOSUeMrM6QO_l9",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f98296a544724af9e4aae50d70a6388a02ee1f3d/model/gen-ai/usage-attributes.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/model/gen-ai/usage-attributes.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/model/gen-ai/registry.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/model/gen-ai/spans.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/9da8f877edf92b7f174d773ed4e5f5594ea73285",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/3270254c03feaed4b14ffd4c5be5a88df6ab26f8"
+      ],
+      "id": "PRRT_kwDOSUeMrM6QO_lz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f98296a544724af9e4aae50d70a6388a02ee1f3d/reference/scenarios/google-genai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/reference/scenarios/google-genai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/3270254c03feaed4b14ffd4c5be5a88df6ab26f8"
+      ],
+      "id": "PRRT_kwDOSUeMrM6QO_mE",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f98296a544724af9e4aae50d70a6388a02ee1f3d/reference/scenarios/google-genai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/reference/scenarios/google-genai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/8ffdf568e1b4391a99adb081db16e8102e36918e",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/3270254c03feaed4b14ffd4c5be5a88df6ab26f8"
+      ],
+      "id": "PRRT_kwDOSUeMrM6QO_mI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f98296a544724af9e4aae50d70a6388a02ee1f3d/model/gen-ai/spans.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/model/gen-ai/spans.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/docs/gen-ai/anthropic.md"
+      ],
+      "id": "PRRT_kwDOSUeMrM6QO_mO",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_at_or_before_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f98296a544724af9e4aae50d70a6388a02ee1f3d/changelog.d/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f98296a544724af9e4aae50d70a6388a02ee1f3d/changelog.d/%2B.enhancement.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/changelog.d/374.enhancement.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/changelog.d/%2B.enhancement.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/355966d3e906eae9417b78adfc92268e2a4e1078"
+      ],
+      "id": "PRRT_kwDOSUeMrM6QO_mS",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_at_or_before_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f98296a544724af9e4aae50d70a6388a02ee1f3d/changelog.d/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f98296a544724af9e4aae50d70a6388a02ee1f3d/changelog.d/%2B.breaking.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/changelog.d/374.breaking.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/changelog.d/%2B.breaking.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/355966d3e906eae9417b78adfc92268e2a4e1078"
+      ],
+      "id": "PRRT_kwDOSUeMrM6QO_mU",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/3270254c03feaed4b14ffd4c5be5a88df6ab26f8/model/gen-ai/spans.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/3270254c03feaed4b14ffd4c5be5a88df6ab26f8/model/gen-ai/metrics.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/model/gen-ai/spans.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/model/gen-ai/metrics.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/991282c19bf5d9b32018213dbeaaeb30a3c9ac05"
+      ],
+      "id": "PRRT_kwDOSUeMrM6QwFc4",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/3270254c03feaed4b14ffd4c5be5a88df6ab26f8/docs/gen-ai/gen-ai-inference-usage-metrics.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/docs/gen-ai/gen-ai-token-metrics.md"
+      ],
+      "id": "PRRT_kwDOSUeMrM6QwOX1",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/3270254c03feaed4b14ffd4c5be5a88df6ab26f8/docs/gen-ai/gen-ai-inference-usage-metrics.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/docs/gen-ai/gen-ai-token-metrics.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/a2045cb083d3d7fe595ef4a06b4c3ca3da6c34c5"
+      ],
+      "id": "PRRT_kwDOSUeMrM6QwQgT",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDOSUeMrM6QwRTl",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDOSUeMrM6QwRzJ",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDOSUeMrM6QwSJG",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/b19022ef68f7151dba84d5ff39a1b16600e1b0ba/model/gen-ai/usage-metrics.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/b19022ef68f7151dba84d5ff39a1b16600e1b0ba/reference/scenarios/openai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/reference/scenarios/openai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/reference/scenarios/openai/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/b62d96a87d488f25332cf78efad289e0fe929afb"
+      ],
+      "id": "PRRT_kwDOSUeMrM6bkrK7",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/b19022ef68f7151dba84d5ff39a1b16600e1b0ba/reference/src/semconv_genai/semconv_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/b19022ef68f7151dba84d5ff39a1b16600e1b0ba/reference/src/semconv_genai/report.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/reference/src/semconv_genai/semconv_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/reference/src/semconv_genai/report.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/4049c37cce86b2235502a928ad4094f197c7748f"
+      ],
+      "id": "PRRT_kwDOSUeMrM6bkrLJ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/b19022ef68f7151dba84d5ff39a1b16600e1b0ba/model/gen-ai/registry.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/model/gen-ai/registry.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/8ffdf568e1b4391a99adb081db16e8102e36918e",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/b19022ef68f7151dba84d5ff39a1b16600e1b0ba/model/gen-ai/usage-metrics.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/model/gen-ai/token-metrics.yaml"
+      ],
+      "id": "PRRT_kwDOSUeMrM6bkrLN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/d860ffd035f939b9f094fde6d31d44e51d358946/docs/gen-ai/gen-ai-inference-usage-metrics.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/changelog.d/374.enhancement.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/docs/gen-ai/README.md"
+      ],
+      "id": "PRRT_kwDOSUeMrM6cLle1",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/d860ffd035f939b9f094fde6d31d44e51d358946/docs/gen-ai/gen-ai-inference-usage-metrics.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/docs/gen-ai/gen-ai-token-metrics.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/1929890ebe6580c4ccca4150cd4c44d3d1f32e7f"
+      ],
+      "id": "PRRT_kwDOSUeMrM6cLleb",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/d860ffd035f939b9f094fde6d31d44e51d358946/reference/src/semconv_genai/semconv_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/reference/src/semconv_genai/semconv_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/4049c37cce86b2235502a928ad4094f197c7748f"
+      ],
+      "id": "PRRT_kwDOSUeMrM6cLlew",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/bf807ccaa8e3f115f09f005d9fc2774fd3705ab6/changelog.d/374.enhancement.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/changelog.d/374.enhancement.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/767039e7eb2618c9f7111dd0ddc0274776c8f682"
+      ],
+      "id": "PRRT_kwDOSUeMrM6eEke3",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOSUeMrM6eMj_B",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/34d265d09747d75aaafccfbc7ad070f5eb3cd670/docs/gen-ai/non-normative/token-metrics-design.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/docs/gen-ai/non-normative/token-metrics-design.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/ee5109b46b61add173d22d418ecb8096d3adff34"
+      ],
+      "id": "PRRT_kwDOSUeMrM6jFARu",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/ee5109b46b61add173d22d418ecb8096d3adff34/reference/scenarios/openai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/8ffdf568e1b4391a99adb081db16e8102e36918e/reference/scenarios/openai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/8ffdf568e1b4391a99adb081db16e8102e36918e"
+      ],
+      "id": "PRRT_kwDOSUeMrM6kiE8T",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

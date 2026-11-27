@@ -1,0 +1,109 @@
+{
+  "head": "b871c01038d5cbae10789c75e9e224ec2b7d43ac",
+  "merge": "c350b63e1d83fef8774494ff12524bd06e5bbe25",
+  "merged": "2026-05-11T06:17:14Z",
+  "missing_roots": 0,
+  "number": 18260,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "it's more verbose, but it's also more complete now verifying both time series",
+      "created": "2026-05-11T03:04:38Z",
+      "hunk": "@@ -48,11 +57,18 @@ void test() {\n                     metric ->\n                         assertThat(metric)\n                             .hasUnit(\"ms\")\n-                            // TODO: Provide fuzzy value matching\n                             .hasLongGaugeSatisfying(\n                                 gauge ->\n-                                    assertThat(metric.getLongGaugeData().getPoints())\n-                                        .anySatisfy(\n-                                            point -> assertThat(point.getValue()).isPositive()))));\n+                                    gauge.hasPointsSatisfying(\n+                                        point ->\n+                                            point\n+                                                .hasAttributesSatisfying(\n+                                                    equalTo(stringKey(\"type\"), \"user\"))\n+                                                .hasValueSatisfying(v -> v.isNotNegative()),\n+                                        point ->\n+                                            point\n+                                                .hasAttributesSatisfying(\n+                                                    equalTo(stringKey(\"type\"), \"system\"))\n+                                                .hasValueSatisfying(v -> v.isNotNegative())))));",
+      "id": "PRRT_kwDODJKVX86A9XSZ",
+      "opened": "2026-05-11T03:04:38Z",
+      "path": "instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractProcessMetricsTest.java",
+      "replies": [],
+      "reviewed": "d4ad5554b921f1d8bf5bc6f3ba0ab8d1fbd14d7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260#discussion_r3216147088"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These points are expected to only have the `state` attribute (see `SystemMetrics` recording with fixed `Attributes.of(state, ...)`). Using `hasAttributesSatisfying(...)` will still pass if unexpected extra attributes are added later. Consider switching to an exact attribute assertion (`hasAttributesSatisfyingExactly(...)` or `hasAttributes(...)`) so the test will catch unintended attribute changes.",
+      "created": "2026-05-11T03:09:59Z",
+      "hunk": "@@ -31,12 +35,17 @@ void test() {\n                     metric ->\n                         assertThat(metric)\n                             .hasUnit(\"By\")\n-                            // TODO: Provide fuzzy value matching\n                             .hasLongSumSatisfying(\n-                                sum ->\n-                                    assertThat(metric.getLongSumData().getPoints())\n-                                        .anySatisfy(\n-                                            point -> assertThat(point.getValue()).isPositive()))));\n+                                sum -> {\n+                                  sum.hasPointsSatisfying(\n+                                      point ->\n+                                          point.hasAttributesSatisfying(equalTo(STATE, \"used\")),\n+                                      point ->\n+                                          point.hasAttributesSatisfying(equalTo(STATE, \"free\")));",
+      "id": "PRRT_kwDODJKVX86A9Zb4",
+      "opened": "2026-05-11T03:10:00Z",
+      "path": "instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractSystemMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-05-11T03:12:11Z",
+          "body": "Addressed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260/commits/e738c43bd4d1245b86788378320f0db41938f016 — switched to `hasAttributesSatisfyingExactly(...)`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260#discussion_r3216164004"
+        }
+      ],
+      "reviewed": "d4ad5554b921f1d8bf5bc6f3ba0ab8d1fbd14d7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260#discussion_r3216159433"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the `system.memory.utilization` assertions, `isPositive()` requires both `state=used` and `state=free` values to be strictly > 0. But `SystemMetrics` computes these as fractions of total memory, so either value can legitimately be 0.0 (e.g., available==total => used==0.0, or available==0 => free==0.0). To avoid a flaky/incorrect test, consider asserting the values are within [0, 1] (or at least non-negative) instead of strictly positive.\n",
+      "created": "2026-05-11T03:09:59Z",
+      "hunk": "@@ -46,12 +55,17 @@ void test() {\n                     metric ->\n                         assertThat(metric)\n                             .hasUnit(\"1\")\n-                            // TODO: Provide fuzzy value matching\n                             .hasDoubleGaugeSatisfying(\n                                 gauge ->\n-                                    assertThat(metric.getDoubleGaugeData().getPoints())\n-                                        .anySatisfy(\n-                                            point -> assertThat(point.getValue()).isPositive()))));\n+                                    gauge.hasPointsSatisfying(\n+                                        point ->\n+                                            point\n+                                                .hasAttributesSatisfying(equalTo(STATE, \"used\"))\n+                                                .hasValueSatisfying(v -> v.isPositive()),\n+                                        point ->\n+                                            point\n+                                                .hasAttributesSatisfying(equalTo(STATE, \"free\"))\n+                                                .hasValueSatisfying(v -> v.isPositive())))));",
+      "id": "PRRT_kwDODJKVX86A9Zbt",
+      "opened": "2026-05-11T03:10:00Z",
+      "path": "instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractSystemMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-05-11T03:12:09Z",
+          "body": "Addressed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260/commits/e738c43bd4d1245b86788378320f0db41938f016 — switched to `isNotNegative()` (and also exact attribute match).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260#discussion_r3216163963"
+        }
+      ],
+      "reviewed": "d4ad5554b921f1d8bf5bc6f3ba0ab8d1fbd14d7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260#discussion_r3216159417"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ProcessMetrics` records points using `Attributes.of(TYPE_KEY, ...)`, so point attributes should be exactly `{type=rss}` / `{type=vms}` (and similarly for cpu_time). Using `hasAttributesSatisfying(...)` will not fail if extra unexpected attributes are added. Consider using an exact attribute assertion (`hasAttributesSatisfyingExactly(...)` or `hasAttributes(...)`) to make the tests more regression-sensitive.",
+      "created": "2026-05-11T03:10:00Z",
+      "hunk": "@@ -33,12 +35,19 @@ void test() {\n                     metric ->\n                         assertThat(metric)\n                             .hasUnit(\"By\")\n-                            // TODO: Provide fuzzy value matching\n                             .hasLongSumSatisfying(\n                                 sum ->\n-                                    assertThat(metric.getLongSumData().getPoints())\n-                                        .anySatisfy(\n-                                            point -> assertThat(point.getValue()).isPositive()))));\n+                                    sum.hasPointsSatisfying(\n+                                        point ->\n+                                            point\n+                                                .hasAttributesSatisfying(\n+                                                    equalTo(stringKey(\"type\"), \"rss\"))\n+                                                .hasValueSatisfying(v -> v.isPositive()),\n+                                        point ->\n+                                            point\n+                                                .hasAttributesSatisfying(\n+                                                    equalTo(stringKey(\"type\"), \"vms\"))\n+                                                .hasValueSatisfying(v -> v.isPositive())))));",
+      "id": "PRRT_kwDODJKVX86A9Zb_",
+      "opened": "2026-05-11T03:10:00Z",
+      "path": "instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractProcessMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-05-11T03:12:12Z",
+          "body": "Addressed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260/commits/e738c43bd4d1245b86788378320f0db41938f016 — switched to `hasAttributesSatisfyingExactly(...)`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260#discussion_r3216164047"
+        }
+      ],
+      "reviewed": "d4ad5554b921f1d8bf5bc6f3ba0ab8d1fbd14d7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260#discussion_r3216159445"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the `system.memory.usage` test, the two `hasPointsSatisfying(...)` consumers only assert point attributes, and the subsequent `anySatisfy(... isPositive())` can still pass even if the `state=used` point is negative (e.g., if `mem.getAvailable() > mem.getTotal()` leads to `total-available < 0`). Consider asserting each point’s value is non-negative directly in the point consumers (e.g., `hasValueSatisfying(v -> v.isNotNegative())` for both `used` and `free`) and then dropping the separate `anySatisfy(isPositive())` check (since 0 is valid).\n",
+      "created": "2026-05-11T03:18:09Z",
+      "hunk": "@@ -31,12 +35,19 @@ void test() {\n                     metric ->\n                         assertThat(metric)\n                             .hasUnit(\"By\")\n-                            // TODO: Provide fuzzy value matching\n                             .hasLongSumSatisfying(\n-                                sum ->\n-                                    assertThat(metric.getLongSumData().getPoints())\n-                                        .anySatisfy(\n-                                            point -> assertThat(point.getValue()).isPositive()))));\n+                                sum -> {\n+                                  sum.hasPointsSatisfying(\n+                                      point ->\n+                                          point.hasAttributesSatisfyingExactly(\n+                                              equalTo(STATE, \"used\")),\n+                                      point ->\n+                                          point.hasAttributesSatisfyingExactly(\n+                                              equalTo(STATE, \"free\")));\n+                                  assertThat(metric.getLongSumData().getPoints())\n+                                      .anySatisfy(\n+                                          point -> assertThat(point.getValue()).isPositive());\n+                                })));",
+      "id": "PRRT_kwDODJKVX86A9csw",
+      "opened": "2026-05-11T03:18:09Z",
+      "path": "instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractSystemMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-05-11T03:19:48Z",
+          "body": "Addressed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260/commits/b871c01038d5cbae10789c75e9e224ec2b7d43ac — moved `isNotNegative()` into the per-point consumers and dropped the separate `anySatisfy(isPositive())` check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260#discussion_r3216180320"
+        }
+      ],
+      "reviewed": "e738c43bd4d1245b86788378320f0db41938f016",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18260#discussion_r3216176903"
+    }
+  ]
+}

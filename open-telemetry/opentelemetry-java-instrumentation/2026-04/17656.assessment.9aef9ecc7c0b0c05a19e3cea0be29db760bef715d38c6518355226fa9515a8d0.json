@@ -1,0 +1,24 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "32668630cd77c0ddb4566449bd0fedf45ced01b9a940817aa59a4bed003f9f83",
+  "input_digest": "9aef9ecc7c0b0c05a19e3cea0be29db760bef715d38c6518355226fa9515a8d0",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6c2cc0c3224196fe423da0031799d5787293e7e/instrumentation/rocketmq/rocketmq-client/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/TracingSendMessageHookImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d6c2cc0c3224196fe423da0031799d5787293e7e/instrumentation/rocketmq/rocketmq-client/rocketmq-client-4.8/testing/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/AbstractRocketMqClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ef80359f4314f725fccf8ebb563910494708385/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/TracingSendMessageHookImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ef80359f4314f725fccf8ebb563910494708385/instrumentation/rocketmq/rocketmq-client-4.8/testing/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/AbstractRocketMqClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8ef80359f4314f725fccf8ebb563910494708385",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d4b307ab9aa3849d0835100dacbc2215c262bf47"
+      ],
+      "id": "PRRT_kwDODJKVX855RQkW",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

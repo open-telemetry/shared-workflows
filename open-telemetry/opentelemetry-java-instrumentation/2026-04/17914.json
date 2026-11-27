@@ -1,0 +1,145 @@
+{
+  "head": "99812a1ad0776e4f4fa82eae27fb63addfa75927",
+  "merge": "5d9a32abb53b3c09260149c09b1a44413e6c6d73",
+  "merged": "2026-04-19T01:37:48Z",
+  "missing_roots": 0,
+  "number": 17914,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    declarative_name: java.aws_sdk.experimental_span_attributes/development\n```",
+      "created": "2026-04-18T16:41:05Z",
+      "hunk": "@@ -13,32 +13,38 @@ semantic_conventions:\n library_link: https://aws.amazon.com/sdk-for-java/\n configurations:\n   - name: otel.instrumentation.messaging.experimental.receive-telemetry.enabled\n+    declarative_name: java.common.messaging.receive_telemetry/development.enabled\n     description: >\n       Enables experimental receive telemetry, which will cause consumers to start a new trace, with\n       only a span link connecting it to the producer trace.\n     type: boolean\n     default: false\n   - name: otel.instrumentation.messaging.experimental.capture-headers\n+    declarative_name: java.common.messaging.capture_headers/development\n     description: Allows configuring headers to capture as span attributes.\n     type: list\n     default: ''\n   - name: otel.instrumentation.aws-sdk.experimental-span-attributes\n+    declarative_name: java.aws_sdk.span_attributes/development",
+      "id": "PRRT_kwDODJKVX8579Fqd",
+      "opened": "2026-04-18T16:41:05Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/metadata.yaml",
+      "replies": [],
+      "reviewed": "9eba9dedf2f87e4be9190ba6abf7bff912b8ee9b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17914#discussion_r3105492497"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    S3Client.builder()\n        .region(Region.AP_NORTHEAST_1)\n        .credentialsProvider(CREDENTIALS_PROVIDER)\n        .build();\n```",
+      "created": "2026-04-18T16:55:30Z",
+      "hunk": "@@ -35,16 +38,20 @@ class S3PresignerTest {\n   @BeforeAll\n   static void setUp() {\n     // trigger adding tracing interceptor\n-    S3Client.builder()\n-        .region(Region.AP_NORTHEAST_1)\n-        .credentialsProvider(CREDENTIALS_PROVIDER)\n-        .build();\n+    try (S3Client ignored =\n+        S3Client.builder()\n+            .region(Region.AP_NORTHEAST_1)\n+            .credentialsProvider(CREDENTIALS_PROVIDER)\n+            .build()) {\n+      // build the client once so the agent adds the tracing interceptor before presigner use\n+    }",
+      "id": "PRRT_kwDODJKVX8579JGk",
+      "opened": "2026-04-18T16:55:30Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/javaagent/src/s3PresignerTest/java/io/opentelemetry/javaagent/instrumentation/awssdk/v2_2/S3PresignerTest.java",
+      "replies": [],
+      "reviewed": "40277271ed7fa47d53ec8bf566db51e75f611aee",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17914#discussion_r3105509992"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-19T01:06:12Z",
+      "hunk": "@@ -38,6 +38,7 @@ public boolean isHelperClass(String className) {\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n     // We don't actually transform it but want to make sure we only apply the instrumentation when\n     // our key dependency is present.\n+    // added in 2.0.0",
+      "id": "PRRT_kwDODJKVX857-8I2",
+      "opened": "2026-04-19T01:06:49Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/awssdk/v2_2/AbstractAwsSdkInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "8a8096573d4aa4baae4145ab8346ad6a6fc2d528",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17914#discussion_r3106104737"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-19T01:06:19Z",
+      "hunk": "@@ -27,6 +27,7 @@ public BedrockRuntimeInstrumentationModule() {\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n+    // added in 2.20.157",
+      "id": "PRRT_kwDODJKVX857-8KL",
+      "opened": "2026-04-19T01:06:49Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/awssdk/v2_2/BedrockRuntimeInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "8a8096573d4aa4baae4145ab8346ad6a6fc2d528",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17914#discussion_r3106104843"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-19T01:06:25Z",
+      "hunk": "@@ -25,7 +25,9 @@ public LambdaInstrumentationModule() {\n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n     return hasClassesNamed(\n+        // added in 2.1.0",
+      "id": "PRRT_kwDODJKVX857-8Li",
+      "opened": "2026-04-19T01:06:49Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/awssdk/v2_2/LambdaInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "8a8096573d4aa4baae4145ab8346ad6a6fc2d528",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17914#discussion_r3106104943"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-19T01:06:31Z",
+      "hunk": "@@ -25,7 +25,9 @@ public LambdaInstrumentationModule() {\n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n     return hasClassesNamed(\n+        // added in 2.1.0\n         \"software.amazon.awssdk.services.lambda.model.InvokeRequest\",\n+        // added in 2.17.0",
+      "id": "PRRT_kwDODJKVX857-8MZ",
+      "opened": "2026-04-19T01:06:49Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/awssdk/v2_2/LambdaInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "8a8096573d4aa4baae4145ab8346ad6a6fc2d528",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17914#discussion_r3106105015"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-19T01:06:37Z",
+      "hunk": "@@ -24,6 +24,7 @@ public SnsInstrumentationModule() {\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n+    // added in 2.1.0",
+      "id": "PRRT_kwDODJKVX857-8Np",
+      "opened": "2026-04-19T01:06:49Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/awssdk/v2_2/SnsInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "8a8096573d4aa4baae4145ab8346ad6a6fc2d528",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17914#discussion_r3106105106"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-19T01:06:43Z",
+      "hunk": "@@ -27,6 +27,7 @@ public SqsInstrumentationModule() {\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n+    // added in 2.1.0",
+      "id": "PRRT_kwDODJKVX857-8O-",
+      "opened": "2026-04-19T01:06:49Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/awssdk/v2_2/SqsInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "8a8096573d4aa4baae4145ab8346ad6a6fc2d528",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17914#discussion_r3106105202"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@jaydeluca I think this is correct, but I think after your recent changes may have changed it to `experimental_record_individual_http_error/development`",
+      "created": "2026-04-19T01:08:53Z",
+      "hunk": "@@ -13,32 +13,38 @@ semantic_conventions:\n library_link: https://aws.amazon.com/sdk-for-java/\n configurations:\n   - name: otel.instrumentation.messaging.experimental.receive-telemetry.enabled\n+    declarative_name: java.common.messaging.receive_telemetry/development.enabled\n     description: >\n       Enables experimental receive telemetry, which will cause consumers to start a new trace, with\n       only a span link connecting it to the producer trace.\n     type: boolean\n     default: false\n   - name: otel.instrumentation.messaging.experimental.capture-headers\n+    declarative_name: java.common.messaging.capture_headers/development\n     description: Allows configuring headers to capture as span attributes.\n     type: list\n     default: ''\n   - name: otel.instrumentation.aws-sdk.experimental-span-attributes\n+    declarative_name: java.aws_sdk.experimental_span_attributes/development\n     description: >\n       Enables experimental span attributes `aws.agent`, `aws.lambda.function.arn` and\n       `aws.lambda.function.name` for AWS SDK instrumentation.\n     type: boolean\n     default: false\n   - name: otel.instrumentation.aws-sdk.experimental-use-propagator-for-messaging\n+    declarative_name: java.aws_sdk.use_propagator_for_messaging/development\n     description: Determines whether the configured TextMapPropagator should be used to inject into supported messaging attributes (for SQS).\n     type: boolean\n     default: false\n   - name: otel.instrumentation.genai.capture-message-content\n+    declarative_name: java.common.gen_ai.capture_message_content\n     description: >\n       Determines whether Generative AI events include full content of user and assistant messages.\n       Note that full content can have data privacy and size concerns and care should be taken when enabling this\n     type: boolean\n     default: false\n   - name: otel.instrumentation.aws-sdk.experimental-record-individual-http-error\n+    declarative_name: java.aws_sdk.record_individual_http_error/development",
+      "id": "PRRT_kwDODJKVX857-8lh",
+      "opened": "2026-04-19T01:08:53Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/metadata.yaml",
+      "replies": [],
+      "reviewed": "99812a1ad0776e4f4fa82eae27fb63addfa75927",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17914#discussion_r3106106976"
+    }
+  ]
+}

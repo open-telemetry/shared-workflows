@@ -1,0 +1,61 @@
+{
+  "head": "fafd0270c520f18fa2a3c5e726cd4d59716522a6",
+  "merge": "2f66b5c9fe6845436c0e274876b69f16c2961b7e",
+  "merged": "2026-02-26T16:40:22Z",
+  "missing_roots": 0,
+  "number": 16207,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is a good pickup",
+      "created": "2026-02-20T17:59:05Z",
+      "hunk": "@@ -414,7 +414,8 @@ void testWriteWithUdp() {\n         trace ->\n             trace.hasSpansSatisfyingExactly(\n                 span ->\n-                    span.hasName(\"WRITE\")\n+                    span.hasName(\n+                            emitStableDatabaseSemconv() ? \"WRITE \" + host + \":\" + port : \"WRITE\")",
+      "id": "PRRT_kwDODJKVX85v1mGA",
+      "opened": "2026-02-20T17:59:05Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbClientTest.java",
+      "replies": [],
+      "reviewed": "a897b2a5d7b73610767cb8f23b02b5fb1db2fccb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16207#discussion_r2834441062"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is `<InfluxDbRequest, Void>` needed?",
+      "created": "2026-02-26T13:14:28Z",
+      "hunk": "@@ -24,10 +24,11 @@ public final class InfluxDbSingletons {\n         Instrumenter.<InfluxDbRequest, Void>builder(\n                 GlobalOpenTelemetry.get(),\n                 \"io.opentelemetry.influxdb-2.4\",\n-                DbClientSpanNameExtractor.create(dbAttributesGetter))\n-            .addAttributesExtractor(DbClientAttributesExtractor.create(dbAttributesGetter))\n+                DbClientSpanNameExtractor.createForMigration(dbAttributesGetter))\n             .addAttributesExtractor(\n-                ServerAttributesExtractor.create(new InfluxDbNetworkAttributesGetter()))\n+                SqlClientAttributesExtractor.<InfluxDbRequest, Void>builder(dbAttributesGetter)",
+      "id": "PRRT_kwDODJKVX85w8L91",
+      "opened": "2026-02-26T13:14:28Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbSingletons.java",
+      "replies": [],
+      "reviewed": "bf1ecaadc10cb4a502ffd21805046f6c82d0e60d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16207#discussion_r2858971242"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "To me `createForMigration` looks weird. I wish we could just use `DbClientSpanNameExtractor.create`.",
+      "created": "2026-02-26T13:18:14Z",
+      "hunk": "@@ -24,10 +24,11 @@ public final class InfluxDbSingletons {\n         Instrumenter.<InfluxDbRequest, Void>builder(\n                 GlobalOpenTelemetry.get(),\n                 \"io.opentelemetry.influxdb-2.4\",\n-                DbClientSpanNameExtractor.create(dbAttributesGetter))\n-            .addAttributesExtractor(DbClientAttributesExtractor.create(dbAttributesGetter))\n+                DbClientSpanNameExtractor.createForMigration(dbAttributesGetter))",
+      "id": "PRRT_kwDODJKVX85w8PWH",
+      "opened": "2026-02-26T13:18:14Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbSingletons.java",
+      "replies": [
+        {
+          "at": "2026-02-26T15:38:28Z",
+          "body": "> To me createForMigration looks weird\r\n\r\nyeah, renamed to `createWithGenericOldSpanName` and improved the javadoc on it",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16207#discussion_r2859745889"
+        }
+      ],
+      "reviewed": "bf1ecaadc10cb4a502ffd21805046f6c82d0e60d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16207#discussion_r2858989490"
+    }
+  ]
+}

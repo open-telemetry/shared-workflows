@@ -1,0 +1,388 @@
+{
+  "head": "ede59e1d31e4f675269ca51fec4e3eb95a9209fb",
+  "merge": "ccf29125bbcf40f659d94df35ef758f2309a46f8",
+  "merged": "2026-10-26T16:17:44Z",
+  "missing_roots": 0,
+  "number": 20798,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] On a chunked HTTP error, InfluxDB 2.14 creates an `InfluxDBException` from `errorBody.string()`. The failure wrapper stores it as `callbackError`, and passing it here lets `Instrumenter` export the raw server body in exception telemetry, even though `error.type` contains only the status code. Distinguish server-response exceptions from user-callback and transport failures: omit the raw server exception while retaining those other failures. Extend the HTTP-error test to assert that exception events/logs do not expose server text.",
+      "created": "2026-10-21T05:46:30Z",
+      "hunk": "@@ -0,0 +1,85 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.influxdb.v2_4;\n+\n+import static io.opentelemetry.javaagent.instrumentation.influxdb.v2_4.InfluxDbSingletons.queryInstrumenter;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import java.io.IOException;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import javax.annotation.Nullable;\n+import org.influxdb.dto.QueryResult;\n+import retrofit2.Call;\n+import retrofit2.Response;\n+\n+public final class InfluxDbQueryState {\n+  public static final ContextKey<InfluxDbQueryState> KEY =\n+      ContextKey.named(\"opentelemetry-influxdb-query\");\n+\n+  private final InfluxDbQuery request;\n+  private final Context context;\n+  private final AtomicBoolean ended = new AtomicBoolean();\n+  @Nullable private Call<?> call;\n+  @Nullable private Throwable callbackError;\n+  @Nullable private volatile String errorType;\n+\n+  public InfluxDbQueryState(Context parentContext, InfluxDbQuery request) {\n+    this.request = request;\n+    context = queryInstrumenter().start(parentContext, request).with(KEY, this);\n+  }\n+\n+  public Context getContext() {\n+    return context;\n+  }\n+\n+  public void setCall(Call<?> call) {\n+    this.call = call;\n+  }\n+\n+  public void observe(@Nullable QueryResult result) {\n+    if ((call == null || !call.isCanceled()) && InfluxDbResponse.hasError(result)) {\n+      errorType = \"_OTHER\";\n+    }\n+  }\n+\n+  void onCallbackError(Throwable error) {\n+    callbackError = error;\n+  }\n+\n+  public void onFailure(Throwable error) {\n+    boolean readFailure =\n+        error instanceof IOException\n+            || (error.getClass().getName().equals(\"org.influxdb.InfluxDBException\")\n+                && error.getCause() instanceof IOException);\n+    if (!readFailure || call == null || !call.isCanceled()) {\n+      callbackError = error;\n+    }\n+  }\n+\n+  public void endResponse(Response<?> response, @Nullable Throwable error, boolean canceled) {\n+    if (!response.isSuccessful()) {\n+      errorType = Integer.toString(response.code());\n+    }\n+    Object body = response.body();\n+    if (body instanceof QueryResult) {\n+      observe((QueryResult) body);\n+    }\n+    end(canceled ? null : error);\n+  }\n+\n+  public void end(@Nullable Throwable error) {\n+    if (ended.compareAndSet(false, true)) {\n+      call = null;\n+      queryInstrumenter()\n+          .end(\n+              context,\n+              request,\n+              new InfluxDbResponse(errorType),\n+              error != null ? error : callbackError);",
+      "id": "PRRT_kwDODJKVX86uo3_B",
+      "opened": "2026-10-21T05:46:31Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+      "replies": [
+        {
+          "at": "2026-10-22T03:57:31Z",
+          "body": "This is the broader exception-message privacy issue tracked in #3039. JDBC and Lettuce also record the original client exceptions, and Elasticsearch REST records response exceptions containing the HTTP response body. InfluxDB's synchronous path already records server-error exceptions too.\n\nI'm keeping exception recording consistent with those instrumentations here. Sanitizing or suppressing exception text should be addressed under #3039, rather than adding an InfluxDB-specific filter as part of this change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4344397946"
+        }
+      ],
+      "reviewed": "edfc0d6b8c49f30eee6a8e72082296d74e25f32d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4333444172"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] For a non-cancelled chunk-read `IOException`, InfluxDB 2.14 forwards a synthetic `QueryResult` containing `e.toString()` to `onNext`. `ProcessAdvice` has already recorded the exception, but this assignment classifies the synthetic result as `_OTHER`, masking the exception type in both spans and duration metrics. Skip this classification when a failure is already recorded, and add coverage for a non-cancelled read failure.",
+      "created": "2026-10-21T05:46:30Z",
+      "hunk": "@@ -0,0 +1,85 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.influxdb.v2_4;\n+\n+import static io.opentelemetry.javaagent.instrumentation.influxdb.v2_4.InfluxDbSingletons.queryInstrumenter;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import java.io.IOException;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import javax.annotation.Nullable;\n+import org.influxdb.dto.QueryResult;\n+import retrofit2.Call;\n+import retrofit2.Response;\n+\n+public final class InfluxDbQueryState {\n+  public static final ContextKey<InfluxDbQueryState> KEY =\n+      ContextKey.named(\"opentelemetry-influxdb-query\");\n+\n+  private final InfluxDbQuery request;\n+  private final Context context;\n+  private final AtomicBoolean ended = new AtomicBoolean();\n+  @Nullable private Call<?> call;\n+  @Nullable private Throwable callbackError;\n+  @Nullable private volatile String errorType;\n+\n+  public InfluxDbQueryState(Context parentContext, InfluxDbQuery request) {\n+    this.request = request;\n+    context = queryInstrumenter().start(parentContext, request).with(KEY, this);\n+  }\n+\n+  public Context getContext() {\n+    return context;\n+  }\n+\n+  public void setCall(Call<?> call) {\n+    this.call = call;\n+  }\n+\n+  public void observe(@Nullable QueryResult result) {\n+    if ((call == null || !call.isCanceled()) && InfluxDbResponse.hasError(result)) {\n+      errorType = \"_OTHER\";\n+    }",
+      "id": "PRRT_kwDODJKVX86uo3_Z",
+      "opened": "2026-10-21T05:46:31Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+      "replies": [],
+      "reviewed": "edfc0d6b8c49f30eee6a8e72082296d74e25f32d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4333444213"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix only the non-cancelled chunk-read error classification issue in this PR. Update this existing PR's branch directly, rather than creating a follow-up PR.\n\nIn InfluxDB 2.14, a chunk-processing IOException is captured by InfluxDbChunkProcessorInstrumentation.ProcessAdvice, then the client catches it and delivers a synthetic QueryResult with error = e.toString() to onNext. InfluxDbQueryState.observe() currently classifies that synthetic result as _OTHER, overriding the exception-class fallback for both the span and db.client.operation.duration. Add the minimal guard in observe(), such as callbackError == null alongside its existing conditions, so an already recorded processing failure is not reclassified. Preserve genuine query-result errors, HTTP status-code precedence, exception recording, and intentional cancellation behavior.\n\nAdd a focused regression test in InfluxDbQueryLifecycleTest for a non-cancelled JSON chunk-read IOException, with and without a failure consumer. Reuse the throwing ForwardingSource pattern from cancellationDuringMessagePackRead but use JSON without cancellation or its synchronization scaffolding. The existing assertQuery(IOException.class.getName()) helper already verifies the span error classification and duration metric. Keep this small and use existing helpers and imports. Run the narrowest applicable formatter and focused lifecycle tests, and record their results in the coding session.\n\nDo not suppress HTTP server-response exceptions or address the other review finding about server-body exception telemetry. Do not change PR title or description, post replies, or resolve review threads.",
+      "created": "2026-10-22T01:42:44Z",
+      "hunk": "@@ -0,0 +1,85 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.influxdb.v2_4;\n+\n+import static io.opentelemetry.javaagent.instrumentation.influxdb.v2_4.InfluxDbSingletons.queryInstrumenter;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import java.io.IOException;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import javax.annotation.Nullable;\n+import org.influxdb.dto.QueryResult;\n+import retrofit2.Call;\n+import retrofit2.Response;\n+\n+public final class InfluxDbQueryState {\n+  public static final ContextKey<InfluxDbQueryState> KEY =\n+      ContextKey.named(\"opentelemetry-influxdb-query\");\n+\n+  private final InfluxDbQuery request;\n+  private final Context context;\n+  private final AtomicBoolean ended = new AtomicBoolean();\n+  @Nullable private Call<?> call;\n+  @Nullable private Throwable callbackError;\n+  @Nullable private volatile String errorType;\n+\n+  public InfluxDbQueryState(Context parentContext, InfluxDbQuery request) {\n+    this.request = request;\n+    context = queryInstrumenter().start(parentContext, request).with(KEY, this);\n+  }\n+\n+  public Context getContext() {\n+    return context;\n+  }\n+\n+  public void setCall(Call<?> call) {\n+    this.call = call;\n+  }\n+\n+  public void observe(@Nullable QueryResult result) {\n+    if ((call == null || !call.isCanceled()) && InfluxDbResponse.hasError(result)) {\n+      errorType = \"_OTHER\";\n+    }",
+      "id": "PRRT_kwDODJKVX86vBIFu",
+      "opened": "2026-10-22T01:42:44Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+      "replies": [
+        {
+          "at": "2026-10-22T01:52:43Z",
+          "body": "Added the `callbackError == null` guard and regression coverage for JSON chunk-read failures with and without a failure consumer. Focused lifecycle tests and formatting passed. Commit: `cfd56408`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4343795802"
+        }
+      ],
+      "reviewed": "ff6b3a39027e4810f30ff08c6cfa2155deb618a7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4343747746"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Preserve automatic indy instrumentation in this existing PR and remove the advice-class injection workaround. Update PR #20798's existing head branch directly; do not create another PR.\r\n\r\nInfluxDbImplInstrumentation already uses inline = false on its advice. The new InfluxDbCallbackInstrumentation and InfluxDbChunkProcessorInstrumentation use default-inlined advice, making the module mixed-mode. AdviceInspector then falls back from automatic indy isolation to application-classloader helper injection. The eight advice classes listed in InfluxDbInstrumentationModule.getAdditionalHelperClassNames() compensate for that fallback instead of preserving the intended loading mode.\r\n\r\nSet inline = false explicitly on every new @Advice.OnMethodEnter and @Advice.OnMethodExit in InfluxDbCallbackInstrumentation and InfluxDbChunkProcessorInstrumentation, preserving suppression, exceptional-exit behavior, matchers, and the query lifecycle. Move the Callback-to-InfluxDbQueryState VirtualField.find(...) lookup out of annotated advice into a cached typed static final handle on an appropriate existing non-advice helper or singleton, and use that handle from the callback advice. Follow the repository's VirtualField guidance and visibility requirements; do not introduce a weak registry or a forced helperClassStrategy override. In newly non-inlined advice, use Context.current() rather than Java8BytecodeBridge.currentContext(). Remove the getAdditionalHelperClassNames() override and its eight advice-class names from InfluxDbInstrumentationModule while retaining all three TypeInstrumentation registrations.\r\n\r\nKeep the fix focused on this classloading issue. Preserve asynchronous and chunked completion, callback parent context, cancellation behavior, HTTP/query-result error classification, and the existing non-cancelled chunk-read IOException regression fix. Do not address unrelated review findings or suppress additional exception telemetry. Do not change the base branch, draft state, PR title, or description. The documentation-policy work is a separate independent PR #20827 and is not part of this assignment.\r\n\r\nRead CONTRIBUTING.md and the applicable javaagent, Java, emitted-telemetry, and test instructions, plus .github/agents/knowledge/javaagent-virtual-fields.md before choosing the lookup location. Verify that the final module is all-non-inlined and selected for automatic indy isolation, not merely that functional tests pass. Use existing diagnostics or focused coverage where appropriate; avoid new general-purpose test infrastructure. Run :instrumentation:influxdb-2.4:javaagent:spotlessApply directly before the targeted behavior validation, then the module's test and test24 tasks using the existing Gradle setup. The test24 suite covers influxdb-java 2.4 and the normal tests include InfluxDbQueryLifecycleTest. Record exact validation commands and results in the coding session, and report any blocker accurately. Do not post replies, resolve review threads, merge, or dispatch other tasks.",
+      "created": "2026-10-22T02:41:44Z",
+      "hunk": "@@ -19,8 +19,24 @@ public InfluxDbInstrumentationModule() {\n     super(\"influxdb-2.4\", \"influxdb\");\n   }\n \n+  @Override\n+  public List<String> getAdditionalHelperClassNames() {",
+      "id": "PRRT_kwDODJKVX86vBy6K",
+      "opened": "2026-10-22T02:41:44Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "cfd56408ae1dfd014dae17bb801aef27c160a5df",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4344037045"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Use the stable DB_QUERY_SUMMARY constant in this PR's newly added tests, and remove the misleading deprecation suppression. Update existing PR #20798's head branch directly; do not create another PR.\r\n\r\nThe PR uses semantic-conventions-java 1.44.0. Its io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_QUERY_SUMMARY constant is deprecated specifically in favor of io.opentelemetry.semconv.DbAttributes.DB_QUERY_SUMMARY. Both represent the stable db.query.summary attribute. Replace the deprecated static import with the stable DbAttributes import in InfluxDbQueryResponse24Test and InfluxDbQueryLifecycleTest under instrumentation/influxdb-2.4/javaagent/src/test24 and src/test respectively. Remove the @SuppressWarnings(\"deprecation\") line and its \"DB_QUERY_SUMMARY is emitted by the database instrumentation\" comment from InfluxDbQueryResponse24Test if no other genuinely deprecated API requires suppression. In either changed class, retain any suppression still required for genuinely deprecated legacy InfluxDB client APIs; do not confuse the attribute's stability with the old constant's deprecation.\r\n\r\nKeep this an import/suppression correction in those two new test classes. Do not change dependencies, production behavior, emitted attributes, test expectations, the completed indy-mode fix, or unrelated existing tests and review findings. Preserve the current base branch and draft state. Do not change the PR title or description, post replies, resolve threads, merge, or dispatch other tasks.\r\n\r\nRead the applicable repository instructions. Run :instrumentation:influxdb-2.4:javaagent:spotlessApply directly before validation, then use the existing test and test24 tasks with focused selectors for InfluxDbQueryLifecycleTest and InfluxDbQueryResponse24Test. Record exact commands and results in the coding session. No new tests or general-purpose test infrastructure are needed for this constant-import correction. Acceptance is stable imports in both new tests, no unjustified suppression/comment, preserved legitimate client deprecation handling, and successful relevant validation.",
+      "created": "2026-10-22T03:19:50Z",
+      "hunk": "@@ -0,0 +1,93 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.influxdb.v2_4;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_TEXT;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_QUERY_SUMMARY;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.trace.data.StatusData;\n+import okhttp3.MediaType;\n+import okhttp3.OkHttpClient;\n+import okhttp3.Protocol;\n+import okhttp3.Response;\n+import okhttp3.ResponseBody;\n+import org.influxdb.InfluxDB;\n+import org.influxdb.InfluxDBFactory;\n+import org.influxdb.dto.Query;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+@SuppressWarnings(\"deprecation\") // DB_QUERY_SUMMARY is emitted by the database instrumentation.",
+      "id": "PRRT_kwDODJKVX86vCOnn",
+      "opened": "2026-10-22T03:19:50Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryResponse24Test.java",
+      "replies": [],
+      "reviewed": "b673158efa13afa5d26688b0f5830cf0cbe3ec91",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4344221811"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update existing PR #20798 directly on its existing head branch copilot/draft-fix-influxdb-query-instrumentation. The user requested: \"Could we split out exception capture as a separate PR and error type on top of that?\" They explicitly assigned all implementation to cloud. The lower exception-capture/lifecycle PR is now #20832 at verified head c6a25b8d1493a928311db55d4096d880a72ecb16, branch copilot/copilotrefactor-influxdb-query-instrumentation. Prepare #20798's existing branch to descend from that exact lower head and contain only the response-based error-classification layer above it. Preserve this PR and its review history, and keep it draft.\r\n\r\nRecovery and dependency snapshot: repository open-telemetry/opentelemetry-java-instrumentation; original #20798 head dac7dd2db9bfb28aa021c6bd8a9f54a9bf41184c; original #20798 base copilot/refactor-influxdb-query-instrumentation at 30ebc378495fc4766c2da5568145e5c324778479; lower #20832 head c6a25b8d1493a928311db55d4096d880a72ecb16; #20795 remains at 30ebc378495fc4766c2da5568145e5c324778479, based on main. Native stack 20799 still contains [20795, 20798]. The coordinator will later insert #20832 and retarget #20798 after verifying this prepared branch. Do not edit either lower branch, change any PR base, mutate stack membership, close or merge PRs, open another PR, or dispatch other work. PR titles/descriptions and stack metadata are coordinator work.\r\n\r\nUse the actual recorded original #20798 diff to recover its response classification, selectively applying that slice onto the lower capture branch. Do not restore whole files from the old combined source: the lower layer has substantial subsequent ownership, decoder, cancellation, executor, and lifecycle fixes absent from the original. The intended upper diff relative to c6a25b8d is classification-only.\r\n\r\nRestore bounded error.type and response-driven error status for real InfluxDB response errors: unsuccessful HTTP responses use their decimal status-code string; genuine HTTP-200 top-level or statement QueryResult errors use _OTHER; legacy DONE end-of-stream markers remain success. Keep exception-class fallback for failures without a genuine response classification. In particular, QueryResult error strings manufactured by the client for read/decoder failures must retain the actual captured exception-class error.type rather than becoming _OTHER. Do not parse exception text or response error strings into classifications. Preserve original client exception events, with no InfluxDB-specific message sanitization.\r\n\r\nThe original upper slice includes InfluxDbResponse, the response-aware query attributes getter/instrumenter and span-status handling, synchronous response handling, asynchronous/chunk response observations, original response-only test24 coverage, and response span/metric assertions. Adapt these to the current lower implementation. Keep current instrumentation hooks and original callback ownership intact, including both Retrofit executor factory variants. Preserve the lower end() precedence callbackError != null ? callbackError : error; do not copy the original combined source's reversed terminal-error precedence. Response classification and real exception recording are separate concerns.\r\n\r\nPreserve every lower fix and its regression coverage, including test24, test29, test225, and sanitization-disabled test wiring; same-client enqueue reentrancy and propagated-worker suppression; parent context; exactly-once ending after real callback completion; original and wrapper callback cleanup; rejected response/failure executor dispatch completion; genuine decoder EOF/JsonEncodingException versus source I/O cancellation; clean and whitespace-only EOF; truncated legacy reads; response-scoped Moshi capture with unrelated-interceptor isolation. Keep explicit inline=false advice, automatic indy isolation, cached typed VirtualField lookup outside advice, and the stable DbAttributes.DB_QUERY_SUMMARY import. Do not reintroduce getAdditionalHelperClassNames(), forced helper injection, older lifecycle code, broad registries, reflection-based unwrapping, production dependency changes, unrelated cleanup, or new configuration.\r\n\r\nRead repository instructions and relevant knowledge before implementation. Add or adapt response-classification tests while retaining all lower regressions. Run the narrow module spotlessApply before behavior validation and relevant test, test24, test29, test225, and testQuerySanitizationDisabled coverage. Record exact commands/results and genuine blockers in the coding session. Never run clean, --rerun-tasks, or preliminary spotlessCheck. Do not wait for or monitor GitHub CI. Do not post review replies or resolve threads.\r\n\r\nThis is intentional preparation for the requested stack insertion. Record the original remote tip and historical fork point before rewriting, verify the current lower head and source head against this snapshot, and stop if they changed. Prepare the classification commits on top of c6a25b8d in your own cloud checkout. Before pushing, recheck all three PRs are open/unmerged, not queued or auto-merging, and still have the recorded branch/head identities. Push only #20798's existing branch to its existing source repository with an explicit compare-and-swap lease against dac7dd2db9bfb28aa021c6bd8a9f54a9bf41184c if rewriting is required; never use --force. If the lease fails, stop and report the changed tip rather than overwriting concurrent work. Verify the pushed branch descends from c6a25b8d and report its exact new head and classification-only commit range. Leave original native stack metadata and PR bases unchanged for the coordinator's guarded retarget/rebuild.",
+      "created": "2026-10-22T09:39:47Z",
+      "hunk": "@@ -15,7 +15,14 @@\n import javax.annotation.Nullable;\n \n final class InfluxDbQueryAttributesGetter\n-    implements SqlClientAttributesGetter<InfluxDbQuery, Void> {\n+    implements SqlClientAttributesGetter<InfluxDbQuery, InfluxDbResponse> {\n+\n+  @Nullable\n+  @Override\n+  public String getErrorType(\n+      InfluxDbQuery request, @Nullable InfluxDbResponse response, @Nullable Throwable error) {",
+      "id": "PRRT_kwDODJKVX86vISmc",
+      "opened": "2026-10-22T09:39:47Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryAttributesGetter.java",
+      "replies": [],
+      "reviewed": "dac7dd2db9bfb28aa021c6bd8a9f54a9bf41184c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4346784576"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete the missing classification-only preparation directly on this existing PR #20798, branch copilot/draft-fix-influxdb-query-instrumentation. This is a scoped follow-up to invocation 4346784576. That coding session b066ff08-7f4a-4abd-9ba5-3fe71e20fe53 finished at 2026-10-22T09:42:52Z, but fresh GitHub reads show the original head is still dac7dd2db9bfb28aa021c6bd8a9f54a9bf41184c. Comparison against the required lower c6a25b8d head remains diverged, ahead 5/behind 9, with merge base 30ebc378495fc4766c2da5568145e5c324778479. No part of the requested split was delivered to this branch. Implement and push the missing preparation, not just a plan. If a real permission, push, or environment limitation prevents delivery, report its exact command/error and leave remote branches unchanged rather than silently ending.\r\n\r\nThe user's request is \"Could we split out exception capture as a separate PR and error type on top of that?\" They assigned all implementation to cloud. Exception capture and lifecycle are already implemented and reviewed in draft PR #20832, exact head c6a25b8d1493a928311db55d4096d880a72ecb16, branch copilot/copilotrefactor-influxdb-query-instrumentation. Prepare this existing #20798 branch above that exact lower head, with only response error classification in the net diff relative to c6a25b8d. Preserve this PR, its draft state and review history, and all lower changes. Do not open another PR, change either lower branch, or dispatch other work.\r\n\r\nFetch and verify the actual remote source and lower branches before editing. Snapshot #20798 at dac7dd2db9bfb28aa021c6bd8a9f54a9bf41184c and its historical fork point 30ebc378495fc4766c2da5568145e5c324778479. PR #20795 head is 30ebc378495fc4766c2da5568145e5c324778479, branch copilot/refactor-influxdb-query-instrumentation, base main. Both #20832 and #20798 still target that branch. Native stack 20799 still contains [20795, 20798]. This snapshot is confirmed unchanged. Stop and report if any recorded head or relationship changed. The coordinator will insert #20832 and retarget #20798 after source preparation is verified. Do not change PR bases, stack metadata, titles/descriptions, or draft states; do not close or merge PRs.\r\n\r\nStart from the current lower capture implementation and selectively recover response classification from the original #20798 GitHub diff. Never replace complete lifecycle/instrumentation/test files with the older combined versions. Preserve every strengthened lower regression and task, including test24, test29, test225 and sanitization-disabled coverage. Retain same-client/reentrant enqueue ownership, suppressed nested context masking, response-processing/decode scoping, original and wrapped callback association cleanup, old and new Retrofit executor factories, rejected response/failure executor dispatch completion, callback parent context, cancellation filtering, independently proven truncated-JSON and JsonEncodingException capture, clean/whitespace-only EOF, legacy swallowed read-error capture, unrelated-interceptor isolation, and exactly-once completion through callback processing. Retain end() exception precedence callbackError != null ? callbackError : error.\r\n\r\nThe upper layer adds bounded response-based error.type and error span status. Unsuccessful HTTP responses use their decimal status code; genuine HTTP-200 top-level or statement QueryResult errors use _OTHER; legacy DONE markers remain successful. Failures without genuine response classification retain the actual exception-class error.type. QueryResult error strings manufactured by the client for read/decoder failures must not turn that real captured exception class into _OTHER. Do not parse exception/error strings to classify failures. Keep original client exception events without InfluxDB-specific text filtering. Response classification and recording exceptions remain separate.\r\n\r\nAdapt the original InfluxDbResponse, response-aware query getter/instrumenter and status handling, synchronous response capture, asynchronous/chunk response observations, response-only test24 coverage, and relevant span/metric assertions to the current lower implementation. Keep explicit inline=false advice, automatic indy isolation, cached typed VirtualField lookup outside advice, and stable DbAttributes.DB_QUERY_SUMMARY. Do not restore getAdditionalHelperClassNames(), helper injection overrides, broad registries, reflection-based callback unwrapping, older lifecycle machinery, unrelated cleanup, new settings, or production dependency changes.\r\n\r\nRead applicable repository instructions and knowledge. Run the narrow module spotlessApply immediately before relevant behavior validation, then relevant test, test24, test29, test225 and testQuerySanitizationDisabled coverage. Preserve all lower regressions while adding/adapting response classification assertions. Record exact commands and results or the precise blocker in the coding session. Do not run clean, --rerun-tasks or preliminary spotlessCheck. Do not wait for GitHub CI, post review replies, or resolve threads.\r\n\r\nComplete the implementation in your cloud checkout and push only this PR's existing head branch to open-telemetry/opentelemetry-java-instrumentation. Recheck all three PRs remain open/unmerged, not in the merge queue or auto-merging, with their recorded branch/head identities before the push. If rewriting is required, use only an explicit --force-with-lease=refs/heads/copilot/draft-fix-influxdb-query-instrumentation:dac7dd2db9bfb28aa021c6bd8a9f54a9bf41184c, never --force. Stop on lease failure, do not overwrite concurrent work. Verify the pushed remote head actually descends from exact c6a25b8d1493a928311db55d4096d880a72ecb16 and its net diff against that commit is classification-only. Report the new remote head and commit range or the exact reason publishing is blocked.",
+      "created": "2026-10-22T09:51:54Z",
+      "hunk": "@@ -0,0 +1,114 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.influxdb.v2_4;\n+\n+import static io.opentelemetry.javaagent.instrumentation.influxdb.v2_4.InfluxDbSingletons.CALLBACK_QUERY_STATE;\n+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import retrofit2.Call;\n+import retrofit2.Callback;\n+import retrofit2.Response;\n+\n+class InfluxDbCallbackInstrumentation implements TypeInstrumentation {\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return nameStartsWith(\"org.influxdb.impl.InfluxDBImpl$\")\n+        .and(hasSuperType(named(\"retrofit2.Callback\")));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(isConstructor(), getClass().getName() + \"$ConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"onResponse\")\n+            .and(takesArguments(2))\n+            .and(takesArgument(1, named(\"retrofit2.Response\"))),\n+        getClass().getName() + \"$ResponseAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"onFailure\").and(takesArguments(2)).and(takesArgument(1, Throwable.class)),\n+        getClass().getName() + \"$FailureAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructorAdvice {\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(@Advice.This Callback<?> callback) {\n+      InfluxDbQueryState state = Context.current().get(InfluxDbQueryState.KEY);\n+      if (state != null) {\n+        CALLBACK_QUERY_STATE.set(callback, state);\n+      }\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86vIjrd",
+      "opened": "2026-10-22T09:51:54Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbCallbackInstrumentation.java",
+      "replies": [],
+      "reviewed": "dac7dd2db9bfb28aa021c6bd8a9f54a9bf41184c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4346896264"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the tests in existing PR #20798. Update this PR's existing head branch directly, not a new PR.\n\nIn instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryResponse24Test.java, remove the repeated testing.waitAndAssertMetrics block from statementErrorResponse(). Keep its complete span assertion, including error status and the exact attributes with error.type \"_OTHER\". Inline the short local String errorType = \"_OTHER\" directly into the remaining assertion and remove the now-unused local.\n\nThe baseline 2.4 test should remain a focused compatibility smoke test. InfluxDbQueryLifecycleTest already verifies span and duration-metric classification through assertQuery(\"_OTHER\"). Retain that coverage unchanged. Keep both synchronous JSON error cases, the separate DONE-marker success test, and the standalone 2.4 test class. Do not introduce shared fixtures, a shared base class, new parameterization, production changes, or unrelated cleanup. Preserve the PR's current base branch and draft/ready state.\n\nRead the applicable repository instructions. Run the narrow module spotlessApply task directly before focused validation, then the existing test24 task selecting InfluxDbQueryResponse24Test and test task selecting InfluxDbQueryLifecycleTest. Record command results or genuine blockers in the coding session. Acceptance is removal of only the redundant 2.4 metric assertion and its unnecessary local, with the existing span, lifecycle metric, and distinct scenario coverage preserved. Do not post replies, resolve review threads, merge, or dispatch other work.",
+      "created": "2026-10-23T22:05:10Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.influxdb.v2_4;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_SUMMARY;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_TEXT;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.trace.data.StatusData;\n+import okhttp3.MediaType;\n+import okhttp3.OkHttpClient;\n+import okhttp3.Protocol;\n+import okhttp3.Response;\n+import okhttp3.ResponseBody;\n+import org.influxdb.InfluxDB;\n+import org.influxdb.InfluxDBFactory;\n+import org.influxdb.dto.Query;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class InfluxDbQueryResponse24Test {\n+  @RegisterExtension\n+  private static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Test\n+  void statementErrorResponse() {\n+    String body = \"{\\\"results\\\":[{}, {\\\"error\\\":\\\"private query text\\\"}]}\";\n+    String errorType = \"_OTHER\";\n+    OkHttpClient.Builder builder =\n+        new OkHttpClient.Builder()\n+            .addInterceptor(\n+                chain ->\n+                    new Response.Builder()\n+                        .request(chain.request())\n+                        .protocol(Protocol.HTTP_1_1)\n+                        .code(200)\n+                        .message(\"OK\")\n+                        .body(ResponseBody.create(MediaType.parse(\"application/json\"), body))\n+                        .build());\n+    // 2.4 has no close method and no asynchronous query overloads.\n+    InfluxDB client = InfluxDBFactory.connect(\"http://localhost:8086\", \"user\", \"password\", builder);\n+    Query query = new Query(\"SELECT * FROM cpu\", \"mydb\");\n+    assertThat(client.query(query)).isNotNull();\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\"SELECT cpu\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasStatus(StatusData.error())\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(DB_SYSTEM_NAME, \"influxdb\"),\n+                            equalTo(DB_NAMESPACE, \"mydb\"),\n+                            equalTo(DB_QUERY_TEXT, \"SELECT * FROM cpu\"),\n+                            equalTo(DB_QUERY_SUMMARY, \"SELECT cpu\"),\n+                            equalTo(SERVER_ADDRESS, \"localhost\"),",
+      "id": "PRRT_kwDODJKVX86vyZvQ",
+      "opened": "2026-10-23T22:05:10Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryResponse24Test.java",
+      "replies": [
+        {
+          "at": "2026-10-23T22:12:58Z",
+          "body": "Removed the redundant metric assertion and inlined `_OTHER`; `test24` and lifecycle tests pass. Commit: `9d1db7bc`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4364661520"
+        }
+      ],
+      "reviewed": "dbc9da7577e1248c515ce6adc47f24d1442cfdb1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4364616466"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] For chunked body-read failures, InfluxDB 2.14 and 2.25 deliver a synthetic error `QueryResult` to `onNext` before invoking the failure consumer. This sets `_OTHER` before the exception is captured, masking its class in both spans and duration metrics even though no server query error occurred. Distinguish client-generated results from server errors to preserve exception-class fallback without losing genuine response classifications, and add a chunked read-failure regression test with a failure consumer.",
+      "created": "2026-10-23T22:21:37Z",
+      "hunk": "@@ -48,6 +51,15 @@ public void setCall(Call<?> call) {\n     this.call = call;\n   }\n \n+  public void observe(@Nullable QueryResult result) {\n+    if (callbackError == null\n+        && errorType == null\n+        && (call == null || !call.isCanceled())\n+        && InfluxDbResponse.hasError(result)) {\n+      errorType = \"_OTHER\";",
+      "id": "PRRT_kwDODJKVX86vyoLY",
+      "opened": "2026-10-23T22:21:37Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+      "replies": [
+        {
+          "at": "2026-10-23T22:26:50Z",
+          "body": "This concerns production code unchanged by 9d1db7bc. That commit only removes the redundant 2.4 metric assertion and inlines its expected value; the lifecycle metric coverage is unchanged. I'm leaving chunk-read classification changes and additional regressions out of this test-only cleanup. Resolving this as outside the cleanup's scope, not as a claim that the reported behavior is correct.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4364741077"
+        }
+      ],
+      "reviewed": "9d1db7bc832c4ecc3bf10d0697b802a3a60961fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4364712188"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the unresolved chunked read-failure classification defect in existing PR #20798. Update this PR's existing head branch directly rather than creating another PR.\r\n\r\nThe concern in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4364712188 was closed as outside the latest test-only cleanup, but it remains a defect in this PR's production classification changes. In influxdb-java 2.14 and 2.25, the chunked response IOException handler constructs a synthetic QueryResult with error = e.toString(), delivers it to onNext, and then invokes the failure consumer if present. The new InfluxDbQueryState.observe() can set errorType to _OTHER before onFailure() captures the exception. The response classification then masks the actual exception-class fallback in both spans and db.client.operation.duration. The callbackError == null guard does not solve the supported path where the exception is first captured by the failure consumer after the synthetic result.\r\n\r\nDistinguish client-generated error results from genuine server query errors using verified client lifecycle/decoder evidence, not string parsing or guessing from exception text. Preserve exception-class error.type for non-cancelled chunked read/decoder failures, especially with an explicit failure consumer. Preserve genuine HTTP-200 top-level and statement query errors as _OTHER, unsuccessful HTTP response status-code precedence, legacy DONE success, original exception events, intentional cancellation behavior, callback context, and exactly-once lifecycle completion. Do not indiscriminately clear genuine response classifications whenever a later exception occurs.\r\n\r\nInspect the current lower-layer capture hooks and the concrete client implementations before choosing the smallest correct fix. Relevant code is under instrumentation/influxdb-2.4/javaagent, especially InfluxDbQueryState, InfluxDbObjectWrapper, response/decode instrumentation, and InfluxDbQueryLifecycleTest. Add focused regressions for a non-cancelled chunked read IOException with a failure consumer and without one where supported. Verify both span and duration-metric exception-class classification on 2.14 and 2.25, and retain or add focused coverage proving genuine server error classifications are not lost. Reuse existing test helpers and versioned test tasks rather than adding general-purpose infrastructure.\r\n\r\nRead CONTRIBUTING.md and applicable repository instructions. Run the narrow module spotlessApply directly before targeted behavior validation, then the focused lifecycle tests with the normal 2.14 test task and existing test225 task, plus any directly relevant compatibility coverage. Record exact commands, results, and any genuine blocker in the coding session. Keep the fix scoped to this defect; preserve the lower stacked PRs, base branch, draft state, and existing source branch. Do not change PR titles or descriptions, post review replies, resolve threads, merge, or dispatch other tasks.",
+      "created": "2026-10-24T00:21:56Z",
+      "hunk": "@@ -48,6 +51,15 @@ public void setCall(Call<?> call) {\n     this.call = call;\n   }\n \n+  public void observe(@Nullable QueryResult result) {\n+    if (callbackError == null\n+        && errorType == null\n+        && (call == null || !call.isCanceled())\n+        && InfluxDbResponse.hasError(result)) {\n+      errorType = \"_OTHER\";",
+      "id": "PRRT_kwDODJKVX86vz71N",
+      "opened": "2026-10-24T00:21:56Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+      "replies": [
+        {
+          "at": "2026-10-24T00:36:20Z",
+          "body": "Captured the chunk processor’s IOException before InfluxDB emits its synthetic QueryResult, preserving exception-class classification without clearing genuine response errors. Added the regression test; focused lifecycle tests pass on InfluxDB 2.14 and 2.25. Commit: `c17dfe29`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4365339857"
+        }
+      ],
+      "reviewed": "9d1db7bc832c4ecc3bf10d0697b802a3a60961fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4365279663"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete the remaining regression coverage for the chunked error-classification fix in existing PR #20798, directly on its existing head branch. Do not create another PR.\r\n\r\nAttempt 4365279663 finished successfully in coding session d792563f-d4f1-42e4-b9a1-1963f2669b08 at 2026-10-24T00:37:27Z and delivered commit c17dfe295e9bcd43709ae64b9be6f16937b7678d. Its chunk processor IOException capture and failure-consumer regression address the original defect. Preserve that fix. Copilot review 5635903811 on that head confirms the defect is resolved but identifies a remaining coverage gap in its review body: no installed-agent test verifies genuine HTTP-200 chunked server errors retain _OTHER through later successful chunks and final span/metric completion. The full PR diff currently adds synchronous server-error coverage and the read-failure regression, but not this chunked server-error coverage. This is within the original assignment's explicit acceptance criterion to prove genuine response classifications are not lost.\r\n\r\nAdd focused InfluxDbQueryLifecycleTest coverage for both Consumer and BiConsumer callback observation paths, using supported chunked-query overloads and the existing helpers. Supply a server-provided error chunk followed by a successful chunk, let processing complete normally, and assert ERROR status with error.type=_OTHER on the completed span and db.client.operation.duration. Cover top-level and statement errors where the supported client decoder accepts them. Verify against the actual 2.14 and 2.25 implementations rather than assuming overload or decoder behavior. Preserve DONE success, exception-class fallback, callback parent context, cancellation semantics, and exactly-once completion.\r\n\r\nAlso verify the original assignment's non-cancelled chunk read IOException path without a failure consumer has existing installed-agent regression coverage on these versions; if absent, add a focused case using the existing failure fixture/helper pattern and assert span/metric exception-class fallback. Keep short expected values in assertions and avoid new general-purpose helpers or infrastructure.\r\n\r\nThis follow-up is scoped regression coverage, not a production redesign. Do not change production behavior unless a focused regression demonstrates a defect in the requested classification behavior, and explain any such finding in the coding session. Run :instrumentation:influxdb-2.4:javaagent:spotlessApply directly before focused lifecycle validation with the normal 2.14 test task and test225, using existing repository setup. Record exact commands/results and genuine blockers in the coding session. Preserve the existing head branch, PR base/state, lower stacked PRs, and metadata. Do not edit PR titles/descriptions, post review replies, resolve threads, merge, or dispatch other tasks.",
+      "created": "2026-10-24T00:54:35Z",
+      "hunk": "@@ -39,6 +42,9 @@ public static <T, U> BiConsumer<T, U> wrapBiConsumer(\n       return null;\n     }\n     return (value1, value2) -> {\n+      if (value2 instanceof QueryResult) {\n+        state.observe((QueryResult) value2);",
+      "id": "PRRT_kwDODJKVX86v0Np_",
+      "opened": "2026-10-24T00:54:35Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbObjectWrapper.java",
+      "replies": [],
+      "reviewed": "c17dfe295e9bcd43709ae64b9be6f16937b7678d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4365399005"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update existing PR #20798 directly on its existing head branch. Do not create a new PR.\n\nRemove HTTP-status-based query error classification. The user decided that synchronous and asynchronous queries should not report different error types for the same HTTP rejection simply because the asynchronous instrumentation can inspect the HTTP response. Capture exceptions exposed by the client and error fields in delivered QueryResult objects, but do not independently classify a non-successful HTTP response as an instrumentation error.\n\nIn InfluxDbQueryState.endResponse(), remove the classification that sets errorType to Integer.toString(response.code()) for unsuccessful HTTP responses. Preserve observation of QueryResult bodies and exception capture, including existing callback, transport, decoding, chunk-read, cancellation, and lifecycle handling. Keep _OTHER for actual query-result errors, excluding the synthetic DONE completion marker and preserving exception classification for synthetic chunk-read failure results.\n\nOlder influxdb-java clients can invoke onSuccess(null) for non-successful non-chunked asynchronous HTTP responses without exposing an exception or a query-result error to the caller. The user explicitly accepts this library bug: instrumentation must not compensate by marking that query as failed solely from the HTTP status. For clients and overloads that do expose an exception, retain the exception-class fallback instead of a numeric HTTP status error.type.\n\nUpdate directly related tests and add focused regression coverage for the accepted older-client behavior and exception-based HTTP rejection behavior where applicable. Preserve existing response-body error classification and chunk-read regression coverage. Relevant files are under instrumentation/influxdb-2.4/javaagent, especially InfluxDbQueryState, InfluxDbCallbackInstrumentation, InfluxDbClientTest, and InfluxDbQueryLifecycleTest. Remove only code rendered unnecessary by this change. Run the narrowest relevant formatter and tests. Preserve this PR's existing base, head branch, and ready-for-review state.",
+      "created": "2026-10-24T04:25:39Z",
+      "hunk": "@@ -73,11 +85,29 @@ public void onFailure(Throwable error) {\n     callbackError = error;\n   }\n \n+  public void endResponse(Response<?> response, @Nullable Throwable error) {\n+    if (!response.isSuccessful()) {\n+      errorType = Integer.toString(response.code());",
+      "id": "PRRT_kwDODJKVX86v1jiW",
+      "opened": "2026-10-24T04:25:38Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+      "replies": [
+        {
+          "at": "2026-10-24T04:39:03Z",
+          "body": "Removed HTTP-status-only classification and added coverage for both the silent 2.14 response and exposed exception behavior. Focused 2.14/2.25 lifecycle tests and the rejection integration test pass. Commit: `93290882`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4366006778"
+        }
+      ],
+      "reviewed": "26627ef38b1fd0e9fec37cf8ac06bdb7b7681cb5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4365976916"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update existing PR #20798 directly on its existing head branch. Do not create a new PR.\n\nReplace the mocked statementErrorResponse test in instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryResponse24Test.java with a real-server test method in the existing InfluxDbClient24Test.java in that same directory, and delete InfluxDbQueryResponse24Test.java.\n\nThe user asked whether this coverage could use the existing test class instead of introducing a whole new class. InfluxDbClient24Test already has an influxdb:1.8.10-alpine Testcontainer, the 2.4 client, an existing database, and the instrumentation fixture. Reuse those fixtures. Keep the error scenario as a separate test method rather than adding failure checks to an unrelated successful-query test. Do not mock/intercept the HTTP response or directly construct a QueryResult.\n\nExercise a genuine statement-execution error delivered inside a QueryResult from a successful HTTP response, not a malformed-query HTTP rejection or an exception-only failure. Preserve the important original coverage that the error is in a later statement result, after a successful first statement, so instrumentation must scan past the first result. A candidate to verify against the actual server is SHOW DATABASES; SHOW RETENTION POLICIES ON \"nonexistent_database\". InfluxDB 1.8.10's statement executor returns a database-not-found error for the second statement; confirm the actual response and use an equivalent deterministic real query if needed.\n\nAssert that the client returns a QueryResult normally, the first result succeeds and a later result has an error, and instrumentation reports ERROR span status and error.type=\"_OTHER\" on the query span and db.client.operation.duration metric. Keep expected values short and directly in assertions, following the existing test patterns. Preserve oldest-supported-client 2.4 coverage. This is a test consolidation only: do not change production behavior, unrelated tests, or the PR's base/head/state. Run the narrowest applicable formatter and real-server test.",
+      "created": "2026-10-24T16:35:14Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.influxdb.v2_4;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_SUMMARY;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_TEXT;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.trace.data.StatusData;\n+import okhttp3.MediaType;\n+import okhttp3.OkHttpClient;\n+import okhttp3.Protocol;\n+import okhttp3.Response;\n+import okhttp3.ResponseBody;\n+import org.influxdb.InfluxDB;\n+import org.influxdb.InfluxDBFactory;\n+import org.influxdb.dto.Query;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+class InfluxDbQueryResponse24Test {\n+  @RegisterExtension\n+  private static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Test\n+  void statementErrorResponse() {",
+      "id": "PRRT_kwDODJKVX86v51km",
+      "opened": "2026-10-24T16:35:14Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/test24/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryResponse24Test.java",
+      "replies": [
+        {
+          "at": "2026-10-24T16:58:09Z",
+          "body": "Replaced the mocked test with a real InfluxDB 1.8.10 server test in `InfluxDbClient24Test`, asserting the successful first result, later statement error, span status/error.type, and duration-metric error.type; removed the standalone mocked class. The focused 2.4 test passes. Commit: `0cef725c`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4367814172"
+        }
+      ],
+      "reviewed": "84d3636dda709becc2fcff2ef1799f14debac54d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4367749341"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Assigning `errorType` for every non-2xx response makes HTTP status alone mark the query as failed and takes precedence over captured exception classes, contrary to the PR description. The changed `testQueryFailedWithFiveArguments` expectation also enforces this numeric classification instead of exception fallback. Remove the HTTP-derived assignment, restore that test's exception-class expectation, and add an asynchronous non-2xx case with no result error or callback exception.",
+      "created": "2026-10-24T17:05:25Z",
+      "hunk": "@@ -73,11 +85,29 @@ public void onFailure(Throwable error) {\n     callbackError = error;\n   }\n \n+  public void endResponse(Response<?> response, @Nullable Throwable error) {\n+    if (!response.isSuccessful()) {\n+      errorType = Integer.toString(response.code());",
+      "id": "PRRT_kwDODJKVX86v6CyA",
+      "opened": "2026-10-24T17:05:26Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+      "replies": [
+        {
+          "at": "2026-10-24T17:42:48Z",
+          "body": "Fixed in 60945597. HTTP status no longer sets the query error type, and the rejection test expects the client exception class again. The new async HTTP-response case verifies that 2.14's onSuccess(null) remains successful while 2.25's exposed exception produces a class-based error type. The source comment explains the shared synchronous/asynchronous policy.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4367934702"
+        }
+      ],
+      "reviewed": "0cef725c196d68c1bafd23f21094e0513808da48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4367834246"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new query-result error assertions exercise only synchronous queries, leaving the callback observation paths untested for result errors. Add installed-agent cases for an ordinary asynchronous HTTP-200 error result and a later error chunk through the Consumer and BiConsumer forms. Assert ERROR status, `error.type=\"_OTHER\"` on the span and duration metric, and exactly one duration measurement after completion.",
+      "created": "2026-10-24T17:05:26Z",
+      "hunk": "@@ -39,6 +42,9 @@ public static <T, U> BiConsumer<T, U> wrapBiConsumer(\n       return null;\n     }\n     return (value1, value2) -> {\n+      if (value2 instanceof QueryResult) {\n+        state.observe((QueryResult) value2);",
+      "id": "PRRT_kwDODJKVX86v6CyL",
+      "opened": "2026-10-24T17:05:26Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbObjectWrapper.java",
+      "replies": [
+        {
+          "at": "2026-10-24T17:42:54Z",
+          "body": "Added in 60945597. The lifecycle suite now covers an ordinary async HTTP-200 error result and a later error chunk through both Consumer and BiConsumer callbacks, followed by a successful chunk. The shared assertions check ERROR status, _OTHER on the span and duration metric, and a single metric point with count 1.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4367934968"
+        }
+      ],
+      "reviewed": "0cef725c196d68c1bafd23f21094e0513808da48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4367834263"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update existing PR #20798 directly on its existing head branch. Do not create another PR.\n\nThe user settled the policy with \"Okay, let's go for consistency\" and invoked cloud to implement the discussed changes. Use the same query error-classification policy for synchronous and asynchronous calls: delivered QueryResult errors classify as _OTHER; client-exposed exceptions use exception-class fallback when there is no query-result classification; HTTP status alone must not mark a query as failed. Older async clients delivering onSuccess(null) for a non-2xx response with no exception or result error remain successful from instrumentation's perspective. Do not compensate for that library bug.\n\nRemove only the HTTP-derived errorType assignment in InfluxDbQueryState.endResponse(), preserving result-body observation, exception capture, chunk-read handling, cancellation, callback ownership, and completion behavior. Restore testQueryFailedWithFiveArguments's exception-class expectation instead of \"400\". Add a short current-state source comment explaining that HTTP status is intentionally ignored because synchronous instrumentation cannot inspect the HTTP response. Do not describe the history of the change in code comments or add synchronous HTTP interception.\n\nAdd focused installed-agent regression coverage in the existing InfluxDbQueryLifecycleTest for an unsuccessful ordinary asynchronous HTTP response: the 2.14 client delivers onSuccess(null) with no instrumentation error, while 2.25 exposes a client exception and gets exception-class error.type. Use the existing versioned test tasks and test patterns rather than a new test class or helper framework. Keep short expected values directly in assertions and verify the actual caller-visible behavior as well as emitted telemetry.\n\nAlso address the missing async result-error coverage in review 5639078211: cover an ordinary asynchronous HTTP-200 QueryResult error and a later error chunk through Consumer and BiConsumer forms. Verify ERROR status, error.type=\"_OTHER\" on the span and db.client.operation.duration metric, and exactly one duration measurement after completion. Prefer existing real-server fixtures for normal service behavior; use existing controlled-response lifecycle fixtures only where needed to exercise a precise client/version path. Preserve synthetic DONE success and exception classification for synthetic chunk-read error results.\n\nKeep the real-server statement-error test now in InfluxDbClient24Test from commit 0cef725c, and keep the standalone mocked InfluxDbQueryResponse24Test deleted. Do not undo the preceding test consolidation. Review findings are https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4367834246 and https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4367834263. The earlier removal commit 93290882 is not an ancestor of the current head, so implement the small behavioral change against today's code rather than blindly restoring old files.\n\nKeep the change surgical and preserve the existing PR base, head branch, and ready-for-review state. Run the narrowest applicable formatter and relevant tests, including the affected 2.14/2.25 cases and the retained 2.4 server case when touched. Do not expand into unrelated cleanup.",
+      "created": "2026-10-24T17:16:13Z",
+      "hunk": "@@ -73,11 +85,29 @@ public void onFailure(Throwable error) {\n     callbackError = error;\n   }\n \n+  public void endResponse(Response<?> response, @Nullable Throwable error) {\n+    if (!response.isSuccessful()) {\n+      errorType = Integer.toString(response.code());",
+      "id": "PRRT_kwDODJKVX86v6HHR",
+      "opened": "2026-10-24T17:16:13Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryState.java",
+      "replies": [
+        {
+          "at": "2026-10-24T17:40:43Z",
+          "body": "Removed HTTP-status-only classification, restored exception-class fallback, and added installed-agent regression coverage for 2.14/2.25 HTTP rejections and HTTP-200 errors through Consumer/BiConsumer callbacks. Commit: `60945597`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4367929324"
+        }
+      ],
+      "reviewed": "0cef725c196d68c1bafd23f21094e0513808da48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4367862287"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update existing PR #20798 directly with this compatibility fix. Keep the PR draft and preserve its existing base branch copilot/copilotrefactor-influxdb-query-instrumentation from PR #20832, all earlier work, and the existing native stack #20848. Do not retarget, rebase, dissolve or recreate that stack, modify another PR, or create a replacement or follow-up PR. Work only on this PR's existing head branch.\n\nThe pending database getter-finality change in PR #20877 makes getErrorType() the final emitted error.type: an explicit null is authoritative, and DbClientCommonAttributesExtractor no longer adds exception-class fallback. This PR currently adds InfluxDbQueryAttributesGetter.getErrorType() that returns only response.getErrorType() or null. Its callback/thrown-exception paths can have no response classification, and currently rely on extractor fallback. Make the getter return a non-null response error classification when present; otherwise return the original supplied exception's class name, or null without an exception. The result must preserve current emitted telemetry with today's extractor and remain correct after extractor fallback is removed.\n\nKeep InfluxDbResponse.getErrorType() and response observation partial and response-specific. Preserve response-classification precedence, the _OTHER classification for query-result errors, successful-result behavior, existing cancellation behavior, callback failure handling, and exactly-once completion from the parent PR. Do not synthesize protocol statuses, call a response-status getter for classification, use SqlClientAttributesGetter.super.getErrorType(), or change the common database getter/extractor contracts in this PR.\n\nExtend or adapt the existing nearby getter/lifecycle tests to verify the getter itself returns complete classifications with a missing response, a response whose classification is null, a response with _OTHER, and original callback/thrown exceptions, while successful/no-exception cases still return null. Preserve lifecycle and emitted attribute assertions already covered by the PR. Reuse the current test suites and do not add an unrelated abstraction. Apply narrow formatting and run relevant targeted InfluxDB tests as feasible in the cloud environment. Report exact commands and actual outcomes or blockers. Do not wait for CI, merge any branch or PR, reply to humans, or resolve unrelated threads.",
+      "created": "2026-10-26T02:50:38Z",
+      "hunk": "@@ -15,7 +15,14 @@\n import javax.annotation.Nullable;\n \n final class InfluxDbQueryAttributesGetter\n-    implements SqlClientAttributesGetter<InfluxDbQuery, Void> {\n+    implements SqlClientAttributesGetter<InfluxDbQuery, InfluxDbResponse> {",
+      "id": "PRRT_kwDODJKVX86wHwiW",
+      "opened": "2026-10-26T02:50:38Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbQueryAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-26T03:03:45Z",
+          "body": "Implemented in `0fd7b8eb`. The getter now prefers a non-null response classification and otherwise returns the supplied exception class, with null for success; direct unit tests cover precedence and absent/null responses.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4373619157"
+        }
+      ],
+      "reviewed": "122fa0a79dd1be6d09883389a1126e3e4cd52557",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4373571505"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think there was guidance in some other PR to not bother with conditionally applying this",
+      "created": "2026-10-26T13:36:22Z",
+      "hunk": "@@ -49,7 +56,7 @@ val test29RuntimeClasspath = configurations.create(\"test29RuntimeClasspath\") {\n }\n \n tasks {\n-  withType<Test>().configureEach {\n+  withType<Test>().matching { it.name != \"unitTests\" }.configureEach {",
+      "id": "PRRT_kwDODJKVX86wR9Hx",
+      "opened": "2026-10-26T13:36:22Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "0fd7b8eb1b9a56e471013a6de6add902ba7ee012",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4377807826"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly by removing only `.matching { it.name != \"unitTests\" }` from the shared `withType<Test>()` configuration in `instrumentation/influxdb-2.4/javaagent/build.gradle.kts`, restoring `withType<Test>().configureEach {`. Keep the block contents, unit-test suite, test wiring, and all production behavior unchanged. This addresses Laurit's comment https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4377807826 and follows merged PR #20951: projects using Testcontainers register the shared service for all Test tasks, including container-free variants. Limit this assignment to that exclusion removal; do not change the knowledge article or unrelated files. Run the narrowest applicable formatting and relevant validation, using spotlessApply directly rather than spotlessCheck. Acceptance: the shared block has no unitTests filter and otherwise retains its current configuration.",
+      "created": "2026-10-26T13:54:43Z",
+      "hunk": "@@ -49,7 +56,7 @@ val test29RuntimeClasspath = configurations.create(\"test29RuntimeClasspath\") {\n }\n \n tasks {\n-  withType<Test>().configureEach {\n+  withType<Test>().matching { it.name != \"unitTests\" }.configureEach {",
+      "id": "PRRT_kwDODJKVX86wSahi",
+      "opened": "2026-10-26T13:54:42Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-26T14:05:04Z",
+          "body": "Removed the `unitTests` exclusion from the shared `withType<Test>().configureEach` configuration; no other Gradle block content changed. Commit: `f17f8e49`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4378116403"
+        }
+      ],
+      "reviewed": "0fd7b8eb1b9a56e471013a6de6add902ba7ee012",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4377997135"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to simplify the test lifecycle wiring in `instrumentation/influxdb-2.4/javaagent/build.gradle.kts`. Remove the earlier `if (!otelProps.testLatestDeps) { check { dependsOn(testing.suites) } }` block. Replace the final check dependency list with `dependsOn(testing.suites, testQuerySanitizationDisabled, test213, test225, test29)`. This must run all registered suites, including unitTests and the fixed-version test24 suite, in both normal and latest-dependency builds. Repeating those tests is acceptable; do not add a separate unitTests dependency, suite filtering, or another scheduling condition.\n\nKeep the existing custom regression tasks and all other instrumentation behavior unchanged. Use the narrowest applicable spotlessApply task before relevant validation, and verify the check task includes the suites in both dependency modes. Do not modify the knowledge article, PR title, or PR description, and do not create another PR.",
+      "created": "2026-10-26T14:20:50Z",
+      "hunk": "@@ -110,6 +118,6 @@ tasks {\n   }\n \n   check {\n-    dependsOn(testQuerySanitizationDisabled, test213, test225, test29)\n+    dependsOn(\"unitTests\", testQuerySanitizationDisabled, test213, test225, test29)",
+      "id": "PRRT_kwDODJKVX86wTJgU",
+      "opened": "2026-10-26T14:20:50Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-26T14:30:51Z",
+          "body": "Removed the conditional suite dependency and now always include `testing.suites` in `check`, alongside the custom regression tasks. Commit: `0a2903d9`. The normal-mode dry-run graph includes `test24` and `unitTests`; local latest-deps graph validation is blocked by missing JDK 27 (and a separate configuration-on-demand error).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4378436738"
+        }
+      ],
+      "reviewed": "f17f8e49d049d6c26d6237e684c3ea5fa70668bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20798#discussion_r4378307435"
+    }
+  ]
+}

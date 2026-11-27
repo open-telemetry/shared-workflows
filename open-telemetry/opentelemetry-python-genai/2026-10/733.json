@@ -1,0 +1,25 @@
+{
+  "head": "813cbbde0f9f6dcf05a21c18c6da2b004f326463",
+  "merge": "7589f44e86838b0e47f0c20750e8395512c43d0a",
+  "merged": "2026-10-11T19:26:56Z",
+  "missing_roots": 0,
+  "number": 733,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`numberOfResults` is the retrieval fan-out, not the model sampling `top_k`. Assigning it to `InferenceInvocation.top_k` emits `gen_ai.request.top_k` for the chat span and, because the later `topK` assignment is conditional, can also hide an actual model `topK` value. Keep the retrieval count separate and only map the model's `additionalModelRequestFields.topK` to this inference attribute.",
+      "created": "2026-09-16T21:05:06Z",
+      "hunk": "@@ -985,6 +991,161 @@ def extract_retrieve_request(\n                 invocation.query_text = str(query_text)\n \n \n+def _extract_model_from_arn(model_arn: Any) -> str | None:\n+    if not model_arn:\n+        return None\n+    arn_str = str(model_arn)\n+    for prefix in (\"foundation-model/\", \"inference-profile/\"):\n+        if prefix in arn_str:\n+            return arn_str.split(prefix, 1)[1]\n+    return arn_str\n+\n+\n+def extract_retrieve_and_generate_model(\n+    api_params: dict[str, Any],\n+) -> str | None:\n+    rag_config = api_params.get(\"retrieveAndGenerateConfiguration\")\n+    if not _is_dict(rag_config):\n+        return None\n+    for sub_key in (\n+        \"knowledgeBaseConfiguration\",\n+        \"externalSourcesConfiguration\",\n+    ):\n+        sub_cfg = rag_config.get(sub_key)\n+        if _is_dict(sub_cfg) and sub_cfg.get(\"modelArn\"):\n+            return _extract_model_from_arn(sub_cfg.get(\"modelArn\"))\n+    return None\n+\n+\n+def extract_retrieve_and_generate_request(\n+    api_params: dict[str, Any],\n+    invocation: InferenceInvocation,\n+    *,\n+    capture_content: bool = True,\n+) -> None:\n+    session_id = api_params.get(\"sessionId\")\n+    if session_id:\n+        invocation.conversation_id = str(session_id)\n+\n+    if capture_content:\n+        input_obj = api_params.get(\"input\")\n+        if _is_dict(input_obj):\n+            input_text = input_obj.get(\"text\")\n+            if input_text is not None:\n+                invocation.input_messages = [\n+                    InputMessage(\n+                        role=Role.USER.value,\n+                        parts=[TextPart(content=str(input_text))],\n+                    )\n+                ]\n+\n+    rag_config = api_params.get(\"retrieveAndGenerateConfiguration\")\n+    if not _is_dict(rag_config):\n+        return\n+\n+    gen_config: dict[str, Any] | None = None\n+    kb_config = rag_config.get(\"knowledgeBaseConfiguration\")\n+    if _is_dict(kb_config):\n+        kb_id = kb_config.get(\"knowledgeBaseId\")\n+        if kb_id:\n+            invocation.attributes[\n+                aws_attributes.AWS_BEDROCK_KNOWLEDGE_BASE_ID\n+            ] = str(kb_id)\n+\n+        retrieval_config = kb_config.get(\"retrievalConfiguration\")\n+        if _is_dict(retrieval_config):\n+            vector_search_config = retrieval_config.get(\n+                \"vectorSearchConfiguration\"\n+            )\n+            if _is_dict(vector_search_config):\n+                num_results = vector_search_config.get(\"numberOfResults\")\n+                if num_results is not None:\n+                    invocation.top_k = _safe_int(num_results)",
+      "id": "PRRT_kwDOSbspP86jHbcK",
+      "opened": "2026-09-16T21:05:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [],
+      "reviewed": "4f61de8c50582f8b7face3533d5d7200932f14fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/733#discussion_r4030770453"
+    }
+  ]
+}

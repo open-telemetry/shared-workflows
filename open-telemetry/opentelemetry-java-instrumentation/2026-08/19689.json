@@ -1,0 +1,25 @@
+{
+  "head": "36d71de274722a1b3df009f50fcdebea76deabd6",
+  "merge": "7e8b488f3f641b5ace4946489e30c1c57e449a61",
+  "merged": "2026-08-18T17:50:22Z",
+  "missing_roots": 0,
+  "number": 19689,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is ok because it hasn't been released yet",
+      "created": "2026-08-18T14:54:19Z",
+      "hunk": "@@ -34,8 +34,8 @@ Comparing source compatibility of opentelemetry-instrumentation-api-2.31.0-SNAPS\n ***  MODIFIED INTERFACE: PUBLIC ABSTRACT io.opentelemetry.instrumentation.api.semconv.http.HttpCommonAttributesGetter  (not serializable)\n \t===  CLASS FILE FORMAT VERSION: 52.0 <- 52.0\n \tGENERIC TEMPLATES: === REQUEST:java.lang.Object, === RESPONSE:java.lang.Object\n-\t+++  NEW METHOD: PUBLIC(+) java.util.Collection<java.lang.String> getHttpRequestHeaderNames(java.lang.Object)\n-\t+++  NEW METHOD: PUBLIC(+) java.util.Collection<java.lang.String> getHttpResponseHeaderNames(java.lang.Object, java.lang.Object)\n+\t+++  NEW METHOD: PUBLIC(+) java.lang.Iterable<java.lang.String> getHttpRequestHeaderNames(java.lang.Object)\n+\t+++  NEW METHOD: PUBLIC(+) java.lang.Iterable<java.lang.String> getHttpResponseHeaderNames(java.lang.Object, java.lang.Object)",
+      "id": "PRRT_kwDODJKVX86aJ1vS",
+      "opened": "2026-08-18T14:54:19Z",
+      "path": "docs/apidiffs/current_vs_latest/opentelemetry-instrumentation-api.txt",
+      "replies": [],
+      "reviewed": "7df984c5d0ea2a2e053e56ea91c6b7ee863d83dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19689#discussion_r3805230492"
+    }
+  ]
+}

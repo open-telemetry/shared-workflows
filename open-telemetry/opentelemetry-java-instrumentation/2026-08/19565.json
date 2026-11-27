@@ -1,0 +1,31 @@
+{
+  "head": "757b8d41c0b43c66eb82e67536a25fbb0e1e3d0d",
+  "merge": "9e2e15c18b432e86abf098ca39e9c9415751ce50",
+  "merged": "2026-08-18T12:45:42Z",
+  "missing_roots": 0,
+  "number": 19565,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This summary is incorrect for stable messaging semantic conventions: enabling receive telemetry adds the receive span, but `MessagingProcessInstrumenterFactory` chooses the process parent independently of this flag in stable mode. The table and paragraph below correctly state that stable process-span parenting does not change, so please qualify this parenting behavior as legacy-only.\n\nThis issue also appears on line 29 of the same file.",
+      "created": "2026-08-13T14:30:46Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+# Messaging receive telemetry\n+\n+`otel.instrumentation.messaging.experimental.receive-telemetry.enabled` (default: `false`)\n+\n+Declarative config: `java.common.messaging.receive_telemetry/development.enabled`\n+\n+When `true`, messaging instrumentations produce a separate \"receive\" span for the operation that takes messages off the broker, and process spans become children of that receive span rather than of the message creation context.",
+      "id": "PRRT_kwDODJKVX86Y98gj",
+      "opened": "2026-08-13T14:30:47Z",
+      "path": "docs/messaging-receive-telemetry.md",
+      "replies": [
+        {
+          "at": "2026-08-13T18:06:17Z",
+          "body": "Addressed in 7d694bec8de8c1428537e56cf696e8c077bf9664.\n\nAnalysis: `MessagingProcessInstrumenterFactory` ignores the receive-telemetry flag when selecting the stable process parent, while Kafka adds a receive-span link extractor only in stable mode. The documentation now limits the process-parenting change to legacy semantic conventions and identifies that legacy Kafka records the producer link on the process span rather than the receive span.\n\nUpsides: The overview and comparison table now match the stable parenting implementation and the instrumentation-specific legacy link placement.\n\nDownsides: The legacy table cell is slightly longer to preserve the Kafka distinction.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19565#discussion_r3777905048"
+        }
+      ],
+      "reviewed": "4312064d429eefc49ef7582c6f96896a8308efba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19565#discussion_r3776255999"
+    }
+  ]
+}

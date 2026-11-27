@@ -1,0 +1,46 @@
+{
+  "head": "0a17edc2e6091ee4f6d452f1bc298199c882e433",
+  "merge": "a7a626d831313417e02e7982186eeb99f142470d",
+  "merged": "2026-10-10T21:15:57Z",
+  "missing_roots": 0,
+  "number": 20481,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This shared Dockerfile now selects ZIP for every Linux WildFly target, including 13, 17, 21, and 28–30. That contradicts the PR’s stated requirement to preserve the existing tar.gz extraction path for older releases, and the claimed older-release tar validation can no longer exercise that path. Keep tar.gz as the default and pass a per-target archive format/extraction mode only for 41.0.1.Final.",
+      "created": "2026-10-09T17:29:58Z",
+      "hunk": "@@ -17,24 +17,24 @@ WORKDIR /opt/jboss\n \n # latest eclipse-temurin docker images have removed curl in favor of wget (https://github.com/adoptium/containers/issues/630)\n # but ibm-semeru-runtimes docker images lack wget\n-RUN apt-get update && apt-get -y install wget\n+RUN apt-get update && apt-get -y install wget unzip\n \n # Specify the user which should be used to execute all commands below\n USER jboss\n \n # Set the WILDFLY_VERSION env variable\n ENV WILDFLY_VERSION=${version}\n-ENV DOWNLOAD_URL=${baseDownloadUrl}.tar.gz\n+ENV DOWNLOAD_URL=${baseDownloadUrl}.zip",
+      "id": "PRRT_kwDODJKVX86q4YOr",
+      "opened": "2026-10-09T17:29:59Z",
+      "path": "smoke-tests/images/servlet/src/wildfly.dockerfile",
+      "replies": [
+        {
+          "at": "2026-10-09T18:19:02Z",
+          "body": "Addressed in eaedc2fd071c280daa4feac386a9153874ba72ed.\n\nThe frozen Dockerfile forced .zip downloads and unzip for every Linux WildFly release. Added archiveFormat=tar.gz by default with explicit tar.gz/ZIP extraction and passed archiveFormat=zip only for 41.0.1.Final. Verified older HotSpot/OpenJ9 targets omit the override and Windows remains ZIP-based.\n\n<!-- copilot-loop:3c947a43e1c700d2ca37082b1f87fc975b4a70b5a1ff0759892b2a8cb4f5ed3a:4232806477:4b4e60c61deb4ce692830ee53a7a0400 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20481#discussion_r4233249108"
+        }
+      ],
+      "reviewed": "183c19aa91c64849ed8a35a8a653d1c3366621f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20481#discussion_r4232806477"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Imo not too useful. Might have been useful to know whey zip for this particular version, but as one might guess the reason is that tgz is not published.",
+      "created": "2026-10-10T13:26:20Z",
+      "hunk": "@@ -5,3 +5,6 @@ application servers or servlet containers. For each server several relevant vers\n In addition we build separate images for several support major java versions.\n This way we can test our agent with many different combinations of runtime environment,\n its version and running on different JVM versions from different vendors.\n+\n+Linux WildFly images use tar.gz distributions by default. The WildFly 41.0.1.Final target selects",
+      "id": "PRRT_kwDODJKVX86rEUVp",
+      "opened": "2026-10-10T13:26:19Z",
+      "path": "smoke-tests/images/servlet/README.md",
+      "replies": [],
+      "reviewed": "eaedc2fd071c280daa4feac386a9153874ba72ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20481#discussion_r4237766484"
+    }
+  ]
+}

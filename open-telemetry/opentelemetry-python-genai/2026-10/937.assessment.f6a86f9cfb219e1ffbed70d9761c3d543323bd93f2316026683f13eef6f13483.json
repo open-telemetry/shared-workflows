@@ -1,0 +1,22 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "415a9b44ede4f05d6ee715221c8f6594d475a5bfad6e883190d4c92c44aee8e2",
+  "input_digest": "f6a86f9cfb219e1ffbed70d9761c3d543323bd93f2316026683f13eef6f13483",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dc25c7eeff93cf8e849a2cb7b5844ffca6f56f93/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/cassettes/test_chat_anthropic_claude_sonnet_cache_token_details.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b87215e7f5fc353c8bf4b76d5d1f33e47f74d816/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/cassettes/test_chat_anthropic_claude_sonnet_cache_token_details.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b87215e7f5fc353c8bf4b76d5d1f33e47f74d816/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/0f8102eb84881b6d0d7f17190377d6069bb8b46f"
+      ],
+      "id": "PRRT_kwDOSbspP86uoHNy",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

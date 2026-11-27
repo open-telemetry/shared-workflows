@@ -1,0 +1,139 @@
+{
+  "head": "6c5b3195c82d36318ff8523c675a395e78acfe86",
+  "merge": "712c94fe6f6a165ee0b93d9687286357eb335c7e",
+  "merged": "2026-07-23T17:13:01Z",
+  "missing_roots": 0,
+  "number": 372,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.request.previous_response_id` is currently hard-coded (`resp_previous123`). For a continuation scenario, it’s more representative to derive this value from an actual prior `responses.create(...)` call (e.g., use the returned `response.id`) so the example demonstrates where instrumentation would get it in real usage.",
+      "created": "2026-07-10T16:10:28Z",
+      "hunk": "@@ -247,6 +249,80 @@ def run_responses_compaction_reference(client):\n         print(f\"    -> compacted: {conversation_compacted}\")\n \n \n+def run_responses_continuation_reference(client):\n+    \"\"\"Scenario: Responses API continuation with previous_response_id.\"\"\"\n+    print(\"  [responses_continuation] responses with previous_response_id (reference implementation)\")\n+    request_model = \"gpt-4o-mini\"\n+    conversation = [\n+        {\n+            \"type\": \"message\",\n+            \"role\": \"user\",\n+            \"content\": \"Follow up on previous response.\",\n+        }\n+    ]\n+    previous_response_id = \"resp_previous123\"\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"chat\",\n+        \"gen_ai.provider.name\": \"openai\",\n+        \"gen_ai.request.model\": request_model,\n+        \"gen_ai.request.previous_response_id\": previous_response_id,\n+        \"openai.api.type\": \"responses\",\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+",
+      "id": "PRRT_kwDOSUeMrM6P8Yh3",
+      "opened": "2026-07-10T16:10:29Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "aead397e20074f7016cfe554a412f6a98fa16399",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/372#discussion_r3560345531"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This function is labeled as an “Interactions API continuation”, but it calls `client.models.generate_content(...)` with no interaction/continuation identifier. As written, the scenario doesn’t demonstrate a credible call-boundary source for `gen_ai.request.previous_response_id`.",
+      "created": "2026-07-10T16:10:29Z",
+      "hunk": "@@ -90,6 +91,84 @@ def run_chat():\n         print(f\"    -> {response.text[:60]}\")\n \n \n+def run_interactions_continuation():\n+    \"\"\"Scenario: Google GenAI Interactions API continuation.\"\"\"\n+    from google import genai\n+    from google.genai import types\n+\n+    print(\"  [interactions_continuation] interactions continuation via Google GenAI (reference implementation)\")",
+      "id": "PRRT_kwDOSUeMrM6P8Yia",
+      "opened": "2026-07-10T16:10:29Z",
+      "path": "reference/scenarios/google-genai/scenario.py",
+      "replies": [],
+      "reviewed": "aead397e20074f7016cfe554a412f6a98fa16399",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/372#discussion_r3560345571"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`previous_interaction_id` is only used to set span/event attributes; it is not passed to the SDK call. If the Google client doesn’t accept a continuation id for `generate_content`, the scenario should not emit `gen_ai.request.previous_response_id` (and the reference reports shouldn’t list google-genai as supporting it). If it does, pass that parameter into the request and derive the attribute from the same variable.",
+      "created": "2026-07-10T16:10:29Z",
+      "hunk": "@@ -90,6 +91,84 @@ def run_chat():\n         print(f\"    -> {response.text[:60]}\")\n \n \n+def run_interactions_continuation():\n+    \"\"\"Scenario: Google GenAI Interactions API continuation.\"\"\"\n+    from google import genai\n+    from google.genai import types\n+\n+    print(\"  [interactions_continuation] interactions continuation via Google GenAI (reference implementation)\")\n+    client = genai.Client(\n+        api_key=\"mock-key\",\n+        http_options=types.HttpOptions(\n+            base_url=MOCK_BASE_URL,\n+            api_version=\"v1beta\",\n+        ),\n+    )\n+    request_model = \"gemini-2.0-flash\"\n+    previous_interaction_id = \"interaction-prev-123\"\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"chat\",\n+        \"gen_ai.provider.name\": \"gcp.gemini\",\n+        \"gen_ai.request.model\": request_model,\n+        \"gen_ai.request.previous_response_id\": previous_interaction_id,\n+    }\n+    with _reference_tracer.start_as_current_span(\"chat gemini-2.0-flash\", attributes=span_attributes) as span:",
+      "id": "PRRT_kwDOSUeMrM6P8Yir",
+      "opened": "2026-07-10T16:10:29Z",
+      "path": "reference/scenarios/google-genai/scenario.py",
+      "replies": [],
+      "reviewed": "aead397e20074f7016cfe554a412f6a98fa16399",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/372#discussion_r3560345591"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n  - key: gen_ai.request.previous_response.id\n```\n\nto match `gen_ai.response.id` (and since id is a property of previous_response)",
+      "created": "2026-07-13T23:30:21Z",
+      "hunk": "@@ -179,6 +179,15 @@ attributes:\n       which input parameter maps to this attribute.\n     examples: ['low', 'medium', 'high']\n     stability: development\n+  - key: gen_ai.request.previous_response_id",
+      "id": "PRRT_kwDOSUeMrM6QkuJu",
+      "opened": "2026-07-13T23:31:48Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-07-14T13:29:16Z",
+          "body": "sounds good, done",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/372#discussion_r3579366420"
+        }
+      ],
+      "reviewed": "276677edda8be4209e3dff611b5cd96604122c45",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/372#discussion_r3574988081"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "did we want to add an `invoke_agent` reference scenario? Seems like adding it to `attributes.gen_ai.invoke_agent.common` makes it applicable to both client and internal agent spans, or is there a reason to not add to the agent scenarios?",
+      "created": "2026-07-21T18:38:17Z",
+      "hunk": "@@ -107,6 +107,9 @@ attribute_groups:\n       - ref: gen_ai.output.type\n         requirement_level:\n           conditionally_required: When applicable and if the request includes an output format.\n+      - ref: gen_ai.request.previous_response.id",
+      "id": "PRRT_kwDOSUeMrM6Sr7JA",
+      "opened": "2026-07-21T18:51:19Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-07-21T19:40:43Z",
+          "body": "I don't think previous response ID is used by agent frameworks. AFAIK it's only used in the responses/interactions API",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/372#discussion_r3625192163"
+        }
+      ],
+      "reviewed": "e0319037e2d076add3bdb81db8ea08627abbf3b2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/372#discussion_r3624779131"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "did we want to set `store=False` here? Would the Responses API retain the previous response and its id if set to false?",
+      "created": "2026-07-21T18:39:50Z",
+      "hunk": "@@ -247,6 +249,95 @@ def run_responses_compaction_reference(client):\n         print(f\"    -> compacted: {conversation_compacted}\")\n \n \n+def run_responses_continuation_reference(client):\n+    \"\"\"Scenario: Responses API continuation with previous_response_id.\"\"\"\n+    print(\"  [responses_continuation] responses with previous_response_id (reference implementation)\")\n+    request_model = \"gpt-4o-mini\"\n+    initial_conversation = [\n+        {\n+            \"type\": \"message\",\n+            \"role\": \"user\",\n+            \"content\": \"Initial prompt.\",\n+        }\n+    ]\n+    initial_response = client.responses.create(\n+        model=request_model,\n+        input=initial_conversation,\n+        store=False,",
+      "id": "PRRT_kwDOSUeMrM6Sr861",
+      "opened": "2026-07-21T18:51:19Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-07-21T19:38:44Z",
+          "body": "yeah good catch if it's false I believe it makes it stateless // not use response id",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/372#discussion_r3625180575"
+        }
+      ],
+      "reviewed": "e0319037e2d076add3bdb81db8ea08627abbf3b2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/372#discussion_r3624789545"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "to @JWinermaSplunk point - we should not add it to internal agent spans - it makes sense on client agents and inference, but there is no(?) use case for internal",
+      "created": "2026-07-21T21:04:45Z",
+      "hunk": "@@ -504,18 +511,19 @@ Examples: LangChain agents, CrewAI agents.\n | [`gen_ai.request.max_tokens`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Recommended` | int | The maximum number of tokens the model generates for a request. | `100` |\n | [`gen_ai.request.model`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Recommended` If applicable. | string | The name of the GenAI model configured for the agent. [7] | `gpt-4` |\n | [`gen_ai.request.presence_penalty`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Recommended` | double | The presence penalty setting for the GenAI request. | `0.1` |\n+| [`gen_ai.request.previous_response.id`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Recommended` [8] | string | The unique identifier of a previous response or interaction used to provide context for the current operation. [9] | `resp_0123456789aBCdef`; `interaction-123` |",
+      "id": "PRRT_kwDOSUeMrM6SuaDU",
+      "opened": "2026-07-21T21:04:45Z",
+      "path": "docs/gen-ai/gen-ai-agent-spans.md",
+      "replies": [
+        {
+          "at": "2026-07-22T17:21:43Z",
+          "body": "Ack I've removed it from common and put it on client agents. Google's interactions API can be used with agents and supports it so i think it makes sense to leave it there..",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/372#discussion_r3632328870"
+        }
+      ],
+      "reviewed": "779e1cb5e83588b4965ebfa7a070a37971c75da6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/372#discussion_r3625697821"
+    }
+  ]
+}

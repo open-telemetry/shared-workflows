@@ -1,0 +1,25 @@
+{
+  "head": "28a17aee9b547d08704cd776db3521c25e0251cd",
+  "merge": "72a4e9b729958435e7b03f8c96ae04773c6e68a0",
+  "merged": "2026-05-08T15:10:12Z",
+  "missing_roots": 0,
+  "number": 18628,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "\r\n```suggestion\r\n      // start cleaner first so weak refs created during bytebuddy install get cleaned up\r\n      WeakConcurrentMapCleaner.start();\r\n```",
+      "created": "2026-05-07T15:18:23Z",
+      "hunk": "@@ -99,8 +99,8 @@ public void start() {\n       loggingCustomizer.init();\n       EarlyInitAgentConfig.get().logEarlyConfigErrorsIfAny();\n \n-      AgentInstaller.installBytebuddyAgent(instrumentation, extensionClassLoader);\n       WeakConcurrentMapCleaner.start();",
+      "id": "PRRT_kwDODJKVX86AWzJL",
+      "opened": "2026-05-07T15:18:29Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentStarterImpl.java",
+      "replies": [],
+      "reviewed": "703c21e6d6703e041b916b830ff42adab905d172",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18628#discussion_r3202591157"
+    }
+  ]
+}

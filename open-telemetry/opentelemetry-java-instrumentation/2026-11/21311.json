@@ -1,0 +1,82 @@
+{
+  "head": "c5e93f261255e24f302e71a27d85edeb2fe92563",
+  "merge": "324cd55ee451eeb0e420a0cab30659ceddf228ba",
+  "merged": "2026-11-19T18:15:08Z",
+  "missing_roots": 0,
+  "number": 21311,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I'd guess that the JIT would optimize this allocation away, did you happen to run a benchmark it?",
+      "created": "2026-11-16T22:39:27Z",
+      "hunk": "@@ -168,8 +171,10 @@ private static boolean globMatches(String pattern, String value) {\n   }\n \n   private static boolean matchesAny(List<Predicate<String>> predicates, String value) {\n-    for (Predicate<String> predicate : predicates) {\n-      if (predicate.test(value)) {\n+    // Index loop rather than for-each: matches() runs per attribute key on hot paths such as\n+    // per-log-record attribute capture, and the iterator is not reliably scalar-replaced there.\n+    for (int i = 0; i < predicates.size(); i++) {\n+      if (predicates.get(i).test(value)) {",
+      "id": "PRRT_kwDODJKVX864LGjS",
+      "opened": "2026-11-16T22:42:43Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+      "replies": [
+        {
+          "at": "2026-11-17T01:13:20Z",
+          "body": "Thanks for the pointer... after your comment, I ran a JMH benchmark with -prof gc on JDK 25, matching 20 keys per op. With a `*` include, the for-each version allocated 1120 B/op because the iterator wasn't scalar-replaced. The index loop allocated 0 B/op and ran about 6× faster (5.5 → 32 ops/µs). With a multi-pattern selector the JIT does remove the iterator, so there the two loops are equal (4.8 vs 5.2 ops/µs, 0 B/op both). I can add the benchmark to instrumentation-api/src/jmh if you'd like it in? Or I can put the code in a gist? \n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21311#discussion_r4593943073"
+        },
+        {
+          "at": "2026-11-17T05:02:03Z",
+          "body": "oh, good find, sent https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21324 to apply this in other places",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21311#discussion_r4595532009"
+        },
+        {
+          "at": "2026-11-17T22:40:18Z",
+          "body": "Oh, sweet. Is there any action to take on this PR? ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21311#discussion_r4606769597"
+        },
+        {
+          "at": "2026-11-18T03:32:46Z",
+          "body": "I don't think so. Still trying to figure out the best way to deal this more generally in the codebase...",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21311#discussion_r4608864679"
+        },
+        {
+          "at": "2026-11-18T04:36:01Z",
+          "body": "oh, can you fix the EasyCLA failure? https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21311#issuecomment-6923383117",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21311#discussion_r4609239336"
+        },
+        {
+          "at": "2026-11-19T03:46:14Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21332 now covers this part, but the other optimization related to `*` would still be great to land here",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21311#discussion_r4624071344"
+        },
+        {
+          "at": "2026-11-19T04:46:08Z",
+          "body": "I have addressed the CLA concern ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21311#discussion_r4624435390"
+        }
+      ],
+      "reviewed": "257c1edddf2ade6c5e8d7c0f4d8d79f086f45064",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21311#discussion_r4592639717"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Could we short-circuit a trailing `*` in `globMatches()` instead of special-casing only `\"*\"` here? Once the matcher reaches a final `*`, the remaining input must match. This also avoids scanning the remaining value for patterns like `\"foo*\"` and `\"foo?*\"`.\n\nThe existing star branch could become:\n\n```java\nif (patternCodePoint == '*') {\n  patternIndex += Character.charCount(patternCodePoint);\n  if (patternIndex == pattern.length()) {\n    return true;\n  }\n  patternIndexAfterStar = patternIndex;\n  valueIndexAfterStar = valueIndex;\n  continue;\n}\n```\n\nThen this special case in `createGlobPredicate()` can be removed.",
+      "created": "2026-11-16T22:41:49Z",
+      "hunk": "@@ -115,6 +115,9 @@ private static List<Predicate<String>> createGlobPredicates(List<String> pattern\n   }\n \n   private static Predicate<String> createGlobPredicate(String globPattern) {\n+    if (globPattern.equals(\"*\")) {",
+      "id": "PRRT_kwDODJKVX864LKh3",
+      "opened": "2026-11-16T22:42:43Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/config/IncludeExclude.java",
+      "replies": [
+        {
+          "at": "2026-11-17T01:13:26Z",
+          "body": "A trailing * now returns true in globMatches(), so `*`, `foo*` and `foo?*` all skip scanning the rest of the value. I removed the special case from createGlobPredicate()",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21311#discussion_r4593943852"
+        }
+      ],
+      "reviewed": "257c1edddf2ade6c5e8d7c0f4d8d79f086f45064",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21311#discussion_r4592667389"
+    }
+  ]
+}

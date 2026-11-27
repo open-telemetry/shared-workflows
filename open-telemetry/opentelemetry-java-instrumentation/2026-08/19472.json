@@ -1,0 +1,61 @@
+{
+  "head": "d2c7b75eccd650b6e4722186dc9b686fc1a285a5",
+  "merge": "19150d05d320b8d2b7fc4d065200150e7f6ecef9",
+  "merged": "2026-08-13T04:02:27Z",
+  "missing_roots": 0,
+  "number": 19472,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Classes under `javaagent/src/main` are internal implementation details and should not be declared `final` (`docs/contributing/style-guide.md:101-104`). Remove `final` here.",
+      "created": "2026-08-10T06:03:27Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.tomcat.dbcp.v8_0;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.metrics.BatchCallback;\n+import io.opentelemetry.api.metrics.ObservableLongMeasurement;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbConnectionPoolMetrics;\n+import java.util.Map;\n+import java.util.concurrent.ConcurrentHashMap;\n+import org.apache.tomcat.dbcp.dbcp2.BasicDataSourceMXBean;\n+\n+public final class TomcatDbcpDataSourceMetrics {",
+      "id": "PRRT_kwDODJKVX86XwmJ5",
+      "opened": "2026-08-10T06:03:27Z",
+      "path": "instrumentation/tomcat/tomcat-dbcp-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/dbcp/v8_0/TomcatDbcpDataSourceMetrics.java",
+      "replies": [],
+      "reviewed": "a5c77ce9e1c6c348e8dea8034dd9434f8e6bbede",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19472#discussion_r3747003343"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Quoted `ObjectName` property values are returned with their JMX quotes and escapes intact. For a valid pool name containing a comma or another special character, this therefore emits the serialized JMX value rather than the actual pool name; unquote quoted values before using them as metric attributes.",
+      "created": "2026-08-10T06:03:27Z",
+      "hunk": "@@ -0,0 +1,30 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.tomcat.dbcp.v8_0;\n+\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionPoolNameUtil;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import javax.management.ObjectName;\n+import org.apache.tomcat.dbcp.dbcp2.BasicDataSource;\n+import org.apache.tomcat.dbcp.dbcp2.OpenTelemetryBasicDataSourceUtil;\n+\n+public class TomcatDbcpSingletons {\n+  public static String getDataSourceName(ObjectName objectName) {\n+    String name = objectName.getKeyProperty(\"name\");\n+    return name != null ? name : objectName.toString();",
+      "id": "PRRT_kwDODJKVX86XwmKO",
+      "opened": "2026-08-10T06:03:27Z",
+      "path": "instrumentation/tomcat/tomcat-dbcp-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/dbcp/v8_0/TomcatDbcpSingletons.java",
+      "replies": [],
+      "reviewed": "a5c77ce9e1c6c348e8dea8034dd9434f8e6bbede",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19472#discussion_r3747003371"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`ApacheDbcpSingletons.getDataSourceName(ObjectName)` is the same code but does not unquote, so an identically configured pool reports a name that still carries the `ObjectName` quotes and backslash escapes. That encoding is transport syntax, not part of the pool identity, and quoted values are common (any name containing `,`, `:`, `=`, or a quote). Since the two modules are clones, can we align them here? Preferably by hoisting this into `JdbcConnectionPoolNameUtil` as an `ObjectName` overload, since both modules already depend on `jdbc:library` and that leaves a single implementation; otherwise by copying the unquoting and its test into `apache-dbcp-2.0`.",
+      "created": "2026-08-10T13:07:24Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.tomcat.dbcp.v8_0;\n+\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionPoolNameUtil;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import javax.management.ObjectName;\n+import org.apache.tomcat.dbcp.dbcp2.BasicDataSource;\n+import org.apache.tomcat.dbcp.dbcp2.OpenTelemetryBasicDataSourceUtil;\n+\n+public class TomcatDbcpSingletons {\n+  public static String getDataSourceName(ObjectName objectName) {\n+    String name = objectName.getKeyProperty(\"name\");\n+    if (name == null) {\n+      return objectName.toString();\n+    }\n+    return name.startsWith(\"\\\"\") ? ObjectName.unquote(name) : name;",
+      "id": "PRRT_kwDODJKVX86X4R_V",
+      "opened": "2026-08-10T13:14:54Z",
+      "path": "instrumentation/tomcat/tomcat-dbcp-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/tomcat/dbcp/v8_0/TomcatDbcpSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-11T02:37:37Z",
+          "body": "I aligned Tomcat DBCP with the existing Apache DBCP behavior by removing the Tomcat-specific ObjectName unquoting. Both modules now use getKeyProperty(\"name\") as-is and fall back to ObjectName.toString() when the property is absent.\r\n\r\nThis intentionally preserves the ObjectName-encoded representation. Shared normalization for both modules can be considered separately if we decide that the pool identity should use the decoded value.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19472#discussion_r3754872530"
+        }
+      ],
+      "reviewed": "c0a7dbdc8c3cf0dd27430b01a2e906edbae12d47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19472#discussion_r3749744552"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "head": "8b76ce5b965de9d415fa1eb43ddf0cf64ba5e950",
+  "merge": "9817568ac708d5eac1c08fc3368a73e11675ff6c",
+  "merged": "2026-08-20T01:26:50Z",
+  "missing_roots": 0,
+  "number": 67,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This comment now states the server is started \\\"as a child\\\", but the PR description notes cases where the real server can be a grandchild (or otherwise indirectly spawned). Since the reason for a separate process group is to reliably terminate the whole descendant tree, consider rewording to something like \\\"spawns the real server process (directly or indirectly) and waits for it\\\" to avoid encoding an overly specific (and potentially incorrect) parent/child relationship.",
+      "created": "2026-08-18T13:30:36Z",
+      "hunk": "@@ -84,9 +84,9 @@ def _serve_and_drive(command: Sequence[str]) -> int:\n     # Standard input is a pipe because closing it is the stop signal; output\n     # is inherited so the scenario's own logging reaches the runner, which\n     # shows it when something fails. Its own process group, because a scenario\n-    # command is often a launcher rather than the server itself: every Java\n-    # scenario runs as `otel-conformance-java run ...`, which makes the JVM a\n-    # grandchild, and killing the launcher alone would leave it running.\n+    # command is often a launcher rather than the server itself: it starts the\n+    # real server as a child and waits for it, so killing the launcher alone\n+    # would leave the server running.",
+      "id": "PRRT_kwDOTuzK5c6aH8G3",
+      "opened": "2026-08-18T13:30:37Z",
+      "path": "tools/http/test-client/python/src/otel_http_test_client/__main__.py",
+      "replies": [
+        {
+          "at": "2026-08-18T15:11:33Z",
+          "body": "Addressed in d1f56defc2346204b4dcef075499c34d4d654df1.\n\nAnalysis: The launcher can start the real server either directly or through another process. Both comments now state that distinction without relying on a specific parent-child depth.\n\nUpsides: The comments accurately describe wrappers, grandchildren, and other descendant process shapes while preserving the reason for process-group cleanup.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/67#discussion_r3805378974"
+        }
+      ],
+      "reviewed": "bd7bdaecdec5489737972d3938a8ba13ac2a5aef",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/67#discussion_r3804502404"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "“Instrumentation attached” still reads a bit agent-specific (similar to the old Java-agent phrasing). If this is meant to cover environment-configured instrumentation as well, consider wording like “instrumentation enabled/configured” to avoid implying a particular mechanism.",
+      "created": "2026-08-18T13:30:37Z",
+      "hunk": "@@ -32,8 +32,8 @@\n     wait_for_port,\n )\n \n-# Generous: a cold JVM with a Java agent attached is slow to reach its first\n-# request, and a loaded CI machine slower still.\n+# Generous: a cold runtime with instrumentation attached is slow to reach its",
+      "id": "PRRT_kwDOTuzK5c6aH8H3",
+      "opened": "2026-08-18T13:30:37Z",
+      "path": "tools/http/test-client/python/src/otel_http_test_client/__main__.py",
+      "replies": [],
+      "reviewed": "bd7bdaecdec5489737972d3938a8ba13ac2a5aef",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/67#discussion_r3804502489"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Similar to the driver comment in `__main__.py`, this wording asserts the real server is a direct child. If the intended general shape includes launchers that start the server indirectly (grandchild, wrapper scripts, etc.), consider rephrasing to \\\"starts the real server process (possibly indirectly) and waits for it\\\" so the comment matches the more general behavior the tests are describing.",
+      "created": "2026-08-18T13:30:37Z",
+      "hunk": "@@ -69,10 +69,9 @@ def app(environ, start_response):\n sys.exit(EXIT_CODE)\n \"\"\"\n \n-# A scenario command that is a launcher rather than the server itself, which\n-# is the shape of every Java scenario: ``otel-conformance-java run ...`` starts\n-# the JVM and waits for it, so the process the driver started is not the\n-# process that has to stop.\n+# A scenario command that is a launcher rather than the server itself: it\n+# starts the real server as a child and waits for it, so the process the\n+# driver started is not the process that has to stop.",
+      "id": "PRRT_kwDOTuzK5c6aH8Hf",
+      "opened": "2026-08-18T13:30:37Z",
+      "path": "tools/http/test-client/python/tests/test_drive.py",
+      "replies": [
+        {
+          "at": "2026-08-18T15:11:34Z",
+          "body": "Addressed in d1f56defc2346204b4dcef075499c34d4d654df1.\n\nAnalysis: The launcher can start the real server either directly or through another process. Both comments now state that distinction without relying on a specific parent-child depth.\n\nUpsides: The comments accurately describe wrappers, grandchildren, and other descendant process shapes while preserving the reason for process-group cleanup.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/67#discussion_r3805379233"
+        }
+      ],
+      "reviewed": "bd7bdaecdec5489737972d3938a8ba13ac2a5aef",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/67#discussion_r3804502456"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "91d6a2b0cbec705f707bfb00990dbf6274718e6e81d277b3735822ec62a10274",
+  "input_digest": "32d4257735508e78e2e7695ad8646bcf99250c46b7c48385072ecd933c1d95d1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/4c57af90b9d374d018d17024c00a525c9136025f/scenarios/gen-ai/python/groq/scenarios/multimodal.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/9c99008c9f9c48aed1be731c02d0190c56b69d29/scenarios/gen-ai/python/groq/scenarios/multimodal.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/59dcf252c942eaec674bf6e50986a0e47d16c856"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dWHm3",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/4c57af90b9d374d018d17024c00a525c9136025f/scenarios/gen-ai/python/groq/scenarios/structured_output.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/9c99008c9f9c48aed1be731c02d0190c56b69d29/scenarios/gen-ai/python/groq/scenarios/structured_output.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/59dcf252c942eaec674bf6e50986a0e47d16c856"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dWHmu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

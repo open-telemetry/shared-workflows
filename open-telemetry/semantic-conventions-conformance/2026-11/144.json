@@ -1,0 +1,193 @@
+{
+  "head": "09c654193d501d6745159087e5a94f4ac484385b",
+  "merge": "a076ed3dc67fc627e449a72cf363690aa397fce4",
+  "merged": "2026-11-03T21:56:22Z",
+  "missing_roots": 0,
+  "number": 144,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The lockfile includes Symfony 8.1 packages requiring PHP >=8.4.1, including `symfony/http-kernel` (`composer.lock:2032-2046`), so installing this committed dependency graph on the PHP >=8.2 versions advertised here fails. Align this constraint with the locked platform, or regenerate the lockfile under the intended minimum PHP version.",
+      "created": "2026-08-30T04:13:05Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+{\n+  \"name\": \"open-telemetry-conformance/http-php-symfony-http-client\",\n+  \"description\": \"Symfony HTTP client conformance measured by OpenTelemetry auto-instrumentation.\",\n+  \"license\": \"Apache-2.0\",\n+  \"require\": {\n+    \"php\": \">=8.2\",",
+      "id": "PRRT_kwDOTuzK5c6deoqP",
+      "opened": "2026-08-30T04:13:06Z",
+      "path": "scenarios/http/php/symfony-http-client/opentelemetry-symfony/composer.json",
+      "replies": [
+        {
+          "at": "2026-08-30T04:22:17Z",
+          "body": "Addressed in e76288b97f7d3a0228e996abeb82519c8c67e835.\n\nAnalysis: Each lockfile was resolved on PHP 8.4.24 without a Composer platform override. Composer therefore selected Symfony 8.1 packages that do not support the minimum PHP versions declared by these scenarios. Setting config.platform.php to each scenario's declared minimum and regenerating the locks selects Symfony 7.4 packages that support those minimums.\n\nUpsides: Composer now checks future dependency resolution against PHP 8.2.0 for both Symfony scenarios and PHP 8.3.0 for Laravel. The committed dependency graphs install across the PHP ranges declared by the manifests.\n\nDownsides: These scenarios stay on Symfony 7.4 packages while their declared minimum PHP versions remain below Symfony 8.1's requirement.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r3888449132"
+        }
+      ],
+      "reviewed": "bc6924a91703d372828828801dc5417547264b4d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r3888433892"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The committed lockfile selects Symfony 8.1 components that require PHP >=8.4.1 (for example, `symfony/error-handler` at `composer.lock:1468-1482`), so `composer install` fails on PHP 8.2 through 8.4.0 even though this manifest declares those versions supported. Align the root PHP constraint with the lockfile, or regenerate the lockfile using the intended minimum PHP platform.",
+      "created": "2026-08-30T04:13:06Z",
+      "hunk": "@@ -0,0 +1,34 @@\n+{\n+  \"name\": \"open-telemetry-conformance/http-php-symfony\",\n+  \"description\": \"Symfony HTTP server conformance measured by OpenTelemetry auto-instrumentation.\",\n+  \"license\": \"Apache-2.0\",\n+  \"require\": {\n+    \"php\": \">=8.2\",",
+      "id": "PRRT_kwDOTuzK5c6deoqV",
+      "opened": "2026-08-30T04:13:06Z",
+      "path": "scenarios/http/php/symfony/opentelemetry-symfony/composer.json",
+      "replies": [
+        {
+          "at": "2026-08-30T04:22:18Z",
+          "body": "Addressed in e76288b97f7d3a0228e996abeb82519c8c67e835.\n\nAnalysis: Each lockfile was resolved on PHP 8.4.24 without a Composer platform override. Composer therefore selected Symfony 8.1 packages that do not support the minimum PHP versions declared by these scenarios. Setting config.platform.php to each scenario's declared minimum and regenerating the locks selects Symfony 7.4 packages that support those minimums.\n\nUpsides: Composer now checks future dependency resolution against PHP 8.2.0 for both Symfony scenarios and PHP 8.3.0 for Laravel. The committed dependency graphs install across the PHP ranges declared by the manifests.\n\nDownsides: These scenarios stay on Symfony 7.4 packages while their declared minimum PHP versions remain below Symfony 8.1's requirement.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r3888449162"
+        }
+      ],
+      "reviewed": "bc6924a91703d372828828801dc5417547264b4d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r3888433900"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This package declares PHP >=8.3, but the committed lockfile selects multiple Symfony 8.1 dependencies requiring PHP >=8.4.1 (for example, `symfony/http-kernel` at `composer.lock:4687-4701`). Consequently, `composer install` fails for PHP 8.3 through 8.4.0 despite the declared constraint; either raise the root requirement or regenerate the lockfile for the intended minimum.",
+      "created": "2026-08-30T04:13:06Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+{\n+  \"name\": \"open-telemetry-conformance/http-php-laravel\",\n+  \"description\": \"Laravel HTTP server conformance measured by OpenTelemetry auto-instrumentation.\",\n+  \"license\": \"Apache-2.0\",\n+  \"require\": {\n+    \"php\": \">=8.3\",",
+      "id": "PRRT_kwDOTuzK5c6deoqa",
+      "opened": "2026-08-30T04:13:06Z",
+      "path": "scenarios/http/php/laravel/opentelemetry-laravel/composer.json",
+      "replies": [
+        {
+          "at": "2026-08-30T04:22:19Z",
+          "body": "Addressed in e76288b97f7d3a0228e996abeb82519c8c67e835.\n\nAnalysis: Each lockfile was resolved on PHP 8.4.24 without a Composer platform override. Composer therefore selected Symfony 8.1 packages that do not support the minimum PHP versions declared by these scenarios. Setting config.platform.php to each scenario's declared minimum and regenerating the locks selects Symfony 7.4 packages that support those minimums.\n\nUpsides: Composer now checks future dependency resolution against PHP 8.2.0 for both Symfony scenarios and PHP 8.3.0 for Laravel. The committed dependency graphs install across the PHP ranges declared by the manifests.\n\nDownsides: These scenarios stay on Symfony 7.4 packages while their declared minimum PHP versions remain below Symfony 8.1's requirement.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r3888449183"
+        }
+      ],
+      "reviewed": "bc6924a91703d372828828801dc5417547264b4d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r3888433908"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ROOT` is the `opentelemetry-cakephp` package, but the application source is its sibling `../scenarios/src` (also used by Composer's autoload mapping). This makes `APP` point to a directory that does not exist. The controller may still autoload, but Cake lookups based on `APP` cannot find application files. Point `APP_DIR` at the sibling source and update `App.dir` in `config/app.php` to match.",
+      "created": "2026-09-29T22:37:38Z",
+      "hunk": "@@ -0,0 +1,23 @@\n+<?php\n+\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+declare(strict_types=1);\n+\n+define('DS', DIRECTORY_SEPARATOR);\n+define('ROOT', dirname(__DIR__));\n+define('APP_DIR', 'scenarios' . DS . 'src');",
+      "id": "PRRT_kwDOTuzK5c6nUaVe",
+      "opened": "2026-09-29T22:37:39Z",
+      "path": "scenarios/http/php/cakephp/opentelemetry-cakephp/config/paths.php",
+      "replies": [
+        {
+          "at": "2026-10-12T22:57:07Z",
+          "body": "Addressed in bc867056cbbe51d617d994b308fff104d061df71.\n\nAt the frozen head, APP and ROOT/App.dir both resolve to a nonexistent package-local scenarios/src while Composer maps App to the existing sibling ../scenarios/src. APP_DIR now includes the parent-directory component and App.dir reuses APP_DIR. CakePHP bootstrap, Composer-path equivalence, App::classPath controller lookup, controller autoloading, and the six shared HTTP exchanges pass.\n\n<!-- copilot-loop:5c0d861ef44c4b4e53a1edad9ba2a304c978b589cc8785fb83bb20cd0e3953f8:4139035949:4d96f7cf50dd462cbe87a70a50d852b8 -->",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r4253060916"
+        }
+      ],
+      "reviewed": "ec1e463575801c9229b772fc41550bfa7fdc0647",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r4139035949"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `APP_KEY` decodes to 30 bytes, but Laravel's default AES-256-CBC encrypter requires 32. If the fixture resolves the encrypter (for example, to handle encrypted cookies), that request fails with an invalid key length. Use a 32-byte key for this test fixture.",
+      "created": "2026-09-29T22:37:38Z",
+      "hunk": "@@ -0,0 +1,9 @@\n+APP_NAME=OpenTelemetryConformance\n+APP_ENV=production\n+APP_KEY=base64:MDAxMTIyMzM0NDU1NjY3Nzg4ODk5QUFCQkNERERF",
+      "id": "PRRT_kwDOTuzK5c6nUaWJ",
+      "opened": "2026-09-29T22:37:39Z",
+      "path": "scenarios/http/php/laravel/opentelemetry-laravel/.env",
+      "replies": [],
+      "reviewed": "ec1e463575801c9229b772fc41550bfa7fdc0647",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r4139036007"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `HttpClient::create()` picks `CurlHttpClient` or `NativeHttpClient` depending on whether `ext-curl` is loaded, so the measured transport differs between CI (curl installed) and a local run without it. Same for `Psr18Client` in the PSR-18 scenario. Pinning it makes `data.json` reproducible:\n\n```suggestion\n    $client = new \\Symfony\\Component\\HttpClient\\CurlHttpClient();\n```\n\n(plus `\"ext-curl\": \"*\"` in `composer.json`)",
+      "created": "2026-11-03T06:19:29Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+<?php\n+\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+declare(strict_types=1);\n+\n+use OpenTelemetry\\Conformance\\Http\\ClientWorkload;\n+use OpenTelemetry\\Conformance\\Http\\Contract;\n+use OpenTelemetry\\Conformance\\Http\\Response;\n+use OpenTelemetry\\Conformance\\Scenario\\Environment;\n+use Symfony\\Component\\HttpClient\\HttpClient;\n+\n+function driveSymfonyHttpClientScenario(): void\n+{\n+    $client = HttpClient::create();",
+      "id": "PRRT_kwDOTuzK5c6zAEk0",
+      "opened": "2026-11-03T06:35:01Z",
+      "path": "scenarios/http/php/symfony-http-client/scenarios/client.php",
+      "replies": [
+        {
+          "at": "2026-11-03T17:29:57Z",
+          "body": "8353d7e96afdb34388c6acf6592d7fe94160d262",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r4458233689"
+        }
+      ],
+      "reviewed": "94e3ea0b149b73bbd9613159ff72fcd7d459c7d7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r4451502626"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "CakePHP's bootstrap creates `tmp/` and `logs/` under `opentelemetry-cakephp` on every run, and those aren't ignored, so a local run leaves untracked cache files behind.\n\n```suggestion\nscenarios/http/php/cakephp/opentelemetry-cakephp/logs/\nscenarios/http/php/cakephp/opentelemetry-cakephp/tmp/\nscenarios/http/php/codeigniter/opentelemetry-codeigniter/app/\nscenarios/http/php/codeigniter/opentelemetry-codeigniter/writable/\nscenarios/http/php/wordpress/opentelemetry-wordpress/wp-content/\n```",
+      "created": "2026-11-03T06:19:29Z",
+      "hunk": "@@ -31,3 +31,6 @@ vendor/\n .DS_Store\n \n .idea/\n+scenarios/http/php/codeigniter/opentelemetry-codeigniter/app/\n+scenarios/http/php/codeigniter/opentelemetry-codeigniter/writable/\n+scenarios/http/php/wordpress/opentelemetry-wordpress/wp-content/",
+      "id": "PRRT_kwDOTuzK5c6zAEkg",
+      "opened": "2026-11-03T06:35:01Z",
+      "path": ".gitignore",
+      "replies": [
+        {
+          "at": "2026-11-03T17:06:07Z",
+          "body": "6dfa12393d7e194e68c621eae393c2beabe3dcbe",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r4457964400"
+        }
+      ],
+      "reviewed": "94e3ea0b149b73bbd9613159ff72fcd7d459c7d7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r4451502592"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Only the client workloads (curl, PSR-18, ReactPHP, Symfony HTTP Client) use `tools/php/scenario`. The seven server packages require `open-telemetry-conformance/scenario` but never import it - maybe drop it from those `composer.json`/locks and narrow this line?\n\n```suggestion\n[`tools/http/test-client/php`](../../../tools/http/test-client/php). Client\npackages also use [`tools/php/scenario`](../../../tools/php/scenario) to read\nthe mock server's URL.\n```",
+      "created": "2026-11-03T06:19:29Z",
+      "hunk": "@@ -1,53 +1,70 @@\n # PHP HTTP conformance scenarios\n \n-PHP measures a Slim 4 server through\n-`open-telemetry/opentelemetry-auto-slim` and a Guzzle 7 client through\n-`open-telemetry/opentelemetry-auto-guzzle`.\n-\n-```text\n-slim/scenarios/                       Slim routes and responses, no OTel\n-slim/opentelemetry-slim/              locked instrumentation package\n-guzzle/scenarios/                     Guzzle request workload, no OTel\n-guzzle/opentelemetry-guzzle/          locked instrumentation package\n-```\n+PHP measures these HTTP libraries and frameworks through their published\n+auto-instrumentation packages.\n+\n+| Scenario | Side | Instrumentation |\n+| --- | --- | --- |\n+| CakePHP | server | `open-telemetry/opentelemetry-auto-cakephp` |\n+| CodeIgniter | server | `open-telemetry/opentelemetry-auto-codeigniter` |\n+| curl | client | `open-telemetry/opentelemetry-auto-curl` |\n+| Guzzle | client | `open-telemetry/opentelemetry-auto-guzzle` |\n+| Laravel | server | `open-telemetry/opentelemetry-auto-laravel` |\n+| PSR-15 | server | `open-telemetry/opentelemetry-auto-psr15` |\n+| PSR-18 | client | `open-telemetry/opentelemetry-auto-psr18` |\n+| ReactPHP | client | `open-telemetry/opentelemetry-auto-reactphp` |\n+| Slim | server | `open-telemetry/opentelemetry-auto-slim` |\n+| Symfony | server | `open-telemetry/opentelemetry-auto-symfony` |\n+| Symfony HTTP Client | client | `open-telemetry/opentelemetry-auto-symfony` |\n+| WordPress | server | `open-telemetry/opentelemetry-auto-wordpress` |\n+| Yii | server | `open-telemetry/opentelemetry-auto-yii` |\n \n Each instrumentation side is its own Composer package with its own committed\n `composer.lock`. This keeps the measured dependency graph exact without\n-creating a PHP-wide build root. Both use the path package from\n-[`tools/http/test-client/php`](../../../tools/http/test-client/php), and\n-Guzzle also uses [`tools/php/scenario`](../../../tools/php/scenario) to read\n-the mock server's URL.\n+creating a PHP-wide build root. All packages use the path dependency from\n+[`tools/http/test-client/php`](../../../tools/http/test-client/php). All except\n+Slim also use [`tools/php/scenario`](../../../tools/php/scenario) to read\n+runtime configuration such as the mock server's URL.",
+      "id": "PRRT_kwDOTuzK5c6zAEks",
+      "opened": "2026-11-03T06:35:01Z",
+      "path": "scenarios/http/php/README.md",
+      "replies": [
+        {
+          "at": "2026-11-03T17:24:26Z",
+          "body": "a30eff069957d4ebda5a967da62926980751cc13",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r4458173737"
+        }
+      ],
+      "reviewed": "94e3ea0b149b73bbd9613159ff72fcd7d459c7d7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r4451502612"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Routes are workload code, but here (and in Yii's `opentelemetry-yii/router.php` `urlManager.rules`) they live in the instrumentation package. Slim, Laravel, CodeIgniter and Symfony keep them under `scenarios/`. Could these move to `scenarios/` too, e.g. by overriding `Application::routes()` in `scenarios/src/Application.php` and loading the Yii rules from a file under `yii/scenarios/`?",
+      "created": "2026-11-03T06:19:29Z",
+      "hunk": "@@ -0,0 +1,21 @@\n+<?php\n+\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+declare(strict_types=1);\n+\n+use Cake\\Routing\\RouteBuilder;\n+\n+return static function (RouteBuilder $routes): void {\n+    $routes->scope('/', function (RouteBuilder $builder): void {",
+      "id": "PRRT_kwDOTuzK5c6zAEkx",
+      "opened": "2026-11-03T06:35:01Z",
+      "path": "scenarios/http/php/cakephp/opentelemetry-cakephp/config/routes.php",
+      "replies": [
+        {
+          "at": "2026-11-03T17:26:44Z",
+          "body": "fe7053e445cf49aadb6fb3133b38d7b59f5373d3",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r4458198528"
+        }
+      ],
+      "reviewed": "94e3ea0b149b73bbd9613159ff72fcd7d459c7d7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/144#discussion_r4451502621"
+    }
+  ]
+}

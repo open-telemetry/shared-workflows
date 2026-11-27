@@ -1,0 +1,213 @@
+{
+  "head": "db60cd4caf8f461880de5119607286a2305f34f0",
+  "merge": "408818c584ec11275bf06cefa38b05373a1ff3a8",
+  "merged": "2026-10-29T07:33:58Z",
+  "missing_roots": 0,
+  "number": 16214,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "- rpc.method = _OTHER\n- rpc.method_original = ...",
+      "created": "2026-02-19T00:22:25Z",
+      "hunk": "@@ -692,6 +693,59 @@ private static Stream<Arguments> provideErrorArguments() {\n         arguments(Status.NOT_FOUND.withDescription(\"some description\")));\n   }\n \n+  @Test\n+  void unknownService() throws Exception {\n+    // Create a server without GreeterService registered\n+    Server server = configureServer(ServerBuilder.forPort(0)).build().start();\n+    ManagedChannel channel = createChannel(server);\n+    closer.add(() -> channel.shutdownNow().awaitTermination(10, TimeUnit.SECONDS));\n+    closer.add(() -> server.shutdownNow().awaitTermination());\n+\n+    GreeterGrpc.GreeterBlockingStub client = GreeterGrpc.newBlockingStub(channel);\n+\n+    Helloworld.Request request = Helloworld.Request.newBuilder().setName(\"test\").build();\n+    assertThatThrownBy(() -> client.sayHello(request))\n+        .isInstanceOfSatisfying(\n+            StatusRuntimeException.class,\n+            t -> assertThat(t.getStatus().getCode()).isEqualTo(Status.Code.UNIMPLEMENTED));\n+\n+    testing()\n+        .waitAndAssertTraces(\n+            trace ->\n+                trace.hasSpansSatisfyingExactly(\n+                    span ->\n+                        span.hasName(\"example.Greeter/SayHello\")\n+                            .hasKind(SpanKind.CLIENT)\n+                            .hasNoParent()\n+                            .hasStatus(StatusData.error())\n+                            .hasAttributesSatisfyingExactly(\n+                                addExtraClientAttributes(\n+                                    experimentalSatisfies(\n+                                        GRPC_RECEIVED_MESSAGE_COUNT,\n+                                        v -> assertThat(v).isEqualTo(0)),\n+                                    experimentalSatisfies(\n+                                        GRPC_SENT_MESSAGE_COUNT,\n+                                        v -> assertThat(v).isGreaterThan(0)),\n+                                    equalTo(RPC_SYSTEM, \"grpc\"),\n+                                    equalTo(RPC_SERVICE, \"example.Greeter\"),\n+                                    equalTo(RPC_METHOD, \"SayHello\"),\n+                                    equalTo(\n+                                        RPC_GRPC_STATUS_CODE,\n+                                        (long) Status.Code.UNIMPLEMENTED.value()),\n+                                    equalTo(SERVER_ADDRESS, \"localhost\"),\n+                                    equalTo(SERVER_PORT, (long) server.getPort()))),\n+                    span ->\n+                        span.hasName(\"_OTHER\")\n+                            .hasKind(SpanKind.SERVER)\n+                            .hasParent(trace.getSpan(0))\n+                            .hasStatus(StatusData.error())\n+                            .hasAttributesSatisfyingExactly(\n+                                equalTo(RPC_SYSTEM, \"grpc\"),",
+      "id": "PRRT_kwDODJKVX85vaxvr",
+      "opened": "2026-02-19T00:22:25Z",
+      "path": "instrumentation/grpc-1.6/testing/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/AbstractGrpcTest.java",
+      "replies": [],
+      "reviewed": "930175c2592deba03af92acfc69b5d7745ec6732",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r2825061084"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // Request attributes captured on request end.\n```",
+      "created": "2026-02-26T03:51:05Z",
+      "hunk": "@@ -33,7 +33,7 @@ final class GrpcAttributesExtractor implements AttributesExtractor<GrpcRequest,\n \n   @Override\n   public void onStart(AttributesBuilder attributes, Context parentContext, GrpcRequest request) {\n-    // Request attributes captured on request end.\n+    // Attributes captured on request end.",
+      "id": "PRRT_kwDODJKVX85w1u6m",
+      "opened": "2026-02-26T03:51:04Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "577c28868573118a063fa4199a97be724870e4b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r2856731075"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`streamClosed()` returns early when `!emitStableRpcSemconv()`, which means unknown/unregistered gRPC requests still won't produce a server span under the default configuration (old RPC semconv only). That seems to undermine the stated goal of capturing unknown service requests (issue #15690). Consider creating the fallback server span regardless of semconv stability, and populate whichever semconv flavor(s) are enabled (or at least emit the span + status) so the fix applies without requiring stable RPC semconv opt-in.",
+      "created": "2026-05-12T01:58:49Z",
+      "hunk": "@@ -0,0 +1,96 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableRpcSemconv;\n+\n+import io.grpc.Grpc;\n+import io.grpc.Metadata;\n+import io.grpc.ServerCall;\n+import io.grpc.ServerStreamTracer;\n+import io.grpc.Status;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.ContextPropagators;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.internal.InstrumenterUtil;\n+import java.net.SocketAddress;\n+import java.time.Instant;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * A {@link ServerStreamTracer} that detects whether a gRPC server request was handled by the {@link\n+ * TracingServerInterceptor}. If the interceptor does not fire (unregistered method), {@link\n+ * #streamClosed(Status)} creates a span for the unhandled request.\n+ */\n+final class TracingServerStreamTracer extends ServerStreamTracer {\n+\n+  static final io.grpc.Context.Key<TracingServerStreamTracer> STREAM_TRACER_KEY =\n+      io.grpc.Context.key(\"otel-grpc-stream-tracer\");\n+\n+  private static final String UNKNOWN_METHOD_SPAN_NAME = \"_OTHER\";\n+\n+  private final Instrumenter<GrpcRequest, Status> instrumenter;\n+  private final ContextPropagators propagators;\n+  private final String fullMethodName;\n+  private final Metadata headers;\n+  private final Context parentContext;\n+  private final Instant startTime;\n+\n+  private volatile boolean interceptorHandled;\n+  @Nullable private volatile SocketAddress peerAddress;\n+\n+  TracingServerStreamTracer(\n+      Instrumenter<GrpcRequest, Status> instrumenter,\n+      ContextPropagators propagators,\n+      String fullMethodName,\n+      Metadata headers,\n+      Context parentContext) {\n+    this.instrumenter = instrumenter;\n+    this.propagators = propagators;\n+    this.fullMethodName = fullMethodName;\n+    this.headers = headers;\n+    this.parentContext = parentContext;\n+    this.startTime = Instant.now();\n+  }\n+\n+  void markInterceptorHandled() {\n+    interceptorHandled = true;\n+  }\n+\n+  @Override\n+  public io.grpc.Context filterContext(io.grpc.Context context) {\n+    return context.withValue(STREAM_TRACER_KEY, this);\n+  }\n+\n+  @Override\n+  public void serverCallStarted(ServerCall<?, ?> call) {\n+    if (peerAddress == null) {\n+      SocketAddress addr = call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);\n+      if (addr != null) {\n+        peerAddress = addr;\n+      }\n+    }\n+  }\n+\n+  @Override\n+  public void streamClosed(Status status) {\n+    if (interceptorHandled || !emitStableRpcSemconv()) {\n+      return;\n+    }",
+      "id": "PRRT_kwDODJKVX86BRWWv",
+      "opened": "2026-05-12T01:58:50Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/TracingServerStreamTracer.java",
+      "replies": [
+        {
+          "at": "2026-05-12T02:05:39Z",
+          "body": "This is intentional — the goal is to preserve the old behavior and only enable the new fallback span for unknown/unregistered services under the stable RPC semconv flag.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223268027"
+        }
+      ],
+      "reviewed": "c240d6a9c674b7dc2d8a507160ea25dc9138b2e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223234096"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`createServerInterceptor()` dereferences `serverInterceptorFactory` without checking for initialization, so callers will get a NullPointerException if `setServerInterceptorFactory()` hasn't run (e.g., if `Internal` is used without first loading `GrpcTelemetry`). Since this is a public method, please add a null check and fail fast with a clear IllegalStateException (and/or a safe default) to avoid an opaque NPE.\n",
+      "created": "2026-05-12T01:58:49Z",
+      "hunk": "@@ -0,0 +1,30 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import io.grpc.ServerInterceptor;\n+import io.opentelemetry.instrumentation.grpc.v1_6.GrpcTelemetry;\n+import java.util.function.Function;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class Internal {\n+\n+  private static volatile Function<GrpcTelemetry, ServerInterceptor> serverInterceptorFactory;\n+\n+  public static void setServerInterceptorFactory(\n+      Function<GrpcTelemetry, ServerInterceptor> factory) {\n+    serverInterceptorFactory = factory;\n+  }\n+\n+  public static ServerInterceptor createServerInterceptor(GrpcTelemetry telemetry) {\n+    return serverInterceptorFactory.apply(telemetry);",
+      "id": "PRRT_kwDODJKVX86BRWXT",
+      "opened": "2026-05-12T01:58:50Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/Internal.java",
+      "replies": [
+        {
+          "at": "2026-05-12T02:08:59Z",
+          "body": "Adopted the pattern used in #18291: marked the field `@Nullable`, switched to `requireNonNull(serverInterceptorFactory, \"serverInterceptorFactory\")`, and added a comment explaining why it's guaranteed non-null (registered in `GrpcTelemetry`'s static initializer, before any `GrpcTelemetry` instance can be passed here).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223281171"
+        },
+        {
+          "at": "2026-05-12T02:09:28Z",
+          "body": "Pushed in 396cbab446f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223282608"
+        }
+      ],
+      "reviewed": "c240d6a9c674b7dc2d8a507160ea25dc9138b2e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223234148"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The explanatory comment says unregistered services result in an HTTP-level response \"rather than gRPC UNIMPLEMENTED\", but the assertions below expect the client span to have `Status.Code.UNIMPLEMENTED`. Please reconcile this (e.g., clarify that Armeria returns HTTP 404 and the gRPC client maps that to UNIMPLEMENTED, and that there is no gRPC *server* span because the gRPC service layer isn't invoked).\n",
+      "created": "2026-05-12T01:58:50Z",
+      "hunk": "@@ -139,4 +183,67 @@ void grpcInstrumentation() {\n                                     .hasAttributesSatisfyingExactly(\n                                         equalTo(MESSAGE_TYPE, \"SENT\"), equalTo(MESSAGE_ID, 1L)))));\n   }\n+\n+  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n+  @Test\n+  void unknownService() {\n+    GreeterGrpc.GreeterBlockingStub client =\n+        GrpcClients.builder(serverWithoutGreeter.httpUri())\n+            .build(GreeterGrpc.GreeterBlockingStub.class);\n+\n+    Helloworld.Request request = Helloworld.Request.newBuilder().setName(\"test\").build();\n+    assertThatThrownBy(() -> client.sayHello(request)).isInstanceOf(StatusRuntimeException.class);\n+\n+    // Armeria uses exact-route binding for gRPC services, so calling an unregistered service\n+    // results in an HTTP-level response rather than gRPC UNIMPLEMENTED. The armeria HTTP\n+    // instrumentation captures this as an HTTP server span.",
+      "id": "PRRT_kwDODJKVX86BRWXk",
+      "opened": "2026-05-12T01:58:50Z",
+      "path": "instrumentation/armeria/armeria-grpc-1.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/armeria/grpc/v1_14/ArmeriaGrpcTest.java",
+      "replies": [
+        {
+          "at": "2026-05-12T02:10:33Z",
+          "body": "Reworded the comment to make this explicit (HTTP 404 mapped to UNIMPLEMENTED on the client, no gRPC server span because the gRPC service layer is never invoked). Pushed in 8846d666aa0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223285808"
+        }
+      ],
+      "reviewed": "c240d6a9c674b7dc2d8a507160ea25dc9138b2e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223234172"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`GrpcRequest` is public and is exposed to user-provided `AttributesExtractor`s via `GrpcTelemetryBuilder`, but `getFullMethodName()` / `getOriginalFullMethodName()` are package-private while `getMethod()` is now nullable for the unknown-service fallback path. This leaves external extractors with no safe/public way to read the method name when `getMethod()` is null. Consider making these new getters public (and documenting when `getMethod()` may be null) so custom extractors can handle unregistered-method spans without NPEs or losing method information.\n",
+      "created": "2026-05-12T02:18:40Z",
+      "hunk": "@@ -51,10 +62,20 @@ private void setLogicalAddress(@Nullable String authority) {\n     }\n   }\n \n+  @Nullable\n   public MethodDescriptor<?, ?> getMethod() {\n     return method;\n   }\n \n+  String getFullMethodName() {\n+    return fullMethodName;\n+  }\n+\n+  @Nullable\n+  String getOriginalFullMethodName() {",
+      "id": "PRRT_kwDODJKVX86BRi8u",
+      "opened": "2026-05-12T02:18:40Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcRequest.java",
+      "replies": [
+        {
+          "at": "2026-05-12T02:57:06Z",
+          "body": "Keeping public API minimal for now",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223415258"
+        }
+      ],
+      "reviewed": "8846d666aa09be9468245c4bb5a9a8e3d2568b97",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223308048"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`streamClosed()` allocates a new `GrpcRequestGetter` for every unregistered request (`new GrpcRequestGetter()`). Since this code can run on every unknown-method call, consider reusing a static final getter instance (or otherwise avoiding per-request allocation) to reduce overhead on an already error-heavy path.",
+      "created": "2026-05-12T02:18:40Z",
+      "hunk": "@@ -0,0 +1,96 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableRpcSemconv;\n+\n+import io.grpc.Grpc;\n+import io.grpc.Metadata;\n+import io.grpc.ServerCall;\n+import io.grpc.ServerStreamTracer;\n+import io.grpc.Status;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.propagation.ContextPropagators;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.internal.InstrumenterUtil;\n+import java.net.SocketAddress;\n+import java.time.Instant;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * A {@link ServerStreamTracer} that detects whether a gRPC server request was handled by the {@link\n+ * TracingServerInterceptor}. If the interceptor does not fire (unregistered method), {@link\n+ * #streamClosed(Status)} creates a span for the unhandled request.\n+ */\n+final class TracingServerStreamTracer extends ServerStreamTracer {\n+\n+  static final io.grpc.Context.Key<TracingServerStreamTracer> STREAM_TRACER_KEY =\n+      io.grpc.Context.key(\"otel-grpc-stream-tracer\");\n+\n+  private static final String UNKNOWN_METHOD_SPAN_NAME = \"_OTHER\";\n+\n+  private final Instrumenter<GrpcRequest, Status> instrumenter;\n+  private final ContextPropagators propagators;\n+  private final String fullMethodName;\n+  private final Metadata headers;\n+  private final Context parentContext;\n+  private final Instant startTime;\n+\n+  private volatile boolean interceptorHandled;\n+  @Nullable private volatile SocketAddress peerAddress;\n+\n+  TracingServerStreamTracer(\n+      Instrumenter<GrpcRequest, Status> instrumenter,\n+      ContextPropagators propagators,\n+      String fullMethodName,\n+      Metadata headers,\n+      Context parentContext) {\n+    this.instrumenter = instrumenter;\n+    this.propagators = propagators;\n+    this.fullMethodName = fullMethodName;\n+    this.headers = headers;\n+    this.parentContext = parentContext;\n+    this.startTime = Instant.now();\n+  }\n+\n+  void markInterceptorHandled() {\n+    interceptorHandled = true;\n+  }\n+\n+  @Override\n+  public io.grpc.Context filterContext(io.grpc.Context context) {\n+    return context.withValue(STREAM_TRACER_KEY, this);\n+  }\n+\n+  @Override\n+  public void serverCallStarted(ServerCall<?, ?> call) {\n+    if (peerAddress == null) {\n+      SocketAddress addr = call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);\n+      if (addr != null) {\n+        peerAddress = addr;\n+      }\n+    }\n+  }\n+\n+  @Override\n+  public void streamClosed(Status status) {\n+    if (interceptorHandled || !emitStableRpcSemconv()) {\n+      return;\n+    }\n+    // Interceptor did not fire — this is an unregistered method\n+    GrpcRequest request = new GrpcRequest(UNKNOWN_METHOD_SPAN_NAME, fullMethodName, headers);\n+    if (peerAddress != null) {\n+      request.setPeerSocketAddress(peerAddress);\n+    }\n+    // Extract trace context from incoming headers (e.g. W3C traceparent)\n+    Context extracted =\n+        propagators.getTextMapPropagator().extract(parentContext, request, new GrpcRequestGetter());\n+    if (instrumenter.shouldStart(extracted, request)) {\n+      InstrumenterUtil.startAndEnd(\n+          instrumenter, extracted, request, status, status.getCause(), startTime, Instant.now());",
+      "id": "PRRT_kwDODJKVX86BRi9E",
+      "opened": "2026-05-12T02:18:40Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/TracingServerStreamTracer.java",
+      "replies": [
+        {
+          "at": "2026-05-12T02:57:59Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214/commits/be53a9ae45d942e8fa9ab4cb13a6024c356cffcb",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223418546"
+        }
+      ],
+      "reviewed": "8846d666aa09be9468245c4bb5a9a8e3d2568b97",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223308074"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Disabling the thread-propagation debugger for *all* tests in this module can hide genuine context-leak regressions unrelated to the armeria HTTP+gRPC double-server-span scenario. If possible, scope this to only the affected test task(s) or test(s), or adjust instrumentation/test setup to avoid triggering the debugger while keeping it enabled for the rest of the suite.",
+      "created": "2026-05-12T02:18:40Z",
+      "hunk": "@@ -61,6 +62,10 @@ afterEvaluate {\n tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+    // The armeria HTTP instrumentation creates an HTTP server span, and then the gRPC\n+    // interceptor creates a second server span from the same incoming context, which triggers the\n+    // context leak debugger.\n+    jvmArgs(\"-Dotel.javaagent.experimental.thread-propagation-debugger.enabled=false\")",
+      "id": "PRRT_kwDODJKVX86BRi9a",
+      "opened": "2026-05-12T02:18:40Z",
+      "path": "instrumentation/armeria/armeria-grpc-1.14/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-23T04:33:19Z",
+          "body": "No code change.\n\nAnalysis: The debugger setting is read when the test JVM starts, so JUnit cannot change it for one method. This module has one test class. Every test task runs grpcInstrumentation(), which triggers the Armeria HTTP and gRPC double-server-span case. The current setting is therefore already scoped to all affected test tasks. Splitting each semantic-convention suite into extra JVMs would add several test tasks only to run unknownService() with the debugger enabled.\n\nUpsides: Keeping the setting on the existing test tasks avoids duplicate test suites and keeps all semantic-convention modes covered. The scope does not affect another test class.\n\nDownsides: unknownService() also runs without the debugger. A future unrelated test in this module would need a separate task or a different test setup if it must run with the debugger enabled.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3837704059"
+        }
+      ],
+      "reviewed": "8846d666aa09be9468245c4bb5a9a8e3d2568b97",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3223308100"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Javaagent implementation classes should not be declared `final`; this path is explicitly excluded from the public-API `final` rule. Remove `final` here, matching `ArmeriaSingletons` and the other javaagent holder classes.",
+      "created": "2026-08-23T04:40:55Z",
+      "hunk": "@@ -0,0 +1,22 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.armeria.grpc.v1_14;\n+\n+import io.grpc.ServerInterceptor;\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.grpc.v1_6.GrpcTelemetry;\n+\n+public final class ArmeriaGrpcSingletons {",
+      "id": "PRRT_kwDODJKVX86bdLAl",
+      "opened": "2026-08-23T04:40:55Z",
+      "path": "instrumentation/armeria/armeria-grpc-1.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/armeria/grpc/v1_14/ArmeriaGrpcSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-23T04:46:40Z",
+          "body": "Addressed in 72316b28703d02f8e9452103963e9282985342f1.\n\nAnalysis: ArmeriaGrpcSingletons is an internal javaagent holder. Javaagent implementation classes remain non-final under this repository's style rules.\n\nUpsides: The declaration now matches the repository rule and the sibling ArmeriaSingletons holder.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3837722090"
+        }
+      ],
+      "reviewed": "4e1ee7b720ab05a8b3df7f68e2b792228317f09f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3837713921"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] For an inline attribute `satisfies(...)` assertion, name the assertion parameter `val` so it is clear that this is an AssertJ assertion object rather than the raw port value.\n\nThis issue also appears on line 248 of the same file.",
+      "created": "2026-08-23T04:40:55Z",
+      "hunk": "@@ -108,6 +135,23 @@ void grpcInstrumentation() {\n                                     .hasAttributesSatisfyingExactly(\n                                         equalTo(MESSAGE_TYPE, \"RECEIVED\"),\n                                         equalTo(MESSAGE_ID, 1L))),\n+                span ->\n+                    span.hasName(\"POST /example.Greeter/SayHello\")\n+                        .hasKind(SpanKind.SERVER)\n+                        .hasParent(trace.getSpan(1))\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(HTTP_REQUEST_METHOD, \"POST\"),\n+                            equalTo(HTTP_RESPONSE_STATUS_CODE, 200),\n+                            equalTo(HTTP_ROUTE, \"/example.Greeter/SayHello\"),\n+                            equalTo(URL_PATH, \"/example.Greeter/SayHello\"),\n+                            equalTo(URL_SCHEME, \"http\"),\n+                            equalTo(SERVER_ADDRESS, \"127.0.0.1\"),\n+                            equalTo(SERVER_PORT, server.httpPort()),\n+                            equalTo(CLIENT_ADDRESS, \"127.0.0.1\"),\n+                            equalTo(NETWORK_PEER_ADDRESS, \"127.0.0.1\"),\n+                            satisfies(NETWORK_PEER_PORT, port -> port.isInstanceOf(Long.class)),",
+      "id": "PRRT_kwDODJKVX86bdLAx",
+      "opened": "2026-08-23T04:40:55Z",
+      "path": "instrumentation/armeria/armeria-grpc-1.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/armeria/grpc/v1_14/ArmeriaGrpcTest.java",
+      "replies": [
+        {
+          "at": "2026-08-23T04:46:41Z",
+          "body": "Addressed in f2c0d45ae325a39282cac4734ecafa1f8e0adfa4.\n\nAnalysis: Both lambdas receive AssertJ assertion objects from the inline attribute satisfies() helper. Renaming the parameters to val follows the repository's test convention and avoids implying that they are raw port values.\n\nUpsides: Both assertions now identify the parameter consistently with other inline attribute assertions.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3837722118"
+        }
+      ],
+      "reviewed": "4e1ee7b720ab05a8b3df7f68e2b792228317f09f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16214#discussion_r3837713938"
+    }
+  ]
+}

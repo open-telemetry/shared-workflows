@@ -1,0 +1,103 @@
+{
+  "head": "143d45e49b8aafb5d489e2394553493c96fd1190",
+  "merge": "3782234b2e50f3997da113413dc6461f41064a05",
+  "merged": "2026-04-17T03:41:44Z",
+  "missing_roots": 0,
+  "number": 17065,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`attributes.put` ignores `null` values so null check isn't needed\nour convention is that we don't emit non-spec attributes in default configuration. For example see https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaConsumerExperimentalAttributesExtractor.java",
+      "created": "2026-04-01T10:49:30Z",
+      "hunk": "@@ -36,6 +38,9 @@ public void onStart(\n     if (request.getRecord().value() == null) {\n       attributes.put(MESSAGING_KAFKA_MESSAGE_TOMBSTONE, true);\n     }\n+    if (request.getBootstrapServers() != null) {\n+      attributes.put(MESSAGING_KAFKA_BOOTSTRAP_SERVERS, request.getBootstrapServers());",
+      "id": "PRRT_kwDODJKVX854Mxxl",
+      "opened": "2026-04-01T10:49:30Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "d125e227811231ad769a25ed1032c840ddf91b40",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17065#discussion_r3021300146"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "this is not ideal, currently the same `KafkaTelemetry` instance could be used to add telemetry to different producers but with this it is not the case any more. Did you consider alternatives like using reflection to read the `producerConfig` field in `KafkaProducer`? ",
+      "created": "2026-04-01T11:01:47Z",
+      "hunk": "@@ -119,18 +122,25 @@ public KafkaTelemetryBuilder setMessagingReceiveInstrumentationEnabled(\n     return setMessagingReceiveTelemetryEnabled(messagingReceiveInstrumentationEnabled);\n   }\n \n+  /** Sets Kafka consumer configurations. */\n+  @CanIgnoreReturnValue\n+  public KafkaTelemetryBuilder setProducerConfigs(Map<String, Object> producerConfigs) {",
+      "id": "PRRT_kwDODJKVX854M8JS",
+      "opened": "2026-04-01T11:01:47Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/KafkaTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-04-14T19:05:08Z",
+          "body": "Hey @laurit, thanks for the review, it's done!",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17065#discussion_r3081780436"
+        }
+      ],
+      "reviewed": "d125e227811231ad769a25ed1032c840ddf91b40",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17065#discussion_r3021355699"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "you could instead use \n```\n                      satisfies(\n                          MESSAGING_KAFKA_BOOTSTRAP_SERVERS,\n                          stringAssert -> {\n                              if (isExperimental) {\n                                stringAssert.matches(\"^localhost:\\\\d+(,localhost:\\\\d+)*$\");\n                              }\n                          }));\n```\nthen you wouldn't need the assertions list",
+      "created": "2026-04-07T12:22:05Z",
+      "hunk": "@@ -105,20 +105,31 @@ void testKafkaProduceAndConsumeWithStreamsInBetween() throws Exception {\n         trace -> {\n           trace.hasSpansSatisfyingExactly(\n               // kafka-clients PRODUCER\n-              span ->\n-                  span.hasName(STREAM_PENDING + \" publish\")\n-                      .hasKind(SpanKind.PRODUCER)\n-                      .hasNoParent()\n-                      .hasAttributesSatisfyingExactly(\n-                          equalTo(MESSAGING_SYSTEM, KAFKA),\n-                          equalTo(MESSAGING_DESTINATION_NAME, STREAM_PENDING),\n-                          equalTo(MESSAGING_OPERATION, \"publish\"),\n-                          satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(\"producer\")),\n-                          satisfies(\n-                              MESSAGING_DESTINATION_PARTITION_ID,\n-                              val -> val.isInstanceOf(String.class)),\n-                          equalTo(MESSAGING_KAFKA_MESSAGE_OFFSET, 0),\n-                          equalTo(MESSAGING_KAFKA_MESSAGE_KEY, \"10\")));\n+              span -> {\n+                List<AttributeAssertion> assertions =\n+                    new ArrayList<>(\n+                        asList(\n+                            equalTo(MESSAGING_SYSTEM, KAFKA),\n+                            equalTo(MESSAGING_DESTINATION_NAME, STREAM_PENDING),\n+                            equalTo(MESSAGING_OPERATION, \"publish\"),\n+                            satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith(\"producer\")),\n+                            satisfies(\n+                                MESSAGING_DESTINATION_PARTITION_ID,\n+                                val -> val.isInstanceOf(String.class)),\n+                            equalTo(MESSAGING_KAFKA_MESSAGE_OFFSET, 0),\n+                            equalTo(MESSAGING_KAFKA_MESSAGE_KEY, \"10\")));\n+                if (isExperimental) {",
+      "id": "PRRT_kwDODJKVX855RWuG",
+      "opened": "2026-04-07T12:22:04Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/KafkaStreamsDefaultTest.java",
+      "replies": [
+        {
+          "at": "2026-04-08T16:19:25Z",
+          "body": "Hey @laurit, I think @trask's commit alredy covers this.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17065#discussion_r3052710446"
+        }
+      ],
+      "reviewed": "6514ffb8dc47cc4634d0a97f3221071dede4eec3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17065#discussion_r3044933053"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wondering whether `stringArrayKey` would be a better fit as we really have a list of bootstrap servers\n@trask do you have any guidance on this",
+      "created": "2026-04-15T12:08:07Z",
+      "hunk": "@@ -0,0 +1,34 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import javax.annotation.Nullable;\n+import org.apache.kafka.clients.producer.RecordMetadata;\n+\n+final class KafkaProducerExperimentalAttributesExtractor\n+    implements AttributesExtractor<KafkaProducerRequest, RecordMetadata> {\n+\n+  private static final AttributeKey<String> MESSAGING_KAFKA_BOOTSTRAP_SERVERS =\n+      AttributeKey.stringKey(\"messaging.kafka.bootstrap.servers\");",
+      "id": "PRRT_kwDODJKVX857HS_N",
+      "opened": "2026-04-15T12:08:07Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerExperimentalAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "d70481c62d748b7d4840f02d2e48b3b08b43b4d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17065#discussion_r3086301852"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "onurkybsi"
+      },
+      "body": "Hey @laurit, fyi, I was getting warning since `equalTo` parameters are not nullable, that's why I had made my change.",
+      "created": "2026-04-16T15:52:28Z",
+      "hunk": "@@ -151,29 +144,24 @@ void testKafkaProduceAndConsumeWithStreamsInBetween() throws Exception {\n                 },\n                 // kafka-clients PRODUCER\n                 span -> {\n-                  List<AttributeAssertion> assertions =\n-                      asList(\n+                  streamSendSpanRef.set(trace.getSpan(2));\n+                  span.hasName(STREAM_PROCESSED + \" publish\")\n+                      .hasKind(SpanKind.PRODUCER)\n+                      .hasParent(trace.getSpan(1))\n+                      .hasTraceId(receivedContext.getTraceId())\n+                      .hasSpanId(receivedContext.getSpanId())\n+                      .hasAttributesSatisfyingExactly(\n                           equalTo(MESSAGING_SYSTEM, KAFKA),\n                           equalTo(MESSAGING_DESTINATION_NAME, STREAM_PROCESSED),\n                           equalTo(MESSAGING_OPERATION, \"publish\"),\n                           satisfies(MESSAGING_CLIENT_ID, val -> val.isInstanceOf(String.class)),\n                           satisfies(\n                               MESSAGING_DESTINATION_PARTITION_ID,\n                               val -> val.isInstanceOf(String.class)),\n-                          equalTo(MESSAGING_KAFKA_MESSAGE_OFFSET, 0));\n-                  if (isExperimental) {\n-                    assertions.add(\n-                        equalTo(\n-                            stringKey(\"messaging.kafka.bootstrap.servers\"),\n-                            kafka.getBootstrapServers()));\n-                  }\n-                  streamSendSpanRef.set(trace.getSpan(2));\n-                  span.hasName(STREAM_PROCESSED + \" publish\")\n-                      .hasKind(SpanKind.PRODUCER)\n-                      .hasParent(trace.getSpan(1))\n-                      .hasTraceId(receivedContext.getTraceId())\n-                      .hasSpanId(receivedContext.getSpanId())\n-                      .hasAttributesSatisfyingExactly(assertions);\n+                          equalTo(MESSAGING_KAFKA_MESSAGE_OFFSET, 0),\n+                          equalTo(\n+                              stringKey(\"messaging.kafka.bootstrap.servers\"),\n+                              isExperimental ? kafka.getBootstrapServers() : null));",
+      "id": "PRRT_kwDODJKVX857emeY",
+      "opened": "2026-04-16T15:52:28Z",
+      "path": "instrumentation/kafka/kafka-streams-0.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/kafkastreams/KafkaStreamsSuppressReceiveSpansTest.java",
+      "replies": [
+        {
+          "at": "2026-04-16T16:23:54Z",
+          "body": "nobody has gotten around to submitting a PR that adds the `@Nullable` annotation there",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17065#discussion_r3094736012"
+        }
+      ],
+      "reviewed": "d70481c62d748b7d4840f02d2e48b3b08b43b4d2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17065#discussion_r3094531551"
+    }
+  ]
+}

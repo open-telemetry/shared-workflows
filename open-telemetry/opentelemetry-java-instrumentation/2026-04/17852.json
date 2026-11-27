@@ -1,0 +1,52 @@
+{
+  "head": "3df33ce12137372a4ccce4772a52352ff27e0de2",
+  "merge": "f7173be4d95154169927b185c98d505e711d8350",
+  "merged": "2026-04-16T16:22:16Z",
+  "missing_roots": 0,
+  "number": 17852,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The YAML schema produced here changed from `libraries: { <group>: [ ... ] }` to `libraries: [ ... ]`. There are in-repo consumers that still assume `libraries` is a map (e.g., `instrumentation-docs/.../auditors/SuppressionListAuditor.parseInstrumentationList`), which will now return an empty instrumentation list and break the audit behavior/tests. Please update those parsers (and their tests) to handle `libraries` as a list of instrumentation objects, and verify any other readers of `docs/instrumentation-list.yaml` are updated for the new file_format/schema.",
+      "created": "2026-04-16T15:31:14Z",
+      "hunk": "@@ -49,68 +47,53 @@ public static void generateInstrumentationYaml(\n \n     Yaml yaml = new Yaml(options);\n \n-    // Add library modules\n     Map<String, Object> libraries = getLibraryInstrumentations(list);\n     if (!libraries.isEmpty()) {\n-      yaml.dump(getLibraryInstrumentations(list), writer);\n-    }\n-\n-    // Add internal modules\n-    Map<String, Object> internal = generateBaseYaml(list, InstrumentationClassification.INTERNAL);\n-    if (!internal.isEmpty()) {\n-      yaml.dump(internal, writer);\n+      yaml.dump(libraries, writer);\n     }\n \n     // add custom instrumentation modules\n-    Map<String, Object> custom = generateBaseYaml(list, InstrumentationClassification.CUSTOM);\n+    Map<String, Object> custom = getCustomInstrumentations(list);\n     if (!custom.isEmpty()) {\n       yaml.dump(custom, writer);\n     }",
+      "id": "PRRT_kwDODJKVX857eMM-",
+      "opened": "2026-04-16T15:31:15Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/YamlHelper.java",
+      "replies": [
+        {
+          "at": "2026-04-16T15:33:31Z",
+          "body": "ack",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17852#discussion_r3094400748"
+        }
+      ],
+      "reviewed": "3df33ce12137372a4ccce4772a52352ff27e0de2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17852#discussion_r3094385684"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Bumping `file_format` to 0.5 makes this a breaking change for any tooling that reads `docs/instrumentation-list.yaml`. The repo currently has `docs/instrumentation-list.yaml` committed with `file_format: 0.4`, and at least one auditor parses the file. Please ensure the generated `docs/instrumentation-list.yaml` is updated in this PR (or the build/audit tooling is adjusted to regenerate it) so the committed artifact and consumers stay in sync with the new 0.5 schema.",
+      "created": "2026-04-16T15:31:15Z",
+      "hunk": "@@ -45,7 +45,7 @@ public static void main(String[] args) throws IOException {\n       writer.write(\"# The structure and contents are a work in progress and subject to change.\\n\");\n       writer.write(\n           \"# For more information see: https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/13468\\n\\n\");\n-      writer.write(\"file_format: 0.4\\n\\n\");\n+      writer.write(\"file_format: 0.5\\n\\n\");\n       YamlHelper.generateInstrumentationYaml(modules, writer);",
+      "id": "PRRT_kwDODJKVX857eMN9",
+      "opened": "2026-04-16T15:31:15Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/DocGeneratorApplication.java",
+      "replies": [
+        {
+          "at": "2026-04-16T15:33:49Z",
+          "body": "ack",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17852#discussion_r3094402834"
+        }
+      ],
+      "reviewed": "3df33ce12137372a4ccce4772a52352ff27e0de2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17852#discussion_r3094385759"
+    }
+  ]
+}

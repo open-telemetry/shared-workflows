@@ -1,0 +1,36 @@
+{
+  "head": "cf8d404886f40b041e8a2d480b2a211ede849573",
+  "merge": "0cafff81e12f42012803b7efad3b6c8a6f618f61",
+  "merged": "2026-05-06T12:51:05Z",
+  "missing_roots": 0,
+  "number": 18589,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "not sure `javaagent` makes sense here, no other instrumentation emphasizes this",
+      "created": "2026-05-05T12:22:10Z",
+      "hunk": "@@ -2105,15 +2105,14 @@ libraries:\n - name: aws-lambda-events-2.2\n   display_name: AWS Lambda Events\n   description: |\n-    This version of the library instrumentation is deprecated, please use `aws-lambda-events-3.11` instead. This instrumentation enables FaaS spans and messaging spans for AWS Lambda functions handling event types.\n+    This javaagent instrumentation enables FaaS spans and messaging spans for AWS Lambda functions handling event types.",
+      "id": "PRRT_kwDODJKVX85_pMHN",
+      "opened": "2026-05-05T12:22:10Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-05-05T12:37:25Z",
+          "body": "i will update and remove it. what do you think of the deprecation warning? I was thinking of adding it back in",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18589#discussion_r3188437159"
+        },
+        {
+          "at": "2026-05-05T14:32:23Z",
+          "body": "The way I understand it the library instrumentation for 2.2 was deprecated but not the agent one.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18589#discussion_r3189254832"
+        }
+      ],
+      "reviewed": "8e1ab097f6f96d466442d665478528983aac59e8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18589#discussion_r3188345833"
+    }
+  ]
+}

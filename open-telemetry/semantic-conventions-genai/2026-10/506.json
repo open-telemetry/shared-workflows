@@ -1,0 +1,40 @@
+{
+  "head": "d441f96a848bbe2698d6e02ae0f87947b13fb8a5",
+  "merge": "f3c6d0c9bb66ebd474668a3a0be25c61226f02c2",
+  "merged": "2026-10-14T23:29:37Z",
+  "missing_roots": 0,
+  "number": 506,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The fragment filename `changelog.d/+.breaking.md` looks non-standard and may not be picked up by the changelog tooling (many setups require a numeric/unique prefix, e.g., `1234.breaking.md`). Rename this fragment to match the repository’s existing changelog fragment naming convention so automated release notes generation remains reliable.",
+      "created": "2026-09-08T16:31:59Z",
+      "hunk": "@@ -0,0 +1 @@\n+Rename the `gen_ai.provider.name` value `mistral_ai` to `mistral` to match Mistral's brand name.",
+      "id": "PRRT_kwDOSUeMrM6gU4V1",
+      "opened": "2026-09-08T16:32:00Z",
+      "path": "changelog.d/+.breaking.md",
+      "replies": [],
+      "reviewed": "ab523d099aa16bd01e35210c6f1766d2bc1845e4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/506#discussion_r3960111245"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change renames both the registry `id` and the user-facing `value`. If `id` is consumed by code generation or other tooling, changing it is a larger (and potentially unnecessary) breaking change than renaming the `value`. Consider keeping `id: mistral_ai` and only changing `value` to `mistral`, or keeping both entries (e.g., `mistral` plus a deprecated `mistral_ai` alias) to preserve compatibility while still standardizing the emitted value.",
+      "created": "2026-09-08T16:32:00Z",
+      "hunk": "@@ -66,10 +66,10 @@ attributes:\n           stability: development\n           value: \"groq\"\n           brief: '[Groq](https://groq.com/)'\n-        - id: mistral_ai\n+        - id: mistral\n           stability: development\n-          value: \"mistral_ai\"\n-          brief: '[Mistral AI](https://mistral.ai/)'\n+          value: \"mistral\"\n+          brief: '[Mistral](https://mistral.ai/)'",
+      "id": "PRRT_kwDOSUeMrM6gU4Wb",
+      "opened": "2026-09-08T16:32:00Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "ab523d099aa16bd01e35210c6f1766d2bc1845e4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/506#discussion_r3960111297"
+    }
+  ]
+}

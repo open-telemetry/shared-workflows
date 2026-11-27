@@ -1,0 +1,22 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b0cad2f497e0ce8dfcef22dcd8c02fee78b594c8e9348fc1c5a92dc7ccb05542",
+  "input_digest": "5b44a53b4fad9e10ae679bd472cad7cbb9d1a37c182c5e0fbc5c4bdd8c4633e1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9d6546c7a50ccff335df5ca6868a50175a9ebef/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcExceptionEventExtractors.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9d6546c7a50ccff335df5ca6868a50175a9ebef/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/internal/RpcExceptionEventExtractorsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be33159e0fcf4dd03b50391a3e03e60d89bd54e8/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/internal/RpcExceptionEventExtractorsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be33159e0fcf4dd03b50391a3e03e60d89bd54e8/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/internal/RpcExceptionEventExtractors.java"
+      ],
+      "id": "PRRT_kwDODJKVX86G6Dz1",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "head": "3d176d2fb27d19f7f1d5b314de1e408346d94996",
+  "merge": "cd4363096ada750fbe88134673a93b96c010b230",
+  "merged": "2026-06-09T12:16:33Z",
+  "missing_roots": 0,
+  "number": 18885,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Javadoc examples appear to be inconsistent with actual JDBC URLs used elsewhere in this PR/tests (which include the `jdbc:` prefix) and include double-colon forms like `sqlite::file:` / `sqlite::resource:` that don’t align with the test inputs (`jdbc:sqlite:file:...`, `jdbc:sqlite:resource:...`). Updating the examples to reflect the expected input format will avoid confusion for future maintainers.",
+      "created": "2026-06-02T22:30:29Z",
+      "hunk": "@@ -0,0 +1,82 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jdbc.internal.parser;\n+\n+/**\n+ * Parser for SQLite Database JDBC URLs.\n+ *\n+ * <p>Sample URLs:\n+ *\n+ * <ul>\n+ *   <li>sqlite:memory: (in-memory)\n+ *   <li>sqlite: (in-memory, alternative syntax)\n+ *   <li>sqlite::file:myDB?mode=memory (in-memory, alternative syntax)\n+ *   <li>sqlite:/path/to/db (file-based)\n+ *   <li>sqlite::resource:db (from classpath resource)",
+      "id": "PRRT_kwDODJKVX86GlbB2",
+      "opened": "2026-06-02T22:30:30Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/SqliteUrlParser.java",
+      "replies": [],
+      "reviewed": "79822e7383cf0f69050ced2c385cc31ca77f7af3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3344846680"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment says “Use the last segment of the file path as the database name”, but the implementation sets the full `filePath` (which can include directories, e.g. `/tmp/mydb`). To match the behavior used in the `resource:` and `file` branches (and the stated intent), extract the last path segment (after the final `/`) before calling `ctx.databaseName(...)`.",
+      "created": "2026-06-02T22:30:29Z",
+      "hunk": "@@ -0,0 +1,82 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jdbc.internal.parser;\n+\n+/**\n+ * Parser for SQLite Database JDBC URLs.\n+ *\n+ * <p>Sample URLs:\n+ *\n+ * <ul>\n+ *   <li>sqlite:memory: (in-memory)\n+ *   <li>sqlite: (in-memory, alternative syntax)\n+ *   <li>sqlite::file:myDB?mode=memory (in-memory, alternative syntax)\n+ *   <li>sqlite:/path/to/db (file-based)\n+ *   <li>sqlite::resource:db (from classpath resource)\n+ * </ul>\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class SqliteUrlParser implements JdbcUrlParser {\n+\n+  // copied from DbIncubatingAttributes.DbSystemNameIncubatingValues\n+  private static final String SQLITE = \"sqlite\";\n+\n+  public static final SqliteUrlParser INSTANCE = new SqliteUrlParser();\n+\n+  private SqliteUrlParser() {}\n+\n+  @Override\n+  public void parse(String jdbcUrl, ParseContext ctx) {\n+    ctx.system(SQLITE);\n+\n+    ctx.applyUserProperty();\n+\n+    // sqlite is always local, so we don't need to check for host/port\n+    ctx.host(null);\n+    ctx.port(null);\n+\n+    String sqliteUrl = jdbcUrl.substring(\"sqlite:\".length());\n+    // ignore query parameters, if any\n+    int queryIndex = sqliteUrl.indexOf('?');\n+    if (queryIndex != -1) {\n+      sqliteUrl = sqliteUrl.substring(0, queryIndex);\n+    }\n+\n+    if (\"memory:\".equals(sqliteUrl) || \"\".equals(sqliteUrl)) {\n+      ctx.subtype(\"memory\");\n+    } else if (sqliteUrl.startsWith(\"file:\") && jdbcUrl.contains(\"mode=memory\")) {\n+      ctx.subtype(\"memory\");\n+      String filePath = sqliteUrl.substring(\"file:\".length());\n+      // Use the last segment of the file path as the database name, if available\n+      if (!filePath.isEmpty()) {\n+        ctx.databaseName(filePath);\n+      }",
+      "id": "PRRT_kwDODJKVX86GlbBb",
+      "opened": "2026-06-02T22:30:30Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/SqliteUrlParser.java",
+      "replies": [],
+      "reviewed": "79822e7383cf0f69050ced2c385cc31ca77f7af3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3344846645"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For JDBC URLs like `jdbc:sqlite:file:mydb` (file-backed DB without a slash in the path), `sqliteUrl` is `file:mydb`, so the `else` branch sets `databaseName` to `file:mydb` (including the `file:` prefix). Consider handling `sqliteUrl.startsWith(\"file:\")` for the file subtype as well (not only the `mode=memory` case) and strip the `file:` prefix before deriving the last segment.",
+      "created": "2026-06-02T22:30:29Z",
+      "hunk": "@@ -0,0 +1,82 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jdbc.internal.parser;\n+\n+/**\n+ * Parser for SQLite Database JDBC URLs.\n+ *\n+ * <p>Sample URLs:\n+ *\n+ * <ul>\n+ *   <li>sqlite:memory: (in-memory)\n+ *   <li>sqlite: (in-memory, alternative syntax)\n+ *   <li>sqlite::file:myDB?mode=memory (in-memory, alternative syntax)\n+ *   <li>sqlite:/path/to/db (file-based)\n+ *   <li>sqlite::resource:db (from classpath resource)\n+ * </ul>\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class SqliteUrlParser implements JdbcUrlParser {\n+\n+  // copied from DbIncubatingAttributes.DbSystemNameIncubatingValues\n+  private static final String SQLITE = \"sqlite\";\n+\n+  public static final SqliteUrlParser INSTANCE = new SqliteUrlParser();\n+\n+  private SqliteUrlParser() {}\n+\n+  @Override\n+  public void parse(String jdbcUrl, ParseContext ctx) {\n+    ctx.system(SQLITE);\n+\n+    ctx.applyUserProperty();\n+\n+    // sqlite is always local, so we don't need to check for host/port\n+    ctx.host(null);\n+    ctx.port(null);\n+\n+    String sqliteUrl = jdbcUrl.substring(\"sqlite:\".length());\n+    // ignore query parameters, if any\n+    int queryIndex = sqliteUrl.indexOf('?');\n+    if (queryIndex != -1) {\n+      sqliteUrl = sqliteUrl.substring(0, queryIndex);\n+    }\n+\n+    if (\"memory:\".equals(sqliteUrl) || \"\".equals(sqliteUrl)) {\n+      ctx.subtype(\"memory\");\n+    } else if (sqliteUrl.startsWith(\"file:\") && jdbcUrl.contains(\"mode=memory\")) {\n+      ctx.subtype(\"memory\");\n+      String filePath = sqliteUrl.substring(\"file:\".length());\n+      // Use the last segment of the file path as the database name, if available\n+      if (!filePath.isEmpty()) {\n+        ctx.databaseName(filePath);\n+      }\n+    } else if (sqliteUrl.startsWith(\"resource:\")) {\n+      ctx.subtype(\"resource\");\n+      String resourcePath = sqliteUrl.substring(\"resource:\".length());\n+      // Use the last segment of the resource path as the database name, if available\n+      if (!resourcePath.isEmpty()) {\n+        int dbNameStartLocation = resourcePath.lastIndexOf('/');\n+        if (dbNameStartLocation != -1) {\n+          ctx.databaseName(resourcePath.substring(dbNameStartLocation + 1));\n+        } else {\n+          ctx.databaseName(resourcePath);\n+        }\n+      }\n+    } else {\n+      ctx.subtype(\"file\");\n+      // Use the last segment of the file path as the database name, if available\n+      int dbNameStartLocation = sqliteUrl.lastIndexOf('/');\n+      if (dbNameStartLocation != -1) {\n+        ctx.databaseName(sqliteUrl.substring(dbNameStartLocation + 1));\n+      } else {\n+        ctx.databaseName(sqliteUrl);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86GlbBu",
+      "opened": "2026-06-02T22:30:30Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/SqliteUrlParser.java",
+      "replies": [],
+      "reviewed": "79822e7383cf0f69050ced2c385cc31ca77f7af3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3344846670"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Returning early makes the parameterized test case pass rather than show as “skipped”, which can hide coverage gaps and is harder to interpret in CI reports. Prefer using a JUnit assumption (e.g., `Assumptions.assumeFalse(\"sqlite\".equals(system), \"...\")`) so the SQLite variant is reported as skipped.",
+      "created": "2026-06-02T22:30:29Z",
+      "hunk": "@@ -649,6 +735,10 @@ void testPreparedCall(\n       String url,\n       String table)\n       throws SQLException {\n+    if (\"sqlite\".equals(system)) {\n+      // SQLite does not support Stored Procedures, so skip this test for SQLite.\n+      return;\n+    }",
+      "id": "PRRT_kwDODJKVX86GlbCC",
+      "opened": "2026-06-02T22:30:30Z",
+      "path": "instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "79822e7383cf0f69050ced2c385cc31ca77f7af3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3344846696"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This is brittle in two ways: (1) it assumes exactly two extra spans will be emitted during SQLiteDataSource initialization, and (2) it detects “javaagent” mode via a class-name substring check. If the number/order of PRAGMA-related spans changes across sqlite-jdbc versions or configuration, this can become flaky. Consider switching to a more robust assertion strategy (e.g., assert the required spans and allow additional spans), and use a more explicit signal for javaagent vs library mode if one exists in this test base.",
+      "created": "2026-06-02T22:30:30Z",
+      "hunk": "@@ -1268,13 +1458,26 @@ void testGetConnection(\n                   new ArrayList<>(\n                       asList(\n                           span1 -> span1.hasName(\"parent\").hasKind(SpanKind.INTERNAL).hasNoParent(),\n-                          span1 ->\n-                              span1\n+                          span2 ->\n+                              span2\n                                   .hasName(\n                                       originalDatasourceClass.getSimpleName() + \".getConnection\")\n                                   .hasKind(SpanKind.INTERNAL)\n                                   .hasParent(trace.getSpan(0))\n                                   .hasAttributesSatisfyingExactly(attributesAssertions)));\n+              if (ds instanceof SQLiteDataSource && getClass().getName().contains(\"javaagent\")) {\n+                // SQLiteDataSource has extra spans for PRAGMA statements executed during init\n+                assertions.add(\n+                    span ->\n+                        span.hasName(\"jdbcunittest\")\n+                            .hasKind(SpanKind.CLIENT)\n+                            .hasParent(trace.getSpan(1)));\n+                assertions.add(\n+                    span ->\n+                        span.hasName(\"jdbcunittest\")\n+                            .hasKind(SpanKind.CLIENT)\n+                            .hasParent(trace.getSpan(1)));\n+              }",
+      "id": "PRRT_kwDODJKVX86GlbCR",
+      "opened": "2026-06-02T22:30:30Z",
+      "path": "instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "79822e7383cf0f69050ced2c385cc31ca77f7af3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3344846716"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`jdbcUrl` is expected to be a full JDBC URL in this parsing layer (e.g., tests provide values like `jdbc:sqlite:...`). Substringing from `\"sqlite:\".length()` will cut the string at the wrong position and break parsing (e.g., `\"jdbc:sqlite:memory:\"` becomes `\"lite:memory:\"`). Parse should strip the `\"jdbc:sqlite:\"` prefix (or locate the `\"sqlite:\"` segment after `\"jdbc:\"`) before extracting the SQLite-specific portion.",
+      "created": "2026-06-02T23:08:50Z",
+      "hunk": "@@ -0,0 +1,84 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jdbc.internal.parser;\n+\n+/**\n+ * Parser for SQLite Database JDBC URLs.\n+ *\n+ * <p>Sample URLs:\n+ *\n+ * <ul>\n+ *   <li>sqlite:memory: (in-memory)\n+ *   <li>sqlite: (in-memory, alternative syntax)\n+ *   <li>sqlite:file:myDB?mode=memory (in-memory, alternative syntax)\n+ *   <li>sqlite:/path/to/db (file-based)\n+ *   <li>sqlite:resource:db (from classpath resource)\n+ * </ul>\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class SqliteUrlParser implements JdbcUrlParser {\n+\n+  // copied from DbIncubatingAttributes.DbSystemNameIncubatingValues\n+  private static final String SQLITE = \"sqlite\";\n+\n+  public static final SqliteUrlParser INSTANCE = new SqliteUrlParser();\n+\n+  private SqliteUrlParser() {}\n+\n+  @Override\n+  public void parse(String jdbcUrl, ParseContext ctx) {\n+    ctx.system(SQLITE);\n+\n+    ctx.applyUserProperty();\n+\n+    // sqlite is always local, so we don't need to check for host/port\n+    ctx.host(null);\n+    ctx.port(null);\n+\n+    String sqliteUrl = jdbcUrl.substring(\"sqlite:\".length());",
+      "id": "PRRT_kwDODJKVX86Glzlr",
+      "opened": "2026-06-02T23:08:51Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/SqliteUrlParser.java",
+      "replies": [
+        {
+          "at": "2026-06-03T02:49:13Z",
+          "body": "works as is",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3345624373"
+        }
+      ],
+      "reviewed": "80c39d4f165c6d1f443fd5cad429965a532ab77b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3344982808"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`trace.anySatisfy(...)` in this test suite is designed to provide a `SpanDataAssert`-style assertion object to the consumer (as used elsewhere in this same method via `span1 -> span1.hasName(...)`). Wrapping `span` with `org.assertj.core.api.Assertions.assertThat(span)` changes the asserted type and will not provide `hasName(...)` / `hasKind(...)` methods, causing compilation failures or incorrect assertions. Use the provided `span` assertion object directly (consistent with the `else` branch), rather than re-wrapping it with AssertJ’s generic `assertThat`.",
+      "created": "2026-06-02T23:08:51Z",
+      "hunk": "@@ -1264,18 +1454,32 @@ void testGetConnection(\n     testing()\n         .waitAndAssertTraces(\n             trace -> {\n-              List<Consumer<SpanDataAssert>> assertions =\n-                  new ArrayList<>(\n-                      asList(\n-                          span1 -> span1.hasName(\"parent\").hasKind(SpanKind.INTERNAL).hasNoParent(),\n-                          span1 ->\n-                              span1\n-                                  .hasName(\n-                                      originalDatasourceClass.getSimpleName() + \".getConnection\")\n-                                  .hasKind(SpanKind.INTERNAL)\n-                                  .hasParent(trace.getSpan(0))\n-                                  .hasAttributesSatisfyingExactly(attributesAssertions)));\n-              trace.hasSpansSatisfyingExactly(assertions);\n+              if (ds instanceof SQLiteDataSource) {\n+                // sqlite-jdbc may emit varying PRAGMA spans during DataSource init\n+                trace.anySatisfy(\n+                    span ->\n+                        assertThat(span)\n+                            .hasName(\"parent\")\n+                            .hasKind(SpanKind.INTERNAL)\n+                            .hasNoParent());\n+                trace.anySatisfy(\n+                    span ->\n+                        assertThat(span)\n+                            .hasName(originalDatasourceClass.getSimpleName() + \".getConnection\")\n+                            .hasKind(SpanKind.INTERNAL)\n+                            .hasAttributesSatisfyingExactly(attributesAssertions));\n+                trace.anySatisfy(\n+                    span -> assertThat(span).hasName(\"jdbcunittest\").hasKind(SpanKind.CLIENT));\n+              } else {",
+      "id": "PRRT_kwDODJKVX86GlzmF",
+      "opened": "2026-06-02T23:08:51Z",
+      "path": "instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "80c39d4f165c6d1f443fd5cad429965a532ab77b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3344982841"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The examples omit the standard `jdbc:` prefix (the tests use `jdbc:sqlite:...`). Since this is a JDBC URL parser, documenting examples as `jdbc:sqlite:...` (or explicitly stating that examples are shown without the `jdbc:` prefix) would prevent confusion and better match actual inputs.",
+      "created": "2026-06-02T23:08:51Z",
+      "hunk": "@@ -0,0 +1,84 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jdbc.internal.parser;\n+\n+/**\n+ * Parser for SQLite Database JDBC URLs.\n+ *\n+ * <p>Sample URLs:\n+ *\n+ * <ul>\n+ *   <li>sqlite:memory: (in-memory)\n+ *   <li>sqlite: (in-memory, alternative syntax)\n+ *   <li>sqlite:file:myDB?mode=memory (in-memory, alternative syntax)\n+ *   <li>sqlite:/path/to/db (file-based)\n+ *   <li>sqlite:resource:db (from classpath resource)\n+ * </ul>",
+      "id": "PRRT_kwDODJKVX86GlzmL",
+      "opened": "2026-06-02T23:08:51Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/SqliteUrlParser.java",
+      "replies": [
+        {
+          "at": "2026-06-03T02:50:15Z",
+          "body": "following existing pattern",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3345626852"
+        }
+      ],
+      "reviewed": "80c39d4f165c6d1f443fd5cad429965a532ab77b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3344982852"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`org.sqlite.jdbc4.JDBC4PreparedStatement` implements `PreparedStatement` so `.or(named(\"org.sqlite.jdbc3.JDBC3PreparedStatement\"))` should be enough",
+      "created": "2026-06-03T11:21:44Z",
+      "hunk": "@@ -36,14 +36,19 @@\n \n class PreparedStatementInstrumentation implements TypeInstrumentation {\n \n+  private static final String[] NAMED_CLASSES =\n+      new String[] {\n+        \"org.sqlite.jdbc3.JDBC3PreparedStatement\", \"org.sqlite.jdbc4.JDBC4PreparedStatement\"\n+      };\n+\n   @Override\n   public ElementMatcher<ClassLoader> classLoaderOptimization() {\n     return hasClassesNamed(\"java.sql.PreparedStatement\");\n   }\n \n   @Override\n   public ElementMatcher<TypeDescription> typeMatcher() {\n-    return implementsInterface(named(\"java.sql.PreparedStatement\"));\n+    return implementsInterface(named(\"java.sql.PreparedStatement\")).or(namedOneOf(NAMED_CLASSES));",
+      "id": "PRRT_kwDODJKVX86GuU5G",
+      "opened": "2026-06-03T11:21:44Z",
+      "path": "instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/PreparedStatementInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-03T13:50:49Z",
+          "body": "done & the same on statement",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3349010202"
+        }
+      ],
+      "reviewed": "edd543f6d016c764785c69228a3b95b9cc671525",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3348030652"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could be kept on one line",
+      "created": "2026-06-03T11:22:21Z",
+      "hunk": "@@ -103,8 +108,13 @@ public static class PreparedStatementAdvice {\n \n     @Nullable\n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static JdbcAdviceScope onEnter(@Advice.This PreparedStatement statement) {\n-      // skip prepared statements without attached sql, probably a wrapper around the actual\n+    public static JdbcAdviceScope onEnter(@Advice.This Object object) {\n+      if (!(object instanceof PreparedStatement)) {\n+        return null;\n+      }\n+      PreparedStatement statement = (PreparedStatement) object;\n+      // skip prepared statements without attached sql, probably a wrapper around the\n+      // actual",
+      "id": "PRRT_kwDODJKVX86GuVs4",
+      "opened": "2026-06-03T11:22:20Z",
+      "path": "instrumentation/jdbc/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jdbc/PreparedStatementInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-03T13:50:39Z",
+          "body": "fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3349008683"
+        }
+      ],
+      "reviewed": "edd543f6d016c764785c69228a3b95b9cc671525",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3348035144"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "lines don't need to be split",
+      "created": "2026-06-03T11:23:54Z",
+      "hunk": "@@ -64,8 +64,10 @@ void testNullUrlReturnsDefault() {\n \n   @Test\n   void testParserExceptionReturnsBestEffortInfo() {\n-    // Intentionally malformed Oracle URL: missing subtype/connect info, which triggers the\n-    // Oracle parser's substring-based failure path after it has already applied defaults/props.\n+    // Intentionally malformed Oracle URL: missing subtype/connect info, which\n+    // triggers the\n+    // Oracle parser's substring-based failure path after it has already applied\n+    // defaults/props.",
+      "id": "PRRT_kwDODJKVX86GuXiW",
+      "opened": "2026-06-03T11:23:54Z",
+      "path": "instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParserTest.java",
+      "replies": [
+        {
+          "at": "2026-06-03T13:51:06Z",
+          "body": "fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3349012763"
+        }
+      ],
+      "reviewed": "edd543f6d016c764785c69228a3b95b9cc671525",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3348045183"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps it would be better to rephrase this to ` SQLite does not support CallableStatement, so skip this test for SQLite.` since this test really executes plain selects",
+      "created": "2026-06-03T11:29:28Z",
+      "hunk": "@@ -649,6 +736,9 @@ void testPreparedCall(\n       String url,\n       String table)\n       throws SQLException {\n+    // SQLite does not support Stored Procedures, so skip this test for SQLite.",
+      "id": "PRRT_kwDODJKVX86GudNc",
+      "opened": "2026-06-03T11:29:28Z",
+      "path": "instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-06-03T13:51:41Z",
+          "body": "Stored Procedures is what the sqlite exception message was. But agree, updating to CallableStatement here",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3349018012"
+        }
+      ],
+      "reviewed": "edd543f6d016c764785c69228a3b95b9cc671525",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3348076524"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "alternatively could use something like\n```java\n    testing()\n        .waitAndAssertTraces(\n            trace -> {\n              List<Consumer<SpanDataAssert>> assertions =\n                  new ArrayList<>(\n                      asList(\n                          span -> span.hasName(\"parent\").hasKind(SpanKind.INTERNAL).hasNoParent(),\n                          span ->\n                              span.hasName(\n                                      originalDatasourceClass.getSimpleName() + \".getConnection\")\n                                  .hasKind(SpanKind.INTERNAL)\n                                  .hasParent(trace.getSpan(0))\n                                  .hasAttributesSatisfyingExactly(attributesAssertions)));\n              // sqlite-jdbc executes extra statements during connection init\n              if (ds instanceof SQLiteDataSource\n                  && testing() instanceof AgentInstrumentationExtension) {\n                assertions.add(\n                    span ->\n                        span.hasName(\"jdbcunittest\")\n                            .hasKind(SpanKind.CLIENT)\n                            .hasParent(trace.getSpan(1)));\n                assertions.add(\n                    span ->\n                        span.hasName(\"jdbcunittest\")\n                            .hasKind(SpanKind.CLIENT)\n                            .hasParent(trace.getSpan(1)));\n              }\n              trace.hasSpansSatisfyingExactly(assertions);\n            });\n```",
+      "created": "2026-06-03T12:16:40Z",
+      "hunk": "@@ -1264,18 +1454,31 @@ void testGetConnection(\n     testing()\n         .waitAndAssertTraces(\n             trace -> {\n-              List<Consumer<SpanDataAssert>> assertions =\n-                  new ArrayList<>(\n-                      asList(\n-                          span1 -> span1.hasName(\"parent\").hasKind(SpanKind.INTERNAL).hasNoParent(),\n-                          span1 ->\n-                              span1\n-                                  .hasName(\n-                                      originalDatasourceClass.getSimpleName() + \".getConnection\")\n-                                  .hasKind(SpanKind.INTERNAL)\n-                                  .hasParent(trace.getSpan(0))\n-                                  .hasAttributesSatisfyingExactly(attributesAssertions)));\n-              trace.hasSpansSatisfyingExactly(assertions);\n+              if (ds instanceof SQLiteDataSource) {",
+      "id": "PRRT_kwDODJKVX86GvPef",
+      "opened": "2026-06-03T12:16:40Z",
+      "path": "instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-06-03T13:51:54Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3349019735"
+        }
+      ],
+      "reviewed": "edd543f6d016c764785c69228a3b95b9cc671525",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18885#discussion_r3348353468"
+    }
+  ]
+}

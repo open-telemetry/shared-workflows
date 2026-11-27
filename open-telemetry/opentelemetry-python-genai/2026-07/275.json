@@ -1,0 +1,61 @@
+{
+  "head": "cc8176b50b932f35acc2c164b377d3cd812f8adb",
+  "merge": "1ed26a335ef168e9a25e6927b240e5d805fd2de4",
+  "merged": "2026-07-27T22:40:45Z",
+  "missing_roots": 0,
+  "number": 275,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog fragment filename will fail the changelog CI check. The workflow requires fragments to be named `<PR_NUMBER>.<type>` (e.g. `1234.fixed`), but this file is named `+workflow-name-attribute.fixed`. Please rename the file to match the PR number.",
+      "created": "2026-07-16T02:27:52Z",
+      "hunk": "@@ -0,0 +1 @@\n+Set the `gen_ai.workflow.name` span attribute on workflow invocations when the workflow name is known.",
+      "id": "PRRT_kwDOSbspP86RTaPx",
+      "opened": "2026-07-16T02:27:52Z",
+      "path": "util/opentelemetry-util-genai/.changelog/275.fixed",
+      "replies": [],
+      "reviewed": "96a8f0ee53bfc0257f65fe5ee23861d0393ab24e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/275#discussion_r3592209759"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "_get_base_attributes() now conditionally adds `gen_ai.workflow.name`, but its docstring doesn’t mention this sampling-relevant behavior or point to the semconv reference like other invocation types do. Updating the docstring would make the intent clearer for future maintainers.",
+      "created": "2026-07-16T02:27:52Z",
+      "hunk": "@@ -62,6 +62,8 @@ def _get_base_attributes(self) -> dict[str, AttributeValue]:\n         attrs: dict[str, AttributeValue] = {\n             GenAI.GEN_AI_OPERATION_NAME: self._operation_name,\n         }\n+        if self.name:",
+      "id": "PRRT_kwDOSbspP86RTaQA",
+      "opened": "2026-07-16T02:27:52Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_workflow_invocation.py",
+      "replies": [],
+      "reviewed": "96a8f0ee53bfc0257f65fe5ee23861d0393ab24e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/275#discussion_r3592209787"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Do we want to treat empty string same as `None` here?",
+      "created": "2026-07-27T19:49:18Z",
+      "hunk": "@@ -58,10 +58,16 @@ def __init__(\n         self._start(self._get_start_attributes())\n \n     def _get_start_attributes(self) -> dict[str, AttributeValue]:\n-        \"\"\"Return sampling-relevant attributes available at span creation time.\"\"\"\n+        \"\"\"Return sampling-relevant attributes available at span creation time.\n+\n+        Includes ``gen_ai.workflow.name`` when a workflow name is set so it is\n+        available to samplers at span creation.\n+        \"\"\"\n         attrs: dict[str, AttributeValue] = {\n             GenAI.GEN_AI_OPERATION_NAME: self._operation_name,\n         }\n+        if self._name:\n+            attrs[GenAI.GEN_AI_WORKFLOW_NAME] = self._name",
+      "id": "PRRT_kwDOSbspP86UMAbH",
+      "opened": "2026-07-27T19:49:24Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_workflow_invocation.py",
+      "replies": [
+        {
+          "at": "2026-07-27T19:57:34Z",
+          "body": "no",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/275#discussion_r3660485082"
+        }
+      ],
+      "reviewed": "d9e56d6caa4841bd8d024ac76ef3f8cb7ed9674a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/275#discussion_r3660433908"
+    }
+  ]
+}

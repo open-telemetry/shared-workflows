@@ -1,0 +1,25 @@
+{
+  "head": "26cfd5a4c48300d9fb5e9f2d5fd8ce4ac09f42b7",
+  "merge": "35edf87566c172e7ddc6648160de737c6f4e1736",
+  "merged": "2026-01-28T16:05:18Z",
+  "missing_roots": 0,
+  "number": 16011,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps we should use `ChannelInboundHandler` and `ChannelOutboundHandler` instead?",
+      "created": "2026-01-27T08:36:44Z",
+      "hunk": "@@ -59,8 +59,7 @@ public ChannelInboundHandlerAdapter createResponseHandler() {\n    * Returns a handler that instruments outgoing HTTP requests and incoming responses in a single\n    * handler.\n    */\n-  public CombinedChannelDuplexHandler<\n-          ? extends ChannelInboundHandlerAdapter, ? extends ChannelOutboundHandlerAdapter>\n+  public CombinedChannelDuplexHandler<ChannelInboundHandlerAdapter, ChannelOutboundHandlerAdapter>",
+      "id": "PRRT_kwDODJKVX85rLc5v",
+      "opened": "2026-01-27T08:36:44Z",
+      "path": "instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/NettyClientTelemetry.java",
+      "replies": [],
+      "reviewed": "f5b8e1bb2287dd55af52be0637514be022b364cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16011#discussion_r2730864958"
+    }
+  ]
+}

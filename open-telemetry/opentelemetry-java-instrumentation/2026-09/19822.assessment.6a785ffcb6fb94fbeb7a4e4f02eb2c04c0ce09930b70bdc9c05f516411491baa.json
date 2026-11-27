@@ -1,0 +1,234 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "3a6c9b722ece3d84229567161fb8168fc6e28a4a094ebe3a2cb0d73e1d45c74b",
+  "input_digest": "6a785ffcb6fb94fbeb7a4e4f02eb2c04c0ce09930b70bdc9c05f516411491baa",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a8fd53dd3e359a6b9ea39a0f909fa009d53731c/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a8fd53dd3e359a6b9ea39a0f909fa009d53731c/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/TracedDelegatingConsumer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a8fd53dd3e359a6b9ea39a0f909fa009d53731c/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitChannelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/TracedDelegatingConsumer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitChannelInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bbd60172ba377fc28e07b83b4d6aa308d05a7aa6",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/008c89c1ea1f52620e1c293d094a21dc7a7b5546"
+      ],
+      "id": "PRRT_kwDODJKVX86cXyVA",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a8fd53dd3e359a6b9ea39a0f909fa009d53731c/instrumentation/rabbitmq-2.7/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a8fd53dd3e359a6b9ea39a0f909fa009d53731c/instrumentation/rabbitmq-2.7/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/008c89c1ea1f52620e1c293d094a21dc7a7b5546"
+      ],
+      "id": "PRRT_kwDODJKVX86cXyV6",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a8fd53dd3e359a6b9ea39a0f909fa009d53731c/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/6a8fd53dd3e359a6b9ea39a0f909fa009d53731c...624072f5274852afcc8fd2cb10072b81ff0a02e6",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/008c89c1ea1f52620e1c293d094a21dc7a7b5546"
+      ],
+      "id": "PRRT_kwDODJKVX86cXyVW",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a8fd53dd3e359a6b9ea39a0f909fa009d53731c/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a8fd53dd3e359a6b9ea39a0f909fa009d53731c/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/008c89c1ea1f52620e1c293d094a21dc7a7b5546"
+      ],
+      "id": "PRRT_kwDODJKVX86cXyVm",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e4ccc1e0ec3d5fb2b789ac73c260e510af7b4de/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/008c89c1ea1f52620e1c293d094a21dc7a7b5546"
+      ],
+      "id": "PRRT_kwDODJKVX86efyPN",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e4ccc1e0ec3d5fb2b789ac73c260e510af7b4de/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/008c89c1ea1f52620e1c293d094a21dc7a7b5546"
+      ],
+      "id": "PRRT_kwDODJKVX86efynT",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e4ccc1e0ec3d5fb2b789ac73c260e510af7b4de/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/008c89c1ea1f52620e1c293d094a21dc7a7b5546"
+      ],
+      "id": "PRRT_kwDODJKVX86ef5gR",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e4ccc1e0ec3d5fb2b789ac73c260e510af7b4de/instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/008c89c1ea1f52620e1c293d094a21dc7a7b5546"
+      ],
+      "id": "PRRT_kwDODJKVX86egAA3",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e4ccc1e0ec3d5fb2b789ac73c260e510af7b4de/instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/008c89c1ea1f52620e1c293d094a21dc7a7b5546"
+      ],
+      "id": "PRRT_kwDODJKVX86egBKZ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7bdee2bfd7f6e611000c356e774c0a5c2a6bfea/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionAttributes.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitConnectionAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gnNVu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7bdee2bfd7f6e611000c356e774c0a5c2a6bfea/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/AbstractRabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/AbstractRabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a9c690251d8a342bfafad6194f5b5ed487abdb8e"
+      ],
+      "id": "PRRT_kwDODJKVX86gnNWm",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b7bdee2bfd7f6e611000c356e774c0a5c2a6bfea/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/350006823710bbec53dc308bf939a8b0bb0d67b9"
+      ],
+      "id": "PRRT_kwDODJKVX86gnNXP",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/498071100028a4b5e69a81f5db53a45f273cce15/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/447a32ad15bd68126b08e3fa5125714e036e6686"
+      ],
+      "id": "PRRT_kwDODJKVX86hNCb_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/498071100028a4b5e69a81f5db53a45f273cce15/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/ReactorRabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/ReactorRabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/447a32ad15bd68126b08e3fa5125714e036e6686"
+      ],
+      "id": "PRRT_kwDODJKVX86hNCc5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/498071100028a4b5e69a81f5db53a45f273cce15/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/447a32ad15bd68126b08e3fa5125714e036e6686"
+      ],
+      "id": "PRRT_kwDODJKVX86hPY43",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/498071100028a4b5e69a81f5db53a45f273cce15/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/447a32ad15bd68126b08e3fa5125714e036e6686"
+      ],
+      "id": "PRRT_kwDODJKVX86hPY4i",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/498071100028a4b5e69a81f5db53a45f273cce15/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/AbstractRabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/AbstractRabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/447a32ad15bd68126b08e3fa5125714e036e6686"
+      ],
+      "id": "PRRT_kwDODJKVX86hPY4p",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3a87787f934b398081c8990235bb8f6b7a928125/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dfdbbae0b3a5c3ab4945e322dbd17bbf915c0814/instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86lrhVF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

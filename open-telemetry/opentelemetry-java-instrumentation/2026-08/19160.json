@@ -1,0 +1,401 @@
+{
+  "head": "bbebc9df0d0457121564cc6e12a89b9556b309db",
+  "merge": "67b72e379f38e24ad7373f3550499cfe0922945e",
+  "merged": "2026-08-02T19:29:42Z",
+  "missing_roots": 0,
+  "number": 19160,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`BasicDataSource.getConnection()` delegates to `createDataSource().getConnection()`, so this advice runs on **every** connection acquisition, not just once at pool creation. For an unnamed data source, `DataSourceMetrics.getDefaultName()` therefore advances the shared `idGenerator` counter on each `getConnection()` call, even though `registerMetrics()` already registered the pool under the first generated name (it uses `computeIfAbsent`, so later names are discarded). The previous fallback used `System.identityHashCode(dataSource)`, which was stable across repeated calls; the new counter both leaks IDs (unbounded growth for a busy unnamed pool) and makes the generated `dbcp2-N` numbering non-deterministic. Consider resolving/generating the default name only when the data source is not already registered (e.g. compute the name lazily inside `registerMetrics`).",
+      "created": "2026-07-09T12:25:58Z",
+      "hunk": "@@ -27,35 +32,45 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer typeTransformer) {\n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n-        getClass().getName() + \"$PreRegisterAdvice\");\n+        named(\"createDataSource\").and(takesArguments(0)),\n+        getClass().getName() + \"$CreateDataSourceAdvice\");\n \n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"postDeregister\")), getClass().getName() + \"$PostDeregisterAdvice\");\n+        isPublic().and(namedOneOf(\"close\", \"postDeregister\")).and(takesArguments(0)),\n+        getClass().getName() + \"$DeregisterAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n-  public static class PreRegisterAdvice {\n-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+  public static class CreateDataSourceAdvice {\n+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class)\n     public static void onExit(\n-        @Advice.This BasicDataSource dataSource, @Advice.Return ObjectName objectName) {\n-      String dataSourceName;\n-      if (objectName != null) {\n-        dataSourceName = objectName.getKeyProperty(\"name\");\n-        if (dataSourceName == null) {\n-          dataSourceName = objectName.toString();\n+        @Advice.This BasicDataSource dataSource,\n+        @Advice.Thrown @Nullable Throwable throwable,\n+        @Advice.Return @Nullable DataSource createdDataSource) {\n+      if (throwable != null || createdDataSource == null) {\n+        return;\n+      }\n+\n+      String dataSourceName = dataSource.getJmxName();\n+      if (dataSourceName == null) {\n+        ObjectName objectName = OpenTelemetryBasicDataSourceUtil.getRegisteredJmxName(dataSource);\n+        if (objectName != null) {\n+          dataSourceName = objectName.getKeyProperty(\"name\");\n+          if (dataSourceName == null) {\n+            dataSourceName = objectName.toString();\n+          }\n         }\n-      } else {\n-        // fallback just in case it is somehow registered without a name\n-        dataSourceName = \"dbcp2-\" + System.identityHashCode(dataSource);\n+      }\n+      if (dataSourceName == null) {\n+        dataSourceName = DataSourceMetrics.getDefaultName();\n       }",
+      "id": "PRRT_kwDODJKVX86PkJNJ",
+      "opened": "2026-07-09T12:25:58Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+      "replies": [],
+      "reviewed": "7ba6b9c6c879a7d44d315cc774ba8d4d65c826b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3551556510"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getDefaultName()` is only used by the javaagent fallback path — the library's manual registration entrypoint (`ApacheDbcpTelemetry.registerMetrics`) requires callers to supply an explicit name, as noted in the PR description. Making `DataSourceMetrics` `public` and exposing `getDefaultName()` adds it to this library module's stable public API, committing the project to maintaining it. The analogous javaagent-only helper in the hbase module (`OpenTelemetryCallUtil`) keeps its static state inside the javaagent module rather than in the library API. Consider hosting the default-name counter in the javaagent module (e.g. a javaagent helper class) and keeping `DataSourceMetrics` package-private.",
+      "created": "2026-07-09T12:25:58Z",
+      "hunk": "@@ -12,17 +12,25 @@\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbConnectionPoolMetrics;\n import java.util.Map;\n import java.util.concurrent.ConcurrentHashMap;\n+import java.util.concurrent.atomic.AtomicInteger;\n import org.apache.commons.dbcp2.BasicDataSourceMXBean;\n \n-final class DataSourceMetrics {\n+/** Utility for Apache DBCP data source metric registration. */\n+public final class DataSourceMetrics {\n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.apache-dbcp-2.0\";\n+  private static final AtomicInteger idGenerator = new AtomicInteger(1);\n \n   // a weak map does not make sense here because each Meter holds a reference to the dataSource\n   // all instrumented/known implementations of BasicDataSourceMXBean do not implement\n   // equals()/hashCode(), so it's safe to keep them in a plain ConcurrentHashMap\n   private static final Map<BasicDataSourceMXBean, BatchCallback> dataSourceMetrics =\n       new ConcurrentHashMap<>();\n \n+  /** Returns a generated default name for an unnamed Apache DBCP data source. */\n+  public static String getDefaultName() {\n+    return \"dbcp2-\" + idGenerator.getAndIncrement();\n+  }",
+      "id": "PRRT_kwDODJKVX86PkJNi",
+      "opened": "2026-07-09T12:25:58Z",
+      "path": "instrumentation/apache-dbcp-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachedbcp/v2_0/DataSourceMetrics.java",
+      "replies": [],
+      "reviewed": "7ba6b9c6c879a7d44d315cc774ba8d4d65c826b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3551556544"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "what do you think of:\r\n\r\n```suggestion\r\n      String dataSourceName = null;\r\n      ObjectName objectName = OpenTelemetryBasicDataSourceUtil.getRegisteredJmxName(dataSource);\r\n      if (objectName != null) {\r\n        dataSourceName = objectName.getKeyProperty(\"name\");\r\n        if (dataSourceName == null) {\r\n          dataSourceName = objectName.toString();\r\n        }\r\n      }\r\n      if (dataSourceName == null) {\r\n        dataSourceName = dataSource.getJmxName();\r\n        if (dataSourceName != null) {\r\n          try {\r\n            String name = new ObjectName(dataSourceName).getKeyProperty(\"name\");\r\n            if (name != null) {\r\n              dataSourceName = name;\r\n            }\r\n          } catch (javax.management.MalformedObjectNameException ignored) {\r\n            // Use the configured value as-is when it is not a valid ObjectName.\r\n          }\r\n        }\r\n      }\r\n```",
+      "created": "2026-07-11T19:26:05Z",
+      "hunk": "@@ -27,35 +30,38 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer typeTransformer) {\n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n-        getClass().getName() + \"$PreRegisterAdvice\");\n+        named(\"startPoolMaintenance\").and(takesArguments(0)),\n+        getClass().getName() + \"$StartPoolMaintenanceAdvice\");\n \n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"postDeregister\")), getClass().getName() + \"$PostDeregisterAdvice\");\n+        isPublic().and(namedOneOf(\"close\", \"postDeregister\")).and(takesArguments(0)),\n+        getClass().getName() + \"$DeregisterAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n-  public static class PreRegisterAdvice {\n-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n-    public static void onExit(\n-        @Advice.This BasicDataSource dataSource, @Advice.Return ObjectName objectName) {\n-      String dataSourceName;\n-      if (objectName != null) {\n-        dataSourceName = objectName.getKeyProperty(\"name\");\n-        if (dataSourceName == null) {\n-          dataSourceName = objectName.toString();\n+  public static class StartPoolMaintenanceAdvice {\n+    @Advice.OnMethodExit(suppress = Throwable.class)\n+    public static void onExit(@Advice.This BasicDataSource dataSource) {\n+      String dataSourceName = dataSource.getJmxName();\n+      if (dataSourceName == null) {\n+        ObjectName objectName = OpenTelemetryBasicDataSourceUtil.getRegisteredJmxName(dataSource);\n+        if (objectName != null) {\n+          dataSourceName = objectName.getKeyProperty(\"name\");\n+          if (dataSourceName == null) {\n+            dataSourceName = objectName.toString();\n+          }\n         }\n-      } else {\n-        // fallback just in case it is somehow registered without a name\n-        dataSourceName = \"dbcp2-\" + System.identityHashCode(dataSource);\n+      }",
+      "id": "PRRT_kwDODJKVX86QIu8u",
+      "opened": "2026-07-11T19:34:21Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-13T07:42:50Z",
+          "body": "> what do you think of:\r\n\r\n@trask  I believe the following judgment logic is no longer necessary. Even if JMX is disabled, if a valid jmxName is configured, the value retrieved via BasicDataSource#getRegisteredJmxName will be the configured jmxName.\r\nIn older versions of commons-dbcp2, after specifying jmxName, jmxRegister would invoke MBeanServer.registerMBean, which in turn calls preRegister to assign registeredJmxName.\r\nIn newer versions, jmxRegister directly sets registeredJmxObjectName.\r\n\r\n```\r\nif (dataSourceName == null) {\r\n  dataSourceName = dataSource.getJmxName();\r\n  if (dataSourceName != null) {\r\n    try {\r\n      String name = new ObjectName(dataSourceName).getKeyProperty(\"name\");\r\n      if (name != null) {\r\n        dataSourceName = name;\r\n      }\r\n    } catch (javax.management.MalformedObjectNameException ignored) {\r\n      // Use the configured value as-is when it is not a valid ObjectName.\r\n    }\r\n  }\r\n}\r\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3568858589"
+        }
+      ],
+      "reviewed": "b56b691cc3e7804e0612f8abee5cfe9eed64206a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3564875473"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I don't think we should provide uniqueness here. It's a nice idea, but I think worse to have inconsistent numbers between restarts than to have merged into one metric (but consistent).\n```suggestion\n    return \"apache-dbcp2\"\n```",
+      "created": "2026-07-11T19:34:16Z",
+      "hunk": "@@ -7,15 +7,21 @@\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.apachedbcp.v2_0.ApacheDbcpTelemetry;\n+import java.util.concurrent.atomic.AtomicInteger;\n \n public class ApacheDbcpSingletons {\n \n   private static final ApacheDbcpTelemetry telemetry =\n       ApacheDbcpTelemetry.create(GlobalOpenTelemetry.get());\n+  private static final AtomicInteger idGenerator = new AtomicInteger(1);\n \n   public static ApacheDbcpTelemetry telemetry() {\n     return telemetry;\n   }\n \n+  public static String getDefaultName() {\n+    return \"dbcp2-\" + idGenerator.getAndIncrement();",
+      "id": "PRRT_kwDODJKVX86QIxSy",
+      "opened": "2026-07-11T19:34:21Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+      "replies": [
+        {
+          "at": "2026-07-12T01:35:31Z",
+          "body": "> I don't think we should provide uniqueness here. It's a nice idea, but I think worse to have inconsistent numbers between restarts than to have merged into one metric (but consistent).\r\n\r\n@trask  When multiple DataSources are used without assigned names, the previous naming scheme \"dbcp2-\" + System.identityHashCode(dataSource) can still expose metrics after service restarts even though the suffix value changes.\r\nI acknowledge that this approach causes the identifier to shift from dbcp2-1 to dbcp2-2 after restarts, yet I do not consider this the worst-case outcome.\r\nBy contrast, your proposal to hardcode the fixed value apache-dbcp2 introduces two critical drawbacks:\r\nWhile the original implementation suffered from high cardinality, it guaranteed metric exposure for all multiple DataSource instances. If we switch to the static apache-dbcp2 label, metrics from DataSource1 will be overwritten by those from DataSource2 after restarts, which I argue creates a far worse problem.\r\nAs core application metrics, connection pool indicators are far more valuable to retain than to eliminate entirely. Even with fluctuating metric names, operators can distinguish different DataSources via attributes such as maximum connection limit.\r\nIn the worst case, application maintainers can map metrics to specific DataSource definitions by cross-referencing auxiliary signals like request volume metrics, and proactively standardize explicit DataSource naming on their own initiative.\r\nThe fundamental motivation behind migrating away from the System.identityHashCode(dataSource) high-cardinality strategy is to reduce excessive pressure on time-series storage and metric query engines.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3565407913"
+        },
+        {
+          "at": "2026-07-12T04:11:44Z",
+          "body": "> metrics from DataSource1 will be overwritten by those from DataSource2 after restarts\r\n\r\ni'm not sure I follow, can you give a concrete example? thanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3565640085"
+        },
+        {
+          "at": "2026-07-13T06:30:42Z",
+          "body": "> > metrics from DataSource1 will be overwritten by those from DataSource2 after restarts\r\n> \r\n> i'm not sure I follow, can you give a concrete example? thanks!\r\n\r\n@trask  When neither DataSource has an explicit jmxName configured and JMX is not enabled in the application, both will use apache-dbcp2 as their pool.name.\r\nMetrics are not registered immediately during DataSource initialization; instead, they are lazily registered upon the first getConnection call. As a result, the exported metrics depend on which DataSource is accessed first after application startup.\r\nIf the interface using DataSource1 is invoked first on launch, the exported metrics will belong to DataSource1. Following a restart, if the interface backed by DataSource2 is called first, the exposed metrics will correspond to DataSource2 instead. \r\n\r\nMeanwhile, a large number of WARN-level logs will be printed:\r\nInstrument db.client.connections.* has recorded multiple values for the same attributes: {pool.name=\"apache-dbcp2\"}",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3568471438"
+        },
+        {
+          "at": "2026-07-13T06:36:45Z",
+          "body": "@trask For org.vibur:vibur-dbcp, if the DataSource name is not configured, pool.name will be assigned by concatenating an auto-incrementing ID by default.\r\n\r\nhttps://github.com/vibur/vibur-dbcp/blob/90b320d0dad3f11fa44dc6974cad6344e31f02ac/src/main/java/org/vibur/dbcp/ViburConfig.java#L199",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3568497809"
+        },
+        {
+          "at": "2026-07-13T20:18:35Z",
+          "body": "Maybe you're using an old SDK?\r\n\r\nRelevant context from [opentelemetry-java#7264](https://github.com/open-telemetry/opentelemetry-java/pull/7264):\r\n\r\nBefore that PR, `AsynchronousMetricStorage` stored one point per attribute set. If another callback reported the same attributes during collection, the SDK logged `has recorded multiple values for the same attributes` and dropped the later observation.\r\n\r\n#7264 added spatial aggregation for asynchronous instruments, primarily so observations that collapse to the same attributes after view filtering are properly reaggregated. It replaced the point map and duplicate-warning/drop branch with aggregation handles keyed by the processed attributes.\r\n\r\nThe result depends on the instrument's aggregation. For these DBCP observable up/down counters, the aggregation is `Sum`, so observations from pools sharing the same `pool.name` are added into one series. No duplicate-observation warning is emitted. This change was released in OpenTelemetry Java 1.50.0, while this repository uses 1.63.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3573857387"
+        },
+        {
+          "at": "2026-07-14T08:01:41Z",
+          "body": "@trask During the previous verification, we did use the legacy SDK for validation. After I tested with the new SDK, I can confirm it performs metric aggregation exactly as you described—it sums up metric values for entries with identical attributes.\r\nHowever, this approach can easily obscure issues when an application has multiple connection pools. For instance, one connection pool may be under heavy load while another is barely utilized. Similarly, if two pools are configured with vastly different parameter limits: the one with a smaller threshold could already be overloaded, yet this problem would not be reflected in the aggregated metrics, leading to misleading observations during troubleshooting.\r\nIn my opinion, the drawbacks of this aggregation method outweigh the alternative solution of ensuring unique pool.name values by appending an auto-increment ID.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3577074036"
+        },
+        {
+          "at": "2026-07-14T13:12:38Z",
+          "body": "Ideally connection pools would have unique names that allow identifying which pool given metrics apply to. If the pools don't have names and we add a sequence number then from user perspective it might not be possible to tell which pool these metrics apply to unless there is something else that allows distinguishing the pools e.g. one pool has a larger max value. Further more if there is some sort of ambiguity in initialization order then poole names from different nodes could be swapped. Also note that the sequencing as implemented in this PR is per application. If the same node deploys more than 1 application that uses the connection pool these would still get the same name. I also think that not adding the sequence number might be better.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3579239413"
+        },
+        {
+          "at": "2026-07-15T12:37:43Z",
+          "body": "Ideally, assigning a unique name to each connection pool would be the optimal approach. However, I have extracted statistical data from several of our applications and found that the vast majority do not configure a dedicated name for their connection pools. The previous implementation, despite its high cardinality issue, was capable of exporting two metrics. If we replace it with a fixed value, only one metric can be exposed, which will inevitably bring negative impacts to end users.\r\n\r\nMy proposal is to adopt a compromised solution that enables users to keep using the service normally without any code or configuration changes. This can minimize disruption to users while eliminating the high cardinality problem entirely.\r\n\r\nIt is unreliable to distinguish connection pools by parameters such as the maximum number of connections, as this cannot resolve the fundamental root cause. Therefore, I personally advise against this method.\r\n\r\nI acknowledge that deploying two instances belonging to different applications on the same host node will result in identical default pool names. We can differentiate metrics during storage by appending the application identifier, which I believe is a completely viable solution. The core objective of this revision is not to generate distinct default connection pool names across different applications. On the contrary, reusing the same default name among various applications helps reduce the cardinality overhead in time-series storage.\r\n\r\nOur plan is to apply a fixed string as the connection pool name when users do not explicitly specify one. For connection pool frameworks including HikariCP and Vibur-DBCP, the default behavior is to generate pool names via auto-increment IDs. Should we add mandatory logic to override these auto-generated names? If we skip this modification, different connection pool components will behave inconsistently when no custom pool name is configured, leading to a poor unified user experience.\r\n\r\n@trask @laurit Could you two please conduct a follow-up evaluation? Kindly let me know if we still stick to the rule of using a fixed value as the connection pool name whenever no custom name is specified. If this scheme is confirmed, I will proceed with relevant code adjustments accordingly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3587264505"
+        },
+        {
+          "at": "2026-07-15T17:20:17Z",
+          "body": "Does this help?\r\n\r\nFrom https://opentelemetry.io/docs/specs/semconv/registry/attributes/db/#db-client-connection-pool-name:\r\n\r\n> The name of the connection pool; unique within the instrumented application. In case the connection pool implementation doesn't provide a name, instrumentation SHOULD use a combination of parameters that would make the name unique, for example, combining attributes `server.address`, `server.port`, and `db.namespace`, formatted as `server.address:server.port/db.namespace`. Instrumentations that generate connection pool name following different patterns SHOULD document it.\r\n\r\nSome other things we could consider:\r\n\r\n| Identity source | Possible for Apache DBCP 2? | Availability and implementation | Stability and cardinality | Limitations and recommendation |\r\n| --- | --- | --- | --- | --- |\r\n| Explicit `BasicDataSource.getJmxName()` | Yes; directly supported since DBCP 2.0 | Read `getJmxName()` when the underlying pool starts. No JMX registration is required for the configured value to be available. If it is a valid JMX `ObjectName`, the `name` key could be extracted; otherwise preserve the configured value. | Stable across restarts and nodes when configuration is consistent. Cardinality is controlled by the application. | Best signal and highest priority. A value configured after metrics registration would require unregistering and re-registering the metric callback. |\r\n| Registered JMX `ObjectName` | Yes; implemented by the current PR | `getRegisteredJmxName()` is protected. An injected helper in `org.apache.commons.dbcp2` can access it and extract its `name` key, falling back to the complete `ObjectName`. | Usually stable because it comes from container or deployment configuration. Cardinality is bounded by registered pools. | Only available after registration. If the DBCP pool starts before JMX registration, the instrumentation must either update the metric registration later from `preRegister()` or retain the earlier fallback. |\r\n| Spring bean name | Yes, but requires Spring instrumentation | DBCP does not know its Spring bean name. Instrument Spring's bean initialization lifecycle, such as `AbstractAutowireCapableBeanFactory.initializeBean(beanName, bean, ...)`, and publish the name to a shared weak identity or `VirtualField` registry. The DBCP instrumentation reads that registry at pool startup. | Stable, meaningful, and bounded by the application's bean definitions. Normally consistent across nodes. | A datasource may be started inside an `@Bean` factory method before Spring associates the returned object with its bean name. Supporting that case requires late metric renaming. The existing Spring `DataSourcePostProcessor` demonstrates that the name is available, but it belongs to the Spring starter path rather than the generic javaagent DBCP module. |\r\n| JNDI resource name | Yes for common DBCP factory creation paths | Instrument `BasicDataSourceFactory.getObjectInstance(..., Name name, ...)` and associate the returned `BasicDataSource` with `name.toString()`. Store it in the same shared identity registry. | Normally stable and operator-friendly, for example `java:comp/env/jdbc/orders`. Cardinality is bounded by configured resources. | The `Name` argument may be absent, and containers can create or bind datasources through other paths. Tomcat's relocated `org.apache.tomcat.dbcp.dbcp2` classes are not covered by instrumentation matching `org.apache.commons.dbcp2.BasicDataSource`. |\r\n| Parsed JDBC target (`host:port/database`) | Yes; strongest self-contained fallback | `BasicDataSource.getUrl()` is public in DBCP 2.0. A same-package helper can also read package-private connection properties when needed. Refactor or expose the existing JDBC URL parser, then construct the name only from `DbInfo.getServerAddress()`, `getServerPort()`, and `getDbNamespace()`. Never include the raw URL, username, password, or query parameters. | Stable across restarts and nodes when connection configuration is stable. Cardinality reflects actual database targets rather than object instances. | Two pools can target the same database, and some JDBC URLs are multi-host, indirect, or unparseable. The existing parser is internal to JDBC instrumentation, so clean reuse requires extracting a shared database-endpoint parser instead of coupling DBCP directly to the JDBC implementation module. |\r\n| Construction-site fingerprint | Yes; useful to disambiguate identical JDBC targets | Instrument the `BasicDataSource` constructor, capture the first application frame after excluding JDK, DBCP, OpenTelemetry, and known framework frames, and store a normalized `class#method` identity in a `VirtualField`. Combine it with the parsed JDBC target. Java 8 can use `new Throwable().getStackTrace()`. | Stable across restarts and nodes while the construction method remains unchanged. Cardinality is bounded by construction sites rather than object instances. | Framework reflection can obscure the application frame. Class or method refactoring changes the name; line numbers should be avoided because unrelated edits move them. Multiple pools created by one method still need a site-local ordinal or another differentiator. Class and method names may expose internal implementation details. |",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3589380317"
+        }
+      ],
+      "reviewed": "b56b691cc3e7804e0612f8abee5cfe9eed64206a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3564889077"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Connection-pool instrumentations in this repo typically set `inline = false` on Byte Buddy advices to avoid inlining agent code into the instrumented library class (e.g., c3p0 and vibur-DBCP datasource advices). Consider restoring `inline = false` here for consistency and to reduce classloading/bytecode footprint in the target method.",
+      "created": "2026-07-16T16:04:06Z",
+      "hunk": "@@ -27,35 +30,36 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer typeTransformer) {\n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n-        getClass().getName() + \"$PreRegisterAdvice\");\n+        named(\"startPoolMaintenance\").and(takesArguments(0)),\n+        getClass().getName() + \"$StartPoolMaintenanceAdvice\");\n \n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"postDeregister\")), getClass().getName() + \"$PostDeregisterAdvice\");\n+        isPublic().and(namedOneOf(\"close\", \"postDeregister\")).and(takesArguments(0)),\n+        getClass().getName() + \"$DeregisterAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n-  public static class PreRegisterAdvice {\n-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n-    public static void onExit(\n-        @Advice.This BasicDataSource dataSource, @Advice.Return ObjectName objectName) {\n-      String dataSourceName;\n+  public static class StartPoolMaintenanceAdvice {\n+    @Advice.OnMethodExit(suppress = Throwable.class)",
+      "id": "PRRT_kwDODJKVX86Rgqtj",
+      "opened": "2026-07-16T16:04:08Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+      "replies": [],
+      "reviewed": "fe602219611b8932abbd541db95a61bff7a24836",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3597047539"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For cleanup hooks on `close()`, other connection-pool instrumentations run the unregister advice even when the method throws (via `onThrowable = Throwable.class`) and also keep `inline = false`. Without `onThrowable`, an exception from `close()` can leave the BatchCallback registered and continue emitting metrics.",
+      "created": "2026-07-16T16:04:07Z",
+      "hunk": "@@ -27,35 +30,36 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer typeTransformer) {\n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n-        getClass().getName() + \"$PreRegisterAdvice\");\n+        named(\"startPoolMaintenance\").and(takesArguments(0)),\n+        getClass().getName() + \"$StartPoolMaintenanceAdvice\");\n \n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"postDeregister\")), getClass().getName() + \"$PostDeregisterAdvice\");\n+        isPublic().and(namedOneOf(\"close\", \"postDeregister\")).and(takesArguments(0)),\n+        getClass().getName() + \"$DeregisterAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n-  public static class PreRegisterAdvice {\n-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n-    public static void onExit(\n-        @Advice.This BasicDataSource dataSource, @Advice.Return ObjectName objectName) {\n-      String dataSourceName;\n+  public static class StartPoolMaintenanceAdvice {\n+    @Advice.OnMethodExit(suppress = Throwable.class)\n+    public static void onExit(@Advice.This BasicDataSource dataSource) {\n+      String dataSourceName = null;\n+      ObjectName objectName = OpenTelemetryBasicDataSourceUtil.getRegisteredJmxName(dataSource);\n       if (objectName != null) {\n         dataSourceName = objectName.getKeyProperty(\"name\");\n         if (dataSourceName == null) {\n           dataSourceName = objectName.toString();\n         }\n-      } else {\n-        // fallback just in case it is somehow registered without a name\n-        dataSourceName = \"dbcp2-\" + System.identityHashCode(dataSource);\n+      }\n+      if (dataSourceName == null) {\n+        dataSourceName = getDataSourceName(dataSource);\n       }\n       telemetry().registerMetrics(dataSource, dataSourceName);\n     }\n   }\n \n   @SuppressWarnings(\"unused\")\n-  public static class PostDeregisterAdvice {\n-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+  public static class DeregisterAdvice {\n+    @Advice.OnMethodExit(suppress = Throwable.class)",
+      "id": "PRRT_kwDODJKVX86RgquB",
+      "opened": "2026-07-16T16:04:08Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-17T06:33:31Z",
+          "body": "`inline = false` isolates this module's helper classes in a separate classloader. The Apache DBCP helper must access non-public `BasicDataSource` methods, which is not allowed across classloaders even when the package name is the same. This causes `IllegalAccessError` and metrics registration is silently skipped.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3600883632"
+        }
+      ],
+      "reviewed": "fe602219611b8932abbd541db95a61bff7a24836",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3597047588"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The description says lifecycle detection happens when the `DataSource` is \"created and closed\", but the implementation registers metrics on `BasicDataSource.startPoolMaintenance()` (which is typically after first use / pool initialization), not at object construction time. This wording is likely to mislead users about when metrics start emitting.",
+      "created": "2026-07-16T16:04:07Z",
+      "hunk": "@@ -2,10 +2,12 @@ display_name: Apache DBCP\n description: >\n   This instrumentation enables database connection pools metrics for Apache DBCP.\n \n-  The instrumentation uses `MBeanRegistration` methods for lifecycle detection, therefore it\n-  only activates if the `BasicDataSource` is registered to an `MBeanServer`. If using Spring Boot,\n-  this happens automatically as all Spring beans that support JMX registration are automatically\n-  registered by default.\n+  The auto-instrumentation detects the `BasicDataSource` lifecycle when the underlying\n+  `DataSource` is created and closed. When a JMX `ObjectName` is successfully registered, its",
+      "id": "PRRT_kwDODJKVX86RgquX",
+      "opened": "2026-07-16T16:04:08Z",
+      "path": "instrumentation/apache-dbcp-2.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "fe602219611b8932abbd541db95a61bff7a24836",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3597047613"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This README says lifecycle detection happens when the `DataSource` is \"created and closed\", but the code registers metrics when `startPoolMaintenance()` completes (usually on first use / after pool initialization). Updating the wording would help set correct expectations about when metrics begin emitting.",
+      "created": "2026-07-16T16:04:07Z",
+      "hunk": "@@ -3,7 +3,8 @@\n Provides OpenTelemetry auto-instrumentation\n for [Apache DBCP](https://commons.apache.org/proper/commons-dbcp/).\n \n-This auto-instrumentation uses `MBeanRegistration` methods for lifecycle detection, therefore it\n-only activates if the `BasicDataSource` is registered to an `MBeanServer`. If using Spring Boot,\n-this happens automatically as all Spring beans that support JMX registration are automatically\n-registered by default.\n+This auto-instrumentation detects the `BasicDataSource` lifecycle when the underlying `DataSource`\n+is created and closed. JMX registration is not required. When no data source name is available",
+      "id": "PRRT_kwDODJKVX86Rgqu_",
+      "opened": "2026-07-16T16:04:08Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/README.md",
+      "replies": [],
+      "reviewed": "fe602219611b8932abbd541db95a61bff7a24836",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3597047664"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says the fallback pool name is generated as `dbcp2-N` when no configured/registered JMX name is available, but the implementation falls back to the fixed string `apache-dbcp2` (after trying to derive a name from JDBC URL/properties). Please align the PR description with the implemented behavior, or adjust the implementation to match the stated fallback.",
+      "created": "2026-07-16T16:04:08Z",
+      "hunk": "@@ -17,5 +21,31 @@ public static ApacheDbcpTelemetry telemetry() {\n     return telemetry;\n   }\n \n+  public static String getDataSourceName(BasicDataSource dataSource) {\n+    DbInfo dbInfo =\n+        JdbcConnectionUrlParser.parse(\n+            dataSource.getUrl(),\n+            OpenTelemetryBasicDataSourceUtil.getConnectionProperties(dataSource));\n+    String serverAddress = dbInfo.getServerAddress();\n+    Integer serverPort = dbInfo.getServerPort();\n+    String dbNamespace = dbInfo.getDbNamespace();\n+\n+    StringBuilder poolName = new StringBuilder();\n+    if (serverAddress != null) {\n+      poolName.append(serverAddress);\n+      if (serverPort != null) {\n+        poolName.append(':').append(serverPort);\n+      }\n+    }\n+    if (dbNamespace != null) {\n+      if (poolName.length() > 0) {\n+        poolName.append('/');\n+      }\n+      poolName.append(dbNamespace);\n+    }\n+\n+    return poolName.length() > 0 ? poolName.toString() : \"apache-dbcp2\";\n+  }",
+      "id": "PRRT_kwDODJKVX86Rgqvy",
+      "opened": "2026-07-16T16:04:08Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+      "replies": [],
+      "reviewed": "fe602219611b8932abbd541db95a61bff7a24836",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3597047727"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description states the pool-name precedence is: configured JMX name → registered JMX `ObjectName` → generated name. In this advice, the name is currently derived from the *registered* `ObjectName` (if any) and otherwise falls back to `getDataSourceName(...)` (JDBC URL/properties), without consulting the configured JMX name when JMX registration does not occur. Please align the implementation with the described precedence (or update the PR description/docs if the intended behavior is different).",
+      "created": "2026-07-16T16:04:08Z",
+      "hunk": "@@ -27,35 +30,36 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer typeTransformer) {\n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n-        getClass().getName() + \"$PreRegisterAdvice\");\n+        named(\"startPoolMaintenance\").and(takesArguments(0)),\n+        getClass().getName() + \"$StartPoolMaintenanceAdvice\");\n \n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"postDeregister\")), getClass().getName() + \"$PostDeregisterAdvice\");\n+        isPublic().and(namedOneOf(\"close\", \"postDeregister\")).and(takesArguments(0)),\n+        getClass().getName() + \"$DeregisterAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n-  public static class PreRegisterAdvice {\n-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n-    public static void onExit(\n-        @Advice.This BasicDataSource dataSource, @Advice.Return ObjectName objectName) {\n-      String dataSourceName;\n+  public static class StartPoolMaintenanceAdvice {\n+    @Advice.OnMethodExit(suppress = Throwable.class)\n+    public static void onExit(@Advice.This BasicDataSource dataSource) {\n+      String dataSourceName = null;\n+      ObjectName objectName = OpenTelemetryBasicDataSourceUtil.getRegisteredJmxName(dataSource);\n       if (objectName != null) {\n         dataSourceName = objectName.getKeyProperty(\"name\");\n         if (dataSourceName == null) {\n           dataSourceName = objectName.toString();\n         }\n-      } else {\n-        // fallback just in case it is somehow registered without a name\n-        dataSourceName = \"dbcp2-\" + System.identityHashCode(dataSource);\n+      }\n+      if (dataSourceName == null) {\n+        dataSourceName = getDataSourceName(dataSource);\n       }",
+      "id": "PRRT_kwDODJKVX86Rgqwp",
+      "opened": "2026-07-16T16:04:08Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+      "replies": [],
+      "reviewed": "fe602219611b8932abbd541db95a61bff7a24836",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3597047792"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `registerMBean` may replace the requested name with the value returned by `preRegister`; `BasicDataSource` does exactly that when `setJmxName()` was called above. Keeping the requested `objectName` therefore makes the cleanup check false and leaves the `configuredPool` MBean registered in the platform server. Capture the actual registered name returned by `registerMBean` for cleanup.",
+      "created": "2026-07-19T22:42:56Z",
+      "hunk": "@@ -24,14 +26,119 @@ protected InstrumentationExtension testing() {\n   }\n \n   @Override\n-  protected void configure(BasicDataSource dataSource, String dataSourceName) throws Exception {\n-    dataSource.preRegister(\n-        ManagementFactory.getPlatformMBeanServer(),\n-        new ObjectName(\"io.opentelemetry.db:name=\" + dataSourceName));\n+  protected void configure(BasicDataSource dataSource, String dataSourceName) {\n+    dataSource.setJmxName(\"org.apache.commons.dbcp2:type=BasicDataSource,name=\" + dataSourceName);\n   }\n \n   @Override\n   protected void shutdown(BasicDataSource dataSource) {\n     dataSource.postDeregister();\n   }\n+\n+  @Test\n+  void shouldUseJdbcUrlForDataSourceNameWhenJmxNameIsNull() throws Exception {\n+    BasicDataSource dataSource = createDataSource();\n+    dataSource.setUrl(\"jdbc:postgresql://db.example:5432/orders\");\n+\n+    assertDataSourceName(dataSource, \"db.example:5432/orders\");\n+  }\n+\n+  @Test\n+  void shouldUseConnectionPropertiesForDataSourceNameWhenJmxNameIsInvalid() throws Exception {\n+    BasicDataSource dataSource = createDataSource();\n+    dataSource.setJmxName(\"invalid-jmx-name\");\n+    dataSource.setUrl(\"jdbc:postgresql:ignored\");\n+    dataSource.addConnectionProperty(\"serverName\", \"properties.example\");\n+    dataSource.addConnectionProperty(\"portNumber\", \"5433\");\n+    dataSource.addConnectionProperty(\"databaseName\", \"inventory\");\n+\n+    assertDataSourceName(dataSource, \"properties.example:5433/inventory\");\n+  }\n+\n+  @Test\n+  void shouldUseServerAddressWhenPortAndNamespaceAreMissing() throws Exception {\n+    BasicDataSource dataSource = createDataSource();\n+    dataSource.setUrl(\"jdbc:custom:ignored\");\n+    dataSource.addConnectionProperty(\"serverName\", \"address-only.example\");\n+\n+    assertDataSourceName(dataSource, \"address-only.example\");\n+  }\n+\n+  @Test\n+  void shouldUseDbNamespaceWhenServerAddressIsMissing() throws Exception {\n+    BasicDataSource dataSource = createDataSource();\n+    dataSource.setUrl(\"jdbc:h2:mem:orders\");\n+\n+    assertDataSourceName(dataSource, \"orders\");\n+  }\n+\n+  @Test\n+  void shouldUseFixedDataSourceNameWhenServerAddressAndNamespaceAreMissing() throws Exception {\n+    BasicDataSource dataSource = createDataSource();\n+\n+    assertDataSourceName(dataSource, \"apache-dbcp2\");\n+  }\n+\n+  @Test\n+  void shouldPreferJmxNameOverRegisteredJmxName() throws Exception {\n+    BasicDataSource dataSource = createDataSource();\n+    dataSource.setJmxName(\"org.apache.commons.dbcp2:type=BasicDataSource,name=configuredPool\");\n+\n+    ObjectName objectName =\n+        new ObjectName(\"org.apache.commons.dbcp2:type=BasicDataSource,name=registeredPool\");\n+    MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();\n+    mbeanServer.registerMBean(dataSource, objectName);",
+      "id": "PRRT_kwDODJKVX86SHuKA",
+      "opened": "2026-07-19T22:42:56Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-07-20T15:28:39Z",
+          "body": "No code change: Already addressed by current PR head commit 73a923285f, which assigns registerMBean(...).getObjectName() to objectName before cleanup.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3615461906"
+        }
+      ],
+      "reviewed": "aec86552b50d4610c5fe7faa8abc2fc18f347928",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3611492022"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Matching `postDeregister` still makes metric collection depend on the JMX lifecycle. `postDeregister` signals removal of the MBean, not closure of the connection pool, so a running pool that is temporarily registered and then deregistered loses its callback here. Because `startPoolMaintenance()` has already completed and there is no registration hook left, metrics never resume for that pool. Unregister on `close()` only (or explicitly restore registration for an open pool), and cover deregistration of a still-running pool with a regression test.",
+      "created": "2026-07-20T15:39:19Z",
+      "hunk": "@@ -27,35 +30,36 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer typeTransformer) {\n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n-        getClass().getName() + \"$PreRegisterAdvice\");\n+        named(\"startPoolMaintenance\").and(takesArguments(0)),\n+        getClass().getName() + \"$StartPoolMaintenanceAdvice\");\n \n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"postDeregister\")), getClass().getName() + \"$PostDeregisterAdvice\");\n+        isPublic().and(namedOneOf(\"close\", \"postDeregister\")).and(takesArguments(0)),",
+      "id": "PRRT_kwDODJKVX86SS75V",
+      "opened": "2026-07-20T15:39:19Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-20T15:47:00Z",
+          "body": "Addressed in a268b7ad44759d1ce857e5b1c14b0706773a3be6: Metric callbacks now remain registered across MBean deregistration and are removed only when BasicDataSource closes; regression coverage verifies the live-pool lifecycle.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3615580255"
+        }
+      ],
+      "reviewed": "73a923285f1054c3d25320b2f4f0421c590144e7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3615531975"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description still says metrics are unregistered after `postDeregister()`, but this instrumentation now unregisters only on `close()`, and `shouldReportMetricsAfterMBeanDeregistration` explicitly verifies that deregistration keeps metrics active. Please update the PR description to reflect the intended lifecycle so the generated change summary does not document the opposite behavior.",
+      "created": "2026-07-20T15:55:11Z",
+      "hunk": "@@ -27,35 +29,36 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer typeTransformer) {\n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n-        getClass().getName() + \"$PreRegisterAdvice\");\n+        named(\"startPoolMaintenance\").and(takesArguments(0)),\n+        getClass().getName() + \"$StartPoolMaintenanceAdvice\");\n \n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"postDeregister\")), getClass().getName() + \"$PostDeregisterAdvice\");\n+        isPublic().and(named(\"close\")).and(takesArguments(0)),\n+        getClass().getName() + \"$CloseAdvice\");",
+      "id": "PRRT_kwDODJKVX86STNmk",
+      "opened": "2026-07-20T15:55:11Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-20T16:09:10Z",
+          "body": "No code change: Metadata-only change applied directly to the GitHub PR description; no repository commit was required.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3615720979"
+        }
+      ],
+      "reviewed": "a268b7ad44759d1ce857e5b1c14b0706773a3be6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3615632797"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`getRegisteredJmxName()` is only set by the time `startPoolMaintenance()` runs if `jmxName` was configured (`createDataSource()` calls `jmxRegister()` first). A pool whose MBean is exported *after* its first connection — e.g. Spring's `MBeanExporter` running after Flyway/JPA opened a connection — now gets the URL-derived name instead. On main those pools were named from the `ObjectName`, so this is a rename.\n\nI verified this: registering the MBean after `getConnection()` keeps `pool.name=db.example:5432/orders` and never picks up the JMX name.\n\nAdding a `preRegister` advice back fixes it (all existing tests still pass):\n\n```suggestion\n    typeTransformer.applyAdviceToMethod(\n        isPublic().and(named(\"close\")).and(takesArguments(0)),\n        getClass().getName() + \"$CloseAdvice\");\n\n    typeTransformer.applyAdviceToMethod(\n        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n        getClass().getName() + \"$PreRegisterAdvice\");\n```\n\nwith:\n\n```java\n  @SuppressWarnings(\"unused\")\n  public static class PreRegisterAdvice {\n    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n    public static void onExit(\n        @Advice.This BasicDataSource dataSource, @Advice.Return ObjectName objectName) {\n      if (objectName == null) {\n        return;\n      }\n      String dataSourceName = objectName.getKeyProperty(\"name\");\n      if (dataSourceName == null) {\n        dataSourceName = objectName.toString();\n      }\n      telemetry().unregisterMetrics(dataSource);\n      telemetry().registerMetrics(dataSource, dataSourceName);\n    }\n  }\n```\n\n`getNumActive()`/`getNumIdle()` are null-safe on an uninitialized pool, so registering here before the pool exists is fine, and `registerMetrics` uses `computeIfAbsent` so the later `startPoolMaintenance` call is a no-op.",
+      "created": "2026-07-29T18:43:53Z",
+      "hunk": "@@ -27,35 +29,36 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer typeTransformer) {\n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n-        getClass().getName() + \"$PreRegisterAdvice\");\n+        named(\"startPoolMaintenance\").and(takesArguments(0)),\n+        getClass().getName() + \"$StartPoolMaintenanceAdvice\");\n \n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"postDeregister\")), getClass().getName() + \"$PostDeregisterAdvice\");\n+        isPublic().and(named(\"close\")).and(takesArguments(0)),\n+        getClass().getName() + \"$CloseAdvice\");",
+      "id": "PRRT_kwDODJKVX86U3u62",
+      "opened": "2026-07-29T18:54:49Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+      "replies": [],
+      "reviewed": "a268b7ad44759d1ce857e5b1c14b0706773a3be6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3677160875"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] no `final` on classes under `javaagent/src/main/`. matches the equivalent helper `redis.clients.jedis.DefaultJedisSocketFactoryUtil`.\n\n```suggestion\npublic class OpenTelemetryBasicDataSourceUtil {\n```",
+      "created": "2026-07-29T18:43:54Z",
+      "hunk": "@@ -0,0 +1,25 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package org.apache.commons.dbcp2;\n+\n+import java.util.Properties;\n+import javax.annotation.Nullable;\n+import javax.management.ObjectName;\n+\n+// Helper for accessing non-public BasicDataSource methods from the same package.\n+public final class OpenTelemetryBasicDataSourceUtil {",
+      "id": "PRRT_kwDODJKVX86U3u7J",
+      "opened": "2026-07-29T18:54:49Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/org/apache/commons/dbcp2/OpenTelemetryBasicDataSourceUtil.java",
+      "replies": [],
+      "reviewed": "a268b7ad44759d1ce857e5b1c14b0706773a3be6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3677160895"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] The \"`name` key property, else the whole `ObjectName`\" derivation is now duplicated verbatim in `PreRegisterAdvice` below. Worth pulling into an overload next to the existing one in `ApacheDbcpSingletons`:\n\n```java\n  public static String getDataSourceName(ObjectName objectName) {\n    String name = objectName.getKeyProperty(\"name\");\n    return name != null ? name : objectName.toString();\n  }\n```\n\nwhich also collapses the two-stage `dataSourceName == null` dance here:\n\n```suggestion\n      ObjectName objectName = OpenTelemetryBasicDataSourceUtil.getRegisteredJmxName(dataSource);\n      String dataSourceName =\n          objectName != null ? getDataSourceName(objectName) : getDataSourceName(dataSource);\n```",
+      "created": "2026-07-30T13:03:09Z",
+      "hunk": "@@ -27,37 +29,61 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer typeTransformer) {\n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n-        getClass().getName() + \"$PreRegisterAdvice\");\n+        named(\"startPoolMaintenance\").and(takesArguments(0)),\n+        getClass().getName() + \"$StartPoolMaintenanceAdvice\");\n+\n+    typeTransformer.applyAdviceToMethod(\n+        isPublic().and(named(\"close\")).and(takesArguments(0)),\n+        getClass().getName() + \"$CloseAdvice\");\n \n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"postDeregister\")), getClass().getName() + \"$PostDeregisterAdvice\");\n+        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n+        getClass().getName() + \"$PreRegisterAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n-  public static class PreRegisterAdvice {\n+  public static class StartPoolMaintenanceAdvice {\n     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n-    public static void onExit(\n-        @Advice.This BasicDataSource dataSource, @Advice.Return ObjectName objectName) {\n-      String dataSourceName;\n+    public static void onExit(@Advice.This BasicDataSource dataSource) {\n+      String dataSourceName = null;\n+      ObjectName objectName = OpenTelemetryBasicDataSourceUtil.getRegisteredJmxName(dataSource);\n       if (objectName != null) {\n         dataSourceName = objectName.getKeyProperty(\"name\");\n         if (dataSourceName == null) {\n           dataSourceName = objectName.toString();\n         }\n-      } else {\n-        // fallback just in case it is somehow registered without a name\n-        dataSourceName = \"dbcp2-\" + System.identityHashCode(dataSource);\n+      }\n+      if (dataSourceName == null) {\n+        dataSourceName = getDataSourceName(dataSource);\n       }",
+      "id": "PRRT_kwDODJKVX86VGzq0",
+      "opened": "2026-07-30T13:19:37Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+      "replies": [],
+      "reviewed": "992f82bb2a68e01d127e025967dc549182509c3a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3682879852"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      String dataSourceName = getDataSourceName(objectName);\n```",
+      "created": "2026-07-30T13:03:10Z",
+      "hunk": "@@ -27,37 +29,61 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer typeTransformer) {\n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n-        getClass().getName() + \"$PreRegisterAdvice\");\n+        named(\"startPoolMaintenance\").and(takesArguments(0)),\n+        getClass().getName() + \"$StartPoolMaintenanceAdvice\");\n+\n+    typeTransformer.applyAdviceToMethod(\n+        isPublic().and(named(\"close\")).and(takesArguments(0)),\n+        getClass().getName() + \"$CloseAdvice\");\n \n     typeTransformer.applyAdviceToMethod(\n-        isPublic().and(named(\"postDeregister\")), getClass().getName() + \"$PostDeregisterAdvice\");\n+        isPublic().and(named(\"preRegister\")).and(takesArguments(2)),\n+        getClass().getName() + \"$PreRegisterAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n-  public static class PreRegisterAdvice {\n+  public static class StartPoolMaintenanceAdvice {\n     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n-    public static void onExit(\n-        @Advice.This BasicDataSource dataSource, @Advice.Return ObjectName objectName) {\n-      String dataSourceName;\n+    public static void onExit(@Advice.This BasicDataSource dataSource) {\n+      String dataSourceName = null;\n+      ObjectName objectName = OpenTelemetryBasicDataSourceUtil.getRegisteredJmxName(dataSource);\n       if (objectName != null) {\n         dataSourceName = objectName.getKeyProperty(\"name\");\n         if (dataSourceName == null) {\n           dataSourceName = objectName.toString();\n         }\n-      } else {\n-        // fallback just in case it is somehow registered without a name\n-        dataSourceName = \"dbcp2-\" + System.identityHashCode(dataSource);\n+      }\n+      if (dataSourceName == null) {\n+        dataSourceName = getDataSourceName(dataSource);\n       }\n       telemetry().registerMetrics(dataSource, dataSourceName);\n     }\n   }\n \n   @SuppressWarnings(\"unused\")\n-  public static class PostDeregisterAdvice {\n-    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+  public static class CloseAdvice {\n+    @Advice.OnMethodExit(suppress = Throwable.class, onThrowable = Throwable.class, inline = false)\n     public static void onExit(@Advice.This BasicDataSource dataSource) {\n       telemetry().unregisterMetrics(dataSource);\n     }\n   }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class PreRegisterAdvice {\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This BasicDataSource dataSource, @Advice.Return ObjectName objectName) {\n+      if (objectName == null) {\n+        return;\n+      }\n+\n+      String dataSourceName = objectName.getKeyProperty(\"name\");\n+      if (dataSourceName == null) {\n+        dataSourceName = objectName.toString();\n+      }",
+      "id": "PRRT_kwDODJKVX86VGzq-",
+      "opened": "2026-07-30T13:19:37Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+      "replies": [],
+      "reviewed": "992f82bb2a68e01d127e025967dc549182509c3a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3682879872"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] `BasicDataSource.postDeregister()` is a documented NO-OP, so this override only did something because of `PostDeregisterAdvice` — which this PR deletes. As of this PR it is dead code, and so is every `shutdown(dataSource)` call in the new tests below (`dataSource.close()` is what unregisters now).\n\nSince the library test still needs the hook, the cleanest fix is to give the base class a no-op default:\n\n```java\n  protected void shutdown(BasicDataSource dataSource) throws Exception {}\n```\n\nthen drop this override and the `shutdown(dataSource)` calls from this class. Otherwise the tests read as if deregistration is what stops the metrics, which is no longer true.",
+      "created": "2026-07-30T13:03:10Z",
+      "hunk": "@@ -24,14 +26,169 @@ protected InstrumentationExtension testing() {\n   }\n \n   @Override\n-  protected void configure(BasicDataSource dataSource, String dataSourceName) throws Exception {\n-    dataSource.preRegister(\n-        ManagementFactory.getPlatformMBeanServer(),\n-        new ObjectName(\"io.opentelemetry.db:name=\" + dataSourceName));\n+  protected void configure(BasicDataSource dataSource, String dataSourceName) {\n+    dataSource.setJmxName(\"org.apache.commons.dbcp2:type=BasicDataSource,name=\" + dataSourceName);\n   }\n \n   @Override\n   protected void shutdown(BasicDataSource dataSource) {\n     dataSource.postDeregister();\n   }",
+      "id": "PRRT_kwDODJKVX86VGzrC",
+      "opened": "2026-07-30T13:19:37Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "992f82bb2a68e01d127e025967dc549182509c3a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3682879878"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] Same thing here — `postDeregister()` is a NO-OP on a `BasicDataSource` and there is no longer any advice on it, so this line does nothing on a freshly constructed data source.\n\n```suggestion\n```",
+      "created": "2026-07-30T13:03:10Z",
+      "hunk": "@@ -37,36 +37,46 @@ protected abstract void configure(BasicDataSource dataSource, String dataSourceN\n \n   @Test\n   void shouldReportMetrics() throws Exception {\n-    // given\n+    String dataSourceName = \"dataSourceName\";\n+    BasicDataSource dataSource = createDataSource();\n+    try {\n+      configure(dataSource, dataSourceName);\n+\n+      dataSource.getConnection().close();\n+\n+      assertDataSourceMetrics(dataSourceName);\n+    } finally {\n+      dataSource.close();\n+      shutdown(dataSource);\n+    }\n+\n+    assertNoMetrics();\n+  }\n+\n+  protected BasicDataSource createDataSource() throws Exception {\n     when(driverMock.connect(any(), any())).thenReturn(connectionMock);\n     when(connectionMock.isValid(anyInt())).thenReturn(true);\n \n-    String dataSourceName = \"dataSourceName\";\n     BasicDataSource dataSource = new BasicDataSource();\n     dataSource.setDriver(driverMock);\n     dataSource.setUrl(\"db:///url\");\n     dataSource.postDeregister();",
+      "id": "PRRT_kwDODJKVX86VGzrJ",
+      "opened": "2026-07-30T13:19:37Z",
+      "path": "instrumentation/apache-dbcp-2.0/testing/src/main/java/io/opentelemetry/instrumentation/apachedbcp/AbstractApacheDbcpInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "992f82bb2a68e01d127e025967dc549182509c3a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3682879886"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] The lifecycle paragraph doesn't cover the new `preRegister` path. On DBCP 2.0, a configured `jmxName` makes `createDataSource()` register the MBean before pool creation, so `PreRegisterAdvice` registers metrics *before* `startPoolMaintenance()`. Independently, registering a `BasicDataSource` as an MBean after pool startup unregisters and re-registers the callback, changing `pool.name` from the URL-derived value to the `ObjectName`-derived one (which is what `shouldUpdateDataSourceNameWhenMBeanIsRegisteredAfterPoolStart` covers).\n\n```suggestion\nThis auto-instrumentation registers metrics when the connection pool is initialized\n(`BasicDataSource.startPoolMaintenance()`) or when `BasicDataSource.preRegister(...)` is invoked\nduring MBean registration, whichever comes first, and unregisters them when the `BasicDataSource`\nis closed. JMX registration is not required. When a JMX `ObjectName` is available, its `name`\nproperty is used as the pool name; if the property is absent, the full `ObjectName` is used.\nOtherwise, the JDBC URL and connection properties are used to derive\n`server.address[:server.port][/db.namespace]`. If neither server address nor database namespace is\navailable, `apache-dbcp2` is used. A pool registered as an MBean after it has already started\nswitches from the derived name to the `ObjectName`-based name.\n```\n\nThe same paragraph in `instrumentation/apache-dbcp-2.0/metadata.yaml` needs the corresponding update.",
+      "created": "2026-07-31T13:55:30Z",
+      "hunk": "@@ -3,7 +3,10 @@\n Provides OpenTelemetry auto-instrumentation\n for [Apache DBCP](https://commons.apache.org/proper/commons-dbcp/).\n \n-This auto-instrumentation uses `MBeanRegistration` methods for lifecycle detection, therefore it\n-only activates if the `BasicDataSource` is registered to an `MBeanServer`. If using Spring Boot,\n-this happens automatically as all Spring beans that support JMX registration are automatically\n-registered by default.\n+This auto-instrumentation registers metrics after `BasicDataSource` completes\n+`startPoolMaintenance()`, when the connection pool has been initialized, and unregisters metrics\n+when `BasicDataSource` is closed. JMX registration is not required. When a JMX `ObjectName` is\n+available, its `name` property is used as the pool name; if the property is absent, the full\n+`ObjectName` is used. Otherwise, the JDBC URL and connection properties are used to derive\n+`server.address[:server.port][/db.namespace]`. If neither server address nor database namespace is\n+available, `apache-dbcp2` is used.",
+      "id": "PRRT_kwDODJKVX86Vb2Pi",
+      "opened": "2026-07-31T14:16:02Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/README.md",
+      "replies": [],
+      "reviewed": "75fe2cc1abf7c8723fd5b049eb7bc7555879e116",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3690907865"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`serverAddress` can be a literal IPv6 address, and appending `:port` straight onto it gives `::1:5432`, which reads as a bare address rather than address + port. Worth bracketing here, same as `UrlParsingUtils.buildShortUrl` does when it builds `db.connection_string`.\r\n\r\n```suggestion\r\n    if (serverAddress != null) {\r\n      if (serverAddress.indexOf(':') >= 0) {\r\n        poolName.append('[').append(serverAddress).append(']');\r\n      } else {\r\n        poolName.append(serverAddress);\r\n      }\r\n      if (serverPort != null) {\r\n        poolName.append(':').append(serverPort);\r\n      }\r\n    }\r\n```\r\n\r\nThis depends on #19366 landing first, which normalizes `getServerAddress()` to always be unbracketed. Today it's already bracketed for some drivers, so the plain colon check would double-bracket those.\r\n\r\nCould you also add a name-derivation test with an IPv6 URL, e.g. `jdbc:postgresql://[2001:db8::1]:5432/orders` -> `[2001:db8::1]:5432/orders`?",
+      "created": "2026-08-01T17:23:18Z",
+      "hunk": "@@ -17,5 +22,45 @@ public static ApacheDbcpTelemetry telemetry() {\n     return telemetry;\n   }\n \n+  public static String getDataSourceName(ObjectName objectName) {\n+    String name = objectName.getKeyProperty(\"name\");\n+    return name != null ? name : objectName.toString();\n+  }\n+\n+  public static String getDataSourceName(BasicDataSource dataSource) {\n+    DbInfo dbInfo =\n+        JdbcConnectionUrlParser.parse(\n+            dataSource.getUrl(),\n+            OpenTelemetryBasicDataSourceUtil.getConnectionProperties(dataSource));\n+    String serverAddress = dbInfo.getServerAddress();\n+    Integer serverPort = dbInfo.getServerPort();\n+    String dbNamespace = dbInfo.getDbNamespace();\n+\n+    StringBuilder poolName = new StringBuilder();\n+    if (serverAddress != null) {\n+      poolName.append(serverAddress);\n+      if (serverPort != null) {\n+        poolName.append(':').append(serverPort);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86VptiT",
+      "opened": "2026-08-01T17:24:31Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+      "replies": [],
+      "reviewed": "4fe0e6da99b4fcd05bb3b0069b1aae2b5101cc19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3696167222"
+    }
+  ]
+}

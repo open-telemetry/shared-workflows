@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e7b20d7bdb4f47dcf1b483a96ef29b552dae54a9d784610b0d69184a96b7ecfe",
+  "input_digest": "1e79e0c72ef6b25341be62b14c245d350a791a90534a4f4876d63442d6d10578",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/156a41ab2b0bb88a7e63c40583f58d4539a3f38f/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingExecutionInterceptor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/152e91f065c97b4fb5cc73406b97233b92a38660/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingExecutionInterceptor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f2e66ad2d852061ea0b039e92600b8eb71bbcbc2"
+      ],
+      "id": "PRRT_kwDODJKVX861oV6f",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/156a41ab2b0bb88a7e63c40583f58d4539a3f38f/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingExecutionInterceptor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/152e91f065c97b4fb5cc73406b97233b92a38660/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingExecutionInterceptor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f2e66ad2d852061ea0b039e92600b8eb71bbcbc2"
+      ],
+      "id": "PRRT_kwDODJKVX861ojjB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

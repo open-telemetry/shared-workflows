@@ -1,0 +1,31 @@
+{
+  "head": "cdd575cdb5c82f4e26592dc3cf163eeed1c3a56c",
+  "merge": "208a79a806ce541cd281562191f820387b85c773",
+  "merged": "2026-01-27T12:32:20Z",
+  "missing_roots": 0,
+  "number": 15977,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "a suggestion to make it a little more readable for me at least\r\n\r\n```\r\n  @Nullable\r\n  static Context getCallingContextForRequest(Request request) {\r\n    if (supportsTags) {\r\n      return getContextFromTag(request);\r\n    }\r\n    return contextsByRequest.get(request);\r\n  }\r\n\r\n  @NoMuzzle\r\n  private static Context getContextFromTag(Request request) {\r\n    return request.tag(Context.class);\r\n  }\r\n\r\n  @Override\r\n  public Call newCall(Request request) {\r\n    Context callingContext = Context.current();\r\n    Request requestWithContext = attachContextToRequest(request, callingContext);\r\n    return new TracingCall(okHttpClient.newCall(requestWithContext), callingContext);\r\n  }\r\n\r\n  private static Request attachContextToRequest(Request request, Context context) {\r\n    Request.Builder builder = request.newBuilder();\r\n    if (supportsTags) {\r\n      setContextOnTag(builder, context);\r\n    }\r\n    Request newRequest = builder.build();\r\n    if (!supportsTags) {\r\n      contextsByRequest.set(newRequest, context);\r\n    }\r\n    return newRequest;\r\n  }\r\n\r\n  @NoMuzzle\r\n  private static void setContextOnTag(Request.Builder builder, Context context) {\r\n    builder.tag(Context.class, context);\r\n  }\r\n```",
+      "created": "2026-01-24T02:55:25Z",
+      "hunk": "@@ -48,19 +44,49 @@ class TracingCallFactory implements Call.Factory {\n     this.okHttpClient = okHttpClient;\n   }\n \n+  // tags with class type are supported since OkHttp 3.11.0\n+  private static boolean supportsTags() {\n+    try {\n+      Request.class.getMethod(\"tag\", Class.class);\n+      Request.Builder.class.getMethod(\"tag\", Class.class, Object.class);\n+      return true;\n+    } catch (NoSuchMethodException e) {\n+      return false;\n+    }\n+  }\n+\n   @Nullable\n   static Context getCallingContextForRequest(Request request) {\n-    return contextsByRequest.get(request);\n+    if (!supportsTags) {\n+      return contextsByRequest.get(request);\n+    }\n+    return readContextFromRequestTag(request);\n+  }\n+\n+  @NoMuzzle\n+  private static Context readContextFromRequestTag(Request request) {\n+    return request.tag(Context.class);\n   }\n \n   @Override\n   public Call newCall(Request request) {\n     Context callingContext = Context.current();\n-    Request requestCopy = request.newBuilder().build();\n-    contextsByRequest.set(requestCopy, callingContext);\n+    Request requestCopy = saveContextFromRequestTag(request.newBuilder(), callingContext).build();\n+    if (!supportsTags) {\n+      contextsByRequest.set(requestCopy, callingContext);\n+    }\n     return new TracingCall(okHttpClient.newCall(requestCopy), callingContext);\n   }\n \n+  @NoMuzzle\n+  private static Request.Builder saveContextFromRequestTag(\n+      Request.Builder builder, Context context) {\n+    if (!supportsTags) {\n+      return builder;\n+    }\n+    return builder.tag(Context.class, context);\n+  }\n+",
+      "id": "PRRT_kwDODJKVX85q2IZa",
+      "opened": "2026-01-24T02:55:29Z",
+      "path": "instrumentation/okhttp/okhttp-3.0/library/src/main/java/io/opentelemetry/instrumentation/okhttp/v3_0/TracingCallFactory.java",
+      "replies": [
+        {
+          "at": "2026-01-26T14:47:42Z",
+          "body": "code updated",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15977#discussion_r2727901597"
+        }
+      ],
+      "reviewed": "6543437239e8db466371b9b3a3376809e2547bc6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15977#discussion_r2723502812"
+    }
+  ]
+}

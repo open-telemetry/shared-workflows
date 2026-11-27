@@ -1,0 +1,46 @@
+{
+  "head": "e4505092b1bf59deb63239b2f3b1e3c1b475442a",
+  "merge": "e571ab0bb4a436577e554159865ff3e5388bf82d",
+  "merged": "2026-06-15T17:17:31Z",
+  "missing_roots": 0,
+  "number": 18998,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The disable condition only matches JVM names containing \"OpenJ9\". Some OpenJ9-based JVMs report `java.vm.name` as \"IBM J9 VM\" (see existing usage in `testing-common/.../AbstractHttpClientTest`), so these tests may still run and fail on that runtime. Consider widening the regex and adding a short `disabledReason` for clarity in test reports.",
+      "created": "2026-06-15T11:42:53Z",
+      "hunk": "@@ -8,8 +8,10 @@\n import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n import io.opentelemetry.javaagent.instrumentation.hbase.testing.AbstractHbaseTest;\n+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;\n import org.junit.jupiter.api.extension.RegisterExtension;\n \n+@DisabledIfSystemProperty(named = \"java.vm.name\", matches = \".*OpenJ9.*\")",
+      "id": "PRRT_kwDODJKVX86Jj0mx",
+      "opened": "2026-06-15T11:42:54Z",
+      "path": "instrumentation/hbase-client-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseClient20Test.java",
+      "replies": [
+        {
+          "at": "2026-06-15T11:48:01Z",
+          "body": "It is fine since we only run these on openj9 and not the ibm vm. Note that the `@DisabledIfSystemProperty` in `AbstractHttpClientTest` doesn't really apply since that test is not run on ibm vm, might be better to delete it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18998#discussion_r3413197336"
+        }
+      ],
+      "reviewed": "e4505092b1bf59deb63239b2f3b1e3c1b475442a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18998#discussion_r3413170519"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The disable condition only matches JVM names containing \"OpenJ9\". Some OpenJ9-based JVMs report `java.vm.name` as \"IBM J9 VM\" (there’s an existing `@DisabledIfSystemProperty` using that value in `testing-common/.../AbstractHttpClientTest`), so this shaded-client test may still run and fail on that runtime. Consider widening the regex and adding a short `disabledReason` for clarity in test reports.",
+      "created": "2026-06-15T11:42:54Z",
+      "hunk": "@@ -8,8 +8,10 @@\n import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n import io.opentelemetry.javaagent.instrumentation.hbase.testing.AbstractHbaseTest;\n+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;\n import org.junit.jupiter.api.extension.RegisterExtension;\n \n+@DisabledIfSystemProperty(named = \"java.vm.name\", matches = \".*OpenJ9.*\")",
+      "id": "PRRT_kwDODJKVX86Jj0nb",
+      "opened": "2026-06-15T11:42:54Z",
+      "path": "instrumentation/hbase-client-2.0/javaagent/src/shadedClientTest/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseShadedClient20Test.java",
+      "replies": [],
+      "reviewed": "e4505092b1bf59deb63239b2f3b1e3c1b475442a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18998#discussion_r3413170574"
+    }
+  ]
+}

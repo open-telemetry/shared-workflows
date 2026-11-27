@@ -1,0 +1,120 @@
+{
+  "head": "bf2412ffc22f72ae70b25c1d33e30c0c66cf8f85",
+  "merge": "0ef71c8acbc28bb0d184849652d8da11c3b1a063",
+  "merged": "2026-01-30T18:21:45Z",
+  "missing_roots": 0,
+  "number": 16064,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "Is there a good reason to use FQN here ?",
+      "created": "2026-01-30T08:39:11Z",
+      "hunk": "@@ -19,16 +14,25 @@\n  * any time.\n  */\n public class JmxRuntimeMetricsFactory {\n-  @SuppressWarnings(\"CatchingUnchecked\")\n+  @SuppressWarnings({\"CatchingUnchecked\", \"deprecation\"}) // until moved internal and undeprecated\n   public static List<AutoCloseable> buildObservables(\n       OpenTelemetry openTelemetry, boolean emitExperimentalTelemetry, boolean captureGcCause) {\n     // Set up metrics gathered by JMX\n     List<AutoCloseable> observables = new ArrayList<>();\n-    observables.addAll(Classes.registerObservers(openTelemetry));\n-    observables.addAll(Cpu.registerObservers(openTelemetry));\n-    observables.addAll(GarbageCollector.registerObservers(openTelemetry, captureGcCause));\n-    observables.addAll(MemoryPools.registerObservers(openTelemetry));\n-    observables.addAll(Threads.registerObservers(openTelemetry));\n+    observables.addAll(\n+        io.opentelemetry.instrumentation.runtimemetrics.java8.Classes.registerObservers(",
+      "id": "PRRT_kwDODJKVX85r0gqY",
+      "opened": "2026-01-30T08:44:07Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/main/java/io/opentelemetry/instrumentation/runtimemetrics/java8/internal/JmxRuntimeMetricsFactory.java",
+      "replies": [
+        {
+          "at": "2026-01-30T10:57:21Z",
+          "body": "this is usually done so because importing deprecated classes causes warnings that can't be suppressed and the build is configured to fail on warnings",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064#discussion_r2745714679"
+        },
+        {
+          "at": "2026-01-30T16:53:15Z",
+          "body": "yeah, it's annoying...",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064#discussion_r2747145473"
+        }
+      ],
+      "reviewed": "b4d9d99575994ae656a896b38bcb2ee3520ff607",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064#discussion_r2745217443"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "If we suggest using metric views to filter experimental metrics, does this means we would also get rid of this condition or do we still keep it ? From what I understand here the goal for now is only to make the individual metric classes internal.",
+      "created": "2026-01-30T08:41:50Z",
+      "hunk": "@@ -19,16 +14,25 @@\n  * any time.\n  */\n public class JmxRuntimeMetricsFactory {\n-  @SuppressWarnings(\"CatchingUnchecked\")\n+  @SuppressWarnings({\"CatchingUnchecked\", \"deprecation\"}) // until moved internal and undeprecated\n   public static List<AutoCloseable> buildObservables(\n       OpenTelemetry openTelemetry, boolean emitExperimentalTelemetry, boolean captureGcCause) {\n     // Set up metrics gathered by JMX\n     List<AutoCloseable> observables = new ArrayList<>();\n-    observables.addAll(Classes.registerObservers(openTelemetry));\n-    observables.addAll(Cpu.registerObservers(openTelemetry));\n-    observables.addAll(GarbageCollector.registerObservers(openTelemetry, captureGcCause));\n-    observables.addAll(MemoryPools.registerObservers(openTelemetry));\n-    observables.addAll(Threads.registerObservers(openTelemetry));\n+    observables.addAll(\n+        io.opentelemetry.instrumentation.runtimemetrics.java8.Classes.registerObservers(\n+            openTelemetry));\n+    observables.addAll(\n+        io.opentelemetry.instrumentation.runtimemetrics.java8.Cpu.registerObservers(openTelemetry));\n+    observables.addAll(\n+        io.opentelemetry.instrumentation.runtimemetrics.java8.GarbageCollector.registerObservers(\n+            openTelemetry, captureGcCause));\n+    observables.addAll(\n+        io.opentelemetry.instrumentation.runtimemetrics.java8.MemoryPools.registerObservers(\n+            openTelemetry));\n+    observables.addAll(\n+        io.opentelemetry.instrumentation.runtimemetrics.java8.Threads.registerObservers(\n+            openTelemetry));\n     if (emitExperimentalTelemetry) {",
+      "id": "PRRT_kwDODJKVX85r0iXj",
+      "opened": "2026-01-30T08:44:07Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/main/java/io/opentelemetry/instrumentation/runtimemetrics/java8/internal/JmxRuntimeMetricsFactory.java",
+      "replies": [
+        {
+          "at": "2026-01-30T16:55:44Z",
+          "body": "I think we keep it, at least for now. We could consider removing it after https://github.com/open-telemetry/opentelemetry-specification/pull/4809, though we could also keep it even then as \"emit experimental telemetry\" is a pattern we use throughout.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064#discussion_r2747154153"
+        }
+      ],
+      "reviewed": "b4d9d99575994ae656a896b38bcb2ee3520ff607",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064#discussion_r2745226910"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "Do we have an example implementation with Java SDK we could link to ?",
+      "created": "2026-01-30T08:43:54Z",
+      "hunk": "@@ -29,18 +29,20 @@ runtimeOnly(\"io.opentelemetry.instrumentation:opentelemetry-runtime-telemetry-ja\n \n ### Usage\n \n-Register observers for the desired runtime metrics:\n+Register JVM runtime metrics:\n \n ```java\n OpenTelemetry openTelemetry = // OpenTelemetry instance configured elsewhere\n \n-Classes.registerObservers(openTelemetry);\n-Cpu.registerObservers(openTelemetry);\n-MemoryPools.registerObservers(openTelemetry);\n-Threads.registerObservers(openTelemetry);\n-GarbageCollector.registerObservers(openTelemetry);\n+RuntimeMetrics runtimeMetrics = RuntimeMetrics.create(openTelemetry);\n+\n+// When done, close to stop metric collection\n+runtimeMetrics.close();\n ```\n \n+To select specific metrics, configure [metric views](https://opentelemetry.io/docs/specs/otel/metrics/sdk/#view)",
+      "id": "PRRT_kwDODJKVX85r0jkx",
+      "opened": "2026-01-30T08:44:07Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/library/README.md",
+      "replies": [
+        {
+          "at": "2026-01-30T17:21:36Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064/commits/bf2412ffc22f72ae70b25c1d33e30c0c66cf8f85",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064#discussion_r2747241451"
+        }
+      ],
+      "reviewed": "b4d9d99575994ae656a896b38bcb2ee3520ff607",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064#discussion_r2745233481"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "since this is an internal class we don't really need to do anything with it",
+      "created": "2026-01-30T10:56:10Z",
+      "hunk": "@@ -24,7 +24,11 @@\n  *\n  * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n  * at any time.\n+ *\n+ * @deprecated Use {@link io.opentelemetry.instrumentation.runtimemetrics.java8.RuntimeMetrics}\n+ *     instead, and configure metric views to select specific metrics.\n  */\n+@Deprecated",
+      "id": "PRRT_kwDODJKVX85r17Ny",
+      "opened": "2026-01-30T10:56:10Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/main/java/io/opentelemetry/instrumentation/runtimemetrics/java8/internal/ExperimentalBufferPools.java",
+      "replies": [
+        {
+          "at": "2026-01-30T16:58:16Z",
+          "body": "I tend to think of `.internal.Experimental*` as one step above other `.internal` classes. since easy in this case (and doesn't require annoying copy), I'd suggest go ahead with deprecation (but agree we don't necessarily need to)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064#discussion_r2747163746"
+        }
+      ],
+      "reviewed": "b4d9d99575994ae656a896b38bcb2ee3520ff607",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064#discussion_r2745710650"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "if your goal is just to move these to internal then maybe it would be easier to move the class, drop final, add deprecated class in original location that extends the moved class",
+      "created": "2026-01-30T10:59:22Z",
+      "hunk": "@@ -32,7 +32,11 @@\n  *   jvm.class.unloaded 2\n  *   jvm.class.count 98\n  * </pre>\n+ *\n+ * @deprecated Use {@link RuntimeMetrics} instead, and configure metric views to select specific\n+ *     metrics.\n  */\n+@Deprecated",
+      "id": "PRRT_kwDODJKVX85r19MR",
+      "opened": "2026-01-30T10:59:22Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/library/src/main/java/io/opentelemetry/instrumentation/runtimemetrics/java8/Classes.java",
+      "replies": [
+        {
+          "at": "2026-01-30T17:13:44Z",
+          "body": "done in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064/commits/cfbec4db7f2a73b525b86c0a4f4b492f58240c54",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064#discussion_r2747217408"
+        }
+      ],
+      "reviewed": "b4d9d99575994ae656a896b38bcb2ee3520ff607",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16064#discussion_r2745720922"
+    }
+  ]
+}

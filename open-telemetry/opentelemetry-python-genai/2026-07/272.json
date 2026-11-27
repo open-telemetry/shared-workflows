@@ -1,0 +1,61 @@
+{
+  "head": "4782c106219d71af023f71f77087d802b0872976",
+  "merge": "0d76ad9abdd8c6eb39dbe6ee69abfc33052e5d31",
+  "merged": "2026-07-25T19:25:13Z",
+  "missing_roots": 0,
+  "number": 272,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`extract_token_details` assumes `input_token_details` / `output_token_details` are dicts; if either key is present but contains a non-dict truthy value, the subsequent `.get(...)` calls will raise at runtime. Since this is instrumentation code, it should be defensive and treat non-dict values as “no details”.",
+      "created": "2026-07-16T22:20:29Z",
+      "hunk": "@@ -319,3 +319,29 @@ def serialize(obj: Any) -> Optional[str]:\n         return json.dumps(obj, ensure_ascii=False, default=str)\n     except (TypeError, ValueError):\n         return None\n+\n+\n+def extract_token_details(usage_metadata: dict[str, Any]) -> dict[str, int]:\n+    \"\"\"Extract cache/reasoning token break-downs from LangChain usage metadata.\"\"\"\n+\n+    token_details: dict[str, int] = {}\n+    input_details: dict[str, Any] = (\n+        usage_metadata.get(\"input_token_details\") or {}\n+    )\n+    output_details: dict[str, Any] = (\n+        usage_metadata.get(\"output_token_details\") or {}\n+    )\n+",
+      "id": "PRRT_kwDOSbspP86Rmya7",
+      "opened": "2026-07-16T22:20:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [],
+      "reviewed": "6007a226c5d63e6b4a33f98300a6505891e5ab16",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/272#discussion_r3599312176"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`usage_metadata.get(\"input_tokens\"/\"output_tokens\")` can return non-ints (e.g. `None` or a string) from custom LangChain integrations. That would either store invalid types on the invocation (breaking util-genai metrics/attributes) or raise a `TypeError` later when subtracting `reasoning_tokens`. Coerce to `int` (or default to 0) before assigning/doing arithmetic.",
+      "created": "2026-07-16T22:20:29Z",
+      "hunk": "@@ -362,18 +363,42 @@ def on_llm_end(\n \n                     # Get token usage if available\n                     if chat_generation.message.usage_metadata:\n-                        input_tokens = (\n-                            chat_generation.message.usage_metadata.get(\n-                                \"input_tokens\", 0\n-                            )\n-                        )\n+                        usage_metadata = chat_generation.message.usage_metadata\n+                        input_tokens = usage_metadata.get(\"input_tokens\", 0)\n                         llm_invocation.input_tokens = input_tokens\n \n-                        output_tokens = (\n-                            chat_generation.message.usage_metadata.get(\n-                                \"output_tokens\", 0\n+                        output_tokens = usage_metadata.get(\"output_tokens\", 0)\n+",
+      "id": "PRRT_kwDOSbspP86RmyaO",
+      "opened": "2026-07-16T22:20:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "6007a226c5d63e6b4a33f98300a6505891e5ab16",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/272#discussion_r3599312121"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "no longer the case https://github.com/open-telemetry/opentelemetry-python-genai/pull/283",
+      "created": "2026-07-20T23:45:13Z",
+      "hunk": "@@ -362,18 +363,50 @@ def on_llm_end(\n \n                     # Get token usage if available\n                     if chat_generation.message.usage_metadata:\n-                        input_tokens = (\n-                            chat_generation.message.usage_metadata.get(\n-                                \"input_tokens\", 0\n-                            )\n-                        )\n+                        usage_metadata = chat_generation.message.usage_metadata\n+                        input_tokens = usage_metadata.get(\"input_tokens\", 0)\n+                        if not isinstance(input_tokens, int) or isinstance(\n+                            input_tokens, bool\n+                        ):\n+                            input_tokens = 0\n                         llm_invocation.input_tokens = input_tokens\n \n-                        output_tokens = (\n-                            chat_generation.message.usage_metadata.get(\n-                                \"output_tokens\", 0\n+                        output_tokens = usage_metadata.get(\"output_tokens\", 0)\n+                        if not isinstance(output_tokens, int) or isinstance(\n+                            output_tokens, bool\n+                        ):\n+                            output_tokens = 0\n+\n+                        # Cache/reasoning break-downs (Anthropic, OpenAI\n+                        # reasoning models, Bedrock). Audio tokens are dropped\n+                        # (no GenAI semconv attribute).\n+                        token_details = extract_token_details(\n+                            cast(dict[str, Any], usage_metadata)\n+                        )\n+                        cache_creation = token_details.get(\n+                            \"cache_creation_input_tokens\"\n+                        )\n+                        if cache_creation is not None:\n+                            llm_invocation.cache_creation_input_tokens = (\n+                                cache_creation\n                             )\n+                        cache_read = token_details.get(\n+                            \"cache_read_input_tokens\"\n+                        )\n+                        if cache_read is not None:\n+                            llm_invocation.cache_read_input_tokens = cache_read\n+                        reasoning_tokens = token_details.get(\n+                            \"reasoning_tokens\"\n                         )\n+                        if reasoning_tokens is not None:\n+                            llm_invocation.thinking_tokens = reasoning_tokens\n+                            # LangChain folds reasoning into ``output_tokens``;\n+                            # util-genai re-sums ``output + thinking`` so\n+                            # subtract here to keep the provider total intact.\n+                            output_tokens = max(\n+                                output_tokens - reasoning_tokens, 0",
+      "id": "PRRT_kwDOSbspP86SabfW",
+      "opened": "2026-07-20T23:49:15Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-07-21T00:05:01Z",
+          "body": "Addressed. Thanks for the callout.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/272#discussion_r3618397650"
+        }
+      ],
+      "reviewed": "b8c30fc1e4f5892660e71050473f47ab5dc6e58d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/272#discussion_r3618295297"
+    }
+  ]
+}

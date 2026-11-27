@@ -1,0 +1,206 @@
+{
+  "head": "8ddeb50328f8dd6cf152784be9f94e88e67fed0e",
+  "merge": "a5c666badfb1225f2fd124e8aef4110aea4a4ca2",
+  "merged": "2026-05-10T19:18:24Z",
+  "missing_roots": 0,
+  "number": 124,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "> input messages, system instructions, tool definitions, agent/workflow identity, and tool call arguments\n\nwhy? those are expensive to obtain - we should not collect them before span/ activity starts for perf reasons",
+      "created": "2026-05-08T18:14:12Z",
+      "hunk": "@@ -42,10 +42,11 @@ If the value would have to be guessed, carried forward from an unrelated call, o\n \n When editing reference tests in this repository:\n \n-- Open the span **around** the SDK call, not after it. Set request attributes inline before invoking the library, invoke the library inside the `with` block, then set response attributes from the returned object inside the same `with` block. Do not capture a completion and replay attribute emission against it after the span has closed or against a separately-opened span.\n+- Open the span **around** the SDK call, not after it. Put request-side attributes that are known before the call in the span-start `attributes` / `tags` argument so samplers can see them. Then invoke the library inside the `with` block and set response attributes from the returned object inside the same `with` block. Do not capture a completion and replay attribute emission against it after the span has closed or against a separately-opened span.\n - When the library's public entry point does not expose the operation directly (for example, an internal-only span boundary inside a library helper), it is acceptable to patch the library's private methods to open spans around them. The scenario itself must still invoke the **public** API. Do not call private methods directly from the scenario.\n - Emit attributes inline at the span or activity site.\n - Keep request, derived, and response attributes close together.\n+- Do not delay sampler-visible request attributes with `span.set_attribute` / `activity.SetTag` when their values are already available at span or activity creation time. This includes operation name, provider, request model and parameters, server address/port, input messages, system instructions, tool definitions, agent/workflow identity, and tool call arguments. Keep response values, generated IDs, token usage, output messages, retrieval results, and tool results after the operation that produces them.",
+      "id": "PRRT_kwDOSUeMrM6AtA8f",
+      "opened": "2026-05-08T18:14:56Z",
+      "path": ".github/skills/reference/SKILL.md",
+      "replies": [
+        {
+          "at": "2026-05-08T18:54:39Z",
+          "body": "good point 👍",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3210722850"
+        },
+        {
+          "at": "2026-05-08T19:06:24Z",
+          "body": "changed it to split based on simple / complex attribute type, do you think that distinction works? another option would be to only pass sampling relevant attributes to span start",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3210774725"
+        },
+        {
+          "at": "2026-05-08T20:50:30Z",
+          "body": "> another option would be to only pass sampling relevant attributes to span start\r\n\r\nthat would be my preference",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3211267167"
+        }
+      ],
+      "reviewed": "17354c8b69b152ce9dad506e1f001e97b76fca0d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3210535910"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.agent.name` is set only after the `create_agent` span has started. Since `assistant_name` is already known, pass `gen_ai.agent.name` (and any other sampling-relevant agent fields) via the `attributes=` argument when starting the span so it’s available for span-start sampling decisions.\n",
+      "created": "2026-05-08T21:52:36Z",
+      "hunk": "@@ -58,21 +58,18 @@ def get_weather(location):\n     ]\n \n     # Create assistant\n-    with tracer.start_as_current_span(\"create_agent\", kind=SpanKind.CLIENT) as span:\n-        span.set_attribute(\"gen_ai.operation.name\", \"create_agent\")\n-        span.set_attribute(\"gen_ai.provider.name\", \"openai\")\n-        span.set_attribute(\"gen_ai.request.model\", request_model)\n-        span.set_attribute(\"server.address\", _SERVER_ADDRESS)\n-        span.set_attribute(\"server.port\", _SERVER_PORT)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"create_agent\",\n+        \"gen_ai.provider.name\": \"openai\",\n+        \"gen_ai.request.model\": request_model,\n+        \"server.address\": _SERVER_ADDRESS,\n+        \"server.port\": _SERVER_PORT,\n+    }\n+    with tracer.start_as_current_span(\"create_agent\", kind=SpanKind.CLIENT, attributes=span_attributes) as span:\n+        span.set_attribute(\"gen_ai.agent.name\", assistant_name)\n+        span.set_attribute(\"gen_ai.agent.description\", assistant_description)",
+      "id": "PRRT_kwDOSUeMrM6Av31z",
+      "opened": "2026-05-08T21:52:38Z",
+      "path": "reference/scenarios/openai-assistants/scenario.py",
+      "replies": [],
+      "reviewed": "ff29f94c5d1757929a3c72cb2a9ee01ca39f0254",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3211560472"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For the `invoke_agent` span, `gen_ai.agent.name` is set after the span starts even though the value is already available from `assistant` at this point. Consider including `gen_ai.agent.name` in `span_attributes_2` so it’s present at span start for sampling decisions.\n",
+      "created": "2026-05-08T21:52:36Z",
+      "hunk": "@@ -98,43 +92,32 @@ def get_weather(location):\n     )\n \n     # Create run and wrap in manual invoke_agent span\n-    with tracer.start_as_current_span(\"invoke_agent\", kind=SpanKind.CLIENT) as span:\n-        span.set_attribute(\"gen_ai.operation.name\", \"invoke_agent\")\n-        span.set_attribute(\"gen_ai.provider.name\", \"openai\")\n+    span_attributes_2 = {\n+        \"gen_ai.operation.name\": \"invoke_agent\",\n+        \"gen_ai.provider.name\": \"openai\",\n+        \"gen_ai.request.model\": request_model,\n+        \"server.address\": _SERVER_ADDRESS,\n+        \"server.port\": _SERVER_PORT,\n+    }\n+    with tracer.start_as_current_span(\"invoke_agent\", kind=SpanKind.CLIENT, attributes=span_attributes_2) as span:\n         span.set_attribute(\"gen_ai.agent.id\", assistant.id)\n         span.set_attribute(\"gen_ai.agent.name\", assistant.name or \"\")",
+      "id": "PRRT_kwDOSUeMrM6Av32K",
+      "opened": "2026-05-08T21:52:38Z",
+      "path": "reference/scenarios/openai-assistants/scenario.py",
+      "replies": [],
+      "reviewed": "ff29f94c5d1757929a3c72cb2a9ee01ca39f0254",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3211560498"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.agent.name`/`gen_ai.agent.description` are known before the `create_agent` span starts (constants), but they’re currently set after span start. To align with the “sampling_relevant at span start” guidance, include these in `span_attributes` passed to `start_as_current_span`.\n",
+      "created": "2026-05-08T21:52:36Z",
+      "hunk": "@@ -69,24 +69,18 @@ def run_invoke_agent(client):\n     ]\n \n     # Create agent version using the v2 AIProjectClient surface.\n-    with tracer.start_as_current_span(\"create_agent\", kind=SpanKind.CLIENT) as span:\n-        span.set_attribute(\"gen_ai.operation.name\", \"create_agent\")\n-        span.set_attribute(\"gen_ai.provider.name\", \"azure.ai.openai\")\n-        span.set_attribute(\"gen_ai.request.model\", AGENT_MODEL)\n-        span.set_attribute(\n-            \"gen_ai.system_instructions\",\n-            json.dumps(\n-                [\n-                    {\n-                        \"type\": \"text\",\n-                        \"content\": AGENT_INSTRUCTIONS,\n-                    }\n-                ]\n-            ),\n-        )\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"create_agent\",\n+        \"gen_ai.provider.name\": \"azure.ai.openai\",\n+        \"gen_ai.request.model\": AGENT_MODEL,\n+        \"server.address\": _SERVER_ADDRESS,\n+        \"server.port\": _SERVER_PORT,\n+    }\n+    with tracer.start_as_current_span(\"create_agent\", kind=SpanKind.CLIENT, attributes=span_attributes) as span:\n+        span.set_attribute(\"gen_ai.agent.name\", AGENT_NAME)\n+        span.set_attribute(\"gen_ai.agent.description\", AGENT_DESCRIPTION)",
+      "id": "PRRT_kwDOSUeMrM6Av32X",
+      "opened": "2026-05-08T21:52:38Z",
+      "path": "reference/scenarios/azure-ai-foundry/scenario.py",
+      "replies": [],
+      "reviewed": "ff29f94c5d1757929a3c72cb2a9ee01ca39f0254",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3211560513"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.agent.name` is available (`researcher_role`) before the `create_agent` span starts, but it’s currently set only after span start. Put `gen_ai.agent.name` into `create_agent_span_attributes` so it’s present at span creation time for sampling decisions.",
+      "created": "2026-05-08T21:52:36Z",
+      "hunk": "@@ -56,33 +56,38 @@ def run_crew():\n     @tool\n     def get_weather(location: str) -> str:\n         \"\"\"Get the current weather for a location.\"\"\"\n-        with _reference_tracer.start_as_current_span(\"execute_tool get_weather\") as tool_span:\n-            tool_span.set_attribute(\"gen_ai.operation.name\", \"execute_tool\")\n+        tool_span_attributes = {\n+            \"gen_ai.operation.name\": \"execute_tool\",\n+        }\n+        with _reference_tracer.start_as_current_span(\n+            \"execute_tool get_weather\", attributes=tool_span_attributes\n+        ) as tool_span:\n             tool_span.set_attribute(\"gen_ai.tool.name\", \"get_weather\")\n             tool_span.set_attribute(\"gen_ai.tool.description\", get_weather.func.__doc__ or \"\")\n             tool_span.set_attribute(\"gen_ai.tool.type\", \"function\")\n-            tool_span.set_attribute(\n-                \"gen_ai.tool.call.arguments\",\n-                json.dumps({\"location\": location}),\n-            )\n+            tool_span.set_attribute(\"gen_ai.tool.call.arguments\", json.dumps({\"location\": location}))\n             result = \"Sunny, 72°F\"\n             tool_span.set_attribute(\"gen_ai.tool.call.result\", result)\n             return result\n \n     tools = [get_weather]\n \n     researcher_role = \"Researcher\"\n-    with _reference_tracer.start_as_current_span(\"create_agent Researcher\") as create_agent_span:\n-        create_agent_span.set_attribute(\"gen_ai.operation.name\", \"create_agent\")\n-        create_agent_span.set_attribute(\"gen_ai.provider.name\", \"openai\")\n-        create_agent_span.set_attribute(\"gen_ai.request.model\", request_model)\n-        if host:\n-            create_agent_span.set_attribute(\"server.address\", host)\n-        if port is not None:\n-            create_agent_span.set_attribute(\"server.port\", port)\n+    create_agent_span_attributes = {\n+        \"gen_ai.operation.name\": \"create_agent\",\n+        \"gen_ai.provider.name\": \"openai\",\n+        \"gen_ai.request.model\": request_model,\n+    }\n+    if host:\n+        create_agent_span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        create_agent_span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"create_agent Researcher\", attributes=create_agent_span_attributes\n+    ) as create_agent_span:\n+        create_agent_span.set_attribute(\"gen_ai.agent.name\", researcher_role)\n         create_agent_span.set_attribute(",
+      "id": "PRRT_kwDOSUeMrM6Av32o",
+      "opened": "2026-05-08T21:52:38Z",
+      "path": "reference/scenarios/crewai/scenario.py",
+      "replies": [],
+      "reviewed": "ff29f94c5d1757929a3c72cb2a9ee01ca39f0254",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3211560535"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For `create_agent`, `agent_name`/`agent_description` are determined before the span starts, but `gen_ai.agent.name`/`gen_ai.agent.description` are set after span start. Consider moving these into `span_attributes_2` passed to `start_as_current_span` to make them available at span creation time.\n",
+      "created": "2026-05-08T21:52:37Z",
+      "hunk": "@@ -108,29 +109,32 @@ def _capture_tool_call_id(*_args, tool_call_id=None, **_kwargs):\n     _tool_base.trace_tool_span = _capture_tool_call_id\n \n     try:\n-        with _reference_tracer.start_as_current_span(\"create_agent test_agent\") as span:\n-            host, port = mock_server_host_port(MOCK_BASE_URL)\n-            span.set_attribute(\"gen_ai.operation.name\", \"create_agent\")\n-            span.set_attribute(\"gen_ai.provider.name\", \"openai\")\n-            span.set_attribute(\"gen_ai.request.model\", request_model)\n+        agent_name = \"test_agent\"\n+        agent_description = \"Reference AutoGen assistant.\"\n+        host, port = mock_server_host_port(MOCK_BASE_URL)\n+        span_attributes_2 = {\n+            \"gen_ai.operation.name\": \"create_agent\",\n+            \"gen_ai.provider.name\": \"openai\",\n+            \"gen_ai.request.model\": request_model,\n+        }\n+        if host:\n+            span_attributes_2[\"server.address\"] = host\n+        if port is not None:\n+            span_attributes_2[\"server.port\"] = port\n+        with _reference_tracer.start_as_current_span(\"create_agent test_agent\", attributes=span_attributes_2) as span:\n+            span.set_attribute(\"gen_ai.agent.name\", agent_name)\n+            span.set_attribute(\"gen_ai.agent.description\", agent_description)",
+      "id": "PRRT_kwDOSUeMrM6Av320",
+      "opened": "2026-05-08T21:52:38Z",
+      "path": "reference/scenarios/autogen/scenario.py",
+      "replies": [],
+      "reviewed": "ff29f94c5d1757929a3c72cb2a9ee01ca39f0254",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3211560549"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For `invoke_agent`, `gen_ai.agent.name`/`gen_ai.agent.description` are set only after the span starts even though the values are already available from `agent`. Include them in `agent_span_attributes` passed to `start_as_current_span` so they’re available at span start for sampling decisions.\n",
+      "created": "2026-05-08T21:52:37Z",
+      "hunk": "@@ -139,10 +143,14 @@ async def _run():\n             from autogen_agentchat.messages import TextMessage\n             from autogen_core import CancellationToken\n \n-            with _reference_tracer.start_as_current_span(\"invoke_agent test_agent\") as agent_span:\n-                agent_span.set_attribute(\"gen_ai.operation.name\", \"invoke_agent\")\n-                agent_span.set_attribute(\"gen_ai.provider.name\", \"openai\")\n-                agent_span.set_attribute(\"gen_ai.request.model\", request_model)\n+            agent_span_attributes = {\n+                \"gen_ai.operation.name\": \"invoke_agent\",\n+                \"gen_ai.provider.name\": \"openai\",\n+                \"gen_ai.request.model\": request_model,\n+            }\n+            with _reference_tracer.start_as_current_span(\n+                \"invoke_agent test_agent\", attributes=agent_span_attributes\n+            ) as agent_span:\n                 agent_span.set_attribute(\"gen_ai.agent.name\", agent.name)\n                 agent_span.set_attribute(\"gen_ai.agent.description\", agent.description)",
+      "id": "PRRT_kwDOSUeMrM6Av33A",
+      "opened": "2026-05-08T21:52:38Z",
+      "path": "reference/scenarios/autogen/scenario.py",
+      "replies": [],
+      "reviewed": "ff29f94c5d1757929a3c72cb2a9ee01ca39f0254",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3211560566"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`agent_name` is known before starting the `invoke_agent` span, but `gen_ai.agent.name` is emitted only after span start. If `gen_ai.agent.name` is considered sampling-relevant, include it in `agent_span_attributes` passed to `start_as_current_span`.",
+      "created": "2026-05-08T21:52:37Z",
+      "hunk": "@@ -235,12 +242,7 @@ def get_weather(ctx: RunContext[None], location: str) -> str:\n         agent_span.set_attribute(\"gen_ai.agent.name\", agent_name)\n         agent_span.set_attribute(\"gen_ai.system_instructions\", system_instructions)",
+      "id": "PRRT_kwDOSUeMrM6Av33I",
+      "opened": "2026-05-08T21:52:38Z",
+      "path": "reference/scenarios/pydantic-ai/scenario.py",
+      "replies": [],
+      "reviewed": "ff29f94c5d1757929a3c72cb2a9ee01ca39f0254",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3211560577"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.agent.name` is set after the `invoke_agent` span starts even though `agent.name` is already known. Add `gen_ai.agent.name` to `agent_span_attributes` so it’s present at span start for sampling decisions.",
+      "created": "2026-05-08T21:52:37Z",
+      "hunk": "@@ -55,49 +56,48 @@ def get_weather(ctx: ToolContext[None], location: str) -> str:\n     input_text = \"What's the weather in Seattle?\"\n \n     print(\"  [agent_run] agent with tool calling (reference implementation)\")\n-    with _reference_tracer.start_as_current_span(\"invoke_agent test-agent\") as agent_span:\n-        agent_span.set_attribute(\"gen_ai.operation.name\", \"invoke_agent\")\n-        agent_span.set_attribute(\"gen_ai.provider.name\", \"openai\")\n-        agent_span.set_attribute(\"gen_ai.request.model\", request_model)\n+    agent_span_attributes = {\n+        \"gen_ai.operation.name\": \"invoke_agent\",\n+        \"gen_ai.provider.name\": \"openai\",\n+        \"gen_ai.request.model\": request_model,\n+    }\n+    if host:\n+        agent_span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        agent_span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\n+        \"invoke_agent test-agent\", attributes=agent_span_attributes\n+    ) as agent_span:\n         agent_span.set_attribute(\"gen_ai.agent.name\", agent.name)\n-        if host:\n-            agent_span.set_attribute(\"server.address\", host)\n-        if port is not None:\n-            agent_span.set_attribute(\"server.port\", port)\n         agent_span.set_attribute(",
+      "id": "PRRT_kwDOSUeMrM6Av33Q",
+      "opened": "2026-05-08T21:52:38Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [],
+      "reviewed": "ff29f94c5d1757929a3c72cb2a9ee01ca39f0254",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3211560588"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `invoke_agent` span doesn’t emit `gen_ai.agent.name`, even though the agent name is already known from the previously created `agent` object. Add `gen_ai.agent.name` (ideally in the span-start `attributes=`) so agent-level sampling/filtering works consistently.",
+      "created": "2026-05-08T21:52:38Z",
+      "hunk": "@@ -97,47 +91,28 @@ def run_invoke_agent(client):\n             description=AGENT_DESCRIPTION,\n         )\n         span.set_attribute(\"gen_ai.agent.id\", agent.id)\n-        span.set_attribute(\"gen_ai.agent.name\", agent.name or \"\")\n-        if getattr(agent, \"description\", None):\n-            span.set_attribute(\"gen_ai.agent.description\", agent.description)\n         if getattr(agent, \"version\", None):\n             span.set_attribute(\"gen_ai.agent.version\", str(agent.version))\n \n     # Invoke the agent through the Responses API, wrapped in a manual span.\n     openai_client = client.get_openai_client()\n \n-    with tracer.start_as_current_span(\"invoke_agent\", kind=SpanKind.CLIENT) as span:\n-        span.set_attribute(\"gen_ai.operation.name\", \"invoke_agent\")\n-        span.set_attribute(\"gen_ai.provider.name\", \"azure.ai.openai\")\n-        span.set_attribute(\"gen_ai.request.model\", AGENT_MODEL)\n+    span_attributes_2 = {\n+        \"gen_ai.operation.name\": \"invoke_agent\",\n+        \"gen_ai.provider.name\": \"azure.ai.openai\",\n+        \"gen_ai.request.model\": AGENT_MODEL,\n+        \"server.address\": _SERVER_ADDRESS,\n+        \"server.port\": _SERVER_PORT,\n+    }\n+    with tracer.start_as_current_span(\"invoke_agent\", kind=SpanKind.CLIENT, attributes=span_attributes_2) as span:",
+      "id": "PRRT_kwDOSUeMrM6Av33W",
+      "opened": "2026-05-08T21:52:38Z",
+      "path": "reference/scenarios/azure-ai-foundry/scenario.py",
+      "replies": [],
+      "reviewed": "ff29f94c5d1757929a3c72cb2a9ee01ca39f0254",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3211560596"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`agent.name` is already available when building `agent_span_attributes`, but it is not included in the span-start `attributes=` for the `invoke_agent` span. If `gen_ai.agent.name` is sampling-relevant, include it in `agent_span_attributes` so it’s available at span start.\n",
+      "created": "2026-05-08T21:52:38Z",
+      "hunk": "@@ -159,21 +160,25 @@ async def _run():\n                 app_name=\"test_app\",\n                 user_id=\"test_user\",\n             )\n-            with _reference_tracer.start_as_current_span(f\"invoke_workflow {runner.app_name}\") as workflow_span:\n-                workflow_span.set_attribute(\"gen_ai.operation.name\", \"invoke_workflow\")\n+            workflow_span_attributes = {\n+                \"gen_ai.operation.name\": \"invoke_workflow\",\n+            }\n+            with _reference_tracer.start_as_current_span(\n+                f\"invoke_workflow {runner.app_name}\", attributes=workflow_span_attributes\n+            ) as workflow_span:\n                 workflow_span.set_attribute(\"gen_ai.workflow.name\", runner.app_name)\n                 workflow_span.set_attribute(\n                     \"gen_ai.input.messages\",\n-                    json.dumps(\n-                        [\n-                            {\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]},\n-                        ]\n-                    ),\n+                    json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]}]),\n                 )\n-                with _reference_tracer.start_as_current_span(\"invoke_agent test_agent\") as agent_span:\n-                    agent_span.set_attribute(\"gen_ai.operation.name\", \"invoke_agent\")\n-                    agent_span.set_attribute(\"gen_ai.provider.name\", \"gcp.gemini\")\n-                    agent_span.set_attribute(\"gen_ai.request.model\", request_model)\n+                agent_span_attributes = {\n+                    \"gen_ai.operation.name\": \"invoke_agent\",\n+                    \"gen_ai.provider.name\": \"gcp.gemini\",\n+                    \"gen_ai.request.model\": request_model,",
+      "id": "PRRT_kwDOSUeMrM6Av33e",
+      "opened": "2026-05-08T21:52:38Z",
+      "path": "reference/scenarios/google-adk/scenario.py",
+      "replies": [],
+      "reviewed": "ff29f94c5d1757929a3c72cb2a9ee01ca39f0254",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3211560606"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    with _reference_tracer.start_as_current_span(f\"chat {request_model}\", attributes=span_attributes) as span:\n```",
+      "created": "2026-05-10T19:15:57Z",
+      "hunk": "@@ -30,16 +30,18 @@ def run_chat():\n     messages = [{\"role\": \"user\", \"content\": \"Say hello.\"}]\n     client = anthropic.Anthropic(base_url=MOCK_BASE_URL, api_key=\"mock-key\")\n \n-    with _reference_tracer.start_as_current_span(\"chat claude-sonnet-4-20250514\") as span:\n-        host, port = mock_server_host_port(MOCK_BASE_URL)\n-        span.set_attribute(\"gen_ai.operation.name\", \"chat\")\n-        span.set_attribute(\"gen_ai.provider.name\", \"anthropic\")\n-        span.set_attribute(\"gen_ai.request.model\", request_model)\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"chat\",\n+        \"gen_ai.provider.name\": \"anthropic\",\n+        \"gen_ai.request.model\": request_model,\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\"chat claude-sonnet-4-20250514\", attributes=span_attributes) as span:",
+      "id": "PRRT_kwDOSUeMrM6A7Hlt",
+      "opened": "2026-05-10T19:16:49Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [],
+      "reviewed": "8ddeb50328f8dd6cf152784be9f94e88e67fed0e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/124#discussion_r3215371213"
+    }
+  ]
+}

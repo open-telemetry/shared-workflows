@@ -1,0 +1,64 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "03262537efba2982e827734c07c1887e19194cc8672a13ed25c47b27f2dbe12f",
+  "input_digest": "d4810c106a167985f08212bdf02e8f0d0fee6dc7fcdd36ab651446649c525de9",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d834b9510b39371ea30ac1e1ced21b1dfbba3a8e/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/441d0ea0fd74a5f51a51812c3ac493e9802ba08b/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/441d0ea0fd74a5f51a51812c3ac493e9802ba08b"
+      ],
+      "id": "PRRT_kwDODJKVX86HoEcm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/859b391aa5ecd5dd75ccd448093a87e6bb8a9329/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/441d0ea0fd74a5f51a51812c3ac493e9802ba08b/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex"
+      ],
+      "id": "PRRT_kwDODJKVX86HoO65",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86IQT0m",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86HoO65",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/41c4ba080211a8bdb97a6ce9e6a7d40e1206aa80/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/41c4ba080211a8bdb97a6ce9e6a7d40e1206aa80/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/441d0ea0fd74a5f51a51812c3ac493e9802ba08b/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/441d0ea0fd74a5f51a51812c3ac493e9802ba08b/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/36de074b40fe0253527212abfec87f41204f0dec"
+      ],
+      "id": "PRRT_kwDODJKVX86IVH7a",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/119cc902bcb416bd9d435e73e02be5ec7451e6d3/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/decorators/CassandraTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/441d0ea0fd74a5f51a51812c3ac493e9802ba08b/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/decorators/CassandraTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e84955efdfb18e37a3f337820fac95e3890cc7ac"
+      ],
+      "id": "PRRT_kwDODJKVX86IWwVE",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

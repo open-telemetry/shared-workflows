@@ -1,0 +1,61 @@
+{
+  "head": "faf957d95d824bd791da97104ee3fa50990865eb",
+  "merge": "47d7374920abe3d559e10f2040b58480cb761796",
+  "merged": "2026-06-19T19:08:12Z",
+  "missing_roots": 0,
+  "number": 19037,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This test asserts `getBatchSize()` returns `0` for an empty batch, but `DbExecution` (unchanged in this PR) computes `this.batchSize = queryInfoBatchSize > 1 ? (long) queryInfoBatchSize : null;` — so when `batchSize` is `0`, `getBatchSize()` returns `null`, not `0`. The assertion will fail at runtime.\n\nSince the PR description states the core behavior change is deferred to #19036, this assertion should match the current production behavior (i.e., `null`).",
+      "created": "2026-06-18T18:12:03Z",
+      "hunk": "@@ -73,10 +75,28 @@ void dbExecutionWithBatch() {\n     assertThat(dbExecution.getBatchSize()).isEqualTo(2);\n   }\n \n+  @Test\n+  void dbExecutionWithEmptyBatch() {\n+    QueryExecutionInfo queryExecutionInfo =\n+        MockQueryExecutionInfo.builder()\n+            .type(ExecutionType.BATCH)\n+            .batchSize(0)\n+            .connectionInfo(MockConnectionInfo.builder().build())\n+            .build();\n+    ConnectionFactoryOptions factoryOptions =\n+        ConnectionFactoryOptions.parse(\"r2dbc:postgresql://localhost/db\");\n+\n+    DbExecution dbExecution = new DbExecution(queryExecutionInfo, factoryOptions);\n+\n+    // an empty batch still reports db.operation.batch.size 0\n+    assertThat(dbExecution.getBatchSize()).isEqualTo(0);",
+      "id": "PRRT_kwDODJKVX86KoyPu",
+      "opened": "2026-06-18T18:12:04Z",
+      "path": "instrumentation/r2dbc-1.0/library/src/test/java/io/opentelemetry/instrumentation/r2dbc/v1_0/DbExecutionTest.java",
+      "replies": [
+        {
+          "at": "2026-06-19T16:15:32Z",
+          "body": "No code change needed. The `batchSize(0)` / `getBatchSize().isEqualTo(0)` assertion is no longer present on the PR head; the current nearby test asserts `null`, matching the existing `DbExecution` behavior for non-reportable batch sizes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19037#discussion_r3443584530"
+        }
+      ],
+      "reviewed": "83cf28a37f29899d31b9ce74ed5e9b7142bc2bc7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19037#discussion_r3437990803"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This catch block intentionally ignores the exception, so per the repository's catch-variable naming convention the variable should be named `ignored` rather than `e` (which signals a used exception).",
+      "created": "2026-06-19T17:16:44Z",
+      "hunk": "@@ -281,17 +288,27 @@ private static void assertPreparedSelect() {\n                             equalTo(SERVER_PORT, port))));\n   }\n \n-  @Test\n-  void testBatch() throws Exception {\n-    testing\n-        .runWithSpan(\n-            \"parent\",\n-            () ->\n-                pool.preparedQuery(\"insert into test values ($1, $2) returning *\")\n-                    .executeBatch(asList(Tuple.of(3, \"Three\"), Tuple.of(4, \"Four\"))))\n-        .toCompletionStage()\n-        .toCompletableFuture()\n-        .get(30, SECONDS);\n+  @ParameterizedTest\n+  @MethodSource(\"batchScenarios\")\n+  void testBatch(BatchScenario scenario) throws Exception {\n+    // recreate a fresh batch_test table for each scenario so that batch row ids can be reused\n+    // without worrying about collisions from previous scenarios\n+    recreateBatchTestTable();\n+    testing.waitForTraces(2);\n+    testing.clearData();\n+\n+    // an empty batch is rejected before sending, so its execution fails; non-empty batches succeed\n+    try {\n+      testing\n+          .runWithSpan(\n+              \"parent\",\n+              () -> pool.preparedQuery(scenario.preparedQuery).executeBatch(scenario.tuples))\n+          .toCompletionStage()\n+          .toCompletableFuture()\n+          .get(30, SECONDS);\n+    } catch (ExecutionException e) {",
+      "id": "PRRT_kwDODJKVX86K5Fit",
+      "opened": "2026-06-19T17:16:45Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v5_0/VertxSqlClientTest.java",
+      "replies": [],
+      "reviewed": "dff04960f68d24f7a424e97feaf8aa308da21e77",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19037#discussion_r3443825551"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This catch block intentionally ignores the exception, so per the repository's catch-variable naming convention the variable should be named `ignored` rather than `e` (which signals a used exception).",
+      "created": "2026-06-19T17:16:45Z",
+      "hunk": "@@ -280,17 +287,27 @@ private static void assertPreparedSelect() {\n                             equalTo(SERVER_PORT, port))));\n   }\n \n-  @Test\n-  void testBatch() throws Exception {\n-    testing\n-        .runWithSpan(\n-            \"parent\",\n-            () ->\n-                pool.preparedQuery(\"insert into test values ($1, $2) returning *\")\n-                    .executeBatch(asList(Tuple.of(3, \"Three\"), Tuple.of(4, \"Four\"))))\n-        .toCompletionStage()\n-        .toCompletableFuture()\n-        .get(30, SECONDS);\n+  @ParameterizedTest\n+  @MethodSource(\"batchScenarios\")\n+  void testBatch(BatchScenario scenario) throws Exception {\n+    // recreate a fresh batch_test table for each scenario so that batch row ids can be reused\n+    // without worrying about collisions from previous scenarios\n+    recreateBatchTestTable();\n+    testing.waitForTraces(2);\n+    testing.clearData();\n+\n+    // an empty batch is rejected before sending, so its execution fails; non-empty batches succeed\n+    try {\n+      testing\n+          .runWithSpan(\n+              \"parent\",\n+              () -> pool.preparedQuery(scenario.preparedQuery).executeBatch(scenario.tuples))\n+          .toCompletionStage()\n+          .toCompletableFuture()\n+          .get(30, SECONDS);\n+    } catch (ExecutionException e) {",
+      "id": "PRRT_kwDODJKVX86K5FjO",
+      "opened": "2026-06-19T17:16:45Z",
+      "path": "instrumentation/vertx/vertx-sql-client/vertx-sql-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/v4_0/VertxSqlClientTest.java",
+      "replies": [],
+      "reviewed": "dff04960f68d24f7a424e97feaf8aa308da21e77",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19037#discussion_r3443825588"
+    }
+  ]
+}

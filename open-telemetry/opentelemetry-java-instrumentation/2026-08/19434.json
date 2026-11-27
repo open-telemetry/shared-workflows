@@ -1,0 +1,40 @@
+{
+  "head": "7b78c0d72f195c2fb398e7fee53a3ff53409ca5a",
+  "merge": "390a609fde072a9874fa56d3d586e053261a9014",
+  "merged": "2026-08-07T11:40:47Z",
+  "missing_roots": 0,
+  "number": 19434,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change continues the pattern of hard-coding the Armeria version in multiple Gradle files. To reduce version drift and simplify future upgrades, consider centralizing the Armeria version (e.g., via a version catalog `libs.versions.toml`, a platform/BOM, or a shared Gradle convention) and referencing it from all modules.",
+      "created": "2026-08-07T04:25:39Z",
+      "hunk": "@@ -4,7 +4,7 @@ plugins {\n }\n \n dependencies {\n-  implementation(\"com.linecorp.armeria:armeria-junit5:1.40.0\")\n+  implementation(\"com.linecorp.armeria:armeria-junit5:1.41.0\")",
+      "id": "PRRT_kwDODJKVX86XLFhS",
+      "opened": "2026-08-07T04:25:40Z",
+      "path": "testing/dependencies-shaded-for-testing/build.gradle.kts",
+      "replies": [],
+      "reviewed": "7b78c0d72f195c2fb398e7fee53a3ff53409ca5a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19434#discussion_r3733420582"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same as above: centralizing the Armeria version would prevent these modules from accidentally diverging (especially as more Armeria artifacts are added across smoke tests and testing utilities).",
+      "created": "2026-08-07T04:25:40Z",
+      "hunk": "@@ -12,7 +12,7 @@ plugins {\n }\n \n dependencies {\n-  implementation(\"com.linecorp.armeria:armeria-grpc:1.40.0\")\n+  implementation(\"com.linecorp.armeria:armeria-grpc:1.41.0\")",
+      "id": "PRRT_kwDODJKVX86XLFhw",
+      "opened": "2026-08-07T04:25:40Z",
+      "path": "smoke-tests/images/fake-backend/build.gradle.kts",
+      "replies": [],
+      "reviewed": "7b78c0d72f195c2fb398e7fee53a3ff53409ca5a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19434#discussion_r3733420623"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "952227e148b886415738d612486ae16024d494d5",
+  "merge": "f94820ec58ca67afd48ed436319f3f75bfcb05a4",
+  "merged": "2026-09-22T21:41:04Z",
+  "missing_roots": 0,
+  "number": 20223,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "do we want to remove the latest deps test too?",
+      "created": "2026-09-22T20:26:12Z",
+      "hunk": "@@ -21,8 +21,6 @@ dependencies {\n \n tasks {\n   withType<Test>().configureEach {\n-    systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)",
+      "id": "PRRT_kwDODJKVX86k50vK",
+      "opened": "2026-09-22T20:29:09Z",
+      "path": "instrumentation/geode-1.4/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-22T21:40:53Z",
+          "body": "this is only removing the system property, which isn't needed anymore",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20223#discussion_r4076795420"
+        }
+      ],
+      "reviewed": "952227e148b886415738d612486ae16024d494d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20223#discussion_r4076134658"
+    }
+  ]
+}

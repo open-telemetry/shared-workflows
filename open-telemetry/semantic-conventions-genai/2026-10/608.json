@@ -1,0 +1,73 @@
+{
+  "head": "7fa253f306d9198d1cbd279d357d34dca5f8f0b6",
+  "merge": "3fe84604a581b3d50dd5b4bd29383b462d2a5018",
+  "merged": "2026-10-28T18:48:22Z",
+  "missing_roots": 0,
+  "number": 608,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The wrong-field-types snapshot changes from `errors: []` to validation failures, so previously accepted documents are now rejected. `docs/gen-ai/non-normative/tests/README.md:55-59` explicitly requires a breaking-change fragment for this change. Rename this file to `608.breaking.md` so the compatibility change appears in the correct release-notes section.",
+      "created": "2026-10-20T02:34:06Z",
+      "hunk": "@@ -0,0 +1,4 @@\n+Reject malformed `function` tool definitions in `gen_ai.tool.definitions` JSON schema and recommend prefixing custom tool definition types with `gen_ai.provider.name`.",
+      "id": "PRRT_kwDOSUeMrM6uLZYH",
+      "opened": "2026-10-20T02:34:06Z",
+      "path": "changelog.d/608.bugfix.md",
+      "replies": [
+        {
+          "at": "2026-10-26T19:08:50Z",
+          "body": "`tool-definitions-wrong-field-types.yaml` is an invalid fixture (`type: \"function\"` with numeric `name: 123`) added in #584 to show that malformed `function` tool definitions were erroneously passing before this fix. Rejecting malformed `function` definitions is a bugfix, not a breaking change to valid telemetry (same as #584).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/608#discussion_r4329135626"
+        }
+      ],
+      "reviewed": "6c22d310e1dc35a98e3f0069f64b77ce3063d719",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/608#discussion_r4320895537"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The provider-prefixed tool type is demonstrated only by a schema fixture. The Anthropic reference scenario prefixes message parts, but does not pass tools to the SDK or record `gen_ai.tool.definitions`. Add an Anthropic SDK call with a built-in tool in `messages.create(tools=...)`, and derive the recorded definition from that argument, prefixing its type for telemetry. Update the scenario README and generated telemetry and reports to satisfy the repository's reference-coverage requirement.",
+      "created": "2026-10-20T02:34:06Z",
+      "hunk": "@@ -472,14 +462,40 @@ class FunctionToolDefinition(GenericToolDefinition):\n     model_config = ConfigDict(extra=\"allow\")\n \n \n-ToolDefinition = Union[\n+KnownToolDefinition = Union[\n     FunctionToolDefinition,\n-    GenericToolDefinition,  # Catch-all for any other type\n     # Add other tool definition types here as needed,\n     # e.g. file search, code interpreter, etc\n ]\n \n \n+class GenericToolDefinition(BaseModel):\n+    \"\"\"\n+    Fallback for consumers when a tool definition has a `type` not defined by\n+    this version of semantic conventions (such as a provider-specific built-in\n+    tool or a tool type added in a newer version).\n+    \"\"\"\n+\n+    type: str = Field(\n+        description=(\n+            \"The type of the tool. \"\n+            \"When recording a provider-specific tool definition, it is RECOMMENDED to prefix \"\n+            \"the value with `gen_ai.provider.name` (for example `anthropic.web_search_20250305`) \"\n+            \"to avoid name collisions with current or future tool types defined by semantic conventions.\"",
+      "id": "PRRT_kwDOSUeMrM6uLZYv",
+      "opened": "2026-10-20T02:34:06Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-10-26T19:08:50Z",
+          "body": "Added in d667eb0.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/608#discussion_r4329135835"
+        }
+      ],
+      "reviewed": "6c22d310e1dc35a98e3f0069f64b77ce3063d719",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/608#discussion_r4320895592"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "adityareddy-dev"
+      },
+      "body": "With `tools` in the request the first block back is a `tool_use`, so `resp.content[0].text` further down at line 510 raises `AttributeError` and the anthropic scenario stops there. Taking the first block that has `text`, the way the output messages above it already do, gets past it.\n",
+      "created": "2026-10-20T22:37:46Z",
+      "hunk": "@@ -478,11 +478,15 @@ def run_chat_with_search_result_input(handler):\n                 ],\n             )\n         ]\n+        inv.tool_definitions = [  # -> gen_ai.tool.definitions\n+            GenericToolDefinition(name=t[\"name\"], type=f\"anthropic.{t['type']}\") for t in tools\n+        ]\n \n         resp = client.messages.create(\n             model=request_model,\n             max_tokens=request_max_tokens,\n             messages=messages,\n+            tools=tools,",
+      "id": "PRRT_kwDOSUeMrM6ujXzD",
+      "opened": "2026-10-20T22:37:46Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-26T19:08:50Z",
+          "body": "addressed in bef1467",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/608#discussion_r4379605588"
+        }
+      ],
+      "reviewed": "d667eb029802f9fb608f5c730b34c442c14ee226",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/608#discussion_r4331077204"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "head": "e60cdb12598657341ac54d8b48343445deb08815",
+  "merge": "5dba0ed40d55da5f6e76ba959d0fa9bdd9ac70d6",
+  "merged": "2026-09-24T03:35:29Z",
+  "missing_roots": 0,
+  "number": 20229,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This adds JDK 27 to the servlet matrices, but `configureImage` only has pinned image cases through `\"26\"` for Temurin Windows/Linux and Semeru Linux (lines 302–334). Any target containing `latestJava` will therefore hit `Unexpected jdk version` while Gradle configures the servlet image tasks. Add valid pinned JDK 27 mappings for all three branches before advancing this value.",
+      "created": "2026-09-23T14:21:29Z",
+      "hunk": "@@ -27,7 +27,7 @@ gradle.sharedServices.registerIfAbsent(\"dockerBuildService\", DockerBuildService:\n val extraTag = findProperty(\"extraTag\")\n   ?: java.time.format.DateTimeFormatter.ofPattern(\"yyyyMMdd.HHmmSS\").format(java.time.LocalDateTime.now())\n \n-val latestJava = \"26\" // renovate(java-version)\n+val latestJava = \"27\" // renovate(java-version)",
+      "id": "PRRT_kwDODJKVX86lMOZ1",
+      "opened": "2026-09-23T14:21:30Z",
+      "path": "smoke-tests/images/servlet/build.gradle.kts",
+      "replies": [],
+      "reviewed": "52f1a923c99b73f9cbfd6981dcd9215eb145b071",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20229#discussion_r4083489787"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The CI matrix now tests Java 27 instead of 26, but `docs/contributing/running-tests.md:25-28` still says that all tests run on Java 26 and uses 26 in its command example. Update that documentation as part of this version rollover so contributors see the actual supported matrix.",
+      "created": "2026-09-23T14:21:29Z",
+      "hunk": "@@ -286,7 +286,7 @@ jobs:\n           - 21\n           - 25\n           - 25-deny-unsafe\n-          - 26 # renovate(java-version)\n+          - 27 # renovate(java-version)",
+      "id": "PRRT_kwDODJKVX86lMOa0",
+      "opened": "2026-09-23T14:21:30Z",
+      "path": ".github/workflows/build-common.yml",
+      "replies": [
+        {
+          "at": "2026-09-24T01:58:43Z",
+          "body": "a941f837c7e86b6a87d113bafc221047115abb9b",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20229#discussion_r4089064832"
+        }
+      ],
+      "reviewed": "52f1a923c99b73f9cbfd6981dcd9215eb145b071",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20229#discussion_r4083489885"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This skips every dedicated MDC-selector task on JDK 27, so the included, excluded, legacy, and precedence paths get no coverage on the newly supported runtime. `Log4j1Test.java:43-54` already works around this Log4j detection bug by setting `Loader.java1` to false before using MDC; apply the same setup here instead of aborting the test.",
+      "created": "2026-09-23T19:59:48Z",
+      "hunk": "@@ -33,6 +35,9 @@ class Log4jMdcSelectorTest {\n \n   @Test\n   void capturesConfiguredMdcAttributes() {\n+    // Log4j 1.2 disables MDC when java.version has no dot, as on JDK 27.\n+    assumeFalse(Loader.isJava1());",
+      "id": "PRRT_kwDODJKVX86lUNSD",
+      "opened": "2026-09-23T19:59:49Z",
+      "path": "instrumentation/log4j/log4j-appender-1.2/javaagent/src/test/java/io/opentelemetry/instrumentation/log4j/appender/v1_2/Log4jMdcSelectorTest.java",
+      "replies": [
+        {
+          "at": "2026-09-24T02:45:57Z",
+          "body": "e60cdb12598657341ac54d8b48343445deb08815",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20229#discussion_r4089268316"
+        }
+      ],
+      "reviewed": "75b7162f4ebf855d7549b0a38e35925eae1af9d3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20229#discussion_r4086730960"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The JVM support table is now stale: `docs/supported-libraries.md:252-253` still says that both tested JVM distributions run through version 26, while this matrix removes 26 and adds 27. Update those rows with the matrix change so the documented test coverage remains accurate.",
+      "created": "2026-09-23T19:59:49Z",
+      "hunk": "@@ -286,7 +286,7 @@ jobs:\n           - 21\n           - 25\n           - 25-deny-unsafe\n-          - 26 # renovate(java-version)\n+          - 27 # renovate(java-version)",
+      "id": "PRRT_kwDODJKVX86lUNSq",
+      "opened": "2026-09-23T19:59:49Z",
+      "path": ".github/workflows/build-common.yml",
+      "replies": [
+        {
+          "at": "2026-09-24T01:58:51Z",
+          "body": "9da02b70280efa569c8d4a573af0fa276ccac452",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20229#discussion_r4089065383"
+        }
+      ],
+      "reviewed": "75b7162f4ebf855d7549b0a38e35925eae1af9d3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20229#discussion_r4086731023"
+    }
+  ]
+}

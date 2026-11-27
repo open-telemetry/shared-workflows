@@ -1,0 +1,25 @@
+{
+  "head": "c1bf5914afee0e9ee3066011f93bc7491eb4814c",
+  "merge": "6134789bb42b6641e237048ff5bd4c8b7c343cff",
+  "merged": "2026-11-23T05:44:00Z",
+  "missing_roots": 0,
+  "number": 1119,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`uv.lock` still resolves `anthropic` to 2.3.0, below the newly selected `>=2.11.0` release. The manual and zero-code requirements have the same mismatch; please refresh the lock so it resolves the adopted SDK release too.",
+      "created": "2026-11-23T04:27:05Z",
+      "hunk": "@@ -1,4 +1,4 @@\n-anthropic>=2.6.0\n+anthropic>=2.11.0",
+      "id": "PRRT_kwDOSbspP866sbe0",
+      "opened": "2026-11-23T04:27:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/examples/manual/requirements.txt",
+      "replies": [],
+      "reviewed": "aeafb08691a435e3c43f4f8e029d740f20d800b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1119#discussion_r4661826338"
+    }
+  ]
+}

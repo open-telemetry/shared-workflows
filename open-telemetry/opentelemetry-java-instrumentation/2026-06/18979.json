@@ -1,0 +1,94 @@
+{
+  "head": "7ed94dda408017ff65a4c1fcf0b8de4b290b20bc",
+  "merge": "172a70528b1c9f1e6f4edb36b0f4164e25bb5d60",
+  "merged": "2026-06-15T07:04:58Z",
+  "missing_roots": 0,
+  "number": 18979,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getStableOperationName(..)` currently treats `batchSize == 0` (which is returned when the request is missing/doesn’t expose `RequestItems`, or when it’s empty) as a single-item request and maps `Batch*` operations to `GetItem`/`WriteItem`. That can mis-label real batch requests whenever batch size extraction fails, and it also mislabels empty batch requests. Only down-convert to the item operation when the extracted size is exactly 1; otherwise keep the batch operation name and just omit `db.operation.batch.size` when unknown.",
+      "created": "2026-06-12T21:11:19Z",
+      "hunk": "@@ -60,16 +68,72 @@ public void onStart(\n   }\n \n   @Nullable\n-  private static String getStableOperationName(@Nullable String operation) {\n+  private static String getStableOperationName(@Nullable String operation, long batchSize) {\n     if (\"BatchGetItem\".equals(operation)) {\n-      return \"BATCH GetItem\";\n+      return isBatch(batchSize) ? \"BATCH GetItem\" : \"GetItem\";\n     }\n     if (\"BatchWriteItem\".equals(operation)) {\n-      return \"BATCH WriteItem\";\n+      return isBatch(batchSize) ? \"BATCH WriteItem\" : \"WriteItem\";\n     }\n     return operation;",
+      "id": "PRRT_kwDODJKVX86JQIjC",
+      "opened": "2026-06-12T21:11:20Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-12T23:24:25Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/088b5432379cbed45532a4faae244c993e657278.\n\nAligned the v2.2 stable operation name with the same semconv batch predicate used for db.operation.batch.size.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18979#discussion_r3406735750"
+        }
+      ],
+      "reviewed": "2593bf1aa949a7bf74fd4c08926e58a480a3e4fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18979#discussion_r3406262932"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getStableOperationName(..)` treats `batchSize == null` (returned when `RequestItems` can’t be accessed or when the computed count is 0) as a single-item request and maps `Batch*` operations to `GetItem`/`WriteItem`. If batch size extraction fails for a real multi-item batch, this will emit an incorrect stable operation name. Only emit the item operation name when the extracted size is exactly 1; otherwise keep the batch operation name and omit `db.operation.batch.size` when unknown.",
+      "created": "2026-06-12T21:11:20Z",
+      "hunk": "@@ -89,16 +95,60 @@ private static String getSingleCollectionName(Map<?, ?> requestItems) {\n   }\n \n   @Nullable\n-  private static String getStableOperationName(@Nullable String operation) {\n+  private static String getStableOperationName(\n+      @Nullable String operation, @Nullable Long batchSize) {\n     if (\"BatchGetItem\".equals(operation)) {\n-      return \"BATCH GetItem\";\n+      return isBatch(batchSize) ? \"BATCH GetItem\" : \"GetItem\";\n     }\n     if (\"BatchWriteItem\".equals(operation)) {\n-      return \"BATCH WriteItem\";\n+      return isBatch(batchSize) ? \"BATCH WriteItem\" : \"WriteItem\";\n     }\n     return operation;\n   }",
+      "id": "PRRT_kwDODJKVX86JQIje",
+      "opened": "2026-06-12T21:11:20Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-12T23:24:26Z",
+          "body": "No code change needed. The v1.11 extractor already uses the same isBatch(batchSize) predicate for stable operation naming and db.operation.batch.size emission, matching the JDBC/Cassandra precedent.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18979#discussion_r3406735818"
+        }
+      ],
+      "reviewed": "2593bf1aa949a7bf74fd4c08926e58a480a3e4fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18979#discussion_r3406262971"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The updated extractor logic changes stable semconv behavior for `BatchWriteItem` (including `db.operation.name` mapping to `WriteItem` vs `BATCH WriteItem`, and `db.operation.batch.size` emission), but the v1.11 test suite here only exercises `BatchGetItem`. Adding coverage for `BatchWriteItem` (single-item and multi-item) would prevent regressions and validate the new behavior matches the intended semantics.",
+      "created": "2026-06-12T21:11:20Z",
+      "hunk": "@@ -89,16 +95,60 @@ private static String getSingleCollectionName(Map<?, ?> requestItems) {\n   }\n \n   @Nullable\n-  private static String getStableOperationName(@Nullable String operation) {\n+  private static String getStableOperationName(\n+      @Nullable String operation, @Nullable Long batchSize) {\n     if (\"BatchGetItem\".equals(operation)) {\n-      return \"BATCH GetItem\";\n+      return isBatch(batchSize) ? \"BATCH GetItem\" : \"GetItem\";\n     }\n     if (\"BatchWriteItem\".equals(operation)) {\n-      return \"BATCH WriteItem\";\n+      return isBatch(batchSize) ? \"BATCH WriteItem\" : \"WriteItem\";\n     }",
+      "id": "PRRT_kwDODJKVX86JQIjl",
+      "opened": "2026-06-12T21:11:20Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-12T23:24:28Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f5fd8b919e1903af6f55a189378c97026d54e707.\n\nAdded v1.11 BatchWriteItem coverage for both multi-item batch naming and single-item operation naming.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18979#discussion_r3406735887"
+        }
+      ],
+      "reviewed": "2593bf1aa949a7bf74fd4c08926e58a480a3e4fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18979#discussion_r3406262981"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getStableOperationName(..)` currently down-converts `BatchGetItem`/`BatchWriteItem` to `GetItem`/`WriteItem` whenever `batchSize` is not a batch (<= 1). Since `extractBatchSize(..)` can return `null` (unknown) or `0` (e.g., if the `Keys` accessor lookup fails or the request is empty), this can mis-label true batch operations as single-item operations. The stable operation name should only be down-converted when the extracted size is exactly 1; otherwise keep the `BATCH …` operation name and just omit `db.operation.batch.size` when the size is unknown/unavailable.",
+      "created": "2026-06-12T23:28:09Z",
+      "hunk": "@@ -60,16 +68,74 @@ public void onStart(\n   }\n \n   @Nullable\n-  private static String getStableOperationName(@Nullable String operation) {\n+  private static String getStableOperationName(\n+      @Nullable String operation, @Nullable Long batchSize) {\n     if (\"BatchGetItem\".equals(operation)) {\n-      return \"BATCH GetItem\";\n+      return isBatch(batchSize) ? \"BATCH GetItem\" : \"GetItem\";\n     }\n     if (\"BatchWriteItem\".equals(operation)) {\n-      return \"BATCH WriteItem\";\n+      return isBatch(batchSize) ? \"BATCH WriteItem\" : \"WriteItem\";",
+      "id": "PRRT_kwDODJKVX86JRa3E",
+      "opened": "2026-06-12T23:28:09Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-12T23:48:18Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e7aada3fdadac522e4cdb7604662a5590b94d74e.\n\nUnknown or zero batch sizes now keep the raw BatchGetItem/BatchWriteItem operation name, exact size one maps to GetItem/WriteItem, and only size greater than one maps to BATCH ... and emits db.operation.batch.size.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18979#discussion_r3406809887"
+        }
+      ],
+      "reviewed": "f5fd8b919e1903af6f55a189378c97026d54e707",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18979#discussion_r3406746045"
+    }
+  ]
+}

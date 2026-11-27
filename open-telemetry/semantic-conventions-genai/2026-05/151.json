@@ -1,0 +1,94 @@
+{
+  "head": "bba7909449b64a116f3a85b0e8a5482cc233555b",
+  "merge": "6318398dca554328c4d5ff3e228d2a5181c1c69f",
+  "merged": "2026-05-14T15:13:26Z",
+  "missing_roots": 0,
+  "number": 151,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This refers to a PR description section named `Capture gaps`, but the repo’s PR template doesn’t currently include such a section. Either update the template to add a `## Capture gaps` heading, or reword this to instruct authors to add a `Capture gaps` subsection to the PR description when needed.\n",
+      "created": "2026-05-12T20:46:19Z",
+      "hunk": "@@ -88,4 +68,4 @@ Under `Libraries not updated`, state whether each library is:\n - `not yet implemented in this repo`\n - `honest capture gap; evaluate separately`\n \n-If any library was intentionally left without a reference implementation, explain the exact missing current-call source that prevented a credible implementation.\n+Under `Capture gaps`, list each library left without a reference implementation and the exact missing current-call source that prevented a credible implementation. This is the content that belongs in the PR description's `Capture gaps` section.",
+      "id": "PRRT_kwDOSUeMrM6BjlzA",
+      "opened": "2026-05-12T20:46:19Z",
+      "path": ".github/skills/reference/SKILL.md",
+      "replies": [
+        {
+          "at": "2026-05-12T20:54:30Z",
+          "body": "Fixed in 9ead12b7a400dde325f0cad8f646c3b695d22e97: dropped the orphan sentence. The PR template has no `Capture gaps` section, and capture gaps are already durably recorded by the `reference/reports/*.md` tables (a library missing from a row, or a `(none)` row, *is* the record).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/151#discussion_r3229752669"
+        }
+      ],
+      "reviewed": "890c3be5fa8145b0e480f47e0e97208104a5b17c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/151#discussion_r3229699954"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The evaluation guidance has moved from the `evaluate-reference` skill into this instruction file, but other repo docs still point contributors at `.github/skills/evaluate-reference/` (e.g. `.github/AGENTS.md:9`). Update those references so readers are directed to this rubric instead of a removed skill.\n",
+      "created": "2026-05-12T20:46:19Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+---\n+description: \"Rubric for evaluating whether semantic-convention changes are supported by reference scenarios.\"\n+applyTo: \"model/**,docs/gen-ai/**,reference/scenarios/**\"\n+---\n+\n+# Reference Evaluation\n+\n+Use when evaluating whether semantic-convention changes are supported by reference scenarios.\n+",
+      "id": "PRRT_kwDOSUeMrM6Bjlzh",
+      "opened": "2026-05-12T20:46:19Z",
+      "path": ".github/instructions/evaluate-reference.instructions.md",
+      "replies": [
+        {
+          "at": "2026-05-12T20:54:32Z",
+          "body": "Fixed in 9ead12b7a400dde325f0cad8f646c3b695d22e97: updated `.github/AGENTS.md` to point at this instruction file (auto-applied via `applyTo`, not invoked as a skill). Also caught a stale `evaluate-reference SKILL` reference in `reference/scenarios/langchain/scenario.py` and updated it to \"evaluate-reference rubric\".",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/151#discussion_r3229752828"
+        }
+      ],
+      "reviewed": "890c3be5fa8145b0e480f47e0e97208104a5b17c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/151#discussion_r3229699999"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Section heading still says \"Attribute and tag emission\", but the updated guidance now discusses only attribute emission (and explicitly removed tag-related wording). Consider renaming the heading to match the content to avoid confusion about whether tags are still a concept here.",
+      "created": "2026-05-12T20:58:41Z",
+      "hunk": "@@ -12,13 +12,13 @@ and where each value comes from.\n \n ## Attribute and tag emission\n \n-- Set emitted attributes and tags inline at the instrumentation site. Do not\n-  move emission into helper methods such as `setServerTags`,\n-  `setServerAttributes`, `_set_server_attributes`, or similar wrappers.\n+- Set emitted attributes inline at the instrumentation site. Do not move\n+  emission into helper methods such as `_set_request_attributes`,\n+  `_set_response_attributes`, or similar wrappers.",
+      "id": "PRRT_kwDOSUeMrM6Bjzxs",
+      "opened": "2026-05-12T20:58:41Z",
+      "path": ".github/instructions/reference-scenarios.instructions.md",
+      "replies": [
+        {
+          "at": "2026-05-12T21:07:36Z",
+          "body": "Fixed in bba7909449b64a116f3a85b0e8a5482cc233555b: renamed to \"Attribute emission\".",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/151#discussion_r3229839402"
+        }
+      ],
+      "reviewed": "9ead12b7a400dde325f0cad8f646c3b695d22e97",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/151#discussion_r3229781669"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`applyTo` is a single quoted string containing commas, so it will be treated as one glob pattern (including the commas). Since repo paths won’t contain commas, this likely won’t match anything and the rubric won’t auto-apply. Consider switching to a YAML list of globs (or otherwise using the supported multi-pattern syntax) so it applies to `model/**`, `docs/gen-ai/**`, and `reference/scenarios/**` as intended.\n",
+      "created": "2026-05-12T21:10:51Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+---\n+description: \"Rubric for evaluating whether semantic-convention changes are supported by reference scenarios.\"\n+applyTo: \"model/**,docs/gen-ai/**,reference/scenarios/**\"",
+      "id": "PRRT_kwDOSUeMrM6BkBA3",
+      "opened": "2026-05-12T21:10:51Z",
+      "path": ".github/instructions/evaluate-reference.instructions.md",
+      "replies": [
+        {
+          "at": "2026-05-12T21:17:47Z",
+          "body": "Declining. The comma-separated single-string syntax is the documented form per [GitHub's official docs on path-specific custom instructions](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/add-custom-instructions/add-repository-instructions#creating-path-specific-custom-instructions):\n\n> You can specify multiple patterns by separating them with commas. For example, to apply the instructions to all TypeScript files in the repository, you could use the following frontmatter block:\n> ```\n> ---\n> applyTo: \"**/*.ts,**/*.tsx\"\n> ---\n> ```\n\nA YAML list form is not documented anywhere in the official Copilot docs, so switching to one would not be a supported syntax.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/151#discussion_r3229900754"
+        }
+      ],
+      "reviewed": "bba7909449b64a116f3a85b0e8a5482cc233555b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/151#discussion_r3229858688"
+    }
+  ]
+}

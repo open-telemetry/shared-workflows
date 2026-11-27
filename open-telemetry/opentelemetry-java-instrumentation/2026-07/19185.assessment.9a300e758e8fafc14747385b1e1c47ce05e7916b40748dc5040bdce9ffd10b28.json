@@ -1,0 +1,38 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "0eebdc274ce6593775eac233c329f3171b05a68f0425bb440d47180c5d2e7651",
+  "input_digest": "9a300e758e8fafc14747385b1e1c47ce05e7916b40748dc5040bdce9ffd10b28",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0bca293dbbe0d5b33fd63bb2124e36804ca72cb6/.github/workflows/module-cleanup.lock.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0bca293dbbe0d5b33fd63bb2124e36804ca72cb6/.github/workflows/module-cleanup.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4c59581e1cb27d352d7ff77bc1a2b6e5d60b95b/.github/workflows/module-cleanup.lock.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4c59581e1cb27d352d7ff77bc1a2b6e5d60b95b/.github/workflows/module-cleanup.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cd56cb45a9f75b709997e30bc03e302c962d8993",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e834c3f1315abe5bfe8f287d04af9a4f4163bef6"
+      ],
+      "id": "PRRT_kwDODJKVX86P_jN3",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/acaff48764821933d3d579a508c7ba87cea4df49/.github/workflows/module-cleanup.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/acaff48764821933d3d579a508c7ba87cea4df49/.github/workflows/module-cleanup.lock.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4c59581e1cb27d352d7ff77bc1a2b6e5d60b95b/.github/workflows/module-cleanup.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4c59581e1cb27d352d7ff77bc1a2b6e5d60b95b/.github/workflows/module-cleanup.lock.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cd56cb45a9f75b709997e30bc03e302c962d8993"
+      ],
+      "id": "PRRT_kwDODJKVX86QDls9",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

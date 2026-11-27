@@ -1,0 +1,319 @@
+{
+  "head": "8114d747b1404155f99ca59e246e7e288b71ed1d",
+  "merge": "2f02ddb640a269d0defdfd7ca901ca68f0334736",
+  "merged": "2026-10-20T02:02:57Z",
+  "missing_roots": 0,
+  "number": 786,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This cassette's response contains `output_text` equal to `This is a test.` and does not contain JSON for `_AsyncParseCalendarEvent`. The OpenAI parse post-parser validates the response against that Pydantic model, so this replay raises a validation error before the span assertions; use a dedicated cassette whose output is valid structured JSON.",
+      "created": "2026-09-24T07:55:19Z",
+      "hunk": "@@ -1598,3 +1602,48 @@ async def test_async_responses_create_event_only_no_content_in_span(\n         logs[0].log_record.event_name\n         == \"gen_ai.client.inference.operation.details\"\n     )\n+\n+\n+class _AsyncParseCalendarEvent(BaseModel):\n+    name: str\n+    date: str\n+    participants: list[str]\n+\n+\n+@pytest.mark.skipif(\n+    not _HAS_RESPONSES_PARSE,\n+    reason=\"AsyncResponses.parse requires a newer openai SDK\",\n+)\n+@pytest.mark.asyncio()\n+async def test_async_responses_parse_basic(\n+    span_exporter, async_openai_client, instrument_no_content, vcr\n+):\n+    \"\"\"AsyncResponses.parse() emits a GenAI span like create() (#659).\"\"\"\n+    _skip_if_not_latest()\n+\n+    with vcr.use_cassette(\n+        \"test_async_responses_create_basic[content_mode0].yaml\"\n+    ):",
+      "id": "PRRT_kwDOSbspP86lfQuh",
+      "opened": "2026-09-24T07:55:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_async_responses.py",
+      "replies": [
+        {
+          "at": "2026-09-27T05:47:53Z",
+          "body": "Good catch — this was addressed in the follow-up commit on this PR. Both parse tests now use dedicated cassettes (`test_responses_parse_basic[content_mode0].yaml` and the async equivalent) whose `output_text` is valid `CalendarEvent` JSON (`{\"name\":\"science fair\",...}`) instead of the shared `\"This is a test.\"` create cassette, so the SDK's Pydantic post-parser succeeds before the span assertions. The two parse tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4114253276"
+        },
+        {
+          "at": "2026-09-29T10:20:12Z",
+          "body": "Confirmed on the clean current head `7ceb6b7`: the async parse test now uses a dedicated cassette `test_async_responses_parse_basic[content_mode0].yaml` whose `output_text` is valid CalendarEvent JSON (contains `science fair`), instead of the shared `This is a test.` replay. Resolving.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4132278869"
+        }
+      ],
+      "reviewed": "cc44c8c5cb46b9bdfca17b6bb081fae4b8b0ba31",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4091214791"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This cassette's response contains `output_text` equal to `This is a test.` and does not contain JSON for `_ParseCalendarEvent`. The OpenAI parse post-parser validates the response against that Pydantic model, so this replay raises a validation error before the span assertions; use a dedicated parse cassette whose output is valid `CalendarEvent` JSON.",
+      "created": "2026-09-24T07:55:19Z",
+      "hunk": "@@ -1595,3 +1597,84 @@ def test_responses_create_event_only_no_content_in_span(\n         logs[0].log_record.event_name\n         == \"gen_ai.client.inference.operation.details\"\n     )\n+\n+\n+class _ParseCalendarEvent(BaseModel):\n+    name: str\n+    date: str\n+    participants: list[str]\n+\n+\n+@pytest.mark.skipif(\n+    not _HAS_RESPONSES_PARSE,\n+    reason=\"Responses.parse requires a newer openai SDK\",\n+)\n+def test_responses_parse_basic(\n+    span_exporter, openai_client, instrument_no_content, vcr\n+):\n+    \"\"\"Responses.parse() emits a GenAI span like create().\n+\n+    parse() is the structured-output helper; it issues the same /v1/responses\n+    request as create() (so it reuses the create cassette) but does not delegate\n+    to the instrumented create(), so it is wrapped separately (#659). It maps to\n+    the same inference operation as create() -- the request/response fields are\n+    identical -- exactly as chat.completions.parse reuses the completions create\n+    wrapper.\n+    \"\"\"\n+    _skip_if_not_latest()\n+\n+    with vcr.use_cassette(\"test_responses_create_basic[content_mode0].yaml\"):",
+      "id": "PRRT_kwDOSbspP86lfQvQ",
+      "opened": "2026-09-24T07:55:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_responses.py",
+      "replies": [
+        {
+          "at": "2026-09-27T05:47:56Z",
+          "body": "Good catch — this was addressed in the follow-up commit on this PR. Both parse tests now use dedicated cassettes (`test_responses_parse_basic[content_mode0].yaml` and the async equivalent) whose `output_text` is valid `CalendarEvent` JSON (`{\"name\":\"science fair\",...}`) instead of the shared `\"This is a test.\"` create cassette, so the SDK's Pydantic post-parser succeeds before the span assertions. The two parse tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4114253365"
+        },
+        {
+          "at": "2026-09-29T10:20:16Z",
+          "body": "Confirmed on the clean current head `7ceb6b7`: the sync parse test uses the dedicated `test_responses_parse_basic[content_mode0].yaml` cassette with valid CalendarEvent JSON. Resolving.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4132279474"
+        }
+      ],
+      "reviewed": "cc44c8c5cb46b9bdfca17b6bb081fae4b8b0ba31",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4091214853"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Responses.parse` receives `text_format`, not the `text` mapping that `extract_params()` currently inspects, so this reuse silently drops the structured-output format and never emits `gen_ai.output.type`. The analogous `chat.completions.parse` path records a Pydantic format as `json`; adapt the Responses extraction/wrapper to map `text_format` likewise and assert it in these tests.",
+      "created": "2026-09-24T07:55:20Z",
+      "hunk": "@@ -207,6 +225,25 @@ def _instrument(self, **kwargs):\n                 async_responses_retrieve(handler),\n             )\n \n+            # parse() is the Responses API structured-output helper. Like\n+            # chat.completions.parse it maps to the same inference operation\n+            # as create() -- the telemetry-relevant request/response fields\n+            # are identical and its ParsedResponse result is already handled\n+            # by the create wrappers -- but it does not delegate to the\n+            # instrumented create(), so it must be wrapped separately (#659).\n+            self._responses_parse_supported = _is_responses_parse_supported()\n+            if self._responses_parse_supported:\n+                wrap_function_wrapper(\n+                    \"openai.resources.responses.responses\",\n+                    \"Responses.parse\",\n+                    responses_create(handler),",
+      "id": "PRRT_kwDOSbspP86lfQv2",
+      "opened": "2026-09-24T07:55:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-09-27T05:47:59Z",
+          "body": "This is covered in the latest version of the PR. `extract_params()` now accepts `text_format` and `response_extractors._extract_output_type_from_text_format()` maps a Pydantic/dataclass type (what `Responses.parse(text_format=...)` receives) to `gen_ai.output.type=json`, mirroring the `chat.completions.parse` path. The mapping is asserted by both parse tests via `_assert_request_attrs(span, output_type=\"json\")`, and `test_responses_create_output_type_unchanged_by_parse` keeps a plain `create()` (no `text_format`) from spuriously recording an output type.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4114253473"
+        },
+        {
+          "at": "2026-09-29T10:20:21Z",
+          "body": "Confirmed on the clean current head `7ceb6b7`: `extract_params` accepts `text_format`, and `response_extractors._extract_output_type_from_text_format()` maps a Pydantic/dataclass type to `gen_ai.output.type=json` (mirroring `chat.completions.parse`); it is wired in at `response_extractors.py:249-252`. Resolving.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4132280147"
+        }
+      ],
+      "reviewed": "cc44c8c5cb46b9bdfca17b6bb081fae4b8b0ba31",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4091214905"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): Reusing responses_create causes set_invocation_response_attributes to call raw_response.parse() before client.responses.with_raw_response.parse(text_format=Model, ...) returns. The SDK’s raw-response parser runs the text_format post-parser, including the caller’s Pydantic validators. With invalid or truncated structured output, instrumentation can therefore raise during the API call where the uninstrumented SDK would return the raw response and raise only if the caller later parsed it. Could we extract telemetry without invoking the raw response’s .parse()? A regression test should check both the returned raw response and when validation occurs.",
+      "created": "2026-10-01T03:11:07Z",
+      "hunk": "@@ -207,6 +225,25 @@ def _instrument(self, **kwargs):\n                 async_responses_retrieve(handler),\n             )\n \n+            # parse() is the Responses API structured-output helper. Like\n+            # chat.completions.parse it maps to the same inference operation\n+            # as create() -- the telemetry-relevant request/response fields\n+            # are identical and its ParsedResponse result is already handled\n+            # by the create wrappers -- but it does not delegate to the\n+            # instrumented create(), so it must be wrapped separately (#659).\n+            self._responses_parse_supported = _is_responses_parse_supported()\n+            if self._responses_parse_supported:\n+                wrap_function_wrapper(",
+      "id": "PRRT_kwDOSbspP86nyjLz",
+      "opened": "2026-10-01T11:30:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-10-07T09:30:55Z",
+          "body": "Fixed in af96e6c6. `_parse_raw_response` no longer calls the raw response's `.parse()`: telemetry is rebuilt from the raw JSON body (`construct_type(type_=Response, value=payload)`), so the caller's `text_format` post-parser (their Pydantic validators) is never invoked during the API call -- validation stays where the uninstrumented SDK leaves it, in the caller's hands. If the body cannot be read or rebuilt, extraction degrades to skipping response attributes instead of raising.\n\nRegression coverage added: `test_responses_with_raw_response_parse_defers_validation` (sync) and `test_async_responses_with_raw_response_parse_defers_validation` (async) assert that `with_raw_response.parse(...)` returns without raising, that the span already carries the full response telemetry (id / model / usage / service tier), and that `raw_response.parse()` raises `ValidationError` only when the caller calls it. Both tests fail against the pre-fix code.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4205280938"
+        }
+      ],
+      "reviewed": "7ceb6b73b0f910fa1222ff2a0957ba13c5b69c8d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4151453250"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): Could we add parse-specific tests for API errors, Pydantic validation failures, with_raw_response, and content capture? Both new parse tests use successful responses with content capture off, so they don’t verify error.type, captured ParsedResponse output, or schema handling when capture is enabled. A raw-response test with invalid structured output would also check that instrumentation leaves validation deferred until the caller invokes raw_response.parse().",
+      "created": "2026-10-01T11:24:58Z",
+      "hunk": "@@ -1595,3 +1597,127 @@ def test_responses_create_event_only_no_content_in_span(\n         logs[0].log_record.event_name\n         == \"gen_ai.client.inference.operation.details\"\n     )\n+\n+\n+class _ParseCalendarEvent(BaseModel):\n+    name: str\n+    date: str\n+    participants: list[str]\n+\n+\n+@pytest.mark.skipif(\n+    not _HAS_RESPONSES_PARSE,\n+    reason=\"Responses.parse requires a newer openai SDK\",\n+)\n+def test_responses_parse_basic(",
+      "id": "PRRT_kwDOSbspP86n65oW",
+      "opened": "2026-10-01T11:30:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_responses.py",
+      "replies": [
+        {
+          "at": "2026-10-07T09:30:57Z",
+          "body": "Added in af96e6c6, covering each case you listed:\n\n- API errors: `test_responses_parse_api_error` -- a 4xx response is recorded with `error.type`, with no raw-response parsing involved.\n- Pydantic validation failures + `with_raw_response`: `test_responses_with_raw_response_parse_defers_validation` -- the raw response is handed back untouched and validation surfaces only on the caller's `raw_response.parse()`.\n- Content capture: `test_responses_with_raw_response_parse_captures_content` -- with capture enabled, `gen_ai.output.messages` is extracted from the raw body even though the caller never parses the raw response.\n\nThe two `with_raw_response` tests were red against the pre-fix code (the API call itself raised), so they pin the fixed behavior rather than just the happy path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4205281348"
+        }
+      ],
+      "reviewed": "7ceb6b73b0f910fa1222ff2a0957ba13c5b69c8d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4154830716"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): do we need this function? can we simply use hasattr check instead directly?",
+      "created": "2026-10-01T11:30:10Z",
+      "hunk": "@@ -103,9 +103,27 @@ def _is_parse_supported():\n         return False\n \n \n+def _is_responses_parse_supported():",
+      "id": "PRRT_kwDOSbspP86n7ANB",
+      "opened": "2026-10-01T11:30:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-10-07T09:30:59Z",
+          "body": "Agreed -- removed. The check is now a direct `hasattr(responses_module.Responses, \"parse\")` on the already-imported module, and `_is_responses_parse_supported()` is gone.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4205281754"
+        }
+      ],
+      "reviewed": "7ceb6b73b0f910fa1222ff2a0957ba13c5b69c8d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4154872045"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "It can be checked once at module/import time (mirroring `_is_parse_supported()` at `__init__.py:98`)\n",
+      "created": "2026-10-13T17:32:41Z",
+      "hunk": "@@ -228,6 +229,27 @@ def _instrument(self, **kwargs):\n                 self._active(async_responses_retrieve(handler)),\n             )\n \n+            # parse() is the Responses API structured-output helper. Like\n+            # chat.completions.parse it maps to the same inference operation\n+            # as create() -- the telemetry-relevant request/response fields\n+            # are identical and its ParsedResponse result is already handled\n+            # by the create wrappers -- but it does not delegate to the\n+            # instrumented create(), so it must be wrapped separately (#659).\n+            self._responses_parse_supported = hasattr(",
+      "id": "PRRT_kwDOSbspP86r-7Az",
+      "opened": "2026-10-13T18:05:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-10-17T07:37:39Z",
+          "body": "Done in 973e3d14: checked once at import/module time mirroring `_is_parse_supported()`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4301917917"
+        }
+      ],
+      "reviewed": "f938f3266cb0bd5094ad5bf0360ef2e0cc8c0573",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4261929640"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please unslop this comment, keep it high level and focused or remove",
+      "created": "2026-10-13T17:35:18Z",
+      "hunk": "@@ -190,6 +194,21 @@ def _extract_output_type_from_value(text_config: object) -> str | None:\n     return None\n \n \n+def _extract_output_type_from_text_format(text_format: object) -> str | None:\n+    \"\"\"Map ``Responses.parse(text_format=...)`` onto an output type.\n+\n+    ``parse()`` takes the caller's Pydantic model (or dataclass) as\n+    ``text_format`` and only turns it into a JSON-schema ``text.format``\n+    inside the SDK, after this wrapper has read the request kwargs, so the\n+    ``text`` mapping alone misses it (issue #659). Mirror the\n+    ``chat.completions.parse`` handling: a structured-output type means JSON.\n+    Only the format metadata is recorded -- never the caller's schema.",
+      "id": "PRRT_kwDOSbspP86r--9i",
+      "opened": "2026-10-13T18:05:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-17T07:37:43Z",
+          "body": "Done in 973e3d14: cleaned up and unslopt the comment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4301918089"
+        }
+      ],
+      "reviewed": "f938f3266cb0bd5094ad5bf0360ef2e0cc8c0573",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4261955649"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please unslop comments and docstrings added in the PR",
+      "created": "2026-10-13T17:35:38Z",
+      "hunk": "@@ -937,12 +960,33 @@ def _parse_raw_response(\n     response: object,\n     request_kwargs: dict[str, object] | None,\n ) -> object:\n-    \"\"\"Return the payload of a non-streaming ``with_raw_response`` result.\"\"\"\n+    \"\"\"Return the payload of a non-streaming ``with_raw_response`` result.\n+\n+    The payload is rebuilt from the raw JSON body instead of calling the raw\n+    response's ``parse()``: the SDK's parser runs the caller's ``text_format``\n+    post-parser (including their Pydantic validators) as soon as it is\n+    invoked, so calling it here would surface validation errors during the\n+    API call where the uninstrumented SDK leaves validation deferred until\n+    the caller parses the raw response themselves. Telemetry extraction is\n+    best-effort -- a body that cannot be read or rebuilt is skipped rather\n+    than raised.",
+      "id": "PRRT_kwDOSbspP86r-_fq",
+      "opened": "2026-10-13T18:05:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-17T07:37:48Z",
+          "body": "Done in 973e3d14: unslopt added comments and docstrings.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4301918347"
+        }
+      ],
+      "reviewed": "f938f3266cb0bd5094ad5bf0360ef2e0cc8c0573",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4261959026"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Wrap with `self._active(...)` so methods cached on client instances (such as `with_raw_response`) stop tracing once uninstrumented.\n\n```suggestion\n                wrap_function_wrapper(\n                    \"openai.resources.responses.responses\",\n                    \"Responses.parse\",\n                    self._active(responses_create(handler)),\n                )\n                wrap_function_wrapper(\n                    \"openai.resources.responses.responses\",\n                    \"AsyncResponses.parse\",\n                    self._active(async_responses_create(handler)),\n                )\n```",
+      "created": "2026-10-13T17:42:39Z",
+      "hunk": "@@ -228,6 +229,27 @@ def _instrument(self, **kwargs):\n                 self._active(async_responses_retrieve(handler)),\n             )\n \n+            # parse() is the Responses API structured-output helper. Like\n+            # chat.completions.parse it maps to the same inference operation\n+            # as create() -- the telemetry-relevant request/response fields\n+            # are identical and its ParsedResponse result is already handled\n+            # by the create wrappers -- but it does not delegate to the\n+            # instrumented create(), so it must be wrapped separately (#659).\n+            self._responses_parse_supported = hasattr(\n+                responses_module.Responses, \"parse\"\n+            )\n+            if self._responses_parse_supported:\n+                wrap_function_wrapper(\n+                    \"openai.resources.responses.responses\",\n+                    \"Responses.parse\",\n+                    responses_create(handler),\n+                )\n+                wrap_function_wrapper(\n+                    \"openai.resources.responses.responses\",\n+                    \"AsyncResponses.parse\",\n+                    async_responses_create(handler),\n+                )",
+      "id": "PRRT_kwDOSbspP86r_JuO",
+      "opened": "2026-10-13T18:05:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-10-17T07:37:51Z",
+          "body": "Done in 973e3d14: wrapped with `self._active(...)`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4301918515"
+        }
+      ],
+      "reviewed": "f938f3266cb0bd5094ad5bf0360ef2e0cc8c0573",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4262026284"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "We can use `Response.model_construct(**payload)` (or `construct`) instead of importing private `openai._models.construct_type`.\n\nAlso, typing/checking `response` with `RawResponseLike` from `_raw_response.py` avoids `getattr(response, \"http_response\", None)`.",
+      "created": "2026-10-13T17:42:40Z",
+      "hunk": "@@ -937,12 +960,33 @@ def _parse_raw_response(\n     response: object,\n     request_kwargs: dict[str, object] | None,\n ) -> object:\n-    \"\"\"Return the payload of a non-streaming ``with_raw_response`` result.\"\"\"\n+    \"\"\"Return the payload of a non-streaming ``with_raw_response`` result.\n+\n+    The payload is rebuilt from the raw JSON body instead of calling the raw\n+    response's ``parse()``: the SDK's parser runs the caller's ``text_format``\n+    post-parser (including their Pydantic validators) as soon as it is\n+    invoked, so calling it here would surface validation errors during the\n+    API call where the uninstrumented SDK leaves validation deferred until\n+    the caller parses the raw response themselves. Telemetry extraction is\n+    best-effort -- a body that cannot be read or rebuilt is skipped rather\n+    than raised.\n+    \"\"\"\n     if is_streamed_raw_response(request_kwargs) or not isinstance(\n         response, ParsableResponse\n     ):\n         return response\n-    return response.parse()\n+    http_response = getattr(response, \"http_response\", None)\n+    content = getattr(http_response, \"content\", None)\n+    try:\n+        payload = json.loads(content)\n+    except (TypeError, ValueError):\n+        return None\n+    if Response is None or construct_type is None:",
+      "id": "PRRT_kwDOSbspP86r_Jwq",
+      "opened": "2026-10-13T18:05:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-17T07:37:53Z",
+          "body": "Done in 973e3d14: switched to `Response.model_construct(**payload)` and typed `RawResponseLike`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4301918665"
+        }
+      ],
+      "reviewed": "f938f3266cb0bd5094ad5bf0360ef2e0cc8c0573",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4262026510"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this helper can be inlined into `extract_params` directly (mirroring `utils.py:158`):\n\n```python\noutput_type=(\n    _extract_output_type_from_value(text)\n    or (\n        GenAIAttributes.GenAiOutputTypeValues.JSON.value\n        if isinstance(text_format, type)\n        else None\n    )\n)\n```",
+      "created": "2026-10-13T17:42:41Z",
+      "hunk": "@@ -190,6 +194,21 @@ def _extract_output_type_from_value(text_config: object) -> str | None:\n     return None\n \n \n+def _extract_output_type_from_text_format(text_format: object) -> str | None:\n+    \"\"\"Map ``Responses.parse(text_format=...)`` onto an output type.\n+\n+    ``parse()`` takes the caller's Pydantic model (or dataclass) as\n+    ``text_format`` and only turns it into a JSON-schema ``text.format``\n+    inside the SDK, after this wrapper has read the request kwargs, so the\n+    ``text`` mapping alone misses it (issue #659). Mirror the\n+    ``chat.completions.parse`` handling: a structured-output type means JSON.\n+    Only the format metadata is recorded -- never the caller's schema.\n+    \"\"\"\n+    if isinstance(text_format, type):",
+      "id": "PRRT_kwDOSbspP86r_JyX",
+      "opened": "2026-10-13T18:05:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-17T07:39:10Z",
+          "body": "Done in 973e3d14: inlined helper directly into extract_params.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4301922073"
+        }
+      ],
+      "reviewed": "f938f3266cb0bd5094ad5bf0360ef2e0cc8c0573",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4262026694"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Add async test parity for `with_raw_response` content capture and API errors, mirroring `test_responses_with_raw_response_parse_captures_content` and `test_responses_parse_api_error`.",
+      "created": "2026-10-13T17:42:42Z",
+      "hunk": "@@ -1721,3 +1725,105 @@ async def test_async_responses_create_event_only_no_content_in_span(\n         logs[0].log_record.event_name\n         == \"gen_ai.client.inference.operation.details\"\n     )\n+\n+\n+class _AsyncParseCalendarEvent(BaseModel):\n+    name: str\n+    date: str\n+    participants: list[str]\n+\n+\n+@pytest.mark.skipif(\n+    not _HAS_RESPONSES_PARSE,\n+    reason=\"AsyncResponses.parse requires a newer openai SDK\",\n+)\n+@pytest.mark.asyncio()\n+async def test_async_responses_parse_basic(\n+    span_exporter, async_openai_client, instrument_no_content, vcr\n+):\n+    \"\"\"AsyncResponses.parse() emits a GenAI span like create() (#659).\"\"\"\n+    _skip_if_not_latest()\n+\n+    with vcr.use_cassette(\n+        \"test_async_responses_parse_basic[content_mode0].yaml\"\n+    ):\n+        response = await async_openai_client.responses.parse(\n+            model=DEFAULT_MODEL,\n+            instructions=SYSTEM_INSTRUCTIONS,\n+            input=USER_ONLY_PROMPT[0][\"content\"],\n+            text_format=_AsyncParseCalendarEvent,\n+            stream=False,\n+        )\n+\n+    (span,) = span_exporter.get_finished_spans()\n+    assert_all_attributes(\n+        span,\n+        DEFAULT_MODEL,\n+        True,\n+        response.id,\n+        response.model,\n+        response.usage.input_tokens,\n+        response.usage.output_tokens,\n+        response_service_tier=getattr(response, \"service_tier\", None),\n+    )\n+    assert (\n+        span.attributes[OpenAIAttributes.OPENAI_API_TYPE]\n+        == OpenAIAttributes.OpenaiApiTypeValues.RESPONSES.value\n+    )\n+    # parse(text_format=...) is a structured-output call, so the span records\n+    # the JSON output type -- but only the format metadata, never the caller's\n+    # Pydantic schema (issue #659).\n+    _assert_request_attrs(span, output_type=\"json\")\n+    assert \"_AsyncParseCalendarEvent\" not in str(span.attributes)\n+\n+\n+class _AsyncMissingFieldCalendarEvent(BaseModel):\n+    # The recorded response never carries this field, so parsing its raw\n+    # response fails -- but only when the caller parses it.\n+    field_that_is_never_present: str\n+\n+\n+@pytest.mark.skipif(\n+    not _HAS_RESPONSES_PARSE,\n+    reason=\"AsyncResponses.parse requires a newer openai SDK\",\n+)\n+@pytest.mark.asyncio()\n+async def test_async_responses_with_raw_response_parse_defers_validation(\n+    span_exporter, async_openai_client, instrument_no_content, vcr\n+):\n+    \"\"\"``with_raw_response.parse()`` keeps validation deferred (async).\n+\n+    Mirrors the sync test: the instrumentation must not force the SDK's\n+    parse while extracting telemetry, so the raw response is returned and\n+    validation happens only when the caller parses it.\n+    \"\"\"\n+    _skip_if_not_latest()\n+\n+    with vcr.use_cassette(\n+        \"test_async_responses_parse_basic[content_mode0].yaml\"\n+    ):\n+        raw_response = (\n+            await async_openai_client.responses.with_raw_response.parse(\n+                model=DEFAULT_MODEL,\n+                instructions=SYSTEM_INSTRUCTIONS,\n+                input=USER_ONLY_PROMPT[0][\"content\"],\n+                text_format=_AsyncMissingFieldCalendarEvent,\n+                stream=False,\n+            )\n+        )\n+\n+        (span,) = span_exporter.get_finished_spans()\n+        assert_all_attributes(\n+            span,\n+            DEFAULT_MODEL,\n+            True,\n+            \"resp_0f4faba17dcd0f1e0069e2f3e4907881909179832ba1237100\",\n+            \"gpt-4o-mini-2024-07-18\",\n+            22,\n+            6,\n+            response_service_tier=\"default\",\n+        )\n+\n+        # Validation still happens only when the caller parses.\n+        with pytest.raises(ValidationError):",
+      "id": "PRRT_kwDOSbspP86r_J0i",
+      "opened": "2026-10-13T18:05:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_async_responses.py",
+      "replies": [
+        {
+          "at": "2026-10-17T07:38:07Z",
+          "body": "Done in 973e3d14: added async test parity for `with_raw_response` content capture and API errors.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4301919339"
+        }
+      ],
+      "reviewed": "f938f3266cb0bd5094ad5bf0360ef2e0cc8c0573",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4262026900"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: add unit test coverage in this file for `extract_params(text_format=...)`.",
+      "created": "2026-10-13T17:42:57Z",
+      "hunk": "@@ -1319,13 +1330,14 @@ def test_get_response_error_parses_raw_response(loaded_module):\n         status=\"failed\",\n         error={\"code\": \"server_error\", \"message\": \"boom\"},\n     )\n-    raw_response = SimpleNamespace(parse=mock.Mock(return_value=response))\n+    raw_response = _RawResponse(response)\n \n     error = loaded_module.get_response_error(raw_response)\n \n     assert error is not None\n     assert error.type == \"server_error\"\n-    raw_response.parse.assert_called_once_with()\n+    assert error.message == \"boom\"\n+    assert raw_response.parse_count == 0",
+      "id": "PRRT_kwDOSbspP86r_KMs",
+      "opened": "2026-10-13T18:05:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-17T07:38:10Z",
+          "body": "Done in 973e3d14: added unit test coverage in `test_response_extractors.py` for `extract_params(text_format=...)`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4301919428"
+        }
+      ],
+      "reviewed": "f938f3266cb0bd5094ad5bf0360ef2e0cc8c0573",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/786#discussion_r4262029318"
+    }
+  ]
+}

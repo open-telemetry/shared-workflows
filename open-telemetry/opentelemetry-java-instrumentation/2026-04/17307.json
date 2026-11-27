@@ -1,0 +1,31 @@
+{
+  "head": "4e2eb1e2599d8d17fd37d2a15ebb910ccfe33dbe",
+  "merge": "4ddeb26a2f727fa982b8033a0ac1b6358ad81ac3",
+  "merged": "2026-04-01T01:00:31Z",
+  "missing_roots": 0,
+  "number": 17307,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot can this be try-with-resources?",
+      "created": "2026-03-31T22:42:42Z",
+      "hunk": "@@ -95,14 +94,17 @@ void testConnectionStringWithoutDatabaseSpecifiedStillGeneratesSpans()\n       throws ClickHouseException {\n     ClickHouseNode server = ClickHouseNode.of(\"http://\" + host + \":\" + port + \"?compress=0\");\n     ClickHouseClient client = ClickHouseClient.builder().build();\n-\n-    ClickHouseResponse response =\n-        client\n-            .read(server)\n-            .format(ClickHouseFormat.RowBinaryWithNamesAndTypes)\n-            .query(\"select * from \" + tableName)\n-            .executeAndWait();\n-    response.close();\n+    try {\n+      ClickHouseResponse response =\n+          client\n+              .read(server)\n+              .format(ClickHouseFormat.RowBinaryWithNamesAndTypes)\n+              .query(\"select * from \" + tableName)\n+              .executeAndWait();\n+      response.close();\n+    } finally {\n+      client.close();\n+    }",
+      "id": "PRRT_kwDODJKVX854FuDM",
+      "opened": "2026-03-31T22:42:42Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Test.java",
+      "replies": [
+        {
+          "at": "2026-03-31T22:55:46Z",
+          "body": "Done, converted to try-with-resources in 4e2eb1e.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17307#discussion_r3018871586"
+        }
+      ],
+      "reviewed": "5b12dff51be8ba4e0436687bccebd36bd0ced487",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17307#discussion_r3018832241"
+    }
+  ]
+}

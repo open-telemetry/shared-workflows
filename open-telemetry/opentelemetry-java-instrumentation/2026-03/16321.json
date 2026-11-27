@@ -1,0 +1,46 @@
+{
+  "head": "999a492374c3d2f021402c0801fa1bf79470f78a",
+  "merge": "68e5e072f315075ad13b1df8f347099024674efe",
+  "merged": "2026-03-02T15:19:38Z",
+  "missing_roots": 0,
+  "number": 16321,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "not sure what this suffix is about, seems only in latest:\n\n- https://central.sonatype.com/artifact/net.bytebuddy/byte-buddy/versions\n\nbut don't see that release yet on the repo:\n\n- https://github.com/raphw/byte-buddy/releases",
+      "created": "2026-02-28T19:43:01Z",
+      "hunk": "@@ -63,7 +63,7 @@ dependencies {\n   implementation(\"ru.vyarus:gradle-animalsniffer-plugin:2.0.1\")\n   implementation(\"org.spdx:spdx-gradle-plugin:0.9.0\")\n   // When updating, also update dependencyManagement/build.gradle.kts\n-  implementation(\"net.bytebuddy:byte-buddy-gradle-plugin:1.18.5\")\n+  implementation(\"net.bytebuddy:byte-buddy-gradle-plugin:1.18.6-jdk6-jdk5\")",
+      "id": "PRRT_kwDODJKVX85xV4xC",
+      "opened": "2026-02-28T19:43:01Z",
+      "path": "conventions/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-03-02T07:33:55Z",
+          "body": "See https://github.com/raphw/byte-buddy/commit/217d41f3284aa63db0809e249d49a87cf33811b7 We can use the ones without the `jdk5` suffix.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16321#discussion_r2870936109"
+        }
+      ],
+      "reviewed": "91568434d5788b3658d0cec74bc1d2c89c6ecbeb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16321#discussion_r2867811357"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "nice",
+      "created": "2026-03-02T15:19:28Z",
+      "hunk": "@@ -454,25 +426,6 @@ fun CopySpec.isolateClasses(jar: Provider<RegularFile>) {\n   }\n }\n \n-fun CopySpec.copyByteBuddy(jar: Provider<RegularFile>) {\n-  // Byte buddy jar includes classes compiled for java 5 at the root of the jar and the same classes\n-  // compiled for java 8 under META-INF/versions/9. Here we move the classes from\n-  // META-INF/versions/9/net/bytebuddy to net/bytebuddy to get rid of the duplicate classes.\n-  from(zipTree(jar)) {\n-    eachFile {\n-      if (path.startsWith(\"net/bytebuddy/\") &&\n-        // this is our class that we have placed in the byte buddy package, need to preserve it\n-        !path.startsWith(\"net/bytebuddy/agent/builder/AgentBuilderUtil\")\n-      ) {\n-        exclude()\n-      } else if (path.startsWith(\"META-INF/versions/9/net/bytebuddy/\")) {\n-        path = path.removePrefix(\"META-INF/versions/9/\")\n-      }\n-    }\n-    includeEmptyDirs = false\n-  }\n-}\n-",
+      "id": "PRRT_kwDODJKVX85xk2zo",
+      "opened": "2026-03-02T15:19:28Z",
+      "path": "javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "999a492374c3d2f021402c0801fa1bf79470f78a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16321#discussion_r2873030122"
+    }
+  ]
+}

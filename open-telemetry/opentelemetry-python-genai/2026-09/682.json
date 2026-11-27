@@ -1,0 +1,52 @@
+{
+  "head": "d90ae7ecc5b47b178d4c0d2a877c1490ecbe2a61",
+  "merge": "facb6a01332ed872d87ff38918843c99aeb0febd",
+  "merged": "2026-09-11T23:25:06Z",
+  "missing_roots": 0,
+  "number": 682,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Could we simplify this fallback? If we want `metadata[\"ls_model_name\"]` checked after the provider-specific keys, we can write:\n\n```suggestion\n        if request_model is None and metadata:\n            if model := metadata.get(\"ls_model_name\"):\n                request_model = str(model)\n```\n\nAlternatively, if order does not matter, we could also append `\"ls_model_name\"` directly to the `model_tag` loop above.",
+      "created": "2026-09-11T21:54:45Z",
+      "hunk": "@@ -284,6 +284,12 @@ def on_chat_model_start(\n                 request_model = str(model)\n                 break\n \n+        if (\n+            request_model is None\n+            and (model := (metadata or {}).get(\"ls_model_name\")) is not None\n+        ):\n+            request_model = str(model)",
+      "id": "PRRT_kwDOSbspP86hpl9l",
+      "opened": "2026-09-11T21:55:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-09-11T22:39:09Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/682#discussion_r3993946302"
+        }
+      ],
+      "reviewed": "b7e8b373a800ab3f3e14e1102acd4c2a962924b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/682#discussion_r3993700646"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Instead of unit testing this via `on_chat_model_start` against mocks, could we add an end-to-end integration test in `tests/test_llm_call.py`?\n\nThis mirrors the documented pattern from [LangSmith metadata parameters](https://docs.langchain.com/langsmith/ls-metadata-parameters#ls_model_name) for custom models and verifies that the span is actually emitted end-to-end with the expected attribute:\n\n```python\ndef test_chat_model_uses_ls_model_name_from_metadata(\n    span_exporter,\n    tracer_provider,\n):\n    model = FakeMessagesListChatModel(responses=[AIMessage(content=\"Hello\")])\n    with instrument(LangChainInstrumentor(), tracer_provider=tracer_provider):\n        model.invoke(\n            [HumanMessage(content=\"Hi\")],\n            config={\"metadata\": {\"ls_model_name\": \"my-custom-model\"}},\n        )\n\n    (span,) = span_exporter.get_finished_spans()\n    assert (\n        span.attributes.get(gen_ai_attributes.GEN_AI_REQUEST_MODEL)\n        == \"my-custom-model\"\n    )\n```",
+      "created": "2026-09-11T21:54:45Z",
+      "hunk": "@@ -2799,6 +2799,39 @@ def test_on_chat_model_start_captures_input_messages_when_content_enabled():\n     assert blob.content == _REAL_PNG_BYTES\n \n \n+def test_on_chat_model_start_uses_ls_model_name_from_metadata():",
+      "id": "PRRT_kwDOSbspP86hpl9v",
+      "opened": "2026-09-11T21:55:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-09-11T22:39:50Z",
+          "body": "Thanks for the callout. Added an integration test in `test_llm_call.py`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/682#discussion_r3993949444"
+        }
+      ],
+      "reviewed": "b7e8b373a800ab3f3e14e1102acd4c2a962924b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/682#discussion_r3993700658"
+    }
+  ]
+}

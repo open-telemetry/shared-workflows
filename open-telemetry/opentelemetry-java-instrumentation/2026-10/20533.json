@@ -1,0 +1,139 @@
+{
+  "head": "51b19872c1056ad7db94eaf6d42f39d2951f2935",
+  "merge": "790251c3a59e9378ecb80871c6c65dbc9a908c19",
+  "merged": "2026-10-13T09:10:32Z",
+  "missing_roots": 0,
+  "number": 20533,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please remove command-encoding event support from the standalone Lettuce library too, rather than keeping `Experimental.setEncodingSpanEventsEnabled` after its removal from the Java agent. Delete this `Experimental` class and the encoding-events boolean plumbing. Always filter `redis.encode.*` annotations while preserving other Lettuce events and the current default telemetry. Update the library tests accordingly, and change the changelog and PR description to describe removal without a replacement API. The next release from main is 3.0, so do not retain a deprecated setter.",
+      "created": "2026-10-12T20:12:13Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.lettuce.v5_1.internal;\n+\n+import io.opentelemetry.instrumentation.lettuce.v5_1.LettuceTelemetryBuilder;\n+import java.util.function.BiConsumer;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and experimental. Its APIs are unstable and can change at any time. Its\n+ * APIs (or a version of them) may be promoted to the public stable API in the future, but no\n+ * guarantees are made.\n+ */\n+public final class Experimental {\n+\n+  @Nullable\n+  private static volatile BiConsumer<LettuceTelemetryBuilder, Boolean> setEncodingSpanEventsEnabled;\n+\n+  /**\n+   * Sets whether the {@code redis.encode.start} and {@code redis.encode.end} span events should be\n+   * emitted. Disabled by default.\n+   */\n+  public static void setEncodingSpanEventsEnabled(",
+      "id": "PRRT_kwDODJKVX86rmzxK",
+      "opened": "2026-10-12T20:12:13Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/internal/Experimental.java",
+      "replies": [
+        {
+          "at": "2026-10-12T20:26:30Z",
+          "body": "Implemented in 42d7138a: deleted `Experimental` and the encoding-events boolean plumbing, made `redis.encode.*` filtering unconditional, and updated tests/changelog without a replacement API. Other events remain covered. Scoped Spotless and all 36 baseline library tests passed; latest-dependency validation is blocked by an unavailable Java 27 toolchain required by Helidon.\n\nPR description editing is blocked by the unavailable browser tool. Replace its setter/replacement example with: “Remove command-encoding event support from the standalone Lettuce library and remove `LettuceTelemetryBuilder.setEncodingSpanEventsEnabled` without a replacement API. Other Lettuce events and default telemetry remain unchanged.”",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20533#discussion_r4252037415"
+        }
+      ],
+      "reviewed": "ca7cf07f086744824bdbb85e27e8514c74c833be",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20533#discussion_r4251933999"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This helper turns every client integration test into a historical absence assertion solely because encoding events were removed. The focused `LettuceTelemetryTest` already verifies the supported filtering behavior; remove this helper and the `assertCommandEvents` calls, while retaining assertions for real exception events.",
+      "created": "2026-10-12T20:39:26Z",
+      "hunk": "@@ -89,11 +89,8 @@ protected static List<AttributeAssertion> addExtraAttributes(AttributeAssertion.\n     return asList(assertions);\n   }\n \n-  protected static void assertCommandEncodeEvents(SpanData span) {\n-    assertThat(span)\n-        .hasEventsSatisfyingExactly(\n-            event -> event.hasName(\"redis.encode.start\"),\n-            event -> event.hasName(\"redis.encode.end\"));\n+  protected static void assertCommandEvents(SpanData span) {\n+    assertThat(span).hasEventsSatisfyingExactly();",
+      "id": "PRRT_kwDODJKVX86rnRt3",
+      "opened": "2026-10-12T20:39:27Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/testing/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/AbstractLettuceClientTest.java",
+      "replies": [
+        {
+          "at": "2026-10-12T21:13:58Z",
+          "body": "Addressed in 57803e3fefd2aff14f9839f094edfc6fed16dc48.\n\nRemoved assertCommandEvents, all 28 fluent call sites, and both no-event fallback branches across the shared client tests. Retained the command-error and shutdown exception-event assertions, all other telemetry assertions, and the focused LettuceTelemetryTest filtering coverage. The focused test passed both before-start and after-start cases; shared tests compiled and passed Checkstyle and Spotless.\n\n<!-- copilot-loop:47d3e2a38284f25e8f126beb20d8667cb8f0c17d0dbeec5b3dde1b9fe7baaac1:4252130138:8335511047684e2796a062d96c230bee -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20533#discussion_r4252373216"
+        }
+      ],
+      "reviewed": "42d7138a0ae7af263344c2aaa9b3e5a4184a3db0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20533#discussion_r4252130138"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Deleting the combined sentence also removes still-applicable guidance for Jedis 1.x, whose module remains deprecated and marked for 3.0 removal. Keep the Jedis-specific statement until that module is actually removed.",
+      "created": "2026-10-12T20:39:27Z",
+      "hunk": "@@ -90,8 +90,6 @@ instrumentation. They use independent feature names, such as `kafka-clients-metr\n `jdbc-datasource`, or `kotlinx-coroutines-annotations`. A group whose\n members are all default-off can share an umbrella: `hibernate` selects default-off telemetry,\n including procedure calls, but not default-on Hibernate Reactive context propagation.",
+      "id": "PRRT_kwDODJKVX86rnRuh",
+      "opened": "2026-10-12T20:39:27Z",
+      "path": ".github/agents/knowledge/javaagent-module-patterns.md",
+      "replies": [
+        {
+          "at": "2026-10-12T21:14:56Z",
+          "body": "Addressed in ce26ee76cd6b1ce92d7a938ef3a0582856daa297.\n\nRestored the Jedis-specific statement without restoring obsolete Lettuce guidance. The frozen source still registers jedis-1.4, and its InstrumentationModule remains annotated Deprecated with an explicit 3.0 removal comment. Commit 64207f73 deliberately restored Jedis to keep this PR Lettuce-only; the later removal of the combined documentation therefore omitted still-applicable guidance.\n\n<!-- copilot-loop:47d3e2a38284f25e8f126beb20d8667cb8f0c17d0dbeec5b3dde1b9fe7baaac1:4252130199:b1aabba590da414a848a3d1f772b37b3 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20533#discussion_r4252379983"
+        }
+      ],
+      "reviewed": "42d7138a0ae7af263344c2aaa9b3e5a4184a3db0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20533#discussion_r4252130199"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] Removing the 5.1 module also removes the public `otel.instrumentation.lettuce-5.1.enabled` selector. A deployment that used this version-specific key to disable instrumentation will now silently get Lettuce spans, but this migration note only mentions the encoding-events property. Document the selector removal and direct users to `otel.instrumentation.lettuce.enabled` in both the changelog and PR migration guidance.",
+      "created": "2026-10-12T20:39:27Z",
+      "hunk": "@@ -4,6 +4,11 @@\n \n ### ⚠️ Breaking changes\n \n+- The Java agent now instruments Lettuce 5.1 and later with the Lettuce 5.0 integration, changing\n+  the instrumentation scope from `io.opentelemetry.lettuce-5.1` to\n+  `io.opentelemetry.lettuce-5.0`. The Java agent no longer emits command-encoding events, and\n+  `otel.instrumentation.lettuce.experimental.command-encoding-events.enabled` is no longer\n+  supported.",
+      "id": "PRRT_kwDODJKVX86rnRvC",
+      "opened": "2026-10-12T20:39:27Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-12T21:15:53Z",
+          "body": "Addressed in 2d9fedba028928adc18de522bf1ed72c3a2f8685.\n\nThe deleted 5.1 agent registered lettuce-5.1, whereas the surviving 5.0 agent registers lettuce and lettuce-5.0 only. Added the removed otel.instrumentation.lettuce-5.1.enabled selector and its otel.instrumentation.lettuce.enabled replacement to the existing breaking-change entry. The shared description proposal preserves the original title and body and adds an explicit false-to-false migration example.\n\n<!-- copilot-loop:47d3e2a38284f25e8f126beb20d8667cb8f0c17d0dbeec5b3dde1b9fe7baaac1:4252130250:533859e54fff49d4b738d94135696f67 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20533#discussion_r4252386864"
+        }
+      ],
+      "reviewed": "42d7138a0ae7af263344c2aaa9b3e5a4184a3db0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20533#discussion_r4252130250"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-12T21:33:48Z",
+      "hunk": "@@ -90,8 +90,8 @@ instrumentation. They use independent feature names, such as `kafka-clients-metr\n `jdbc-datasource`, or `kotlinx-coroutines-annotations`. A group whose\n members are all default-off can share an umbrella: `hibernate` selects default-off telemetry,\n including procedure calls, but not default-on Hibernate Reactive context propagation.\n-The deprecated Jedis 1.x and superseded Lettuce 5.1 implementations slated for removal in 3.0\n-do not define long-term group membership.\n+The deprecated Jedis 1.x implementation slated for removal in 3.0 does not define long-term group\n+membership.",
+      "id": "PRRT_kwDODJKVX86roNNW",
+      "opened": "2026-10-12T21:33:48Z",
+      "path": ".github/agents/knowledge/javaagent-module-patterns.md",
+      "replies": [],
+      "reviewed": "2d9fedba028928adc18de522bf1ed72c3a2f8685",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20533#discussion_r4252525762"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please remove `instrumentation/lettuce/lettuce-5.1/library/src/test/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceTelemetryTest.java`. Encoding events were already filtered by default; this PR only removes the opt-in. This test mainly asserts the absence of removed telemetry, which the repository test instructions discourage. Its checks for preserving other annotations exercise unchanged buffering behavior and are not needed for this removal.",
+      "created": "2026-10-13T00:32:15Z",
+      "hunk": "@@ -0,0 +1,63 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.lettuce.v5_1;\n+\n+import io.lettuce.core.protocol.Command;\n+import io.lettuce.core.protocol.CommandType;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.lettuce.core.tracing.Tracer;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n+\n+class LettuceTelemetryTest {",
+      "id": "PRRT_kwDODJKVX86rqoTE",
+      "opened": "2026-10-13T00:32:15Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/test/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceTelemetryTest.java",
+      "replies": [],
+      "reviewed": "9f53c3c2545da06393336d68b0dac4fb706aa651",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20533#discussion_r4253554460"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "isn't only 1 of these enough for metadata collection?",
+      "created": "2026-10-13T06:16:07Z",
+      "hunk": "@@ -191,7 +191,9 @@ readonly INSTRUMENTATIONS=(\n   \"lettuce:lettuce-5.0:javaagent:testConnectionTelemetryEnabled\"\n   \"lettuce:lettuce-5.0:javaagent:testConnectionTelemetryEnabledPreviewSemconv\"\n   \"lettuce:lettuce-5.0:javaagent:testV3Preview\"\n-  \"lettuce:lettuce-5.1:javaagent:test\"\n+  \"lettuce:lettuce-5.0:javaagent:lettuce51Test\"\n+  \"lettuce:lettuce-5.0:javaagent:lettuce60Test\"\n+  \"lettuce:lettuce-5.0:javaagent:lettuce65Test\"",
+      "id": "PRRT_kwDODJKVX86ru3En",
+      "opened": "2026-10-13T06:16:07Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [],
+      "reviewed": "05ab0deb02f8274a6246141f7cb8a11661ff93b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20533#discussion_r4255327381"
+    }
+  ]
+}

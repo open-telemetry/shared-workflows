@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "38fd66d4f852ae954a0ba813312d0aba07ed2a607c7c507b7dd67fd6561b2d63",
+  "input_digest": "dfe75392d970bb3a1a7386e10188e05d298beadd4c0b828c93c8828d1479182d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/633eaec13a5ca886a05361bd79654b46709c42ab/instrumentation/thrift-0.13/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/thrift/v0_13/ThriftAsyncProcessFunctionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/633eaec13a5ca886a05361bd79654b46709c42ab/instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/AsyncMethodCallbackUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2dc5d9fd568b6a4b07e4f1d113cc73d2eff946dc/instrumentation/thrift-0.13/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/thrift/v0_13/ThriftAsyncProcessFunctionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2dc5d9fd568b6a4b07e4f1d113cc73d2eff946dc/instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/AsyncMethodCallbackUtil.java"
+      ],
+      "id": "PRRT_kwDODJKVX86JXvLm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/633eaec13a5ca886a05361bd79654b46709c42ab/instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/AsyncMethodCallbackUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2dc5d9fd568b6a4b07e4f1d113cc73d2eff946dc/instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/AsyncMethodCallbackUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6068b41cfcacebe06b20fb9217e47060ac59dcdf"
+      ],
+      "id": "PRRT_kwDODJKVX86JXvLo",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "a8475f78a16fcc7604c80d46ea1f9c54050cb9a8",
+  "merge": "c47b1f8bfaa6a1e8e38fba7ebe3d40d2255ae829",
+  "merged": "2026-03-14T17:57:09Z",
+  "missing_roots": 0,
+  "number": 16501,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is reverting a change that the review made earlier before I fine-tuned the instructions to ignore when it's just a single base version",
+      "created": "2026-03-14T17:57:00Z",
+      "hunk": "@@ -37,9 +37,7 @@ public void registerHelperResources(HelperResourceBuilder helperResourceBuilder)\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n-    return hasClassesNamed(\n-        // added in 2.7.0\n-        \"org.apache.dubbo.rpc.Filter\");\n+    return hasClassesNamed(\"org.apache.dubbo.rpc.Filter\");",
+      "id": "PRRT_kwDODJKVX850W3Ox",
+      "opened": "2026-03-14T17:57:03Z",
+      "path": "instrumentation/apache-dubbo-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedubbo/v2_7/DubboInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "a8475f78a16fcc7604c80d46ea1f9c54050cb9a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16501#discussion_r2935591660"
+    }
+  ]
+}

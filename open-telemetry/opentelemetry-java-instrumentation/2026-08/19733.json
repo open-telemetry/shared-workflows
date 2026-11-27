@@ -1,0 +1,133 @@
+{
+  "head": "1d96fb73c6751bd953e84ac0347cd6a9142d237c",
+  "merge": "ed6f7d4901eaef7ba5b3d6575543fc8d018fb4bc",
+  "merged": "2026-08-24T11:41:49Z",
+  "missing_roots": 0,
+  "number": 19733,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Nothing in this package is referenced from outside it, so `public` is not needed here or on the three new `Fake*CollectorServiceHttp` classes and the new constructors. `serve` has to stay public as an override.",
+      "created": "2026-08-21T00:51:50Z",
+      "hunk": "@@ -0,0 +1,60 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.smoketest.fakebackend;\n+\n+import com.google.common.collect.ImmutableList;\n+import io.opentelemetry.proto.collector.logs.v1.ExportLogsServiceRequest;\n+import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;\n+import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest;\n+import java.util.List;\n+import java.util.concurrent.BlockingQueue;\n+import java.util.concurrent.LinkedBlockingDeque;\n+\n+public class RequestsStorage {",
+      "id": "PRRT_kwDODJKVX86bAPSB",
+      "opened": "2026-08-21T01:27:22Z",
+      "path": "smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/RequestsStorage.java",
+      "replies": [],
+      "reviewed": "2890812f122ac8dc19d56b83196525762a4d938b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3826473986"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "These now clear storage that the HTTP endpoints also write to, so routing through the `grpc*Service` objects reads as gRPC-only. Calling `storage` directly is accurate and lets the forwarding `getRequests()` and `clearRequests()` methods go away from the three gRPC classes (same for `/get-traces`, `/get-metrics`, and `/get-logs` on lines 107, 116, and 125).\n\n```suggestion\n                  storage.clearTraces();\n                  storage.clearMetrics();\n                  storage.clearLogs();\n```",
+      "created": "2026-08-21T00:51:50Z",
+      "hunk": "@@ -74,30 +74,37 @@ public void serialize(\n   }\n \n   public static void main(String[] args) {\n-    var traceCollector = new FakeTraceCollectorService();\n-    var metricsCollector = new FakeMetricsCollectorService();\n-    var logsCollector = new FakeLogsCollectorService();\n+    RequestsStorage storage = new RequestsStorage();\n+    var grpcTraceService = new FakeTraceCollectorServiceGrpc(storage);\n+    var grpcMetricsService = new FakeMetricsCollectorServiceGrpc(storage);\n+    var grpcLogsService = new FakeLogsCollectorServiceGrpc(storage);\n+    var httpTraceService = new FakeTraceCollectorServiceHttp(storage);\n+    var httpMetricsService = new FakeMetricsCollectorServiceHttp(storage);\n+    var httpLogsService = new FakeLogsCollectorServiceHttp(storage);\n     var server =\n         Server.builder()\n             .http(8080)\n+            .service(\"/v1/traces\", httpTraceService)\n+            .service(\"/v1/metrics\", httpMetricsService)\n+            .service(\"/v1/logs\", httpLogsService)\n             .service(\n                 GrpcService.builder()\n-                    .addService(traceCollector)\n-                    .addService(metricsCollector)\n-                    .addService(logsCollector)\n+                    .addService(grpcTraceService)\n+                    .addService(grpcMetricsService)\n+                    .addService(grpcLogsService)\n                     .build())\n             .service(\n                 \"/clear\",\n                 (ctx, req) -> {\n-                  traceCollector.clearRequests();\n-                  metricsCollector.clearRequests();\n-                  logsCollector.clearRequests();\n+                  grpcTraceService.clearRequests();\n+                  grpcMetricsService.clearRequests();\n+                  grpcLogsService.clearRequests();",
+      "id": "PRRT_kwDODJKVX86bAPSG",
+      "opened": "2026-08-21T01:27:22Z",
+      "path": "smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeBackendMain.java",
+      "replies": [],
+      "reviewed": "2890812f122ac8dc19d56b83196525762a4d938b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3826473992"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "benjoseph-grafana"
+      },
+      "body": "do we need to add a gzip decoder here?",
+      "created": "2026-08-21T15:11:07Z",
+      "hunk": "@@ -74,30 +74,37 @@ public void serialize(\n   }\n \n   public static void main(String[] args) {\n-    var traceCollector = new FakeTraceCollectorService();\n-    var metricsCollector = new FakeMetricsCollectorService();\n-    var logsCollector = new FakeLogsCollectorService();\n+    RequestsStorage storage = new RequestsStorage();\n+    var grpcTraceService = new FakeTraceCollectorServiceGrpc(storage);\n+    var grpcMetricsService = new FakeMetricsCollectorServiceGrpc(storage);\n+    var grpcLogsService = new FakeLogsCollectorServiceGrpc(storage);\n+    var httpTraceService = new FakeTraceCollectorServiceHttp(storage);\n+    var httpMetricsService = new FakeMetricsCollectorServiceHttp(storage);\n+    var httpLogsService = new FakeLogsCollectorServiceHttp(storage);\n     var server =\n         Server.builder()\n             .http(8080)",
+      "id": "PRRT_kwDODJKVX86bMvTl",
+      "opened": "2026-08-21T15:11:07Z",
+      "path": "smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeBackendMain.java",
+      "replies": [
+        {
+          "at": "2026-08-21T16:41:27Z",
+          "body": "There wasn't one before. What makes this something to change in this PR?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3832016779"
+        },
+        {
+          "at": "2026-08-21T16:42:25Z",
+          "body": "Or are you suggesting that it's a good idea because clients might want that? I don't think it's required -- when I tested locally the defaults \"just worked\". If we default to gzip encoding on Android, maybe that becomes a configuration problem there? I dunno.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3832022715"
+        },
+        {
+          "at": "2026-08-21T17:24:09Z",
+          "body": "I thought gzip was default on Android, my bad.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3832286991"
+        },
+        {
+          "at": "2026-08-21T20:49:42Z",
+          "body": "No, I think you're right, it will be better and more straightforward if we just accept gzip out of the box. This is a good catch IMO. ❤️ ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3833619212"
+        }
+      ],
+      "reviewed": "2890812f122ac8dc19d56b83196525762a4d938b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3831367973"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Metrics are never cleared, so they carry over between tests and `clearMetrics()` has no caller.\n\n```suggestion\n                  storage.clearTraces();\n                  storage.clearMetrics();\n                  storage.clearLogs();\n```",
+      "created": "2026-08-21T16:31:35Z",
+      "hunk": "@@ -74,30 +74,37 @@ public void serialize(\n   }\n \n   public static void main(String[] args) {\n-    var traceCollector = new FakeTraceCollectorService();\n-    var metricsCollector = new FakeMetricsCollectorService();\n-    var logsCollector = new FakeLogsCollectorService();\n+    RequestsStorage storage = new RequestsStorage();\n+    var grpcTraceService = new FakeTraceCollectorServiceGrpc(storage);\n+    var grpcMetricsService = new FakeMetricsCollectorServiceGrpc(storage);\n+    var grpcLogsService = new FakeLogsCollectorServiceGrpc(storage);\n+    var httpTraceService = new FakeTraceCollectorServiceHttp(storage);\n+    var httpMetricsService = new FakeMetricsCollectorServiceHttp(storage);\n+    var httpLogsService = new FakeLogsCollectorServiceHttp(storage);\n     var server =\n         Server.builder()\n             .http(8080)\n+            .service(\"/v1/traces\", httpTraceService)\n+            .service(\"/v1/metrics\", httpMetricsService)\n+            .service(\"/v1/logs\", httpLogsService)\n             .service(\n                 GrpcService.builder()\n-                    .addService(traceCollector)\n-                    .addService(metricsCollector)\n-                    .addService(logsCollector)\n+                    .addService(grpcTraceService)\n+                    .addService(grpcMetricsService)\n+                    .addService(grpcLogsService)\n                     .build())\n             .service(\n                 \"/clear\",\n                 (ctx, req) -> {\n-                  traceCollector.clearRequests();\n-                  metricsCollector.clearRequests();\n-                  logsCollector.clearRequests();\n+                  storage.clearTraces();\n+                  storage.clearTraces();\n+                  storage.clearLogs();",
+      "id": "PRRT_kwDODJKVX86bOQ3D",
+      "opened": "2026-08-21T16:33:50Z",
+      "path": "smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/FakeBackendMain.java",
+      "replies": [
+        {
+          "at": "2026-08-21T16:37:44Z",
+          "body": "That's what I get for multitasking.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3831992996"
+        }
+      ],
+      "reviewed": "71334b4a494a072364a3e8109ebf06037d323f27",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3831952143"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Nothing outside this package can reach these, and `addTrace` just above is already package-private.\n\n```suggestion\n  void addMetricsRequest(ExportMetricsServiceRequest request) {\n    metricsExportRequests.add(request);\n  }\n\n  void addLogsRequest(ExportLogsServiceRequest request) {\n    logsExportRequests.add(request);\n  }\n\n  List<ExportTraceServiceRequest> getTraceRequests() {\n    return ImmutableList.copyOf(traceExportRequests);\n  }\n\n  List<ExportMetricsServiceRequest> getMetricsRequests() {\n    return ImmutableList.copyOf(metricsExportRequests);\n  }\n\n  List<ExportLogsServiceRequest> getLogsRequests() {\n    return ImmutableList.copyOf(logsExportRequests);\n  }\n\n  void clearTraces() {\n    traceExportRequests.clear();\n  }\n\n  void clearMetrics() {\n    metricsExportRequests.clear();\n  }\n\n  void clearLogs() {\n    logsExportRequests.clear();\n  }\n```",
+      "created": "2026-08-21T16:31:35Z",
+      "hunk": "@@ -0,0 +1,60 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.smoketest.fakebackend;\n+\n+import com.google.common.collect.ImmutableList;\n+import io.opentelemetry.proto.collector.logs.v1.ExportLogsServiceRequest;\n+import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;\n+import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest;\n+import java.util.List;\n+import java.util.concurrent.BlockingQueue;\n+import java.util.concurrent.LinkedBlockingDeque;\n+\n+class RequestsStorage {\n+\n+  private final BlockingQueue<ExportTraceServiceRequest> traceExportRequests =\n+      new LinkedBlockingDeque<>();\n+  private final BlockingQueue<ExportMetricsServiceRequest> metricsExportRequests =\n+      new LinkedBlockingDeque<>();\n+  private final BlockingQueue<ExportLogsServiceRequest> logsExportRequests =\n+      new LinkedBlockingDeque<>();\n+\n+  void addTrace(ExportTraceServiceRequest request) {\n+    traceExportRequests.add(request);\n+  }\n+\n+  public void addMetricsRequest(ExportMetricsServiceRequest request) {\n+    metricsExportRequests.add(request);\n+  }\n+\n+  public void addLogsRequest(ExportLogsServiceRequest request) {\n+    logsExportRequests.add(request);\n+  }\n+\n+  public List<ExportTraceServiceRequest> getTraceRequests() {\n+    return ImmutableList.copyOf(traceExportRequests);\n+  }\n+\n+  public List<ExportMetricsServiceRequest> getMetricsRequests() {\n+    return ImmutableList.copyOf(metricsExportRequests);\n+  }\n+\n+  public List<ExportLogsServiceRequest> getLogsRequests() {\n+    return ImmutableList.copyOf(logsExportRequests);\n+  }\n+\n+  public void clearTraces() {\n+    traceExportRequests.clear();\n+  }\n+\n+  public void clearMetrics() {\n+    metricsExportRequests.clear();\n+  }\n+\n+  public void clearLogs() {\n+    logsExportRequests.clear();\n+  }",
+      "id": "PRRT_kwDODJKVX86bOQ3Y",
+      "opened": "2026-08-21T16:33:50Z",
+      "path": "smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/RequestsStorage.java",
+      "replies": [],
+      "reviewed": "71334b4a494a072364a3e8109ebf06037d323f27",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3831952167"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Naming] An `ExportTraceServiceRequest` can hold spans from many traces, and the siblings here are `addMetricsRequest` and `addLogsRequest`. Rename this to `addTraceRequest` (callers in `FakeTraceCollectorServiceGrpc` and `FakeTraceCollectorServiceHttp`).",
+      "created": "2026-08-21T17:13:35Z",
+      "hunk": "@@ -0,0 +1,60 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.smoketest.fakebackend;\n+\n+import com.google.common.collect.ImmutableList;\n+import io.opentelemetry.proto.collector.logs.v1.ExportLogsServiceRequest;\n+import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;\n+import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest;\n+import java.util.List;\n+import java.util.concurrent.BlockingQueue;\n+import java.util.concurrent.LinkedBlockingDeque;\n+\n+class RequestsStorage {\n+\n+  private final BlockingQueue<ExportTraceServiceRequest> traceExportRequests =\n+      new LinkedBlockingDeque<>();\n+  private final BlockingQueue<ExportMetricsServiceRequest> metricsExportRequests =\n+      new LinkedBlockingDeque<>();\n+  private final BlockingQueue<ExportLogsServiceRequest> logsExportRequests =\n+      new LinkedBlockingDeque<>();\n+\n+  void addTrace(ExportTraceServiceRequest request) {",
+      "id": "PRRT_kwDODJKVX86bO8rt",
+      "opened": "2026-08-21T17:18:52Z",
+      "path": "smoke-tests/images/fake-backend/src/main/java/io/opentelemetry/smoketest/fakebackend/RequestsStorage.java",
+      "replies": [
+        {
+          "at": "2026-08-21T20:53:32Z",
+          "body": "whoops yeah very inconsistent.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3833640861"
+        }
+      ],
+      "reviewed": "134aafa79ad190752917babded2a91412de91bc9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19733#discussion_r3832218772"
+    }
+  ]
+}

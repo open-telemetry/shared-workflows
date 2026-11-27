@@ -1,0 +1,262 @@
+{
+  "head": "1145fd719a44cfb78ce3845ae84ca2782f168510",
+  "merge": "5a3857c9d00480962117f2f286c4f75dd37de56e",
+  "merged": "2026-09-01T18:55:26Z",
+  "missing_roots": 0,
+  "number": 18953,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Reduced-mode filtering currently applies to JettyJpmsSmokeTest as an “other server”, which means only the minimum JDK (11) will run for Jetty JPMS. This contradicts the PR description/previous intent (“JPMS … unchanged”) and drops the multi-JDK JPMS coverage on PR builds.",
+      "created": "2026-06-11T11:49:45Z",
+      "hunk": "@@ -59,6 +63,50 @@ void setUpServer() {\n     startWithoutCleanup(new AppServerImage(jdk, serverVersion, isWindows));\n   }\n \n+  // Reduced smoke test rules for PR builds. The full matrix runs on merge to main.\n+  // Tomcat covers all JDKs (hotspot), TomEE covers all JDKs (openj9),\n+  // Websphere is already minimal, other servers test only minimum JDK on hotspot.\n+  private void skipIfNotReduced(AppServer appServer) {\n+    if (!Boolean.getBoolean(\"reducedSmokeTests\")) {\n+      return;\n+    }\n+    String jdk = appServer.jdk();\n+    boolean isOpenj9 = jdk.contains(\"-openj9\");\n+\n+    if (this instanceof TomcatSmokeTest) {\n+      assumeFalse(isOpenj9, \"Reduced mode: Tomcat runs hotspot only\");\n+      return;\n+    }\n+    if (this instanceof TomeeSmokeTest) {\n+      assumeTrue(isOpenj9, \"Reduced mode: TomEE runs openj9 only\");\n+      return;\n+    }\n+    if (this instanceof WebsphereSmokeTest) {\n+      return;\n+    }\n+    // All other servers: hotspot only, minimum JDK per server version\n+    assumeFalse(isOpenj9, \"Reduced mode: hotspot only\");\n+    assumeTrue(isMinimumJdk(appServer), \"Reduced mode: only minimum JDK per server version\");\n+  }",
+      "id": "PRRT_kwDODJKVX86IywnT",
+      "opened": "2026-06-11T11:49:45Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/AppServerTest.java",
+      "replies": [
+        {
+          "at": "2026-06-19T13:21:55Z",
+          "body": "Good catch. I updated reduced mode so Jetty JPMS stays unchanged instead of falling into the generic minimum-JDK reduction bucket.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3442739430"
+        }
+      ],
+      "reviewed": "a48fff3b97352b5ec404d475859b184dfb144938",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3395575392"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] In reduced-smoke-tests mode, AppServerTest forces TomEE to run openj9 only, but the workflow still passes -PskipOpenJ9SmokeTests=true on PRs by default. That combination results in the Tomee suite running zero tests (all hotspot tests assumed away; all Openj9 tests excluded by Gradle), which defeats the stated goal of keeping an OpenJ9 signal via TomEE.",
+      "created": "2026-06-11T11:49:45Z",
+      "hunk": "@@ -459,6 +462,7 @@ jobs:\n           ./gradlew\n           :smoke-tests:test\n           -PsmokeTestSuite=${{ matrix.smoke-test-suite }}\n+          ${{ inputs.reduced-smoke-tests && '-PreducedSmokeTests=true' || '' }}\n           ${{ inputs.skip-openj9-tests && matrix.smoke-test-suite != 'websphere' && '-PskipOpenJ9SmokeTests=true' || '' }}\n           ${{ inputs.no-build-cache && ' --no-build-cache' || '' }}",
+      "id": "PRRT_kwDODJKVX86Iywni",
+      "opened": "2026-06-11T11:49:45Z",
+      "path": ".github/workflows/build-common.yml",
+      "replies": [
+        {
+          "at": "2026-06-19T13:21:57Z",
+          "body": "Good catch. I also fixed the reduced-mode OpenJ9 interaction so PR reduced smoke runs no longer pass `-PskipOpenJ9SmokeTests=true`, which keeps the intended TomEE OpenJ9 representative coverage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3442739577"
+        }
+      ],
+      "reviewed": "a48fff3b97352b5ec404d475859b184dfb144938",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3395575417"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Two things.\n\n**1. `!inputs.reduced-smoke-tests` is load-bearing but looks removable.** It can't be dropped: on a normal PR both flags are on, `-PskipOpenJ9SmokeTests=true` excludes `**/*Openj9*.*`, and the reduced rule skips TomEE hotspot — so the `tomee` suite would run **zero** tests. Please add a one-line comment saying reduced mode owns the openj9 policy, otherwise someone will \"simplify\" this later and silently lose a whole suite.\n\n**2. Cost/benefit — I'm not convinced this earns its complexity.** I counted the `@AppServer` classes actually selected in each mode:\n\n| suite | full matrix | PR today | PR with this change |\n|---|---|---|---|\n| jetty | 36 | 20 | 8 |\n| liberty | 38 | 21 | 9 |\n| payara | 13 | 6 | 3 |\n| **tomcat** | 30 | **15** | **15** |\n| **tomee** | 22 | **11** | **11** |\n| websphere | 2 | 2 | 2 |\n| wildfly | 36 | 18 | 6 |\n| **total** | 177 | 93 | 54 |\n\nThe two suites named as the coverage anchors are the two that don't shrink at all. Tomcat is already hotspot-only on PRs, so \"Tomcat covers all JDKs on hotspot\" is exactly today's behavior. TomEE keeps the same 11 containers but flips them from hotspot to openj9, which are the slower images. openj9 containers on a normal PR go from **2 to 13**.\n\nAnd the wall-clock argument doesn't hold. From a recent `build-pull-request` run (`30482654548`):\n\n```\nbuild / common / build                              26.8 min   <- critical path\nbuild / common / test0 (26, hotspot, indy true)     23.0\nbuild / common / smoke-test (liberty)               22.3\nbuild / common / smoke-test (other)                 20.4       <- not touched by this PR\nbuild / common / smoke-test (wildfly)               15.5\nbuild / common / smoke-test (jetty)                 14.8\nbuild / common / smoke-test (payara)                13.2\nbuild / common / smoke-test (tomcat)                10.8\nbuild / common / smoke-test (websphere)              9.6\nbuild / common / smoke-test (tomee)                  9.6\nrun wall clock                                      27.7 min\n```\n\n`smoke-test` has no `needs:`, so it runs concurrently with everything else and `build` at 26.8 min sets the critical path. Even deleting every servlet smoke test saves ~0 min of PR feedback time, and within the smoke stage the untouched non-servlet `other` suite already floors it at 20.4 min.\n\nSo the real benefit is runner minutes (and less flake surface), not faster PRs. That may well be worth having — but the PR description should say that, with numbers, and drop the implication that PR builds get faster. If wall clock is the actual goal, the levers are `build` and the `other` smoke suite, not this matrix.",
+      "created": "2026-07-29T20:18:24Z",
+      "hunk": "@@ -459,7 +462,8 @@ jobs:\n           ./gradlew\n           :smoke-tests:test\n           -PsmokeTestSuite=${{ matrix.smoke-test-suite }}\n-          ${{ inputs.skip-openj9-tests && matrix.smoke-test-suite != 'websphere' && '-PskipOpenJ9SmokeTests=true' || '' }}\n+          ${{ inputs.reduced-smoke-tests && '-PreducedSmokeTests=true' || '' }}\n+          ${{ inputs.skip-openj9-tests && !inputs.reduced-smoke-tests && matrix.smoke-test-suite != 'websphere' && '-PskipOpenJ9SmokeTests=true' || '' }}",
+      "id": "PRRT_kwDODJKVX86U5Uw7",
+      "opened": "2026-07-29T20:27:28Z",
+      "path": ".github/workflows/build-common.yml",
+      "replies": [
+        {
+          "at": "2026-08-17T09:56:27Z",
+          "body": "Addressed in a2b9c36: added the load-bearing guard explanation and updated the PR description with 177 full / 93 current PR / 54 reduced combinations, invocation and Gradle-time measurements, and the runner-minute/flake benefit rather than a wall-clock claim.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3795396631"
+        }
+      ],
+      "reviewed": "ee6052a5dce5f87931be3b200614943fe93e9df4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3677767816"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This duplicates the design notes already at the top of this file (lines 3-16), and the `test native` sentence is incorrect: there is no `.github/labeler.yml` in this repo. `test native` is resolved by the `resolve-native` job from the PR's changed paths, which lines 14-16 already state correctly.\n\nIf `test full smoke` needs documenting, it belongs in that header block next to the other `test *` labels rather than as a second, diverging copy here.\n\n```suggestion\n```",
+      "created": "2026-07-29T20:18:24Z",
+      "hunk": "@@ -93,7 +93,12 @@ jobs:\n     needs: [resolve-native, resolve-servlet-images]\n     uses: ./.github/workflows/reusable-pr-build.yml\n     with:\n+      # `test native` is applied automatically by .github/labeler.yml when the\n+      # PR diff touches native-relevant paths. `test openj9`, `test windows`,\n+      # and `test full smoke` are manual force-enables that are picked up on\n+      # the next PR sync/open/reopen event.",
+      "id": "PRRT_kwDODJKVX86U5Uwl",
+      "opened": "2026-07-29T20:27:28Z",
+      "path": ".github/workflows/build-pull-request.yml",
+      "replies": [
+        {
+          "at": "2026-08-17T09:56:11Z",
+          "body": "Addressed in a2b9c36: removed the duplicate label block and moved the accurate `test full smoke` documentation into the existing header; the nonexistent `.github/labeler.yml` claim is gone.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3795395131"
+        }
+      ],
+      "reviewed": "ee6052a5dce5f87931be3b200614943fe93e9df4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3677767785"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This makes the `test openj9` label a no-op on its own.\n\nWith only `test openj9` applied: `skip-openj9-tests` becomes false, but `reduced-smoke-tests` is still true, so `skipIfNotReduced` still clamps openj9 down to TomEE only. You'd need `test openj9` **and** `test full smoke` to get what `test openj9` alone gives on `main` today. That's a silent regression for anyone using the label to debug an openj9-specific failure.\n\n```suggestion\n      reduced-smoke-tests: ${{ !contains(github.event.pull_request.labels.*.name, 'test full smoke') && !contains(github.event.pull_request.labels.*.name, 'test openj9') }}\n```\n\nSeparately, `.github/workflows/comment-on-test-label.yml` posts the \"labels don't retrigger the build\" reminder, but its `if:` (lines 26-27) only matches `test openj9` / `test windows`. `test full smoke` has exactly the same footgun, so it needs to be added there too:\n\n```yaml\n    if: |\n      github.event.label.name == 'test openj9' ||\n      github.event.label.name == 'test windows' ||\n      github.event.label.name == 'test full smoke'\n```",
+      "created": "2026-07-29T20:18:24Z",
+      "hunk": "@@ -93,7 +93,12 @@ jobs:\n     needs: [resolve-native, resolve-servlet-images]\n     uses: ./.github/workflows/reusable-pr-build.yml\n     with:\n+      # `test native` is applied automatically by .github/labeler.yml when the\n+      # PR diff touches native-relevant paths. `test openj9`, `test windows`,\n+      # and `test full smoke` are manual force-enables that are picked up on\n+      # the next PR sync/open/reopen event.\n       skip-native-tests: ${{ !(needs.resolve-native.outputs.run-native-tests == 'true' || contains(github.event.pull_request.labels.*.name, 'test native')) }}\n       skip-openj9-tests: ${{ !contains(github.event.pull_request.labels.*.name, 'test openj9') }}\n       skip-windows-smoke-tests: ${{ !contains(github.event.pull_request.labels.*.name, 'test windows') }}\n+      reduced-smoke-tests: ${{ !contains(github.event.pull_request.labels.*.name, 'test full smoke') }}",
+      "id": "PRRT_kwDODJKVX86U5Uwy",
+      "opened": "2026-07-29T20:27:28Z",
+      "path": ".github/workflows/build-pull-request.yml",
+      "replies": [
+        {
+          "at": "2026-08-17T09:56:25Z",
+          "body": "Addressed in a2b9c36: reduced mode is now disabled when either `test full smoke` or `test openj9` is present, and the label-reminder workflow now includes `test full smoke`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3795396426"
+        }
+      ],
+      "reviewed": "ee6052a5dce5f87931be3b200614943fe93e9df4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3677767804"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] If the reduced matrix stays, please express it as data on `@AppServer` rather than as reflection plus an `instanceof` chain in the base class. The matrix already lives on the annotation; the reduced subset is just another column of it.\n\nAdd to `AppServer.java`:\n\n```java\n  boolean reduced() default false;\n```\n\nthen mark the ~54 nested classes that make up the reduced set, and this whole block collapses to:\n\n```suggestion\n    // In reduced mode (PR builds), only run a representative subset of the full matrix.\n    // The full matrix runs on merge to main.\n    assumeTrue(appServer.reduced() || !Boolean.getBoolean(\"reducedSmokeTests\"));\n```\n\nThat's ~45 lines deleted (see my comment below), no reflection, no base class referencing its own subclasses, and — the part I care most about — which cases run on a PR becomes visible in the diff whenever someone adds a server version or a JDK, instead of being silently derived by a rule they never see.",
+      "created": "2026-07-29T20:18:24Z",
+      "hunk": "@@ -51,6 +51,10 @@ void setUpServer() {\n     var jdk = appServer.jdk();\n     isWindows = TestContainerManager.useWindowsContainers();\n \n+    // In reduced mode (PR builds), only run a representative subset of the full matrix.\n+    // The full matrix runs on merge to main.\n+    skipIfNotReduced(appServer);",
+      "id": "PRRT_kwDODJKVX86U5UxA",
+      "opened": "2026-07-29T20:27:28Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/AppServerTest.java",
+      "replies": [
+        {
+          "at": "2026-08-17T09:56:29Z",
+          "body": "Addressed in a2b9c36: added `reduced` to `@AppServer`, marked the explicit 54-case reduced set, and now gate directly on `appServer.reduced()`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3795396875"
+        }
+      ],
+      "reviewed": "ee6052a5dce5f87931be3b200614943fe93e9df4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3677767822"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] Concerns with this block, in rough priority order:\n\n1. `AppServerTest` now `instanceof`-tests four of its own subclasses. That's an inverted dependency in a base class, and the failure mode is quiet: a newly added app server falls through to \"hotspot only, minimum JDK per version\" without anyone deciding that.\n2. Selecting the **minimum** JDK per version biases PR coverage toward the oldest JDK. After this change, JDK 21/25 on Wildfly, Liberty, Payara and Jetty is not exercised on PRs at all — only Tomcat and Jetty JPMS cover new JDKs. Newer JDKs are where servlet-container regressions usually show up, so max JDK would likely catch more per container started.\n3. `getClass().getEnclosingClass()` on line 97 NPEs for any top-level `@AppServer` class. Every one is nested today, so it isn't a live bug, but nothing enforces that.\n4. The `JettyJpmsSmokeTest` and `WebsphereSmokeTest` branches are pure no-ops — both fall through to `return` with no assumption. They read as policy but do nothing.\n5. `skipIfNotReduced` reads backwards: it skips when reduced mode is **on** and the case is not in the reduced set. `assumeInReducedMatrix` or similar would say what it does.\n\nAll of it goes away with the `@AppServer(reduced = true)` approach from my previous comment:\n\n```suggestion\n```",
+      "created": "2026-07-29T20:18:24Z",
+      "hunk": "@@ -59,6 +63,53 @@ void setUpServer() {\n     startWithoutCleanup(new AppServerImage(jdk, serverVersion, isWindows));\n   }\n \n+  // Reduced smoke test rules for PR builds. The full matrix runs on merge to main.\n+  // Tomcat covers all JDKs (hotspot), TomEE covers all JDKs (openj9),\n+  // Websphere is already minimal, other servers test only minimum JDK on hotspot.\n+  private void skipIfNotReduced(AppServer appServer) {\n+    if (!Boolean.getBoolean(\"reducedSmokeTests\")) {\n+      return;\n+    }\n+    String jdk = appServer.jdk();\n+    boolean isOpenj9 = jdk.contains(\"-openj9\");\n+\n+    if (this instanceof TomcatSmokeTest) {\n+      assumeFalse(isOpenj9, \"Reduced mode: Tomcat runs hotspot only\");\n+      return;\n+    }\n+    if (this instanceof TomeeSmokeTest) {\n+      assumeTrue(isOpenj9, \"Reduced mode: TomEE runs openj9 only\");\n+      return;\n+    }\n+    if (this instanceof JettyJpmsSmokeTest) {\n+      return;\n+    }\n+    if (this instanceof WebsphereSmokeTest) {\n+      return;\n+    }\n+    // All other servers: hotspot only, minimum JDK per server version\n+    assumeFalse(isOpenj9, \"Reduced mode: hotspot only\");\n+    assumeTrue(isMinimumJdk(appServer), \"Reduced mode: only minimum JDK per server version\");\n+  }\n+\n+  private boolean isMinimumJdk(AppServer appServer) {\n+    int myJdk = parseJdkVersion(appServer.jdk());\n+    for (Class<?> sibling : getClass().getEnclosingClass().getDeclaredClasses()) {\n+      AppServer other = sibling.getAnnotation(AppServer.class);\n+      if (other != null\n+          && other.version().equals(appServer.version())\n+          && !other.jdk().contains(\"-openj9\")\n+          && parseJdkVersion(other.jdk()) < myJdk) {\n+        return false;\n+      }\n+    }\n+    return true;\n+  }\n+\n+  private static int parseJdkVersion(String jdk) {\n+    return Integer.parseInt(jdk.split(\"-\")[0]);\n+  }\n+",
+      "id": "PRRT_kwDODJKVX86U5UxF",
+      "opened": "2026-07-29T20:27:28Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/AppServerTest.java",
+      "replies": [
+        {
+          "at": "2026-08-17T09:56:31Z",
+          "body": "Addressed in a2b9c36: removed the reflection, subclass checks, minimum-JDK derivation, and quiet fallback; reduced-matrix membership is now explicit beside each matrix entry.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3795397048"
+        }
+      ],
+      "reviewed": "ee6052a5dce5f87931be3b200614943fe93e9df4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3677767828"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] The intermediate `val` and the `if` aren't needed, and `Boolean.getBoolean` handles `\"false\"` fine:\n\n```suggestion\n    systemProperty(\"reducedSmokeTests\", findProperty(\"reducedSmokeTests\") == \"true\")\n\n```\n\nIt also reads better next to the `skipOpenJ9SmokeTests` lookup on line 57, which is the other half of the same test-selection policy — right now the two are ~35 lines apart with the jar-path wiring in between.",
+      "created": "2026-07-29T20:18:24Z",
+      "hunk": "@@ -88,6 +88,11 @@ tasks {\n     val extensionTestAppTask = project(\":smoke-tests:extensions:testapp\").tasks.named<Jar>(\"jar\")\n     val extensionTestAppJarPath = extensionTestAppTask.flatMap { it.archiveFile }\n \n+    val reducedSmokeTests = findProperty(\"reducedSmokeTests\") == \"true\"\n+    if (reducedSmokeTests) {\n+      systemProperty(\"reducedSmokeTests\", \"true\")\n+    }\n+",
+      "id": "PRRT_kwDODJKVX86U5UxK",
+      "opened": "2026-07-29T20:27:28Z",
+      "path": "smoke-tests/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-17T09:56:32Z",
+          "body": "Addressed in a2b9c36: simplified the reduced-mode system-property wiring and placed it directly beside the OpenJ9 policy lookup.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3795397195"
+        }
+      ],
+      "reviewed": "ee6052a5dce5f87931be3b200614943fe93e9df4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3677767833"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Unrelated to this PR. `targets` is a script-level `val` (line 34) that `createDockerTasks` already resolves from the enclosing script class — line 220 reads it the same way from inside this very `tasks { }` block, and `main` compiles today. Threading it through as a parameter changes nothing. Looks like leftover churn from the original branch; please drop it so the diff is only the matrix change.\n\n```suggestion\n  val linuxImages = createDockerTasks(buildLinuxTestImages, false)\n  val windowsImages = createDockerTasks(buildWindowsTestImages, true)\n```",
+      "created": "2026-07-29T20:18:25Z",
+      "hunk": "@@ -198,8 +198,8 @@ tasks {\n     description = \"Builds all Windows Docker images for the test matrix\"\n   }\n \n-  val linuxImages = createDockerTasks(buildLinuxTestImages, false)\n-  val windowsImages = createDockerTasks(buildWindowsTestImages, true)\n+  val linuxImages = createDockerTasks(buildLinuxTestImages, false, targets)\n+  val windowsImages = createDockerTasks(buildWindowsTestImages, true, targets)",
+      "id": "PRRT_kwDODJKVX86U5UxT",
+      "opened": "2026-07-29T20:27:28Z",
+      "path": "smoke-tests/images/servlet/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-17T09:56:34Z",
+          "body": "Addressed in a2b9c36: restored the original Docker-task calls without the unrelated `targets` parameter.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3795397333"
+        }
+      ],
+      "reviewed": "ee6052a5dce5f87931be3b200614943fe93e9df4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3677767843"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Same as above — the added parameter shadows the script-level `targets` with an identical value.\n\n```suggestion\nfun createDockerTasks(parentTask: TaskProvider<out Task>, isWindows: Boolean): Set<String> {\n```",
+      "created": "2026-07-29T20:18:25Z",
+      "hunk": "@@ -376,7 +376,7 @@ fun configureImage(\n   return image\n }\n \n-fun createDockerTasks(parentTask: TaskProvider<out Task>, isWindows: Boolean): Set<String> {\n+fun createDockerTasks(parentTask: TaskProvider<out Task>, isWindows: Boolean, targets: Map<String, List<ImageTarget>>): Set<String> {",
+      "id": "PRRT_kwDODJKVX86U5Uxf",
+      "opened": "2026-07-29T20:27:28Z",
+      "path": "smoke-tests/images/servlet/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-17T09:56:36Z",
+          "body": "Addressed in a2b9c36: restored the original `createDockerTasks` signature; it uses the script-level `targets` value as before.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3795397547"
+        }
+      ],
+      "reviewed": "ee6052a5dce5f87931be3b200614943fe93e9df4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3677767858"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "With only the `test windows` label, reduced mode stays on for the Windows jobs. TomEE's 11 selected cases are all OpenJ9, and `AppServerTest` skips OpenJ9 on Windows, so `windows-latest / tomee` passes without running a TomEE case. On `main` the same label runs the 11 hotspot cases there.\n\n```suggestion\n          ${{ inputs.reduced-smoke-tests && matrix.os != 'windows-latest' && '-PreducedSmokeTests=true' || '' }}\n```",
+      "created": "2026-08-17T23:07:16Z",
+      "hunk": "@@ -462,11 +465,13 @@ jobs:\n       - name: Test\n         env:\n           DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}\n+        # Reduced mode owns the OpenJ9 policy; disabling it here would make the TomEE suite run no tests.\n         run: >\n           ./gradlew\n           :smoke-tests:test\n           -PsmokeTestSuite=${{ matrix.smoke-test-suite }}\n-          ${{ inputs.skip-openj9-tests && matrix.smoke-test-suite != 'websphere' && '-PskipOpenJ9SmokeTests=true' || '' }}\n+          ${{ inputs.reduced-smoke-tests && '-PreducedSmokeTests=true' || '' }}",
+      "id": "PRRT_kwDODJKVX86Z67dj",
+      "opened": "2026-08-18T04:07:56Z",
+      "path": ".github/workflows/build-common.yml",
+      "replies": [
+        {
+          "at": "2026-08-18T08:07:52Z",
+          "body": "Fixed in commit 1145fd719a: reduced app-server selection is now disabled on Windows jobs, so the test windows label runs the existing full hotspot TomEE selection on Windows while Ubuntu remains reduced.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3802209798"
+        }
+      ],
+      "reviewed": "a2b9c36e976ca0ef8bc0c8d0f5696557c8ca17ef",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3799442228"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Naming] Only the app-server suites shrink here, since `AppServerTest` is the sole reader, so `smokeTests` overclaims and the `other` suite is untouched. One spelling from label to assumption would read better:\n\n| concept | now | suggested |\n|---|---|---|\n| workflow input | `reduced-smoke-tests` | `reduced-appserver-tests` |\n| Gradle property | `-PreducedSmokeTests` | `-PreducedAppServerTests` |\n| system property | `reducedSmokeTests` | `reducedAppServerTests` |\n| annotation attribute | `reduced` | `inReducedMatrix` |\n\nI'd keep \"matrix\" out of the workflow input, because `strategy.matrix` sits in the same job, and keep it on the annotation, where `reduced` describes the entry rather than its membership.",
+      "created": "2026-08-18T03:56:39Z",
+      "hunk": "@@ -55,6 +55,7 @@ tasks {\n \n     val smokeTestSuite = project.findProperty(\"smokeTestSuite\") as String?\n     val skipOpenJ9SmokeTests = (findProperty(\"skipOpenJ9SmokeTests\") as String?) == \"true\"\n+    systemProperty(\"reducedSmokeTests\", findProperty(\"reducedSmokeTests\") == \"true\")",
+      "id": "PRRT_kwDODJKVX86Z-k_Z",
+      "opened": "2026-08-18T04:07:56Z",
+      "path": "smoke-tests/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-18T08:07:53Z",
+          "body": "Fixed in commit 1145fd719a: renamed the workflow input to reduced-appserver-tests, Gradle property to reducedAppServerTests, and annotation attribute to inReducedMatrix; the 54-case selection is unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3802209931"
+        }
+      ],
+      "reviewed": "a2b9c36e976ca0ef8bc0c8d0f5696557c8ca17ef",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953#discussion_r3800904845"
+    }
+  ]
+}

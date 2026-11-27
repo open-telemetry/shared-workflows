@@ -1,0 +1,361 @@
+{
+  "head": "296826b7738aec746dfedf603511ce0912aa6e17",
+  "merge": "5457870cb7a9ff2018145fb36af26b04f6b5d4c6",
+  "merged": "2026-09-03T19:02:19Z",
+  "missing_roots": 0,
+  "number": 391,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`explicit_run_name` is typed as `Any`, but the implementation treats it as a string-like value (it’s compared via `str(...)`). Tightening the type to something like `str | None` (or normalizing once to a local `run_name_str: str | None`) would make the contract clearer and reduce accidental misuse from callers.",
+      "created": "2026-08-15T13:54:40Z",
+      "hunk": "@@ -96,14 +97,30 @@ def resolve_agent_name(\n     return None\n \n \n-def _has_agent_signals(metadata: dict[str, Any] | None) -> bool:\n+def _has_agent_signals(\n+    metadata: dict[str, Any] | None,\n+    explicit_run_name: Any,",
+      "id": "PRRT_kwDOSbspP86Zgt86",
+      "opened": "2026-08-15T13:54:41Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+      "replies": [],
+      "reviewed": "09ae2dfaaab2f747f16f34601e7896bece63e25f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3789491207"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `_has_agent_signals` docstring is now inaccurate because agent detection is no longer based solely on `metadata`—it also depends on `explicit_run_name` and LangGraph-specific logic. Update the docstring to describe the additional input and the rationale (e.g., avoiding inherited `langgraph_node` misclassification).",
+      "created": "2026-08-15T13:54:40Z",
+      "hunk": "@@ -96,14 +97,30 @@ def resolve_agent_name(\n     return None\n \n \n-def _has_agent_signals(metadata: dict[str, Any] | None) -> bool:\n+def _has_agent_signals(\n+    metadata: dict[str, Any] | None,\n+    explicit_run_name: Any,\n+) -> bool:\n     \"\"\"Return True when metadata contains any signal that the chain is an agent.\"\"\"",
+      "id": "PRRT_kwDOSbspP86Zgt8w",
+      "opened": "2026-08-15T13:54:41Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+      "replies": [],
+      "reviewed": "09ae2dfaaab2f747f16f34601e7896bece63e25f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3789491197"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can you please add conformance test or update existing one to expect agent spans?",
+      "created": "2026-08-15T16:07:52Z",
+      "hunk": "@@ -172,6 +172,64 @@ def test_otel_agent_span_true_is_agent(self):\n         )\n         assert result == OperationName.INVOKE_AGENT\n \n+    def test_top_level_langchain_agent_is_agent(self):",
+      "id": "PRRT_kwDOSbspP86ZhWoX",
+      "opened": "2026-08-15T16:39:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_operation_mapping.py",
+      "replies": [],
+      "reviewed": "6bd36ada3e645d1c76e03f3b45ca3641a1213c06",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3789725393"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`lc_agent_name` is only present in metadata when `create_agent(name=...)` is passed (`langchain/agents/factory.py` guards on `if name:`). The default `create_agent(model, tools)` emits only `{'ls_integration': 'langchain_create_agent'}`, so it still isn't classified as an agent - at top level it becomes `invoke_workflow LangGraph`, and nested it gets no span at all. `ls_integration == \"langchain_create_agent\"` is always present and is the reliable marker.\n\nFails on this branch (langchain 1.3.14 / langgraph 1.2.9):\n\n```python\ndef test_unnamed_create_agent_emits_agent_span(spans):\n    agent = create_agent(FakeModel(), [noop])\n    agent.invoke({\"messages\": [(\"user\", \"hi\")]})\n    assert [s.name for s in agent_spans(spans)] == [\"invoke_agent\"]\n# 0 agent spans; only \"invoke_workflow LangGraph\"\n```\n\nSame result when the unnamed agent is invoked from inside a graph node: 0 agent spans.",
+      "created": "2026-08-15T16:37:08Z",
+      "hunk": "@@ -96,14 +97,30 @@ def resolve_agent_name(\n     return None\n \n \n-def _has_agent_signals(metadata: dict[str, Any] | None) -> bool:\n+def _has_agent_signals(\n+    metadata: dict[str, Any] | None,\n+    explicit_run_name: Any,\n+) -> bool:\n     \"\"\"Return True when metadata contains any signal that the chain is an agent.\"\"\"\n     if not metadata:\n         return False\n-    return bool(\n+    if (\n         metadata.get(_META_AGENT_SPAN)\n         or metadata.get(_META_AGENT_NAME)\n         or metadata.get(_META_AGENT_TYPE)\n+    ):\n+        return True\n+\n+    # Compare only the callback's explicit name; resolved names may fall back\n+    # to an inherited langgraph_node and misclassify a nested agent.\n+    langchain_agent_name = metadata.get(_META_LANGCHAIN_AGENT_NAME)\n+    return bool(\n+        langchain_agent_name",
+      "id": "PRRT_kwDOSbspP86ZhfiB",
+      "opened": "2026-08-15T16:39:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+      "replies": [],
+      "reviewed": "6bd36ada3e645d1c76e03f3b45ca3641a1213c06",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3789777183"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`resolve_agent_name` never consults `lc_agent_name`, so a run detected as an agent here gets named from `kwargs[\"name\"]` - the run name, not the agent name. Its `langgraph_node` fallback also feeds the ancestor dedup in `callback_handler.py`.\n\nFails on this branch:\n\n```python\nagent = create_agent(FakeModel(), [noop], name=\"my_agent\")\nRunnableLambda(lambda _: agent.invoke(..., {\"run_name\": \"custom\"})).invoke({})\n# gen_ai.agent.name == \"custom\", expected \"my_agent\"\n```",
+      "created": "2026-08-15T16:37:40Z",
+      "hunk": "@@ -96,14 +97,30 @@ def resolve_agent_name(\n     return None\n \n \n-def _has_agent_signals(metadata: dict[str, Any] | None) -> bool:\n+def _has_agent_signals(\n+    metadata: dict[str, Any] | None,\n+    explicit_run_name: Any,\n+) -> bool:\n     \"\"\"Return True when metadata contains any signal that the chain is an agent.\"\"\"\n     if not metadata:\n         return False\n-    return bool(\n+    if (\n         metadata.get(_META_AGENT_SPAN)\n         or metadata.get(_META_AGENT_NAME)\n         or metadata.get(_META_AGENT_TYPE)\n+    ):\n+        return True\n+\n+    # Compare only the callback's explicit name; resolved names may fall back\n+    # to an inherited langgraph_node and misclassify a nested agent.\n+    langchain_agent_name = metadata.get(_META_LANGCHAIN_AGENT_NAME)",
+      "id": "PRRT_kwDOSbspP86Zhfs8",
+      "opened": "2026-08-15T16:39:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+      "replies": [],
+      "reviewed": "6bd36ada3e645d1c76e03f3b45ca3641a1213c06",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3789778229"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "A `run_name` override defeats this comparison. LangChain's own subagent rule is name-independent - a nested run whose `lc_agent_name` differs from the parent namespace's. The handler already tracks parent runs, so that comparison is available and more robust.\n\nFails on this branch:\n\n```python\nagent = create_agent(FakeModel(), [noop], name=\"planner_agent\")\n# invoked from inside a graph node named \"planner\":\nagent.invoke({\"messages\": [...]}, {\"run_name\": \"step1\"})\n# name='step1', langgraph_node='planner', lc_agent_name='planner_agent' -> 0 agent spans\n```",
+      "created": "2026-08-15T16:37:40Z",
+      "hunk": "@@ -96,14 +97,30 @@ def resolve_agent_name(\n     return None\n \n \n-def _has_agent_signals(metadata: dict[str, Any] | None) -> bool:\n+def _has_agent_signals(\n+    metadata: dict[str, Any] | None,\n+    explicit_run_name: Any,\n+) -> bool:\n     \"\"\"Return True when metadata contains any signal that the chain is an agent.\"\"\"\n     if not metadata:\n         return False\n-    return bool(\n+    if (\n         metadata.get(_META_AGENT_SPAN)\n         or metadata.get(_META_AGENT_NAME)\n         or metadata.get(_META_AGENT_TYPE)\n+    ):\n+        return True\n+\n+    # Compare only the callback's explicit name; resolved names may fall back\n+    # to an inherited langgraph_node and misclassify a nested agent.\n+    langchain_agent_name = metadata.get(_META_LANGCHAIN_AGENT_NAME)\n+    return bool(\n+        langchain_agent_name\n+        and (\n+            LANGGRAPH_NODE_KEY not in metadata\n+            or explicit_run_name is None\n+            or str(explicit_run_name) == str(langchain_agent_name)",
+      "id": "PRRT_kwDOSbspP86Zhfsz",
+      "opened": "2026-08-15T16:39:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+      "replies": [],
+      "reviewed": "6bd36ada3e645d1c76e03f3b45ca3641a1213c06",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3789778217"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Bigger-picture concern about the approach, and I'd like it addressed in this PR rather than after.\n\nCallback metadata cannot identify a `create_agent` root. When an agent is invoked from inside another agent's tool with the config forwarded, LangChain merges the caller's config over the inner agent's own, so `lc_agent_name` and `ls_integration` here describe the **outer** agent. That is why this PR has to reason about ancestry at all, and why nested agents end up unsupported. I checked every other field on the callback (`serialized` is `None`, `langgraph_checkpoint_ns` does not deepen at the nested root, `tags` and `kwargs[\"name\"]` do not separate an agent from any other named runnable), and there is no signal that distinguishes them. LangSmith hits the same wall and works around it by reading pregel task events instead of callbacks, accepting a documented false positive.\n\nThe compiled graph's *own* bound config is never shadowed, though:\n\n```python\ncreate_agent(model, tools, name=\"inner\").config\n# {'metadata': {'ls_integration': 'langchain_create_agent', 'lc_agent_name': 'inner'}, ...}\n```\n\nSo patching `Pregel.stream`/`astream` lets the graph announce itself on a context stack that the handler claims when the root run starts. That is ground truth instead of inference, and it removes the need for the ancestry heuristics entirely.\n\nI put together a prototype: https://github.com/lmolkova/opentelemetry-python-genai/commit/81515bf6811da59e8f5c02e30492da2bbd186b93\n\nWith it, three-level nesting, same-named nested agents, async, streaming, unnamed agents and agents invoked without config forwarding all layer correctly, with no false positives for a named `RunnableLambda` or a plain subgraph invoked from a tool. It also deletes `create_agent_ancestry`, the `has_create_agent_marker` plumbing and these `ls_integration` / `lc_agent_name` branches, so it is close to net-neutral in size.\n\nPlease fold this into this PR. Merging the metadata-inference version first means we delete most of it in the follow-up, and the ancestry logic changes classification behavior in the meantime, so we would be shipping a regression risk for code we already plan to remove.\n\nNote the prototype is exactly that - the tests for the removed inference still need dropping and the corpus tests reworking (separate comment).",
+      "created": "2026-08-16T21:57:41Z",
+      "hunk": "@@ -96,14 +104,31 @@ def resolve_agent_name(\n     return None\n \n \n-def _has_agent_signals(metadata: dict[str, Any] | None) -> bool:\n+def _has_agent_signals(\n+    metadata: dict[str, Any] | None,\n+    parent_agent_name: str | None,\n+    create_agent_ancestry: bool | None,\n+) -> bool:\n     \"\"\"Return True when metadata contains any signal that the chain is an agent.\"\"\"\n     if not metadata:\n         return False\n-    return bool(\n+    if (\n         metadata.get(_META_AGENT_SPAN)\n         or metadata.get(_META_AGENT_NAME)\n         or metadata.get(_META_AGENT_TYPE)\n+    ):\n+        return True\n+\n+    if metadata.get(_META_LANGCHAIN_INTEGRATION) == _LANGCHAIN_CREATE_AGENT:\n+        return create_agent_ancestry is False",
+      "id": "PRRT_kwDOSbspP86Zp2f4",
+      "opened": "2026-08-16T22:03:32Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+      "replies": [],
+      "reviewed": "42aaaf413d164a374288c52eeef8a5c3b5e75a69",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3792918907"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "These tests are at the wrong level. They construct the callback handler directly and hand it a `MagicMock` telemetry handler, so what they assert is the internal shape of `invoke_local_agent` calls, not the telemetry a user gets. That makes them pass for classifications that produce no usable span, and it makes them break on any refactor of the handler's internals even when the emitted spans are unchanged.\n\nPlease drive them through `instrument()` with a real tracer provider and assert on the exported spans - names, parent/child nesting and `gen_ai.agent.name` - the way the other test modules in this package do. The nesting cases in particular are only meaningful as an assertion about span parentage, which a mock cannot show.",
+      "created": "2026-08-16T21:57:42Z",
+      "hunk": "@@ -0,0 +1,257 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Focused regression corpus for LangChain create_agent classification.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any, Self\n+from unittest import mock\n+from uuid import uuid4\n+\n+import langchain.agents\n+import pytest\n+\n+create_agent = getattr(langchain.agents, \"create_agent\", None)\n+if create_agent is None:\n+    pytest.skip(\n+        \"create_agent requires a newer langchain version\",\n+        allow_module_level=True,\n+    )\n+\n+from langchain_core.language_models.fake_chat_models import (\n+    FakeMessagesListChatModel,\n+)\n+from langchain_core.messages import AIMessage\n+from langchain_core.runnables import RunnableConfig, RunnableLambda\n+from langchain_core.tools import tool\n+from langgraph.graph import END, START, StateGraph\n+\n+from opentelemetry.instrumentation.genai.langchain.callback_handler import (\n+    OpenTelemetryLangChainCallbackHandler,\n+)\n+from opentelemetry.util.genai.invocation import (\n+    AgentInvocation,\n+    ToolInvocation,\n+    WorkflowInvocation,\n+)\n+\n+\n+class FakeModel(FakeMessagesListChatModel):\n+    def bind_tools(\n+        self,\n+        tools: Any,\n+        *,\n+        tool_choice: Any = None,\n+        **kwargs: Any,\n+    ) -> Self:\n+        return self\n+\n+\n+@tool\n+def noop() -> str:\n+    \"\"\"Do nothing.\"\"\"\n+    return \"ok\"\n+\n+\n+def _handler() -> tuple[OpenTelemetryLangChainCallbackHandler, mock.MagicMock]:",
+      "id": "PRRT_kwDOSbspP86Zp2f-",
+      "opened": "2026-08-16T22:03:32Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_agent_classification_corpus.py",
+      "replies": [],
+      "reviewed": "42aaaf413d164a374288c52eeef8a5c3b5e75a69",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3792918914"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The changelog fragment still says nested agents are unsupported, but this PR’s description and the new tests/assertions indicate nested `create_agent` invocations now emit their own `invoke_agent` spans. This line should be updated so release notes match the actual behavior.",
+      "created": "2026-08-22T15:43:39Z",
+      "hunk": "@@ -0,0 +1 @@\n+Emit ``invoke_agent`` spans for top-level LangChain ``create_agent`` graph roots without misclassifying known descendants; nested agents remain unsupported.",
+      "id": "PRRT_kwDOSbspP86bZqhi",
+      "opened": "2026-08-22T15:43:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/391.fixed",
+      "replies": [
+        {
+          "at": "2026-08-27T09:27:13Z",
+          "body": "Updated — the fragment now says nested agents get their own spans.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3870450121"
+        }
+      ],
+      "reviewed": "6c5f2c78da4407a5be0f29e70a7dc09a15a13c5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3836387936"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "_uninstrument() currently only guards `import langgraph.*` with `except ImportError`, but `_instrument_agent_entry_points()` explicitly treats missing/renamed LangGraph symbols as `AttributeError`. If a compatible-but-different LangGraph version is installed, `_uninstrument()` can raise `AttributeError` when accessing `langgraph.pregel.Pregel` or unwrapping missing symbols. Consider tolerating `AttributeError` here as well so `uninstrument()` is reliably safe to call.",
+      "created": "2026-08-22T15:43:39Z",
+      "hunk": "@@ -80,12 +85,50 @@ def _instrument(self, **kwargs: Any):\n             \"BaseCallbackManager.__init__\",\n             _BaseCallbackManagerInitWrapper(otel_callback_handler),\n         )\n+        self._instrument_agent_entry_points()\n+\n+    @staticmethod\n+    def _instrument_agent_entry_points() -> None:\n+        \"\"\"Recover the create_agent provenance the callback metadata does not carry.\"\"\"\n+        for method, wrapper in (\n+            (\"Pregel.stream\", wrap_stream),\n+            (\"Pregel.astream\", wrap_astream),\n+        ):\n+            try:\n+                wrap_function_wrapper(\"langgraph.pregel\", method, wrapper)\n+            except (ImportError, AttributeError):\n+                # Without langgraph there are no agent graphs to announce, and\n+                # classification stays metadata-based.\n+                return\n+\n+        # create_react_agent is deprecated but still ships its own builder that\n+        # bakes in none of the create_agent markers, so tag what it returns.\n+        for symbol in (\"create_react_agent\", \"create_tool_calling_executor\"):\n+            try:\n+                wrap_function_wrapper(\n+                    \"langgraph.prebuilt\", symbol, wrap_create_react_agent\n+                )\n+            except (ImportError, AttributeError):\n+                pass\n \n     def _uninstrument(self, **kwargs: Any):\n         \"\"\"\n         Cleanup instrumentation (unwrap).\n         \"\"\"\n         unwrap(\"langchain_core.callbacks.base.BaseCallbackManager\", \"__init__\")\n+        try:\n+            import langgraph.prebuilt\n+            import langgraph.pregel\n+        except ImportError:\n+            pass\n+        else:\n+            for method in (\"stream\", \"astream\"):\n+                unwrap(langgraph.pregel.Pregel, method)\n+            for symbol in (\n+                \"create_react_agent\",\n+                \"create_tool_calling_executor\",\n+            ):\n+                unwrap(langgraph.prebuilt, symbol)",
+      "id": "PRRT_kwDOSbspP86bZqhl",
+      "opened": "2026-08-22T15:43:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-27T09:27:14Z",
+          "body": "Fixed — `_uninstrument` now catches `AttributeError` alongside `ImportError`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3870450334"
+        }
+      ],
+      "reviewed": "6c5f2c78da4407a5be0f29e70a7dc09a15a13c5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3836387948"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "A nested agent still gets no span when the outer agent is named via `metadata[\"agent_name\"]` - the inner run inherits that name, so it is neither equal to `declared_agent_name` nor different from the parent's, and this branch drops the layer.\n\n```python\nouter = create_agent(model, [delegate], name=\"outer\").with_config(\n    metadata={\"agent_name\": \"math_agent\"}\n)\nouter.invoke({\"messages\": [(\"user\", \"start\")]})\n# execute_tool delegate, invoke_agent math_agent - inner agent missing\n```\n\n```suggestion\n                    declared_agent_name\n```\n\nThat restores the layer with all existing tests still passing, but the inner span is then named `math_agent`. The name precedence in `resolve_agent_name` needs the same look: inherited metadata outranks the graph's own declared name.",
+      "created": "2026-08-22T15:48:17Z",
+      "hunk": "@@ -103,7 +114,14 @@ def on_chain_start(\n                     if agent_invocation_name\n                     else None\n                 )\n-                if suggested_agent_name_lower != agent_invocation_name_lower:\n+                # A declared agent is its own layer even when it shares its\n+                # parent's name, unless the user renamed it - then the rename\n+                # already opened the layer and this run would duplicate it.\n+                if (\n+                    suggested_agent_name == declared_agent_name",
+      "id": "PRRT_kwDOSbspP86bZsH5",
+      "opened": "2026-08-22T15:51:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-08-27T09:16:38Z",
+          "body": "Fixed in bfa7b59. Announced roots now always open their own layer, and `resolve_agent_name` treats a metadata name matching any enclosing agent as inherited config, so the nested graph's declared name wins — a plain precedence swap would have dropped the outer rename in your repro. Added your repro and a three-level case as tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3870373311"
+        }
+      ],
+      "reviewed": "6c5f2c78da4407a5be0f29e70a7dc09a15a13c5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3836397331"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This strict xfail asserts nested agents do not work, while `test_nested_agent_gets_its_own_span_under_the_calling_tool` asserts they do. It only fails because it never starts the instrumentor - add `start_instrumentation` and it XPASSes. Drop it.",
+      "created": "2026-08-22T15:48:17Z",
+      "hunk": "@@ -0,0 +1,249 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Focused regression corpus for LangChain create_agent classification.\"\"\"\n+\n+from __future__ import annotations\n+\n+from importlib import import_module\n+from typing import Any, Self\n+from unittest import mock\n+\n+import langchain.agents\n+import pytest\n+from langchain_core.language_models.fake_chat_models import (\n+    FakeMessagesListChatModel,\n+)\n+from langchain_core.messages import AIMessage\n+from langchain_core.runnables import RunnableConfig, RunnableLambda\n+from langchain_core.tools import tool\n+\n+from opentelemetry.instrumentation.genai.langchain.callback_handler import (\n+    OpenTelemetryLangChainCallbackHandler,\n+)\n+from opentelemetry.util.genai.invocation import (\n+    AgentInvocation,\n+    ToolInvocation,\n+    WorkflowInvocation,\n+)\n+\n+create_agent = getattr(langchain.agents, \"create_agent\", None)\n+if create_agent is None:\n+    pytest.skip(\n+        \"create_agent requires a newer langchain version\",\n+        allow_module_level=True,\n+    )\n+\n+langgraph_graph = import_module(\"langgraph.graph\")\n+END = langgraph_graph.END\n+START = langgraph_graph.START\n+StateGraph = langgraph_graph.StateGraph\n+\n+\n+class FakeModel(FakeMessagesListChatModel):\n+    def bind_tools(\n+        self,\n+        tools: Any,\n+        *,\n+        tool_choice: Any = None,\n+        **kwargs: Any,\n+    ) -> Self:\n+        return self\n+\n+\n+@tool\n+def noop() -> str:\n+    \"\"\"Do nothing.\"\"\"\n+    return \"ok\"\n+\n+\n+def _handler() -> tuple[OpenTelemetryLangChainCallbackHandler, mock.MagicMock]:\n+    telemetry = mock.MagicMock()\n+    workflow = mock.MagicMock(spec=WorkflowInvocation)\n+    workflow.span = mock.MagicMock()\n+    workflow.span.is_recording.return_value = False\n+    telemetry.workflow.return_value = workflow\n+\n+    def make_agent(*args: Any, **kwargs: Any) -> mock.MagicMock:\n+        invocation = mock.MagicMock(spec=AgentInvocation)\n+        invocation.agent_name = kwargs.get(\"agent_name\")\n+        invocation.span = mock.MagicMock()\n+        invocation.span.is_recording.return_value = False\n+        return invocation\n+\n+    telemetry.invoke_local_agent.side_effect = make_agent\n+\n+    tool_invocation = mock.MagicMock(spec=ToolInvocation)\n+    tool_invocation.span = mock.MagicMock()\n+    tool_invocation.span.is_recording.return_value = False\n+    telemetry.tool.return_value = tool_invocation\n+    return OpenTelemetryLangChainCallbackHandler(telemetry), telemetry\n+\n+\n+def _agent_names(telemetry: mock.MagicMock) -> list[str]:\n+    return [\n+        call.kwargs[\"agent_name\"]\n+        for call in telemetry.invoke_local_agent.call_args_list\n+    ]\n+\n+\n+@pytest.mark.parametrize(\n+    (\"name\", \"expected_name\"),\n+    [(None, \"LangGraph\"), (\"named_agent\", \"named_agent\")],\n+)\n+def test_create_agent_root(\n+    name: str | None,\n+    expected_name: str,\n+    span_exporter,\n+    start_instrumentation,\n+) -> None:\n+    agent_kwargs = {\"name\": name} if name is not None else {}\n+    create_agent(\n+        FakeModel(responses=[AIMessage(content=\"done\")]),\n+        [noop],\n+        **agent_kwargs,\n+    ).invoke({\"messages\": [(\"user\", \"hi\")]})\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert [span.name for span in spans] == [f\"invoke_agent {expected_name}\"]\n+    agent_span = spans[0]\n+    assert agent_span.parent is None\n+    assert agent_span.attributes[\"gen_ai.agent.name\"] == expected_name\n+\n+\n+def test_create_agent_name_wins_over_run_name_override(\n+    span_exporter, start_instrumentation\n+) -> None:\n+    agent = create_agent(\n+        FakeModel(responses=[AIMessage(content=\"done\")]),\n+        [noop],\n+        name=\"planner_agent\",\n+    )\n+    RunnableLambda(\n+        lambda _: agent.invoke(\n+            {\"messages\": [(\"user\", \"hi\")]}, {\"run_name\": \"step1\"}\n+        )\n+    ).with_config(run_name=\"planner\").invoke({})\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert [span.name for span in spans] == [\n+        \"invoke_agent planner_agent\",\n+        \"invoke_workflow planner\",\n+    ]\n+    agent_span, workflow_span = spans\n+    assert agent_span.parent.span_id == workflow_span.context.span_id\n+    assert workflow_span.parent is None\n+    assert agent_span.attributes[\"gen_ai.agent.name\"] == \"planner_agent\"\n+    assert \"gen_ai.agent.name\" not in workflow_span.attributes\n+\n+\n+def test_create_agent_internal_nodes_are_not_agents(\n+    span_exporter, start_instrumentation\n+) -> None:\n+    create_agent(\n+        FakeModel(\n+            responses=[\n+                AIMessage(\n+                    content=\"\",\n+                    tool_calls=[{\"name\": \"noop\", \"args\": {}, \"id\": \"1\"}],\n+                ),\n+                AIMessage(content=\"done\"),\n+            ]\n+        ),\n+        [noop],\n+        name=\"agent\",\n+    ).invoke({\"messages\": [(\"user\", \"hi\")]})\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert [span.name for span in spans] == [\n+        \"execute_tool noop\",\n+        \"invoke_agent agent\",\n+    ]\n+    agent_span = spans[-1]\n+    assert agent_span.parent is None\n+    assert agent_span.attributes[\"gen_ai.agent.name\"] == \"agent\"\n+    tool_span = spans[0]\n+    assert tool_span.parent.span_id == agent_span.context.span_id\n+    assert \"gen_ai.agent.name\" not in tool_span.attributes\n+\n+\n+def test_create_agent_with_configured_agent_name_emits_one_agent() -> None:\n+    handler, telemetry = _handler()\n+    create_agent(\n+        FakeModel(\n+            responses=[\n+                AIMessage(\n+                    content=\"\",\n+                    tool_calls=[{\"name\": \"noop\", \"args\": {}, \"id\": \"1\"}],\n+                ),\n+                AIMessage(content=\"done\"),\n+            ]\n+        ),\n+        [noop],\n+    ).with_config(metadata={\"agent_name\": \"ordinary\"}).invoke(\n+        {\"messages\": [(\"user\", \"hi\")]}, {\"callbacks\": [handler]}\n+    )\n+\n+    assert _agent_names(telemetry) == [\"ordinary\"]\n+    assert telemetry.tool.call_count == 1\n+\n+\n+def test_ordinary_runnable_is_not_an_agent() -> None:\n+    handler, telemetry = _handler()\n+    RunnableLambda(lambda value: value).with_config(\n+        run_name=\"ordinary\"\n+    ).invoke(\"value\", {\"callbacks\": [handler]})\n+\n+    telemetry.invoke_local_agent.assert_not_called()\n+\n+\n+def test_plain_state_graph_is_not_an_agent() -> None:\n+    handler, telemetry = _handler()\n+    builder = StateGraph(dict[str, int])\n+    builder.add_node(\"increment\", lambda state: {\"value\": state[\"value\"] + 1})\n+    builder.add_edge(START, \"increment\")\n+    builder.add_edge(\"increment\", END)\n+    builder.compile().invoke({\"value\": 1}, {\"callbacks\": [handler]})\n+\n+    telemetry.invoke_local_agent.assert_not_called()\n+\n+\n+@pytest.mark.xfail(",
+      "id": "PRRT_kwDOSbspP86bZsH7",
+      "opened": "2026-08-22T15:51:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_agent_classification_corpus.py",
+      "replies": [
+        {
+          "at": "2026-08-27T09:16:49Z",
+          "body": "Dropped.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3870374708"
+        }
+      ],
+      "reviewed": "6c5f2c78da4407a5be0f29e70a7dc09a15a13c5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3836397334"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The async path has no tests - every new test drives `invoke()`. `wrap_astream` is the trickier half (contextvars across `__anext__`), so it needs at least the root, nested and concurrent-`gather` cases the sync side has.",
+      "created": "2026-08-22T15:48:18Z",
+      "hunk": "@@ -0,0 +1,177 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Identify ``create_agent`` graph invocations from outside the callback API.\n+\n+LangChain callbacks cannot tell a nested ``create_agent`` root apart from any\n+other named runnable invoked inside a tool: the enclosing agent's ``config`` is\n+merged over the inner agent's own, so ``lc_agent_name`` and ``ls_integration``\n+in the *callback* metadata describe the outer agent. The compiled graph's own\n+bound config is never shadowed, so this module reads the marker there and has\n+each graph entry point announce itself on a context stack that the callback\n+handler consults when the root run starts.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+from collections.abc import AsyncIterator, Callable, Iterator\n+from contextvars import ContextVar\n+from dataclasses import dataclass\n+from typing import Any\n+\n+from opentelemetry.instrumentation.genai.langchain.operation_mapping import (\n+    create_agent_graph_name,\n+)\n+\n+_AGENT_NAME_ATTR = \"_otel_genai_agent_name\"\n+\n+\n+@dataclass\n+class _PendingAgent:\n+    \"\"\"An agent graph that has started running but whose root run is not seen yet.\"\"\"\n+\n+    name: str\n+    claimed: bool = False\n+\n+\n+_pending: ContextVar[tuple[_PendingAgent, ...]] = ContextVar(\n+    \"otel_genai_pending_agents\", default=()\n+)\n+\n+\n+def claim_agent() -> str | None:\n+    \"\"\"Return the announced agent name if this run is a create_agent graph root.\n+\n+    The announcement is made as the graph starts, so the first chain run to see\n+    it is the graph's root. Only the innermost announcement is claimable, and\n+    only once, so internal nodes fall through to metadata-based classification.\n+    The root run's own name is not checked - ``with_config(run_name=...)``\n+    renames it without making it any less of an agent.\n+    \"\"\"\n+    pending = _pending.get()\n+    if not pending:\n+        return None\n+    entry = pending[-1]\n+    if entry.claimed:\n+        return None\n+    entry.claimed = True\n+    return entry.name\n+\n+\n+def _agent_name(graph: Any) -> str | None:\n+    \"\"\"Return the agent name a compiled graph identifies itself with, if any.\"\"\"\n+    marked = getattr(graph, _AGENT_NAME_ATTR, None)\n+    if marked:\n+        return str(marked)\n+    return create_agent_graph_name(getattr(graph, \"config\", None))\n+\n+\n+def wrap_create_react_agent(\n+    wrapped: Callable[..., Any],\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> Any:\n+    \"\"\"Tag a ``create_react_agent`` graph so it announces itself like create_agent.\n+\n+    The deprecated LangGraph builder compiles its own graph and leaves ``config``\n+    unset, so it carries none of the markers ``create_agent`` bakes in. Marking\n+    the object keeps it out of the graph's runtime config, which would otherwise\n+    show up in the user's own run metadata.\n+    \"\"\"\n+    graph = wrapped(*args, **kwargs)\n+    name = kwargs.get(\"name\") or getattr(graph, \"name\", None)\n+    if name:\n+        try:\n+            object.__setattr__(graph, _AGENT_NAME_ATTR, str(name))\n+        except (AttributeError, TypeError):\n+            pass\n+    return graph\n+\n+\n+def _push(name: str) -> _PendingAgent:\n+    \"\"\"Announce ``name`` as the innermost running agent.\"\"\"\n+    entry = _PendingAgent(name)\n+    _pending.set(_pending.get() + (entry,))\n+    return entry\n+\n+\n+def _pop(entry: _PendingAgent) -> None:\n+    \"\"\"Withdraw ``entry``, tolerating a stack the caller's context no longer owns.\"\"\"\n+    pending = _pending.get()\n+    if pending and pending[-1] is entry:\n+        _pending.set(pending[:-1])\n+\n+\n+def wrap_stream(\n+    wrapped: Callable[..., Any],\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> Any:\n+    \"\"\"Announce an agent graph for the duration of ``Pregel.stream``.\n+\n+    ``Pregel.invoke`` runs through ``stream``, so this covers both entry points.\n+    \"\"\"\n+    name = _agent_name(instance)\n+    if name is None:\n+        return wrapped(*args, **kwargs)\n+    return _announce_at_stream_start(wrapped(*args, **kwargs), name)\n+\n+\n+def wrap_astream(",
+      "id": "PRRT_kwDOSbspP86bZsH-",
+      "opened": "2026-08-22T15:51:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/agent_context.py",
+      "replies": [
+        {
+          "at": "2026-08-27T09:17:01Z",
+          "body": "Added root, nested and concurrent cases through `ainvoke`. They surfaced a pre-existing issue: on the async callback path the context token attached at span start isn't propagated, so spans come out without parentage (names are correct). The nested case is a strict xfail documenting it. Happy to file a separate issue for the fix.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3870376055"
+        }
+      ],
+      "reviewed": "6c5f2c78da4407a5be0f29e70a7dc09a15a13c5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3836397337"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Nested agents get a duplicate agent span when the outer agent sets `metadata[\"agent_name\"]` - the inner agent's internal nodes still inherit the outer name and open another layer:\n\n```\ninvoke_agent math_agent        <- root\n  execute_tool delegate\n    invoke_agent inner\n      invoke_agent math_agent  <- spurious\n```\n\nThe inherited-name check shouldn't be conditional on `declared_agent_name`.\n\nThe nested tests don't catch this because they only check names are unique and roots are roots, never the full span set. This one fails on the branch:\n\n```python\ndef test_nested_agent_emits_no_extra_agent_spans(\n    span_exporter, start_instrumentation\n) -> None:\n    inner = create_agent(\n        FakeModel(responses=[AIMessage(content=\"inner done\")]),\n        [noop],\n        name=\"inner\",\n    )\n\n    @tool\n    def delegate(config: RunnableConfig) -> str:\n        \"\"\"Delegate to the inner agent.\"\"\"\n        result = inner.invoke({\"messages\": [(\"user\", \"work\")]}, config)\n        return str(result[\"messages\"][-1].content)\n\n    create_agent(\n        FakeModel(\n            responses=[\n                AIMessage(\n                    content=\"\",\n                    tool_calls=[\n                        {\"name\": \"delegate\", \"args\": {}, \"id\": \"call-1\"}\n                    ],\n                ),\n                AIMessage(content=\"outer done\"),\n            ]\n        ),\n        [delegate],\n        name=\"outer\",\n    ).with_config(metadata={\"agent_name\": \"math_agent\"}).invoke(\n        {\"messages\": [(\"user\", \"start\")]}\n    )\n\n    spans = span_exporter.get_finished_spans()\n    assert sorted(span.name for span in spans) == [\n        \"execute_tool delegate\",\n        \"invoke_agent inner\",\n        \"invoke_agent math_agent\",\n    ]\n```\n\n```\nE   AssertionError: Left contains one more item: 'invoke_agent math_agent'\n```\n",
+      "created": "2026-08-28T06:50:14Z",
+      "hunk": "@@ -54,31 +55,67 @@ class OperationName:\n _META_WORKFLOW_SPAN = \"otel_workflow_span\"\n _META_AGENT_NAME = \"agent_name\"\n _META_AGENT_TYPE = \"agent_type\"\n+_META_LANGCHAIN_AGENT_NAME = \"lc_agent_name\"\n+_META_LANGCHAIN_INTEGRATION = \"ls_integration\"\n _META_OTEL_TRACE = \"otel_trace\"\n+_LANGCHAIN_CREATE_AGENT = \"langchain_create_agent\"\n \n \n # ---------------------------------------------------------------------------\n # Helpers\n # ---------------------------------------------------------------------------\n \n \n+def create_agent_graph_name(config: Any) -> str | None:\n+    \"\"\"Return the agent name if ``config`` is a compiled ``create_agent`` graph's.\n+\n+    Unlike the metadata reaching the callbacks, a graph's own bound config is\n+    never merged with an enclosing agent's, so this identifies nested agents.\n+    \"\"\"\n+    if not isinstance(config, Mapping):\n+        return None\n+    metadata = cast(\"Mapping[str, Any]\", config).get(\"metadata\")\n+    if not isinstance(metadata, Mapping):\n+        return None\n+    typed_metadata = cast(\"Mapping[str, Any]\", metadata)\n+    if (\n+        typed_metadata.get(_META_LANGCHAIN_INTEGRATION)\n+        != _LANGCHAIN_CREATE_AGENT\n+    ):\n+        return None\n+    name = typed_metadata.get(_META_LANGCHAIN_AGENT_NAME)\n+    return str(name) if name else LANGGRAPH_IDENTIFIER\n+\n+\n def resolve_agent_name(\n     serialized: dict[str, Any],\n     metadata: dict[str, Any] | None,\n     kwargs: dict[str, Any],\n+    declared_agent_name: str | None = None,\n+    ancestor_agent_names: set[str] | None = None,\n ) -> str | None:\n     \"\"\"Derive the best-effort agent name from callback arguments.\n \n     Checks (in priority order):\n-    1. ``metadata[\"agent_name\"]``\n-    2. ``kwargs[\"name\"]``\n-    3. ``serialized[\"name\"]``\n-    4. ``metadata[\"langgraph_node\"]`` (if present and not a start node)\n+    1. ``metadata[\"agent_name\"]`` unless inherited from an enclosing agent\n+    2. ``declared_agent_name`` (the name a ``create_agent`` graph announced)\n+    3. ``kwargs[\"name\"]``\n+    4. ``serialized[\"name\"]``\n+    5. ``metadata[\"langgraph_node\"]`` (if present and not a start node)\n     \"\"\"\n     if metadata:\n         name = metadata.get(_META_AGENT_NAME)\n         if name:\n-            return str(name)\n+            metadata_name = str(name)\n+            if not (\n+                declared_agent_name\n+                and ancestor_agent_names\n+                and metadata_name.lower() in ancestor_agent_names\n+            ):",
+      "id": "PRRT_kwDOSbspP86dFVeP",
+      "opened": "2026-08-28T06:53:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+      "replies": [
+        {
+          "at": "2026-08-29T04:49:06Z",
+          "body": "Fixed in 602463b: an inherited `agent_name` matching an ancestor is now always excluded from classification, regardless of `declared_agent_name`. Added your repro as a regression test (`test_nested_agent_emits_no_extra_agent_spans`) asserting the full span set.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3885623263"
+        }
+      ],
+      "reviewed": "bfa7b59b5f8271a800b5e3d667d5d2fcf0d2e4e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3878512183"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "\"LangGraph\" isn't an agent name - it's the framework's default graph name. `gen_ai.agent.name` is the name the application gave the agent, and semconv says to leave it unset and name the span plain `invoke_agent` when there isn't one.\r\n\r\nThe conformance scenario dropped `agent_name`, so it now asserts this placeholder and no longer covers a named agent.",
+      "created": "2026-08-28T06:50:14Z",
+      "hunk": "@@ -54,31 +55,67 @@ class OperationName:\n _META_WORKFLOW_SPAN = \"otel_workflow_span\"\n _META_AGENT_NAME = \"agent_name\"\n _META_AGENT_TYPE = \"agent_type\"\n+_META_LANGCHAIN_AGENT_NAME = \"lc_agent_name\"\n+_META_LANGCHAIN_INTEGRATION = \"ls_integration\"\n _META_OTEL_TRACE = \"otel_trace\"\n+_LANGCHAIN_CREATE_AGENT = \"langchain_create_agent\"\n \n \n # ---------------------------------------------------------------------------\n # Helpers\n # ---------------------------------------------------------------------------\n \n \n+def create_agent_graph_name(config: Any) -> str | None:\n+    \"\"\"Return the agent name if ``config`` is a compiled ``create_agent`` graph's.\n+\n+    Unlike the metadata reaching the callbacks, a graph's own bound config is\n+    never merged with an enclosing agent's, so this identifies nested agents.\n+    \"\"\"\n+    if not isinstance(config, Mapping):\n+        return None\n+    metadata = cast(\"Mapping[str, Any]\", config).get(\"metadata\")\n+    if not isinstance(metadata, Mapping):\n+        return None\n+    typed_metadata = cast(\"Mapping[str, Any]\", metadata)\n+    if (\n+        typed_metadata.get(_META_LANGCHAIN_INTEGRATION)\n+        != _LANGCHAIN_CREATE_AGENT\n+    ):\n+        return None\n+    name = typed_metadata.get(_META_LANGCHAIN_AGENT_NAME)\n+    return str(name) if name else LANGGRAPH_IDENTIFIER",
+      "id": "PRRT_kwDOSbspP86dFVeV",
+      "opened": "2026-08-28T06:53:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+      "replies": [
+        {
+          "at": "2026-08-29T04:49:09Z",
+          "body": "Fixed in 602463b: unnamed agents now emit plain `invoke_agent` spans with `gen_ai.agent.name` unset. Added `test_unnamed_create_agent_has_no_placeholder_name`, which asserts the span name is `invoke_agent` rather than `invoke_agent LangGraph`. Good catch on the conformance scenario — the same commit restores a named-agent scenario alongside the unnamed one.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3885623413"
+        }
+      ],
+      "reviewed": "bfa7b59b5f8271a800b5e3d667d5d2fcf0d2e4e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3878512191"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Sorry, I sent you down the wrong path here - this came from my prototype. Please don't take my suggestions and prototypes as final solutions, they're sketches of a direction.\n\nPatching the module attribute only works if the app imports `create_react_agent` after `instrument()`. With the normal module-level import - what both examples in this package do - the agent shows up as `invoke_workflow` instead. Same code, different telemetry depending on import order.\n\nDetecting these graphs where `Pregel.stream` already sees them would avoid the ordering problem.",
+      "created": "2026-08-28T06:50:14Z",
+      "hunk": "@@ -80,12 +85,50 @@ def _instrument(self, **kwargs: Any):\n             \"BaseCallbackManager.__init__\",\n             _BaseCallbackManagerInitWrapper(otel_callback_handler),\n         )\n+        self._instrument_agent_entry_points()\n+\n+    @staticmethod\n+    def _instrument_agent_entry_points() -> None:\n+        \"\"\"Recover the create_agent provenance the callback metadata does not carry.\"\"\"\n+        for method, wrapper in (\n+            (\"Pregel.stream\", wrap_stream),\n+            (\"Pregel.astream\", wrap_astream),\n+        ):\n+            try:\n+                wrap_function_wrapper(\"langgraph.pregel\", method, wrapper)\n+            except (ImportError, AttributeError):\n+                # Without langgraph there are no agent graphs to announce, and\n+                # classification stays metadata-based.\n+                return\n+\n+        # create_react_agent is deprecated but still ships its own builder that\n+        # bakes in none of the create_agent markers, so tag what it returns.\n+        for symbol in (\"create_react_agent\", \"create_tool_calling_executor\"):\n+            try:\n+                wrap_function_wrapper(\n+                    \"langgraph.prebuilt\", symbol, wrap_create_react_agent\n+                )\n+            except (ImportError, AttributeError):",
+      "id": "PRRT_kwDOSbspP86dFVeY",
+      "opened": "2026-08-28T06:53:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-29T04:49:12Z",
+          "body": "Fixed in 602463b: dropped the builder patch; ReAct graphs are classified at runtime in `Pregel.stream`/`astream`, so a module-level import of `create_react_agent` before `instrument()` is classified as `invoke_agent` rather than `invoke_workflow`. Added `test_preimported_create_react_agent_is_classified_at_runtime`, and a counterproof (`test_plain_state_graph_with_agent_node_is_not_an_agent`) that a plain StateGraph with an `agent` node is not classified as an agent.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3885623519"
+        }
+      ],
+      "reviewed": "bfa7b59b5f8271a800b5e3d667d5d2fcf0d2e4e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3878512195"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Also from my prototype, sorry. If `langgraph.prebuilt` is missing (deprecated for removal in v2), `uninstrument()` leaves `Pregel.stream`/`astream` patched. Unwrap `Pregel` in its own try block first.",
+      "created": "2026-08-28T06:50:14Z",
+      "hunk": "@@ -80,12 +85,50 @@ def _instrument(self, **kwargs: Any):\n             \"BaseCallbackManager.__init__\",\n             _BaseCallbackManagerInitWrapper(otel_callback_handler),\n         )\n+        self._instrument_agent_entry_points()\n+\n+    @staticmethod\n+    def _instrument_agent_entry_points() -> None:\n+        \"\"\"Recover the create_agent provenance the callback metadata does not carry.\"\"\"\n+        for method, wrapper in (\n+            (\"Pregel.stream\", wrap_stream),\n+            (\"Pregel.astream\", wrap_astream),\n+        ):\n+            try:\n+                wrap_function_wrapper(\"langgraph.pregel\", method, wrapper)\n+            except (ImportError, AttributeError):\n+                # Without langgraph there are no agent graphs to announce, and\n+                # classification stays metadata-based.\n+                return\n+\n+        # create_react_agent is deprecated but still ships its own builder that\n+        # bakes in none of the create_agent markers, so tag what it returns.\n+        for symbol in (\"create_react_agent\", \"create_tool_calling_executor\"):\n+            try:\n+                wrap_function_wrapper(\n+                    \"langgraph.prebuilt\", symbol, wrap_create_react_agent\n+                )\n+            except (ImportError, AttributeError):\n+                pass\n \n     def _uninstrument(self, **kwargs: Any):\n         \"\"\"\n         Cleanup instrumentation (unwrap).\n         \"\"\"\n         unwrap(\"langchain_core.callbacks.base.BaseCallbackManager\", \"__init__\")\n+        try:\n+            import langgraph.prebuilt\n+            import langgraph.pregel",
+      "id": "PRRT_kwDOSbspP86dFVeg",
+      "opened": "2026-08-28T06:53:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-29T04:49:15Z",
+          "body": "Fixed in 602463b: `Pregel` unwrap runs in its own try block now, and `test_uninstrument_restores_pregel_when_prebuilt_is_missing` verifies `stream`/`astream` are restored when `langgraph.prebuilt` is missing.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3885623623"
+        }
+      ],
+      "reviewed": "bfa7b59b5f8271a800b5e3d667d5d2fcf0d2e4e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3878512202"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please add tests that drive invocations directly through `.stream()` and `.astream()` (in addition to `.invoke()` / `.ainvoke()`) to verify generator wrapping and announcement push/pop behavior.",
+      "created": "2026-08-29T00:40:58Z",
+      "hunk": "@@ -0,0 +1,177 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Identify ``create_agent`` graph invocations from outside the callback API.\n+\n+LangChain callbacks cannot tell a nested ``create_agent`` root apart from any\n+other named runnable invoked inside a tool: the enclosing agent's ``config`` is\n+merged over the inner agent's own, so ``lc_agent_name`` and ``ls_integration``\n+in the *callback* metadata describe the outer agent. The compiled graph's own\n+bound config is never shadowed, so this module reads the marker there and has\n+each graph entry point announce itself on a context stack that the callback\n+handler consults when the root run starts.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+from collections.abc import AsyncIterator, Callable, Iterator\n+from contextvars import ContextVar\n+from dataclasses import dataclass\n+from typing import Any\n+\n+from opentelemetry.instrumentation.genai.langchain.operation_mapping import (\n+    create_agent_graph_name,\n+)\n+\n+_AGENT_NAME_ATTR = \"_otel_genai_agent_name\"\n+\n+\n+@dataclass\n+class _PendingAgent:\n+    \"\"\"An agent graph that has started running but whose root run is not seen yet.\"\"\"\n+\n+    name: str\n+    claimed: bool = False\n+\n+\n+_pending: ContextVar[tuple[_PendingAgent, ...]] = ContextVar(\n+    \"otel_genai_pending_agents\", default=()\n+)\n+\n+\n+def claim_agent() -> str | None:\n+    \"\"\"Return the announced agent name if this run is a create_agent graph root.\n+\n+    The announcement is made as the graph starts, so the first chain run to see\n+    it is the graph's root. Only the innermost announcement is claimable, and\n+    only once, so internal nodes fall through to metadata-based classification.\n+    The root run's own name is not checked - ``with_config(run_name=...)``\n+    renames it without making it any less of an agent.\n+    \"\"\"\n+    pending = _pending.get()\n+    if not pending:\n+        return None\n+    entry = pending[-1]\n+    if entry.claimed:\n+        return None\n+    entry.claimed = True\n+    return entry.name\n+\n+\n+def _agent_name(graph: Any) -> str | None:\n+    \"\"\"Return the agent name a compiled graph identifies itself with, if any.\"\"\"\n+    marked = getattr(graph, _AGENT_NAME_ATTR, None)\n+    if marked:\n+        return str(marked)\n+    return create_agent_graph_name(getattr(graph, \"config\", None))\n+\n+\n+def wrap_create_react_agent(\n+    wrapped: Callable[..., Any],\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> Any:\n+    \"\"\"Tag a ``create_react_agent`` graph so it announces itself like create_agent.\n+\n+    The deprecated LangGraph builder compiles its own graph and leaves ``config``\n+    unset, so it carries none of the markers ``create_agent`` bakes in. Marking\n+    the object keeps it out of the graph's runtime config, which would otherwise\n+    show up in the user's own run metadata.\n+    \"\"\"\n+    graph = wrapped(*args, **kwargs)\n+    name = kwargs.get(\"name\") or getattr(graph, \"name\", None)\n+    if name:\n+        try:\n+            object.__setattr__(graph, _AGENT_NAME_ATTR, str(name))\n+        except (AttributeError, TypeError):\n+            pass\n+    return graph\n+\n+\n+def _push(name: str) -> _PendingAgent:\n+    \"\"\"Announce ``name`` as the innermost running agent.\"\"\"\n+    entry = _PendingAgent(name)\n+    _pending.set(_pending.get() + (entry,))\n+    return entry\n+\n+\n+def _pop(entry: _PendingAgent) -> None:\n+    \"\"\"Withdraw ``entry``, tolerating a stack the caller's context no longer owns.\"\"\"\n+    pending = _pending.get()\n+    if pending and pending[-1] is entry:\n+        _pending.set(pending[:-1])\n+\n+\n+def wrap_stream(",
+      "id": "PRRT_kwDOSbspP86dVptp",
+      "opened": "2026-08-31T23:42:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/agent_context.py",
+      "replies": [
+        {
+          "at": "2026-09-02T11:33:08Z",
+          "body": "Done in 6c7ad79: direct .stream()/.astream() root tests, plus sync/async edge cases (exception before first item, never iterated, close after first item) checking the pending stack ends empty.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3913626239"
+        }
+      ],
+      "reviewed": "bfa7b59b5f8271a800b5e3d667d5d2fcf0d2e4e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3884911502"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`_find_nearest_agent` has no production callers and is only kept for internal unit tests. Consider removing it and testing behavior through public APIs instead.",
+      "created": "2026-08-29T00:40:58Z",
+      "hunk": "@@ -632,15 +656,30 @@ def on_retriever_error(\n         if not invocation.span.is_recording():\n             self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n-    def _find_nearest_agent(\n+    def _find_agent_context(\n         self, run_id: UUID | None\n-    ) -> AgentInvocation | None:\n+    ) -> tuple[AgentInvocation | None, set[str]]:\n         current = run_id\n         visited: set[UUID] = set()\n+        nearest_agent: AgentInvocation | None = None\n+        ancestor_agent_names: set[str] = set()\n         while current is not None and current not in visited:\n             visited.add(current)\n             entity = self._invocation_manager.get_invocation(current)\n             if isinstance(entity, AgentInvocation):\n-                return entity\n+                if nearest_agent is None:\n+                    nearest_agent = entity\n+                if entity.agent_name:\n+                    ancestor_agent_names.add(entity.agent_name.lower())\n             current = self._invocation_manager.get_parent_run_id(current)\n-        return None\n+        return nearest_agent, ancestor_agent_names\n+\n+    def _find_nearest_agent(",
+      "id": "PRRT_kwDOSbspP86dVptr",
+      "opened": "2026-08-31T23:42:07Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-09-02T11:33:23Z",
+          "body": "Removed in 6c7ad79. Coverage now goes through on_chain_start (named child under a non-agent parent; same-name grandchild dedup through an unnamed parent). Fixed the two comments that referenced it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3913628064"
+        }
+      ],
+      "reviewed": "bfa7b59b5f8271a800b5e3d667d5d2fcf0d2e4e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391#discussion_r3884911506"
+    }
+  ]
+}

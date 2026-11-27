@@ -1,0 +1,193 @@
+{
+  "head": "f4426e03ecc97acf41d74cdca407a9838871c438",
+  "merge": "e4af23c192fd618f61fd9fa42f0e3fa7049ec411",
+  "merged": "2026-10-30T15:43:24Z",
+  "missing_roots": 0,
+  "number": 20985,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to consistently call captured gRPC request headers \"headers\" rather than \"metadata\". Main is targeting 3.0, and the user explicitly wants the public API and configuration renames included as breaking changes, without retaining the old names solely for compatibility. Do not create a separate PR.\n\nRename RPC_STABLE_REQUEST_METADATA_KEY_ATTRIBUTE_PREFIX to RPC_STABLE_REQUEST_HEADER_KEY_ATTRIBUTE_PREFIX; CapturedGrpcMetadataUtil and its file to CapturedGrpcRequestHeadersUtil; CapturedGrpcMetadataUtilTest and its file to CapturedGrpcRequestHeadersUtilTest; stableMetadataAttributeKey to stableHeaderAttributeKey in GrpcAttributesExtractorTest; and stableMetadataAttributePrefix to stableHeaderAttributePrefix in AbstractGrpcTest. Update all references and imports.\n\nRename GrpcTelemetryBuilder.setClientRequestMetadata(IncludeExclude) to setClientRequestHeaders(IncludeExclude), and setServerRequestMetadata(IncludeExclude) to setServerRequestHeaders(IncludeExclude). Remove the already-deprecated setCapturedClientRequestMetadata(List<String>) and setCapturedServerRequestMetadata(List<String>) methods rather than renaming obsolete APIs. Update their callers and affected tests.\n\nRename all four flat properties otel.instrumentation.grpc.{client,server}.request-metadata.{included,excluded} to otel.instrumentation.grpc.{client,server}.request-headers.{included,excluded}. Rename corresponding declarative paths java.grpc.{client,server}.request_metadata.{included,excluded} to java.grpc.{client,server}.request_headers.{included,excluded}. Wire both forms consistently, including any bridge mappings and fixtures. Rename capture-related fields, parameters, getters, and helper/test names to requestHeaders, clientRequestHeaders, serverRequestHeaders, getClientRequestHeaders(), getServerRequestHeaders(), and corresponding header terminology. Follow references through gRPC and dependent Armeria integration so all consumers are updated.\n\nKeep Metadata terminology where it describes actual io.grpc.Metadata objects, gRPC metadata-key validation, or legacy rpc.grpc.request.metadata.* attributes. Preserve that legacy attribute prefix and the PR's rpc.request.header.* preview output, all three semconv modes, selectors, case normalization, multi-value handling, and filtering. This is a naming/API migration, not a change to capture semantics.\n\nUpdate metadata.yaml, existing README settings tables, public API documentation, configuration/test fixtures, and concise breaking-change CHANGELOG entries for the API removals/renames and config migration. Keep migration history in CHANGELOG rather than READMEs. Run the narrowest applicable spotlessApply directly before relevant tests, and exercise flat/declarative configuration, capture behavior, and dependent consumers. Keep the existing PR's draft/ready state unchanged. Do not edit the PR title or description; the coordinating session will handle those after coding.",
+      "created": "2026-10-28T22:34:57Z",
+      "hunk": "@@ -20,7 +20,7 @@ final class CapturedGrpcMetadataUtil {\n   private static final String RPC_REQUEST_METADATA_KEY_ATTRIBUTE_PREFIX =\n       \"rpc.grpc.request.metadata.\";\n   private static final String RPC_STABLE_REQUEST_METADATA_KEY_ATTRIBUTE_PREFIX =\n-      \"rpc.request.metadata.\";\n+      \"rpc.request.header.\";",
+      "id": "PRRT_kwDODJKVX86xWNpu",
+      "opened": "2026-10-28T22:34:57Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/CapturedGrpcRequestHeadersUtil.java",
+      "replies": [
+        {
+          "at": "2026-10-28T22:58:54Z",
+          "body": "Implemented in c719dad0. The gRPC capture APIs, settings, and references now use request-header terminology; the deprecated builder methods were removed, while legacy emitted attribute names and capture behavior remain unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4406974897"
+        }
+      ],
+      "reviewed": "aff50333c87262e99f8d100ca3a94803a6936816",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4406805115"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] These new checks preserve the retired `rpc.request.metadata.*` spelling solely to assert its absence, contrary to `.github/instructions/java-tests.instructions.md:40–46`. Remove them and the unused `stringArrayKey` import, retaining the assertions for supported legacy/preview keys and exclusions. The same cleanup applies at line 1824 and in `GrpcAttributesExtractorTest.java:66`, where the expected values and exact map size already reject extra attributes.",
+      "created": "2026-10-28T23:05:23Z",
+      "hunk": "@@ -1796,31 +1797,33 @@ public void sayHello(\n                       span.hasName(\"example.Greeter/SayHello\")\n                           .hasKind(SpanKind.CLIENT)\n                           .hasParent(trace.getSpan(0));\n-                      if (emitOldRpcSemconv()) {\n-                        span.hasAttribute(\n-                            oldClientAttributeKey, singletonList(clientMetadataValue));\n-                      }\n-                      if (emitPreviewRpcSemconv()) {\n-                        span.hasAttribute(\n-                            stableClientAttributeKey, singletonList(clientMetadataValue));\n-                      }\n                       span.hasAttributesSatisfying(\n+                          equalTo(\n+                              oldClientAttributeKey,\n+                              emitOldRpcSemconv() ? singletonList(clientHeaderValue) : null),\n+                          equalTo(\n+                              stableClientAttributeKey,\n+                              emitPreviewRpcSemconv() ? singletonList(clientHeaderValue) : null),\n+                          equalTo(\n+                              stringArrayKey(\"rpc.request.metadata.\" + CLIENT_REQUEST_HEADER_KEY),\n+                              null),",
+      "id": "PRRT_kwDODJKVX86xWtGI",
+      "opened": "2026-10-28T23:05:24Z",
+      "path": "instrumentation/grpc-1.6/testing/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/AbstractGrpcTest.java",
+      "replies": [
+        {
+          "at": "2026-10-28T23:23:19Z",
+          "body": "Fixed in 3d68a0de. Removed the three retired-spelling absence checks and the unused import; the supported legacy/preview attribute assertions, exclusions, selector and multi-value coverage, and exact map-size assertion remain.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4407129542"
+        }
+      ],
+      "reviewed": "c719dad04f177bd575115344c70a405ad0ba5131",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4407016863"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply one scoped review cleanup directly to this PR, preserving the completed request-header API/configuration migration and all capture behavior. Copilot review 5690851133 correctly identifies a repository test-convention violation: .github/instructions/java-tests.instructions.md prohibits historical-absence assertions for retired telemetry spellings. Remove the explicit rpc.request.metadata.* absence checks from AbstractGrpcTest.setCapturedRequestHeaders() at lines 1805-1807 and 1822-1824, and from GrpcAttributesExtractorTest.capturesSelectedRequestHeaders() at line 66. Retain the supported legacy and preview attribute assertions, exclusions, selector/multi-value coverage, and exact attribute-map-size assertion. Remove the stringArrayKey static import in AbstractGrpcTest once no longer used. This is a test-only cleanup; do not change production behavior or undo any renames/removals. Run the narrowest applicable spotlessApply directly before the relevant tests. Update this existing PR, preserve its draft state, and do not edit the PR title or description.",
+      "created": "2026-10-28T23:06:46Z",
+      "hunk": "@@ -1796,31 +1797,33 @@ public void sayHello(\n                       span.hasName(\"example.Greeter/SayHello\")\n                           .hasKind(SpanKind.CLIENT)\n                           .hasParent(trace.getSpan(0));\n-                      if (emitOldRpcSemconv()) {\n-                        span.hasAttribute(\n-                            oldClientAttributeKey, singletonList(clientMetadataValue));\n-                      }\n-                      if (emitPreviewRpcSemconv()) {\n-                        span.hasAttribute(\n-                            stableClientAttributeKey, singletonList(clientMetadataValue));\n-                      }\n                       span.hasAttributesSatisfying(\n+                          equalTo(\n+                              oldClientAttributeKey,\n+                              emitOldRpcSemconv() ? singletonList(clientHeaderValue) : null),\n+                          equalTo(\n+                              stableClientAttributeKey,\n+                              emitPreviewRpcSemconv() ? singletonList(clientHeaderValue) : null),",
+      "id": "PRRT_kwDODJKVX86xWuYk",
+      "opened": "2026-10-28T23:06:46Z",
+      "path": "instrumentation/grpc-1.6/testing/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/AbstractGrpcTest.java",
+      "replies": [
+        {
+          "at": "2026-10-28T23:18:46Z",
+          "body": "Addressed in 3d68a0de: removed the retired-spelling absence assertions and unused import while retaining the supported attribute, exclusion, selector, multi-value, and exact-size coverage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4407100876"
+        }
+      ],
+      "reviewed": "c719dad04f177bd575115344c70a405ad0ba5131",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4407025573"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly to finish its gRPC request-header capture migration on current main. Do not create another PR. The user has confirmed that repository-wide documentation cleanup is being handled in a separate PR; keep this assignment limited to the existing gRPC header-capture changes and their directly affected code, tests, configuration, metadata, and existing gRPC README.\n\nFirst merge the latest upstream main into this PR's existing head branch, copilot/align-grpc-headers, preserving that head as the first-parent history. Main already contains #21034, #21043, and #21045: the current RPC conventions are unconditional for 3.0, legacy/duplicate emission paths and RPC selection helpers have been removed, and the shared legacy APIs have been removed. Resolve conflicts by preserving those landed changes together with this PR's metadata-to-headers migration. Do not resurrect RPC mode selection, legacy emission, removed helpers, or redundant test executions.\n\nRemove the obsolete Stable qualification from this PR's gRPC capture helpers, fields, constants, and test variables. Use one unqualified set of names such as RPC_REQUEST_HEADER_KEY_ATTRIBUTE_PREFIX, createLiteralRequestHeaderAttributeKeys(), requestHeaderAttributeKey(), and literalRequestHeaderAttributeKeys. Do not substitute Preview for Stable: there is only one supported RPC emission shape. Update imports and all directly affected callers.\n\nPreserve this PR's intended API and configuration migration: setClientRequestHeaders(IncludeExclude), setServerRequestHeaders(IncludeExclude), the request-headers.included/excluded flat settings, the request_headers declarative paths, and removal of the deprecated list setters. The captured attributes should use rpc.request.header.<key> unconditionally when capture is configured, without RPC preview/dup flags or legacy rpc.grpc.request.metadata.<key> emission. Keep Metadata terminology when it names actual io.grpc.Metadata objects or protocol-specific key validation.\n\nAdapt the touched capture tests to direct, single-mode expectations and unqualified names. Preserve selector inclusion/exclusion, case normalization, multi-value capture, ASCII-only validation, and other existing capture semantics. Do not add assertions solely to check the absence of retired attribute spellings. Update the existing gRPC README's PR-specific description so it describes current header capture without obsolete RPC preview/dup instructions. Keep existing API/configuration migration documentation accurate, but do not perform repository-wide documentation, generated-catalog, or knowledge-article cleanup.\n\nRun the narrowest applicable spotlessApply directly before relevant tests, and validate the affected gRPC library/javaagent and configuration behavior plus directly affected dependent consumers where applicable. Preserve this PR's draft state.",
+      "created": "2026-10-29T03:00:12Z",
+      "hunk": "@@ -16,11 +16,11 @@\n import java.util.Locale;\n import java.util.Map;\n \n-final class CapturedGrpcMetadataUtil {\n+final class CapturedGrpcRequestHeadersUtil {\n   private static final String RPC_REQUEST_METADATA_KEY_ATTRIBUTE_PREFIX =\n       \"rpc.grpc.request.metadata.\";\n-  private static final String RPC_STABLE_REQUEST_METADATA_KEY_ATTRIBUTE_PREFIX =\n-      \"rpc.request.metadata.\";\n+  private static final String RPC_STABLE_REQUEST_HEADER_KEY_ATTRIBUTE_PREFIX =",
+      "id": "PRRT_kwDODJKVX86xZmuD",
+      "opened": "2026-10-29T03:00:12Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/CapturedGrpcRequestHeadersUtil.java",
+      "replies": [
+        {
+          "at": "2026-10-29T03:16:54Z",
+          "body": "Merged latest main into the existing branch and aligned capture with the unconditional `rpc.request.header.<key>` convention. Removed Stable/legacy capture paths, updated direct tests and README, and validated the gRPC library/javaagent, Armeria integration, and declarative config mapping. Commit: `2398e931`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4408350193"
+        }
+      ],
+      "reviewed": "3d68a0defda84c349fd0bbecbbf2ef48206c6687",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4408270828"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The existing Unreleased gRPC migration entry at lines 260–263 still recommends `otel.instrumentation.grpc.{client,server}.request-metadata.included`. After this rename, `GrpcConfig` no longer reads those properties, so following that migration silently disables header capture. Please update or consolidate that entry so it points directly to `request-headers.included`.",
+      "created": "2026-10-29T03:25:09Z",
+      "hunk": "@@ -4,6 +4,13 @@\n \n ### ⚠️ Breaking changes\n \n+- Rename `otel.instrumentation.grpc.{client,server}.request-metadata.{included,excluded}` to\n+  `otel.instrumentation.grpc.{client,server}.request-headers.{included,excluded}`, and rename\n+  `java.grpc.{client,server}.request_metadata.{included,excluded}` to\n+  `java.grpc.{client,server}.request_headers.{included,excluded}`.",
+      "id": "PRRT_kwDODJKVX86xZ41w",
+      "opened": "2026-10-29T03:25:09Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-29T03:38:56Z",
+          "body": "Fixed in 74201da9. The existing migration now points directly to `otel.instrumentation.grpc.client.request-headers.included` and the matching server setting.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4408451660"
+        }
+      ],
+      "reviewed": "2398e93192a7542e7ae24bf929426aa8ffc1f80b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4408390891"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply one scoped Copilot-review correction directly to this existing PR, preserving the completed gRPC request-header migration and unconditional current RPC emission. Do not create another PR.\n\nCopilot review 5692486944 correctly identifies a stale migration target in CHANGELOG.md. The existing Unreleased gRPC entry around lines 260-263 removes otel.instrumentation.grpc.capture-metadata.client.request and otel.instrumentation.grpc.capture-metadata.server.request, but still tells users to use otel.instrumentation.grpc.client.request-metadata.included and otel.instrumentation.grpc.server.request-metadata.included. GrpcConfig now reads request_headers, so following that advice no longer enables capture. Change those two replacement properties to otel.instrumentation.grpc.client.request-headers.included and otel.instrumentation.grpc.server.request-headers.included.\n\nLimit this follow-up to that existing Unreleased migration correction. Keep the existing API/configuration migration entries, do not edit released changelog history, do not change production code or tests, and do not include the repository-wide documentation cleanup the user is handling separately. Preserve the PR's draft state. Use the repository's existing targeted Markdown validation if applicable; no Java build is needed for this documentation-only correction.",
+      "created": "2026-10-29T03:28:14Z",
+      "hunk": "@@ -4,6 +4,13 @@\n \n ### ⚠️ Breaking changes\n \n+- Rename `otel.instrumentation.grpc.{client,server}.request-metadata.{included,excluded}` to",
+      "id": "PRRT_kwDODJKVX86xZ677",
+      "opened": "2026-10-29T03:28:14Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-29T03:30:31Z",
+          "body": "Updated both replacement properties to `request-headers.included` in commit `74201da9`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4408415317"
+        }
+      ],
+      "reviewed": "2398e93192a7542e7ae24bf929426aa8ffc1f80b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4408405006"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply one consolidated CHANGELOG.md-only correction directly to this existing PR. Do not create another PR. The prior correction is complete in 74201da9; preserve its request-headers.included migration targets and all delivered code.\n\nThe user explicitly requests moving this existing bullet out of the general Unreleased Breaking changes section and into the existing Unreleased Breaking changes to non-stable APIs section: \"Rename GrpcTelemetryBuilder.setClientRequestMetadata and GrpcTelemetryBuilder.setServerRequestMetadata to their RequestHeaders forms. Remove setCapturedClientRequestMetadata and setCapturedServerRequestMetadata.\" Move the whole existing bullet, retaining its meaning and concise wording. Reuse the existing non-stable API heading rather than creating a duplicate. Keep the configuration migration entries under general Breaking changes.\n\nCopilot review 5692552662 also identifies one remaining in-scope body-only concern: the changelog does not state the captured telemetry attribute rename. Add a concise note under general Breaking changes that captured gRPC request attributes now use rpc.request.header.<key> rather than rpc.request.metadata.<key>. This is the actual attribute-prefix change in the PR against current main. Do not describe removed RPC preview/dup flags or reintroduce mode distinctions.\n\nLimit changes to these Unreleased gRPC changelog entries. Do not edit released history, production code, tests, repository-wide documentation, or knowledge articles. Preserve the PR's current ready-for-review state without toggling draft status. Use existing targeted Markdown validation if applicable; no Java build is needed for this documentation-only correction.",
+      "created": "2026-10-29T03:39:40Z",
+      "hunk": "@@ -4,6 +4,13 @@\n \n ### ⚠️ Breaking changes\n \n+- Rename `otel.instrumentation.grpc.{client,server}.request-metadata.{included,excluded}` to\n+  `otel.instrumentation.grpc.{client,server}.request-headers.{included,excluded}`, and rename\n+  `java.grpc.{client,server}.request_metadata.{included,excluded}` to\n+  `java.grpc.{client,server}.request_headers.{included,excluded}`.\n+- Rename `GrpcTelemetryBuilder.setClientRequestMetadata` and",
+      "id": "PRRT_kwDODJKVX86xaCXe",
+      "opened": "2026-10-29T03:39:40Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-29T03:42:44Z",
+          "body": "Updated in `fff50c5c`: moved the builder API rename/removal entry under the existing non-stable API heading and added the `rpc.request.header.<key>` attribute migration note under Unreleased breaking changes. `git diff --check` and secret scanning passed; Flint/mise are not installed here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4408469463"
+        }
+      ],
+      "reviewed": "74201da9a5636c15798a0d2405e492ac637de5b3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4408454986"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  `otel.instrumentation.grpc.{client,server}.request-headers.{included,excluded}`.\n```",
+      "created": "2026-10-29T04:04:29Z",
+      "hunk": "@@ -4,6 +4,12 @@\n \n ### ⚠️ Breaking changes\n \n+- Rename `otel.instrumentation.grpc.{client,server}.request-metadata.{included,excluded}` to\n+  `otel.instrumentation.grpc.{client,server}.request-headers.{included,excluded}`, and rename\n+  `java.grpc.{client,server}.request_metadata.{included,excluded}` to\n+  `java.grpc.{client,server}.request_headers.{included,excluded}`.",
+      "id": "PRRT_kwDODJKVX86xaUDz",
+      "opened": "2026-10-29T04:04:29Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "fff50c5cfce453c3be7c6a2473a1b9ab8015b427",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4408573128"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "http uses `otel.instrumentation.http.client.capture-request-headers` and messaging uses `otel.instrumentation.common.messaging.headers.included`. I guess http configuration predates the include/exclude. Just wanted to point out the slight inconsistency.",
+      "created": "2026-10-29T08:14:05Z",
+      "hunk": "@@ -19,47 +19,47 @@ configurations:\n       Enable the capture of experimental span attributes `grpc.received.message_count`,\n       `grpc.sent.message_count` and `grpc.canceled`.\n     default: false\n-  - name: otel.instrumentation.grpc.client.request-metadata.included\n-    declarative_name: java.grpc.client.request_metadata.included\n+  - name: otel.instrumentation.grpc.client.request-headers.included",
+      "id": "PRRT_kwDODJKVX86xdv9H",
+      "opened": "2026-10-29T08:14:05Z",
+      "path": "instrumentation/grpc-1.6/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-10-30T03:19:35Z",
+          "body": "oops, semconv has language about this:\r\n\r\n> Instrumentations SHOULD require an explicit configuration of which headers are to be captured.\r\n\r\nI will send follow-up PR to address",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4420128400"
+        }
+      ],
+      "reviewed": "17898def1cb391206d71c765b54ec16d651e8769",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20985#discussion_r4410020023"
+    }
+  ]
+}

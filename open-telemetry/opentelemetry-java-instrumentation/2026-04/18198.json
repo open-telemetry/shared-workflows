@@ -1,0 +1,25 @@
+{
+  "head": "cb531866c2fbc7739402f13a9edd85461f74f3bb",
+  "merge": "22b21d5d8b7feef0bfac9a388224d54b15da99f4",
+  "merged": "2026-04-22T22:47:28Z",
+  "missing_roots": 0,
+  "number": 18198,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-22T22:29:35Z",
+      "hunk": "@@ -24,6 +24,7 @@ public abstract class Log4j2Test {\n \n   @BeforeEach\n   void setUp() {\n+    ThreadContext.clearAll();",
+      "id": "PRRT_kwDODJKVX8587rqS",
+      "opened": "2026-04-22T22:29:35Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-common/testing/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/Log4j2Test.java",
+      "replies": [],
+      "reviewed": "1a2a87ae2005c513a6d8f5b0a0dbbc55fdf7213b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18198#discussion_r3127237998"
+    }
+  ]
+}

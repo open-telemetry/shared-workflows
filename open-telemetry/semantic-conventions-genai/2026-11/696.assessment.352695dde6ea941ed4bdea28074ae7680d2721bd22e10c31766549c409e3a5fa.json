@@ -1,0 +1,80 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "366cad2604284ff45717e6f45f03e73cd6db1941de15120cd9aba611725971c1",
+  "input_digest": "352695dde6ea941ed4bdea28074ae7680d2721bd22e10c31766549c409e3a5fa",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/c3c493f5e4861831af726df0c9a3f1c91e108d94/model/gen-ai/registry.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/2e5c892aa8a3b7e1d92c8f3f24260402cbf0559a/model/gen-ai/registry.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/ee6e0ebfb54c51adf4e7d38fef86bb7b673e9943"
+      ],
+      "id": "PRRT_kwDOSUeMrM65I3T7",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/c3c493f5e4861831af726df0c9a3f1c91e108d94/reference/scenarios/aws-bedrock/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/2e5c892aa8a3b7e1d92c8f3f24260402cbf0559a/reference/scenarios/aws-bedrock/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/2e5c892aa8a3b7e1d92c8f3f24260402cbf0559a",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/ee6e0ebfb54c51adf4e7d38fef86bb7b673e9943"
+      ],
+      "id": "PRRT_kwDOSUeMrM65I3UF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/9e72cd510304b94e08d0e54cfce9b7ce2d3e9f80/reference/scenarios/mcp/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/2e5c892aa8a3b7e1d92c8f3f24260402cbf0559a/reference/scenarios/mcp/scenario.py"
+      ],
+      "id": "PRRT_kwDOSUeMrM65OCuQ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/9e72cd510304b94e08d0e54cfce9b7ce2d3e9f80/reference/scenarios/mcp/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/2e5c892aa8a3b7e1d92c8f3f24260402cbf0559a/reference/scenarios/mcp/scenario.py"
+      ],
+      "id": "PRRT_kwDOSUeMrM65OCuv",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/9e72cd510304b94e08d0e54cfce9b7ce2d3e9f80/reference/scenarios/mcp/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/2e5c892aa8a3b7e1d92c8f3f24260402cbf0559a/reference/scenarios/mcp/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/bc8f4cda0320237c05acc4fac8d0f5ca89710d6e"
+      ],
+      "id": "PRRT_kwDOSUeMrM65OCvZ",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/dd6b7ee18d359c6764e62b6521dde6d5f0fe82c0/reference/scenarios/mcp/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/2e5c892aa8a3b7e1d92c8f3f24260402cbf0559a/reference/scenarios/mcp/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/bc8f4cda0320237c05acc4fac8d0f5ca89710d6e"
+      ],
+      "id": "PRRT_kwDOSUeMrM65Of54",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

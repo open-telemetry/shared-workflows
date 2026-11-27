@@ -1,0 +1,85 @@
+{
+  "head": "06019af84e218fc5f3c933914ddae2740eba46bb",
+  "merge": "9949318eff2370b8fd3e86d1f0928fad95b16e06",
+  "merged": "2026-09-08T03:15:01Z",
+  "missing_roots": 0,
+  "number": 186,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The workspace lockfile was not regenerated: `scenarios/http/js/package-lock.json` still records Express instrumentation 0.69.0 and HTTP instrumentation 0.221.0 here. The scenarios install via `npm ci`, so these mismatches prevent the requested versions from being installed cleanly. Regenerate and commit the lockfile.",
+      "created": "2026-09-07T02:57:57Z",
+      "hunk": "@@ -7,7 +7,7 @@\n   \"dependencies\": {\n     \"@otel-conformance/express-scenarios\": \"*\",\n     \"@otel-conformance/scenario-sdk\": \"file:../../../../../tools/js/scenario-sdk\",\n-    \"@opentelemetry/instrumentation-express\": \"0.69.0\",\n-    \"@opentelemetry/instrumentation-http\": \"0.221.0\"\n+    \"@opentelemetry/instrumentation-express\": \"0.70.0\",\n+    \"@opentelemetry/instrumentation-http\": \"0.222.0\"",
+      "id": "PRRT_kwDOTuzK5c6fxbGK",
+      "opened": "2026-09-07T02:57:58Z",
+      "path": "scenarios/http/js/express/opentelemetry-express/package.json",
+      "replies": [],
+      "reviewed": "a4e602a17ba4d24b882ac1a881880b07cdae3130",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/186#discussion_r3946230711"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The workspace lockfile was not regenerated: `scenarios/http/js/package-lock.json` still pins `@opentelemetry/instrumentation-http` 0.221.0. Since scenario setup installs with `npm ci`, this manifest/lock mismatch prevents the intended 0.222.0 clean install. Regenerate and commit the lockfile.",
+      "created": "2026-09-07T02:57:57Z",
+      "hunk": "@@ -7,6 +7,6 @@\n   \"dependencies\": {\n     \"@otel-conformance/node-http-scenarios\": \"*\",\n     \"@otel-conformance/scenario-sdk\": \"file:../../../../../tools/js/scenario-sdk\",\n-    \"@opentelemetry/instrumentation-http\": \"0.221.0\"\n+    \"@opentelemetry/instrumentation-http\": \"0.222.0\"",
+      "id": "PRRT_kwDOTuzK5c6fxbGf",
+      "opened": "2026-09-07T02:57:58Z",
+      "path": "scenarios/http/js/http/opentelemetry-http/package.json",
+      "replies": [],
+      "reviewed": "a4e602a17ba4d24b882ac1a881880b07cdae3130",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/186#discussion_r3946230743"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The workspace lockfile was not regenerated: `scenarios/http/js/package-lock.json` still pins `@opentelemetry/instrumentation-undici` 0.31.0. The scenario setup uses `npm ci`, so this mismatch blocks the intended 0.32.0 installation. Regenerate and commit the lockfile.",
+      "created": "2026-09-07T02:57:57Z",
+      "hunk": "@@ -7,6 +7,6 @@\n   \"dependencies\": {\n     \"@otel-conformance/scenario-sdk\": \"file:../../../../../tools/js/scenario-sdk\",\n     \"@otel-conformance/undici-scenarios\": \"*\",\n-    \"@opentelemetry/instrumentation-undici\": \"0.31.0\"\n+    \"@opentelemetry/instrumentation-undici\": \"0.32.0\"",
+      "id": "PRRT_kwDOTuzK5c6fxbGv",
+      "opened": "2026-09-07T02:57:58Z",
+      "path": "scenarios/http/js/undici/opentelemetry-undici/package.json",
+      "replies": [],
+      "reviewed": "a4e602a17ba4d24b882ac1a881880b07cdae3130",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/186#discussion_r3946230769"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The workspace lockfile was not regenerated: `scenarios/http/js/package-lock.json` still pins `undici` 8.10.0 for this workspace. Because scenarios are installed with `npm ci`, the manifest/lock mismatch prevents a reproducible clean install of 8.10.1. Regenerate and commit the lockfile.",
+      "created": "2026-09-07T02:57:58Z",
+      "hunk": "@@ -8,6 +8,6 @@\n   \"dependencies\": {\n     \"@otel-conformance/http-test-client\": \"file:../../../../../tools/http/test-client/js\",\n     \"@otel-conformance/scenario-support\": \"file:../../../../../tools/js/scenario-support\",\n-    \"undici\": \"8.10.0\"\n+    \"undici\": \"8.10.1\"",
+      "id": "PRRT_kwDOTuzK5c6fxbG1",
+      "opened": "2026-09-07T02:57:58Z",
+      "path": "scenarios/http/js/undici/scenarios/package.json",
+      "replies": [],
+      "reviewed": "a4e602a17ba4d24b882ac1a881880b07cdae3130",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/186#discussion_r3946230783"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The workspace lockfile was not regenerated: `scenarios/http/js/package-lock.json` still records `@opentelemetry/sdk-node` 0.221.0 for this local package. The scenario installer runs `npm ci` from that lockfile, so this update will not produce the requested 0.222.0 install (and the stale lock can make the clean install fail). Regenerate and commit the HTTP JavaScript workspace lockfile.",
+      "created": "2026-09-07T02:57:58Z",
+      "hunk": "@@ -13,6 +13,6 @@\n   },\n   \"dependencies\": {\n     \"@otel-conformance/scenario-support\": \"file:../scenario-support\",\n-    \"@opentelemetry/sdk-node\": \"0.221.0\"\n+    \"@opentelemetry/sdk-node\": \"0.222.0\"",
+      "id": "PRRT_kwDOTuzK5c6fxbG_",
+      "opened": "2026-09-07T02:57:58Z",
+      "path": "tools/js/scenario-sdk/package.json",
+      "replies": [],
+      "reviewed": "a4e602a17ba4d24b882ac1a881880b07cdae3130",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/186#discussion_r3946230797"
+    }
+  ]
+}

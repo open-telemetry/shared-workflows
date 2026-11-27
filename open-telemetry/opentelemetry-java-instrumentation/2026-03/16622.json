@@ -1,0 +1,25 @@
+{
+  "head": "3464a0e1cec9d6785b3752915da6a05abcba16f0",
+  "merge": "c3ef03d3a6417987e9137d1d2e9d8015b837f44a",
+  "merged": "2026-03-17T08:16:31Z",
+  "missing_roots": 0,
+  "number": 16622,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "it didn't quite apply the rule right, but harmless 🤷‍♂️ ",
+      "created": "2026-03-16T23:47:15Z",
+      "hunk": "@@ -36,17 +35,17 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n-        isMethod().and(isPublic()).and(returns(named(\"rx.Observable\"))).and(not(named(\"query\"))),\n-        CouchbaseBucketInstrumentation.class.getName() + \"$CouchbaseClientAdvice\");\n+        isPublic().and(returns(named(\"rx.Observable\"))).and(not(named(\"query\"))),\n+        getClass().getName() + \"$CouchbaseClientAdvice\");",
+      "id": "PRRT_kwDODJKVX850uSSt",
+      "opened": "2026-03-16T23:47:19Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseBucketInstrumentation.java",
+      "replies": [],
+      "reviewed": "3464a0e1cec9d6785b3752915da6a05abcba16f0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16622#discussion_r2943597832"
+    }
+  ]
+}

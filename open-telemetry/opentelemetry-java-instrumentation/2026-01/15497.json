@@ -1,0 +1,76 @@
+{
+  "head": "06de56dac079247a6130a14a0e2484ad3a476751",
+  "merge": "85fa75fde994229d764f756acaefc3a1a5d4a784",
+  "merged": "2026-01-07T15:28:30Z",
+  "missing_roots": 0,
+  "number": 15497,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "[for reviewer] for now we only test with a single rather recent JVM, as far as I know we don't have things that might be influenced by the JVM version that relate to indy instrumentation.",
+      "created": "2025-12-01T16:59:38Z",
+      "hunk": "@@ -0,0 +1,99 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.smoketest;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+\n+import java.time.Duration;\n+import java.util.ArrayList;\n+import java.util.Arrays;\n+import java.util.HashMap;\n+import java.util.List;\n+import java.util.Map;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n+import org.slf4j.Logger;\n+import org.slf4j.LoggerFactory;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.output.OutputFrame;\n+import org.testcontainers.containers.output.Slf4jLogConsumer;\n+import org.testcontainers.utility.DockerImageName;\n+import org.testcontainers.utility.MountableFile;\n+\n+public class ExtensionsSmokeTest {\n+\n+  private static final Logger logger = LoggerFactory.getLogger(ExtensionsSmokeTest.class);\n+\n+  private static final String TARGET_AGENT_FILENAME = \"/opentelemetry-javaagent.jar\";\n+  private static final String agentPath =\n+      System.getProperty(\"io.opentelemetry.smoketest.agent.shadowJar.path\");\n+\n+  private static final String TARGET_EXTENSION_FILENAME = \"/opentelemetry-extension.jar\";\n+  private static final String extensionInlinePath =\n+      System.getProperty(\"io.opentelemetry.smoketest.extension.inline.path\");\n+\n+  private static final String TARGET_APP_FILENAME = \"/app.jar\";\n+  private static final String appPath =\n+      System.getProperty(\"io.opentelemetry.smoketest.extension.testapp.path\");\n+\n+  private static final String IMAGE = \"eclipse-temurin:21\";",
+      "id": "PRRT_kwDODJKVX85kOmRl",
+      "opened": "2025-12-01T17:00:46Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/ExtensionsSmokeTest.java",
+      "replies": [],
+      "reviewed": "4fe6a4bd3d0eeb86de5ee7e7a2a016a74da790a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15497#discussion_r2577897888"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "[for reviewer] I know parsing the output can be brittle, but the application is elementary so this should be fine.",
+      "created": "2025-12-01T17:00:31Z",
+      "hunk": "@@ -0,0 +1,99 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.smoketest;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+\n+import java.time.Duration;\n+import java.util.ArrayList;\n+import java.util.Arrays;\n+import java.util.HashMap;\n+import java.util.List;\n+import java.util.Map;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n+import org.slf4j.Logger;\n+import org.slf4j.LoggerFactory;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.output.OutputFrame;\n+import org.testcontainers.containers.output.Slf4jLogConsumer;\n+import org.testcontainers.utility.DockerImageName;\n+import org.testcontainers.utility.MountableFile;\n+\n+public class ExtensionsSmokeTest {\n+\n+  private static final Logger logger = LoggerFactory.getLogger(ExtensionsSmokeTest.class);\n+\n+  private static final String TARGET_AGENT_FILENAME = \"/opentelemetry-javaagent.jar\";\n+  private static final String agentPath =\n+      System.getProperty(\"io.opentelemetry.smoketest.agent.shadowJar.path\");\n+\n+  private static final String TARGET_EXTENSION_FILENAME = \"/opentelemetry-extension.jar\";\n+  private static final String extensionInlinePath =\n+      System.getProperty(\"io.opentelemetry.smoketest.extension.inline.path\");\n+\n+  private static final String TARGET_APP_FILENAME = \"/app.jar\";\n+  private static final String appPath =\n+      System.getProperty(\"io.opentelemetry.smoketest.extension.testapp.path\");\n+\n+  private static final String IMAGE = \"eclipse-temurin:21\";\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {true, false})\n+  void inlinedExtension(boolean indy) throws InterruptedException {\n+\n+    List<String> cmd = new ArrayList<>();\n+    cmd.add(\"java\");\n+    cmd.add(\"-javaagent:\" + TARGET_AGENT_FILENAME);\n+\n+    Map<String, String> config = new HashMap<>();\n+    // disable export as we only instrument\n+    config.put(\"otel.logs.exporter\", \"none\");\n+    config.put(\"otel.metrics.exporter\", \"none\");\n+    config.put(\"otel.traces.exporter\", \"none\");\n+    // add extension\n+    config.put(\"otel.javaagent.extensions\", TARGET_EXTENSION_FILENAME);\n+    // toggle indy on/off\n+    config.put(\"otel.javaagent.experimental.indy\", Boolean.toString(indy));\n+    // toggle debug if needed\n+    config.put(\"otel.javaagent.debug\", \"false\");\n+    config.forEach((k, v) -> cmd.add(String.format(\"-D%s=%s\", k, v)));\n+\n+    cmd.add(\"-jar\");\n+    cmd.add(TARGET_APP_FILENAME);\n+\n+    GenericContainer<?> target =\n+        new GenericContainer<>(DockerImageName.parse(IMAGE))\n+            .withStartupTimeout(Duration.ofMinutes(1))\n+            .withLogConsumer(new Slf4jLogConsumer(logger))\n+            .withCopyFileToContainer(MountableFile.forHostPath(agentPath), TARGET_AGENT_FILENAME)\n+            .withCopyFileToContainer(\n+                MountableFile.forHostPath(extensionInlinePath), TARGET_EXTENSION_FILENAME)\n+            .withCopyFileToContainer(MountableFile.forHostPath(appPath), TARGET_APP_FILENAME)\n+            .withCommand(String.join(\" \", cmd));\n+\n+    logger.info(\"starting JVM with command: \" + String.join(\" \", cmd));\n+    target.start();\n+    while (target.isRunning()) {\n+      Thread.sleep(100);\n+    }\n+\n+    List<String> appOutput =\n+        Arrays.asList(target.getLogs(OutputFrame.OutputType.STDOUT).split(\"\\n\"));\n+    assertThat(appOutput)\n+        .describedAs(\"return value instrumentation\")\n+        .contains(\"return value has been modified\");\n+    assertThat(appOutput)\n+        .describedAs(\"argument value instrumentation\")\n+        .contains(\"argument has been modified\");\n+    assertThat(appOutput)\n+        .describedAs(\"virtual field support\")\n+        .contains(\"virtual field supported\");\n+    assertThat(appOutput)\n+        .describedAs(\"local advice variable support\")\n+        .contains(\"local advice variable supported\");",
+      "id": "PRRT_kwDODJKVX85kOmtb",
+      "opened": "2025-12-01T17:00:46Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/ExtensionsSmokeTest.java",
+      "replies": [],
+      "reviewed": "4fe6a4bd3d0eeb86de5ee7e7a2a016a74da790a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15497#discussion_r2577900394"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we static import `Collections.singletonList`",
+      "created": "2026-01-05T14:40:50Z",
+      "hunk": "@@ -0,0 +1,25 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.smoketest.extensions.inlined;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.Collections;\n+import java.util.List;\n+\n+@AutoService(InstrumentationModule.class)\n+public class SmokeInlinedInstrumentationModule extends InstrumentationModule {\n+\n+  public SmokeInlinedInstrumentationModule() {\n+    super(\"smoke-test-extension-inlined\");\n+  }\n+\n+  @Override\n+  public List<TypeInstrumentation> typeInstrumentations() {\n+    return Collections.singletonList(new SmokeInlinedInstrumentation());",
+      "id": "PRRT_kwDODJKVX85oC7pU",
+      "opened": "2026-01-05T14:40:50Z",
+      "path": "smoke-tests/extensions/extension/src/main/java/io/opentelemetry/smoketest/extensions/inlined/SmokeInlinedInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "fb749572c9778f22343d78078d9e1b64d391636c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15497#discussion_r2661736771"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I find it a bit hard to understand what this comment means. Perhaps rephrase to `use local variable to avoid checkstyle complaining about using System.out`",
+      "created": "2026-01-05T14:44:01Z",
+      "hunk": "@@ -0,0 +1,97 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.smoketest.extensions.app;\n+\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import java.io.PrintStream;\n+import java.util.Arrays;\n+\n+public class AppMain {\n+\n+  private AppMain() {}\n+\n+  public static void main(String[] args) {\n+    testReturnValue();\n+    testMethodArguments();\n+    testVirtualFields();\n+    testLocalValue();\n+  }\n+\n+  private static void msg(String msg) {\n+    // avoid checkstyle to complain",
+      "id": "PRRT_kwDODJKVX85oC9jY",
+      "opened": "2026-01-05T14:44:01Z",
+      "path": "smoke-tests/extensions/testapp/src/main/java/io/opentelemetry/smoketest/extensions/app/AppMain.java",
+      "replies": [
+        {
+          "at": "2026-01-05T15:31:52Z",
+          "body": "you can use `@SuppressWarnings(\"SystemOut\")`",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15497#discussion_r2661902024"
+        }
+      ],
+      "reviewed": "fb749572c9778f22343d78078d9e1b64d391636c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15497#discussion_r2661746864"
+    }
+  ]
+}

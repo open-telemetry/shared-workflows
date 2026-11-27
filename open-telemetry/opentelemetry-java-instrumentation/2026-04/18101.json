@@ -1,0 +1,31 @@
+{
+  "head": "a04309a1cdf642504e93667481f152417a25e108",
+  "merge": "964b4d155e331e990e8260dffa4ce37efac7a837",
+  "merged": "2026-04-21T19:41:54Z",
+  "missing_roots": 0,
+  "number": 18101,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot revert this change, empty jmx telemetry only makes sense in test",
+      "created": "2026-04-20T17:13:39Z",
+      "hunk": "@@ -19,6 +19,11 @@ public final class JmxTelemetry {\n   private final JmxMetricInsight service;\n   private final MetricConfiguration metricConfiguration;\n \n+  /** Returns a new {@link JmxTelemetry} configured with the given {@link OpenTelemetry}. */\n+  public static JmxTelemetry create(OpenTelemetry openTelemetry) {\n+    return builder(openTelemetry).build();\n+  }\n+",
+      "id": "PRRT_kwDODJKVX858RaNI",
+      "opened": "2026-04-20T17:13:39Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-04-20T17:39:58Z",
+          "body": "Done in a04309a1: reverted `JmxTelemetry.create(OpenTelemetry)` and updated `JmxTelemetryTest#createDefault` to use `JmxTelemetry.builder(...).build()` so tests continue to compile and pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18101#discussion_r3112564679"
+        }
+      ],
+      "reviewed": "19453974561c16c68fc1c8b5da8e7bb8a9e38271",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18101#discussion_r3112422705"
+    }
+  ]
+}

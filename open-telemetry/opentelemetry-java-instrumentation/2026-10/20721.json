@@ -1,0 +1,40 @@
+{
+  "head": "29022eafe6b2fdc0302ab6fca58f0f7e71082561",
+  "merge": "5e9f50ebfd3f744af6120c543178d6f8ae4fea09",
+  "merged": "2026-10-20T07:34:36Z",
+  "missing_roots": 0,
+  "number": 20721,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the two new RPC preview duration assertions in AbstractThriftTest.withError in this PR only. The corresponding assertServerSpan already checks apache_thrift, the server endpoint and method, and ERROR_TYPE=_OTHER; assertClientSpan checks the client endpoint and method and ERROR_TYPE=org.apache.thrift.TApplicationException. Replace the repeated metric values with exact point key checks while retaining the distinct client/server metric names, histogram type, seconds unit, and ERROR_TYPE presence. Preserve preview/duplicate and legacy mode coverage. This PR is already stacked on #20715; preserve its existing base and do not update the parent PR as part of this task.\n\nApply the metric-testing guidance proposed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20738: when corresponding spans already verify attribute values, keep metric identity, type, unit, and exact point attribute-key checks instead of repeating those values. Assert different success/failure point key sets separately, including whether ERROR_TYPE is present. Reuse existing domain helpers or containsOnlyKeys. Keep numeric/value assertions that verify aggregation, duplicate recording, terminal timing, or other metric-specific behavior; this is not a blanket numeric-assertion removal.\n\nUpdate this existing PR directly on its current head branch. Limit this assignment to the test cleanup described above; do not change production behavior, weaken span assertions, update unrelated PR branches, merge or rebase the stack, or create a duplicate/follow-up PR as a workaround. Preserve the PR's existing base and draft/ready state. Follow repository instructions, apply the narrowest spotlessApply before relevant targeted validation, and keep only meaningful test changes. Acceptance: the identified redundant value assertions are removed, exact metric key-set and metric identity/type/unit coverage remains, and all metric-specific behavior coverage is preserved. Do not post replies to human comments or resolve review threads.",
+      "created": "2026-10-19T20:37:40Z",
+      "hunk": "@@ -531,9 +531,53 @@ void withError() throws Exception {\n                             .hasNoParent()\n                             .hasStatus(StatusData.error()),\n                     span ->\n-                        assertServerSpan(span, \"withError\", port)\n+                        assertServerSpan(\n+                                span, CustomHandler.class.getName(), \"withError\", port, \"_OTHER\")\n                             .hasParent(trace.getSpan(0))\n                             .hasStatus(StatusData.error())));\n+\n+    if (emitPreviewRpcSemconv()) {\n+      getTesting()\n+          .waitAndAssertMetrics(\n+              \"io.opentelemetry.thrift-0.13\",\n+              metric ->\n+                  metric\n+                      .hasName(\"rpc.server.call.duration\")\n+                      .hasUnit(\"s\")\n+                      .hasHistogramSatisfying(\n+                          histogram ->\n+                              histogram.hasPointsSatisfying(\n+                                  point ->\n+                                      point.hasAttributesSatisfyingExactly(",
+      "id": "PRRT_kwDODJKVX86uGFqQ",
+      "opened": "2026-10-19T20:37:40Z",
+      "path": "instrumentation/thrift-0.13/testing/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/AbstractThriftTest.java",
+      "replies": [],
+      "reviewed": "f856ab11897915882a19e387502cbbc8eafe727c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20721#discussion_r4318609150"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing Thrift PR directly so the added metric coverage in the pre-existing `AbstractThriftTest.withError()` follows the class's existing value-based assertion style. The user has explicitly chosen to apply the new key-only metric guidance to new tests only and wants this existing test extension to match the surrounding assertions. This intentionally supersedes the earlier request on this PR to convert these two duration-metric blocks to key-only checks.\n\nIn `instrumentation/thrift-0.13/testing/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/AbstractThriftTest.java`, replace the two new `hasAttributesSatisfying(... containsOnlyKeys(...))` point assertions in `withError()` with `hasAttributesSatisfyingExactly(equalTo(...))` expectations matching the established `assertMetrics(int serverPort)` pattern in this class. Assert the complete expected attribute values for RPC_SYSTEM_NAME, SERVER_ADDRESS, SERVER_PORT, RPC_METHOD, and ERROR_TYPE separately for the server and client. Use the actual values already verified by the corresponding span helpers: server ERROR_TYPE is \"_OTHER\", while client ERROR_TYPE is the TApplicationException class name; preserve the distinct server/client endpoint and method expectations. Keep the newly added metric coverage, the distinct `rpc.server.call.duration` and `rpc.client.call.duration` metric names, histogram types, seconds unit, and RPC preview/duplicate gating. Do not convert or weaken the neighboring existing assertions and do not add unrelated helpers, numeric assertions, or a coverage matrix.\n\nPreserve the production error-classification fix, all span assertions and async coverage, and legacy behavior. Keep this change confined to the existing test's metric assertion style. This PR is stacked on `copilot/port-grpc-shared-rpc-metrics`; preserve that base and do not update the parent gRPC PR, other branches, or PRs. Update this PR's existing head branch, not a separate follow-up PR. Do not merge/rebase the stack or change its draft/ready state. Follow repository formatting instructions and run the narrow relevant existing tests. Acceptance: the two added metric blocks use exact attribute-value assertions consistent with the pre-existing helper, with the correct distinct client/server error types and all existing intended coverage intact. Do not reply to human comments, resolve threads, or request a review.",
+      "created": "2026-10-19T23:47:43Z",
+      "hunk": "@@ -531,9 +531,53 @@ void withError() throws Exception {\n                             .hasNoParent()\n                             .hasStatus(StatusData.error()),\n                     span ->\n-                        assertServerSpan(span, \"withError\", port)\n+                        assertServerSpan(\n+                                span, CustomHandler.class.getName(), \"withError\", port, \"_OTHER\")\n                             .hasParent(trace.getSpan(0))\n                             .hasStatus(StatusData.error())));\n+\n+    if (emitPreviewRpcSemconv()) {\n+      getTesting()\n+          .waitAndAssertMetrics(",
+      "id": "PRRT_kwDODJKVX86uJYcu",
+      "opened": "2026-10-19T23:47:43Z",
+      "path": "instrumentation/thrift-0.13/testing/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/AbstractThriftTest.java",
+      "replies": [],
+      "reviewed": "941deecac4345fcd2696300e43c7f80e12cde465",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20721#discussion_r4320024708"
+    }
+  ]
+}

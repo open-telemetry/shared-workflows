@@ -1,0 +1,85 @@
+{
+  "head": "df6c337331f40dde18446b9d03a4ec4ec589bdf0",
+  "merge": "518ab51d2320927cc884bd3bddeb5f3f69d31e56",
+  "merged": "2026-02-10T18:32:11Z",
+  "missing_roots": 0,
+  "number": 16113,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I didn't see any reason this test needed to use the (now deprecated) Jaeger propagator",
+      "created": "2026-02-07T16:47:18Z",
+      "hunk": "@@ -31,7 +31,8 @@ class CamelPropagationUtilTest {\n   @BeforeAll\n   static void setUp() {\n     GlobalOpenTelemetry.set(\n-        OpenTelemetry.propagating(ContextPropagators.create(JaegerPropagator.getInstance())));\n+        OpenTelemetry.propagating(\n+            ContextPropagators.create(W3CTraceContextPropagator.getInstance())));",
+      "id": "PRRT_kwDODJKVX85tRTOu",
+      "opened": "2026-02-08T20:50:33Z",
+      "path": "instrumentation/camel-2.20/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/apachecamel/CamelPropagationUtilTest.java",
+      "replies": [],
+      "reviewed": "3b55a5352d90d2e8460333479c21999bc654e944",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16113#discussion_r2777765442"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this bug was hidden by 2 other bugs:\n\n1. A (long-time) existing SDK bug that empty strings are serialized as \"empty value\" attributes (this may be fixed in the future by https://github.com/open-telemetry/opentelemetry-java/pull/8014).\n2. A bug in this repo's testing framework which used to skip \"empty value\" attributes when deserializing (which is fixed in this PR, see the new `case VALUE_NOT_SET:` in `TelemetryConverter.java`.\n\n",
+      "created": "2026-02-07T17:43:58Z",
+      "hunk": "@@ -50,7 +50,9 @@ DbInfo.Builder doParse(String jdbcUrl, DbInfo.Builder builder) {\n           if (colonIndex != -1) {\n             user = user.substring(0, colonIndex);\n           }\n-          builder.user(user);\n+          if (!user.isEmpty()) {\n+            builder.user(user);\n+          }",
+      "id": "PRRT_kwDODJKVX85tRhoe",
+      "opened": "2026-02-08T20:50:33Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+      "replies": [],
+      "reviewed": "3b55a5352d90d2e8460333479c21999bc654e944",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16113#discussion_r2777841893"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "can't you use the constants from `ValueType` here instead of names?",
+      "created": "2026-02-10T09:48:34Z",
+      "hunk": "@@ -0,0 +1,103 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_59;\n+\n+import static java.util.logging.Level.FINE;\n+\n+import application.io.opentelemetry.api.common.KeyValue;\n+import application.io.opentelemetry.api.common.Value;\n+import java.nio.ByteBuffer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.function.Function;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Bridges application {@link Value} objects to agent {@link io.opentelemetry.api.common.Value}\n+ * objects for SDK 1.59.0+.\n+ *\n+ * <p>Loaded via reflection by {@link\n+ * io.opentelemetry.javaagent.instrumentation.opentelemetryapi.ValueBridging}.\n+ */\n+public final class ValueBridging159 {\n+\n+  public static final Function<Object, Object> INSTANCE = ValueBridging159::toAgentValue;\n+\n+  private static final Logger logger = Logger.getLogger(ValueBridging159.class.getName());\n+\n+  private ValueBridging159() {}\n+\n+  @Nullable\n+  private static Object toAgentValue(@Nullable Object applicationValue) {\n+    if (applicationValue == null) {\n+      return null;\n+    }\n+    if (!(applicationValue instanceof Value)) {\n+      logger.log(FINE, \"Expected Value but got: {0}\", applicationValue.getClass().getName());\n+      return null;\n+    }\n+    return convertValue((Value<?>) applicationValue);\n+  }\n+\n+  // Unchecked casts are safe because we switch on the type name and cast accordingly\n+  @SuppressWarnings(\"unchecked\")\n+  @Nullable\n+  private static io.opentelemetry.api.common.Value<?> convertValue(Value<?> applicationValue) {\n+    String typeName = applicationValue.getType().name();\n+    switch (typeName) {",
+      "id": "PRRT_kwDODJKVX85tsJim",
+      "opened": "2026-02-10T09:48:33Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.59/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_59/ValueBridging159.java",
+      "replies": [],
+      "reviewed": "ea567085321a8808e61ff24cbefeada87c3381a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16113#discussion_r2786917401"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I'd guess that `duplicate` isn't probably necessary",
+      "created": "2026-02-10T10:25:32Z",
+      "hunk": "@@ -0,0 +1,103 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_59;\n+\n+import static java.util.logging.Level.FINE;\n+\n+import application.io.opentelemetry.api.common.KeyValue;\n+import application.io.opentelemetry.api.common.Value;\n+import java.nio.ByteBuffer;\n+import java.util.ArrayList;\n+import java.util.List;\n+import java.util.function.Function;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Bridges application {@link Value} objects to agent {@link io.opentelemetry.api.common.Value}\n+ * objects for SDK 1.59.0+.\n+ *\n+ * <p>Loaded via reflection by {@link\n+ * io.opentelemetry.javaagent.instrumentation.opentelemetryapi.ValueBridging}.\n+ */\n+public final class ValueBridging159 {\n+\n+  public static final Function<Object, Object> INSTANCE = ValueBridging159::toAgentValue;\n+\n+  private static final Logger logger = Logger.getLogger(ValueBridging159.class.getName());\n+\n+  private ValueBridging159() {}\n+\n+  @Nullable\n+  private static Object toAgentValue(@Nullable Object applicationValue) {\n+    if (applicationValue == null) {\n+      return null;\n+    }\n+    if (!(applicationValue instanceof Value)) {\n+      logger.log(FINE, \"Expected Value but got: {0}\", applicationValue.getClass().getName());\n+      return null;\n+    }\n+    return convertValue((Value<?>) applicationValue);\n+  }\n+\n+  // Unchecked casts are safe because we switch on the type name and cast accordingly\n+  @SuppressWarnings(\"unchecked\")\n+  @Nullable\n+  private static io.opentelemetry.api.common.Value<?> convertValue(Value<?> applicationValue) {\n+    String typeName = applicationValue.getType().name();\n+    switch (typeName) {\n+      case \"STRING\":\n+        return io.opentelemetry.api.common.Value.of((String) applicationValue.getValue());\n+      case \"BOOLEAN\":\n+        return io.opentelemetry.api.common.Value.of((Boolean) applicationValue.getValue());\n+      case \"LONG\":\n+        return io.opentelemetry.api.common.Value.of((Long) applicationValue.getValue());\n+      case \"DOUBLE\":\n+        return io.opentelemetry.api.common.Value.of((Double) applicationValue.getValue());\n+      case \"BYTES\":\n+        ByteBuffer buffer = (ByteBuffer) applicationValue.getValue();\n+        byte[] bytes = new byte[buffer.remaining()];\n+        buffer.duplicate().get(bytes);",
+      "id": "PRRT_kwDODJKVX85tst60",
+      "opened": "2026-02-10T10:25:32Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.59/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_59/ValueBridging159.java",
+      "replies": [],
+      "reviewed": "ea567085321a8808e61ff24cbefeada87c3381a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16113#discussion_r2787110527"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`testing.runWithSpan(\"test-span\", () -> Span.current().setAttribute(valueKey(\"key\"), Value.of(123L)))` would be slightly more compact, but it is fine this way too",
+      "created": "2026-02-10T10:30:34Z",
+      "hunk": "@@ -0,0 +1,324 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_59;\n+\n+import static io.opentelemetry.api.common.AttributeKey.booleanArrayKey;\n+import static io.opentelemetry.api.common.AttributeKey.booleanKey;\n+import static io.opentelemetry.api.common.AttributeKey.doubleArrayKey;\n+import static io.opentelemetry.api.common.AttributeKey.doubleKey;\n+import static io.opentelemetry.api.common.AttributeKey.longArrayKey;\n+import static io.opentelemetry.api.common.AttributeKey.longKey;\n+import static io.opentelemetry.api.common.AttributeKey.stringArrayKey;\n+import static io.opentelemetry.api.common.AttributeKey.stringKey;\n+import static io.opentelemetry.api.common.AttributeKey.valueKey;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.common.AttributeType;\n+import io.opentelemetry.api.common.KeyValue;\n+import io.opentelemetry.api.common.Value;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.Tracer;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.util.Arrays;\n+import java.util.Collections;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+/** Tests for VALUE attribute bridging from application API to agent API. */\n+class ValueAttributeTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @Test\n+  void valueKeyHasCorrectType() {\n+    AttributeKey<Value<?>> key = valueKey(\"test-key\");\n+    assertThat(key).isNotNull();\n+    assertThat(key.getKey()).isEqualTo(\"test-key\");\n+    assertThat(key.getType()).isEqualTo(AttributeType.VALUE);\n+  }\n+\n+  @Test\n+  void stringValue() {\n+    Tracer tracer = GlobalOpenTelemetry.getTracer(\"test\");\n+    Span testSpan = tracer.spanBuilder(\"test-span\").startSpan();\n+    testSpan.setAttribute(valueKey(\"key\"), Value.of(\"test\"));\n+    testSpan.end();\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\"test-span\")\n+                        .hasAttributesSatisfyingExactly(equalTo(stringKey(\"key\"), \"test\"))));\n+  }\n+\n+  @Test\n+  void longValue() {\n+    Tracer tracer = GlobalOpenTelemetry.getTracer(\"test\");",
+      "id": "PRRT_kwDODJKVX85tsyzL",
+      "opened": "2026-02-10T10:30:34Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.59/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_59/ValueAttributeTest.java",
+      "replies": [],
+      "reviewed": "ea567085321a8808e61ff24cbefeada87c3381a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16113#discussion_r2787136000"
+    }
+  ]
+}

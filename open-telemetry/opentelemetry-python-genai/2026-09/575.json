@@ -1,0 +1,46 @@
+{
+  "head": "ff27573e4297584320129bbc27a10b9770f117ff",
+  "merge": "8ed589c0ae5c6dfd7c5ef871055418947b9dcfd3",
+  "merged": "2026-09-03T19:02:19Z",
+  "missing_roots": 0,
+  "number": 575,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment block says \"There is currently nothing to pin\", but the file now includes an editable install of opentelemetry-util-genai. Updating the wording avoids confusing readers about why a dependency line is present in this pins file.",
+      "created": "2026-09-02T23:01:10Z",
+      "hunk": "@@ -23,3 +23,6 @@\n #\n # There is currently nothing to pin: portkey-ai has no test-only dependency that isn't already\n # provided by a declared bound or by the shared test fixtures.\n+\n+# Drop this once opentelemetry-util-genai 1.2b0 is published.\n+-e util/opentelemetry-util-genai",
+      "id": "PRRT_kwDOSbspP86etoIJ",
+      "opened": "2026-09-02T23:01:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "bd9bafa0ebe952ebdcd00d91f7cf57e09cdd6a50",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/575#discussion_r3919457342"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: one bare literal is left in this file - `convert_to_final_output_messages` (line 250) still defaults `role` to `\"assistant\"`. It only feeds the local filter and is never emitted, but it is the last one left in the repo, so converting it keeps the sweep complete.",
+      "created": "2026-09-02T23:46:12Z",
+      "hunk": "@@ -217,7 +218,7 @@ def convert_to_output_messages(\n \n             output_messages.append(\n                 OutputMessage(",
+      "id": "PRRT_kwDOSbspP86euSN1",
+      "opened": "2026-09-02T23:49:24Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/src/opentelemetry/instrumentation/genai/qwen_agent/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-03T05:50:41Z",
+          "body": "thanks for catching that, switched to use enum there as well",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/575#discussion_r3921482897"
+        }
+      ],
+      "reviewed": "86ae8c6b2867a13f666afe66b107ba21068d68cf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/575#discussion_r3919729112"
+    }
+  ]
+}

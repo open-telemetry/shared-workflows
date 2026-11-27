@@ -1,0 +1,26 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d63f2c0d6650af611ac3d3b9591fc7cca3b74e79f727054f00bdb9323b4b8624",
+  "input_digest": "b0acdd2612fdb524f977dfd59fb518e4b8e2097c550af5db6b6f317f8a5e194c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX850mUU1",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8afdeca5d142847f90009562a7f3f72db26af858/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21a4c40aeb8dc9c97c0e5844f9f32dec7ec08101/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c989a11728c99453b4c87acdc361b930e7ecc875"
+      ],
+      "id": "PRRT_kwDODJKVX850yxpF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

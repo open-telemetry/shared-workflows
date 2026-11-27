@@ -1,0 +1,55 @@
+{
+  "head": "3b971ea86b7dde453a1d954c99bd2fff62d3a268",
+  "merge": "48bd09348edc676c8fb69f0754564ff87cec6349",
+  "merged": "2026-01-28T13:42:01Z",
+  "missing_roots": 0,
+  "number": 15967,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this change is to support `servlet:servlet-5.0:jetty12-testing:test`",
+      "created": "2026-01-22T19:55:00Z",
+      "hunk": "@@ -43,7 +43,7 @@ public final class MetaDataCollector {\n \n   private static final String TMP_DIR = \".telemetry\";\n   private static final Pattern MODULE_PATTERN =\n-      Pattern.compile(\"(.*?/instrumentation/.*?)(/javaagent|/library|/testing)\");\n+      Pattern.compile(\"(.*?/instrumentation/.*)(/javaagent|/library|/testing|/.*?-testing)\");",
+      "id": "PRRT_kwDODJKVX85qngjY",
+      "opened": "2026-01-22T19:55:00Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/MetaDataCollector.java",
+      "replies": [],
+      "reviewed": "c76b672cd6ef86d5e2166660b0ac047a1776f49d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15967#discussion_r2718397482"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "to filter out `servlet.request.parameter.test-parameter` from servlet test telemetry",
+      "created": "2026-01-22T19:55:58Z",
+      "hunk": "@@ -28,6 +28,7 @@ public class SpanParser {\n       List.of(\n           \"asdf\",\n           \"x-test-\",\n+          \"test-parameter\",",
+      "id": "PRRT_kwDODJKVX85qnhKs",
+      "opened": "2026-01-22T19:55:58Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/SpanParser.java",
+      "replies": [],
+      "reviewed": "c76b672cd6ef86d5e2166660b0ac047a1776f49d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15967#discussion_r2718400748"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "also adds span id",
+      "created": "2026-01-28T10:06:18Z",
+      "hunk": "@@ -11838,26 +11979,260 @@ libraries:\n       - org.scala-lang:scala-library:[2.8.0,2.12.0)\n   servlet:\n   - name: servlet-2.2\n+    display_name: Servlet\n+    description: This instrumentation enables HTTP server spans and metrics for Java\n+      Servlet API.\n+    semantic_conventions:\n+    - HTTP_SERVER_SPANS\n+    - HTTP_SERVER_METRICS\n+    library_link: https://javaee.github.io/servlet-spec/\n+    features:\n+    - HTTP_ROUTE\n     source_path: instrumentation/servlet/servlet-2.2\n     scope:\n       name: io.opentelemetry.servlet-2.2\n     target_versions:\n       javaagent:\n       - javax.servlet:servlet-api:[2.2, 3.0)\n+    configurations:\n+    - name: otel.instrumentation.servlet.experimental-span-attributes\n+      description: Enables capturing the experimental `servlet.timeout` span attribute.\n+      type: boolean\n+      default: false\n+    - name: otel.instrumentation.servlet.capture-request-parameters\n+      description: List of request parameter names to capture as span attributes.\n+      type: list\n+      default: ''\n+    - name: otel.instrumentation.servlet.add-trace-id-request-attribute\n+      description: Adds the trace ID as a request attribute for downstream servlet\n+        access.\n+      type: boolean\n+      default: true\n+    telemetry:\n+    - when: default\n+      metrics:\n+      - name: http.server.request.duration\n+        description: Duration of HTTP server requests.\n+        type: HISTOGRAM\n+        unit: s\n+        attributes:\n+        - name: http.request.method\n+          type: STRING\n+        - name: http.response.status_code\n+          type: LONG\n+        - name: network.protocol.version\n+          type: STRING\n+        - name: url.scheme\n+          type: STRING\n+      spans:\n+      - span_kind: INTERNAL\n+        attributes:\n+        - name: code.function\n+          type: STRING\n+        - name: code.namespace\n+          type: STRING\n+      - span_kind: SERVER\n+        attributes:\n+        - name: client.address\n+          type: STRING\n+        - name: error.type\n+          type: STRING\n+        - name: http.request.method\n+          type: STRING\n+        - name: http.request.method_original\n+          type: STRING\n+        - name: http.response.status_code\n+          type: LONG\n+        - name: network.peer.address\n+          type: STRING\n+        - name: network.protocol.version\n+          type: STRING\n+        - name: server.address\n+          type: STRING\n+        - name: server.port\n+          type: LONG\n+        - name: url.path\n+          type: STRING\n+        - name: url.query\n+          type: STRING\n+        - name: url.scheme\n+          type: STRING\n+        - name: user_agent.original\n+          type: STRING\n   - name: servlet-3.0\n+    display_name: Servlet\n+    description: This instrumentation enables HTTP server spans and metrics for Java\n+      Servlet API.\n+    semantic_conventions:\n+    - HTTP_SERVER_SPANS\n+    - HTTP_SERVER_METRICS\n+    library_link: https://javaee.github.io/servlet-spec/\n+    features:\n+    - HTTP_ROUTE\n     source_path: instrumentation/servlet/servlet-3.0\n     scope:\n       name: io.opentelemetry.servlet-3.0\n     target_versions:\n       javaagent:\n       - javax.servlet:javax.servlet-api:[3.0,)\n+    configurations:\n+    - name: otel.instrumentation.servlet.experimental-span-attributes\n+      description: Enables capturing the experimental `servlet.timeout` span attribute.\n+      type: boolean\n+      default: false\n+    - name: otel.instrumentation.servlet.capture-request-parameters\n+      description: List of request parameter names to capture as span attributes.\n+      type: list\n+      default: ''\n+    - name: otel.instrumentation.servlet.add-trace-id-request-attribute\n+      description: Adds the trace ID as a request attribute for downstream servlet\n+        access.\n+      type: boolean\n+      default: true\n+    telemetry:\n+    - when: default\n+      metrics:\n+      - name: http.server.request.duration\n+        description: Duration of HTTP server requests.\n+        type: HISTOGRAM\n+        unit: s\n+        attributes:\n+        - name: http.request.method\n+          type: STRING\n+        - name: http.response.status_code\n+          type: LONG\n+        - name: http.route\n+          type: STRING\n+        - name: network.protocol.version\n+          type: STRING\n+        - name: url.scheme\n+          type: STRING\n+      spans:\n+      - span_kind: INTERNAL\n+        attributes:\n+        - name: code.function\n+          type: STRING\n+        - name: code.namespace\n+          type: STRING\n+      - span_kind: SERVER\n+        attributes:\n+        - name: client.address\n+          type: STRING\n+        - name: error.type\n+          type: STRING\n+        - name: http.request.method\n+          type: STRING\n+        - name: http.request.method_original\n+          type: STRING\n+        - name: http.response.status_code\n+          type: LONG\n+        - name: http.route\n+          type: STRING\n+        - name: network.peer.address\n+          type: STRING\n+        - name: network.peer.port\n+          type: LONG\n+        - name: network.protocol.version\n+          type: STRING\n+        - name: server.address\n+          type: STRING\n+        - name: server.port\n+          type: LONG\n+        - name: url.path\n+          type: STRING\n+        - name: url.query\n+          type: STRING\n+        - name: url.scheme\n+          type: STRING\n+        - name: user_agent.original\n+          type: STRING\n   - name: servlet-5.0\n+    display_name: Servlet\n+    description: This instrumentation enables HTTP server spans and metrics for Jakarta\n+      Servlet API.\n+    semantic_conventions:\n+    - HTTP_SERVER_SPANS\n+    - HTTP_SERVER_METRICS\n+    library_link: https://jakarta.ee/specifications/servlet/\n+    features:\n+    - HTTP_ROUTE\n     source_path: instrumentation/servlet/servlet-5.0\n     scope:\n       name: io.opentelemetry.servlet-5.0\n     target_versions:\n       javaagent:\n       - jakarta.servlet:jakarta.servlet-api:[5.0.0,)\n+    configurations:\n+    - name: otel.instrumentation.servlet.experimental-span-attributes\n+      description: Enables capturing the experimental `servlet.timeout` span attribute.\n+      type: boolean\n+      default: false\n+    - name: otel.instrumentation.servlet.capture-request-parameters\n+      description: List of request parameter names to capture as span attributes.\n+      type: list\n+      default: ''\n+    - name: otel.instrumentation.servlet.add-trace-id-request-attribute\n+      description: Adds the trace ID as a request attribute for downstream servlet",
+      "id": "PRRT_kwDODJKVX85rZ3n8",
+      "opened": "2026-01-28T10:06:18Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "c76b672cd6ef86d5e2166660b0ac047a1776f49d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15967#discussion_r2735872968"
+    }
+  ]
+}

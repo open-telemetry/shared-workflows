@@ -1,0 +1,31 @@
+{
+  "head": "d49eea32a380a4cf2a9d1438e9cec0cc66ddc8db",
+  "merge": "613cfa7860a5baa8d8d7356706c4ecb7f6595c89",
+  "merged": "2026-10-23T15:46:31Z",
+  "missing_roots": 0,
+  "number": 20853,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the test structure in this PR directly, without creating another PR. Keep the two independent Spring Core runtime suites and all existing propagation assertions.\n\nRemove AsyncTaskTestUtil.java. Move executeTwoTasks and the nested AsyncTask fixture back into SimpleAsyncTaskExecutorInstrumentationTest in src/test. Have SimpleAsyncTaskExecutorSubmitInstrumentationTest in src/version4Test extend that concrete baseline test, reusing its executor, registered instrumentation extension, and helper rather than declaring duplicate setup. Expose only the members the subclass needs, using package-private visibility where sufficient. The helper can again use the baseline test's extension internally rather than accepting an InstrumentationExtension argument. Keep executeRunnable as an inherited JUnit test so it also runs in the newer-version suite. Preserve the existing reflection and assumptions for submitListenable being absent in Spring 7; do not add reflection for submit or replace this simplification with a new abstraction.\n\nKeep the default suite's resolved Spring Core 2.0 baseline, version4Test's normal 4.0.0.RELEASE and latest-dependency behavior, the dependency on the baseline test output needed for inheritance, and both suites' check wiring. Do not change production instrumentation, Muzzle, supported-version documentation, or unrelated code. Run the narrow relevant formatting and agent-backed tests for both suites, including latest-dependency mode when feasible. Confirm that the default suite still executes executeRunnable on 2.0 and that the newer suite executes inherited executeRunnable plus all supported submit and submitListenable cases. Report actual test counts and any validation blocker.",
+      "created": "2026-10-22T17:41:33Z",
+      "hunk": "@@ -0,0 +1,64 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.core.v2_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.spring.core.v2_0.AsyncTaskTestUtil.executeTwoTasks;\n+import static org.junit.jupiter.api.Assumptions.assumeTrue;\n+\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.lang.reflect.Method;\n+import java.util.concurrent.Callable;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.springframework.core.task.SimpleAsyncTaskExecutor;\n+\n+class SimpleAsyncTaskExecutorSubmitInstrumentationTest {",
+      "id": "PRRT_kwDODJKVX86vTrcl",
+      "opened": "2026-10-22T17:41:33Z",
+      "path": "instrumentation/spring/spring-core-2.0/javaagent/src/version4Test/java/io/opentelemetry/javaagent/instrumentation/spring/core/v2_0/SimpleAsyncTaskExecutorSubmitInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-10-22T17:52:07Z",
+          "body": "Done in d49eea32. The standard agent-backed runs passed: baseline 1/1 and version4Test 5/5, including inherited `executeRunnable`. Latest-dependency mode was blocked before tests because the build could not provision Java 27 for Helidon; selecting Java 25 did not avoid that configuration failure.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20853#discussion_r4351679241"
+        }
+      ],
+      "reviewed": "4bde3639a8fd174f7706b1c0022fada66ae9770c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20853#discussion_r4351578179"
+    }
+  ]
+}

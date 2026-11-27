@@ -1,0 +1,52 @@
+{
+  "head": "3a7712756be8d3ed3f420bd5314a18172360fd8d",
+  "merge": "d74cae12618297408445f39e1a6eb04a78f45236",
+  "merged": "2026-08-17T19:51:35Z",
+  "missing_roots": 0,
+  "number": 19599,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] An explicitly configured deprecated `captureMapMessageAttributes=false` also captures no attributes, so absence/emptiness of every source is not the only condition. Include the deprecated boolean's false/default state in this precedence description.",
+      "created": "2026-08-14T23:55:27Z",
+      "hunk": "@@ -130,7 +135,13 @@ and `contextDataAttributesExcluded` settings, which in turn take precedence over\n does not disable capture and the next configured source is used instead. No context data attributes\n are captured only when every one of these sources is absent or empty.\n \n-Captured context data attributes may contain sensitive information. Configure included and excluded patterns to limit the data exported as log attributes.\n+`MapMessage` attributes are selected the same way, with the same pattern syntax, case sensitivity,\n+and precedence. Only a non-empty selector set with `setMapMessageAttributes(IncludeExclude)` takes\n+precedence over the `mapMessageAttributesIncluded` and `mapMessageAttributesExcluded` settings,\n+which in turn take precedence over the deprecated `captureMapMessageAttributes` setting. No\n+`MapMessage` attributes are captured only when every one of these sources is absent or empty.",
+      "id": "PRRT_kwDODJKVX86ZcZmg",
+      "opened": "2026-08-14T23:55:28Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/README.md",
+      "replies": [
+        {
+          "at": "2026-08-15T04:08:25Z",
+          "body": "Fixed in 5e6ca513c2. You're right that the `only when every one of these sources is absent or empty` phrasing was wrong — it implied capture-nothing requires every source to be unconfigured, when an explicit `captureMapMessageAttributes=false` produces the same result. The sentence now reads:\n\n> No `MapMessage` attributes are captured when the selector and the pattern settings are absent or empty and `captureMapMessageAttributes` is `false`, which is also its default.\n\nWorth noting the underlying reason the old wording was defensible but still misleading: `captureMapMessageAttributes` is a primitive `boolean` field, so an explicit `false` is indistinguishable at runtime from leaving it unset. Saying so directly is clearer than leaning on that equivalence, which is what the new sentence does.\n\nI left the corresponding context-data sentence above it alone — that deprecated setting is a comma-separated list rather than a boolean, so for it an empty value genuinely is the absent state and the existing wording holds.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19599#discussion_r3788448339"
+        }
+      ],
+      "reviewed": "6947b2a93ce7f88a261d7ea42b06496ed1f7a5a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19599#discussion_r3787855543"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This condition omits the deprecated setting's `false` state: when no selector is present and `captureMapMessageAttributes` is explicitly `false`, nothing is captured even though that source is configured. Document the false/default case so the precedence contract is unambiguous.",
+      "created": "2026-08-14T23:55:28Z",
+      "hunk": "@@ -154,13 +157,85 @@ public B setCaptureCodeAttributes(boolean captureCodeAttributes) {\n       return asBuilder();\n     }\n \n-    /** Sets whether log4j {@link MapMessage} attributes should be copied to logs. */\n+    /**\n+     * Configures the log4j {@link MapMessage} attributes that will be copied to logs.\n+     *\n+     * <p>{@code MapMessage} keys and selector patterns are matched case-sensitively. {@code ?}\n+     * matches any single character and {@code *} matches any number of characters, including none,\n+     * so {@code included(\"*\")} captures every {@code MapMessage} attribute. Excluded patterns take\n+     * precedence over included patterns. A selector with only excluded patterns captures every\n+     * {@code MapMessage} attribute that it does not exclude.\n+     *\n+     * <p>Only a non-empty selector set here takes precedence over the {@code\n+     * mapMessageAttributesIncluded} and {@code mapMessageAttributesExcluded} settings, which in\n+     * turn take precedence over the deprecated {@code captureMapMessageAttributes} setting. A\n+     * {@code null} or empty selector carries no configuration, so it does not disable capture and\n+     * the next configured source is used instead. No {@code MapMessage} attributes are captured\n+     * only when every one of these sources is absent or empty.",
+      "id": "PRRT_kwDODJKVX86ZcZmo",
+      "opened": "2026-08-14T23:55:28Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppender.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:08:37Z",
+          "body": "Fixed in 5e6ca513c2, same change as the README thread. The Javadoc paragraph now ends:\n\n> No {@code MapMessage} attributes are captured when the selector and the pattern settings are absent or empty and {@code captureMapMessageAttributes} is {@code false}, which is also its default.\n\nNaming the `false`/default state explicitly is better than relying on the reader to infer that a primitive `boolean` field makes an explicit `false` indistinguishable from unset.\n\nWhile confirming this I also found that the middle step of the documented chain — configuration-file patterns beating the deprecated boolean — had no test in the library module. It can't be expressed programmatically anymore, because `setCaptureMapMessageAttributes(boolean)` delegates to `setMapMessageAttributes(IncludeExclude)` rather than writing its own field, so the boolean field is only reachable from XML. The same commit adds an `OpenTelemetryMapMessageSelectorPrecedenceAppender` to the test `log4j2.xml` that sets `captureMapMessageAttributes=\"true\"` alongside `mapMessageAttributesIncluded`/`Excluded`, plus a test asserting the patterns win. That's the exact configuration of a user adding the new patterns to an existing `log4j2.xml` without removing the old attribute.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19599#discussion_r3788448823"
+        }
+      ],
+      "reviewed": "6947b2a93ce7f88a261d7ea42b06496ed1f7a5a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19599#discussion_r3787855553"
+    }
+  ]
+}

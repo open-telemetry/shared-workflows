@@ -1,0 +1,144 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "91d22c6622cee936075508adba29b42410f75ec631580ace0f515149d58ed7e2",
+  "input_digest": "6e0af5af29ba626f57bbe238307e2b02496fb09218c3ff43c720b544c9948833",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9673fba8eaa34c8e0cd354e39a8f8c9f12326ec0/instrumentation/elasticsearch/elasticsearch-transport-5.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_3/Elasticsearch53TransportRequests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-5.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_3/Elasticsearch53TransportRequests.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dS3B7",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9673fba8eaa34c8e0cd354e39a8f8c9f12326ec0/instrumentation/elasticsearch/elasticsearch-transport-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_0/Elasticsearch5TransportRequests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_0/Elasticsearch5TransportRequests.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dS3BU",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9673fba8eaa34c8e0cd354e39a8f8c9f12326ec0/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v6_0/Elasticsearch6TransportRequests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v6_0/Elasticsearch6TransportRequests.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dS3Cl",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4404e2a5ce7a8470c94031facecea1772a8984f7/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportServerTargets.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4404e2a5ce7a8470c94031facecea1772a8984f7/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticTransportRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportServerTargets.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticTransportRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ddpLS",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a93252700854fd9f40828e29934ac98129588b3c/instrumentation/elasticsearch/elasticsearch-transport-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_0/Elasticsearch5TransportRequests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a93252700854fd9f40828e29934ac98129588b3c/instrumentation/elasticsearch/elasticsearch-transport-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_0/Elasticsearch5TransportClientInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a93252700854fd9f40828e29934ac98129588b3c/instrumentation/elasticsearch/elasticsearch-transport-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_0/TransportClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_0/Elasticsearch5TransportRequests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_0/Elasticsearch5TransportClientInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/FilterClientInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ddxV7",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a93252700854fd9f40828e29934ac98129588b3c/instrumentation/elasticsearch/elasticsearch-transport-5.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_3/Elasticsearch53TransportRequests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a93252700854fd9f40828e29934ac98129588b3c/instrumentation/elasticsearch/elasticsearch-transport-5.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_3/TransportClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a93252700854fd9f40828e29934ac98129588b3c/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportServerTargets.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-5.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_3/Elasticsearch53TransportRequests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-5.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_3/Elasticsearch53TransportClientInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/FilterClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportServerTargets.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ddxWM",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a93252700854fd9f40828e29934ac98129588b3c/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v6_0/Elasticsearch6TransportRequests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a93252700854fd9f40828e29934ac98129588b3c/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v6_0/TransportClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a93252700854fd9f40828e29934ac98129588b3c/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportServerTargets.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v6_0/Elasticsearch6TransportRequests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v6_0/Elasticsearch6TransportClientInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/FilterClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportServerTargets.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ddxWX",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f141d4f4576eceee53751a15ce859d98bf9656db/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/FilterClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/FilterClientInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dd3nB",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f447c6cdaa839d5b23dd1a4f278bf5a1818f338/instrumentation/elasticsearch/elasticsearch-transport-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_0/Elasticsearch5TransportRequests.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_0/Elasticsearch5TransportRequests.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dd-Qs",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de68c1f8e36d9d866f6384cc9d27755fb4d4382a/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbServerTargetBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbServerTargetBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc7fd3dd179feaa79dc0c074ddbca7c72d5a5403/instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/common/v5_0/ElasticsearchTransportServerTargetTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dmxYI",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86gn38u",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

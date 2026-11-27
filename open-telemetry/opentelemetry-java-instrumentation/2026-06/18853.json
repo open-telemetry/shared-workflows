@@ -1,0 +1,115 @@
+{
+  "head": "9b2e4132649d275d51e4f2ebaf3cf08958385cf7",
+  "merge": "a5e68823b4a178b02addc58051c181ffa98fd58e",
+  "merged": "2026-06-11T21:19:24Z",
+  "missing_roots": 0,
+  "number": 18853,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`db.collection.name` is defined as a collection identifier, but returning and emitting the sentinel value `\\\"MULTIPLE_TABLES\\\"` will produce incorrect telemetry for multi-table batch operations. Recommend returning `null` (so the attribute is omitted) when more than one table is present, and only setting `DB_COLLECTION_NAME` when exactly one table can be determined.\n",
+      "created": "2026-05-26T16:55:57Z",
+      "hunk": "@@ -47,6 +51,38 @@ public void onStart(\n     if (emitOldDatabaseSemconv()) {\n       attributes.put(DB_OPERATION, operation);\n     }\n+    if (emitStableDatabaseSemconv()) {\n+      String tableName = extractTableName(executionAttributes);\n+      if (tableName != null) {\n+        attributes.put(DB_COLLECTION_NAME, tableName);\n+      }\n+    }\n+  }\n+\n+  @Nullable\n+  @SuppressWarnings(\"rawtypes\")\n+  private static String extractTableName(ExecutionAttributes executionAttributes) {\n+    SdkRequest request =\n+        executionAttributes.getAttribute(TracingExecutionInterceptor.SDK_REQUEST_ATTRIBUTE);\n+    if (request == null) {\n+      return null;\n+    }\n+    // Single-table operations expose TableName directly.\n+    Optional<String> tableName = request.getValueForField(\"TableName\", String.class);\n+    if (tableName.isPresent() && !tableName.get().isEmpty()) {\n+      return tableName.get();\n+    }\n+    // Batch operations (BatchGetItem, BatchWriteItem) use a map keyed by table names.\n+    // When there is exactly one table, return it; otherwise return the sentinel for multiple tables.\n+    Optional<Map> requestItems = request.getValueForField(\"RequestItems\", Map.class);\n+    if (requestItems.isPresent() && !requestItems.get().isEmpty()) {\n+      Map<?, ?> items = requestItems.get();\n+      if (items.size() == 1) {\n+        return items.keySet().iterator().next().toString();\n+      }\n+      return \"MULTIPLE_TABLES\";",
+      "id": "PRRT_kwDODJKVX86E3Z_k",
+      "opened": "2026-05-26T16:55:58Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-05-26T17:09:56Z",
+          "body": "Fixed in the follow-up commit (e62118b). The `MULTIPLE_TABLES` sentinel has been removed — `extractTableName` now returns `null` for multi-table batch operations so `db.collection.name` is omitted entirely, and is only set when the batch targets exactly one table.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18853#discussion_r3305545654"
+        }
+      ],
+      "reviewed": "29f8fa9a36def10a27ad6cad1b8349dceb79f741",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18853#discussion_r3305466147"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using raw `Map` (and suppressing `rawtypes`) reduces type safety and pushes potential issues to runtime. Consider avoiding raw types here (e.g., retrieving into `Optional<?>` and checking/casting to `Map<?, ?>`, or using a narrowly-scoped `@SuppressWarnings(\\\"unchecked\\\")` for a single cast) so the method can remain warning-free and easier to maintain.",
+      "created": "2026-05-26T16:55:57Z",
+      "hunk": "@@ -47,6 +51,38 @@ public void onStart(\n     if (emitOldDatabaseSemconv()) {\n       attributes.put(DB_OPERATION, operation);\n     }\n+    if (emitStableDatabaseSemconv()) {\n+      String tableName = extractTableName(executionAttributes);\n+      if (tableName != null) {\n+        attributes.put(DB_COLLECTION_NAME, tableName);\n+      }\n+    }\n+  }\n+\n+  @Nullable\n+  @SuppressWarnings(\"rawtypes\")\n+  private static String extractTableName(ExecutionAttributes executionAttributes) {",
+      "id": "PRRT_kwDODJKVX86E3aAH",
+      "opened": "2026-05-26T16:55:58Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-05-26T17:10:02Z",
+          "body": "Fixed in e62118b. Replaced `Optional<Map>` (raw) and the method-level `@SuppressWarnings(\"rawtypes\")` with `Optional<?> + instanceof Map` guard and a narrower `@SuppressWarnings(\"unchecked\")` scoped to just the single cast line, as suggested.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18853#discussion_r3305546182"
+        }
+      ],
+      "reviewed": "29f8fa9a36def10a27ad6cad1b8349dceb79f741",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18853#discussion_r3305466194"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using raw `Map` (and suppressing `rawtypes`) reduces type safety and pushes potential issues to runtime. Consider avoiding raw types here (e.g., retrieving into `Optional<?>` and checking/casting to `Map<?, ?>`, or using a narrowly-scoped `@SuppressWarnings(\\\"unchecked\\\")` for a single cast) so the method can remain warning-free and easier to maintain.",
+      "created": "2026-05-26T16:55:58Z",
+      "hunk": "@@ -47,6 +51,38 @@ public void onStart(\n     if (emitOldDatabaseSemconv()) {\n       attributes.put(DB_OPERATION, operation);\n     }\n+    if (emitStableDatabaseSemconv()) {\n+      String tableName = extractTableName(executionAttributes);\n+      if (tableName != null) {\n+        attributes.put(DB_COLLECTION_NAME, tableName);\n+      }\n+    }\n+  }\n+\n+  @Nullable\n+  @SuppressWarnings(\"rawtypes\")\n+  private static String extractTableName(ExecutionAttributes executionAttributes) {\n+    SdkRequest request =\n+        executionAttributes.getAttribute(TracingExecutionInterceptor.SDK_REQUEST_ATTRIBUTE);\n+    if (request == null) {\n+      return null;\n+    }\n+    // Single-table operations expose TableName directly.\n+    Optional<String> tableName = request.getValueForField(\"TableName\", String.class);\n+    if (tableName.isPresent() && !tableName.get().isEmpty()) {\n+      return tableName.get();\n+    }\n+    // Batch operations (BatchGetItem, BatchWriteItem) use a map keyed by table names.\n+    // When there is exactly one table, return it; otherwise return the sentinel for multiple tables.\n+    Optional<Map> requestItems = request.getValueForField(\"RequestItems\", Map.class);",
+      "id": "PRRT_kwDODJKVX86E3aAX",
+      "opened": "2026-05-26T16:55:58Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-05-26T17:10:07Z",
+          "body": "Same fix as above (e62118b) — duplicate comment on the same change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18853#discussion_r3305546583"
+        }
+      ],
+      "reviewed": "29f8fa9a36def10a27ad6cad1b8349dceb79f741",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18853#discussion_r3305466219"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "New behavior is introduced for emitting `db.collection.name` based on request inspection (including batch operations via `RequestItems`). Add tests that cover (1) single-table batch requests resulting in `db.collection.name` being set, and (2) multi-table batch requests resulting in `db.collection.name` being omitted, so regressions in extraction logic are caught.",
+      "created": "2026-05-26T16:55:58Z",
+      "hunk": "@@ -47,6 +51,38 @@ public void onStart(\n     if (emitOldDatabaseSemconv()) {\n       attributes.put(DB_OPERATION, operation);\n     }\n+    if (emitStableDatabaseSemconv()) {\n+      String tableName = extractTableName(executionAttributes);\n+      if (tableName != null) {\n+        attributes.put(DB_COLLECTION_NAME, tableName);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86E3aAp",
+      "opened": "2026-05-26T16:55:58Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-05-26T17:10:15Z",
+          "body": "Added in e62118b. `testBatchGetItemWithMultipleTablesOmitsDbCollectionName` in `AbstractAws2ClientCoreTest` covers the multi-table case, verifying that a two-table `BatchGetItem` produces `aws.dynamodb.table_names` but no `db.collection.name`. The single-table batch cases (`BatchGetItem` and `BatchWriteItem`) were already covered by the parameterised test in `provideArguments`, which now includes the `db.collection.name = \"sometable\"` assertion when `emitStableDatabaseSemconv()` is active.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18853#discussion_r3305547264"
+        }
+      ],
+      "reviewed": "29f8fa9a36def10a27ad6cad1b8349dceb79f741",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18853#discussion_r3305466246"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@chlos sorry for the late review, check out https://github.com/open-telemetry/semantic-conventions/blob/main/docs/db/database-spans.md\n\n> For batch operations, if the individual operations are known to have the same collection name then that collection name SHOULD be used.",
+      "created": "2026-06-11T17:28:11Z",
+      "hunk": "@@ -47,6 +52,39 @@ public void onStart(\n     if (emitOldDatabaseSemconv()) {\n       attributes.put(DB_OPERATION, operation);\n     }\n+    if (emitStableDatabaseSemconv()) {\n+      String tableName = extractTableName(executionAttributes);\n+      if (tableName != null) {\n+        attributes.put(DB_COLLECTION_NAME, tableName);\n+      }\n+    }\n+  }\n+\n+  @Nullable\n+  private static String extractTableName(ExecutionAttributes executionAttributes) {\n+    SdkRequest request =\n+        executionAttributes.getAttribute(TracingExecutionInterceptor.SDK_REQUEST_ATTRIBUTE);\n+    if (request == null) {\n+      return null;\n+    }\n+    // Single-table operations expose TableName directly.\n+    Optional<String> tableName = request.getValueForField(\"TableName\", String.class);\n+    if (tableName.isPresent() && !tableName.get().isEmpty()) {\n+      return tableName.get();\n+    }\n+    // Batch operations (BatchGetItem, BatchWriteItem) key RequestItems by table name.\n+    // Emit db.collection.name only when the batch targets exactly one table; omit it otherwise,\n+    // as the attribute is defined as a single collection identifier.\n+    Optional<?> requestItems = request.getValueForField(\"RequestItems\", Object.class);\n+    if (requestItems.isPresent() && requestItems.get() instanceof Map) {\n+      // The instanceof check above guarantees Map, only the generic parameters are unchecked.\n+      @SuppressWarnings(\"unchecked\")\n+      Set<String> tables = ((Map<String, ?>) requestItems.get()).keySet();\n+      if (tables.size() == 1) {\n+        return tables.iterator().next();\n+      }",
+      "id": "PRRT_kwDODJKVX86I5KFI",
+      "opened": "2026-06-11T17:28:11Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-11T21:19:05Z",
+          "body": "i'm going to merge and i'll look into this a bit more and will tag you if I send a follow-up",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18853#discussion_r3399239928"
+        }
+      ],
+      "reviewed": "9b2e4132649d275d51e4f2ebaf3cf08958385cf7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18853#discussion_r3397870908"
+    }
+  ]
+}

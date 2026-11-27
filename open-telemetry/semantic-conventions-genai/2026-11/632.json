@@ -1,0 +1,31 @@
+{
+  "head": "06f096fd53052a0f056d70382348cd5d8f1c5e9a",
+  "merge": "8bd443b271e129bb160de279b83bd20980779087",
+  "merged": "2026-11-03T04:04:37Z",
+  "missing_roots": 0,
+  "number": 632,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `_embeddings_input_tokens` above still inlines the same list. Could you move this constant above it and reuse it there too?\n\n```python\n_embeddings_input_tokens = _reference_meter.create_histogram(\n    \"gen_ai.client.embeddings.operation.input_tokens\",\n    unit=\"{token}\",\n    description=\"The number of input tokens used per embeddings operation.\",\n    explicit_bucket_boundaries_advisory=_TOKEN_BUCKET_BOUNDARIES,\n)\n```",
+      "created": "2026-11-02T23:43:41Z",
+      "hunk": "@@ -54,6 +54,20 @@\n     ],\n )\n \n+_TOKEN_BUCKET_BOUNDARIES = (1, 4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304, 16777216, 67108864)",
+      "id": "PRRT_kwDOSUeMrM6y6fFI",
+      "opened": "2026-11-02T23:45:41Z",
+      "path": "reference/scenarios/azure-openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T23:56:38Z",
+          "body": "Thanks! Done in the latest commit: `_TOKEN_BUCKET_BOUNDARIES` now sits above `_embeddings_input_tokens`, which reuses it. `run-scenario azure-openai --strict` still passes",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/632#discussion_r4449217572"
+        }
+      ],
+      "reviewed": "e73adacc6495fae228b84dbccb8f8421468103f6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/632#discussion_r4449132639"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "head": "47bab74a266729843a0720ea3c48bd265bdf6ab5",
+  "merge": "525a0f580865689259375d6b99495df2028a9174",
+  "merged": "2026-09-01T21:43:37Z",
+  "missing_roots": 0,
+  "number": 158,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The required regenerated `data.json` for this implementation is missing from the PR. `scenarios/gen-ai/AGENTS.md:53-60` requires running the directory with `--report-only` and committing the resulting reduction whenever its environment changes; please regenerate `openai/openllmetry/data.json` with OpenAI 3.6.0 so the checked-in conformance result matches this pin.",
+      "created": "2026-08-31T04:32:46Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"openai-openllmetry-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"openai==2.54.0\",\n+    \"openai==3.6.0\",",
+      "id": "PRRT_kwDOTuzK5c6dnEAU",
+      "opened": "2026-08-31T04:32:47Z",
+      "path": "scenarios/gen-ai/python/openai/openllmetry/pyproject.toml",
+      "replies": [],
+      "reviewed": "619e134021dec9f407c01da98b7c94c2c8aa4baf",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/158#discussion_r3891713980"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The required regenerated `data.json` for this implementation is missing from the PR. `scenarios/gen-ai/AGENTS.md:53-60` requires running the directory with `--report-only` and committing the resulting reduction whenever its environment changes; please regenerate `openai/openinference/data.json` with OpenAI 3.6.0 so the checked-in conformance result matches this pin.",
+      "created": "2026-08-31T04:32:46Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"openai-openinference-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"openai==2.54.0\",\n+    \"openai==3.6.0\",",
+      "id": "PRRT_kwDOTuzK5c6dnEAf",
+      "opened": "2026-08-31T04:32:47Z",
+      "path": "scenarios/gen-ai/python/openai/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "619e134021dec9f407c01da98b7c94c2c8aa4baf",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/158#discussion_r3891713997"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The required regenerated `data.json` for this implementation is missing from the PR. `scenarios/gen-ai/AGENTS.md:53-60` requires running the directory with `--report-only` and committing the resulting reduction whenever its environment changes; please regenerate `agno/openllmetry/data.json` with OpenAI 3.6.0 so the checked-in conformance result matches this pin.",
+      "created": "2026-08-31T04:32:47Z",
+      "hunk": "@@ -4,7 +4,7 @@ version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n     \"agno==2.9.0\",\n-    \"openai==2.54.0\",\n+    \"openai==3.6.0\",",
+      "id": "PRRT_kwDOTuzK5c6dnEAi",
+      "opened": "2026-08-31T04:32:47Z",
+      "path": "scenarios/gen-ai/python/agno/openllmetry/pyproject.toml",
+      "replies": [],
+      "reviewed": "619e134021dec9f407c01da98b7c94c2c8aa4baf",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/158#discussion_r3891714007"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The required regenerated `data.json` for this implementation is missing from the PR. `scenarios/gen-ai/AGENTS.md:53-60` requires running the directory with `--report-only` and committing the resulting reduction whenever its environment changes; please regenerate `agno/openinference/data.json` with OpenAI 3.6.0 so the checked-in conformance result matches this pin.",
+      "created": "2026-08-31T04:32:47Z",
+      "hunk": "@@ -4,7 +4,7 @@ version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n     \"agno==2.9.0\",\n-    \"openai==2.54.0\",\n+    \"openai==3.6.0\",",
+      "id": "PRRT_kwDOTuzK5c6dnEAt",
+      "opened": "2026-08-31T04:32:47Z",
+      "path": "scenarios/gen-ai/python/agno/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "619e134021dec9f407c01da98b7c94c2c8aa4baf",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/158#discussion_r3891714022"
+    }
+  ]
+}

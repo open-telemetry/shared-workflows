@@ -1,0 +1,241 @@
+{
+  "head": "d803f6541bc0e714147a538487d19492fc64030b",
+  "merge": "0f5411ef65a3417d91fd73f598edfad1b6f7391b",
+  "merged": "2026-09-22T21:34:13Z",
+  "missing_roots": 0,
+  "number": 726,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `workflow()` docstring doesn’t describe the new `context` parameter or its semantics (that it becomes the base context for the invocation, enabling propagation of entries like the ambient conversation id). Please update the docstring to document `context` and clarify how it affects parentage and context propagation (similar to `handler.tool(..., context=...)`).",
+      "created": "2026-09-15T22:23:10Z",
+      "hunk": "@@ -600,6 +600,8 @@ def invoke_remote_agent(\n     def workflow(\n         self,\n         name: str | None = None,\n+        *,\n+        context: Context | None = None,\n     ) -> WorkflowInvocation:\n         \"\"\"Returns a Workflow invocation. Starts a span when called.",
+      "id": "PRRT_kwDOSbspP86it-88",
+      "opened": "2026-09-15T22:23:11Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-09-17T07:13:38Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4034146214"
+        }
+      ],
+      "reviewed": "02199e5805ca4d6bbb84b6405d71d5f529c77bec",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4020731983"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_resolve_conversation_id()` reads the ambient conversation id from `self._span_context` (the context captured at start). This prevents picking up a conversation id that is attached later within the invocation’s lifetime (e.g., the caller attaches `with_conversation_id(...)` after receiving a response but before `stop()` runs). To match the PR description ('read it at finish time'), resolve from the *current* context at the time of finish (e.g., call `get_ambient_conversation_id()` without passing an explicit context), or otherwise consult the context active during `_apply_finish()`.",
+      "created": "2026-09-15T22:23:10Z",
+      "hunk": "@@ -147,10 +150,17 @@ def _start(\n             attributes=attributes,\n             context=context,\n         )\n-        self._span_context = set_span_in_context(self.span)\n+        self._span_context = set_span_in_context(self.span, context)\n         self._monotonic_start_s = timeit.default_timer()\n         self._context_token = attach(self._span_context)\n \n+    def _resolve_conversation_id(\n+        self, conversation_id: str | None\n+    ) -> str | None:\n+        if conversation_id is not None:\n+            return conversation_id\n+        return get_ambient_conversation_id(self._span_context)",
+      "id": "PRRT_kwDOSbspP86it-8m",
+      "opened": "2026-09-15T22:23:11Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-17T07:08:49Z",
+          "body": "switched to go with a different approach",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4034115171"
+        }
+      ],
+      "reviewed": "02199e5805ca4d6bbb84b6405d71d5f529c77bec",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4020731947"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These tests subclass `unittest.TestCase` but use bare `assert` statements. In `unittest`, Python may drop `assert` statements when run with optimizations (`python -O`), and `unittest`-style assertions also tend to produce more consistent failure output. Consider switching to `self.assertIsNone(...)`, `self.assertEqual(...)`, etc., or converting the tests to pytest-style (no `unittest.TestCase`) if that’s the intended runner.",
+      "created": "2026-09-15T22:23:11Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for the ambient ``gen_ai.conversation.id`` propagation via OTel\n+Context.\"\"\"\n+\n+from __future__ import annotations\n+\n+import unittest\n+\n+from opentelemetry.context import attach, detach\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import SimpleSpanProcessor\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAI,\n+)\n+from opentelemetry.util.genai.conversation_context import (\n+    get_ambient_conversation_id,\n+    with_conversation_id,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+\n+\n+class TestConversationContextPrimitives(unittest.TestCase):\n+    def test_get_returns_none_when_nothing_attached(self):\n+        assert get_ambient_conversation_id() is None",
+      "id": "PRRT_kwDOSbspP86it-9M",
+      "opened": "2026-09-15T22:23:11Z",
+      "path": "util/opentelemetry-util-genai/tests/test_conversation_context.py",
+      "replies": [
+        {
+          "at": "2026-09-17T07:12:58Z",
+          "body": "updated",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4034141830"
+        }
+      ],
+      "reviewed": "02199e5805ca4d6bbb84b6405d71d5f529c77bec",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4020732008"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Instrumentations should pass `conversation_id` through the handler abstraction rather than managing low-level context helpers directly.\n\n```suggestion\n        group_id: str | None = getattr(trace, \"group_id\", None)\n        invocation = self._handler.workflow(\n            name=trace.name,\n            conversation_id=group_id,\n        )\n```",
+      "created": "2026-09-16T05:49:44Z",
+      "hunk": "@@ -92,7 +95,18 @@ def on_trace_start(self, trace: Trace) -> None:\n         # \"Agent workflow\"). Callers customize it via the agents library's\n         # own ``Runner.run(..., run_config=RunConfig(workflow_name=...))``;\n         # we don't expose a second knob.\n-        invocation = self._handler.workflow(name=trace.name)\n+        #\n+        # ``group_id`` is public on ``TraceImpl`` but not declared on the\n+        # ``Trace`` ABC, hence the getattr.\n+        group_id: str | None = getattr(trace, \"group_id\", None)\n+        invocation = self._handler.workflow(\n+            name=trace.name,\n+            context=(\n+                with_conversation_id(group_id)\n+                if group_id is not None",
+      "id": "PRRT_kwDOSbspP86izUu2",
+      "opened": "2026-09-16T05:52:41Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/src/opentelemetry/instrumentation/genai/openai_agents/processor.py",
+      "replies": [
+        {
+          "at": "2026-09-17T07:21:57Z",
+          "body": "thanks! updated",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4034203009"
+        }
+      ],
+      "reviewed": "301714fe78d5bcad8c6d8b6f2749947c0abe4878",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4022882486"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Resolving ambient `conversation_id` only at finish time leaves `self.conversation_id` unset on the invocation, and setting `invocation.conversation_id` directly does not propagate to nested spans.\n\n```python\n    def _start(\n        self,\n        attributes: dict[str, AttributeValue] | None = None,\n        context: Context | None = None,\n        conversation_id: str | None = None,\n    ) -> None:\n        self.conversation_id = conversation_id or get_ambient_conversation_id(context)\n        if self.conversation_id:\n            context = with_conversation_id(self.conversation_id, context=context)\n        self.span = self._tracer.start_span(\n            name=self._span_name,\n            kind=self._span_kind,\n            attributes=attributes,\n            context=context,\n        )\n        self._span_context = set_span_in_context(self.span, context)\n        self._monotonic_start_s = timeit.default_timer()\n        self._context_token = attach(self._span_context)\n```",
+      "created": "2026-09-16T05:49:44Z",
+      "hunk": "@@ -147,10 +150,17 @@ def _start(\n             attributes=attributes,\n             context=context,\n         )\n-        self._span_context = set_span_in_context(self.span)\n+        self._span_context = set_span_in_context(self.span, context)\n         self._monotonic_start_s = timeit.default_timer()\n         self._context_token = attach(self._span_context)\n \n+    def _resolve_conversation_id(\n+        self, conversation_id: str | None\n+    ) -> str | None:\n+        if conversation_id is not None:\n+            return conversation_id\n+        return get_ambient_conversation_id(self._span_context)",
+      "id": "PRRT_kwDOSbspP86izUuw",
+      "opened": "2026-09-16T05:52:41Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-17T07:21:59Z",
+          "body": "that's a cleaner solution, thanks! I've updated the code",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4034203235"
+        }
+      ],
+      "reviewed": "301714fe78d5bcad8c6d8b6f2749947c0abe4878",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4022882477"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`context` was added to `workflow()` but omitted from `invoke_local_agent()`, `invoke_remote_agent()`, and `inference()`, preventing agent-rooted traces from receiving ambient context.\n\n```python\ndef invoke_local_agent(self, *, request_model: str | None = None, agent_name: str | None = None, context: Context | None = None) -> LocalAgentInvocation: ...\ndef invoke_remote_agent(self, provider: str, *, context: Context | None = None, ...) -> RemoteAgentInvocation: ...\ndef inference(self, provider: str, *, context: Context | None = None, ...) -> InferenceInvocation: ...\n```",
+      "created": "2026-09-16T05:49:44Z",
+      "hunk": "@@ -600,6 +600,8 @@ def invoke_remote_agent(\n     def workflow(\n         self,\n         name: str | None = None,\n+        *,\n+        context: Context | None = None,",
+      "id": "PRRT_kwDOSbspP86izUvC",
+      "opened": "2026-09-16T05:52:41Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-09-17T07:21:55Z",
+          "body": "thanks, added `context` and `conversation_id` to their signatures",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4034202847"
+        }
+      ],
+      "reviewed": "301714fe78d5bcad8c6d8b6f2749947c0abe4878",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4022882499"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This asserts that `conversation_id` is never assigned on invocation instances, codifying the missing attribute assignment.\n\n```suggestion\n    assert workflow_inv.conversation_id == \"chat-thread-42\"\n    assert agent_inv.conversation_id == \"chat-thread-42\"\n```",
+      "created": "2026-09-16T05:49:44Z",
+      "hunk": "@@ -72,6 +86,54 @@ def test_trace_start_end_creates_and_stops_workflow() -> None:\n     workflow_invocation.stop.assert_called_once_with()\n \n \n+def test_trace_without_group_id_passes_no_context() -> None:\n+    handler = _build_handler()\n+    handler.workflow.return_value = MagicMock(attributes={})\n+    processor = GenAITracingProcessor(handler, provider=\"openai\")\n+    trace = _Trace(\"trace-1\", \"Agent workflow\")  # no group_id\n+\n+    processor.on_trace_start(trace)\n+\n+    handler.workflow.assert_called_once_with(\n+        name=\"Agent workflow\", context=None\n+    )\n+\n+\n+def test_trace_group_id_is_handed_to_workflow_as_context() -> None:\n+    handler = _build_handler()\n+    handler.workflow.return_value = MagicMock(attributes={})\n+    processor = GenAITracingProcessor(handler, provider=\"openai\")\n+    trace = _Trace(\"trace-1\", \"Agent workflow\", group_id=\"chat-thread-42\")\n+\n+    processor.on_trace_start(trace)\n+\n+    _, kwargs = handler.workflow.call_args\n+    # The invocation attaches this for its lifetime, so everything nested\n+    # under it sees the conversation id.\n+    assert get_ambient_conversation_id(kwargs[\"context\"]) == \"chat-thread-42\"\n+\n+\n+def test_processor_never_assigns_conversation_id_on_invocations() -> None:\n+    # The processor only hands the conversation id over as a Context;\n+    # util-genai invocations resolve gen_ai.conversation.id themselves.\n+    handler = _build_handler()\n+    workflow_inv = MagicMock(attributes={}, conversation_id=None)\n+    agent_inv = MagicMock(spec=LocalAgentInvocation, conversation_id=None)\n+    handler.workflow.return_value = workflow_inv\n+    handler.invoke_local_agent.return_value = agent_inv\n+    processor = GenAITracingProcessor(handler, provider=\"openai\")\n+    trace = _Trace(\"trace-1\", \"Agent workflow\", group_id=\"chat-thread-42\")\n+\n+    processor.on_trace_start(trace)\n+    span = _Span(AgentSpanData(name=\"triage\"))\n+    processor.on_span_start(span)\n+    processor.on_span_end(span)\n+    processor.on_trace_end(trace)\n+\n+    assert workflow_inv.conversation_id is None\n+    assert agent_inv.conversation_id is None\n+\n+",
+      "id": "PRRT_kwDOSbspP86izUvG",
+      "opened": "2026-09-16T05:52:41Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/test_processor.py",
+      "replies": [
+        {
+          "at": "2026-09-17T07:21:54Z",
+          "body": "got it, added `handler.workflow.assert_called_once_with(name=\"Agent workflow\", conversation_id=\"chat-thread-42\")` to assert that since the assignment happens in `_start()` and workflow_inv here is a mock obj",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4034202698"
+        }
+      ],
+      "reviewed": "301714fe78d5bcad8c6d8b6f2749947c0abe4878",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4022882504"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Since the invocation context is created in `handler.inference()`, setting the ID here does not propagate it to child spans. Could we include `conversation_id` in `get_inference_creation_kwargs()` instead?",
+      "created": "2026-09-17T22:31:22Z",
+      "hunk": "@@ -662,7 +662,8 @@ def apply_request_attributes(\n     invocation.attributes[OpenAIAttributes.OPENAI_API_TYPE] = (\n         OpenAIAttributes.OpenaiApiTypeValues.RESPONSES.value\n     )\n-    invocation.conversation_id = params.conversation_id\n+    if params.conversation_id is not None:",
+      "id": "PRRT_kwDOSbspP86jjcl5",
+      "opened": "2026-09-17T22:31:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-09-21T04:32:24Z",
+          "body": "that's a good point, thanks! already updated this part",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4059276141"
+        }
+      ],
+      "reviewed": "511b34b0bd94dfa2d51f9eb62057777bca06ba33",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4041970518"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "+1 to Rad's point! Setting this after `handler.inference()` means `_start()` has already attached the context, so nested spans won't pick up the conversation id. Passing it via `get_inference_creation_kwargs()` would ensure it is attached from the start.",
+      "created": "2026-09-19T05:11:13Z",
+      "hunk": "@@ -662,7 +662,8 @@ def apply_request_attributes(\n     invocation.attributes[OpenAIAttributes.OPENAI_API_TYPE] = (\n         OpenAIAttributes.OpenaiApiTypeValues.RESPONSES.value\n     )\n-    invocation.conversation_id = params.conversation_id\n+    if params.conversation_id is not None:",
+      "id": "PRRT_kwDOSbspP86j9RxY",
+      "opened": "2026-09-19T05:11:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-09-21T04:32:46Z",
+          "body": "thanks! already updated",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4059277111"
+        }
+      ],
+      "reviewed": "511b34b0bd94dfa2d51f9eb62057777bca06ba33",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4052309883"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Using `conversation_id or ...` relies on truthiness, so an explicit empty string falls back to the ambient ID. Could we check `if conversation_id is not None:` instead?",
+      "created": "2026-09-19T05:11:13Z",
+      "hunk": "@@ -134,20 +139,32 @@ def _start(\n         self,\n         attributes: dict[str, AttributeValue] | None = None,\n         context: Context | None = None,\n+        *,\n+        conversation_id: str | None = None,\n     ) -> None:\n         \"\"\"Start the invocation span and attach it to the current context.\n \n         Args:\n             attributes: Initial span attributes available for sampling decisions.\n             context: An optional OpenTelemetry Context to parent the span.\n+            conversation_id: Overrides the conversation id inherited from\n+                ``context``. Either way the resolved value is put back on the\n+                attached context, so nested invocations inherit it in turn.\n         \"\"\"\n+        self.conversation_id = conversation_id or get_ambient_conversation_id(",
+      "id": "PRRT_kwDOSbspP86j9Rxa",
+      "opened": "2026-09-19T05:11:47Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-21T04:33:11Z",
+          "body": "just fixed this, thanks for calling it out!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4059278428"
+        }
+      ],
+      "reviewed": "511b34b0bd94dfa2d51f9eb62057777bca06ba33",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4052309885"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Moving all context management into util is great - it's hard to do right and prevent leaking, and handling spans and extra attributes in one place will keep things clean.\n\nRelatedly, Dylan has a PR for inner layer suppression and context passing (#663) that also touches context management in `_invocation.py`. Not a blocker, but worth taking a look when you have a moment so we can coordinate and ensure both context mechanisms work together reliably.\n\nAlso, since callers and instrumentations interact through `handler.*(conversation_id=...)`, could we keep this helper internal as `_conversation_context.py`?",
+      "created": "2026-09-19T05:11:13Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Carry ``gen_ai.conversation.id`` on the OTel Context.\n+\n+A framework instrumentation writes the id. Inference, invoke_agent and\n+invoke_workflow invocations read it when the caller set none explicitly.\n+That is how a ``chat`` span from another instrumentation package, which\n+only sees the HTTP call, ends up with the id.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+from opentelemetry.context import (\n+    Context,\n+    create_key,\n+    get_value,\n+    set_value,\n+)\n+\n+CONVERSATION_ID_KEY = create_key(\"opentelemetry.util.genai.conversation_id\")",
+      "id": "PRRT_kwDOSbspP86j9Rxd",
+      "opened": "2026-09-19T05:11:47Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_conversation_context.py",
+      "replies": [
+        {
+          "at": "2026-09-21T04:58:12Z",
+          "body": "thanks! I've renamed it.\r\nlooking at #663 , it seems like it collects attributes from inner to outer instrumentation, this one hands the id in an opposite way (like head vs tail recursion), the code path should be pretty separate and could work together. I also noticed that it creates a `_context.py` file, happy to move what's in this file into that one once 663 is merged to make it cleaner!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4059361201"
+        }
+      ],
+      "reviewed": "511b34b0bd94dfa2d51f9eb62057777bca06ba33",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/726#discussion_r4052309887"
+    }
+  ]
+}

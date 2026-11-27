@@ -1,0 +1,25 @@
+{
+  "head": "d4bb4f33a73895e7e8bd473846753321888b5aaf",
+  "merge": "647a9c3a1302d53a3cae3b969a3859fa3715da35",
+  "merged": "2026-10-02T07:47:18Z",
+  "missing_roots": 0,
+  "number": 20341,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] Excluding `custom.regex` makes the surrounding comments inaccurate: line 37 still says this rule groups `custom.regex`, and line 52 says the semconv rule avoids a schedule inherited from the `custom.regex` rule above. Please update both comments so future configuration changes are based on the rule's actual behavior.",
+      "created": "2026-10-01T15:13:43Z",
+      "hunk": "@@ -39,7 +39,8 @@\n       matchManagers: [\n         'github-actions',\n         'dockerfile',\n-        'custom.regex',\n+        // commented out to see whether weekly update passes without this line\n+        // 'custom.regex',",
+      "id": "PRRT_kwDODJKVX86oAaWR",
+      "opened": "2026-10-01T15:13:44Z",
+      "path": ".github/renovate.json5",
+      "replies": [],
+      "reviewed": "d4bb4f33a73895e7e8bd473846753321888b5aaf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20341#discussion_r4157063635"
+    }
+  ]
+}

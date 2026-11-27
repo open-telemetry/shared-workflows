@@ -1,0 +1,52 @@
+{
+  "head": "ddbb029bd9fded9e939519b52a47c03fc43d757a",
+  "merge": "435999a03f312640162fbc3cc6b22a8a3019c5ba",
+  "merged": "2026-10-06T20:00:01Z",
+  "missing_roots": 0,
+  "number": 835,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Matching two exact substrings only catches these two events, and passes silently if langchain rewords the warning. Could you add a shared helper to `opentelemetry-test-util-genai` that asserts no warnings from a given logger? It would catch any callback error, and other packages could reuse it:\n\n```python\n# util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/logs.py\nimport logging\nfrom contextlib import contextmanager\nfrom typing import Iterator\n\nimport pytest\n\n\n@contextmanager\ndef assert_no_warnings(\n    caplog: pytest.LogCaptureFixture, logger_name: str\n) -> Iterator[None]:\n    with caplog.at_level(logging.WARNING, logger=logger_name):\n        yield\n    leaked = [\n        r.getMessage()\n        for r in caplog.records\n        if r.name == logger_name and r.levelno >= logging.WARNING\n    ]\n    assert not leaked, leaked\n```\n\nUsage:\n\n```python\nwith assert_no_warnings(caplog, \"langchain_core.callbacks.manager\"):\n    interrupted = graph.invoke({\"answer\": \"\"}, config)\n    resumed = graph.invoke(Command(resume=\"yes\"), config)\n```",
+      "created": "2026-10-02T22:59:17Z",
+      "hunk": "@@ -0,0 +1,72 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"LangGraph interrupt and resume must not log callback AttributeErrors.\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from typing import Any, TypedDict\n+\n+import pytest\n+\n+pytest.importorskip(\"langgraph\")\n+from langgraph.checkpoint.memory import InMemorySaver\n+from langgraph.graph import END, START, StateGraph\n+from langgraph.types import Command, interrupt\n+\n+\n+class _State(TypedDict):\n+    answer: str\n+\n+\n+def _build_graph() -> Any:\n+    def ask(_: _State) -> _State:\n+        return {\"answer\": interrupt(\"approve?\")}\n+\n+    builder = StateGraph(_State)\n+    builder.add_node(\"ask\", ask)\n+    builder.add_edge(START, \"ask\")\n+    builder.add_edge(\"ask\", END)\n+    return builder.compile(checkpointer=InMemorySaver())\n+\n+\n+def _assert_no_callback_warnings(caplog: pytest.LogCaptureFixture) -> None:\n+    assert (\n+        \"OpenTelemetryLangChainCallbackHandler.on_interrupt\" not in caplog.text\n+    )\n+    assert \"OpenTelemetryLangChainCallbackHandler.on_resume\" not in caplog.text",
+      "id": "PRRT_kwDOSbspP86ohG0O",
+      "opened": "2026-10-02T23:00:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_langgraph_interrupt.py",
+      "replies": [
+        {
+          "at": "2026-10-03T01:50:13Z",
+          "body": "Thanks, done in 9b6d9d4a. `assert_no_warnings` is now in `opentelemetry-test-util-genai` as you wrote it, both tests use it on `langchain_core.callbacks.manager`, and the async one uses `pytest.mark.asyncio`. Against main, both fail with the two `AttributeError` messages.\r\n\r\nThe 3.10 failure reproduces without instrumentation: LangGraph's async path before 3.11 doesn't propagate the runnable config that `interrupt()` looks up. The async test now skips there, with the same condition and reason as the LangGraph tests in `test_agent_classification_corpus.py`. In the `py310-test-instrumentation-genai-langchain-latest` env the two interrupt tests give 1 passed, 1 skipped.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/835#discussion_r4171199556"
+        }
+      ],
+      "reviewed": "7b544c8fea009e2298f91294b621e24a1dc9df08",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/835#discussion_r4170514101"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the other tests in this package use `pytest.mark.asyncio`, so `asyncio.run` and the inner coroutine aren't needed (drop `import asyncio` too):\n\n```suggestion\n@pytest.mark.asyncio\nasync def test_ainvoke_interrupt_and_resume_do_not_log_callback_warnings(\n    caplog: pytest.LogCaptureFixture, start_instrumentation\n) -> None:\n    graph = _build_graph()\n    config: Any = {\"configurable\": {\"thread_id\": \"async\"}}\n\n    with caplog.at_level(\"WARNING\"):\n        interrupted = await graph.ainvoke({\"answer\": \"\"}, config)\n        resumed = await graph.ainvoke(Command(resume=\"yes\"), config)\n```",
+      "created": "2026-10-02T22:59:17Z",
+      "hunk": "@@ -0,0 +1,72 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"LangGraph interrupt and resume must not log callback AttributeErrors.\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from typing import Any, TypedDict\n+\n+import pytest\n+\n+pytest.importorskip(\"langgraph\")\n+from langgraph.checkpoint.memory import InMemorySaver\n+from langgraph.graph import END, START, StateGraph\n+from langgraph.types import Command, interrupt\n+\n+\n+class _State(TypedDict):\n+    answer: str\n+\n+\n+def _build_graph() -> Any:\n+    def ask(_: _State) -> _State:\n+        return {\"answer\": interrupt(\"approve?\")}\n+\n+    builder = StateGraph(_State)\n+    builder.add_node(\"ask\", ask)\n+    builder.add_edge(START, \"ask\")\n+    builder.add_edge(\"ask\", END)\n+    return builder.compile(checkpointer=InMemorySaver())\n+\n+\n+def _assert_no_callback_warnings(caplog: pytest.LogCaptureFixture) -> None:\n+    assert (\n+        \"OpenTelemetryLangChainCallbackHandler.on_interrupt\" not in caplog.text\n+    )\n+    assert \"OpenTelemetryLangChainCallbackHandler.on_resume\" not in caplog.text\n+\n+\n+def test_invoke_interrupt_and_resume_do_not_log_callback_warnings(\n+    caplog: pytest.LogCaptureFixture, start_instrumentation\n+) -> None:\n+    graph = _build_graph()\n+    config: Any = {\"configurable\": {\"thread_id\": \"sync\"}}\n+\n+    with caplog.at_level(\"WARNING\"):\n+        interrupted = graph.invoke({\"answer\": \"\"}, config)\n+        resumed = graph.invoke(Command(resume=\"yes\"), config)\n+\n+    assert \"__interrupt__\" in interrupted\n+    assert resumed == {\"answer\": \"yes\"}\n+    _assert_no_callback_warnings(caplog)\n+\n+\n+def test_ainvoke_interrupt_and_resume_do_not_log_callback_warnings(\n+    caplog: pytest.LogCaptureFixture, start_instrumentation\n+) -> None:\n+    graph = _build_graph()\n+    config: Any = {\"configurable\": {\"thread_id\": \"async\"}}\n+\n+    async def scenario() -> tuple[Any, Any]:\n+        interrupted = await graph.ainvoke({\"answer\": \"\"}, config)\n+        resumed = await graph.ainvoke(Command(resume=\"yes\"), config)\n+        return interrupted, resumed\n+\n+    with caplog.at_level(\"WARNING\"):\n+        interrupted, resumed = asyncio.run(scenario())",
+      "id": "PRRT_kwDOSbspP86ohG0R",
+      "opened": "2026-10-02T23:00:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_langgraph_interrupt.py",
+      "replies": [
+        {
+          "at": "2026-10-03T01:51:10Z",
+          "body": "Done in 9b6d9d4a, using `assert_no_warnings` there too instead of `caplog.at_level`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/835#discussion_r4171206949"
+        }
+      ],
+      "reviewed": "7b544c8fea009e2298f91294b621e24a1dc9df08",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/835#discussion_r4170514106"
+    }
+  ]
+}

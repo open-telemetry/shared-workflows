@@ -1,0 +1,70 @@
+{
+  "head": "e2eccfcc2c6900da0bf5998c10a0c069f6c3c8cc",
+  "merge": "d8761069d49f2071f109d48f22624c8d999b649f",
+  "merged": "2026-05-16T23:05:35Z",
+  "missing_roots": 0,
+  "number": 18709,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Scope` opened in `onEnter()` is only closed on normal returns because `@Advice.OnMethodExit` does not specify `onThrowable = Throwable.class`. If `TaskQueue.execute(...)` throws, the root-context scope will remain current and can leak context into subsequent work on the same thread. Add `onThrowable = Throwable.class` to the `OnMethodExit` (as done in other scope-closing advices) to ensure the scope is always closed.",
+      "created": "2026-05-12T14:16:26Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.httpclient.common.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.bootstrap.executors.ContextPropagatingRunnable;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+public class TaskQueueInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.vertx.core.impl.TaskQueue\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"execute\").and(takesArgument(0, Runnable.class)),\n+        getClass().getName() + \"$ExecuteAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ExecuteAdvice {\n+\n+    @Advice.AssignReturned.ToArguments(\n+        @Advice.AssignReturned.ToArguments.ToArgument(value = 0, index = 0))\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Object[] onEnter(@Advice.Argument(0) Runnable task) {\n+      // Attach context to the task being executed and prevent further context propagation in this\n+      // method. This method places the task into queue and executes a runnable that start consuming\n+      // tasks from the queue. Since we already attached context to the task, we don't want to\n+      // propagate context into the runnable that consumes tasks from the queue.\n+      Context context = Java8BytecodeBridge.currentContext();\n+      return new Object[] {\n+        ContextPropagatingRunnable.propagateContext(task, context),\n+        Java8BytecodeBridge.rootContext().makeCurrent()\n+      };\n+    }\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(@Advice.Enter Object[] enterArguments) {\n+      Scope scope = (Scope) enterArguments[1];\n+      if (scope != null) {\n+        scope.close();\n+      }",
+      "id": "PRRT_kwDODJKVX86BcaCH",
+      "opened": "2026-05-12T14:16:28Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/common/v3_0/TaskQueueInstrumentation.java",
+      "replies": [],
+      "reviewed": "b7e358e6a4748be148cffdb775d5c7cbe5b979ba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18709#discussion_r3227137824"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment has a grammatical error: “executes a runnable that start consuming tasks” → “starts consuming tasks”.\n",
+      "created": "2026-05-12T14:16:27Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.httpclient.common.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.bootstrap.executors.ContextPropagatingRunnable;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+public class TaskQueueInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.vertx.core.impl.TaskQueue\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"execute\").and(takesArgument(0, Runnable.class)),\n+        getClass().getName() + \"$ExecuteAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ExecuteAdvice {\n+\n+    @Advice.AssignReturned.ToArguments(\n+        @Advice.AssignReturned.ToArguments.ToArgument(value = 0, index = 0))\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Object[] onEnter(@Advice.Argument(0) Runnable task) {\n+      // Attach context to the task being executed and prevent further context propagation in this\n+      // method. This method places the task into queue and executes a runnable that start consuming",
+      "id": "PRRT_kwDODJKVX86BcaD-",
+      "opened": "2026-05-12T14:16:28Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/common/v3_0/TaskQueueInstrumentation.java",
+      "replies": [],
+      "reviewed": "b7e358e6a4748be148cffdb775d5c7cbe5b979ba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18709#discussion_r3227137970"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ContextPropagatingRunnable.propagateContext(...)` is intended to be used only for lambda runnables (see `ContextPropagatingRunnable.shouldDecorateRunnable` comment) because wrapping arbitrary `Runnable` instances changes their concrete type/identity and can break downstream logic that expects a specific implementation. Consider following the existing executor-instrumentation pattern: first check `ExecutorAdviceHelper.shouldPropagateContext(currentContext, task)`; then only wrap when `ContextPropagatingRunnable.shouldDecorateRunnable(task)` is true, otherwise attach the context via a `VirtualField<Runnable, PropagatedContext>` using `ExecutorAdviceHelper.attachContextToTask(...)` so the runnable instance is preserved.",
+      "created": "2026-05-12T14:16:27Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.httpclient.common.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.bootstrap.executors.ContextPropagatingRunnable;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+public class TaskQueueInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.vertx.core.impl.TaskQueue\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"execute\").and(takesArgument(0, Runnable.class)),\n+        getClass().getName() + \"$ExecuteAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ExecuteAdvice {\n+\n+    @Advice.AssignReturned.ToArguments(\n+        @Advice.AssignReturned.ToArguments.ToArgument(value = 0, index = 0))\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Object[] onEnter(@Advice.Argument(0) Runnable task) {\n+      // Attach context to the task being executed and prevent further context propagation in this\n+      // method. This method places the task into queue and executes a runnable that start consuming\n+      // tasks from the queue. Since we already attached context to the task, we don't want to\n+      // propagate context into the runnable that consumes tasks from the queue.\n+      Context context = Java8BytecodeBridge.currentContext();\n+      return new Object[] {\n+        ContextPropagatingRunnable.propagateContext(task, context),\n+        Java8BytecodeBridge.rootContext().makeCurrent()\n+      };",
+      "id": "PRRT_kwDODJKVX86BcaDY",
+      "opened": "2026-05-12T14:16:28Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/common/v3_0/TaskQueueInstrumentation.java",
+      "replies": [],
+      "reviewed": "b7e358e6a4748be148cffdb775d5c7cbe5b979ba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18709#discussion_r3227137920"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "New instrumentation is added for `io.vertx.core.impl.TaskQueue.execute(Runnable)` but there is no corresponding regression test covering the intended context-propagation behavior (and preventing propagation into the queue consumer runnable). Since the vertx-http-client 3.0/4.0/5.0 modules already have `VertxHttpClientTest` suites, consider adding a focused test case that exercises `TaskQueue` usage under concurrency and asserts the correct parent context/span is observed.",
+      "created": "2026-05-12T14:16:27Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.httpclient.common.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.bootstrap.executors.ContextPropagatingRunnable;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+public class TaskQueueInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.vertx.core.impl.TaskQueue\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"execute\").and(takesArgument(0, Runnable.class)),\n+        getClass().getName() + \"$ExecuteAdvice\");\n+  }",
+      "id": "PRRT_kwDODJKVX86BcaEk",
+      "opened": "2026-05-12T14:16:28Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/common/v3_0/TaskQueueInstrumentation.java",
+      "replies": [],
+      "reviewed": "b7e358e6a4748be148cffdb775d5c7cbe5b979ba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18709#discussion_r3227138011"
+    }
+  ]
+}

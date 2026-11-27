@@ -1,0 +1,94 @@
+{
+  "head": "64a98c6243890604531bcf1bab096b61e5099678",
+  "merge": "4a6473ee6695aef42e86a37e142bb7d1687116c6",
+  "merged": "2026-08-20T00:27:04Z",
+  "missing_roots": 0,
+  "number": 19706,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The URI is associated only when `connectStandalone` exits, but the non-default-database `SELECT` is dispatched while that method is still running (the new setup test notes that this span is nested under `CONNECT`). Its command therefore sees an unset `CONNECTION_URI` and still omits stable `db.namespace`, contrary to the PR's guarantee that every Redis client span has it. Associate the URI before connection-initialization commands are dispatched, and assert the generated `SELECT` span.",
+      "created": "2026-08-19T04:54:46Z",
+      "hunk": "@@ -65,8 +67,12 @@ public static AdviceScope onEnter(@Advice.Argument(1) RedisURI redisUri) {\n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n     public static void onExit(\n         @Advice.Argument(1) RedisURI redisUri,\n+        @Advice.Return @Nullable Object connection,\n         @Advice.Thrown @Nullable Throwable throwable,\n         @Advice.Enter @Nullable AdviceScope adviceScope) {\n+      if (connection instanceof RedisChannelHandler) {\n+        CONNECTION_URI.set((RedisChannelHandler<?, ?>) connection, redisUri);",
+      "id": "PRRT_kwDODJKVX86aWYe8",
+      "opened": "2026-08-19T04:54:47Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceConnectInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-19T05:43:52Z",
+          "body": "Good catch, fixed. Attaching on exit of `connectStandalone` was too late for the `SELECT` that lettuce sends while connecting to a non-default database.\n\nThe URI is now attached on **entry** of `RedisClient.connectStateful` / `connectStatefulAsync`, which takes the `StatefulRedisConnectionImpl` and the `RedisURI` as arguments, so the virtual field is set before lettuce dispatches any connect-time command. This mirrors what lettuce 5.0 already does in `LettuceClientInstrumentation.AttachEndpointAdvice`. I checked with `javap` that the method exists with that signature across 4.0.Final through 4.5.0.Final (`connectStateful` in 4.0-4.3, `connectStatefulAsync` in 4.4+), and the matcher covers both.\n\n`testNonDefaultDatabaseIndexOnConnect` in both modules now asserts the generated `SELECT` span carries `db.namespace`, so the behavior is proved rather than claimed. It asserts the span rather than the enclosing trace because the `SELECT` nests under `CONNECT` on lettuce 4.0 but starts its own trace on 4.5 and 5.x. Muzzle and the `testLatestDeps` runs pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19706#discussion_r3810350983"
+        }
+      ],
+      "reviewed": "540c9a79b224ed1f429185d78ae0879c46d2bc6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19706#discussion_r3810148768"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Repository Java test conventions prohibit adding `@Nullable` to test code. Please remove this annotation and its import; the assertion helper can still return the conditional null expected value without a test-source nullability annotation.",
+      "created": "2026-08-19T04:54:46Z",
+      "hunk": "@@ -570,6 +592,63 @@ void deferredFlushCommand(BatchScenario scenario) throws Exception {\n                                 emitStableDatabaseSemconv() ? scenario.errorType : null))));\n   }\n \n+  @Test\n+  void testNonDefaultDatabaseIndex() throws Exception {\n+    nonDefaultDbCommands.set(\"NONDEFAULTKEY\", \"NONDEFAULTVAL\").get(10, SECONDS);\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(emitStableDatabaseSemconv() ? \"SET \" + host + \":\" + port : \"SET\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(DB_NAMESPACE, expectedNonDefaultNamespace()),\n+                            equalTo(maybeStable(DB_OPERATION), \"SET\"),\n+                            equalTo(SERVER_ADDRESS, host),\n+                            equalTo(SERVER_PORT, port))));\n+  }\n+\n+  @Test\n+  void testNonDefaultDatabaseIndexOnBatch() throws Exception {\n+    nonDefaultDbCommands.setAutoFlushCommands(false);\n+    cleanup.deferCleanup(() -> nonDefaultDbCommands.setAutoFlushCommands(true));\n+\n+    List<RedisFuture<String>> futures =\n+        asList(\n+            nonDefaultDbCommands.set(\"NONDEFAULTBATCH1\", \"v1\"),\n+            nonDefaultDbCommands.set(\"NONDEFAULTBATCH2\", \"v2\"));\n+    nonDefaultDbCommands.flushCommands();\n+    for (RedisFuture<String> future : futures) {\n+      future.get(10, SECONDS);\n+    }\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\n+                            emitStableDatabaseSemconv()\n+                                ? \"PIPELINE SET \" + host + \":\" + port\n+                                : \"PIPELINE SET\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(DB_NAMESPACE, expectedNonDefaultNamespace()),\n+                            equalTo(maybeStable(DB_OPERATION), \"PIPELINE SET\"),\n+                            equalTo(SERVER_ADDRESS, host),\n+                            equalTo(SERVER_PORT, port),\n+                            equalTo(\n+                                DB_OPERATION_BATCH_SIZE,\n+                                emitStableDatabaseSemconv() ? 2L : null))));\n+  }\n+\n+  @Nullable",
+      "id": "PRRT_kwDODJKVX86aWYfI",
+      "opened": "2026-08-19T04:54:47Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-19T05:43:57Z",
+          "body": "Removed the annotation and its import. `.github/instructions/java-style.instructions.md` says not to use `@Nullable` in test code, so this was against the repo rule.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19706#discussion_r3810351371"
+        }
+      ],
+      "reviewed": "540c9a79b224ed1f429185d78ae0879c46d2bc6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19706#discussion_r3810148786"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Repository Java test conventions prohibit adding `@Nullable` to test code. Please remove this annotation and its import; the assertion helper can still return the conditional null expected value without a test-source nullability annotation.",
+      "created": "2026-08-19T04:54:47Z",
+      "hunk": "@@ -573,6 +599,69 @@ void deferredFlushCommand(BatchScenario scenario) throws Exception {\n                                 emitStableDatabaseSemconv() ? scenario.errorType : null))));\n   }\n \n+  @Test\n+  void testNonDefaultDatabaseIndex() throws Exception {\n+    nonDefaultDbCommands.set(\"NONDEFAULTKEY\", \"NONDEFAULTVAL\").get(10, SECONDS);\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(emitStableDatabaseSemconv() ? \"SET \" + host + \":\" + port : \"SET\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(SERVER_ADDRESS, host),\n+                            equalTo(SERVER_PORT, port),\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(DB_NAMESPACE, expectedNonDefaultNamespace()),\n+                            equalTo(maybeStable(DB_STATEMENT), \"SET NONDEFAULTKEY ?\"),\n+                            equalTo(maybeStable(DB_OPERATION), \"SET\"))));\n+  }\n+\n+  @Test\n+  void testNonDefaultDatabaseIndexOnBatch() throws Exception {\n+    nonDefaultDbConnection.setAutoFlushCommands(false);\n+    cleanup.deferCleanup(() -> nonDefaultDbConnection.setAutoFlushCommands(true));\n+\n+    List<RedisFuture<String>> futures =\n+        asList(\n+            nonDefaultDbCommands.set(\"NONDEFAULTBATCH1\", \"v1\"),\n+            nonDefaultDbCommands.set(\"NONDEFAULTBATCH2\", \"v2\"));\n+    nonDefaultDbConnection.flushCommands();\n+    for (RedisFuture<String> future : futures) {\n+      future.get(10, SECONDS);\n+    }\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\n+                            emitStableDatabaseSemconv()\n+                                ? \"PIPELINE SET \" + host + \":\" + port\n+                                : \"PIPELINE SET\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(SERVER_ADDRESS, host),\n+                            equalTo(SERVER_PORT, port),\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(DB_NAMESPACE, expectedNonDefaultNamespace()),\n+                            equalTo(\n+                                maybeStable(DB_STATEMENT),\n+                                emitStableDatabaseSemconv()\n+                                    ? \"SET NONDEFAULTBATCH1 ?; SET NONDEFAULTBATCH2 ?\"\n+                                    : \"SET NONDEFAULTBATCH1 ?;SET NONDEFAULTBATCH2 ?\"),\n+                            equalTo(maybeStable(DB_OPERATION), \"PIPELINE SET\"),\n+                            equalTo(\n+                                DB_OPERATION_BATCH_SIZE,\n+                                emitStableDatabaseSemconv() ? 2L : null))));\n+  }\n+\n+  @Nullable",
+      "id": "PRRT_kwDODJKVX86aWYfT",
+      "opened": "2026-08-19T04:54:47Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceAsyncClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-19T05:44:03Z",
+          "body": "Removed the annotation and its import here too, same as in the lettuce 4.0 test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19706#discussion_r3810351762"
+        }
+      ],
+      "reviewed": "540c9a79b224ed1f429185d78ae0879c46d2bc6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19706#discussion_r3810148805"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "instead of extending the getter an alternative would be to have an internal class like `RedisSpanNameDbAttributesGetter` that delegates the method needed for span name extraction to the `LettuceDbAttributesGetter`",
+      "created": "2026-08-19T16:09:18Z",
+      "hunk": "@@ -51,26 +51,50 @@ public class LettuceSingletons {\n   public static final VirtualField<RedisCommand<?, ?, ?>, InetSocketAddress> COMMAND_ADDRESS =\n       VirtualField.find(RedisCommand.class, InetSocketAddress.class);\n \n+  public static final VirtualField<RedisChannelHandler<?, ?>, RedisURI> CONNECTION_URI =\n+      VirtualField.find(RedisChannelHandler.class, RedisURI.class);\n+\n+  public static final VirtualField<RedisCommand<?, ?, ?>, RedisURI> COMMAND_URI =\n+      VirtualField.find(RedisCommand.class, RedisURI.class);\n+\n   static {\n     LettuceDbAttributesGetter dbAttributesGetter = new LettuceDbAttributesGetter();\n+    // Redis semantic conventions don't follow the regular pattern of adding db.namespace to the\n+    // span name.\n+    LettuceDbAttributesGetter spanNameAttributesGetter =",
+      "id": "PRRT_kwDODJKVX86aiHmo",
+      "opened": "2026-08-19T16:09:18Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-20T00:26:44Z",
+          "body": "will send follow-up, tracking in https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/19717",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19706#discussion_r3817744800"
+        }
+      ],
+      "reviewed": "87de92d0a1fc8ccaba60720606c2a0c430fd6084",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19706#discussion_r3814695352"
+    }
+  ]
+}

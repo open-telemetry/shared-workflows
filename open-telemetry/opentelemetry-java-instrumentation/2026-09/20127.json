@@ -1,0 +1,94 @@
+{
+  "head": "2dfe9aecb3bf3a15a859543bdc942bda625ee77d",
+  "merge": "8fe4b5b6cca9d4aac0496a365e820c3b90440dba",
+  "merged": "2026-09-18T15:34:29Z",
+  "missing_roots": 0,
+  "number": 20127,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Schema propagation through this extractor does not cover legacy messaging spans that construct their attributes manually. In particular, `RocketMqInstrumenterFactory` lines 108-113 builds and executes the legacy batch receive instrumenter with `messaging.system`/`messaging.operation` constants but no `MessagingAttributesExtractor` or explicit schema URL, so those spans still have a null schema instead of v1.24.0. Set `messagingSchemaUrl(false)` on that builder (and cover the legacy batch path) to complete the advertised messaging rollout.",
+      "created": "2026-09-12T22:45:18Z",
+      "hunk": "@@ -285,4 +287,9 @@ public SpanKey internalGetSpanKey() {\n     }\n     throw new IllegalStateException(\"Can't possibly happen\");\n   }\n+\n+  @Override\n+  public String internalGetSchemaUrl() {\n+    return messagingSchemaUrl(supportsStableSemconv);",
+      "id": "PRRT_kwDODJKVX86h0WVM",
+      "opened": "2026-09-12T22:45:19Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-09-12T22:56:08Z",
+          "body": "Addressed in cbe0ba2e228c0d9f811368e943aaf1ecd6cefbcf.\n\nAnalysis: The legacy RocketMQ batch receive instrumenter bypasses MessagingAttributesExtractor, so it must set the legacy messaging schema URL directly on its builder. The regression test executes that batch path and checks the receive span scope.\n\nUpsides: Every RocketMQ messaging span now reports the schema URL for the semantic conventions it emits, and the test protects the manually built receive span.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20127#discussion_r3997913205"
+        }
+      ],
+      "reviewed": "d6fe504ba6322ac37eec564fb6c089600acce350",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20127#discussion_r3997889498"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This fallback makes the comparator non-transitive when canonical and non-canonical URLs are mixed. For example, `1.9.0 < 1.10.0` numerically, while `1.10.0 < 1.5.invalid < 1.9.0` lexically, so the selected “maximum” depends on the `Set` iteration order (and sorting may reject the comparator). Classify URLs by whether they match first, then compare two matched URLs numerically or two unmatched URLs lexically.",
+      "created": "2026-09-12T22:45:19Z",
+      "hunk": "@@ -89,10 +93,34 @@ private static EmittedScope.Scope findScopeByName(\n       Set<EmittedScope.Scope> scopes, String scopeName) {\n     return scopes.stream()\n         .filter(scope -> scopeName.equals(scope.getName()))\n-        .min(Comparator.comparingInt(scope -> scope.getSchemaUrl() == null ? 1 : 0))\n+        .max(\n+            Comparator.comparing(\n+                    EmittedScope.Scope::getSchemaUrl,\n+                    Comparator.nullsFirst(EmittedScopeParser::compareSchemaUrls))\n+                .thenComparing(\n+                    EmittedScope.Scope::getVersion,\n+                    Comparator.nullsFirst(Comparator.naturalOrder()))\n+                .thenComparing(scope -> String.valueOf(scope.getAttributes())))\n         .orElse(null);\n   }\n \n+  private static int compareSchemaUrls(String left, String right) {\n+    Matcher leftMatcher = SCHEMA_VERSION.matcher(left);\n+    Matcher rightMatcher = SCHEMA_VERSION.matcher(right);\n+    if (!leftMatcher.matches() || !rightMatcher.matches()) {\n+      return left.compareTo(right);\n+    }",
+      "id": "PRRT_kwDODJKVX86h0WVV",
+      "opened": "2026-09-12T22:45:19Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EmittedScopeParser.java",
+      "replies": [
+        {
+          "at": "2026-09-12T22:56:09Z",
+          "body": "Addressed in 9e329b89588e893bed8c17489f53f3bcf6402ae2.\n\nAnalysis: Mixing numeric comparisons for canonical schema URLs with lexical comparisons for mixed pairs violates comparator transitivity. Comparing the format class first creates a total order, after which each class can use one consistent comparison strategy.\n\nUpsides: Scope selection is deterministic for mixed canonical and malformed schema URLs, and canonical versions retain numeric ordering.\n\nDownsides: Malformed schema URLs now always rank below canonical schema URLs instead of participating in one global lexical order.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20127#discussion_r3997913234"
+        }
+      ],
+      "reviewed": "d6fe504ba6322ac37eec564fb6c089600acce350",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20127#discussion_r3997889509"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] URLs with an all-digit component larger than `Integer.MAX_VALUE` match `SCHEMA_VERSION` but make this comparator throw `NumberFormatException`. Because this parser already accepts arbitrary emitted schema URLs and explicitly handles malformed values, one such scope can abort documentation generation instead of ranking below/alongside the others. Compare the numeric components without a bounded primitive (for example, with `BigInteger`).",
+      "created": "2026-09-12T23:02:39Z",
+      "hunk": "@@ -89,10 +93,40 @@ private static EmittedScope.Scope findScopeByName(\n       Set<EmittedScope.Scope> scopes, String scopeName) {\n     return scopes.stream()\n         .filter(scope -> scopeName.equals(scope.getName()))\n-        .min(Comparator.comparingInt(scope -> scope.getSchemaUrl() == null ? 1 : 0))\n+        .max(\n+            Comparator.comparing(\n+                    EmittedScope.Scope::getSchemaUrl,\n+                    Comparator.nullsFirst(EmittedScopeParser::compareSchemaUrls))\n+                .thenComparing(\n+                    EmittedScope.Scope::getVersion,\n+                    Comparator.nullsFirst(Comparator.naturalOrder()))\n+                .thenComparing(scope -> String.valueOf(scope.getAttributes())))\n         .orElse(null);\n   }\n \n+  private static int compareSchemaUrls(String left, String right) {\n+    Matcher leftMatcher = SCHEMA_VERSION.matcher(left);\n+    Matcher rightMatcher = SCHEMA_VERSION.matcher(right);\n+    boolean leftMatches = leftMatcher.matches();\n+    boolean rightMatches = rightMatcher.matches();\n+    int formatComparison = Boolean.compare(leftMatches, rightMatches);\n+    if (formatComparison != 0) {\n+      return formatComparison;\n+    }\n+    if (!leftMatches) {\n+      return left.compareTo(right);\n+    }\n+    for (int i = 1; i <= 3; i++) {\n+      int comparison =\n+          Integer.compare(\n+              Integer.parseInt(leftMatcher.group(i)), Integer.parseInt(rightMatcher.group(i)));",
+      "id": "PRRT_kwDODJKVX86h0chD",
+      "opened": "2026-09-12T23:02:39Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EmittedScopeParser.java",
+      "replies": [
+        {
+          "at": "2026-09-12T23:05:17Z",
+          "body": "Addressed in 90dedca363cbd6dadd48866baec266bc9a9cb1ca.\n\nAnalysis: SCHEMA_VERSION accepts digit sequences of any length, but Integer.parseInt rejects valid matches above Integer.MAX_VALUE. BigInteger preserves numeric ordering without imposing an artificial component bound.\n\nUpsides: Arbitrarily large numeric schema components no longer abort documentation generation, and their ordering remains numeric.\n\nDownsides: Comparing schema URLs allocates BigInteger values, but the parser processes a small documentation-time data set.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20127#discussion_r3997932195"
+        }
+      ],
+      "reviewed": "9e329b89588e893bed8c17489f53f3bcf6402ae2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20127#discussion_r3997927187"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This only assigns a schema to Camel's messaging instrumenters. Legacy database routes still use the generic `instrumenter` (returned at line 148), while `DbSpanDecorator` emits legacy `db.*` attributes and allows those spans in legacy mode (`decorators/DbSpanDecorator.java:63-68,131-155`). Those database spans therefore keep a null schema URL instead of the advertised v1.24.0. Route database requests to a separate instrumenter configured with `databaseSchemaUrl()`.",
+      "created": "2026-09-13T14:43:43Z",
+      "hunk": "@@ -80,7 +82,8 @@ private static Instrumenter<CamelRequest, Void> createMessagingInstrumenter(\n         emitStableMessagingSemconv()\n             ? MessagingSpanNameExtractor.create(getter, operationType, operationName)\n             : legacySpanNameExtractor;\n-    InstrumenterBuilder<CamelRequest, Void> builder = instrumenterBuilder(spanNameExtractor);\n+    InstrumenterBuilder<CamelRequest, Void> builder =\n+        instrumenterBuilder(spanNameExtractor).setSchemaUrl(messagingSchemaUrl());",
+      "id": "PRRT_kwDODJKVX86h5e-L",
+      "opened": "2026-09-13T14:43:44Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-13T14:55:18Z",
+          "body": "Addressed in 2dfe9aecb3bf3a15a859543bdc942bda625ee77d.\n\nAnalysis: CamelRequest identified messaging decorators but did not identify database decorators, so CamelSingletons routed legacy database spans through the schema-less generic instrumenter. Classifying database requests and selecting a database-specific instrumenter assigns the schema that matches the emitted database attributes.\n\nUpsides: Legacy Camel database spans now advertise schema v1.24.0, while generic and messaging spans keep their existing instrumenters. The Cassandra test verifies the schema on an emitted Camel database span.\n\nDownsides: DbSpanDecorator now has public class visibility so CamelRequest can classify it across the decorators package boundary. Its constructor remains package-private.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20127#discussion_r3999934931"
+        }
+      ],
+      "reviewed": "d3de4597f0a1b8f54da5630a64b8a7f3436a65da",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20127#discussion_r3999905894"
+    }
+  ]
+}

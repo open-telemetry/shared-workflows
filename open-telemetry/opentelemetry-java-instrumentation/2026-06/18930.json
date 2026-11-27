@@ -1,0 +1,109 @@
+{
+  "head": "4a6446b214d943864bf9001b686816a091223956",
+  "merge": "ad5dcc320e783d068999c98e07a888efa74ae7a7",
+  "merged": "2026-06-09T13:10:01Z",
+  "missing_roots": 0,
+  "number": 18930,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`appendOperationToSummary()` now calls `yytext()`, which allocates a new `String` for every operation token (SELECT/INSERT/...). This sanitizer runs on the hot path, so it’s worth avoiding the extra allocation by appending directly from the lexer buffer (similar to `appendCurrentFragment()`).",
+      "created": "2026-06-08T03:05:38Z",
+      "hunk": "@@ -88,6 +88,10 @@ WHITESPACE           = [ \\t\\r\\n]+\n   }\n \n   /** Appends an operation name (SELECT, INSERT, etc.) to the query summary. */\n+  private void appendOperationToSummary() {\n+    appendOperationToSummary(yytext());\n+  }",
+      "id": "PRRT_kwDODJKVX86HtnjN",
+      "opened": "2026-06-08T03:05:39Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-06-08T03:15:38Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5dc9919d37.\n\nUpdated the current-token summary helper to append directly from JFlex's buffer and left a comment explaining that this avoids yytext()'s String allocation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930#discussion_r3370651064"
+        }
+      ],
+      "reviewed": "b2f8e489e3c52da3dc49019a5f6549e7fba11638",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930#discussion_r3370633394"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The EXPLAIN rule now appends the matched token text (case-preserving) via appendOperationToSummary(), but the current test coverage only exercises the uppercase form (\"EXPLAIN SELECT ...\"). Adding a mixed/lowercase EXPLAIN test would better lock in the new behavior and prevent regressions back to normalized/constant casing.",
+      "created": "2026-06-08T03:18:55Z",
+      "hunk": "@@ -895,7 +903,7 @@ WHITESPACE           = [ \\t\\r\\n]+\n           // EXPLAIN is a prefix command - append to summary but don't set an operation,\n           // so the inner statement (SELECT, INSERT, etc.) gets processed normally.\n           if (!insideComment && operation == none) {\n-            appendOperationToSummary(\"EXPLAIN\");\n+            appendOperationToSummary();\n           }\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;",
+      "id": "PRRT_kwDODJKVX86Htrwv",
+      "opened": "2026-06-08T03:18:55Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-06-08T03:25:10Z",
+          "body": "brought back test I had removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930#discussion_r3370667762"
+        }
+      ],
+      "reviewed": "5dc9919d37344b85cb49e39c6932564328448c94",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930#discussion_r3370656589"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This new parameterized test asserts query-summary behavior unconditionally by calling `ANALYZER.analyzeWithSummary(...)`, which makes it run (and potentially fail) even when `emitStableDatabaseSemconv()` is false. Most other tests in this class use the `analyze(...)` helper and/or `assumeTrue(emitStableDatabaseSemconv())` to keep the suite valid in both stability modes. Consider gating this test to stable semconv and using `analyze(...)` for consistency.",
+      "created": "2026-06-08T03:28:42Z",
+      "hunk": "@@ -256,6 +256,42 @@ void querySummaryIsTruncated() {\n     assertThat(result.length()).isEqualTo(236);\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"operationCaseArgs\")\n+  void querySummaryPreservesOperationCase(String original, String expectedQuerySummary) {\n+    SqlQuery result = ANALYZER.analyzeWithSummary(original, DOUBLE_QUOTES_ARE_STRING_LITERALS);\n+\n+    assertThat(result.getQuerySummary()).isEqualTo(expectedQuerySummary);\n+  }",
+      "id": "PRRT_kwDODJKVX86HtvBN",
+      "opened": "2026-06-08T03:28:42Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+      "replies": [
+        {
+          "at": "2026-06-08T15:21:55Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930/commits/3634baf6ea36310bb9542e8bb6f3eb69ab79d066",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930#discussion_r3374381160"
+        }
+      ],
+      "reviewed": "d857c00a8173c34d94c6c4db3e4cf908ca9971d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930#discussion_r3370674493"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "changing `FROM` to `from` isn't relevant, but it does match what's seen from hibernate, so seems more realistic example data",
+      "created": "2026-06-08T22:56:31Z",
+      "hunk": "@@ -487,7 +523,7 @@ private static Stream<Arguments> sqlArgs() {\n             \"SELECT TABLE\"),\n \n         // hibernate/jpa query language\n-        Arguments.of(\"FROM TABLE WHERE FIELD=1234\", \"FROM TABLE WHERE FIELD=?\", \"SELECT TABLE\"));\n+        Arguments.of(\"from TABLE WHERE FIELD=1234\", \"from TABLE WHERE FIELD=?\", \"select TABLE\"));",
+      "id": "PRRT_kwDODJKVX86H-8sU",
+      "opened": "2026-06-08T22:56:31Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+      "replies": [],
+      "reviewed": "01e5cc299db9fbf14fc1d37594423ec7d37b7f65",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930#discussion_r3376816328"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the JPQL/HQL `FROM`-starts-a-query fallback, the summary currently always prefixes with the lowercase synthetic operation `select`. With `%ignorecase` enabled, queries that start with `FROM ...` (uppercase) will now produce a query summary starting with `select ...`, which does not preserve the original keyword casing/style. Consider deriving the synthetic SELECT casing from the matched `FROM` token’s first character so uppercase `FROM` yields `SELECT` while lowercase `from` yields `select`.",
+      "created": "2026-06-09T00:54:39Z",
+      "hunk": "@@ -966,7 +974,7 @@ WHITESPACE           = [ \\t\\r\\n]+\n               // hql/jpql queries may skip SELECT and start with FROM clause\n               // treat such queries as SELECT queries\n               setOperation(new Select());\n-              appendOperationToSummary(\"SELECT\");\n+              appendOperationToSummary(\"select\");\n             }",
+      "id": "PRRT_kwDODJKVX86H__2w",
+      "opened": "2026-06-09T00:54:39Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-06-09T02:13:38Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930/commits/4a6446b214d943864bf9001b686816a091223956",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930#discussion_r3377435196"
+        }
+      ],
+      "reviewed": "b795c64144db6dda0073772c7ba7a3bd2110d818",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930#discussion_r3377194348"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "1ff60dd8cac9f6a7f3bbefdf6ad732dcaf92bff1",
+  "merge": "4250c0c951abfc1ab0397eeaa9b9394308d1afe6",
+  "merged": "2026-04-29T15:45:23Z",
+  "missing_roots": 0,
+  "number": 18295,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this file is essentially the old `build-pull-request.yml` file\n\n```diff\ndiff --git a/.github/workflows/build-pull-request.yml b/.github/workflows/reusable-pr-build.yml\nindex 57e6027cd0..1a7ae02f52 100644\n--- a/.github/workflows/build-pull-request.yml\n+++ b/.github/workflows/reusable-pr-build.yml\n@@ -1,21 +1,19 @@\n-name: Build pull request\n+name: Reusable PR build\n \n+# Always invoked from build-pull-request.yml (the dispatcher).\n+# All gating decisions are made by the dispatcher and passed in as inputs.\n on:\n-  pull_request:\n-    types:\n-      - opened\n-      - synchronize\n-      - reopened\n-  # called from rebuild-pull-request-on-label.yml\n   workflow_call:\n-\n-concurrency:\n-  # fixed group name (not github.workflow) so that runs triggered by pull_request\n-  # and runs triggered via workflow_call from rebuild-pull-request-on-label.yml\n-  # share the group, otherwise the PR build would run twice in parallel whenever\n-  # a \"test *\" label is added\n-  group: build-pull-request-${{ github.event.pull_request.number }}\n-  cancel-in-progress: true\n+    inputs:\n+      skip-native-tests:\n+        type: boolean\n+        default: false\n+      skip-openj9-tests:\n+        type: boolean\n+        default: false\n+      skip-windows-smoke-tests:\n+        type: boolean\n+        default: false\n \n permissions:\n   contents: read\n@@ -24,9 +22,8 @@ jobs:\n   common:\n     uses: ./.github/workflows/build-common.yml\n     with:\n-      # it's rare for only the openj9 tests, openj9 smoke variants, or the windows smoke tests to break\n-      skip-openj9-tests: ${{ !contains(github.event.pull_request.labels.*.name, 'test openj9') }}\n-      skip-windows-smoke-tests: ${{ !contains(github.event.pull_request.labels.*.name, 'test windows') }}\n+      skip-openj9-tests: ${{ inputs.skip-openj9-tests }}\n+      skip-windows-smoke-tests: ${{ inputs.skip-windows-smoke-tests }}\n       cache-read-only: true\n \n   test-latest-deps:\n@@ -37,7 +34,7 @@ jobs:\n   test-native:\n     uses: ./.github/workflows/reusable-native-tests.yml\n     with:\n-      skip-native-tests: ${{ !contains(github.event.pull_request.labels.*.name, 'test native') }}\n+      skip-native-tests: ${{ inputs.skip-native-tests }}\n \n   muzzle:\n     uses: ./.github/workflows/reusable-muzzle.yml\n@@ -61,7 +58,7 @@ jobs:\n       - muzzle\n       - markdown-lint-check\n     runs-on: ubuntu-latest\n-    if: always()\n+    if: ${{ always() }}\n     steps:\n       - if: |\n           needs.common.result != 'success' ||\n```",
+      "created": "2026-04-25T23:38:17Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX859nwqs",
+      "opened": "2026-04-25T23:38:17Z",
+      "path": ".github/workflows/reusable-pr-build.yml",
+      "replies": [],
+      "reviewed": "1ff60dd8cac9f6a7f3bbefdf6ad732dcaf92bff1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18295#discussion_r3142733343"
+    }
+  ]
+}

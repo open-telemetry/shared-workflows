@@ -1,0 +1,66 @@
+{
+  "head": "d5027ed0a34f798cc077cbf7e5c54b93010bc677",
+  "merge": "ea7fdf6d8b12c3f6b43531c697ad0b84337f3396",
+  "merged": "2026-09-10T03:09:26Z",
+  "missing_roots": 0,
+  "number": 633,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`pytest.importorskip(\"langgraph\")` makes these tests silently skip if LangGraph isn’t present, which weakens the intent of “pinning” cancellation behavior. This package’s other unit/conformance tests already import `langgraph` directly (e.g. `tests/test_agent_classification_corpus.py` and `tests/conformance/workflow.py`), so it’s better to fail fast here as well when the dependency is missing.",
+      "created": "2026-09-05T07:40:50Z",
+      "hunk": "@@ -0,0 +1,271 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for LangGraph invocation cancellation handling.\n+\n+Pins that cancelling an in-flight LangGraph invocation driven through the\n+public API records the workflow span as failed (StatusCode.ERROR) with\n+error.type=\"asyncio.exceptions.CancelledError\", while properly propagating\n+the cancellation to the caller.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from typing import TypedDict\n+\n+import pytest\n+\n+pytest.importorskip(\"langgraph\")\n+from langgraph.graph import END, START, StateGraph\n+",
+      "id": "PRRT_kwDOSbspP86fhVw_",
+      "opened": "2026-09-05T07:40:50Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_langgraph_cancellation.py",
+      "replies": [
+        {
+          "at": "2026-09-05T13:15:04Z",
+          "body": "Removed pytest.importorskip(\\langgraph\\) in 826afea to match the package's direct import pattern, and renamed the changelog fragment to 630.added.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/633#discussion_r3940729068"
+        },
+        {
+          "at": "2026-09-08T20:11:13Z",
+          "body": "copilot was wrong here. it's not an optional dependency, there is no langgraph when testing compatibility with oldest version and this leads to CI failures",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/633#discussion_r3961840169"
+        }
+      ],
+      "reviewed": "0bf64ad2a47095f0ffcc029c87b06d975d65e8ad",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/633#discussion_r3939894357"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this is not a user-facing change, no need for the changlog. The check will be red, but I'll add the label to suppress it.",
+      "created": "2026-09-08T20:05:30Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add LangGraph invocation cancellation tests pinning `StatusCode.ERROR` and `error.type` on aborted workflows",
+      "id": "PRRT_kwDOSbspP86gZH2x",
+      "opened": "2026-09-08T20:11:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/633.added",
+      "replies": [],
+      "reviewed": "826afeae541708dd392fc24e1a24ca61bede0403",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/633#discussion_r3961789378"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Copilot's earlier comment was incorrect. `langgraph` is an optional dependency and is not installed in the `langchain-oldest` test environment (`langchain==0.3.21`). Without `importorskip`, running `tox -e py310-test-instrumentation-genai-langchain-oldest` fails during collection with `ModuleNotFoundError: No module named 'langgraph'`.\n\nPlease restore `importorskip`:\n\n```suggestion\npytest.importorskip(\"langgraph\")\nfrom langgraph.graph import END, START, StateGraph\n```",
+      "created": "2026-09-08T20:09:32Z",
+      "hunk": "@@ -0,0 +1,269 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for LangGraph invocation cancellation handling.\n+\n+Pins that cancelling an in-flight LangGraph invocation driven through the\n+public API records the workflow span as failed (StatusCode.ERROR) with\n+error.type=\"asyncio.exceptions.CancelledError\", while properly propagating\n+the cancellation to the caller.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from typing import TypedDict\n+\n+import pytest\n+from langgraph.graph import END, START, StateGraph",
+      "id": "PRRT_kwDOSbspP86gZN75",
+      "opened": "2026-09-08T20:11:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_langgraph_cancellation.py",
+      "replies": [],
+      "reviewed": "826afeae541708dd392fc24e1a24ca61bede0403",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/633#discussion_r3961827042"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e7e9ea0455967ae511603e5ad2e812d3fc71c20ba9402bc661049bd21b60a5c5",
+  "input_digest": "7e71cf87d44c2f8ce7c790e24242de2a73a197e62832a43c84b366f53aaa56ec",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/75ed3df599ecb15c09809eb559764e1b346117f6/instrumentation/finagle-http-23.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/TwitterUtilCoreInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/54f90a6228e1c972826554e05d5a134a03ccee2c/instrumentation/finagle-http-23.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/TwitterUtilCoreInstrumentationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86EBapE",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

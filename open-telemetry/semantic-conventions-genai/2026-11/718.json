@@ -1,0 +1,287 @@
+{
+  "head": "0dffb5b00664326dee576f987201079a15f83901",
+  "merge": "b7f04619aa394bdc622a9e41913872d7bf201566",
+  "merged": "2026-11-24T18:43:47Z",
+  "missing_roots": 0,
+  "number": 718,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This adds a Vertex-specific mapping without a reference scenario that demonstrates it. Neither `reference/scenarios/vertexai/scenario.py` nor `reference/scenarios/google-genai/scenario.py` reads `usage_metadata.traffic_type`, so the OpenAI/Groq examples do not establish that this value survives the Vertex SDK response conversion. Please add a Vertex-backed scenario that obtains the field from an SDK response, or defer this mapping until that proof is available.",
+      "created": "2026-11-17T16:50:25Z",
+      "hunk": "@@ -274,6 +281,16 @@ attributes:\n       values map to this attribute.\n     examples: ['completed', 'in_progress']\n     stability: development\n+  - key: gen_ai.response.service_tier\n+    type: string\n+    brief: The service tier used for the response.\n+    note: >\n+      The value SHOULD be the exact string value returned by the provider.\n+\n+      For Vertex AI, the value SHOULD be\n+      [`usageMetadata.trafficType`](https://docs.cloud.google.com/gemini-enterprise-agent-platform/reference/rest/v1/GenerateContentResponse#UsageMetadata.FIELDS.traffic_type).",
+      "id": "PRRT_kwDOSUeMrM64jDx5",
+      "opened": "2026-11-17T16:50:26Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-17T18:35:49Z",
+          "body": "lmolkova asked for this note in #713, and the Vertex AI provider page is tracked in #717. The field does survive SDK conversion: google-genai 2.30.0 parses `usageMetadata.trafficType` into `usage_metadata.traffic_type` (a `TrafficType` enum, e.g. `ON_DEMAND`), and google-cloud-aiplatform 2.4.0 has `traffic_type` on the v1 `UsageMetadata`. The pinned mock server doesn't return `trafficType`, so a scenario reading it would emit nothing today. I can drop the sentence and move it to #717 if you'd rather keep the registry to what the scenarios show.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4604058349"
+        }
+      ],
+      "reviewed": "9fa280055cda712374cc064badf5d9a8d3c9ecac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4602833161"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The remaining OpenAI inference calls, Groq streaming and tool-call calls, and Azure OpenAI chat call omit an available response tier, leaving spans without the new conditionally required attribute and metrics without a tier label. The pinned mock supplies the tier even when the request does not select one. Capture it from responses or streamed chunks in those paths, propagate it to spans, applicable metrics, and any emitted details events, then refresh coverage data and reports.",
+      "created": "2026-11-17T16:50:25Z",
+      "hunk": "@@ -330,6 +333,9 @@ spans:\n         requirement_level: recommended\n       - ref: gen_ai.response.finish_reasons\n         requirement_level: recommended\n+      - ref: gen_ai.response.service_tier\n+        requirement_level:\n+          conditionally_required: If the response was received and includes a service tier.",
+      "id": "PRRT_kwDOSUeMrM64jDzO",
+      "opened": "2026-11-17T16:50:26Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-17T18:35:51Z",
+          "body": "The scenarios show the capture once per API shape (Chat Completions and Responses for OpenAI, Chat Completions for Groq) rather than on every call. That matches how `openai.response.service_tier` is covered today: it's conditionally required on the OpenAI inference span but only emitted from the `fetch_response` path. I'd like to keep this PR small. If per-call coverage is wanted, I can add it to the streaming paths, where the tier comes from a chunk.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4604058713"
+        }
+      ],
+      "reviewed": "9fa280055cda712374cc064badf5d9a8d3c9ecac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4602833298"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: shorter and stricter\n\n```suggestion\n          conditionally_required: If and only of returned by the provider.\n```",
+      "created": "2026-11-19T02:53:09Z",
+      "hunk": "@@ -330,6 +333,9 @@ spans:\n         requirement_level: recommended\n       - ref: gen_ai.response.finish_reasons\n         requirement_level: recommended\n+      - ref: gen_ai.response.service_tier\n+        requirement_level:\n+          conditionally_required: If the response was received and includes a service tier.",
+      "id": "PRRT_kwDOSUeMrM65Tdc2",
+      "opened": "2026-11-19T03:02:30Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-19T10:43:08Z",
+          "body": "applied.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4627535241"
+        }
+      ],
+      "reviewed": "9fa280055cda712374cc064badf5d9a8d3c9ecac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4623746192"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "It'd help to point to the provider parameters, like `gen_ai.request.previous_response.id` does. Maybe something like:\n\n```suggestion\n  - key: gen_ai.request.service_tier\n    type: string\n    brief: The service tier requested for the inference operation.\n    note: |\n      The service tier affects processing priority, latency, and price of the operation.\n      The value SHOULD be the one passed to the provider.\n      For example, `service_tier` in [OpenAI](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)\n      and [Anthropic](https://platform.claude.com/docs/en/api/service-tiers),\n      or `serviceTier.type` in [Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html).\n    examples: ['auto', 'flex', 'priority']\n    stability: development\n```\n",
+      "created": "2026-11-19T02:53:09Z",
+      "hunk": "@@ -201,6 +201,13 @@ attributes:\n       or `last_event_id` in the [Google GenAI Interactions API](https://ai.google.dev/api/interactions-api).\n     examples: ['42', 'event-abc123']\n     stability: development\n+  - key: gen_ai.request.service_tier\n+    type: string\n+    brief: The service tier requested.\n+    note: >\n+      The value SHOULD be the exact string value sent to the provider.\n+    examples: ['auto', 'flex']\n+    stability: development",
+      "id": "PRRT_kwDOSUeMrM65Tdcg",
+      "opened": "2026-11-19T03:02:30Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-19T10:41:35Z",
+          "body": "applied, thanks!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4627519067"
+        }
+      ],
+      "reviewed": "9fa280055cda712374cc064badf5d9a8d3c9ecac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4623746161"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Same here - it'd help to say how it relates to the requested tier and point to the provider fields:\n\n```suggestion\n  - key: gen_ai.response.service_tier\n    type: string\n    brief: The service tier that processed the inference operation.\n    note: |\n      The value SHOULD be the one returned by the provider. It can differ from\n      `gen_ai.request.service_tier` when `auto` is requested.\n      For example, `service_tier` in [OpenAI](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create),\n      `usage.service_tier` in [Anthropic](https://platform.claude.com/docs/en/api/service-tiers),\n      or [`usageMetadata.trafficType`](https://docs.cloud.google.com/gemini-enterprise-agent-platform/reference/rest/v1/GenerateContentResponse#UsageMetadata.FIELDS.traffic_type) in Vertex AI.\n    examples: ['default', 'priority', 'ON_DEMAND']\n    stability: development\n```\n",
+      "created": "2026-11-19T02:53:09Z",
+      "hunk": "@@ -274,6 +281,16 @@ attributes:\n       values map to this attribute.\n     examples: ['completed', 'in_progress']\n     stability: development\n+  - key: gen_ai.response.service_tier\n+    type: string\n+    brief: The service tier used for the response.\n+    note: >\n+      The value SHOULD be the exact string value returned by the provider.\n+\n+      For Vertex AI, the value SHOULD be\n+      [`usageMetadata.trafficType`](https://docs.cloud.google.com/gemini-enterprise-agent-platform/reference/rest/v1/GenerateContentResponse#UsageMetadata.FIELDS.traffic_type).\n+    examples: ['default', 'priority', 'ON_DEMAND']\n+    stability: development",
+      "id": "PRRT_kwDOSUeMrM65Tdcr",
+      "opened": "2026-11-19T03:02:30Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-19T10:39:24Z",
+          "body": "sg, applied and thanks for the suggestion!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4627494760"
+        }
+      ],
+      "reviewed": "9fa280055cda712374cc064badf5d9a8d3c9ecac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4623746177"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Since tier affects latency (`flex` vs `priority`), wdyt about adding it to `gen_ai.client.inference.time_to_first_chunk` and `gen_ai.client.inference.time_per_output_chunk` too?\n",
+      "created": "2026-11-19T02:53:09Z",
+      "hunk": "@@ -58,6 +58,8 @@ metrics:\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n       - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.response.service_tier\n+        requirement_level: recommended",
+      "id": "PRRT_kwDOSUeMrM65Tdcw",
+      "opened": "2026-11-19T03:02:30Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-19T11:47:39Z",
+          "body": "I like the idea, IMO service tier should probably be on all inference level metrics.\n\nWe can either\n\n1. Swap over `gen_ai.client.inference.time_to_first_chunk`, `gen_ai.client.inference.time_per_output_chunk`, `gen_ai.client.inference.duration` to link to the `metric_attributes.gen_ai.inference` group\n2. Just add the plain `ref` manually\n\nApproach 1 seems a bit cleaner, but I'm fine with either, which option would you prefer?\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4628253129"
+        },
+        {
+          "at": "2026-11-19T23:35:44Z",
+          "body": "Option 1 sounds good - one group for all inference metrics. Could you also move it to `metrics.yaml` next to `metric_attributes.gen_ai`?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4636533202"
+        },
+        {
+          "at": "2026-11-20T14:11:29Z",
+          "body": "Done, added `metric_attributes.gen_ai.inference` next to `metric_attributes.gen_ai` and added it to the inference metrics.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4643438337"
+        }
+      ],
+      "reviewed": "9fa280055cda712374cc064badf5d9a8d3c9ecac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4623746183"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: shorter\n\n```suggestion\n          conditionally_required: If and only if provided in the request.\n```",
+      "created": "2026-11-19T02:53:09Z",
+      "hunk": "@@ -319,6 +319,9 @@ spans:\n       - ref: gen_ai.request.reasoning.level\n         requirement_level:\n           recommended: When applicable.\n+      - ref: gen_ai.request.service_tier\n+        requirement_level:\n+          conditionally_required: If the request includes a service tier.",
+      "id": "PRRT_kwDOSUeMrM65Tdcz",
+      "opened": "2026-11-19T03:02:30Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "9fa280055cda712374cc064badf5d9a8d3c9ecac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4623746188"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The OpenAI span and metric refinements still require `openai.request.service_tier` / `openai.response.service_tier`, but the updated `openai` scenario emits only the `gen_ai.*` ones. wdyt about removing the OpenAI attributes in this PR instead of a follow-up, and using the `gen_ai.*` ones in the `openai.*` span refinements and `metric_attributes.openai`?\n",
+      "created": "2026-11-19T22:54:02Z",
+      "hunk": "@@ -274,6 +285,17 @@ attributes:\n       values map to this attribute.\n     examples: ['completed', 'in_progress']\n     stability: development\n+  - key: gen_ai.response.service_tier\n+    type: string",
+      "id": "PRRT_kwDOSUeMrM65wTdD",
+      "opened": "2026-11-19T23:35:44Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-20T14:57:09Z",
+          "body": "sg, removed the OpenAI attributes, updated the scenario and the OpenAI span and metric refinements to use the `gen_ai.*` ones, and updated the PR description for this.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4643926044"
+        }
+      ],
+      "reviewed": "3bfc79e45d876255cc2bfed9240a7d580ce3d85e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4636200681"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "No reference scenario records `gen_ai.client.inference.time_per_output_chunk`, so its new `gen_ai.response.service_tier` dimension has no runnable proof as required by `.github/instructions/evaluate-reference.instructions.md`. Add a streaming example that records inter-chunk durations with the tier read from SDK chunks, then refresh the coverage data and reports, or defer this attribute placement.",
+      "created": "2026-11-20T15:01:52Z",
+      "hunk": "@@ -148,6 +156,7 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n+      - ref_group: metric_attributes.gen_ai.inference",
+      "id": "PRRT_kwDOSUeMrM66CfIq",
+      "opened": "2026-11-20T15:01:52Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-23T14:33:49Z",
+          "body": "Done, updated the OpenAI streaming scenario to record `gen_ai.client.inference.time_per_output_chunk` with `gen_ai.response.service_tier`.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4667219896"
+        }
+      ],
+      "reviewed": "53fc6cdc4c0d082bd63033fdecb7a07a23c52bc5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4643978034"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Inference metrics now get the tier from `metric_attributes.gen_ai.inference`, and #743 removes `openai.client.operation.duration`, so this ref becomes redundant. wdyt about dropping it?\n\n```suggestion\n```\n",
+      "created": "2026-11-21T06:02:04Z",
+      "hunk": "@@ -8,14 +8,20 @@ attribute_groups:\n       - ref: gen_ai.response.model\n         requirement_level: recommended\n \n+  - id: metric_attributes.gen_ai.inference\n+    visibility: internal\n+    attributes:\n+      - ref: gen_ai.response.service_tier\n+        requirement_level: recommended\n+\n   - id: metric_attributes.openai\n     visibility: internal\n     attributes:\n       - ref: gen_ai.provider.name\n         annotations:\n           markdown:\n             omit_enum_table: true\n-      - ref: openai.response.service_tier\n+      - ref: gen_ai.response.service_tier\n         requirement_level: recommended",
+      "id": "PRRT_kwDOSUeMrM66StaC",
+      "opened": "2026-11-21T06:17:33Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-23T14:33:43Z",
+          "body": "Applied, and trimmed the `openai.client.operation.duration` brief to match.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4667218624"
+        }
+      ],
+      "reviewed": "53fc6cdc4c0d082bd63033fdecb7a07a23c52bc5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4650992850"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "No scenario records `gen_ai.client.inference.time_per_output_chunk`, so nothing shows the service tier on this metric. The OpenAI streaming scenario already reads the tier from the first chunk, so it could record this metric for later chunks with the tier attached. The current mock already streams several content chunks after the one that carries the tier, so this doesn't need a mock change. Otherwise, could this line wait until a scenario covers the metric?",
+      "created": "2026-11-21T20:18:24Z",
+      "hunk": "@@ -148,6 +156,7 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n+      - ref_group: metric_attributes.gen_ai.inference",
+      "id": "PRRT_kwDOSUeMrM66b2z0",
+      "opened": "2026-11-21T20:22:06Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-23T14:33:47Z",
+          "body": "Done, updated the OpenAI streaming scenario to record `gen_ai.client.inference.time_per_output_chunk` with `gen_ai.response.service_tier`.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4667219498"
+        }
+      ],
+      "reviewed": "53fc6cdc4c0d082bd63033fdecb7a07a23c52bc5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4654783563"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "No scenario shows the Anthropic or Vertex AI mapping. Both scenarios call the shared [conformance mock](https://github.com/open-telemetry/semantic-conventions-conformance/tree/a8e3cf41548ea41e5eb4c693a3c4b3f67ab88bd5/tools/gen-ai/mock-server/src/genai_mock_server), and neither response includes the tier: `anthropic.py` returns no `usage.service_tier`, so the new branch in the Anthropic scenario never runs, and `google_genai.py` returns no `usageMetadata.trafficType` for Vertex AI.\n\nCovering them needs a change in open-telemetry/semantic-conventions-conformance first, for example returning the served tier the way the OpenAI mock's `_served_service_tier` does. Then bump `CONFORMANCE_REF` in `versions.env` and read `usage_metadata.traffic_type` in the Vertex AI scenario; the pinned `google-cloud-aiplatform` 2.4.0 already parses it. If that's out of scope here, consider citing only the providers a scenario covers.",
+      "created": "2026-11-21T20:18:24Z",
+      "hunk": "@@ -274,6 +285,17 @@ attributes:\n       values map to this attribute.\n     examples: ['completed', 'in_progress']\n     stability: development\n+  - key: gen_ai.response.service_tier\n+    type: string\n+    brief: The service tier that processed the inference operation.\n+    note: |\n+      The value SHOULD be the one returned by the provider. It can differ from\n+      `gen_ai.request.service_tier` when `auto` is requested.\n+      For example, `service_tier` in [OpenAI](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create),\n+      `usage.service_tier` in [Anthropic](https://platform.claude.com/docs/en/api/service-tiers),\n+      or [`usageMetadata.trafficType`](https://docs.cloud.google.com/gemini-enterprise-agent-platform/reference/rest/v1/GenerateContentResponse#UsageMetadata.FIELDS.traffic_type) in Vertex AI.",
+      "id": "PRRT_kwDOSUeMrM66b2z2",
+      "opened": "2026-11-21T20:22:06Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-23T14:33:51Z",
+          "body": "Updating the conformance mock is a separate repo/PR and Vertex AI is tracked in #717. These examples were added at lmolkova's request, so I'd keep the note as is.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4667220237"
+        }
+      ],
+      "reviewed": "53fc6cdc4c0d082bd63033fdecb7a07a23c52bc5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4654783565"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The mock pinned in `versions.env` returns `service_tier` on every non-streaming chat completion and every Responses API response. These calls still don't record it on the span or the token metrics:\n\n- `run_responses_continuation_reference` ([L566](https://github.com/open-telemetry/semantic-conventions-genai/blob/53fc6cdc4c0d082bd63033fdecb7a07a23c52bc5/reference/scenarios/openai/scenario.py#L566))\n- `run_chat_tool_call_reference` ([L884](https://github.com/open-telemetry/semantic-conventions-genai/blob/53fc6cdc4c0d082bd63033fdecb7a07a23c52bc5/reference/scenarios/openai/scenario.py#L884))\n- `run_chat_with_document_input_reference` ([L979](https://github.com/open-telemetry/semantic-conventions-genai/blob/53fc6cdc4c0d082bd63033fdecb7a07a23c52bc5/reference/scenarios/openai/scenario.py#L979))\n- `run_chat_image_reference` ([L1051](https://github.com/open-telemetry/semantic-conventions-genai/blob/53fc6cdc4c0d082bd63033fdecb7a07a23c52bc5/reference/scenarios/openai/scenario.py#L1051))\n- `run_chat_audio_reference` ([L1122](https://github.com/open-telemetry/semantic-conventions-genai/blob/53fc6cdc4c0d082bd63033fdecb7a07a23c52bc5/reference/scenarios/openai/scenario.py#L1122))\n- `run_responses_with_prompt_template_reference` ([L1298](https://github.com/open-telemetry/semantic-conventions-genai/blob/53fc6cdc4c0d082bd63033fdecb7a07a23c52bc5/reference/scenarios/openai/scenario.py#L1298))\n\nThe span requires the attribute when the provider returns it, so these spans don't follow the convention. `data.json` hides the gap because it lists attribute names across all calls. Could you record the tier in these calls the same way as here?",
+      "created": "2026-11-21T20:18:24Z",
+      "hunk": "@@ -317,19 +320,26 @@ def run_chat_reference(client):\n                     usage[\"gen_ai.usage.cache_read.input_tokens\"] = cached_tokens\n             for attr, value in usage.items():\n                 span.set_attribute(attr, value)\n-            record_inference_usage(usage, usage_metric_attributes(request_model, resp.model, host, port))\n+            metric_attributes = usage_metric_attributes(request_model, resp.model, host, port)\n+            if resp.service_tier is not None:",
+      "id": "PRRT_kwDOSUeMrM66b2zx",
+      "opened": "2026-11-21T20:22:06Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-23T14:33:45Z",
+          "body": "Done, added `gen_ai.response.service_tier` to those 6 calls (spans, metrics, and operation details events).\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4667219092"
+        }
+      ],
+      "reviewed": "53fc6cdc4c0d082bd63033fdecb7a07a23c52bc5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/718#discussion_r4654783559"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "6962fefa51a6925e247ade2c9290b4500b58fda6",
+  "merge": "84c34d728b8460923b9205dc85750a90d6d0e706",
+  "merged": "2026-10-16T05:36:33Z",
+  "missing_roots": 0,
+  "number": 20628,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot I think we have more std / conventional approach in repo hasScope or something",
+      "created": "2026-10-15T19:09:02Z",
+      "hunk": "@@ -138,6 +139,8 @@ void testEmitsSpans() throws UnknownHostException {\n     dispatchAttributes.add(equalTo(NETWORK_PEER_PORT, kvPort));\n     testing.waitAndAssertTracesWithoutScopeVersionVerification(\n         trace -> {\n+          assertThat(trace.getSpan(0).getInstrumentationScopeInfo().getName())\n+              .isEqualTo(\"io.opentelemetry.couchbase-3.1\");",
+      "id": "PRRT_kwDODJKVX86s7U0T",
+      "opened": "2026-10-15T19:09:02Z",
+      "path": "instrumentation/couchbase/couchbase-3.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseClient31Test.java",
+      "replies": [
+        {
+          "at": "2026-10-15T19:18:17Z",
+          "body": "Updated both Couchbase tests to use the shared `hasScopeName` assertion helper. Follow-up commit: `cef44c6a`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20628#discussion_r4287284416"
+        }
+      ],
+      "reviewed": "f0b1556bfbd45c9885fe8f1956238e4161704876",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20628#discussion_r4287197680"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  `io.opentelemetry.couchbase-3.2`.\n```",
+      "created": "2026-10-15T20:02:36Z",
+      "hunk": "@@ -25,6 +25,9 @@\n   | `io.opentelemetry.mongo-3.7` | `io.opentelemetry.mongo-3.1` |\n   | `io.opentelemetry.ratpack-1.7` | `io.opentelemetry.ratpack-1.4` |\n   | `io.opentelemetry.tomcat-jdbc` | `io.opentelemetry.tomcat-jdbc-8.5` |\n+- Couchbase Java SDK 3.1 and 3.2+ spans now use the agent-owned scope names instead of\n+  `com.couchbase.client.jvm`. SDK 3.1 uses `io.opentelemetry.couchbase-3.1`; SDK 3.2+ uses\n+  `io.opentelemetry.couchbase-3.2`. The existing legacy-bridge 3.1 scope is unchanged.",
+      "id": "PRRT_kwDODJKVX86s8hVm",
+      "opened": "2026-10-15T20:02:36Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "cef44c6a4367b29208639e13406965a7a37facec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20628#discussion_r4287705371"
+    }
+  ]
+}

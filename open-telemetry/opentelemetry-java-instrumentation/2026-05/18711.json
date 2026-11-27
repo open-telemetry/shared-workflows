@@ -1,0 +1,25 @@
+{
+  "head": "4d0558a2c2daed9f3983cd9dc05384631960cf38",
+  "merge": "40cb57dc1deda7f1ee40e29eec41f1a12a8f0780",
+  "merged": "2026-05-12T18:43:53Z",
+  "missing_roots": 0,
+  "number": 18711,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\ntasks.test {\n```",
+      "created": "2026-05-12T17:37:14Z",
+      "hunk": "@@ -13,6 +13,6 @@ dependencies {\n   testImplementation(project(\":instrumentation:java-http-server:testing\"))\n }\n \n-tasks.test {\n+tasks.withType<Test>().configureEach {",
+      "id": "PRRT_kwDODJKVX86BgX_x",
+      "opened": "2026-05-12T17:37:14Z",
+      "path": "instrumentation/java-http-server/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "ebe90a2362b315a25605a56267dfabd7b4a9541e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18711#discussion_r3228538043"
+    }
+  ]
+}

@@ -1,0 +1,443 @@
+{
+  "head": "6c7d99685083dcf1d93e877714da1d452ac6ef5e",
+  "merge": "a16167261a6240d5f070e96135e92efa10537f1e",
+  "merged": "2026-10-18T18:25:21Z",
+  "missing_roots": 0,
+  "number": 20145,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Run this exit advice when `receive` throws. The enter advice has already incremented the shared call depth, so skipping exit on a `JMSException` leaves the thread's depth nonzero and suppresses telemetry for later receives on that thread.",
+      "created": "2026-09-13T23:31:05Z",
+      "hunk": "@@ -89,6 +98,23 @@ public static void stopSpan(\n     }\n   }\n \n+  @SuppressWarnings(\"unused\")\n+  public static class ConsumerAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static AdviceScope onEnter() {\n+      return AdviceScope.enter();\n+    }\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX86h8_7h",
+      "opened": "2026-09-13T23:31:06Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageConsumerInstrumentation.java",
+      "replies": [],
+      "reviewed": "236cf5d61e3bd41d8e763922e97f04b3eaed1359",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4001285997"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Include exceptional exits here. `JMSConsumer.receive*` can throw a runtime JMS error after `enter()` increments the `MessageConsumer` call depth; without exit advice, that depth leaks and all subsequent receives on the thread are treated as nested.",
+      "created": "2026-09-13T23:31:06Z",
+      "hunk": "@@ -0,0 +1,118 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.v2_0;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;\n+import static io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.JmsReceiveSpanUtil.createReceiveSpan;\n+import static io.opentelemetry.javaagent.instrumentation.jms.v2_0.JmsSingletons.consumerReceiveInstrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.instrumentation.api.internal.Timer;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.MessageWithDestination;\n+import io.opentelemetry.javaagent.instrumentation.jms.v1_1.JavaxMessageAdapter;\n+import javax.annotation.Nullable;\n+import javax.jms.Message;\n+import javax.jms.MessageConsumer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments the simplified API's {@code JMSConsumer}, introduced in JMS 2.0.\n+ *\n+ * <p>Only the {@code Message}-returning receive methods are instrumented. {@code receiveBody}\n+ * unwraps the body inside the provider and never exposes the {@code Message}, so there is nothing\n+ * to extract trace context from at this boundary.\n+ *\n+ * <p>Durable and shared subscription names are not recorded for the simplified API: {@code\n+ * JmsSubscriptionNames} keys on {@code MessageConsumer}, and a {@code JMSConsumer} is not one.\n+ */\n+class JmsConsumerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"javax.jms.JMSConsumer\");\n+  }\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return implementsInterface(named(\"javax.jms.JMSConsumer\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"receive\")\n+            .and(takesArguments(0).or(takesArguments(1)))\n+            .and(returns(named(\"javax.jms.Message\")))\n+            .and(isPublic()),\n+        getClass().getName() + \"$ConsumerAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"receiveNoWait\")\n+            .and(takesArguments(0))\n+            .and(returns(named(\"javax.jms.Message\")))\n+            .and(isPublic()),\n+        getClass().getName() + \"$ConsumerAdvice\");\n+  }\n+\n+  public static class AdviceScope {\n+    private final CallDepth callDepth;\n+    @Nullable private final Timer timer;\n+\n+    private AdviceScope(CallDepth callDepth, @Nullable Timer timer) {\n+      this.callDepth = callDepth;\n+      this.timer = timer;\n+    }\n+\n+    public static AdviceScope enter() {\n+      // deliberately keyed on MessageConsumer, not JMSConsumer: providers typically implement\n+      // JMSConsumer.receive by delegating to a MessageConsumer, and sharing the key means the\n+      // outermost receive wins and exactly one receive span is emitted\n+      CallDepth callDepth = CallDepth.forClass(MessageConsumer.class);\n+      if (callDepth.getAndIncrement() > 0) {\n+        return new AdviceScope(callDepth, null);\n+      }\n+      return new AdviceScope(callDepth, Timer.start());\n+    }\n+\n+    public void exit(@Nullable Message message) {\n+      if (callDepth.decrementAndGet() > 0 || timer == null) {\n+        return;\n+      }\n+      if (message == null) {\n+        // Do not create span when no message is received\n+        return;\n+      }\n+\n+      MessageWithDestination request =\n+          MessageWithDestination.create(JavaxMessageAdapter.create(message), null, null);\n+\n+      createReceiveSpan(consumerReceiveInstrumenter(), request, timer, null);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConsumerAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static AdviceScope onEnter() {\n+      return AdviceScope.enter();\n+    }\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX86h8_7l",
+      "opened": "2026-09-13T23:31:06Z",
+      "path": "instrumentation/jms/jms-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v2_0/JmsConsumerInstrumentation.java",
+      "replies": [],
+      "reviewed": "236cf5d61e3bd41d8e763922e97f04b3eaed1359",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4001286004"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Include exceptional exits here. A runtime JMS error currently bypasses `AdviceScope.exit()`, leaving the shared call depth incremented and suppressing every later receive on the same thread.",
+      "created": "2026-09-13T23:31:06Z",
+      "hunk": "@@ -0,0 +1,117 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.v3_0;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;\n+import static io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.JmsReceiveSpanUtil.createReceiveSpan;\n+import static io.opentelemetry.javaagent.instrumentation.jms.v3_0.JmsSingletons.consumerReceiveInstrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.instrumentation.api.internal.Timer;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.MessageWithDestination;\n+import jakarta.jms.Message;\n+import jakarta.jms.MessageConsumer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments the simplified API's {@code JMSConsumer}, introduced in JMS 2.0.\n+ *\n+ * <p>Only the {@code Message}-returning receive methods are instrumented. {@code receiveBody}\n+ * unwraps the body inside the provider and never exposes the {@code Message}, so there is nothing\n+ * to extract trace context from at this boundary.\n+ *\n+ * <p>Durable and shared subscription names are not recorded for the simplified API: {@link\n+ * JmsSubscriptionNames} keys on {@code MessageConsumer}, and a {@code JMSConsumer} is not one.\n+ */\n+class JmsConsumerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"jakarta.jms.JMSConsumer\");\n+  }\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return implementsInterface(named(\"jakarta.jms.JMSConsumer\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"receive\")\n+            .and(takesArguments(0).or(takesArguments(1)))\n+            .and(returns(named(\"jakarta.jms.Message\")))\n+            .and(isPublic()),\n+        getClass().getName() + \"$ConsumerAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"receiveNoWait\")\n+            .and(takesArguments(0))\n+            .and(returns(named(\"jakarta.jms.Message\")))\n+            .and(isPublic()),\n+        getClass().getName() + \"$ConsumerAdvice\");\n+  }\n+\n+  public static class AdviceScope {\n+    private final CallDepth callDepth;\n+    @Nullable private final Timer timer;\n+\n+    private AdviceScope(CallDepth callDepth, @Nullable Timer timer) {\n+      this.callDepth = callDepth;\n+      this.timer = timer;\n+    }\n+\n+    public static AdviceScope enter() {\n+      // deliberately keyed on MessageConsumer, not JMSConsumer: providers typically implement\n+      // JMSConsumer.receive by delegating to a MessageConsumer, and sharing the key means the\n+      // outermost receive wins and exactly one receive span is emitted\n+      CallDepth callDepth = CallDepth.forClass(MessageConsumer.class);\n+      if (callDepth.getAndIncrement() > 0) {\n+        return new AdviceScope(callDepth, null);\n+      }\n+      return new AdviceScope(callDepth, Timer.start());\n+    }\n+\n+    public void exit(@Nullable Message message) {\n+      if (callDepth.decrementAndGet() > 0 || timer == null) {\n+        return;\n+      }\n+      if (message == null) {\n+        // Do not create span when no message is received\n+        return;\n+      }\n+\n+      MessageWithDestination request =\n+          MessageWithDestination.create(JakartaMessageAdapter.create(message), null, null);\n+\n+      createReceiveSpan(consumerReceiveInstrumenter(), request, timer, null);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConsumerAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static AdviceScope onEnter() {\n+      return AdviceScope.enter();\n+    }\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX86h8_7o",
+      "opened": "2026-09-13T23:31:06Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsConsumerInstrumentation.java",
+      "replies": [],
+      "reviewed": "236cf5d61e3bd41d8e763922e97f04b3eaed1359",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4001286008"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Run this exit advice when `receive` throws. Otherwise the newly incremented shared call depth is never decremented, permanently suppressing later receive telemetry on the same thread after a provider error.",
+      "created": "2026-09-13T23:31:06Z",
+      "hunk": "@@ -89,6 +98,23 @@ public static void stopSpan(\n     }\n   }\n \n+  @SuppressWarnings(\"unused\")\n+  public static class ConsumerAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static AdviceScope onEnter() {\n+      return AdviceScope.enter();\n+    }\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX86h8_7z",
+      "opened": "2026-09-13T23:31:06Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsMessageConsumerInstrumentation.java",
+      "replies": [],
+      "reviewed": "236cf5d61e3bd41d8e763922e97f04b3eaed1359",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4001286022"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This exit advice does not run when `receive` throws, so the call depth incremented on entry is never decremented. The thread then treats every later `MessageConsumer.receive*` call as nested and suppresses its telemetry. Run the exit advice for exceptional returns as well; the nullable return value will keep span creation skipped while restoring the depth.",
+      "created": "2026-09-13T23:39:09Z",
+      "hunk": "@@ -89,6 +98,23 @@ public static void stopSpan(\n     }\n   }\n \n+  @SuppressWarnings(\"unused\")\n+  public static class ConsumerAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static AdviceScope onEnter() {\n+      return AdviceScope.enter();\n+    }\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX86h9DL9",
+      "opened": "2026-09-13T23:39:10Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageConsumerInstrumentation.java",
+      "replies": [],
+      "reviewed": "4001adb3e8d12c30a236565407590e3910c8c351",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4001305840"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This exit advice is skipped when `JMSConsumer.receive*` throws, leaving the shared `MessageConsumer` call depth incremented on that thread. Every subsequent receive is then classified as nested and emits no receive telemetry. Run the exit advice on exceptional returns so it always restores the depth; the nullable return already prevents span creation.",
+      "created": "2026-09-13T23:39:09Z",
+      "hunk": "@@ -0,0 +1,118 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.v2_0;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;\n+import static io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.JmsReceiveSpanUtil.createReceiveSpan;\n+import static io.opentelemetry.javaagent.instrumentation.jms.v2_0.JmsSingletons.consumerReceiveInstrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.instrumentation.api.internal.Timer;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.MessageWithDestination;\n+import io.opentelemetry.javaagent.instrumentation.jms.v1_1.JavaxMessageAdapter;\n+import javax.annotation.Nullable;\n+import javax.jms.Message;\n+import javax.jms.MessageConsumer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments the simplified API's {@code JMSConsumer}, introduced in JMS 2.0.\n+ *\n+ * <p>Only the {@code Message}-returning receive methods are instrumented. {@code receiveBody}\n+ * unwraps the body inside the provider and never exposes the {@code Message}, so there is nothing\n+ * to extract trace context from at this boundary.\n+ *\n+ * <p>Durable and shared subscription names are not recorded for the simplified API: {@code\n+ * JmsSubscriptionNames} keys on {@code MessageConsumer}, and a {@code JMSConsumer} is not one.\n+ */\n+class JmsConsumerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"javax.jms.JMSConsumer\");\n+  }\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return implementsInterface(named(\"javax.jms.JMSConsumer\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"receive\")\n+            .and(takesArguments(0).or(takesArguments(1)))\n+            .and(returns(named(\"javax.jms.Message\")))\n+            .and(isPublic()),\n+        getClass().getName() + \"$ConsumerAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"receiveNoWait\")\n+            .and(takesArguments(0))\n+            .and(returns(named(\"javax.jms.Message\")))\n+            .and(isPublic()),\n+        getClass().getName() + \"$ConsumerAdvice\");\n+  }\n+\n+  public static class AdviceScope {\n+    private final CallDepth callDepth;\n+    @Nullable private final Timer timer;\n+\n+    private AdviceScope(CallDepth callDepth, @Nullable Timer timer) {\n+      this.callDepth = callDepth;\n+      this.timer = timer;\n+    }\n+\n+    public static AdviceScope enter() {\n+      // deliberately keyed on MessageConsumer, not JMSConsumer: providers typically implement\n+      // JMSConsumer.receive by delegating to a MessageConsumer, and sharing the key means the\n+      // outermost receive wins and exactly one receive span is emitted\n+      CallDepth callDepth = CallDepth.forClass(MessageConsumer.class);\n+      if (callDepth.getAndIncrement() > 0) {\n+        return new AdviceScope(callDepth, null);\n+      }\n+      return new AdviceScope(callDepth, Timer.start());\n+    }\n+\n+    public void exit(@Nullable Message message) {\n+      if (callDepth.decrementAndGet() > 0 || timer == null) {\n+        return;\n+      }\n+      if (message == null) {\n+        // Do not create span when no message is received\n+        return;\n+      }\n+\n+      MessageWithDestination request =\n+          MessageWithDestination.create(JavaxMessageAdapter.create(message), null, null);\n+\n+      createReceiveSpan(consumerReceiveInstrumenter(), request, timer, null);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConsumerAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static AdviceScope onEnter() {\n+      return AdviceScope.enter();\n+    }\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX86h9DMG",
+      "opened": "2026-09-13T23:39:10Z",
+      "path": "instrumentation/jms/jms-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v2_0/JmsConsumerInstrumentation.java",
+      "replies": [],
+      "reviewed": "4001adb3e8d12c30a236565407590e3910c8c351",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4001305854"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This exit advice is skipped when `JMSConsumer.receive*` throws, leaving the shared `MessageConsumer` call depth incremented on that thread. Every subsequent receive is then classified as nested and emits no receive telemetry. Run the exit advice on exceptional returns so it always restores the depth; the nullable return already prevents span creation.",
+      "created": "2026-09-13T23:39:09Z",
+      "hunk": "@@ -0,0 +1,117 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.v3_0;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;\n+import static io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.JmsReceiveSpanUtil.createReceiveSpan;\n+import static io.opentelemetry.javaagent.instrumentation.jms.v3_0.JmsSingletons.consumerReceiveInstrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.instrumentation.api.internal.Timer;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.MessageWithDestination;\n+import jakarta.jms.Message;\n+import jakarta.jms.MessageConsumer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments the simplified API's {@code JMSConsumer}, introduced in JMS 2.0.\n+ *\n+ * <p>Only the {@code Message}-returning receive methods are instrumented. {@code receiveBody}\n+ * unwraps the body inside the provider and never exposes the {@code Message}, so there is nothing\n+ * to extract trace context from at this boundary.\n+ *\n+ * <p>Durable and shared subscription names are not recorded for the simplified API: {@link\n+ * JmsSubscriptionNames} keys on {@code MessageConsumer}, and a {@code JMSConsumer} is not one.\n+ */\n+class JmsConsumerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"jakarta.jms.JMSConsumer\");\n+  }\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return implementsInterface(named(\"jakarta.jms.JMSConsumer\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"receive\")\n+            .and(takesArguments(0).or(takesArguments(1)))\n+            .and(returns(named(\"jakarta.jms.Message\")))\n+            .and(isPublic()),\n+        getClass().getName() + \"$ConsumerAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"receiveNoWait\")\n+            .and(takesArguments(0))\n+            .and(returns(named(\"jakarta.jms.Message\")))\n+            .and(isPublic()),\n+        getClass().getName() + \"$ConsumerAdvice\");\n+  }\n+\n+  public static class AdviceScope {\n+    private final CallDepth callDepth;\n+    @Nullable private final Timer timer;\n+\n+    private AdviceScope(CallDepth callDepth, @Nullable Timer timer) {\n+      this.callDepth = callDepth;\n+      this.timer = timer;\n+    }\n+\n+    public static AdviceScope enter() {\n+      // deliberately keyed on MessageConsumer, not JMSConsumer: providers typically implement\n+      // JMSConsumer.receive by delegating to a MessageConsumer, and sharing the key means the\n+      // outermost receive wins and exactly one receive span is emitted\n+      CallDepth callDepth = CallDepth.forClass(MessageConsumer.class);\n+      if (callDepth.getAndIncrement() > 0) {\n+        return new AdviceScope(callDepth, null);\n+      }\n+      return new AdviceScope(callDepth, Timer.start());\n+    }\n+\n+    public void exit(@Nullable Message message) {\n+      if (callDepth.decrementAndGet() > 0 || timer == null) {\n+        return;\n+      }\n+      if (message == null) {\n+        // Do not create span when no message is received\n+        return;\n+      }\n+\n+      MessageWithDestination request =\n+          MessageWithDestination.create(JakartaMessageAdapter.create(message), null, null);\n+\n+      createReceiveSpan(consumerReceiveInstrumenter(), request, timer, null);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConsumerAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static AdviceScope onEnter() {\n+      return AdviceScope.enter();\n+    }\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX86h9DMT",
+      "opened": "2026-09-13T23:39:10Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsConsumerInstrumentation.java",
+      "replies": [],
+      "reviewed": "4001adb3e8d12c30a236565407590e3910c8c351",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4001305871"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This exit advice does not run when `receive` throws, so the call depth incremented on entry is never decremented. The thread then treats every later `MessageConsumer.receive*` call as nested and suppresses its telemetry. Run the exit advice for exceptional returns as well; the nullable return value will keep span creation skipped while restoring the depth.",
+      "created": "2026-09-13T23:39:10Z",
+      "hunk": "@@ -89,6 +98,23 @@ public static void stopSpan(\n     }\n   }\n \n+  @SuppressWarnings(\"unused\")\n+  public static class ConsumerAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static AdviceScope onEnter() {\n+      return AdviceScope.enter();\n+    }\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX86h9DMc",
+      "opened": "2026-09-13T23:39:10Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsMessageConsumerInstrumentation.java",
+      "replies": [],
+      "reviewed": "4001adb3e8d12c30a236565407590e3910c8c351",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4001305887"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Registering this as a standalone instrumentation module without a sibling `instrumentation/jms/jms-2.0/metadata.yaml` leaves the module undocumented and absent from the generated instrumentation catalog. Repository guidance requires metadata for each instrumentation directory (see `docs/contributing/documenting-instrumentation.md:76-80`), and both `jms-1.1` and `jms-3.0` provide it. Add JMS 2.0 metadata, including the shared messaging configuration entries.",
+      "created": "2026-09-13T23:39:10Z",
+      "hunk": "@@ -435,6 +435,7 @@ include(\":instrumentation:jetty-httpclient:jetty-httpclient-12.0:library\")\n include(\":instrumentation:jetty-httpclient:jetty-httpclient-12.0:testing\")\n include(\":instrumentation:jfinal-3.2:javaagent\")\n include(\":instrumentation:jms:jms-1.1:javaagent\")\n+include(\":instrumentation:jms:jms-2.0:javaagent\")",
+      "id": "PRRT_kwDODJKVX86h9DMh",
+      "opened": "2026-09-13T23:39:10Z",
+      "path": "settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-20T18:27:40Z",
+          "body": "`metadata.yaml` is there `instrumentation/jms/jms-2.0/metadata.yaml`, added in `a06503d`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4057705857"
+        }
+      ],
+      "reviewed": "4001adb3e8d12c30a236565407590e3910c8c351",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4001305894"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] These sibling test-instrumentation links are only one-way: `jms-1.1` and `jms-3.0` still do not load the new `jms-2.0` module in their test agents. Add reciprocal `testInstrumentation` entries to both sibling build files so every JMS version suite exercises the complete module set, per `.github/agents/knowledge/gradle-conventions.md:107-110`.",
+      "created": "2026-09-20T01:29:17Z",
+      "hunk": "@@ -0,0 +1,45 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+}\n+\n+muzzle {\n+  pass {\n+    group.set(\"javax.jms\")\n+    module.set(\"javax.jms-api\")\n+    versions.set(\"[2.0,)\")\n+    assertInverse.set(true)\n+  }\n+  pass {\n+    group.set(\"jakarta.jms\")\n+    module.set(\"jakarta.jms-api\")\n+    versions.set(\"[2.0,3)\")\n+    assertInverse.set(true)\n+  }\n+}\n+\n+dependencies {\n+  implementation(project(\":instrumentation:jms:jms-common-1.1:javaagent\"))\n+  // for JavaxMessageAdapter / JavaxDestinationAdapter, which are shared with the classic API\n+  implementation(project(\":instrumentation:jms:jms-1.1:javaagent\"))\n+\n+  compileOnly(\"javax.jms:javax.jms-api:2.0.1\")\n+\n+  testInstrumentation(project(\":instrumentation:jms:jms-1.1:javaagent\"))\n+  testInstrumentation(project(\":instrumentation:jms:jms-3.0:javaagent\"))",
+      "id": "PRRT_kwDODJKVX86kFlJK",
+      "opened": "2026-09-20T01:29:18Z",
+      "path": "instrumentation/jms/jms-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-20T18:15:44Z",
+          "body": "Both siblings have this. It went in with `9b316fb`. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4057679464"
+        }
+      ],
+      "reviewed": "c15756e330b99ad1b3159a1abda47afe8ccc690f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4055559402"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The new module is not registered in `.github/scripts/instrumentations.sh`. That script drives instrumentation metadata collection, so `jms:jms-2.0:javaagent:test` will be skipped even though the project is included here. Add the test task to the appropriate instrumentation array, as required by the new-module checklist in `.github/agents/knowledge/general-rules.md:443-459`.",
+      "created": "2026-09-20T01:29:18Z",
+      "hunk": "@@ -437,6 +437,7 @@ include(\":instrumentation:jetty-httpclient:jetty-httpclient-12.0:library\")\n include(\":instrumentation:jetty-httpclient:jetty-httpclient-12.0:testing\")\n include(\":instrumentation:jfinal-3.2:javaagent\")\n include(\":instrumentation:jms:jms-1.1:javaagent\")\n+include(\":instrumentation:jms:jms-2.0:javaagent\")",
+      "id": "PRRT_kwDODJKVX86kFlJZ",
+      "opened": "2026-09-20T01:29:18Z",
+      "path": "settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-20T18:15:43Z",
+          "body": "It is registered in `instrumentations.sh`, I left it out of `COLIMA_INSTRUMENTATIONS` on purpose, since jms-2.0 runs an in-VM HornetQ broker and doesn't need the x86-only Artemis image.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4057679430"
+        }
+      ],
+      "reviewed": "c15756e330b99ad1b3159a1abda47afe8ccc690f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4055559436"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new JMS 2.0 advices are not independently covered. HornetQ delegates these simplified calls to `MessageProducer`/`MessageConsumer`, so this suite still gets exactly one classic JMS 1.1 span if both new instrumentations are removed; the empty `receiveNoWait()` case also passes when that method is never transformed. Add coverage that distinguishes the `io.opentelemetry.jms-2.0` span scope (or disables the classic module) and successfully receives a message through every receive overload.",
+      "created": "2026-09-20T18:20:32Z",
+      "hunk": "@@ -0,0 +1,25 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.v2_0;\n+\n+import static java.util.Arrays.asList;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.List;\n+\n+@AutoService(InstrumentationModule.class)\n+public class JmsInstrumentationModule extends InstrumentationModule {\n+  public JmsInstrumentationModule() {\n+    super(\"jms\", \"jms-2.0\");\n+  }\n+\n+  @Override\n+  public List<TypeInstrumentation> typeInstrumentations() {\n+    return asList(new JmsProducerInstrumentation(), new JmsConsumerInstrumentation());",
+      "id": "PRRT_kwDODJKVX86kLB6E",
+      "opened": "2026-09-20T18:20:33Z",
+      "path": "instrumentation/jms/jms-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v2_0/JmsInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-29T19:25:03Z",
+          "body": "Covered in b4d8243 - `JmsSimplifiedApiTest` now asserts the span's instrumentation scope is io.opentelemetry.jms-2.0, so it fails if the classic jms-1.1 advice is what produced it. Verified by removing the type instrumentations and watching it go red.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4137442813"
+        }
+      ],
+      "reviewed": "ed648e380bd965723a868561be3a43fd54d842bf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4057689632"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Artemis tests cannot prove that either newly registered simplified-API advice runs: as noted in the PR, Artemis delegates to the already-instrumented classic producer/consumer, whose spans satisfy the same assertions and use the same instrumentation scope. Add a non-delegating test implementation/proxy that exercises `send`, `receive()`, `receive(long)`, and a successful `receiveNoWait()` so removing either registration makes the suite fail.",
+      "created": "2026-09-20T18:20:32Z",
+      "hunk": "@@ -24,6 +24,8 @@ public List<TypeInstrumentation> typeInstrumentations() {\n         new JmsSessionInstrumentation(),\n         new JmsMessageConsumerInstrumentation(),\n         new JmsMessageListenerInstrumentation(),\n-        new JmsMessageProducerInstrumentation());\n+        new JmsMessageProducerInstrumentation(),\n+        new JmsProducerInstrumentation(),\n+        new JmsConsumerInstrumentation());",
+      "id": "PRRT_kwDODJKVX86kLB6P",
+      "opened": "2026-09-20T18:20:33Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-29T19:26:34Z",
+          "body": "Covered in b4d8243, rewritten with mocks in 5fe2fbc. The producer and consumer never touch `MessageProducer/MessageConsumer`, so the span can only come from the simplified-API advice, and it covers send, `receive()`, `receive(long`) and a successful `receiveNoWait()`. Removing either registration makes the suite fail.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4137455757"
+        }
+      ],
+      "reviewed": "ed648e380bd965723a868561be3a43fd54d842bf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4057689645"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "what if we rewrote `receiveBody` as\n```\n  Message message = receive();\n  return message == null ? null : message.getBody(c);\n```",
+      "created": "2026-09-25T09:41:37Z",
+      "hunk": "@@ -0,0 +1,118 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.v2_0;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;\n+import static io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.JmsReceiveSpanUtil.createReceiveSpan;\n+import static io.opentelemetry.javaagent.instrumentation.jms.v2_0.JmsSingletons.consumerReceiveInstrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.instrumentation.api.internal.Timer;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.MessageWithDestination;\n+import io.opentelemetry.javaagent.instrumentation.jms.v1_1.JavaxMessageAdapter;\n+import javax.annotation.Nullable;\n+import javax.jms.Message;\n+import javax.jms.MessageConsumer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments the simplified API's {@code JMSConsumer}, introduced in JMS 2.0.\n+ *\n+ * <p>Only the {@code Message}-returning receive methods are instrumented. {@code receiveBody}",
+      "id": "PRRT_kwDODJKVX86l8rRs",
+      "opened": "2026-09-25T09:41:37Z",
+      "path": "instrumentation/jms/jms-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v2_0/JmsConsumerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-25T17:19:26Z",
+          "body": "Checked the spec on this. Works for `CLIENT_ACKNOWLEDGE` and transacted sessions, but not for `AUTO_ACKNOWLEDGE` / `DUPS_OK_ACKNOWLEDGE` - there the provider has to \"behave as if the unsuccessful call to receiveBody had not occurred\", redelivering the message ahead of subsequent ones without setting `JMSRedelivered` or bumping `JMSXDeliveryCount`. After `receive()` the message is already consumed and acknowledged, so a failed `getBody(c)` just drops it. Same for `receiveBody(c, timeout)` and `receiveBodyNoWait(c)`.\r\n\r\nWe could put the session mode on the `JMSConsumer` in a VirtualField when JMSContext creates it, like `JmsSubscriptionNames` does for durable consumers, and only take that path for `CLIENT_ACKNOWLEDGE` and transacted. Worth doing, or leave `receiveBody` out with a comment?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4106938525"
+        },
+        {
+          "at": "2026-09-25T17:24:15Z",
+          "body": "Reference: https://jakarta.ee/specifications/messaging/3.1/apidocs/jakarta.messaging/jakarta/jms/jmsconsumer#receiveBody(java.lang.Class))",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4106974392"
+        },
+        {
+          "at": "2026-09-29T13:48:09Z",
+          "body": "If it can't be done reasonably then it is fine to omit it. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4134212658"
+        },
+        {
+          "at": "2026-09-29T19:22:57Z",
+          "body": "Left it out. Updated the javadoc in `ffbb623` so it gives the actual reason (the auto-ack redelivery rule) instead of the old one.\r\n\r\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145/changes/ffbb623fe683834ce06219a7670af17b24f8c191",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4137424661"
+        }
+      ],
+      "reviewed": "5fe2fbcc38393932f82d309d85714a39f0087cca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4103214955"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "The purpose of `JmsSubscriptionNames` is to attach the name provided at creation time to the `MessageConsumer`. I think we could instrument `JMSContext` methods that create durable subscribers similarly to how `Session` methods are instrumented. ",
+      "created": "2026-09-25T09:48:43Z",
+      "hunk": "@@ -0,0 +1,118 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.v2_0;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;\n+import static io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.JmsReceiveSpanUtil.createReceiveSpan;\n+import static io.opentelemetry.javaagent.instrumentation.jms.v2_0.JmsSingletons.consumerReceiveInstrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.instrumentation.api.internal.Timer;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.MessageWithDestination;\n+import io.opentelemetry.javaagent.instrumentation.jms.v1_1.JavaxMessageAdapter;\n+import javax.annotation.Nullable;\n+import javax.jms.Message;\n+import javax.jms.MessageConsumer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments the simplified API's {@code JMSConsumer}, introduced in JMS 2.0.\n+ *\n+ * <p>Only the {@code Message}-returning receive methods are instrumented. {@code receiveBody}\n+ * unwraps the body inside the provider and never exposes the {@code Message}, so there is nothing\n+ * to extract trace context from at this boundary.\n+ *\n+ * <p>Durable and shared subscription names are not recorded for the simplified API: {@code\n+ * JmsSubscriptionNames} keys on {@code MessageConsumer}, and a {@code JMSConsumer} is not one.",
+      "id": "PRRT_kwDODJKVX86l81hq",
+      "opened": "2026-09-25T09:48:42Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsConsumerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-25T17:22:40Z",
+          "body": "Makes sense, want it in this PR or a follow-up? It's at 21 files already, works either way for me.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4106962809"
+        },
+        {
+          "at": "2026-09-29T13:34:36Z",
+          "body": "sure, we can do this as a follow up",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4134069959"
+        },
+        {
+          "at": "2026-09-29T19:21:31Z",
+          "body": "opened  https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20321 to track the continuation. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4137412156"
+        }
+      ],
+      "reviewed": "5fe2fbcc38393932f82d309d85714a39f0087cca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4103279448"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@trask this module provides instrumentation for a feature added in jms 2 while jms 1.1 instrumentation handles what was added in earlier version. Is this fine or do we need to rework it so that jms 1.1 instrumenation isn't used at all when jms 2 is present?",
+      "created": "2026-09-25T09:52:50Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+plugins {",
+      "id": "PRRT_kwDODJKVX86l88ty",
+      "opened": "2026-09-25T09:52:50Z",
+      "path": "instrumentation/jms/jms-2.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "5fe2fbcc38393932f82d309d85714a39f0087cca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4103326355"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The default test task forces receive telemetry on, but this new module has no counterpart to the `testReceiveSpansDisabled` tasks in the JMS 1.1 and 3.0 modules. As a result, the shipped default (`false` in metadata) is never exercised for the new `javax.jms.JMSConsumer` advice; that path is observably different because `JmsReceiveSpanUtil` extracts the producer context for legacy semconv. Add a flag-off test task and coverage, and register the task in the instrumentation CI list.",
+      "created": "2026-09-29T19:44:44Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+}\n+\n+muzzle {\n+  pass {\n+    group.set(\"javax.jms\")\n+    module.set(\"javax.jms-api\")\n+    versions.set(\"[2.0,)\")\n+    assertInverse.set(true)\n+  }\n+  pass {\n+    group.set(\"jakarta.jms\")\n+    module.set(\"jakarta.jms-api\")\n+    versions.set(\"[2.0,3)\")\n+    assertInverse.set(true)\n+  }\n+}\n+\n+dependencies {\n+  implementation(project(\":instrumentation:jms:jms-common-1.1:javaagent\"))\n+  // for JavaxMessageAdapter / JavaxDestinationAdapter, which are shared with the classic API\n+  implementation(project(\":instrumentation:jms:jms-1.1:javaagent\"))\n+\n+  compileOnly(\"javax.jms:javax.jms-api:2.0.1\")\n+\n+  testInstrumentation(project(\":instrumentation:jms:jms-1.1:javaagent\"))\n+  testInstrumentation(project(\":instrumentation:jms:jms-3.0:javaagent\"))\n+\n+  // HornetQ 2.4.7 is a JMS 2.0 provider and runs in-VM, so these tests need no broker container\n+  testImplementation(\"org.hornetq:hornetq-jms-client:2.4.7.Final\")\n+  testImplementation(\"org.hornetq:hornetq-jms-server:2.4.7.Final\")\n+}\n+\n+tasks {\n+  val testMessagingPreview = register<Test>(\"testMessagingPreview\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+    jvmArgs(\"-Dotel.instrumentation.common.messaging.experimental.receive-telemetry.enabled=true\")\n+    jvmArgs(\"-Dotel.semconv-stability.preview=messaging\")\n+  }\n+\n+  test {\n+    jvmArgs(\"-Dotel.instrumentation.common.messaging.experimental.receive-telemetry.enabled=true\")\n+  }",
+      "id": "PRRT_kwDODJKVX86nRAUd",
+      "opened": "2026-09-29T19:44:45Z",
+      "path": "instrumentation/jms/jms-2.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "22b07f33bc104d3ab9a4b497261cd1d9bbe40840",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4137610463"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use `hasAttributesSatisfyingExactly(...)` and enumerate the mode-dependent operation and temporary-destination attributes. The non-exact assertion silently accepts unexpected telemetry, so this new isolated producer test would not detect accidental extra attributes.\n\nThis issue also appears on line 104 of the same file.",
+      "created": "2026-09-29T19:44:44Z",
+      "hunk": "@@ -0,0 +1,143 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.v3_0;\n+\n+import static io.opentelemetry.api.trace.SpanKind.CLIENT;\n+import static io.opentelemetry.api.trace.SpanKind.CONSUMER;\n+import static io.opentelemetry.api.trace.SpanKind.PRODUCER;\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_MESSAGE_ID;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_SYSTEM;\n+import static java.util.Collections.emptyEnumeration;\n+import static org.junit.jupiter.params.provider.Arguments.argumentSet;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import jakarta.jms.Destination;\n+import jakarta.jms.JMSConsumer;\n+import jakarta.jms.JMSException;\n+import jakarta.jms.JMSProducer;\n+import jakarta.jms.Message;\n+import jakarta.jms.Queue;\n+import java.util.function.Function;\n+import java.util.stream.Stream;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n+\n+/**\n+ * Tests the {@code JMSProducer} / {@code JMSConsumer} instrumentation in isolation.\n+ *\n+ * <p>Real providers implement the simplified API by delegating to the classic one, and the classic\n+ * advice emits an identical span in the same instrumentation module, so a test against a real\n+ * provider passes even without this instrumentation. The producer and consumer used here never\n+ * touch a {@code MessageProducer} or {@code MessageConsumer}, so a span can only come from the\n+ * simplified-API advice.\n+ */\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv\n+class Jms3SimplifiedApiTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  private static final String QUEUE_NAME = \"stubQueue\";\n+  private static final String MESSAGE_ID = \"ID:stub-message\";\n+\n+  @SuppressWarnings(\"DirectInvocationOnMock\")\n+  @Test\n+  void sendEmitsExactlyOneProducerSpan() throws JMSException {\n+    JMSProducer producer = mock(JMSProducer.class);\n+\n+    Destination queue = queue();\n+    // a message that has not been sent has no destination yet, so the send argument is used\n+    Message message = message(null);\n+\n+    testing.runWithSpan(\"parent\", () -> producer.send(queue, message));\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"parent\").hasNoParent(),\n+                span ->\n+                    span.hasName(\n+                            emitStableMessagingSemconv()\n+                                ? \"send \" + QUEUE_NAME\n+                                : QUEUE_NAME + \" publish\")\n+                        .hasKind(PRODUCER)\n+                        .hasParent(trace.getSpan(0))\n+                        .hasAttributesSatisfying(\n+                            equalTo(MESSAGING_SYSTEM, \"jms\"),\n+                            equalTo(MESSAGING_DESTINATION_NAME, QUEUE_NAME),\n+                            equalTo(MESSAGING_MESSAGE_ID, MESSAGE_ID))));",
+      "id": "PRRT_kwDODJKVX86nRAVU",
+      "opened": "2026-09-29T19:44:45Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/Jms3SimplifiedApiTest.java",
+      "replies": [],
+      "reviewed": "22b07f33bc104d3ab9a4b497261cd1d9bbe40840",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4137610542"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] This additive JMS 2.0 API support should not create a second overlapping javaagent project. The repository's compatibility-range convention says that optional APIs introduced in a higher subrange belong in an independently selected `InstrumentationModule` within the existing project, with separate Muzzle passes and `excludeInstrumentationName(...)` entries (`.github/agents/knowledge/gradle-conventions.md:39-57`); the Jedis 2.3 cluster module is a concrete example. Keeping this under `jms-1.1/javaagent` would also avoid the new implementation dependency back to that project and the reciprocal sibling test wiring while still allowing the `jms-2.0` instrumentation name.",
+      "created": "2026-09-29T19:44:45Z",
+      "hunk": "@@ -439,6 +439,7 @@ include(\":instrumentation:jetty-httpclient:jetty-httpclient-12.0:library\")\n include(\":instrumentation:jetty-httpclient:jetty-httpclient-12.0:testing\")\n include(\":instrumentation:jfinal-3.2:javaagent\")\n include(\":instrumentation:jms:jms-1.1:javaagent\")\n+include(\":instrumentation:jms:jms-2.0:javaagent\")",
+      "id": "PRRT_kwDODJKVX86nRAWA",
+      "opened": "2026-09-29T19:44:45Z",
+      "path": "settings.gradle.kts",
+      "replies": [],
+      "reviewed": "22b07f33bc104d3ab9a4b497261cd1d9bbe40840",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4137610608"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This adds `jms-3.0:test` to the generic matrix even though that task is already in `COLIMA_INSTRUMENTATIONS` at line 365, while the new `jms-2.0:test` remains absent. This duplicates JMS 3.0 collection and still skips the new module; register JMS 2.0 here instead.",
+      "created": "2026-10-13T13:51:44Z",
+      "hunk": "@@ -162,6 +162,7 @@ readonly INSTRUMENTATIONS=(\n   \"jetty-httpclient:jetty-httpclient-9.2:javaagent:test\"\n   \"jetty-httpclient:jetty-httpclient-9.2:javaagent:testPreviewSemconv\"\n   \"jms:jms-1.1:javaagent:test\"\n+  \"jms:jms-3.0:javaagent:test\"",
+      "id": "PRRT_kwDODJKVX86r5BRy",
+      "opened": "2026-10-13T13:51:46Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [],
+      "reviewed": "8a982d4c612cdc16a93d51728b1ad5750eb7b398",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4259491655"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] The JMS 2.0 simplified types are registered in the existing JMS 1.1 module, whose `JmsSingletons` emits scope `io.opentelemetry.jms-1.1`. Consequently the claimed `io.opentelemetry.jms-2.0` scope can never be emitted, and JMS 2-only symbol references remain in the all-versions JMS 1.1 project. Move these registrations and their instrumenters into a dedicated JMS 2.0 `InstrumentationModule` with its own scope.",
+      "created": "2026-10-13T13:51:45Z",
+      "hunk": "@@ -27,6 +27,8 @@ public List<TypeInstrumentation> typeInstrumentations() {\n         new JmsSessionInstrumentation(),\n         new JmsMessageConsumerInstrumentation(),\n         new JmsMessageListenerInstrumentation(),\n-        new JmsMessageProducerInstrumentation());\n+        new JmsMessageProducerInstrumentation(),\n+        new JmsProducerInstrumentation(),\n+        new JmsConsumerInstrumentation());",
+      "id": "PRRT_kwDODJKVX86r5BT7",
+      "opened": "2026-10-13T13:51:46Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "8a982d4c612cdc16a93d51728b1ad5750eb7b398",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4259491864"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] These assertions never verify the instrumentation scope. HornetQ delegates simplified calls to the classic API, so the existing JMS 1.1 advice can satisfy both traces even if the new simplified advice is removed. Assert `io.opentelemetry.jms-2.0` on the send and receive spans so this integration test proves that the new module handled each operation.",
+      "created": "2026-10-13T13:51:45Z",
+      "hunk": "@@ -0,0 +1,180 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.v1_1;\n+\n+import static io.opentelemetry.api.trace.SpanKind.CLIENT;\n+import static io.opentelemetry.api.trace.SpanKind.PRODUCER;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.junit.jupiter.params.provider.Arguments.argumentSet;\n+\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.io.File;\n+import java.util.HashSet;\n+import java.util.stream.Stream;\n+import javax.jms.Connection;\n+import javax.jms.Destination;\n+import javax.jms.JMSConsumer;\n+import javax.jms.JMSContext;\n+import javax.jms.JMSException;\n+import javax.jms.Message;\n+import javax.jms.Session;\n+import javax.jms.TextMessage;\n+import org.hornetq.api.core.TransportConfiguration;\n+import org.hornetq.api.core.client.ClientSession;\n+import org.hornetq.api.core.client.ClientSessionFactory;\n+import org.hornetq.api.core.client.HornetQClient;\n+import org.hornetq.api.core.client.ServerLocator;\n+import org.hornetq.api.jms.HornetQJMSClient;\n+import org.hornetq.api.jms.JMSFactoryType;\n+import org.hornetq.core.config.Configuration;\n+import org.hornetq.core.config.CoreQueueConfiguration;\n+import org.hornetq.core.config.impl.ConfigurationImpl;\n+import org.hornetq.core.remoting.impl.invm.InVMAcceptorFactory;\n+import org.hornetq.core.remoting.impl.invm.InVMConnectorFactory;\n+import org.hornetq.core.server.HornetQServer;\n+import org.hornetq.core.server.HornetQServers;\n+import org.hornetq.jms.client.HornetQConnectionFactory;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.api.io.TempDir;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n+\n+/**\n+ * Exercises the JMS 2.0 simplified API ({@code JMSContext} / {@code JMSProducer} / {@code\n+ * JMSConsumer}) against an in-VM HornetQ broker.\n+ *\n+ * <p>The point of these tests is the span *count*. HornetQ implements the simplified API on top of\n+ * the classic one, so without a shared call depth between the two instrumentations every send and\n+ * receive would produce two spans.\n+ */\n+class JmsSimplifiedApiTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  private static HornetQConnectionFactory connectionFactory;\n+  private static Connection connection;\n+  private static Session session;\n+\n+  @BeforeAll\n+  static void setUp(@TempDir File tempDir) throws Exception {\n+    Configuration config = new ConfigurationImpl();\n+    config.setBindingsDirectory(tempDir.getPath());\n+    config.setJournalDirectory(tempDir.getPath());\n+    config.setCreateBindingsDir(false);\n+    config.setCreateJournalDir(false);\n+    config.setSecurityEnabled(false);\n+    config.setPersistenceEnabled(false);\n+    config.setQueueConfigurations(\n+        singletonList(new CoreQueueConfiguration(\"someQueue\", \"someQueue\", null, true)));\n+    config.setAcceptorConfigurations(\n+        new HashSet<>(\n+            singletonList(new TransportConfiguration(InVMAcceptorFactory.class.getName()))));\n+\n+    HornetQServer server = HornetQServers.newHornetQServer(config);\n+    server.start();\n+    cleanup.deferAfterAll(server::stop);\n+\n+    ServerLocator serverLocator =\n+        HornetQClient.createServerLocatorWithoutHA(\n+            new TransportConfiguration(InVMConnectorFactory.class.getName()));\n+    ClientSessionFactory sf = serverLocator.createSessionFactory();\n+    ClientSession clientSession = sf.createSession(false, false, false);\n+    clientSession.createQueue(\"jms.queue.someQueue\", \"jms.queue.someQueue\", true);\n+    clientSession.createQueue(\"jms.queue.someNoTimeoutQueue\", \"jms.queue.someNoTimeoutQueue\", true);\n+    clientSession.createQueue(\"jms.topic.someTopic\", \"jms.topic.someTopic\", true);\n+    clientSession.close();\n+    sf.close();\n+    serverLocator.close();\n+\n+    connectionFactory =\n+        HornetQJMSClient.createConnectionFactoryWithoutHA(\n+            JMSFactoryType.CF, new TransportConfiguration(InVMConnectorFactory.class.getName()));\n+    connection = connectionFactory.createConnection();\n+    connection.setClientID(\"jms-2-simplified-test\");\n+    connection.start();\n+    session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);\n+    session.run();\n+    cleanup.deferAfterAll(connectionFactory::close);\n+    cleanup.deferAfterAll(connection);\n+    cleanup.deferAfterAll(session);\n+  }\n+\n+  @ParameterizedTest\n+  @MethodSource(\"consumerReceiveArguments\")\n+  void producerSendAndConsumerReceiveEachEmitExactlyOneSpan(\n+      String queueName, JmsConsumerReceiver receiver) throws JMSException {\n+    Destination destination = session.createQueue(queueName);\n+    TextMessage sentMessage = session.createTextMessage(\"hello there\");\n+\n+    JMSContext context = connectionFactory.createContext();\n+    cleanup.deferCleanup(context);\n+    JMSConsumer consumer = context.createConsumer(destination);\n+    cleanup.deferCleanup(consumer);\n+\n+    testing.runWithSpan(\n+        \"producer parent\", () -> context.createProducer().send(destination, sentMessage));\n+\n+    Message received = testing.runWithSpan(\"consumer parent\", () -> receiver.receive(consumer));\n+    assertThat(received).isNotNull();\n+    assertThat(((TextMessage) received).getText()).isEqualTo(\"hello there\");\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"producer parent\").hasNoParent(),\n+                span ->\n+                    span.hasName(\"send \" + queueName)",
+      "id": "PRRT_kwDODJKVX86r5BTD",
+      "opened": "2026-10-13T13:51:46Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/jms2Test/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsSimplifiedApiTest.java",
+      "replies": [],
+      "reviewed": "8a982d4c612cdc16a93d51728b1ad5750eb7b398",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4259491776"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] If startup throws after this increment—for example, a null `Message` makes `JavaxMessageAdapter.create` fail in its `VirtualField.get`—the enter-advice suppression keeps the application running but this shared `MessageProducer` call depth remains at 1. Every later classic or simplified send on the same thread is then treated as nested and emits no producer span. Decrement before rethrowing startup failures; a failed-send-then-valid-send regression test would protect the invariant.",
+      "created": "2026-10-13T17:43:37Z",
+      "hunk": "@@ -0,0 +1,125 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.v1_1;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;\n+import static io.opentelemetry.javaagent.instrumentation.jms.v1_1.JmsSingletons.producerInstrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.MessageWithDestination;\n+import javax.annotation.Nullable;\n+import javax.jms.Destination;\n+import javax.jms.Message;\n+import javax.jms.MessageProducer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments the simplified API's {@code JMSProducer}, introduced in JMS 2.0.\n+ *\n+ * <p>Only the {@code send(Destination, Message)} overload is instrumented. The body-convenience\n+ * overloads ({@code String}, {@code Map}, {@code byte[]}, {@code Serializable}) build the {@code\n+ * Message} inside the provider, so there is no message at this boundary to inject trace context\n+ * into.\n+ */\n+class JmsProducerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"javax.jms.JMSProducer\");\n+  }\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return implementsInterface(named(\"javax.jms.JMSProducer\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"send\")\n+            .and(takesArgument(0, named(\"javax.jms.Destination\")))\n+            .and(takesArgument(1, named(\"javax.jms.Message\")))\n+            .and(isPublic()),\n+        getClass().getName() + \"$ProducerAdvice\");\n+  }\n+\n+  public static class AdviceScope {\n+    private final CallDepth callDepth;\n+    @Nullable private final MessageWithDestination messageWithDestination;\n+    @Nullable private final Context context;\n+    @Nullable private final Scope scope;\n+\n+    private AdviceScope(\n+        CallDepth callDepth,\n+        @Nullable MessageWithDestination messageWithDestination,\n+        @Nullable Context context,\n+        @Nullable Scope scope) {\n+      this.callDepth = callDepth;\n+      this.messageWithDestination = messageWithDestination;\n+      this.context = context;\n+      this.scope = scope;\n+    }\n+\n+    public static AdviceScope start(CallDepth callDepth, Destination destination, Message message) {\n+      if (callDepth.getAndIncrement() > 0) {\n+        return new AdviceScope(callDepth, null, null, null);\n+      }\n+      Context parentContext = Context.current();\n+\n+      MessageWithDestination messageWithDestination =\n+          MessageWithDestination.create(\n+              JavaxMessageAdapter.create(message), JavaxDestinationAdapter.create(destination));\n+      if (!producerInstrumenter().shouldStart(parentContext, messageWithDestination)) {\n+        return new AdviceScope(callDepth, null, null, null);\n+      }\n+\n+      Context context = producerInstrumenter().start(parentContext, messageWithDestination);\n+      return new AdviceScope(callDepth, messageWithDestination, context, context.makeCurrent());\n+    }",
+      "id": "PRRT_kwDODJKVX86r_LSR",
+      "opened": "2026-10-13T17:43:38Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsProducerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-13T17:53:48Z",
+          "body": "the same approach is used in multiple other instrumentations",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4262139328"
+        }
+      ],
+      "reviewed": "6c7d99685083dcf1d93e877714da1d452ac6ef5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4262036427"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] If startup throws after this increment—for example, a null `Message` makes `JakartaMessageAdapter.create` fail in its `VirtualField.get`—the enter-advice suppression keeps the application running but this shared `MessageProducer` call depth remains at 1. Every later classic or simplified send on the same thread is then treated as nested and emits no producer span. Decrement before rethrowing startup failures; a failed-send-then-valid-send regression test would protect the invariant.",
+      "created": "2026-10-13T17:43:38Z",
+      "hunk": "@@ -0,0 +1,125 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.v3_0;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;\n+import static io.opentelemetry.javaagent.instrumentation.jms.v3_0.JmsSingletons.producerInstrumenter;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.CallDepth;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jms.common.v1_1.MessageWithDestination;\n+import jakarta.jms.Destination;\n+import jakarta.jms.Message;\n+import jakarta.jms.MessageProducer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Instruments the simplified API's {@code JMSProducer}, introduced in JMS 2.0.\n+ *\n+ * <p>Only the {@code send(Destination, Message)} overload is instrumented. The body-convenience\n+ * overloads ({@code String}, {@code Map}, {@code byte[]}, {@code Serializable}) build the {@code\n+ * Message} inside the provider, so there is no message at this boundary to inject trace context\n+ * into.\n+ */\n+class JmsProducerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"jakarta.jms.JMSProducer\");\n+  }\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return implementsInterface(named(\"jakarta.jms.JMSProducer\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"send\")\n+            .and(takesArgument(0, named(\"jakarta.jms.Destination\")))\n+            .and(takesArgument(1, named(\"jakarta.jms.Message\")))\n+            .and(isPublic()),\n+        getClass().getName() + \"$ProducerAdvice\");\n+  }\n+\n+  public static class AdviceScope {\n+    private final CallDepth callDepth;\n+    @Nullable private final MessageWithDestination messageWithDestination;\n+    @Nullable private final Context context;\n+    @Nullable private final Scope scope;\n+\n+    private AdviceScope(\n+        CallDepth callDepth,\n+        @Nullable MessageWithDestination messageWithDestination,\n+        @Nullable Context context,\n+        @Nullable Scope scope) {\n+      this.callDepth = callDepth;\n+      this.messageWithDestination = messageWithDestination;\n+      this.context = context;\n+      this.scope = scope;\n+    }\n+\n+    public static AdviceScope start(CallDepth callDepth, Destination destination, Message message) {\n+      if (callDepth.getAndIncrement() > 0) {\n+        return new AdviceScope(callDepth, null, null, null);\n+      }\n+      Context parentContext = Context.current();\n+\n+      MessageWithDestination messageWithDestination =\n+          MessageWithDestination.create(\n+              JakartaMessageAdapter.create(message), JakartaDestinationAdapter.create(destination));\n+      if (!producerInstrumenter().shouldStart(parentContext, messageWithDestination)) {\n+        return new AdviceScope(callDepth, null, null, null);\n+      }\n+\n+      Context context = producerInstrumenter().start(parentContext, messageWithDestination);\n+      return new AdviceScope(callDepth, messageWithDestination, context, context.makeCurrent());\n+    }",
+      "id": "PRRT_kwDODJKVX86r_LTY",
+      "opened": "2026-10-13T17:43:38Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsProducerInstrumentation.java",
+      "replies": [],
+      "reviewed": "6c7d99685083dcf1d93e877714da1d452ac6ef5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20145#discussion_r4262036542"
+    }
+  ]
+}

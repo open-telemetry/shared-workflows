@@ -1,0 +1,73 @@
+{
+  "head": "4da926b05b7f755d57926dceaf6a5fdd6c3a37c0",
+  "merge": "fbf951e79a83269f78dfb6cd1e31856e80879a58",
+  "merged": "2026-10-23T05:18:21Z",
+  "missing_roots": 0,
+  "number": 20866,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify and consolidate the HTTP-error-classification tests in this PR. Update this PR directly, not a new PR. Keep the production implementation and emitted behavior unchanged; this assignment is test consolidation.\n\n- Put the full response-status classification matrix in the existing aws-lambda-events-common-2.2/library ApiGatewayProxyAttributesExtractorTest, exercising onEnd() and extract(). Fold the new AwsLambdaEventsInstrumenterTest non-HTTP response and exception cases into that existing test class and remove the now-redundant new class. Preserve meaningful coverage of the request-type gate, especially a non-HTTP input returning APIGatewayProxyResponseEvent with status 500, and the default exception-status fallback.\n- In aws-lambda-events-2.2/javaagent AwsLambdaApiGatewayHandlerTest, parameterize the existing tracedWithoutOptionalHttpAttributes() instead of keeping a separate classifiesHttpResponse() with almost identical assertions. Keep a small representative success/4xx/5xx status set here, with the full matrix covered in common.\n- In aws-lambda-events-3.11/library AwsLambdaApiGatewayWrapperTest, parameterize the existing tracedWithHttpPropagation() with a small representative success/4xx/5xx status set instead of keeping a separate response-classification test. Preserve propagation and exact telemetry assertions. Add explicit unset-status/no-error assertions to the existing empty-response test.\n- Keep the new classifiesHttpException() integration test in both the wrapper and javaagent test classes. They exercise different exception paths, reflective exception unwrapping versus installed-agent advice. Preserve the exception event/log mode assertions.\n\nAcceptance criteria: existing successful, ordinary 4xx, 5xx error.type/status, missing-status, exception, non-HTTP gating, and propagation coverage is preserved without duplicating the full status matrix across all three test locations. Retain representative integration coverage of factory wiring in both library and installed-agent paths. Avoid a new shared test framework or unrelated refactors. Follow repository instructions, apply the narrowest relevant formatter directly, and run the relevant focused tests.",
+      "created": "2026-10-22T18:41:01Z",
+      "hunk": "@@ -0,0 +1,77 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awslambdaevents.common.v2_2.internal;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.incubating.FaasIncubatingAttributes.FAAS_INVOCATION_ID;\n+import static java.util.Collections.emptyMap;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;\n+import com.amazonaws.services.lambda.runtime.events.SQSEvent;\n+import com.amazonaws.services.lambda.runtime.events.ScheduledEvent;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.internal.HttpConstants;\n+import io.opentelemetry.instrumentation.awslambdacore.v1_0.AwsLambdaRequest;\n+import io.opentelemetry.instrumentation.awslambdacore.v1_0.internal.AwsLambdaFunctionInstrumenter;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import io.opentelemetry.sdk.trace.data.StatusData;\n+import java.util.stream.Stream;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.MethodSource;\n+\n+class AwsLambdaEventsInstrumenterTest {",
+      "id": "PRRT_kwDODJKVX86vVCVt",
+      "opened": "2026-10-22T18:41:01Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/AwsLambdaEventsInstrumenterTest.java",
+      "replies": [
+        {
+          "at": "2026-10-22T18:53:29Z",
+          "body": "Consolidated the response-status matrix and non-HTTP gate coverage in the common extractor test, folded representative status cases into the existing integration tests, and removed the redundant test class. Focused tests pass. Commit: `a1801d19`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20866#discussion_r4352281167"
+        }
+      ],
+      "reviewed": "7205d19afc8e36b479f93889d503cddb26f4e821",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20866#discussion_r4352158929"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Split the two extractor responsibilities in this PR. Update PR #20866 directly, not a new PR. In aws-lambda-events-common-2.2/library, make ApiGatewayProxyAttributesExtractor implement only AttributesExtractor<AwsLambdaRequest, Object>. Move its SpanStatusExtractor implementation into a separate package-private final ApiGatewayProxySpanStatusExtractor, and register the attributes and status extractors separately in AwsLambdaEventsInstrumenterFactory.\n\nPreserve all existing behavior: only actual APIGatewayProxyRequestEvent inputs receive HTTP classification; status codes >=500 or <100 produce ERROR span status; otherwise preserve SpanStatusExtractor.getDefault() exception-status fallback for HTTP and non-HTTP invocations. Preserve error.type extraction, HTTP response status attributes, and response-code/exception precedence exactly. A few repeated type/status checks are acceptable; do not introduce a shared abstraction just to deduplicate the tiny predicate, and do not replace these with generic HTTP extractors that would change missing-status behavior.\n\nUpdate focused tests to exercise the separate status collaborator while retaining the recently consolidated common status matrix, non-HTTP gating and default exception fallback coverage, representative library/javaagent integration status cases, propagation assertions, and both exception integration tests including event/log modes. Keep the scope to this separation and necessary test adjustments. Follow repository instructions, apply the narrowest relevant formatter directly, and run the focused tests. Acceptance criteria: attributes and span status have separate collaborators and registration, no telemetry or supported invocation behavior changes, and existing meaningful coverage is retained without reintroducing duplicate full integration matrices.",
+      "created": "2026-10-22T20:02:44Z",
+      "hunk": "@@ -35,7 +39,8 @@\n import javax.annotation.Nullable;\n \n final class ApiGatewayProxyAttributesExtractor\n-    implements AttributesExtractor<AwsLambdaRequest, Object> {\n+    implements AttributesExtractor<AwsLambdaRequest, Object>,\n+        SpanStatusExtractor<AwsLambdaRequest, Object> {",
+      "id": "PRRT_kwDODJKVX86vW3tF",
+      "opened": "2026-10-22T20:02:44Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/ApiGatewayProxyAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-10-22T20:12:36Z",
+          "body": "Separated status extraction into `ApiGatewayProxySpanStatusExtractor` and registered it separately; the focused common, wrapper-library, and installed-agent tests pass. Commit: `241b7d21`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20866#discussion_r4353035338"
+        }
+      ],
+      "reviewed": "a1801d19d7bb071b32606e2250040de09f37e132",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20866#discussion_r4352943441"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Inline the two single-use extractor constructions in AwsLambdaEventsInstrumenterFactory.createInstrumenter() in this PR. Replace the apiGatewayExtractor local with .addAttributesExtractor(new ApiGatewayProxyAttributesExtractor(knownMethods, sensitiveQueryParameters)) and the apiGatewaySpanStatusExtractor local with .setSpanStatusExtractor(new ApiGatewayProxySpanStatusExtractor()), formatting the chain according to repository style. Remove both local declarations. Keep the separate extractor classes, all behavior, and tests unchanged; no unrelated refactoring. Update PR #20866 directly, not a new PR. Apply the narrowest relevant formatter directly and run the focused common-module tests. Acceptance criteria: both collaborators are constructed at their sole registration sites, neither redundant local remains, and telemetry behavior is unchanged.",
+      "created": "2026-10-22T20:31:55Z",
+      "hunk": "@@ -29,13 +29,17 @@ public static AwsLambdaFunctionInstrumenter createInstrumenter(\n       String instrumentationName,\n       Set<String> knownMethods,\n       Set<String> sensitiveQueryParameters) {\n+    ApiGatewayProxyAttributesExtractor apiGatewayExtractor =",
+      "id": "PRRT_kwDODJKVX86vXg3m",
+      "opened": "2026-10-22T20:31:55Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/AwsLambdaEventsInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-10-22T20:38:31Z",
+          "body": "Inlined both extractor constructions at their registration sites, applied the module-scoped Java formatter, and passed the focused common-module extractor test. Commit: `4da926b0`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20866#discussion_r4353278638"
+        }
+      ],
+      "reviewed": "241b7d2168c7298fbbaecb2b5bcb45a01bba3d88",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20866#discussion_r4353216883"
+    }
+  ]
+}

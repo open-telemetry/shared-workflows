@@ -1,0 +1,52 @@
+{
+  "head": "fd4b530501fd4df926db9537b4d74f8ec02aa8b2",
+  "merge": "1280a63d6b9c38e3e4d4df1847c8f8b2f1aae8de",
+  "merged": "2026-09-26T16:29:32Z",
+  "missing_roots": 0,
+  "number": 20248,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This new behavior contradicts the Apache DBCP module documentation: `instrumentation/apache-dbcp-2.0/metadata.yaml:15-16` and the generated `javaagent/README.md:16-17` still state that late MBean registration switches to the `ObjectName`-based name. Update the metadata to say the first registered metric name is retained, then regenerate the README so users are not told the opposite behavior.",
+      "created": "2026-09-25T17:24:02Z",
+      "hunk": "@@ -167,7 +167,8 @@ void shouldUpdateDataSourceNameWhenMBeanIsRegisteredAfterPoolStart() throws Exce\n       assertDataSourceMetrics(emitStableDatabaseSemconv() ? \"orders\" : \"db.example:5432/orders\");\n \n       objectName = mbeanServer.registerMBean(dataSource, objectName).getObjectName();\n-      assertDataSourceMetrics(\"lateRegisteredPool\");\n+      testing.clearData();\n+      assertDataSourceMetrics(emitStableDatabaseSemconv() ? \"orders\" : \"db.example:5432/orders\");",
+      "id": "PRRT_kwDODJKVX86mF8tJ",
+      "opened": "2026-09-25T17:24:02Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-09-25T17:42:05Z",
+          "body": "Addressed in fd4b530501fd4df926db9537b4d74f8ec02aa8b2.\n\nFixed in the verified source changes fd4b530501fd4df926db9537b4d74f8ec02aa8b2.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20248#discussion_r4107105042"
+        }
+      ],
+      "reviewed": "e611c4d71bda310ef6078156e98747d1e4280d08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20248#discussion_r4106972561"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This new behavior contradicts the Tomcat DBCP module documentation: `instrumentation/tomcat/tomcat-dbcp-8.0/metadata.yaml:15-16` and the generated `javaagent/README.md:16-17` still state that late MBean registration switches to the `ObjectName`-based name. Update the metadata to say the first registered metric name is retained, then regenerate the README so users are not told the opposite behavior.",
+      "created": "2026-09-25T17:24:02Z",
+      "hunk": "@@ -172,7 +172,8 @@ void shouldUpdateDataSourceNameWhenMBeanIsRegisteredAfterPoolStart() throws Exce\n       assertDataSourceMetrics(emitStableDatabaseSemconv() ? \"orders\" : \"db.example:5432/orders\");\n \n       objectName = mbeanServer.registerMBean(dataSource, objectName).getObjectName();\n-      assertDataSourceMetrics(\"lateRegisteredPool\");\n+      testing.clearData();\n+      assertDataSourceMetrics(emitStableDatabaseSemconv() ? \"orders\" : \"db.example:5432/orders\");",
+      "id": "PRRT_kwDODJKVX86mF8tt",
+      "opened": "2026-09-25T17:24:02Z",
+      "path": "instrumentation/tomcat/tomcat-dbcp-8.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/tomcat/dbcp/v8_0/TomcatDbcpInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-09-25T17:42:07Z",
+          "body": "Addressed in fd4b530501fd4df926db9537b4d74f8ec02aa8b2.\n\nFixed in the verified source changes fd4b530501fd4df926db9537b4d74f8ec02aa8b2.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20248#discussion_r4107105352"
+        }
+      ],
+      "reviewed": "e611c4d71bda310ef6078156e98747d1e4280d08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20248#discussion_r4106972613"
+    }
+  ]
+}

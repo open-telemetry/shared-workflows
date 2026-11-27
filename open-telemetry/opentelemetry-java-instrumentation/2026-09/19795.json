@@ -1,0 +1,94 @@
+{
+  "head": "533b6b57294ab6a9eb7869ec8e43211e5779ae86",
+  "merge": "df68905a4e0fbde18a0d995412e7a0e6b2a2b78f",
+  "merged": "2026-09-07T16:26:14Z",
+  "missing_roots": 0,
+  "number": 19795,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This changes legacy/default telemetry despite the PR stating it is unchanged. Previously this getter always returned the cached `GeodeServerAddress`, and `DbClientAttributesExtractor` invokes the server extractor in every database semconv mode; returning `null` here therefore removes the existing `server.address`/`server.port` from default-mode spans (as the updated default test expectations also show). Preserve the old address path for old-only mode, while using `GeodeServerTarget` for modes that emit stable database conventions.",
+      "created": "2026-08-25T04:36:30Z",
+      "hunk": "@@ -84,12 +84,22 @@ public String getDbOperationName(GeodeRequest request) {\n   @Override\n   @Nullable\n   public String getServerAddress(GeodeRequest request) {\n-    return request.serverAddress().address();\n+    // the old conventions never described a server for Geode, and they are frozen\n+    if (!emitStableDatabaseSemconv()) {\n+      return null;",
+      "id": "PRRT_kwDODJKVX86b7-tb",
+      "opened": "2026-08-25T04:36:30Z",
+      "path": "instrumentation/geode-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/geode/v1_4/GeodeDbAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-25T13:54:29Z",
+          "body": "Addressed in f200677a9f934e75f3d4a01e3199de8317f11aed.\n\nAnalysis: The default mode must keep resolving one configured server through the per-region `GeodeServerAddress` cache. Stable mode must use `GeodeServerTarget` so it can report the configured server, locator, or group target.\n\nUpsides: Existing default-mode `server.address` and `server.port` telemetry stays compatible, while stable mode keeps the richer configured-target behavior.\n\nDownsides: The agent retains the legacy address helper and its cached pool lookup for default mode.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19795#discussion_r3853683608"
+        }
+      ],
+      "reviewed": "7140704fc3f806f226e762025f29d24dff73e75c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19795#discussion_r3849599740"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Only the test method uses the deprecated semantic-convention constants, so this class-level suppression is broader than needed. Scope it to that method, consistent with the single-member suppression rule.",
+      "created": "2026-08-25T04:36:30Z",
+      "hunk": "@@ -0,0 +1,86 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.geode.v1_4;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.DbAttributes.DB_COLLECTION_NAME;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_NAME;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues.GEODE;\n+import static java.util.Collections.emptyMap;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import org.apache.geode.cache.Region;\n+import org.apache.geode.cache.client.ClientCache;\n+import org.apache.geode.cache.client.ClientCacheFactory;\n+import org.apache.geode.cache.client.ClientRegionShortcut;\n+import org.junit.jupiter.api.AfterAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+\n+/**\n+ * A cache that configures its own pool, which every region that names no pool reaches its servers\n+ * through. The cache here is the only one that holds a pool, so the region below can only reach the\n+ * pool the cache configured.\n+ *\n+ * <p>The pool names a server nobody is listening on. Only {@code putAll} with an empty map is run\n+ * against it, which Geode completes without reaching a server, so the span describes the target the\n+ * pool was configured with rather than a failure to connect.\n+ */\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv\n+class DefaultPoolTargetTest {\n+\n+  @RegisterExtension\n+  private static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  private static final ClientCache cache =\n+      new ClientCacheFactory()\n+          .setPoolMinConnections(0)\n+          .setPoolSubscriptionEnabled(false)\n+          .addPoolServer(\"localhost\", 40404)\n+          .create();\n+\n+  @AfterAll\n+  static void closeCache() {\n+    cache.close();\n+  }\n+\n+  @Test\n+  void theServerTheCacheConfiguredItsPoolWithIsReported() {",
+      "id": "PRRT_kwDODJKVX86b7-to",
+      "opened": "2026-08-25T04:36:30Z",
+      "path": "instrumentation/geode-1.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/geode/v1_4/DefaultPoolTargetTest.java",
+      "replies": [
+        {
+          "at": "2026-08-25T13:54:31Z",
+          "body": "Addressed in e2e1408f4375ceb46ed621d48414994035011817.\n\nAnalysis: The deprecated semantic-convention constants are referenced only by `theServerTheCacheConfiguredItsPoolWithIsReported()`, so the suppression belongs on that method.\n\nUpsides: Deprecation warnings elsewhere in the test class remain visible.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19795#discussion_r3853683864"
+        }
+      ],
+      "reviewed": "7140704fc3f806f226e762025f29d24dff73e75c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19795#discussion_r3849599762"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This target model is used only within the instrumentation package (including its same-package unit test), so it should not expose a new public type from the javaagent module. Use package-private visibility, consistent with `GeodeServerAddress`.",
+      "created": "2026-08-25T18:26:37Z",
+      "hunk": "@@ -0,0 +1,190 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.geode.v1_4;\n+\n+import java.util.Map;\n+import java.util.SortedMap;\n+import java.util.TreeMap;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * The target a Geode client pool was configured with, read once while the pool is being created.\n+ *\n+ * <p>A pool configured with one explicit cache server keeps that server's host and its port. A pool\n+ * configured with one locator is named by that locator's host, which carries no port of its own,\n+ * because a locator says where to look for cache servers rather than which one answers. Explicit\n+ * servers take precedence over locator discovery.\n+ *\n+ * <p>Several servers, or several locators, do not form one server address, so a pool configured\n+ * that way has no target and the operations it carries name no server.\n+ *\n+ * <p>The target is read while the pool is being created, so a pool keeps reporting what it was\n+ * pointed at rather than the servers it later discovers.\n+ */\n+public class GeodeServerTarget {",
+      "id": "PRRT_kwDODJKVX86cMSFN",
+      "opened": "2026-08-25T18:26:37Z",
+      "path": "instrumentation/geode-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/geode/v1_4/GeodeServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-08-25T18:38:54Z",
+          "body": "Addressed in b89e844079df5f04440225d6348027d5eed59727.\n\nAnalysis: Both classes are implementation details used only inside the Geode instrumentation package. Package-private visibility matches the neighboring Geode classes and still permits the same-package unit test and instrumentation module to use them.\n\nUpsides: The javaagent module exposes fewer implementation types and follows the repository's least-access rule.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19795#discussion_r3856106189"
+        }
+      ],
+      "reviewed": "203184203a50b9e7710a64c94557a499a2e085cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19795#discussion_r3856011678"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] All callers of this helper are in the same instrumentation package, so public visibility is broader than necessary. Keep the helper package-private like the existing Geode helpers.",
+      "created": "2026-08-25T18:26:37Z",
+      "hunk": "@@ -0,0 +1,85 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.geode.v1_4;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.net.InetSocketAddress;\n+import javax.annotation.Nullable;\n+import org.apache.geode.cache.Region;\n+import org.apache.geode.cache.client.Pool;\n+import org.apache.geode.cache.client.PoolFactory;\n+import org.apache.geode.cache.client.PoolManager;\n+\n+/**\n+ * The configured target of every client pool the instrumentation has seen being created.\n+ *\n+ * <p>A pool factory collects what an operator configures, and the pool it creates is handed a\n+ * snapshot of that configuration. Rendering the target while the pool is being created keeps the\n+ * servers a pool discovers and the connections it holds at any moment out of the target, and leaves\n+ * an operation with nothing to do beyond looking its pool up.\n+ */\n+public class GeodeServerTargets {",
+      "id": "PRRT_kwDODJKVX86cMSFv",
+      "opened": "2026-08-25T18:26:37Z",
+      "path": "instrumentation/geode-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/geode/v1_4/GeodeServerTargets.java",
+      "replies": [
+        {
+          "at": "2026-08-25T18:38:55Z",
+          "body": "No code change.\n\nAnalysis: The advice methods directly call `GeodeServerTargets` after Byte Buddy applies them to Geode classes in other packages. Repository guidance requires classes and methods directly referenced from advice to remain public because the agent can override the advice inlining mode at runtime.\n\nUpsides: Keeping the helper public prevents access errors in transformed Geode classes across all advice dispatch modes.\n\nDownsides: The helper remains publicly visible inside the javaagent artifact.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19795#discussion_r3856106365"
+        }
+      ],
+      "reviewed": "203184203a50b9e7710a64c94557a499a2e085cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19795#discussion_r3856011726"
+    }
+  ]
+}

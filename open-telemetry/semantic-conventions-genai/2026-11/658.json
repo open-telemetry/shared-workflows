@@ -1,0 +1,88 @@
+{
+  "head": "7f27f5e4519ccb2d511f763c03d60db07fc38a06",
+  "merge": "f88e357c2248a814f0cb98a890f4c6aa9b925a1e",
+  "merged": "2026-11-05T02:17:22Z",
+  "missing_roots": 0,
+  "number": 658,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The narrowed `gen_ai.client.operation.exception` event has no reference emitter, so the non-inference side of this split is not demonstrated as required by `.github/instructions/evaluate-reference.instructions.md:7-9`. The OpenAI embeddings error scenario already triggers a real SDK `BadRequestError` but records only the span and metrics. Emit the broad exception event in `run_embeddings_reference()`'s error handler while the span is active, then regenerate `data.json`.",
+      "created": "2026-10-30T23:47:25Z",
+      "hunk": "@@ -40,25 +52,40 @@ events:\n           completion being evaluated. This attribute helps correlate the evaluation\n           event with the corresponding operation when span id is not available.\n \n+  - name: gen_ai.client.inference.exception\n+    requirement_level: recommended\n+    brief: >\n+      This event represents an exception that caused a Generative AI client inference operation\n+      to fail, including `chat`, `generate_content`, and `text_completion`.\n+    note: >\n+      Exception recording SHOULD follow the general\n+      [recording errors](https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/docs/general/recording-errors.md)\n+      guidance. This log event SHOULD be correlated with the inference span using its trace and span identifiers.\n+\n+      Instrumentations SHOULD set the severity to WARN (severity number 13) when recording this event.\n+\n+      Instrumentations MAY provide a configuration option to populate this event\n+      with attributes captured on the corresponding inference span.\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.exception\n+\n   - name: gen_ai.client.operation.exception\n     requirement_level: recommended\n     brief: >\n-      This event represents an exception that occurred during a Generative AI client operation,\n+      This event represents an exception that occurred during a Generative AI client operation other than inference,\n       such as API errors, rate limiting, model errors, timeouts, or other errors that prevent\n       the operation from completing successfully.\n     note: >\n-      This event SHOULD be recorded when an exception occurs during Generative AI client operations.\n+      This event SHOULD be recorded when an exception occurs during Generative AI client operations other than inference.",
+      "id": "PRRT_kwDOSUeMrM6yLVeh",
+      "opened": "2026-10-30T23:47:26Z",
+      "path": "model/gen-ai/events.yaml",
+      "replies": [
+        {
+          "at": "2026-10-31T00:04:03Z",
+          "body": "The broad event already had no reference emitter before this PR. This PR demonstrates inference; the stacked embeddings PR #659 demonstrates embeddings using its dedicated exception event. Keeping the remaining broad-event coverage gap outside this inference-only change.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/658#discussion_r4429491044"
+        }
+      ],
+      "reviewed": "15c437b5392450fc1c577264a3597a4d1c5287f3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/658#discussion_r4429417798"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new failure path records the span and exception log but omits both operation-token histograms, leaving this failed call out of their operation counts. `model/gen-ai/token-metrics.yaml:125-128` specifies recording failed inference operations with `0` when usage is unavailable. Record zero samples for both histograms with `error.type`, then regenerate `data.json`.",
+      "created": "2026-10-30T23:47:26Z",
+      "hunk": "@@ -332,6 +334,61 @@ def run_chat_reference(client):\n         print(f\"    -> {resp.choices[0].message.content[:60]}\")\n \n \n+def run_chat_error_reference():\n+    \"\"\"Exercise an inference exception raised by the SDK for a rate-limit response.\"\"\"\n+    import httpx2\n+    import openai\n+\n+    request_model = \"gpt-4o-mini\"\n+    transport = httpx2.MockTransport(\n+        lambda request: httpx2.Response(\n+            429,\n+            json={\n+                \"error\": {\"message\": \"Rate limit exceeded\", \"type\": \"rate_limit_error\", \"code\": \"rate_limit_exceeded\"}\n+            },\n+        )\n+    )\n+    with (\n+        openai.OpenAI(\n+            base_url=MOCK_BASE_URL,\n+            api_key=\"mock-key\",\n+            max_retries=0,\n+            http_client=httpx2.Client(transport=transport),\n+        ) as client,\n+        _reference_tracer.start_as_current_span(\n+            f\"chat {request_model}\",\n+            kind=SpanKind.CLIENT,\n+            attributes={\n+                \"gen_ai.operation.name\": \"chat\",\n+                \"gen_ai.provider.name\": \"openai\",\n+                \"gen_ai.request.model\": request_model,\n+                \"server.address\": client.base_url.host,\n+                \"server.port\": client.base_url.port,\n+            },\n+        ) as span,\n+    ):\n+        try:\n+            client.chat.completions.create(\n+                model=request_model,\n+                messages=[{\"role\": \"user\", \"content\": \"Say hello.\"}],\n+            )\n+        except openai.RateLimitError as error:\n+            error_type = f\"{type(error).__module__}.{type(error).__qualname__}\"\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", error_type)",
+      "id": "PRRT_kwDOSUeMrM6yLVez",
+      "opened": "2026-10-30T23:47:26Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-31T00:04:03Z",
+          "body": "02317a22aebad6b700185722e46d149d0ec2adc4",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/658#discussion_r4429491023"
+        }
+      ],
+      "reviewed": "15c437b5392450fc1c577264a3597a4d1c5287f3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/658#discussion_r4429417830"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit:\r\n\r\n`Logger.emit` takes the exception object directly (opentelemetry-api 1.45.1), and the SDK fills `exception.type`/`message`/`stacktrace` from it. Would be nice to use it here (then `traceback` import can go too):\r\n\r\n```suggestion\r\n                exception=error,\r\n```",
+      "created": "2026-10-31T02:16:05Z",
+      "hunk": "@@ -332,6 +334,65 @@ def run_chat_reference(client):\n         print(f\"    -> {resp.choices[0].message.content[:60]}\")\n \n \n+def run_chat_error_reference():\n+    \"\"\"Exercise an inference exception raised by the SDK for a rate-limit response.\"\"\"\n+    import httpx2\n+    import openai\n+\n+    request_model = \"gpt-4o-mini\"\n+    transport = httpx2.MockTransport(\n+        lambda request: httpx2.Response(\n+            429,\n+            json={\n+                \"error\": {\"message\": \"Rate limit exceeded\", \"type\": \"rate_limit_error\", \"code\": \"rate_limit_exceeded\"}\n+            },\n+        )\n+    )\n+    with (\n+        openai.OpenAI(\n+            base_url=MOCK_BASE_URL,\n+            api_key=\"mock-key\",\n+            max_retries=0,\n+            http_client=httpx2.Client(transport=transport),\n+        ) as client,\n+        _reference_tracer.start_as_current_span(\n+            f\"chat {request_model}\",\n+            kind=SpanKind.CLIENT,\n+            attributes={\n+                \"gen_ai.operation.name\": \"chat\",\n+                \"gen_ai.provider.name\": \"openai\",\n+                \"gen_ai.request.model\": request_model,\n+                \"server.address\": client.base_url.host,\n+                \"server.port\": client.base_url.port,\n+            },\n+        ) as span,\n+    ):\n+        try:\n+            client.chat.completions.create(\n+                model=request_model,\n+                messages=[{\"role\": \"user\", \"content\": \"Say hello.\"}],\n+            )\n+        except openai.RateLimitError as error:\n+            error_type = f\"{type(error).__module__}.{type(error).__qualname__}\"\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", error_type)\n+            metric_attributes = usage_metric_attributes(request_model, None, client.base_url.host, client.base_url.port)\n+            metric_attributes[\"error.type\"] = error_type\n+            _operation_input_tokens.record(0, metric_attributes)\n+            _operation_output_tokens.record(0, metric_attributes)\n+            reference_event_logger().emit(\n+                event_name=\"gen_ai.client.inference.exception\",\n+                severity_number=SeverityNumber.WARN,\n+                attributes={\n+                    \"exception.type\": error_type,\n+                    \"exception.message\": str(error),\n+                    \"exception.stacktrace\": \"\".join(traceback.format_exception(error)),\n+                },",
+      "id": "PRRT_kwDOSUeMrM6yMkge",
+      "opened": "2026-10-31T02:18:28Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "9cdf180d483b4ba09e6d49b1c78c9f764880e86f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/658#discussion_r4429945747"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new event is dropped by the reference-report pipeline. `reference/src/semconv_genai/semconv_model.py`'s `_EVENTS` excludes it, so `_normalize_attr_data()` discards the OpenAI entry, and `data_files.py`'s `EVENT_TYPE_ORDER` also omits it. Consequently, `update-reports` produces neither a coverage row nor a detail page for this convention despite the captured SDK exception. Add the event to both mappings and the documentation-link map, then regenerate the reports.",
+      "created": "2026-11-02T05:12:34Z",
+      "hunk": "@@ -40,25 +52,40 @@ events:\n           completion being evaluated. This attribute helps correlate the evaluation\n           event with the corresponding operation when span id is not available.\n \n+  - name: gen_ai.client.inference.exception",
+      "id": "PRRT_kwDOSUeMrM6yioqI",
+      "opened": "2026-11-02T05:12:34Z",
+      "path": "model/gen-ai/events.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:15:07Z",
+          "body": "Fixed in f6686524148523e2a380b770f1406b6b07fd1751. Added the event to `_EVENTS`, `EVENT_TYPE_ORDER`, and the documentation-link map, then regenerated the coverage row and detail page. A reporting regression verifies that the committed OpenAI exception data survives normalization and appears in both outputs with the correct documentation link.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/658#discussion_r4443420571"
+        }
+      ],
+      "reviewed": "139335b6a76118be88299ed4c742131f5f86715a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/658#discussion_r4439110213"
+    }
+  ]
+}

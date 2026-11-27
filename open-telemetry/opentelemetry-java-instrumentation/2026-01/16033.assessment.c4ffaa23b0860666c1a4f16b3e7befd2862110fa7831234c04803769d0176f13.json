@@ -1,0 +1,37 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "238ac92ab63395011af79208b1c778d7fd7e5872917fbf47f17fa2520f20e290",
+  "input_digest": "c4ffaa23b0860666c1a4f16b3e7befd2862110fa7831234c04803769d0176f13",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX85rbzsO",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85rb2rP",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85rb3Rw",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d25e0b9cae3745f3d27116825c1992842cf26843/instrumentation/servlet/servlet-5.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d25e0b9cae3745f3d27116825c1992842cf26843/instrumentation/servlet/servlet-5.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v5_0/ServletTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bc7891d1552952d318442ad88b17335293076f4/instrumentation/servlet/servlet-5.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a598a854c62950ece89a4e44291fe557e4e10f6c"
+      ],
+      "id": "PRRT_kwDODJKVX85rb_gp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

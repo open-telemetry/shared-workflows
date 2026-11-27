@@ -1,0 +1,124 @@
+{
+  "head": "461ba587b0b115bdd1e757cc0135a52c5f52d006",
+  "merge": "37f55b7f35bbcd705c0d08f496e2acd443365804",
+  "merged": "2026-10-21T22:46:41Z",
+  "missing_roots": 0,
+  "number": 899,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "does this condition make sense ? are \"invoke_agent\" and \"fetch_response\" methods on the interactions API ? Also can't we be assured of having the interactions API or not when this test runs ?",
+      "created": "2026-10-15T15:24:06Z",
+      "hunk": "@@ -0,0 +1,315 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import asyncio\n+import gc\n+from collections.abc import AsyncIterator, Iterator\n+from functools import wraps\n+\n+import pytest\n+from google.genai import Client\n+from google.genai.models import AsyncModels, Models\n+from google.genai.types import GenerateContentResponse\n+\n+from opentelemetry import context, trace\n+from opentelemetry.instrumentation.google_genai import (\n+    GoogleGenAiSdkInstrumentor,\n+)\n+from opentelemetry.instrumentation.google_genai.interactions import (\n+    _HAS_INTERACTIONS,\n+    AsyncInteractionsResource,\n+    InteractionsResource,\n+)\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.semconv._incubating.attributes import gen_ai_attributes\n+from opentelemetry.semconv.attributes.error_attributes import (\n+    ERROR_TYPE,\n+    ErrorTypeValues,\n+)\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+from opentelemetry.trace import Span, StatusCode\n+\n+\n+@pytest.mark.asyncio\n+@pytest.mark.parametrize(\n+    \"operation\",\n+    [\n+        \"generate_content\",\n+        \"interactions.create\",\n+        \"invoke_agent\",\n+        \"fetch_response\",\n+    ],\n+)\n+@pytest.mark.parametrize(\"asynchronous\", [False, True])\n+@pytest.mark.parametrize(\n+    \"ending\",\n+    [\n+        \"drain\",\n+        \"empty\",\n+        \"close\",\n+        \"caller_error\",\n+        \"stream_error\",\n+        \"close_error\",\n+        \"cancel\",\n+        \"abandon\",\n+        \"abandon_unread\",\n+    ],\n+)\n+async def test_stream_context(\n+    monkeypatch: pytest.MonkeyPatch,\n+    tracer_provider: TracerProvider,\n+    meter_provider: MeterProvider,\n+    logger_provider: LoggerProvider,\n+    span_exporter: InMemorySpanExporter,\n+    caplog: pytest.LogCaptureFixture,\n+    operation: str,\n+    asynchronous: bool,\n+    ending: str,\n+) -> None:\n+    if operation != \"generate_content\" and not _HAS_INTERACTIONS:\n+        pytest.skip(\"This SDK has no Interactions API\")",
+      "id": "PRRT_kwDOSbspP86s17DA",
+      "opened": "2026-10-15T15:36:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/test_stream_context.py",
+      "replies": [
+        {
+          "at": "2026-10-15T16:40:49Z",
+          "body": "Those are span operation names, not SDK methods. The oldest supported SDK has no Interactions API, so the skip is still needed. \n\nI’ll label the cases with their APIs and move the skip onto the Interactions parameters.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4285722510"
+        }
+      ],
+      "reviewed": "9334abd52faf1f3f25d6fa8aa6874981931ca6d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4284922976"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "why does simply calling `invocation.suspend` in the initializer of these stream wrappers require such a massive test ? Can we have a simpler test or can you explain why this is necessary ?",
+      "created": "2026-10-15T15:36:43Z",
+      "hunk": "@@ -0,0 +1,315 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import asyncio\n+import gc\n+from collections.abc import AsyncIterator, Iterator\n+from functools import wraps\n+\n+import pytest\n+from google.genai import Client\n+from google.genai.models import AsyncModels, Models\n+from google.genai.types import GenerateContentResponse\n+\n+from opentelemetry import context, trace\n+from opentelemetry.instrumentation.google_genai import (\n+    GoogleGenAiSdkInstrumentor,\n+)\n+from opentelemetry.instrumentation.google_genai.interactions import (\n+    _HAS_INTERACTIONS,\n+    AsyncInteractionsResource,\n+    InteractionsResource,\n+)\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.semconv._incubating.attributes import gen_ai_attributes\n+from opentelemetry.semconv.attributes.error_attributes import (\n+    ERROR_TYPE,\n+    ErrorTypeValues,\n+)\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+from opentelemetry.trace import Span, StatusCode\n+\n+\n+@pytest.mark.asyncio\n+@pytest.mark.parametrize(\n+    \"operation\",\n+    [\n+        \"generate_content\",\n+        \"interactions.create\",\n+        \"invoke_agent\",\n+        \"fetch_response\",\n+    ],\n+)\n+@pytest.mark.parametrize(\"asynchronous\", [False, True])\n+@pytest.mark.parametrize(\n+    \"ending\",\n+    [\n+        \"drain\",\n+        \"empty\",\n+        \"close\",\n+        \"caller_error\",\n+        \"stream_error\",\n+        \"close_error\",\n+        \"cancel\",\n+        \"abandon\",\n+        \"abandon_unread\",\n+    ],\n+)\n+async def test_stream_context(\n+    monkeypatch: pytest.MonkeyPatch,",
+      "id": "PRRT_kwDOSbspP86s2PrN",
+      "opened": "2026-10-15T15:36:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/test_stream_context.py",
+      "replies": [
+        {
+          "at": "2026-10-15T16:53:29Z",
+          "body": "I’ve trimmed it to context restoration for sync and async calls. Tests should be simpler now, let me know if they look good now",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4285849050"
+        },
+        {
+          "at": "2026-10-15T19:37:58Z",
+          "body": "its better but i dont love all the branching logic.. maybe split it in 2 1 for sync 1 with async ? I think that'd get rid of a lot of it",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4287477441"
+        },
+        {
+          "at": "2026-10-16T21:46:12Z",
+          "body": "Split it into separate sync and async tests, should remove the branching logic",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4299660183"
+        }
+      ],
+      "reviewed": "9334abd52faf1f3f25d6fa8aa6874981931ca6d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4285058002"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "why not put this in super().__init__ ?",
+      "created": "2026-10-15T19:27:15Z",
+      "hunk": "@@ -580,6 +580,7 @@ def __init__(\n         telemetry_handler: TelemetryHandler,\n     ) -> None:\n         super().__init__(stream, invocation=invocation)\n+        invocation.suspend()",
+      "id": "PRRT_kwDOSbspP86s7vH6",
+      "opened": "2026-10-15T19:27:14Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [
+        {
+          "at": "2026-10-15T20:57:19Z",
+          "body": "I moved this into the shared sync and async wrapper constructors and removed the duplicate calls from the Google wrappers.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4288201495"
+        }
+      ],
+      "reviewed": "41bf6c5e8aa7ee3a125e53c06354373917884684",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4287371284"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "I'm a bit skeptical of this approach with `suspend()`, it feels like a bit of a hack because of all the getattr calls and I noticed we set the span in context in `__init__()` for the invocations. Are we solving this problem where python generators leak their context accidentally, or is it related to the `__init__()` thing? For reference, [logfire docs](https://pydantic.dev/docs/logfire/reference/generators/#_top) describe the problem well.\r\n\r\nAI suggestions below on how to fix it, but LMK if I'm missing something:\r\n\r\n---\r\n\r\n1. `SyncStreamWrapper.__init__` isn't always called in the same context frame that created `invocation`. For deferred parsing like `with_raw_response` in `anthropic/_raw_response.py`, `MessagesStreamWrapper` is only constructed later when the caller calls `raw.parse()`. If `raw.parse()` runs under a child span or in another task, calling `invocation.suspend()` inside `super().__init__` detaches the outer invocation token out of order and leaves `invocation.span` stuck as the current span when the child span exits (the same bug #817 had to work around in `openai/_raw_response.py`).\r\n2. All the `getattr(invocation, ...)` / `hasattr(invocation, ...)` duck-typing in `stream.py` (`suspend`, `_suspended`, `_request_stream`) feels like a sign that the protocol boundary between `GenAIInvocation` and `SyncStreamWrapper` isn't right. `super().__init__(stream, invocation)` also still conflates LLM chunk-timing metrics (`_on_stream_chunk`) with context scoping, so agent stream wrappers (`smolagents`, `qwen-agent`, `agno`) still can't pass `invocation` to `super().__init__`.\r\n3. Taking a step back, `suspend()` only has to exist because `GenAIInvocation.__init__` eagerly calls `attach()` on construction instead of only attaching in `__enter__` (for `with invocation:` callers) or `activate()` (for stream `_advance()` steps).\r\n\r\nCould we revert the `util-genai` change here to keep this PR scoped to `google-genai`, and open a separate issue to clean up the `GenAIInvocation` / `SyncStreamWrapper` context lifecycle and protocol properly?",
+      "created": "2026-10-19T18:54:58Z",
+      "hunk": "@@ -188,6 +187,9 @@ def __init__(\n         if invocation is not None and hasattr(invocation, \"_request_stream\"):\n             setattr(invocation, \"_request_stream\", True)\n         self._bind_stream(stream)\n+        suspend = getattr(invocation, \"suspend\", None)\n+        if suspend is not None:\n+            suspend()",
+      "id": "PRRT_kwDOSbspP86uDxCh",
+      "opened": "2026-10-19T18:59:25Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [
+        {
+          "at": "2026-10-20T06:39:34Z",
+          "body": "That makes sense. I originally moved it into the base wrapper to avoid duplication, but the deferred `parse()` case means the constructor isn’t always a safe place to detach the original context.\n\nThe issues are connected. Invocation construction makes the span current, and returning or yielding from a stream doesn’t restore the caller’s context.\n\nI’ll revert the shared util change and keep the suspension in the Google GenAI implementation for this PR, along with the regression tests. I’ll open a follow-up issue for separating span creation from activation, and context handling from chunk timing metrics.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4322151752"
+        },
+        {
+          "at": "2026-10-20T16:33:47Z",
+          "body": "Thanks. LMK when it's ready for another pass",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4327526302"
+        },
+        {
+          "at": "2026-10-20T17:34:58Z",
+          "body": "@aabmass can you suggest proper design in utils?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4328156068"
+        },
+        {
+          "at": "2026-10-20T19:13:25Z",
+          "body": "@aabmass ready for another review",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4329173201"
+        },
+        {
+          "at": "2026-10-21T17:27:22Z",
+          "body": "We can discuss a design in the issue maybe. Partially the problem is just python doesn't isolate a generator's context, and there's maybe some hacks to fix it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4339867679"
+        }
+      ],
+      "reviewed": "f6857ace8631500c26b6ac7b56c517eb3847fdfc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/899#discussion_r4317613963"
+    }
+  ]
+}

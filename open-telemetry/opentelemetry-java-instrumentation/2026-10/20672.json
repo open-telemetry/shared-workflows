@@ -1,0 +1,31 @@
+{
+  "head": "64fc53f16708645e8735cd0348c1a73e9ce9d4f6",
+  "merge": "966d6deb8688b7f9dd475af1bd46ee9031ac439d",
+  "merged": "2026-10-18T09:56:01Z",
+  "missing_roots": 0,
+  "number": 20672,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete this PR's suite-owned test-execution migration by moving shared Test-task settings from project-wide `tasks.withType<Test>().configureEach` blocks, including equivalent `withType<Test>()` blocks inside `tasks`, into `configureEach` inside the existing default `test` suite's `executions` block for the subprojects listed below. This is a structural cleanup, not an intentional behavior change. These subprojects only have the default suite and its execution variants.\n\nKeep one `executions` block per suite. Preserve every setting's value, condition, and effective scope so the default execution and all existing variants receive the same shared settings as before. Keep default-only filters, exclusions, and variant-specific settings in their current scopes, and preserve task names, metadata profiles, dependencies, classpaths, and check coverage. Do not add suites, variants, or telemetry labels, migrate deferred modules, or broaden the PR. In particular, leave suffix spelling such as `register(\"AddBaggage\")` unchanged and do not modify the helper's `suite.name + suffix` naming behavior.\n\n- `instrumentation/apache-httpclient/apache-httpclient-2.0/javaagent/build.gradle.kts` and `instrumentation/apache-httpclient/apache-httpclient-5.0/javaagent/build.gradle.kts`: move shared `testLatestDeps`.\n- `instrumentation/async-http-client/async-http-client-1.8/javaagent/build.gradle.kts` and `instrumentation/async-http-client/async-http-client-1.9/javaagent/build.gradle.kts`: move the shared JDK export/ignore-unrecognized JVM arguments and `testLatestDeps`.\n- `instrumentation/async-http-client/async-http-client-2.0/javaagent/build.gradle.kts`: move shared `testLatestDeps` and the conditional disablement for Java 8 with latest dependencies. Preserve that condition and its explanatory comment, and do not change compile toolchain behavior.\n- `instrumentation/finagle-http-23.11/javaagent/build.gradle.kts`: move the shared experimental HTTP client/server telemetry flags, strict-context flag, Netty/Finagle worker limits, and the shared conditional disablement under `denyUnsafe`. Preserve the complete disablement condition, the default-versus-preview behavior, and existing metadata profile conditions.\n- `instrumentation/vertx/vertx-http-client/vertx-http-client-3.0/javaagent/build.gradle.kts`: move shared `testLatestDeps`.\n\nLeave the other 15 subprojects' execution configuration unchanged.\n\nRemove the corresponding global Test configuration blocks once their settings are covered by the suite. Preserve existing comments that explain non-obvious constraints. Validate the affected modules with the repository's documented formatting and focused checks, and update this existing PR without changing its draft/ready state. Acceptance: the listed single-suite subprojects own these shared settings through `test.executions.configureEach`, with no change in effective test behavior.",
+      "created": "2026-10-18T00:13:24Z",
+      "hunk": "@@ -23,15 +26,16 @@ tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n+}\n \n-  val testPreviewSemconv = register<Test>(\"testPreviewSemconv\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-    jvmArgs(\"-Dotel.semconv-stability.preview=service.peer\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=service.peer\")\n-  }\n-\n-  check {\n-    dependsOn(testPreviewSemconv)\n+testing {\n+  suites {\n+    named<JvmTestSuite>(\"test\") {\n+      executions {",
+      "id": "PRRT_kwDODJKVX86tlzwH",
+      "opened": "2026-10-18T00:13:23Z",
+      "path": "instrumentation/apache-httpclient/apache-httpclient-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-18T00:19:31Z",
+          "body": "Addressed in 64fc53f1. Shared settings and gates now live in the seven default suites’ executions.configureEach blocks, with comments, metadata profiles, and toolchain behavior preserved. The other 15 subprojects are unchanged. Scoped formatting, all seven execution-convention tests, and lifecycle dry runs passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20672#discussion_r4305102464"
+        }
+      ],
+      "reviewed": "7a580e342fa2667f5290d7bb196bd03b49c00d0c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20672#discussion_r4305086686"
+    }
+  ]
+}

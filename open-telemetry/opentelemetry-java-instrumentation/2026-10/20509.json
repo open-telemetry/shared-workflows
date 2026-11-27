@@ -1,0 +1,88 @@
+{
+  "head": "93859c6dc48f45c3fff190169a0f6dbcee233626",
+  "merge": "428d1b987f975c3aa000c6f976e393cfb8206061",
+  "merged": "2026-10-13T18:12:39Z",
+  "missing_roots": 0,
+  "number": 20509,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-11T22:55:08Z",
+      "hunk": "@@ -46,10 +46,43 @@ dependencies {\n }\n \n tasks {\n+  val containerTestClasses = listOf(\n+    \"ActiveMqTest\",\n+    \"CamelTest\",\n+    \"CassandraTest\",\n+    \"HadoopTest\",\n+    \"JettyTest\",\n+    \"JvmTest\",\n+    \"KafkaBrokerTest\",\n+    \"KafkaConnectTest\",\n+    \"TomcatTest\",\n+    \"WildflyTest\",\n+  ).map { \"io.opentelemetry.instrumentation.jmx.rules.$it\" }\n+\n   test {\n-    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n-    timeout.set(Duration.ofMinutes(30))\n+    filter {\n+      containerTestClasses.forEach { excludeTestsMatching(it) }\n+    }\n+  }\n+\n+  val containerTests = containerTestClasses.map { testClass ->\n+    register<Test>(\"test${testClass.substringAfterLast('.').removeSuffix(\"Test\")}\") {\n+      testClassesDirs = sourceSets.test.get().output.classesDirs\n+      classpath = sourceSets.test.get().runtimeClasspath\n+      filter {\n+        includeTestsMatching(testClass)\n+      }\n+      usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n+      // Restore the standard timeout after repeated cold CI runs demonstrate sufficient headroom.\n+      timeout.set(Duration.ofMinutes(30))",
+      "id": "PRRT_kwDODJKVX86rSZtP",
+      "opened": "2026-10-11T22:55:08Z",
+      "path": "instrumentation/jmx-metrics/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "235ce80cbf1f51ee6d979d20cf8435cca314c11c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20509#discussion_r4243598204"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] These tasks inherit the repository-wide 15-minute timeout (`otel.java-conventions.gradle.kts:371-373`), so the stated 30-minute allowance for cold container pulls was removed rather than retained. Set the 30-minute timeout on each container task; the default `test` task will then continue using 15 minutes as intended.",
+      "created": "2026-10-11T22:58:23Z",
+      "hunk": "@@ -46,10 +46,41 @@ dependencies {\n }\n \n tasks {\n+  val containerTestClasses = listOf(\n+    \"ActiveMqTest\",\n+    \"CamelTest\",\n+    \"CassandraTest\",\n+    \"HadoopTest\",\n+    \"JettyTest\",\n+    \"JvmTest\",\n+    \"KafkaBrokerTest\",\n+    \"KafkaConnectTest\",\n+    \"TomcatTest\",\n+    \"WildflyTest\",\n+  ).map { \"io.opentelemetry.instrumentation.jmx.rules.$it\" }\n+\n   test {\n-    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n-    timeout.set(Duration.ofMinutes(30))\n+    filter {\n+      containerTestClasses.forEach { excludeTestsMatching(it) }\n+    }\n+  }\n+\n+  val containerTests = containerTestClasses.map { testClass ->\n+    register<Test>(\"test${testClass.substringAfterLast('.').removeSuffix(\"Test\")}\") {\n+      testClassesDirs = sourceSets.test.get().output.classesDirs\n+      classpath = sourceSets.test.get().runtimeClasspath\n+      filter {\n+        includeTestsMatching(testClass)\n+      }\n+      usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)",
+      "id": "PRRT_kwDODJKVX86rSbHt",
+      "opened": "2026-10-11T22:58:24Z",
+      "path": "instrumentation/jmx-metrics/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-11T23:09:35Z",
+          "body": "I removed the 30-minute override intentionally. The purpose of splitting the container tests into per-class tasks is to let each task use the standard 15-minute timeout. The PR description was stale; I've corrected it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20509#discussion_r4243638398"
+        }
+      ],
+      "reviewed": "020744f01ec58bc4386b10a520ad94dc59aea1d3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20509#discussion_r4243607459"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "Can we have something easier to maintain than this explicit class name list ?\nFor example, using an explicit annotation on those classes seems easier to extend, as adding a new test class would likely be missed in the gradle config.",
+      "created": "2026-10-12T08:20:48Z",
+      "hunk": "@@ -46,10 +46,41 @@ dependencies {\n }\n \n tasks {\n+  val containerTestClasses = listOf(",
+      "id": "PRRT_kwDODJKVX86rYN1O",
+      "opened": "2026-10-12T08:20:48Z",
+      "path": "instrumentation/jmx-metrics/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-13T16:04:05Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20509/commits/5a6bf5b3049210d6c305e0b1a22c3af64f6774fd",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20509#discussion_r4261024767"
+        }
+      ],
+      "reviewed": "020744f01ec58bc4386b10a520ad94dc59aea1d3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20509#discussion_r4245958522"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please replace the explicit container-test class list with source-file discovery in this PR.\n\nMove all ten container-test classes into `io.opentelemetry.instrumentation.jmx.rules.containers`, and move the `KafkaContainer` helper into that package too. Keep the existing test source set, shared base class, verifier, and assertions. Update package declarations and imports as needed.\n\nReplace the hard-coded list with this discovery block:\n\n```kotlin\nval containerTestPackage =\n  \"io.opentelemetry.instrumentation.jmx.rules.containers\"\n\nval containerTestClasses = fileTree(\"src/test/java\") {\n  include(\"${containerTestPackage.replace('.', '/')}/*Test.java\")\n}.files\n  .map { \"$containerTestPackage.${it.nameWithoutExtension}\" }\n  .sorted()\n\nrequire(containerTestClasses.isNotEmpty()) {\n  \"No JMX container test classes found\"\n}\n```\n\nKeep the existing per-class task names, exact class filters, default `test` exclusions, classpath, `testcontainersBuildService` usage, shared artifact and registry inputs, JVM argument providers, standard timeouts, and `check` dependencies. Adding a new `*Test.java` directly in the container package should automatically register its task and exclude it from the default task. Helpers such as `KafkaContainer.java` must not be selected.\n\nVerify discovery works before compilation on a clean checkout and that all ten existing classes remain covered exactly once. Do not add annotation scanning, a new source set, or CI partitioning changes. Update the PR description if its package or discovery explanation becomes stale.",
+      "created": "2026-10-13T15:33:20Z",
+      "hunk": "@@ -46,10 +46,41 @@ dependencies {\n }\n \n tasks {\n+  val containerTestClasses = listOf(",
+      "id": "PRRT_kwDODJKVX86r77Zr",
+      "opened": "2026-10-13T15:33:20Z",
+      "path": "instrumentation/jmx-metrics/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-13T15:48:03Z",
+          "body": "Implemented in 5a6bf5b3. The container tests and KafkaContainer helper now live in `rules.containers`, and Gradle discovers the per-class tasks from that package.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20509#discussion_r4260848046"
+        }
+      ],
+      "reviewed": "020744f01ec58bc4386b10a520ad94dc59aea1d3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20509#discussion_r4260684947"
+    }
+  ]
+}

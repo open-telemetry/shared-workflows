@@ -1,0 +1,436 @@
+{
+  "head": "8a60c44411ed4fd9e501b57d6569b893e2dc378a",
+  "merge": "3c6eaf3e35d8901351312c30a83f1c188b90ceec",
+  "merged": "2026-07-29T19:06:35Z",
+  "missing_roots": 0,
+  "number": 282,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The triple-quoted string after `type: str` is a standalone expression in the class body (not an attribute docstring) and will likely trigger lint (e.g., ruff B018 / pylint pointless-string-statement). Use comments instead.",
+      "created": "2026-07-18T04:32:00Z",
+      "hunk": "@@ -226,8 +226,27 @@ class OutputMessage:\n \n @dataclass\n class Error:\n-    message: str\n-    type: Type[BaseException]\n+    message: str | None\n+    type: str\n+    \"\"\"The ``error.type`` attribute value. A short, low-cardinality string (an\n+    exception type name, an error code, etc.) — not necessarily a Python\n+    exception class.\"\"\"",
+      "id": "PRRT_kwDOSbspP86R8-gZ",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596060"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The triple-quoted string after `exception: BaseException | None = None` is a standalone expression in the class body and will likely trigger lint. Convert it to a comment.",
+      "created": "2026-07-18T04:32:00Z",
+      "hunk": "@@ -226,8 +226,27 @@ class OutputMessage:\n \n @dataclass\n class Error:\n-    message: str\n-    type: Type[BaseException]\n+    message: str | None\n+    type: str\n+    \"\"\"The ``error.type`` attribute value. A short, low-cardinality string (an\n+    exception type name, an error code, etc.) — not necessarily a Python\n+    exception class.\"\"\"\n+    exception: BaseException | None = None\n+    \"\"\"The originating exception, when the error was produced from one; ``None``\n+    when built from an explicit ``type``/``message``.\"\"\"",
+      "id": "PRRT_kwDOSbspP86R8-ge",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596067"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Error.type` changed from an exception class to a string, which is a breaking change for the util public API. Call sites and util tests that construct `Error(type=SomeExceptionClass, ...)` will break; this should be accompanied by coordinated updates (and, if applicable, version bound bumps / docs updates for downstream instrumentations).",
+      "created": "2026-07-18T04:32:00Z",
+      "hunk": "@@ -226,8 +226,27 @@ class OutputMessage:\n \n @dataclass\n class Error:\n-    message: str\n-    type: Type[BaseException]\n+    message: str | None\n+    type: str",
+      "id": "PRRT_kwDOSbspP86R8-gh",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596071"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Changelog fragments must be named <PR_NUMBER>.(added|changed|deprecated|removed|fixed) and match the PR number; this filename will fail the `changelog` CI check.",
+      "created": "2026-07-18T04:32:00Z",
+      "hunk": "@@ -0,0 +1 @@\n+set `error.type` to canonical, fully qulified exception name ",
+      "id": "PRRT_kwDOSbspP86R8-gt",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "util/opentelemetry-util-genai/.changelog/+error-type-string.changed",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596083"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Changelog fragments must be named <PR_NUMBER>.(added|changed|deprecated|removed|fixed) and match the PR number; this filename will fail the `changelog` CI check.",
+      "created": "2026-07-18T04:32:01Z",
+      "hunk": "@@ -0,0 +1 @@\n+Responses that fail now record the actual error type (`error` event code or the response's error code) instead of a generic `RuntimeError`, for both streaming and non-streaming calls. Responses that finish as incomplete (`max_output_tokens`/`content_filter`) are recorded as a finish reason rather than an error.",
+      "id": "PRRT_kwDOSbspP86R8-g7",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/.changelog/282.fixed",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596100"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Adding an editable install of util-genai here defeats the purpose of the `openai-oldest` tox factor (which intentionally resolves declared deps like opentelemetry-util-genai from PyPI at their lower bounds). If openai tests require newer util behavior, bump the openai package's util-genai lower bound and keep oldest envs exercising released floors.",
+      "created": "2026-07-18T04:32:01Z",
+      "hunk": "@@ -21,6 +21,8 @@\n # OpenTelemetry SDK and test utilities come transitively from opentelemetry-test-util-genai, which\n # every oldest env installs. Pin here only test-only deps that nothing else already provides.\n \n+-e ./util/opentelemetry-util-genai",
+      "id": "PRRT_kwDOSbspP86R8-g_",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596104"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Typo in changelog fragment: \"qulified\" → \"qualified\", and there is a trailing space at the end of the line.",
+      "created": "2026-07-18T04:32:01Z",
+      "hunk": "@@ -0,0 +1 @@\n+set `error.type` to canonical, fully qulified exception name ",
+      "id": "PRRT_kwDOSbspP86R8-gx",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "util/opentelemetry-util-genai/.changelog/+error-type-string.changed",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596087"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The expected fully-qualified exception type should match the exception class's `__module__`/`__qualname__`. OpenAI exceptions are typically defined in `openai._exceptions`, so hardcoding `openai.NotFoundError` is likely incorrect and will make this test fail when fq_exception_type() is used.",
+      "created": "2026-07-18T04:32:01Z",
+      "hunk": "@@ -176,4 +176,7 @@ def test_structured_output_404(\n     assert_all_attributes(\n         spans[0], llm_model_value, latest_experimental_enabled\n     )\n-    assert \"NotFoundError\" == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    assert (\n+        \"openai.NotFoundError\"\n+        == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    )",
+      "id": "PRRT_kwDOSbspP86R8-hF",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_structured_outputs.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596111"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same as the sync test: fq_exception_type() will use the exception class's defining module (often `openai._exceptions`), so hardcoding `openai.NotFoundError` is likely incorrect.",
+      "created": "2026-07-18T04:32:01Z",
+      "hunk": "@@ -187,4 +187,7 @@ async def test_async_structured_output_404(\n     assert_all_attributes(\n         spans[0], llm_model_value, latest_experimental_enabled\n     )\n-    assert \"NotFoundError\" == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    assert (\n+        \"openai.NotFoundError\"\n+        == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    )",
+      "id": "PRRT_kwDOSbspP86R8-hM",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_async_structured_outputs.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596119"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "fq_exception_type() uses the exception class's defining module. OpenAI exceptions are typically defined in `openai._exceptions`, so hardcoding `openai.APIConnectionError` is likely incorrect.",
+      "created": "2026-07-18T04:32:02Z",
+      "hunk": "@@ -161,7 +161,8 @@ async def test_async_chat_completion_bad_endpoint(\n     )\n     assert 4242 == spans[0].attributes[ServerAttributes.SERVER_PORT]\n     assert (\n-        \"APIConnectionError\" == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+        \"openai.APIConnectionError\"\n+        == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n     )",
+      "id": "PRRT_kwDOSbspP86R8-hO",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_async_chat_completions.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596123"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "fq_exception_type() uses the exception class's defining module. OpenAI exceptions are typically defined in `openai._exceptions`, so hardcoding `openai.NotFoundError` is likely incorrect.",
+      "created": "2026-07-18T04:32:02Z",
+      "hunk": "@@ -184,7 +185,10 @@ async def test_async_chat_completion_404(\n     assert_all_attributes(\n         spans[0], llm_model_value, latest_experimental_enabled\n     )\n-    assert \"NotFoundError\" == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    assert (\n+        \"openai.NotFoundError\"\n+        == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    )",
+      "id": "PRRT_kwDOSbspP86R8-hP",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_async_chat_completions.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596125"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "fq_exception_type() uses the exception class's defining module (often `openai._exceptions`), so hardcoding `openai.NotFoundError` is likely incorrect.",
+      "created": "2026-07-18T04:32:02Z",
+      "hunk": "@@ -160,7 +160,10 @@ async def test_async_embeddings_error_handling(\n         latest_experimental_enabled,\n         operation_name=\"embeddings\",\n     )\n-    assert \"NotFoundError\" == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    assert (\n+        \"openai.NotFoundError\"\n+        == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    )",
+      "id": "PRRT_kwDOSbspP86R8-hQ",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_async_embeddings.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596127"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "fq_exception_type() derives the fully qualified name from the exception class's defining module; OpenAI exceptions are typically in `openai._exceptions`, so `openai.APIConnectionError` is likely incorrect.",
+      "created": "2026-07-18T04:32:02Z",
+      "hunk": "@@ -249,7 +249,8 @@ def test_embeddings_bad_endpoint(\n     )\n     assert 4242 == spans[0].attributes[ServerAttributes.SERVER_PORT]\n     assert (\n-        \"APIConnectionError\" == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+        \"openai.APIConnectionError\"\n+        == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n     )",
+      "id": "PRRT_kwDOSbspP86R8-hU",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_embeddings.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596132"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue for metrics: the expected fully-qualified exception type should be derived from the exception class's module/qualname (often `openai._exceptions`), not hardcoded as `openai.APIConnectionError`.",
+      "created": "2026-07-18T04:32:03Z",
+      "hunk": "@@ -271,7 +272,7 @@ def test_embeddings_bad_endpoint(\n         duration_metric.data.data_points[0].attributes[\n             ErrorAttributes.ERROR_TYPE\n         ]\n-        == \"APIConnectionError\"\n+        == \"openai.APIConnectionError\"",
+      "id": "PRRT_kwDOSbspP86R8-hX",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_embeddings.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596137"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "fq_exception_type() will include the defining module (often `openai._exceptions`) for OpenAI exceptions, so hardcoding `openai.NotFoundError` is likely incorrect.",
+      "created": "2026-07-18T04:32:03Z",
+      "hunk": "@@ -299,7 +300,10 @@ def test_embeddings_model_not_found(\n         latest_experimental_enabled,\n         operation_name=\"embeddings\",\n     )\n-    assert \"NotFoundError\" == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    assert (\n+        \"openai.NotFoundError\"\n+        == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    )",
+      "id": "PRRT_kwDOSbspP86R8-hc",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_embeddings.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596145"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue for metrics: derive the expected fully-qualified exception name from the exception class rather than hardcoding `openai.NotFoundError`.",
+      "created": "2026-07-18T04:32:03Z",
+      "hunk": "@@ -320,7 +324,7 @@ def test_embeddings_model_not_found(\n         duration_metric.data.data_points[0].attributes[\n             ErrorAttributes.ERROR_TYPE\n         ]\n-        == \"NotFoundError\"\n+        == \"openai.NotFoundError\"",
+      "id": "PRRT_kwDOSbspP86R8-hd",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_embeddings.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596148"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "fq_exception_type() derives the fully qualified name from the exception class's defining module; OpenAI exceptions are typically in `openai._exceptions`, so `openai.APIConnectionError` is likely incorrect.",
+      "created": "2026-07-18T04:32:03Z",
+      "hunk": "@@ -210,7 +210,8 @@ def test_chat_completion_bad_endpoint(\n     )\n     assert 4242 == spans[0].attributes[ServerAttributes.SERVER_PORT]\n     assert (\n-        \"APIConnectionError\" == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+        \"openai.APIConnectionError\"\n+        == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n     )",
+      "id": "PRRT_kwDOSbspP86R8-hg",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_completions.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596152"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue for metrics: expected error.type should be derived from the exception class's module/qualname, not hardcoded as `openai.APIConnectionError`.",
+      "created": "2026-07-18T04:32:03Z",
+      "hunk": "@@ -231,7 +232,7 @@ def test_chat_completion_bad_endpoint(\n         duration_metric.data.data_points[0].attributes[\n             ErrorAttributes.ERROR_TYPE\n         ]\n-        == \"APIConnectionError\"\n+        == \"openai.APIConnectionError\"",
+      "id": "PRRT_kwDOSbspP86R8-hk",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_completions.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596158"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assertion should match fq_exception_type() (module + qualname). `type(exc).__name__` (and hardcoded `openai.`) won't match if the exception is defined in a submodule like `openai._exceptions`.",
+      "created": "2026-07-18T04:32:04Z",
+      "hunk": "@@ -380,7 +383,7 @@ def test_responses_create_api_error(\n     )\n     assert (\n         span.attributes[ErrorAttributes.ERROR_TYPE]\n-        == type(exc_info.value).__name__\n+        == f\"openai.{type(exc_info.value).__name__}\"\n     )",
+      "id": "PRRT_kwDOSbspP86R8-h2",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_responses.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596180"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "fq_exception_type() uses the exception class's defining module. For OpenAI exceptions this is typically `openai._exceptions`, so hardcoding `openai.APIConnectionError` is likely incorrect (and the same adjustment should be applied to the other `openai.APIConnectionError` expectations in this file).",
+      "created": "2026-07-18T04:32:04Z",
+      "hunk": "@@ -357,7 +357,10 @@ async def test_async_responses_create_connection_error(\n     )\n     assert span.attributes[ServerAttributes.SERVER_ADDRESS] == \"localhost\"\n     assert span.attributes[ServerAttributes.SERVER_PORT] == 4242\n-    assert span.attributes[ErrorAttributes.ERROR_TYPE] == \"APIConnectionError\"\n+    assert (\n+        span.attributes[ErrorAttributes.ERROR_TYPE]\n+        == \"openai.APIConnectionError\"\n+    )",
+      "id": "PRRT_kwDOSbspP86R8-h8",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_async_responses.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596188"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "fq_exception_type() will include the exception class's defining module (often `openai._exceptions`), so hardcoding `openai.NotFoundError` is likely incorrect.",
+      "created": "2026-07-18T04:32:04Z",
+      "hunk": "@@ -253,7 +254,10 @@ def test_chat_completion_404(\n     assert_all_attributes(\n         spans[0], llm_model_value, latest_experimental_enabled\n     )\n-    assert \"NotFoundError\" == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    assert (\n+        \"openai.NotFoundError\"\n+        == spans[0].attributes[ErrorAttributes.ERROR_TYPE]\n+    )",
+      "id": "PRRT_kwDOSbspP86R8-ho",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_completions.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596163"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue for metrics: derive the expected fully-qualified exception name from the exception class rather than hardcoding `openai.NotFoundError`.",
+      "created": "2026-07-18T04:32:04Z",
+      "hunk": "@@ -273,7 +277,7 @@ def test_chat_completion_404(\n         duration_metric.data.data_points[0].attributes[\n             ErrorAttributes.ERROR_TYPE\n         ]\n-        == \"NotFoundError\"\n+        == \"openai.NotFoundError\"",
+      "id": "PRRT_kwDOSbspP86R8-hr",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_completions.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596167"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "fq_exception_type() uses the exception class's defining module. For OpenAI exceptions this is typically `openai._exceptions`, so hardcoding `openai.APIConnectionError` is likely incorrect.",
+      "created": "2026-07-18T04:32:04Z",
+      "hunk": "@@ -359,7 +359,10 @@ def test_responses_create_connection_error(\n     )\n     assert span.attributes[ServerAttributes.SERVER_ADDRESS] == \"localhost\"\n     assert span.attributes[ServerAttributes.SERVER_PORT] == 4242\n-    assert span.attributes[ErrorAttributes.ERROR_TYPE] == \"APIConnectionError\"\n+    assert (\n+        span.attributes[ErrorAttributes.ERROR_TYPE]\n+        == \"openai.APIConnectionError\"\n+    )",
+      "id": "PRRT_kwDOSbspP86R8-hv",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_responses.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596172"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This should match fq_exception_type() (module + qualname). `type(exc).__name__` with a hardcoded `openai.` prefix won't match if the exception class is defined in a submodule like `openai._exceptions`.",
+      "created": "2026-07-18T04:32:05Z",
+      "hunk": "@@ -381,7 +384,7 @@ async def test_async_responses_create_api_error(\n     )\n     assert (\n         span.attributes[ErrorAttributes.ERROR_TYPE]\n-        == type(exc_info.value).__name__\n+        == f\"openai.{type(exc_info.value).__name__}\"\n     )",
+      "id": "PRRT_kwDOSbspP86R8-iB",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_async_responses.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596195"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "fq_exception_type() uses the exception class's defining module/qualname, so `openai.AuthenticationError` is likely incorrect (OpenAI exceptions are typically defined in `openai._exceptions`). Consider deriving the expected value from the class to keep tests robust (and apply the same change to the corresponding metric assertion below).",
+      "created": "2026-07-18T04:32:05Z",
+      "hunk": "@@ -329,7 +329,9 @@ def assert_openai_completion_attributes_with_error(\n     assert span is not None\n     assert span.name == \"chat gpt-3.5-turbo\"\n     attributes = span.attributes\n-    assert attributes[error_attributes.ERROR_TYPE] == \"AuthenticationError\"\n+    assert (\n+        attributes[error_attributes.ERROR_TYPE] == \"openai.AuthenticationError\"\n+    )",
+      "id": "PRRT_kwDOSbspP86R8-iI",
+      "opened": "2026-07-18T04:32:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+      "replies": [],
+      "reviewed": "94ca61cdf3b7a6fa61b4853870ba70c0a69b5e46",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3607596203"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Why has `response.incomplete` been moved here?",
+      "created": "2026-07-22T16:50:57Z",
+      "hunk": "@@ -188,23 +193,26 @@ def process_event(self, event: \"ResponseStreamEvent[TextFormatT]\") -> None:\n             if model:\n                 self._self_invocation.request_model = model\n \n-        if event_type == \"response.completed\":\n+        if event_type in {\"response.completed\", \"response.incomplete\"}:",
+      "id": "PRRT_kwDOSbspP86S_xYe",
+      "opened": "2026-07-22T16:50:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_wrappers.py",
+      "replies": [
+        {
+          "at": "2026-07-22T19:16:49Z",
+          "body": "because incomplete response is not a failure, it's expressed in finish reason - similarly to chat calls - max_length finish reason is reported as success",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3633120968"
+        }
+      ],
+      "reviewed": "25fdea47d135e0074b987062a8c0f8af8777043f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3632127821"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "looks like `error.code` always has a value, and it's a pydantic model so it should be validated already\n\n```suggestion\n    if error is None:\n```",
+      "created": "2026-07-29T02:28:33Z",
+      "hunk": "@@ -365,6 +368,21 @@ def extract_finish_reasons(response: \"Response | None\") -> list[str]:\n     return list(dict.fromkeys(finish_reasons))\n \n \n+def get_response_error(response: \"Response | None\") -> \"Error | None\":\n+    \"\"\"Return an ``Error`` when the response failed, else ``None``.\n+\n+    A failed response carries a ``ResponseError`` (``code`` + ``message``).\n+    Incomplete responses (``incomplete_details``) are *not* errors — they\n+    surface as a finish reason instead.\n+    \"\"\"\n+    if Response is None or Error is None or not isinstance(response, Response):\n+        return None\n+    error = response.error\n+    if error is None or not getattr(error, \"code\", None):",
+      "id": "PRRT_kwDOSbspP86UmrCU",
+      "opened": "2026-07-29T02:55:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "620bdf330a904b9824da2de70b7f6dcbd1dbe2b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3670537997"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "```suggestion\n        if event.type == \"error\":\n            error_type = event.code or \"error\"\n            message = event.message or None\n            self._fail(Error(type=error_type, message=message))\n```\n\nmakes the typechecker very happy. pyright isn't able to narrow down the original object when the discriminator is extracted to a separate variable",
+      "created": "2026-07-29T02:52:31Z",
+      "hunk": "@@ -188,23 +193,26 @@ def process_event(self, event: \"ResponseStreamEvent[TextFormatT]\") -> None:\n             if model:\n                 self._self_invocation.response_model_name = model\n \n-        if event_type == \"response.completed\":\n+        if event_type in {\"response.completed\", \"response.incomplete\"}:\n             self._stop(response)\n             return\n \n-        if event_type in {\"response.failed\", \"response.incomplete\"}:\n+        if event_type == \"response.failed\":\n             _set_response_attributes(\n                 self._self_invocation,\n                 response,\n                 self._self_capture_content,\n             )\n-            self._fail(event_type, RuntimeError)\n+            error = (\n+                get_response_error(response) if get_response_error else None\n+            )\n+            self._fail(error or Error(type=event_type, message=None))\n             return\n \n-        if event_type == \"response.error\":\n-            error_type = getattr(event, \"code\", None) or \"response.error\"\n-            message = getattr(event, \"message\", None) or error_type\n-            self._fail(message, RuntimeError)\n+        if event_type == \"error\":\n+            error_type = getattr(event, \"code\", None) or \"error\"\n+            message = getattr(event, \"message\", None)\n+            self._fail(Error(type=error_type, message=message))",
+      "id": "PRRT_kwDOSbspP86Um4no",
+      "opened": "2026-07-29T02:55:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_wrappers.py",
+      "replies": [],
+      "reviewed": "620bdf330a904b9824da2de70b7f6dcbd1dbe2b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/282#discussion_r3670618543"
+    }
+  ]
+}

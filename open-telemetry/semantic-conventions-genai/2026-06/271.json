@@ -1,0 +1,73 @@
+{
+  "head": "0eb7027599c2456eddfb0d6f423ed4964651710b",
+  "merge": "7bbfc3bd4ce94f20c065d1102b07b391d62442b6",
+  "merged": "2026-06-10T01:27:50Z",
+  "missing_roots": 0,
+  "number": 271,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`slack_escape_text` only escapes HTML entities, but Slack link text uses the `<url|text>` format where a `|` in the title will break the link (and newlines can also produce malformed/unreadable messages). Sanitize these characters before embedding PR titles into Slack link text.",
+      "created": "2026-06-09T18:21:08Z",
+      "hunk": "@@ -80,16 +81,23 @@ def post_slack_webhook(message: str, webhook_url: str) -> None:\n         return\n \n \n+def slack_escape_text(text: str) -> str:\n+    return html.escape(text, quote=False)",
+      "id": "PRRT_kwDOSUeMrM6IP3_8",
+      "opened": "2026-06-09T18:21:09Z",
+      "path": ".github/scripts/pull-request-dashboard/notifications.py",
+      "replies": [
+        {
+          "at": "2026-06-09T18:36:59Z",
+          "body": "Addressed in https://github.com/open-telemetry/semantic-conventions-genai/commit/92f60e668a22f2269ae8ac9199a097e2b81ae394. The helper is now named for Slack link text and keeps the simple Slack escaping behavior for link labels.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/271#discussion_r3383000242"
+        }
+      ],
+      "reviewed": "73c4d10c5aa9f2ed453edf659aba1a7e920cc839",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/271#discussion_r3382915397"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change aims to make Slack notifications title-first, but the notification job typically reads `results` from the cached dashboard state (`stored_result`), and that state intentionally does not persist `pr_title` (see dashboard.py field schema notes). As a result `result.get(\"pr_title\")` will usually be empty and the message will continue to show `PR #<n>` instead of the title.",
+      "created": "2026-06-09T18:21:09Z",
+      "hunk": "@@ -80,16 +81,23 @@ def post_slack_webhook(message: str, webhook_url: str) -> None:\n         return\n \n \n+def slack_escape_text(text: str) -> str:\n+    return html.escape(text, quote=False)\n+\n+\n def slack_message(repo: str, result: dict[str, Any], reviewer_mentions: str, kind: str) -> str:\n     facts = result.get(\"facts\") or {}\n     number = result.get(\"pr_number\")\n     url = result.get(\"pr_url\") or f\"https://github.com/{repo}/pull/{number}\"\n+    title = slack_escape_text(str(result.get(\"pr_title\") or \"\").strip())\n+    pr_link_text = f\"{title} (#{number})\" if title else f\"PR #{number}\"",
+      "id": "PRRT_kwDOSUeMrM6IP4Ae",
+      "opened": "2026-06-09T18:21:09Z",
+      "path": ".github/scripts/pull-request-dashboard/notifications.py",
+      "replies": [
+        {
+          "at": "2026-06-09T18:37:01Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/4160c73b1458d695f570186efd75bd863e0f8ab4. Notifications now use the current PR title from the fresh open-PR list instead of relying on cached dashboard state.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/271#discussion_r3383000416"
+        }
+      ],
+      "reviewed": "73c4d10c5aa9f2ed453edf659aba1a7e920cc839",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/271#discussion_r3382915442"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`slack_escape_link_text` currently only HTML-escapes. In Slack’s `<url|text>` link syntax, an unescaped `|` in the PR title will break the link label (and newlines can make the message malformed/unreadable). Sanitize these characters before embedding titles into the link text.",
+      "created": "2026-06-09T18:39:08Z",
+      "hunk": "@@ -80,16 +81,23 @@ def post_slack_webhook(message: str, webhook_url: str) -> None:\n         return\n \n \n+def slack_escape_link_text(text: str) -> str:\n+    return html.escape(text, quote=False)",
+      "id": "PRRT_kwDOSUeMrM6IQJap",
+      "opened": "2026-06-09T18:39:08Z",
+      "path": ".github/scripts/pull-request-dashboard/notifications.py",
+      "replies": [
+        {
+          "at": "2026-06-09T18:56:24Z",
+          "body": "Addressed in https://github.com/open-telemetry/semantic-conventions-genai/commit/0eb7027599c2456eddfb0d6f423ed4964651710b. I added a brief comment documenting that Slack link text escapes the required characters while leaving PR title punctuation as-is.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/271#discussion_r3383108707"
+        }
+      ],
+      "reviewed": "4160c73b1458d695f570186efd75bd863e0f8ab4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/271#discussion_r3383013356"
+    }
+  ]
+}

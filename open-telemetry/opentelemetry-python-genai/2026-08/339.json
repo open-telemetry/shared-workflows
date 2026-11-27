@@ -1,0 +1,25 @@
+{
+  "head": "ebf9ff1d5f377cd9b5dd1a439e57c8fde8af1a07",
+  "merge": "9e37c016da217afc67822af718a3a233326c5d15",
+  "merged": "2026-08-01T14:42:36Z",
+  "missing_roots": 0,
+  "number": 339,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Since this requirements file pins `boto3`, it’s easy for `botocore`/`s3transfer` transitive pins (coming from other deps) to drift into an incompatible combination. Consider explicitly pinning the commonly-coupled packages (`botocore` and `s3transfer`) here as well (or generating this file from a lock/constraints file) to keep the test environment reproducible and avoid resolver-dependent breakages.",
+      "created": "2026-07-31T04:55:05Z",
+      "hunk": "@@ -19,7 +19,7 @@ langchain-openai==1.3.5\n langchain-aws==1.6.4\n langchain-google-genai==4.2.7\n langchain-anthropic==1.4.8\n-boto3==1.43.60\n+boto3==1.43.61",
+      "id": "PRRT_kwDOSbspP86VUhBS",
+      "opened": "2026-07-31T04:55:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.latest.txt",
+      "replies": [],
+      "reviewed": "3edb9b8574862b3e59710a759757177497c8a12f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/339#discussion_r3688134193"
+    }
+  ]
+}

@@ -1,0 +1,207 @@
+{
+  "head": "ac980566855b604b97acfdaa6bb17db777bbdf37",
+  "merge": "9a6aa24d09163a43f2c1aed2cfdd5cc1d5a56310",
+  "merged": "2026-09-25T04:43:32Z",
+  "missing_roots": 0,
+  "number": 19920,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] This exception is intentionally unused, so the repository catch-variable convention requires `ignored` rather than `e`.",
+      "created": "2026-08-30T15:26:10Z",
+      "hunk": "@@ -67,6 +87,62 @@ public Context extract(AwsLambdaRequest input) {\n         .extract(Context.root(), headers, mapGetter);\n   }\n \n+  @Nullable\n+  private static String getXrayTraceId(\n+      @Nullable com.amazonaws.services.lambda.runtime.Context awsContext) {\n+    if (awsContext == null) {\n+      return null;\n+    }\n+    MethodHandle getXrayTraceId = GET_XRAY_TRACE_ID.get(awsContext.getClass()).methodHandle;\n+    if (getXrayTraceId == null) {\n+      return null;\n+    }\n+    try {\n+      Object traceId = getXrayTraceId.invoke(awsContext);\n+      return traceId instanceof String ? (String) traceId : null;\n+    } catch (Throwable ignored) {\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  private static MethodHandle findGetXrayTraceId(Class<?> type) {\n+    MethodHandle methodHandle = findPublicGetXrayTraceId(type);\n+    if (methodHandle != null) {\n+      return methodHandle;\n+    }\n+    for (Class<?> interfaceType : type.getInterfaces()) {\n+      methodHandle = findGetXrayTraceId(interfaceType);\n+      if (methodHandle != null) {\n+        return methodHandle;\n+      }\n+    }\n+    Class<?> superClass = type.getSuperclass();\n+    return superClass == null ? null : findGetXrayTraceId(superClass);\n+  }\n+\n+  @Nullable\n+  private static MethodHandle findPublicGetXrayTraceId(Class<?> type) {\n+    try {\n+      return MethodHandles.publicLookup()\n+          .findVirtual(type, GET_XRAY_TRACE_ID_METHOD, MethodType.methodType(String.class));\n+    } catch (NoSuchMethodException | IllegalAccessException | SecurityException e) {",
+      "id": "PRRT_kwDODJKVX86diDkE",
+      "opened": "2026-08-30T15:26:11Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionInstrumenter.java",
+      "replies": [
+        {
+          "at": "2026-09-05T01:49:02Z",
+          "body": "Done. The intentionally ignored exceptions now use `ignored`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3939049881"
+        }
+      ],
+      "reviewed": "5986b542eccf389f0193184b84ba7b3889100e2f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3889760773"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Is this really necessary? Method handle lookup `findVirtual` should already search the class hierarchy. If the method exists it should already be found by the first call to `findPublicGetXrayTraceId`. I suspect you could delete this method and rename `findPublicGetXrayTraceId` to `findGetXrayTraceId`",
+      "created": "2026-09-03T05:53:25Z",
+      "hunk": "@@ -67,6 +87,63 @@ public Context extract(AwsLambdaRequest input) {\n         .extract(Context.root(), headers, mapGetter);\n   }\n \n+  @Nullable\n+  private static String getXrayTraceId(\n+      @Nullable com.amazonaws.services.lambda.runtime.Context awsContext) {\n+    if (awsContext == null) {\n+      return null;\n+    }\n+    MethodHandle getXrayTraceId =\n+        getXrayTraceIdMethodHandleCache.get(awsContext.getClass()).methodHandle;\n+    if (getXrayTraceId == null) {\n+      return null;\n+    }\n+    try {\n+      Object traceId = getXrayTraceId.invoke(awsContext);\n+      return traceId instanceof String ? (String) traceId : null;\n+    } catch (Throwable ignored) {\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  private static MethodHandle findGetXrayTraceId(Class<?> type) {\n+    MethodHandle methodHandle = findPublicGetXrayTraceId(type);\n+    if (methodHandle != null) {\n+      return methodHandle;\n+    }\n+    for (Class<?> interfaceType : type.getInterfaces()) {\n+      methodHandle = findGetXrayTraceId(interfaceType);\n+      if (methodHandle != null) {\n+        return methodHandle;\n+      }\n+    }\n+    Class<?> superClass = type.getSuperclass();\n+    return superClass == null ? null : findGetXrayTraceId(superClass);",
+      "id": "PRRT_kwDODJKVX86eysHh",
+      "opened": "2026-09-03T05:53:25Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionInstrumenter.java",
+      "replies": [
+        {
+          "at": "2026-09-04T01:30:00Z",
+          "body": "Done. I removed the recursive subclass/interface lookup and kept a single `findGetXrayTraceId()` lookup.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3930116318"
+        }
+      ],
+      "reviewed": "5def99735baf3e45c7a63f343d384020b70e2637",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3921498955"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could you elaborate why this change is necessary",
+      "created": "2026-09-03T05:55:06Z",
+      "hunk": "@@ -80,7 +157,8 @@ public String get(@Nullable Map<String, String> map, String s) {\n       if (map == null) {\n         return null;\n       }\n-      return map.get(s.toLowerCase(Locale.ROOT));\n+      String value = map.get(s);",
+      "id": "PRRT_kwDODJKVX86eytx7",
+      "opened": "2026-09-03T05:55:06Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionInstrumenter.java",
+      "replies": [
+        {
+          "at": "2026-09-04T01:30:03Z",
+          "body": "The test-local interface is only there so the test source still compiles against the baseline `aws-lambda-java-core` 1.2.1 dependency, where `Context.getXrayTraceId()` does not exist yet. The positive test is now guarded in the baseline run and is exercised by latest-deps with AWS core 1.4.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3930116513"
+        },
+        {
+          "at": "2026-09-04T06:04:22Z",
+          "body": "why was the key previously always lowercased and now you first try the key as it is and then fall back to lowercase? Is it because `headers.put(AWS_TRACE_HEADER_PROP, xrayTraceId);` above doesn't lowercase they key name? If so would it be better to lowercase the key there? If you believe that not lowercasing it is better, then add a comment that explains why the lowercase fallback is needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3931325084"
+        },
+        {
+          "at": "2026-09-05T01:48:59Z",
+          "body": "Done. I now lowercase the synthetic X-Ray header key when adding it to the carrier and restored the getter to the previous lowercased lookup.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3939049737"
+        }
+      ],
+      "reviewed": "5def99735baf3e45c7a63f343d384020b70e2637",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3921509292"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "as far as I can tell the `getXrayTraceId` method is in `com.amazonaws.services.lambda.runtime.Context` but here the code operates like it was in a subclass. If it really is in `com.amazonaws.services.lambda.runtime.Context` you cold do the method handle lookup only once in a static initializer. Even if the subclass overrides the method calling base class method will end up calling the subclass method, no need to look up the method handle for a subclass.",
+      "created": "2026-09-03T05:58:15Z",
+      "hunk": "@@ -67,6 +87,63 @@ public Context extract(AwsLambdaRequest input) {\n         .extract(Context.root(), headers, mapGetter);\n   }\n \n+  @Nullable\n+  private static String getXrayTraceId(\n+      @Nullable com.amazonaws.services.lambda.runtime.Context awsContext) {\n+    if (awsContext == null) {\n+      return null;\n+    }\n+    MethodHandle getXrayTraceId =\n+        getXrayTraceIdMethodHandleCache.get(awsContext.getClass()).methodHandle;",
+      "id": "PRRT_kwDODJKVX86eyw0E",
+      "opened": "2026-09-03T05:58:14Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionInstrumenter.java",
+      "replies": [
+        {
+          "at": "2026-09-04T01:30:03Z",
+          "body": "Agreed. I changed this to resolve the method handle once against `com.amazonaws.services.lambda.runtime.Context.class`; invoking that handle on the runtime context will dispatch to the implementation/override when the newer API is present.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3930116437"
+        }
+      ],
+      "reviewed": "5def99735baf3e45c7a63f343d384020b70e2637",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3921528387"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think this can be inlined",
+      "created": "2026-09-04T06:07:51Z",
+      "hunk": "@@ -22,6 +25,9 @@\n  */\n public class AwsLambdaFunctionInstrumenter {\n \n+  private static final String AWS_TRACE_HEADER_PROP = \"com.amazonaws.xray.traceHeader\";\n+  private static final String GET_XRAY_TRACE_ID_METHOD = \"getXrayTraceId\";",
+      "id": "PRRT_kwDODJKVX86fLsgY",
+      "opened": "2026-09-04T06:07:50Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionInstrumenter.java",
+      "replies": [
+        {
+          "at": "2026-09-05T01:49:01Z",
+          "body": "Done. I inlined the reflected method name in the lookup.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3939049842"
+        }
+      ],
+      "reviewed": "4e62e0d92694335ed7fe69b3e3723ed270c13fa4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3931342819"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "copilot says that repository conventions is to use SCREAMING_SNAKE_CASE here",
+      "created": "2026-09-04T06:08:20Z",
+      "hunk": "@@ -22,6 +25,9 @@\n  */\n public class AwsLambdaFunctionInstrumenter {\n \n+  private static final String AWS_TRACE_HEADER_PROP = \"com.amazonaws.xray.traceHeader\";\n+  private static final String GET_XRAY_TRACE_ID_METHOD = \"getXrayTraceId\";\n+  @Nullable private static final MethodHandle getXrayTraceIdMethod = findGetXrayTraceId();",
+      "id": "PRRT_kwDODJKVX86fLs9o",
+      "opened": "2026-09-04T06:08:20Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionInstrumenter.java",
+      "replies": [
+        {
+          "at": "2026-09-05T01:49:02Z",
+          "body": "Done. I renamed the cached method handle to `GET_XRAY_TRACE_ID`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3939049907"
+        }
+      ],
+      "reviewed": "4e62e0d92694335ed7fe69b3e3723ed270c13fa4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3931345530"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The linked issue identifies the AWS Lambda 1.4 API as `Context.getTraceHeader()`, but this lookup requests `getXrayTraceId()`. On 1.4 the lookup therefore returns `null`, so the new context value is never added to the carrier; the test’s matching assumption also skips instead of detecting this. Resolve `getTraceHeader` and update the test fixture/assumption to model that API.",
+      "created": "2026-09-05T01:52:25Z",
+      "hunk": "@@ -67,6 +80,39 @@ public Context extract(AwsLambdaRequest input) {\n         .extract(Context.root(), headers, mapGetter);\n   }\n \n+  @Nullable\n+  private static String getXrayTraceId(\n+      @Nullable com.amazonaws.services.lambda.runtime.Context awsContext) {\n+    if (awsContext == null) {\n+      return null;\n+    }\n+    if (GET_XRAY_TRACE_ID == null) {\n+      return null;\n+    }\n+    try {\n+      return (String) GET_XRAY_TRACE_ID.invoke(awsContext);\n+    } catch (Throwable ignored) {\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  private static MethodHandle findGetXrayTraceId() {\n+    try {\n+      return MethodHandles.publicLookup()\n+          .findVirtual(\n+              com.amazonaws.services.lambda.runtime.Context.class,\n+              \"getXrayTraceId\",",
+      "id": "PRRT_kwDODJKVX86ffN36",
+      "opened": "2026-09-05T01:52:25Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionInstrumenter.java",
+      "replies": [
+        {
+          "at": "2026-09-06T23:21:05Z",
+          "body": "Fixed in 1215431f9a: the reflective lookup now targets Context.getTraceHeader(), and the latest-deps test fixture/assumption model getTraceHeader() directly. Verified with the focused normal and latest-deps InstrumenterExtractionTest runs.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3945587592"
+        },
+        {
+          "at": "2026-09-07T05:59:19Z",
+          "body": "Did you test this code with an actual lambda? https://github.com/aws/aws-lambda-java-libs does not contain a method named `getTraceHeader` but it contains `getXrayTraceId` Are you sure that the issue isn't just referencing the wrong method name? @wangzlei what is the correct method name?\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3946930922"
+        },
+        {
+          "at": "2026-09-12T16:29:22Z",
+          "body": "You are right. I checked aws/aws-lambda-java-libs#563 and the merged change added Context.getXrayTraceId(), not getTraceHeader(); the issue text appears to have the method name wrong. I fixed the PR in 8c19ff1399 to resolve getXrayTraceId() again and updated the latest-deps fixture/assumption to match. The focused normal and latest-deps InstrumenterExtractionTest runs both pass locally.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3996845598"
+        }
+      ],
+      "reviewed": "c8665cc5829252d34707ad13f5325ae2bdb13b03",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3939058261"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This test helper is referenced only from `InstrumenterExtractionTest` in the same package, so making it public exposes more visibility than necessary. Keep it package-private per the repository's minimal-visibility rule.",
+      "created": "2026-09-12T16:34:58Z",
+      "hunk": "@@ -0,0 +1,10 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awslambdacore.v1_0.internal;\n+\n+public interface XrayTraceIdContext {",
+      "id": "PRRT_kwDODJKVX86hxuUg",
+      "opened": "2026-09-12T16:34:58Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/test/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/XrayTraceIdContext.java",
+      "replies": [],
+      "reviewed": "8c19ff139990dbbc538e0436ee6c647d2363d2e6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r3996859206"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The two caught exceptions share `Exception` as their nearest common parent; the Java test rules prefer catching that parent instead of using a multi-catch here. Change this to `catch (Exception ignored)` so the compatibility probe remains equivalent and follows the test convention.",
+      "created": "2026-09-23T12:34:08Z",
+      "hunk": "@@ -42,4 +52,64 @@ void useCustomContext() {\n     assertThat(spanContext.getTraceId()).isEqualTo(\"4bf92f3577b34da6a3ce929d0e0e4736\");\n     assertThat(spanContext.getSpanId()).isEqualTo(\"00f067aa0ba902b7\");\n   }\n+\n+  @Test\n+  void useXrayTraceIdFromAwsContext() {\n+    assumeTrue(hasXrayTraceIdApi(), \"requires aws-lambda-java-core with getXrayTraceId()\");\n+\n+    String traceHeader =\n+        \"Root=1-00000001-d188f8fa79d48a391a778fa6;Parent=53995c3f42cd8ad8;Sampled=1\";\n+    AtomicReference<String> extractedTraceHeader = new AtomicReference<>();\n+    AwsLambdaFunctionInstrumenter instr =\n+        AwsLambdaFunctionInstrumenterFactory.createInstrumenter(\n+            OpenTelemetry.propagating(\n+                ContextPropagators.create(new TraceHeaderPropagator(extractedTraceHeader))));\n+\n+    ContextWithXrayTraceId contextWithXrayTraceId = mock(ContextWithXrayTraceId.class);\n+    when(contextWithXrayTraceId.getXrayTraceId()).thenReturn(traceHeader);\n+    AwsLambdaRequest input =\n+        AwsLambdaRequest.create(contextWithXrayTraceId, new Object(), emptyMap());\n+\n+    instr.extract(input);\n+\n+    assertThat(extractedTraceHeader.get()).isEqualTo(traceHeader);\n+  }\n+\n+  private static boolean hasXrayTraceIdApi() {\n+    try {\n+      com.amazonaws.services.lambda.runtime.Context.class.getMethod(\"getXrayTraceId\");\n+      return true;\n+    } catch (NoSuchMethodException | SecurityException ignored) {",
+      "id": "PRRT_kwDODJKVX86lJm4K",
+      "opened": "2026-09-23T12:34:08Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/test/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/InstrumenterExtractionTest.java",
+      "replies": [],
+      "reviewed": "2b2ab1983befa4b7e16626738676ac64fdfe4737",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19920#discussion_r4082449964"
+    }
+  ]
+}

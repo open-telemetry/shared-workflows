@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "72e41fc954cbe1ed710178915c9c226d23a5a952a9fa3dd67172a63458246b42",
+  "input_digest": "c4aff1d30022d3c77abbaa76cfbb853d0bc7eddbeab15e79d06576ee4bc0fb3c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/325607d2a1562d45ced103536d8378059d3a691c/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/2d625872cda2710c7583f0299c0c4b89d9884094/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/089a233178a0a6fb5ccfe49fe3370abc0ec6a011"
+      ],
+      "id": "PRRT_kwDOSbspP86kfS-d",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/089a233178a0a6fb5ccfe49fe3370abc0ec6a011/instrumentation/opentelemetry-instrumentation-genai-langchain/README.rst",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/2d625872cda2710c7583f0299c0c4b89d9884094/instrumentation/opentelemetry-instrumentation-genai-langchain/README.rst",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/089a233178a0a6fb5ccfe49fe3370abc0ec6a011/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/2d625872cda2710c7583f0299c0c4b89d9884094/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py"
+      ],
+      "id": "PRRT_kwDOSbspP86kgr9u",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

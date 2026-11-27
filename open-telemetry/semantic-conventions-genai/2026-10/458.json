@@ -1,0 +1,115 @@
+{
+  "head": "e443930e55a2453b57976d92c02c81667c84f060",
+  "merge": "6f98aef121ae3d5f224c5084d9fb4433bc6f7f67",
+  "merged": "2026-10-30T22:57:12Z",
+  "missing_roots": 0,
+  "number": 458,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new guidance introduces HTTP status codes but doesn’t reference the corresponding HTTP attribute name (typically `http.response.status_code`) or clearly define the condition for ‘rejects the operation’ (e.g., non-success HTTP status and no JSON-RPC error object). To avoid ambiguity for implementers, consider explicitly naming the HTTP attribute and clarifying the exact trigger (HTTP response present + no JSON-RPC error code/error object).",
+      "created": "2026-08-18T09:31:06Z",
+      "hunk": "@@ -30,8 +30,10 @@ attribute_groups:\n         note: |\n           When the response carries a JSON-RPC error code that classifies as an error,\n           `error.type` SHOULD be set to the string representation of that code. See\n-          `rpc.response.status_code` for which codes classify as errors. Otherwise\n-          (for example on timeouts or transport errors) it SHOULD be set following the\n+          `rpc.response.status_code` for which codes classify as errors. When an HTTP\n+          response rejects the operation without a JSON-RPC error code, `error.type`\n+          SHOULD be set to the string representation of the HTTP status code. Otherwise\n+          (for example on timeouts or other transport errors) it SHOULD be set following the",
+      "id": "PRRT_kwDOSUeMrM6aDhhk",
+      "opened": "2026-08-18T09:31:07Z",
+      "path": "model/mcp/common.yaml",
+      "replies": [
+        {
+          "at": "2026-08-20T19:01:58Z",
+          "body": "Addressed in 00fdd1e. The guidance now explicitly records http.response.status_code and applies when the HTTP response ends the operation in error without a JSON-RPC error code.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/458#discussion_r3824519125"
+        }
+      ],
+      "reviewed": "e47efbc7a403011cdbff8fefa15c61f9a5e17e01",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/458#discussion_r3802812177"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same ambiguity as in the registry YAML: the doc says to use the HTTP status code but doesn’t mention the HTTP semantic convention attribute (`http.response.status_code`) or precisely define when this applies (HTTP response failure + no JSON-RPC error). Tightening this wording will make implementation consistent across SDKs/instrumentations.",
+      "created": "2026-08-18T09:31:06Z",
+      "hunk": "@@ -179,8 +179,10 @@ to avoid high cardinality span names.\n \n **[1] `error.type`:** When the response carries a JSON-RPC error code that classifies as an error,\n `error.type` SHOULD be set to the string representation of that code. See\n-`rpc.response.status_code` for which codes classify as errors. Otherwise\n-(for example on timeouts or transport errors) it SHOULD be set following the\n+`rpc.response.status_code` for which codes classify as errors. When an HTTP\n+response rejects the operation without a JSON-RPC error code, `error.type`\n+SHOULD be set to the string representation of the HTTP status code. Otherwise\n+(for example on timeouts or other transport errors) it SHOULD be set following the",
+      "id": "PRRT_kwDOSUeMrM6aDhiK",
+      "opened": "2026-08-18T09:31:07Z",
+      "path": "docs/gen-ai/mcp.md",
+      "replies": [
+        {
+          "at": "2026-08-20T19:01:59Z",
+          "body": "Addressed in 00fdd1e. The regenerated documentation now names http.response.status_code and specifies the condition.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/458#discussion_r3824519286"
+        }
+      ],
+      "reviewed": "e47efbc7a403011cdbff8fefa15c61f9a5e17e01",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/458#discussion_r3802812235"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The changelog fragment filename `+.clarification.2.md` is unusual and may not be compatible with common changelog tooling conventions (often requiring an issue/PR number or specific pattern). If this repo uses an automated fragment collector, rename the file to match the expected naming scheme to avoid the entry being skipped.",
+      "created": "2026-08-18T09:31:07Z",
+      "hunk": "@@ -0,0 +1 @@\n+Clarify how MCP instrumentation records HTTP failures without JSON-RPC error codes.",
+      "id": "PRRT_kwDOSUeMrM6aDhit",
+      "opened": "2026-08-18T09:31:07Z",
+      "path": "changelog.d/+.clarification.2.md",
+      "replies": [
+        {
+          "at": "2026-08-20T19:02:01Z",
+          "body": "No change needed: changelog.d/README.md explicitly permits +.<type>.<counter>.md before a PR number is available.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/458#discussion_r3824519435"
+        }
+      ],
+      "reviewed": "e47efbc7a403011cdbff8fefa15c61f9a5e17e01",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/458#discussion_r3802812286"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`http.response.status_code` is not declared on any MCP span or metric, so nothing defines its requirement level or when instrumentation records it. This note is shared with both `mcp.*.operation.duration` histograms, where it also reads as an instruction to add an undeclared metric attribute. Either say the attribute comes from separately enabled HTTP instrumentation, as \"Recording MCP transport\" already does, or declare it on the MCP signals that should carry it.",
+      "created": "2026-08-20T21:22:15Z",
+      "hunk": "@@ -30,8 +30,12 @@ attribute_groups:\n         note: |\n           When the response carries a JSON-RPC error code that classifies as an error,\n           `error.type` SHOULD be set to the string representation of that code. See\n-          `rpc.response.status_code` for which codes classify as errors. Otherwise\n-          (for example on timeouts or transport errors) it SHOULD be set following the\n+          `rpc.response.status_code` for which codes classify as errors. When an HTTP\n+          response ends the operation in error without a JSON-RPC error code,\n+          `http.response.status_code` SHOULD be recorded according to the HTTP semantic\n+          conventions and `error.type` SHOULD be set to the string representation of the",
+      "id": "PRRT_kwDOSUeMrM6a9qd5",
+      "opened": "2026-08-20T21:25:35Z",
+      "path": "model/mcp/common.yaml",
+      "replies": [
+        {
+          "at": "2026-08-21T06:07:04Z",
+          "body": "Addressed in 01196b2. MCP guidance now leaves http.response.status_code to separately enabled HTTP instrumentation.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/458#discussion_r3827688316"
+        }
+      ],
+      "reviewed": "00fdd1efefc730c064583f745965dea6edfc5b1a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/458#discussion_r3825452056"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "> Separately enabled HTTP instrumentation records\n          `http.response.status_code` according to the HTTP semantic conventions.\n\nNot sure if it's actionable for MCP instrumentations.\n\nAlso when rendered in md, error.type already has a link to original attribute definition, so need to duplicate it.\n\n```suggestion\n          code. Otherwise\n          (for example on timeouts or other transport errors) it SHOULD be set to \n          the canonical name of exception or error that occurred.\n```",
+      "created": "2026-08-29T04:25:06Z",
+      "hunk": "@@ -30,8 +30,12 @@ attribute_groups:\n         note: |\n           When the response carries a JSON-RPC error code that classifies as an error,\n           `error.type` SHOULD be set to the string representation of that code. See\n-          `rpc.response.status_code` for which codes classify as errors. Otherwise\n-          (for example on timeouts or transport errors) it SHOULD be set following the\n+          `rpc.response.status_code` for which codes classify as errors. When an HTTP\n+          response ends the operation in error without a JSON-RPC error code,\n+          `error.type` SHOULD be set to the string representation of the HTTP status\n+          code. Separately enabled HTTP instrumentation records\n+          `http.response.status_code` according to the HTTP semantic conventions. Otherwise\n+          (for example on timeouts or other transport errors) it SHOULD be set following the\n           [`error.type`](https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/docs/registry/attributes/error.md)",
+      "id": "PRRT_kwDOSUeMrM6dXSuo",
+      "opened": "2026-08-29T04:25:47Z",
+      "path": "model/mcp/common.yaml",
+      "replies": [
+        {
+          "at": "2026-08-29T12:55:49Z",
+          "body": "Addressed in e443930. Removed the separate HTTP-instrumentation statement and link; the fallback now specifies the canonical name of the observed exception or error.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/458#discussion_r3886632847"
+        }
+      ],
+      "reviewed": "01196b2c7cf4ba109d172ef7067fb1b5dbf59034",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/458#discussion_r3885575691"
+    }
+  ]
+}

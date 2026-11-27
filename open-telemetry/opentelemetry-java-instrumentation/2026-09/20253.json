@@ -1,0 +1,55 @@
+{
+  "head": "5d7621e874439d6e7c775943f26e9a249874b136",
+  "merge": "31563921a37f6dd1fcc5675351cf2ad0db46d454",
+  "merged": "2026-09-27T22:56:35Z",
+  "missing_roots": 0,
+  "number": 20253,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new javaagent opt-in variant is not listed in `.github/scripts/instrumentations.sh`, which currently runs only `sofa-rpc-5.4:javaagent:testSofaRpc`. Because the actual SofaRPC tests live in the custom suite, metadata collection will never execute `testSofaRpcExceptionSignalLogs` and therefore will not observe the new log signal. Add that task next to the existing SofaRPC entry.",
+      "created": "2026-09-26T21:16:48Z",
+      "hunk": "@@ -57,9 +57,19 @@ val bothSemconvSuites = testing.suites.withType(JvmTestSuite::class).map { suite\n   }\n }\n \n+val exceptionSignalLogsSuites = testing.suites.withType(JvmTestSuite::class).map { suite ->\n+  tasks.register<Test>(\"${suite.name}ExceptionSignalLogs\") {",
+      "id": "PRRT_kwDODJKVX86mUNKE",
+      "opened": "2026-09-26T21:16:49Z",
+      "path": "instrumentation/sofa-rpc-5.4/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "646d98da433fcd35b83e17243cdc7e583623deac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20253#discussion_r4112818582"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This helper hides a short mode-dependent expectation away from each span assertion. Repository test convention keeps these branches inline so every assertion visibly states the expected behavior for both exception-signal modes. Inline `emitExceptionAsSpanEvents() ? exception : null` at the call sites and remove this helper.",
+      "created": "2026-09-26T21:16:48Z",
+      "hunk": "@@ -870,7 +889,38 @@ void testSofaRpcTimeout() {\n                                     NETWORK_PEER_ADDRESS,\n                                     AbstractSofaRpcTest::assertNetworkPeerAddress),\n                                 satisfies(\n-                                    NETWORK_PEER_PORT,\n-                                    AbstractSofaRpcTest::assertNetworkPeerPort))));\n+                                    NETWORK_PEER_PORT, AbstractSofaRpcTest::assertNetworkPeerPort))\n+                            .hasException(null)));\n+\n+    assertExceptionLogs(clientException, null);\n+  }\n+\n+  @Nullable\n+  private static Throwable expectedSpanException(Throwable exception) {\n+    return emitExceptionAsSpanEvents() ? exception : null;",
+      "id": "PRRT_kwDODJKVX86mUNKQ",
+      "opened": "2026-09-26T21:16:49Z",
+      "path": "instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java",
+      "replies": [],
+      "reviewed": "646d98da433fcd35b83e17243cdc7e583623deac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20253#discussion_r4112818598"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Nullability annotations are not used in test code in this repository. The nullable case is already made explicit by the `serverException != null` branch, so remove `@Nullable` here.",
+      "created": "2026-09-26T21:16:48Z",
+      "hunk": "@@ -870,7 +889,38 @@ void testSofaRpcTimeout() {\n                                     NETWORK_PEER_ADDRESS,\n                                     AbstractSofaRpcTest::assertNetworkPeerAddress),\n                                 satisfies(\n-                                    NETWORK_PEER_PORT,\n-                                    AbstractSofaRpcTest::assertNetworkPeerPort))));\n+                                    NETWORK_PEER_PORT, AbstractSofaRpcTest::assertNetworkPeerPort))\n+                            .hasException(null)));\n+\n+    assertExceptionLogs(clientException, null);\n+  }\n+\n+  @Nullable\n+  private static Throwable expectedSpanException(Throwable exception) {\n+    return emitExceptionAsSpanEvents() ? exception : null;\n+  }\n+\n+  private void assertExceptionLogs(Throwable clientException, @Nullable Throwable serverException) {",
+      "id": "PRRT_kwDODJKVX86mUNKb",
+      "opened": "2026-09-26T21:16:49Z",
+      "path": "instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java",
+      "replies": [],
+      "reviewed": "646d98da433fcd35b83e17243cdc7e583623deac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20253#discussion_r4112818617"
+    }
+  ]
+}

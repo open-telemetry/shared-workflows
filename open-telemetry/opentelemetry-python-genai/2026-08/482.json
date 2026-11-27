@@ -1,0 +1,55 @@
+{
+  "head": "ae8466ea9143e4a3db2a532d2cb2aa4a79d2c93a",
+  "merge": "2cf45cf1f7db0f4ec1f7c519d930182fb88190cd",
+  "merged": "2026-08-28T23:41:48Z",
+  "missing_roots": 0,
+  "number": 482,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`record_stream_chunk()` can still record streaming timing metrics (and mutate timing state) after the invocation has already been finalized via `stop()`/`fail()` because it doesn't check whether the invocation is still active. Since this is a public entry point intended for callback-driven integrations, it should be a no-op once `_finish()` has run to avoid emitting late metric points and leaving span attributes inconsistent (span already ended).",
+      "created": "2026-08-25T22:46:01Z",
+      "hunk": "@@ -121,6 +121,11 @@ def _get_metric_token_counts(self) -> dict[str, int]:  # pylint: disable=no-self\n         \"\"\"Return {token_type: count} for token histogram recording.\"\"\"\n         return {}\n \n+    def record_stream_chunk(self) -> None:\n+        \"\"\"Mark the request as streamed and record one output chunk arriving.\"\"\"\n+        self._request_stream = True\n+        self._on_stream_chunk(timeit.default_timer())\n+",
+      "id": "PRRT_kwDOSbspP86cRkAh",
+      "opened": "2026-08-25T22:46:02Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "6601ed96acbf7a5722efb19186216a8f374b7276",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/482#discussion_r3858118220"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please add a streaming conformance scenario under `tests/conformance/inference_streaming.py` (mirroring `anthropic`/`openai` packages) to validate `gen_ai.request.stream=true` and streaming metrics against the semantic conventions.",
+      "created": "2026-08-26T23:09:25Z",
+      "hunk": "@@ -0,0 +1,209 @@\n+# Copyright The OpenTelemetry Authors",
+      "id": "PRRT_kwDOSbspP86cpMNj",
+      "opened": "2026-08-26T23:18:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_streaming.py",
+      "replies": [],
+      "reviewed": "c78b4a20ac85efefba8061447692cce5376a3709",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/482#discussion_r3867411164"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please rename changelog fragment files to use the PR number (482) instead of 461 (`482.fixed`, `482.changed`, `util/.../482.added`).",
+      "created": "2026-08-26T23:09:25Z",
+      "hunk": "@@ -0,0 +1 @@\n+Mark streamed calls with `gen_ai.request.stream` and record `gen_ai.response.time_to_first_chunk` plus the streaming timing metrics, which were never emitted for LangChain.",
+      "id": "PRRT_kwDOSbspP86cpMNl",
+      "opened": "2026-08-26T23:18:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/482.fixed",
+      "replies": [],
+      "reviewed": "c78b4a20ac85efefba8061447692cce5376a3709",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/482#discussion_r3867411170"
+    }
+  ]
+}

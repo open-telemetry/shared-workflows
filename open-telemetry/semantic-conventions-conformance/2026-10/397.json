@@ -1,0 +1,25 @@
+{
+  "head": "788fa501a743c04fcdcdef3261c9970df994a2fb",
+  "merge": "c3ee2bee7083b0937a63e968c096de0219053c4d",
+  "merged": "2026-10-31T02:46:02Z",
+  "missing_roots": 0,
+  "number": 397,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please regenerate and commit the affected GenAI `data.json` files with this mock change, as required by `scenarios/gen-ai/AGENTS.md:59–60`. For example, `scenarios/gen-ai/python/google-genai/opentelemetry-google-genai/data.json:170–188` still records missing response ID and model attributes that this change is intended to supply. Leaving the results unchanged keeps reports stale and causes the committed-coverage check in `.github/workflows/runner.yml:756–762` to fail when regeneration changes them.",
+      "created": "2026-10-26T18:55:32Z",
+      "hunk": "@@ -403,6 +403,10 @@ def _stream_chunks():\n             },\n         }\n     )\n+    # Real Gemini streams carry both on every chunk.\n+    for chunk in chunks:\n+        chunk[\"modelVersion\"] = \"gemini-2.0-flash\"\n+        chunk[\"responseId\"] = \"resp-mock-stream-001\"",
+      "id": "PRRT_kwDOTuzK5c6waGlX",
+      "opened": "2026-10-26T18:55:33Z",
+      "path": "tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+      "replies": [],
+      "reviewed": "99cc9f9f165df1f53971e76323ce4a03b3348665",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/397#discussion_r4381241495"
+    }
+  ]
+}

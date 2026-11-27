@@ -1,0 +1,88 @@
+{
+  "head": "c67a8d98c4b37c8829ea624cd3a2ece8c55e3387",
+  "merge": "dd23165f7f91a47dfb30fc6e5c8d0b13d6d4f9a4",
+  "merged": "2026-08-18T11:00:58Z",
+  "missing_roots": 0,
+  "number": 19598,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Keep this stable configuration path exact-only. `CommonConfig` supplies the existing `general.http.client.*_captured_headers` lists, and the flat `otel.instrumentation.http.client.capture-*-headers` properties map to them; wrapping those lists in `IncludeExclude` reinterprets existing `*`/`?` values as globs. A previously inert `*` can therefore capture every request or response header, including credentials, although migration of these configuration surfaces is explicitly deferred. Preserve an exact-name path for `configure(...)` until the upstream schema is migrated.",
+      "created": "2026-08-14T23:55:02Z",
+      "hunk": "@@ -263,8 +294,12 @@ public static <REQUEST> void setHttpClientExceptionEventExtractor(\n   @CanIgnoreReturnValue\n   public DefaultHttpClientInstrumenterBuilder<REQUEST, RESPONSE> configure(CommonConfig config) {\n     set(config::getKnownHttpRequestMethods, this::setKnownMethods);\n-    set(config::getClientRequestHeaders, this::setCapturedRequestHeaders);\n-    set(config::getClientResponseHeaders, this::setCapturedResponseHeaders);\n+    set(\n+        config::getClientRequestHeaders,\n+        headers -> setRequestHeaders(IncludeExclude.builder().setIncluded(headers).build()));\n+    set(\n+        config::getClientResponseHeaders,\n+        headers -> setResponseHeaders(IncludeExclude.builder().setIncluded(headers).build()));",
+      "id": "PRRT_kwDODJKVX86ZcZZ1",
+      "opened": "2026-08-14T23:55:03Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T03:31:17Z",
+          "body": "Good catch, and it was worse than \"reinterprets\": these settings never documented `*` as capturing everything, so a previously inert value became capture-everything on a stable surface.\n\nFixed in 1572a0077b. `CapturedHttpHeaders` now has a `createExact` factory that stores the configured names as a literal set and never builds a selector, and both deprecated setters plus `configure(CommonConfig)` route through it. So the flat properties and the `general.http.client.*_captured_headers` lists keep matching literally, with no wildcard carve-out at all.\n\nWorth noting why there is no lone-`*` special case here, since `SelectorConfig.resolveLegacyLiteral` does have one. That carve-out exists only because the phase 1 settings documented `*` as capture-all, so preserving it was bug-for-bug compatibility. The HTTP docs only ever said \"List of HTTP request headers to capture\", so the same carve-out would have been a widening rather than a preservation.\n\nThe regression test I had added asserted the old behavior (it literally asserted that `*` captured `authorization: secret`); it now asserts the opposite.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19598#discussion_r3788375017"
+        }
+      ],
+      "reviewed": "097b7d1d0690465741d7b2d4713f48a0282099b3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19598#discussion_r3787854413"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Keep this stable configuration path exact-only. `CommonConfig` supplies the existing `general.http.server.*_captured_headers` lists, and the flat `otel.instrumentation.http.server.capture-*-headers` properties map to them; wrapping those lists in `IncludeExclude` reinterprets existing `*`/`?` values as globs. A previously inert `*` can therefore capture every request or response header, including credentials, although migration of these configuration surfaces is explicitly deferred. Preserve an exact-name path for `configure(...)` until the upstream schema is migrated.",
+      "created": "2026-08-14T23:55:03Z",
+      "hunk": "@@ -250,8 +281,12 @@ public InstrumenterBuilder<REQUEST, RESPONSE> instrumenterBuilder() {\n   @CanIgnoreReturnValue\n   public DefaultHttpServerInstrumenterBuilder<REQUEST, RESPONSE> configure(CommonConfig config) {\n     set(config::getKnownHttpRequestMethods, this::setKnownMethods);\n-    set(config::getServerRequestHeaders, this::setCapturedRequestHeaders);\n-    set(config::getServerResponseHeaders, this::setCapturedResponseHeaders);\n+    set(\n+        config::getServerRequestHeaders,\n+        headers -> setRequestHeaders(IncludeExclude.builder().setIncluded(headers).build()));\n+    set(\n+        config::getServerResponseHeaders,\n+        headers -> setResponseHeaders(IncludeExclude.builder().setIncluded(headers).build()));",
+      "id": "PRRT_kwDODJKVX86ZcZZ_",
+      "opened": "2026-08-14T23:55:03Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T03:31:26Z",
+          "body": "Same fix on the server side, in 1572a0077b: `configure(CommonConfig)` and both deprecated setters now go through `CapturedHttpHeaders.createExact`, which matches the configured names literally and never builds a selector, so `general.http.server.*_captured_headers` and the flat properties are unchanged in behavior.\n\nSee the client-side thread for why there is deliberately no lone-`*` carve-out here, unlike `SelectorConfig.resolveLegacyLiteral`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19598#discussion_r3788375193"
+        }
+      ],
+      "reviewed": "097b7d1d0690465741d7b2d4713f48a0282099b3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19598#discussion_r3787854427"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This method is introduced with the selector builder APIs marked `@since 2.31.0`, so `2.24.0` incorrectly claims availability in older releases. Use `2.31.0` here as well.\n\nThis issue also appears on line 98 of the same file.",
+      "created": "2026-08-14T23:55:03Z",
+      "hunk": "@@ -35,6 +38,24 @@ public interface HttpCommonAttributesGetter<REQUEST, RESPONSE> {\n    */\n   List<String> getHttpRequestHeader(REQUEST request, String name);\n \n+  /**\n+   * Returns the names of all headers present on the request, or an empty collection if they cannot\n+   * be enumerated.\n+   *\n+   * <p>This is only called when the configured request header selector uses wildcard patterns or\n+   * only excluded patterns, in which case the header names to capture cannot be known in advance.\n+   * Instrumentations that do not implement this method only support selectors that list header\n+   * names literally.\n+   *\n+   * <p>Implementations of this method <b>must not</b> return a null value; an empty collection\n+   * should be returned instead.\n+   *\n+   * @since 2.24.0",
+      "id": "PRRT_kwDODJKVX86ZcZaD",
+      "opened": "2026-08-14T23:55:03Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesGetter.java",
+      "replies": [],
+      "reviewed": "097b7d1d0690465741d7b2d4713f48a0282099b3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19598#discussion_r3787854433"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Restore a literal-name representation for legacy callers. This helper currently only represents `IncludeExclude` selectors, so the deprecated setters and stable `configure(CommonConfig)` paths must pass through `DeprecatedCaptureNames`, which drops names containing `*`/`?`. That changes their previous exact-name behavior (for example, a literal `*` header can no longer be captured) and reintroduces the regression that commit `1572a0077b` fixed. Add the `createExact(...)` path from that fix, route both deprecated setters and `CommonConfig` through it, and update the corresponding docs/tests to assert literal matching.",
+      "created": "2026-08-15T21:21:55Z",
+      "hunk": "@@ -0,0 +1,136 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.semconv.http;\n+\n+import static java.util.Collections.emptyMap;\n+import static java.util.Collections.unmodifiableList;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import java.util.ArrayList;\n+import java.util.Collection;\n+import java.util.HashMap;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Locale;\n+import java.util.Map;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * The HTTP headers captured by an attributes extractor, resolved from an {@link IncludeExclude}\n+ * selector.\n+ *\n+ * <p>HTTP header names are case-insensitive, so the selector patterns are lowercased here and every\n+ * header name is lowercased before it is matched.\n+ */\n+final class CapturedHttpHeaders {\n+\n+  private final String type;\n+  @Nullable private final IncludeExclude selector;\n+  // the header names that the selector includes literally, which are looked up directly so that\n+  // getters which do not enumerate header names keep working\n+  private final List<String> exactNames;\n+  private final Map<String, AttributeKey<List<String>>> exactAttributeKeys;\n+  // whether the selector can match header names that are not listed in exactNames, which requires\n+  // enumerating the header names of each request or response\n+  private final boolean enumerateNames;\n+\n+  static CapturedHttpHeaders create(String type, @Nullable IncludeExclude headers) {\n+    return new CapturedHttpHeaders(type, headers == null || headers.isEmpty() ? null : headers);\n+  }",
+      "id": "PRRT_kwDODJKVX86Zi4X0",
+      "opened": "2026-08-15T21:21:55Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/CapturedHttpHeaders.java",
+      "replies": [
+        {
+          "at": "2026-08-16T05:44:51Z",
+          "body": "Addressed in 4e5a616b33aefcf7606e0f0cdb8c6dfcadac634e.\n\nAnalysis: The selector-only representation cannot preserve legacy exact-name semantics because DeprecatedCaptureNames removes glob metacharacters. Restoring a dedicated exact-name representation lets deprecated setters and CommonConfig retain their previous literal behavior while the new IncludeExclude APIs continue to support patterns.\n\nUpsides: Preserves backward compatibility, prevents accidental wildcard expansion, supports literal metacharacter header names, and documents and tests both API behaviors.\n\nDownsides: CapturedHttpHeaders must maintain separate exact-name and selector representations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19598#discussion_r3791056994"
+        }
+      ],
+      "reviewed": "dbfc676e7ef1ebf0fd0961c710422e242ae8fb7d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19598#discussion_r3790291502"
+    }
+  ]
+}

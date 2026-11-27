@@ -1,0 +1,60 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f657d422257461c785cf5bee083bfabc99e9cf38e56587ca7fa1633a2a04ec91",
+  "input_digest": "37d2511456620b2481c70993cc5e284f5eb2a40028a545c45d0f36a37fd3331b",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/097b7d1d0690465741d7b2d4713f48a0282099b3/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dd23165f7f91a47dfb30fc6e5c8d0b13d6d4f9a4/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/097b7d1d0690465741d7b2d4713f48a0282099b3/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dd23165f7f91a47dfb30fc6e5c8d0b13d6d4f9a4/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcZZ1",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/097b7d1d0690465741d7b2d4713f48a0282099b3/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dd23165f7f91a47dfb30fc6e5c8d0b13d6d4f9a4/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcZZ_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/097b7d1d0690465741d7b2d4713f48a0282099b3/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dd23165f7f91a47dfb30fc6e5c8d0b13d6d4f9a4/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpCommonAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcZaD",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dbfc676e7ef1ebf0fd0961c710422e242ae8fb7d/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractorBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dd23165f7f91a47dfb30fc6e5c8d0b13d6d4f9a4/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractorBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dd23165f7f91a47dfb30fc6e5c8d0b13d6d4f9a4/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/CapturedHttpHeaders.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dbfc676e7ef1ebf0fd0961c710422e242ae8fb7d/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dd23165f7f91a47dfb30fc6e5c8d0b13d6d4f9a4/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dbfc676e7ef1ebf0fd0961c710422e242ae8fb7d/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dd23165f7f91a47dfb30fc6e5c8d0b13d6d4f9a4/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Zi4X0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

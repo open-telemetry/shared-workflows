@@ -1,0 +1,102 @@
+{
+  "head": "1eba58f2df1f34b480d46a90c32baaf163d891d2",
+  "merge": "dfbf501d6a3284dd9b87a2812ffd2a11ae87e699",
+  "merged": "2026-04-20T17:31:55Z",
+  "missing_roots": 0,
+  "number": 17822,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "you shouldn't add this. Library instrumentations are standalone instrumentations that you include in you application as jar. Agent instrumetnations are bundled in side the javaagent. This module is a library instrumentation.",
+      "created": "2026-04-14T07:00:16Z",
+      "hunk": "@@ -1,3 +1,5 @@\n plugins {\n   id(\"otel.library-instrumentation\")\n+  id(\"otel.javaagent-instrumentation\")",
+      "id": "PRRT_kwDODJKVX856uyH2",
+      "opened": "2026-04-14T07:00:16Z",
+      "path": "instrumentation/servlet/servlet-common/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e7272fc9377d4cfe6005409a2f20ed93949a39ef",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17822#discussion_r3077644049"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "This is a library instrumentation. `AgentCommonConfig` is a javaagent only class, it can't be used here.",
+      "created": "2026-04-14T07:01:00Z",
+      "hunk": "@@ -74,7 +75,10 @@ private static AttributeKey<List<String>> parameterAttributeKey(String headerNam\n   private static AttributeKey<List<String>> createKey(String parameterName) {\n     // normalize parameter name similarly as is done with header names when header values are\n     // captured as span attributes\n-    parameterName = parameterName.toLowerCase(Locale.ROOT);\n+    if(!AgentCommonConfig.get().isV3Preview())",
+      "id": "PRRT_kwDODJKVX856uy1x",
+      "opened": "2026-04-14T07:00:59Z",
+      "path": "instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+      "replies": [
+        {
+          "at": "2026-04-15T05:34:59Z",
+          "body": "Hi @laurit, i referred the code. I assumed otel instrumentation api module can be used to get the common config and v3 preview flag. Please check the latest changes and let me know",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17822#discussion_r3084206710"
+        }
+      ],
+      "reviewed": "e7272fc9377d4cfe6005409a2f20ed93949a39ef",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17822#discussion_r3077648412"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "If you add this here then it will be run when each key is created, perhaps it would be better to do this once in the constructor? It would be better to use `GlobalOpenTelemetry.getOrNoop()` since `GlobalOpenTelemetry.get()` prevents subsequent calls to `GlobalOpenTelemetry.set()`. Using the `GlobalOpenTelemetry` isn't guaranteed to work correctly for library instrumenations since they might not set it. To correctly handle library instrumenations you'd need to pass an `OpenTelemetry` instance to the constructor of `ServletRequestParametersExtractor`, but imo it isn't really important. The main idea behind this flag is to ease transitioning to the new defaults, so when we are finally ready to move to 3.0 we could search for the usages of this flag and flip the default instead of doing all these changes right before the release or maintaining a separate branch.",
+      "created": "2026-04-15T10:29:26Z",
+      "hunk": "@@ -74,7 +76,10 @@ private static AttributeKey<List<String>> parameterAttributeKey(String headerNam\n   private static AttributeKey<List<String>> createKey(String parameterName) {\n     // normalize parameter name similarly as is done with header names when header values are\n     // captured as span attributes\n-    parameterName = parameterName.toLowerCase(Locale.ROOT);\n+    CommonConfig commonConfig = new CommonConfig(GlobalOpenTelemetry.get());",
+      "id": "PRRT_kwDODJKVX857FwTW",
+      "opened": "2026-04-15T10:29:26Z",
+      "path": "instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+      "replies": [
+        {
+          "at": "2026-04-17T13:03:08Z",
+          "body": "There is a new method that you can use\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e28508135c8d75834f9d00e21a23bd2171694fdf/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java#L78",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17822#discussion_r3100470924"
+        },
+        {
+          "at": "2026-04-19T07:39:50Z",
+          "body": "Thanks for highlighting the mistakes. Corrected the code as per your suggestion.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17822#discussion_r3106453494"
+        }
+      ],
+      "reviewed": "ab28987fa532e23bc32496d2e778512812f7ca4e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17822#discussion_r3085759336"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      // normalize parameter name similarly as is done with header names when header values are\n      // captured as span attributes\n      parameterName = parameterName.toLowerCase(Locale.ROOT);\n```",
+      "created": "2026-04-19T23:22:39Z",
+      "hunk": "@@ -74,7 +75,9 @@ private static AttributeKey<List<String>> parameterAttributeKey(String headerNam\n   private static AttributeKey<List<String>> createKey(String parameterName) {\n     // normalize parameter name similarly as is done with header names when header values are\n     // captured as span attributes\n-    parameterName = parameterName.toLowerCase(Locale.ROOT);\n+    if (!SemconvStability.v3Preview()) {\n+      parameterName = parameterName.toLowerCase(Locale.ROOT);",
+      "id": "PRRT_kwDODJKVX858Duic",
+      "opened": "2026-04-19T23:22:49Z",
+      "path": "instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+      "replies": [],
+      "reviewed": "607681b6c12e7209ff04d4b899c10ba09251de62",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17822#discussion_r3107673492"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-19T23:22:46Z",
+      "hunk": "@@ -74,7 +75,9 @@ private static AttributeKey<List<String>> parameterAttributeKey(String headerNam\n   private static AttributeKey<List<String>> createKey(String parameterName) {\n     // normalize parameter name similarly as is done with header names when header values are\n     // captured as span attributes",
+      "id": "PRRT_kwDODJKVX858Dujh",
+      "opened": "2026-04-19T23:22:49Z",
+      "path": "instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/internal/ServletRequestParametersExtractor.java",
+      "replies": [],
+      "reviewed": "607681b6c12e7209ff04d4b899c10ba09251de62",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17822#discussion_r3107673596"
+    }
+  ]
+}

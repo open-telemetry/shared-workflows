@@ -1,0 +1,446 @@
+{
+  "head": "f3a6e73383017546babbe43e50cb274757741e3d",
+  "merge": "dfef60ec7ad1ade42ae4ded40fe1362b21cc7d2f",
+  "merged": "2026-05-05T14:03:36Z",
+  "missing_roots": 0,
+  "number": 16390,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Promise[Unit]().success(null)` is not type-correct in Scala (Unit is an AnyVal; `null` cannot inhabit it) and can fail compilation. Use `success(())` (or `trySuccess(())` if double-completion is possible) for these `Promise[Unit]` completions.",
+      "created": "2026-04-17T16:20:48Z",
+      "hunk": "@@ -256,6 +256,51 @@ class PekkoHttpServerRouteTest {\n     test(route, \"/api/v2/orders/order123/status\", \"GET /api/v2/orders/*/status\")\n   }\n \n+  @Test def testAsyncPathMatching(): Unit = {\n+    import system.dispatcher\n+    val p1 = Promise[Unit]()\n+    val p2 = Promise[Unit]()\n+    val p3 = Promise[Unit]()\n+\n+    val route: Route = req => {\n+      pathPrefix(\"a\") { req =>\n+        {\n+          concat(\n+            pathPrefix(\"b\") { req =>\n+              val ignored = Future {\n+                pathPrefix(\"c\") { req =>\n+                  Await.result(p2.future, 2.seconds)\n+                  path(\"d\") { complete(\"no\") }(req)\n+                }(req).onComplete(_ => p3.success(null))",
+      "id": "PRRT_kwDODJKVX857ypwO",
+      "opened": "2026-04-17T16:20:51Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3101739591"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Promise[Unit]().success(null)` is not type-correct in Scala (Unit is an AnyVal; `null` cannot inhabit it) and can fail compilation. Use `success(())` (or `trySuccess(())` if double-completion is possible) for these `Promise[Unit]` completions.",
+      "created": "2026-04-17T16:20:49Z",
+      "hunk": "@@ -256,6 +256,51 @@ class PekkoHttpServerRouteTest {\n     test(route, \"/api/v2/orders/order123/status\", \"GET /api/v2/orders/*/status\")\n   }\n \n+  @Test def testAsyncPathMatching(): Unit = {\n+    import system.dispatcher\n+    val p1 = Promise[Unit]()\n+    val p2 = Promise[Unit]()\n+    val p3 = Promise[Unit]()\n+\n+    val route: Route = req => {\n+      pathPrefix(\"a\") { req =>\n+        {\n+          concat(\n+            pathPrefix(\"b\") { req =>\n+              val ignored = Future {\n+                pathPrefix(\"c\") { req =>\n+                  Await.result(p2.future, 2.seconds)\n+                  path(\"d\") { complete(\"no\") }(req)\n+                }(req).onComplete(_ => p3.success(null))\n+              }\n+\n+              concat(\n+                req => {\n+                  val ignored = Future {\n+                    pathPrefix(\"c\") { req =>\n+                      Await.result(p1.future, 2.seconds)\n+                      path(\"d\") { complete(\"no\") }(req)\n+                    }(req).onComplete(_ => p2.success(null))",
+      "id": "PRRT_kwDODJKVX857ypwp",
+      "opened": "2026-04-17T16:20:51Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3101739623"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Promise[Unit]().success(null)` is not type-correct in Scala (Unit is an AnyVal; `null` cannot inhabit it) and can fail compilation. Use `success(())` (or `trySuccess(())` if double-completion is possible) for these `Promise[Unit]` completions.",
+      "created": "2026-04-17T16:20:49Z",
+      "hunk": "@@ -256,6 +256,51 @@ class PekkoHttpServerRouteTest {\n     test(route, \"/api/v2/orders/order123/status\", \"GET /api/v2/orders/*/status\")\n   }\n \n+  @Test def testAsyncPathMatching(): Unit = {\n+    import system.dispatcher\n+    val p1 = Promise[Unit]()\n+    val p2 = Promise[Unit]()\n+    val p3 = Promise[Unit]()\n+\n+    val route: Route = req => {\n+      pathPrefix(\"a\") { req =>\n+        {\n+          concat(\n+            pathPrefix(\"b\") { req =>\n+              val ignored = Future {\n+                pathPrefix(\"c\") { req =>\n+                  Await.result(p2.future, 2.seconds)\n+                  path(\"d\") { complete(\"no\") }(req)\n+                }(req).onComplete(_ => p3.success(null))\n+              }\n+\n+              concat(\n+                req => {\n+                  val ignored = Future {\n+                    pathPrefix(\"c\") { req =>\n+                      Await.result(p1.future, 2.seconds)\n+                      path(\"d\") { complete(\"no\") }(req)\n+                    }(req).onComplete(_ => p2.success(null))\n+                  }\n+\n+                  pathPrefix(\"g\")(_.complete(\"no\"))(req)\n+                },\n+                req =>\n+                  path(\"c\" / \"d\") { req =>\n+                    p1.success(null)",
+      "id": "PRRT_kwDODJKVX857ypwx",
+      "opened": "2026-04-17T16:20:51Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3101739634"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Optional.map(...)` throws `NullPointerException` if the mapper returns null. Since `PekkoRouteHolder.route()` can return null, this can crash response handling when the attribute is present but no route is available. Retrieve the holder first and then call `route()` with an explicit null check (or map to `Optional.ofNullable(holder.route())`).\n```suggestion\n                PekkoRouteHolder routeHolder =\n                    response.getAttribute(PekkoRouteHolder.ATTRIBUTE_KEY).orElse(null);\n                String route = routeHolder != null ? routeHolder.route() : null;\n```",
+      "created": "2026-04-17T16:20:49Z",
+      "hunk": "@@ -144,15 +151,20 @@ public void onPush() {\n                 if (!headers.isEmpty()) {\n                   response = (HttpResponse) response.addHeaders(headers);\n                 }\n-                PekkoRouteHolder routeHolder = PekkoRouteHolder.get(tracingRequest.context);\n-                if (routeHolder != null) {\n-                  routeHolder.pushIfNotCompletelyMatched(\"*\");\n-                  HttpServerRoute.update(\n-                      tracingRequest.context,\n-                      HttpServerRouteSource.CONTROLLER,\n-                      routeHolder.route());\n+                String route =\n+                    response\n+                        .getAttribute(PekkoRouteHolder.ATTRIBUTE_KEY)\n+                        .map(PekkoRouteHolder::route)\n+                        .orElse(null);",
+      "id": "PRRT_kwDODJKVX857ypxI",
+      "opened": "2026-04-17T16:20:51Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerTracer.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3101739660"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`override` is written in `setOverride()` (from an async `Future.transform` callback) and later read in `route()` potentially on a different thread. Without `volatile`/atomic synchronization, updates may not be visible reliably. Make `override` `volatile` (or use an `AtomicReference`) to ensure safe cross-thread publication.",
+      "created": "2026-04-17T16:20:50Z",
+      "hunk": "@@ -51,26 +67,51 @@ public void didNotMatch() {\n     lastWasMatched = false;\n   }\n \n-  public void pushIfNotCompletelyMatched(String pathToPush) {\n-    if (lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty()) {\n-      route.append(pathToPush);\n+  public String route() {\n+    if (override != null) {\n+      return override.route();\n+    }\n+    if (!lastWasMatched) {\n+      return null;\n+    }\n+    boolean shouldAddFinalWildcard = lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty();\n+    int size = shouldAddFinalWildcard ? 1 : 0;\n+    LinkedList<PekkoRouteHolder> routeHolders = new LinkedList<>();\n+    for (PekkoRouteHolder routeHolder = this;\n+        routeHolder != null;\n+        routeHolder = routeHolder.parent) {\n+      routeHolders.addFirst(routeHolder);\n+      for (String path : routeHolder.paths) {\n+        size += path.length();\n+      }\n+    }\n+    StringBuilder builder = new StringBuilder(size);\n+    for (PekkoRouteHolder routeHolder : routeHolders) {\n+      for (String path : routeHolder.paths) {\n+        builder.append(path);\n+      }\n+    }\n+    if (shouldAddFinalWildcard) {\n+      builder.append(\"*\");\n     }\n+\n+    return builder.toString();\n   }\n \n-  public String route() {\n-    return lastWasMatched ? route.toString() : null;\n+  public boolean hasRoute() {\n+    return override != null || lastWasMatched;\n   }\n \n-  public void save() {\n-    savedStates.add(new State(lastUnmatchedPath, route));\n-    route = new StringBuilder(route);\n+  public PekkoRouteHolder createChild() {\n+    return new PekkoRouteHolder(this);\n   }\n \n-  public void restore() {\n-    State popped = savedStates.pollLast();\n-    if (popped != null) {\n-      lastUnmatchedPath = popped.lastUnmatchedPath;\n-      route = popped.route;\n+  public void setOverride(PekkoRouteHolder override) {\n+    if (override.override != null) {\n+      // The given override itself has an override, so just use that one instead\n+      this.override = override.override;\n+    } else {\n+      this.override = override;\n     }\n   }",
+      "id": "PRRT_kwDODJKVX857ypx8",
+      "opened": "2026-04-17T16:20:51Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3101739725"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`override` is written in `setOverride()` (from an async `Future.transform` callback) and later read in `route()` potentially on a different thread. Without `volatile`/atomic synchronization, updates may not be visible reliably. Make `override` `volatile` (or use an `AtomicReference`) to ensure safe cross-thread publication.\n```suggestion\n  private volatile PekkoRouteHolder override;\n```",
+      "created": "2026-04-17T16:20:50Z",
+      "hunk": "@@ -10,20 +10,24 @@\n import io.opentelemetry.context.Context;\n import io.opentelemetry.context.ContextKey;\n import io.opentelemetry.context.ImplicitContextKeyed;\n-import java.util.ArrayDeque;\n-import java.util.Deque;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import java.util.LinkedList;\n+import org.apache.pekko.http.javadsl.model.AttributeKey;\n import org.apache.pekko.http.scaladsl.model.Uri;\n \n public class PekkoRouteHolder implements ImplicitContextKeyed {\n+  public static final AttributeKey<PekkoRouteHolder> ATTRIBUTE_KEY =\n+      AttributeKey.create(\"opentelemetry-pekko-route\", PekkoRouteHolder.class);\n   private static final ContextKey<PekkoRouteHolder> KEY = named(\"opentelemetry-pekko-route\");\n \n-  private StringBuilder route = new StringBuilder();\n+  private final LinkedList<String> paths = new LinkedList<>();\n   private Uri.Path lastUnmatchedPath = null;\n   private boolean lastWasMatched = false;\n-  private final Deque<State> savedStates = new ArrayDeque<>();\n+  private final PekkoRouteHolder parent;\n+  private PekkoRouteHolder override;",
+      "id": "PRRT_kwDODJKVX857ypxZ",
+      "opened": "2026-04-17T16:20:51Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3101739683"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`override` is written in `setOverride()` (from an async `Future.transform` callback) and later read in `route()` potentially on a different thread. Without `volatile`/atomic synchronization, updates may not be visible reliably. Make `override` `volatile` (or use an `AtomicReference`) to ensure safe cross-thread publication.",
+      "created": "2026-04-17T16:20:50Z",
+      "hunk": "@@ -51,26 +67,51 @@ public void didNotMatch() {\n     lastWasMatched = false;\n   }\n \n-  public void pushIfNotCompletelyMatched(String pathToPush) {\n-    if (lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty()) {\n-      route.append(pathToPush);\n+  public String route() {\n+    if (override != null) {\n+      return override.route();\n+    }",
+      "id": "PRRT_kwDODJKVX857ypxp",
+      "opened": "2026-04-17T16:20:51Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3101739702"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`fallback` is set while routes are being matched and later read when finalizing the response span, which can occur on a different thread. Mark `fallback` as `volatile` (or use an `AtomicReference`) to ensure visibility and avoid occasionally missing the fallback route under concurrency.\n```suggestion\n  private volatile PekkoRouteHolder fallback;\n```",
+      "created": "2026-04-17T16:20:50Z",
+      "hunk": "@@ -0,0 +1,36 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route;\n+\n+import static io.opentelemetry.context.ContextKey.named;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.ImplicitContextKeyed;\n+\n+public class PekkoFallbackRouteHolder implements ImplicitContextKeyed {\n+  private static final ContextKey<PekkoFallbackRouteHolder> KEY =\n+      named(\"opentelemetry-pekko-route-fallback\");\n+\n+  private PekkoRouteHolder fallback;",
+      "id": "PRRT_kwDODJKVX857ypyO",
+      "opened": "2026-04-17T16:20:51Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoFallbackRouteHolder.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3101739750"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`fallback` is set while routes are being matched and later read when finalizing the response span, which can occur on a different thread. Mark `fallback` as `volatile` (or use an `AtomicReference`) to ensure visibility and avoid occasionally missing the fallback route under concurrency.",
+      "created": "2026-04-17T16:20:50Z",
+      "hunk": "@@ -0,0 +1,36 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route;\n+\n+import static io.opentelemetry.context.ContextKey.named;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.ImplicitContextKeyed;\n+\n+public class PekkoFallbackRouteHolder implements ImplicitContextKeyed {\n+  private static final ContextKey<PekkoFallbackRouteHolder> KEY =\n+      named(\"opentelemetry-pekko-route-fallback\");\n+\n+  private PekkoRouteHolder fallback;\n+\n+  public static PekkoFallbackRouteHolder get(Context context) {\n+    return context.get(KEY);\n+  }\n+\n+  public String route() {\n+    return fallback != null ? fallback.route() : null;\n+  }\n+\n+  public void setFallback(PekkoRouteHolder fallback) {\n+    this.fallback = fallback;\n+  }",
+      "id": "PRRT_kwDODJKVX857ypyj",
+      "opened": "2026-04-17T16:20:51Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoFallbackRouteHolder.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3101739775"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changes the match semantics from the previous `named(\\\"...\\\")` to `implementsInterface(...)`. If `PekkoHttpServerInterpreter` is a concrete class (not a trait/interface at runtime), this matcher will no longer apply and the Tapir interceptor will never be prepended. To avoid losing instrumentation, match the type by name (as before) or use a combined matcher that covers both class and interface cases.\n```suggestion\n    return named(\"sttp.tapir.server.pekkohttp.PekkoHttpServerInterpreter\")\n        .or(implementsInterface(named(\"sttp.tapir.server.pekkohttp.PekkoHttpServerInterpreter\")));\n```",
+      "created": "2026-04-17T16:20:51Z",
+      "hunk": "@@ -5,42 +5,42 @@\n \n package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.tapir;\n \n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n \n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n import net.bytebuddy.asm.Advice;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n-import org.apache.pekko.http.scaladsl.server.RequestContext;\n-import org.apache.pekko.http.scaladsl.server.RouteResult;\n-import scala.Function1;\n-import scala.concurrent.Future;\n-import sttp.tapir.server.ServerEndpoint;\n+import sttp.tapir.server.interceptor.Interceptor;\n+import sttp.tapir.server.pekkohttp.PekkoHttpServerOptions;\n \n class TapirPathInstrumentation implements TypeInstrumentation {\n \n   @Override\n   public ElementMatcher<TypeDescription> typeMatcher() {\n-    return named(\"sttp.tapir.server.pekkohttp.PekkoHttpServerInterpreter\");\n+    return implementsInterface(named(\"sttp.tapir.server.pekkohttp.PekkoHttpServerInterpreter\"));",
+      "id": "PRRT_kwDODJKVX857ypyr",
+      "opened": "2026-04-17T16:20:51Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/tapir/TapirPathInstrumentation.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3101739785"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] Classes under `javaagent/src/main/` are internal implementation details and should not be declared `final` (style guide § `final` keyword usage).\n\n```suggestion\npublic class TapirRouteHandler<T, B> implements EndpointHandler<Future<T>, B> {\n```",
+      "created": "2026-04-17T17:32:36Z",
+      "hunk": "@@ -0,0 +1,94 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.tapir;\n+\n+import io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route.PekkoRouteHolder;\n+import java.nio.charset.Charset;\n+import org.apache.pekko.http.scaladsl.model.Uri;\n+import org.apache.pekko.http.scaladsl.server.RequestContext;\n+import scala.Option;\n+import scala.concurrent.Future;\n+import sttp.monad.MonadError;\n+import sttp.tapir.Endpoint;\n+import sttp.tapir.model.ServerRequest;\n+import sttp.tapir.server.interceptor.DecodeFailureContext;\n+import sttp.tapir.server.interceptor.DecodeSuccessContext;\n+import sttp.tapir.server.interceptor.EndpointHandler;\n+import sttp.tapir.server.interceptor.EndpointInterceptor;\n+import sttp.tapir.server.interceptor.Responder;\n+import sttp.tapir.server.interceptor.SecurityFailureContext;\n+import sttp.tapir.server.interpreter.BodyListener;\n+\n+public final class TapirRouteHandler<T, B> implements EndpointHandler<Future<T>, B> {",
+      "id": "PRRT_kwDODJKVX857zwMD",
+      "opened": "2026-04-17T18:13:45Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/tapir/TapirRouteHandler.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3102140450"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] This is return-only advice — it wraps `@Advice.Return` in a `PekkoRouteWrapper` and has nothing to clean up on the exceptional path. Per advice patterns, omit `onThrowable` so the exit advice is skipped when `tapply()` throws (otherwise `route` is `null` and a `PekkoRouteWrapper(null)` is constructed unnecessarily).\n\n```suggestion\n    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n```",
+      "created": "2026-04-17T17:32:36Z",
+      "hunk": "@@ -5,40 +5,39 @@\n \n package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route;\n \n-import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.extendsClass;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n \n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n import net.bytebuddy.asm.Advice;\n-import net.bytebuddy.asm.Advice.AssignReturned;\n-import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n import org.apache.pekko.http.scaladsl.server.RequestContext;\n import org.apache.pekko.http.scaladsl.server.RouteResult;\n import scala.Function1;\n import scala.concurrent.Future;\n \n-class RouteConcatenationInstrumentation implements TypeInstrumentation {\n+class DirectiveInstrumentation implements TypeInstrumentation {\n   @Override\n   public ElementMatcher<TypeDescription> typeMatcher() {\n-    return named(\"org.apache.pekko.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation\");\n+    return extendsClass(named(\"org.apache.pekko.http.scaladsl.server.Directive\"));\n   }\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n-    transformer.applyAdviceToMethod(isConstructor(), getClass().getName() + \"$ApplyAdvice\");\n-    transformer.applyAdviceToMethod(named(\"$tilde\"), getClass().getName() + \"$ApplyAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"tapply\").and(takesArguments(1)), this.getClass().getName() + \"$ApplyAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class ApplyAdvice {\n \n-    @AssignReturned.ToArguments(@ToArgument(0))\n-    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static Object onEnter(\n-        @Advice.Argument(0) Function1<RequestContext, Future<RouteResult>> route) {\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX857zwMS",
+      "opened": "2026-04-17T18:13:45Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/DirectiveInstrumentation.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3102140467"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] Several members in this class can be / return `null` but are missing `@Nullable` (`javax.annotation.Nullable`):\n- `fallback` field (line 18) — starts null, set later\n- `get()` return (line 20) — `context.get(KEY)` returns null when absent\n- `route()` return (line 24) — returns null when `fallback` is null\n\nAdd the import and annotate all three.\n\n```suggestion\n  @Nullable private PekkoRouteHolder fallback;\n\n  @Nullable\n  public static PekkoFallbackRouteHolder get(Context context) {\n    return context.get(KEY);\n  }\n\n  @Nullable\n  public String route() {\n```",
+      "created": "2026-04-17T17:32:36Z",
+      "hunk": "@@ -0,0 +1,36 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route;\n+\n+import static io.opentelemetry.context.ContextKey.named;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.ImplicitContextKeyed;\n+\n+public class PekkoFallbackRouteHolder implements ImplicitContextKeyed {\n+  private static final ContextKey<PekkoFallbackRouteHolder> KEY =\n+      named(\"opentelemetry-pekko-route-fallback\");\n+\n+  private PekkoRouteHolder fallback;\n+\n+  public static PekkoFallbackRouteHolder get(Context context) {\n+    return context.get(KEY);\n+  }\n+\n+  public String route() {",
+      "id": "PRRT_kwDODJKVX857zwMX",
+      "opened": "2026-04-17T18:13:45Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoFallbackRouteHolder.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3102140474"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] Both fields can be null — add `@Nullable` (and `import javax.annotation.Nullable`).\n\n```suggestion\n  @Nullable private final PekkoRouteHolder parent;\n  @Nullable private PekkoRouteHolder override;\n```",
+      "created": "2026-04-17T17:32:36Z",
+      "hunk": "@@ -10,20 +10,24 @@\n import io.opentelemetry.context.Context;\n import io.opentelemetry.context.ContextKey;\n import io.opentelemetry.context.ImplicitContextKeyed;\n-import java.util.ArrayDeque;\n-import java.util.Deque;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import java.util.LinkedList;\n+import org.apache.pekko.http.javadsl.model.AttributeKey;\n import org.apache.pekko.http.scaladsl.model.Uri;\n \n public class PekkoRouteHolder implements ImplicitContextKeyed {\n+  public static final AttributeKey<PekkoRouteHolder> ATTRIBUTE_KEY =\n+      AttributeKey.create(\"opentelemetry-pekko-route\", PekkoRouteHolder.class);\n   private static final ContextKey<PekkoRouteHolder> KEY = named(\"opentelemetry-pekko-route\");\n \n-  private StringBuilder route = new StringBuilder();\n+  private final LinkedList<String> paths = new LinkedList<>();\n   private Uri.Path lastUnmatchedPath = null;\n   private boolean lastWasMatched = false;\n-  private final Deque<State> savedStates = new ArrayDeque<>();\n+  private final PekkoRouteHolder parent;\n+  private PekkoRouteHolder override;",
+      "id": "PRRT_kwDODJKVX857zwMd",
+      "opened": "2026-04-17T18:13:45Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3102140480"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `route()` returns `null` when `!lastWasMatched` — annotate the return type.\n\n```suggestion\n  @Nullable\n  public String route() {\n```",
+      "created": "2026-04-17T17:32:36Z",
+      "hunk": "@@ -51,26 +67,51 @@ public void didNotMatch() {\n     lastWasMatched = false;\n   }\n \n-  public void pushIfNotCompletelyMatched(String pathToPush) {\n-    if (lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty()) {\n-      route.append(pathToPush);\n+  public String route() {",
+      "id": "PRRT_kwDODJKVX857zwMh",
+      "opened": "2026-04-17T18:13:45Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3102140485"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] Two items:\n1. Per class-organization rules, the constructor should be placed immediately after the `create()` factory method (treat static factories and constructors as a single construction section), not at the bottom of the class.\n2. The `parent` parameter should be `@Nullable` since `create()` passes `null`.\n\n```suggestion\n  private PekkoRouteHolder(@Nullable PekkoRouteHolder parent) {\n    this.parent = parent;\n  }\n```",
+      "created": "2026-04-17T17:32:36Z",
+      "hunk": "@@ -79,15 +120,7 @@ public Context storeInContext(Context context) {\n     return context.with(KEY, this);\n   }\n \n-  private PekkoRouteHolder() {}\n-\n-  private static class State {\n-    private final Uri.Path lastUnmatchedPath;\n-    private final StringBuilder route;\n-\n-    private State(Uri.Path lastUnmatchedPath, StringBuilder route) {\n-      this.lastUnmatchedPath = lastUnmatchedPath;\n-      this.route = route;\n-    }\n+  private PekkoRouteHolder(PekkoRouteHolder parent) {\n+    this.parent = parent;\n   }",
+      "id": "PRRT_kwDODJKVX857zwMm",
+      "opened": "2026-04-17T18:13:45Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [],
+      "reviewed": "180590407cde6d4bc69dd75b96f9d18c1f1b2db1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3102140490"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `paths` is only appended at the tail and iterated in insertion order, which is exactly the access pattern `ArrayList` is best at — `LinkedList` adds per-node allocation overhead and worse cache locality without any benefit here.\n\n```suggestion\n  private final List<String> paths = new ArrayList<>();\n```\n(plus `import java.util.ArrayList;` / `import java.util.List;` and drop the `java.util.LinkedList` import)",
+      "created": "2026-04-19T23:40:22Z",
+      "hunk": "@@ -10,26 +10,35 @@\n import io.opentelemetry.context.Context;\n import io.opentelemetry.context.ContextKey;\n import io.opentelemetry.context.ImplicitContextKeyed;\n-import java.util.ArrayDeque;\n-import java.util.Deque;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import java.util.LinkedList;\n+import javax.annotation.Nullable;\n+import org.apache.pekko.http.javadsl.model.AttributeKey;\n import org.apache.pekko.http.scaladsl.model.Uri;\n \n public class PekkoRouteHolder implements ImplicitContextKeyed {\n+  public static final AttributeKey<PekkoRouteHolder> ATTRIBUTE_KEY =\n+      AttributeKey.create(\"opentelemetry-pekko-route\", PekkoRouteHolder.class);\n   private static final ContextKey<PekkoRouteHolder> KEY = named(\"opentelemetry-pekko-route\");\n \n-  private StringBuilder route = new StringBuilder();\n+  private final LinkedList<String> paths = new LinkedList<>();",
+      "id": "PRRT_kwDODJKVX858DymV",
+      "opened": "2026-04-19T23:42:47Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [],
+      "reviewed": "c5308b5ff04fc1440227278c54e7b786a804e2a6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3107694883"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] For an `addFirst` + forward-iterate pattern, `ArrayDeque` is substantially cheaper than `LinkedList` (no per-node allocations, better cache behavior). Same thing, just:\n\n```suggestion\n    Deque<PekkoRouteHolder> routeHolders = new ArrayDeque<>();\n```\n(with `java.util.ArrayDeque` / `java.util.Deque` imports)",
+      "created": "2026-04-19T23:40:22Z",
+      "hunk": "@@ -51,43 +72,57 @@ public void didNotMatch() {\n     lastWasMatched = false;\n   }\n \n-  public void pushIfNotCompletelyMatched(String pathToPush) {\n-    if (lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty()) {\n-      route.append(pathToPush);\n+  @Nullable\n+  public String route() {\n+    if (override != null) {\n+      return override.route();\n+    }\n+    if (!lastWasMatched) {\n+      return null;\n+    }\n+    boolean shouldAddFinalWildcard = lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty();",
+      "id": "PRRT_kwDODJKVX858DymZ",
+      "opened": "2026-04-19T23:42:47Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [
+        {
+          "at": "2026-04-20T05:38:15Z",
+          "body": "btw here the agent made a good comment, but the code suggestion is for the wrong line. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3108474218"
+        }
+      ],
+      "reviewed": "c5308b5ff04fc1440227278c54e7b786a804e2a6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3107694887"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] Nit: the sibling instrumentations in this package (`PathMatcherInstrumentation`, `PathMatcherStaticInstrumentation`) use `getClass().getName()` without the `this.` qualifier — worth keeping consistent.\n\n```suggestion\n        named(\"tapply\").and(takesArguments(1)), getClass().getName() + \"$ApplyAdvice\");\n```",
+      "created": "2026-04-19T23:40:22Z",
+      "hunk": "@@ -5,40 +5,39 @@\n \n package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route;\n \n-import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.extendsClass;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n \n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n import net.bytebuddy.asm.Advice;\n-import net.bytebuddy.asm.Advice.AssignReturned;\n-import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n import org.apache.pekko.http.scaladsl.server.RequestContext;\n import org.apache.pekko.http.scaladsl.server.RouteResult;\n import scala.Function1;\n import scala.concurrent.Future;\n \n-class RouteConcatenationInstrumentation implements TypeInstrumentation {\n+class DirectiveInstrumentation implements TypeInstrumentation {\n   @Override\n   public ElementMatcher<TypeDescription> typeMatcher() {\n-    return named(\"org.apache.pekko.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation\");\n+    return extendsClass(named(\"org.apache.pekko.http.scaladsl.server.Directive\"));\n   }\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n-    transformer.applyAdviceToMethod(isConstructor(), getClass().getName() + \"$ApplyAdvice\");\n-    transformer.applyAdviceToMethod(named(\"$tilde\"), getClass().getName() + \"$ApplyAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"tapply\").and(takesArguments(1)), this.getClass().getName() + \"$ApplyAdvice\");",
+      "id": "PRRT_kwDODJKVX858Dymb",
+      "opened": "2026-04-19T23:42:47Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/DirectiveInstrumentation.java",
+      "replies": [],
+      "reviewed": "c5308b5ff04fc1440227278c54e7b786a804e2a6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3107694889"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Javaagent] This is return-only advice (it only reads `@Advice.Return options` and has nothing to clean up on the exceptional path), so `onThrowable = Throwable.class` should be omitted. As written, if `pekkoHttpServerOptions()` throws, ByteBuddy still invokes `onExit` with `options == null`, and `options.prependInterceptor(...)` immediately NPEs — suppressed, but unnecessary noise on every failure.\n\n```suggestion\n    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n```",
+      "created": "2026-04-19T23:40:22Z",
+      "hunk": "@@ -5,42 +5,42 @@\n \n package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.tapir;\n \n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.implementsInterface;\n import static net.bytebuddy.matcher.ElementMatchers.named;\n-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n \n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n import net.bytebuddy.asm.Advice;\n import net.bytebuddy.description.type.TypeDescription;\n import net.bytebuddy.matcher.ElementMatcher;\n-import org.apache.pekko.http.scaladsl.server.RequestContext;\n-import org.apache.pekko.http.scaladsl.server.RouteResult;\n-import scala.Function1;\n-import scala.concurrent.Future;\n-import sttp.tapir.server.ServerEndpoint;\n+import sttp.tapir.server.interceptor.Interceptor;\n+import sttp.tapir.server.pekkohttp.PekkoHttpServerOptions;\n \n class TapirPathInstrumentation implements TypeInstrumentation {\n \n   @Override\n   public ElementMatcher<TypeDescription> typeMatcher() {\n-    return named(\"sttp.tapir.server.pekkohttp.PekkoHttpServerInterpreter\");\n+    return implementsInterface(named(\"sttp.tapir.server.pekkohttp.PekkoHttpServerInterpreter\"));\n   }\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n-        named(\"toRoute\").and(takesArgument(0, named(\"sttp.tapir.server.ServerEndpoint\"))),\n+        named(\"pekkoHttpServerOptions\").and(takesArguments(0)),\n         getClass().getName() + \"$ApplyAdvice\");\n   }\n \n-  @SuppressWarnings(\"unused\")\n+  @SuppressWarnings({\n+    \"unused\",\n+    \"unchecked\"\n+  }) // options.prependInterceptor takes higher-kinded type, not possible from java\n   public static class ApplyAdvice {\n     @Advice.AssignReturned.ToReturned\n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX858Dymc",
+      "opened": "2026-04-19T23:42:47Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/tapir/TapirPathInstrumentation.java",
+      "replies": [],
+      "reviewed": "c5308b5ff04fc1440227278c54e7b786a804e2a6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3107694892"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "does it make sense to store the PekkoFallbackRouteHolder inside the PekkoRouteHolder, and not add the PekkoFallbackRouteHolder to the context?",
+      "created": "2026-04-25T21:41:51Z",
+      "hunk": "@@ -100,12 +102,18 @@ public void onPush() {\n               PekkoTracingRequest tracingRequest = PekkoTracingRequest.EMPTY;\n               Context parentContext = Context.current();\n               if (instrumenter().shouldStart(parentContext, request)) {\n-                Context context = instrumenter().start(parentContext, request);\n-                context = PekkoRouteHolder.init(context);\n+                PekkoRouteHolder routeHolder = PekkoRouteHolder.create();\n+                Context context =\n+                    instrumenter()\n+                        .start(parentContext, request)\n+                        .with(routeHolder)\n+                        .with(new PekkoFallbackRouteHolder());",
+      "id": "PRRT_kwDODJKVX859naaC",
+      "opened": "2026-04-25T21:59:03Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerTracer.java",
+      "replies": [
+        {
+          "at": "2026-05-04T08:42:57Z",
+          "body": "The PekkoRouteHolder is attached to the HttpRequest, and each time PekkoRouteWrapper is applied another PekkoRouteHolder instance is created and attached to the HttpRequest. So adding anything to one of the child routeHolders won't affect the original routeHolder. We could find the original by calling `routeHolder.parent` until there is no parent. Would that be preferable to having this extra Context item?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3180041630"
+        },
+        {
+          "at": "2026-05-04T14:50:17Z",
+          "body": "that sounds good, it's nice to avoid extra context items, as long as the alternative isn't complex",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3182407628"
+        }
+      ],
+      "reviewed": "319d72642b0e2b9f4595bdc8417b6b55bb55740a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3142619517"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(and same below, just to avoid CI flakiness)\n\n```suggestion\n              val _ = Future {\n                pathPrefix(\"c\") { req =>\n                  Await.result(p2.future, 10.seconds)\n```",
+      "created": "2026-04-25T21:45:10Z",
+      "hunk": "@@ -256,6 +256,51 @@ class PekkoHttpServerRouteTest {\n     test(route, \"/api/v2/orders/order123/status\", \"GET /api/v2/orders/*/status\")\n   }\n \n+  @Test def testAsyncPathMatching(): Unit = {\n+    import system.dispatcher\n+    val p1 = Promise[Unit]()\n+    val p2 = Promise[Unit]()\n+    val p3 = Promise[Unit]()\n+\n+    val route: Route = req => {\n+      pathPrefix(\"a\") { req =>\n+        {\n+          concat(\n+            pathPrefix(\"b\") { req =>\n+              val ignored = Future {\n+                pathPrefix(\"c\") { req =>\n+                  Await.result(p2.future, 2.seconds)",
+      "id": "PRRT_kwDODJKVX859nbCu",
+      "opened": "2026-04-25T21:59:03Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerRouteTest.scala",
+      "replies": [],
+      "reviewed": "319d72642b0e2b9f4595bdc8417b6b55bb55740a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3142622727"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can there be multiple layers of overrides?",
+      "created": "2026-04-25T21:46:56Z",
+      "hunk": "@@ -51,43 +75,57 @@ public void didNotMatch() {\n     lastWasMatched = false;\n   }\n \n-  public void pushIfNotCompletelyMatched(String pathToPush) {\n-    if (lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty()) {\n-      route.append(pathToPush);\n+  @Nullable\n+  public String route() {\n+    if (override != null) {\n+      return override.route();\n+    }\n+    if (!lastWasMatched) {\n+      return null;\n+    }\n+    boolean shouldAddFinalWildcard = lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty();\n+    int size = shouldAddFinalWildcard ? 1 : 0;\n+    Deque<PekkoRouteHolder> routeHolders = new ArrayDeque<>();\n+    for (PekkoRouteHolder routeHolder = this;\n+        routeHolder != null;\n+        routeHolder = routeHolder.parent) {\n+      routeHolders.addFirst(routeHolder);\n+      for (String path : routeHolder.paths) {\n+        size += path.length();\n+      }\n+    }\n+    StringBuilder builder = new StringBuilder(size);\n+    for (PekkoRouteHolder routeHolder : routeHolders) {\n+      for (String path : routeHolder.paths) {\n+        builder.append(path);\n+      }\n+    }\n+    if (shouldAddFinalWildcard) {\n+      builder.append(\"*\");\n     }\n+\n+    return builder.toString();\n   }\n \n-  public String route() {\n-    return lastWasMatched ? route.toString() : null;\n+  public boolean hasRoute() {\n+    return override != null || lastWasMatched;\n   }\n \n-  public void save() {\n-    savedStates.add(new State(lastUnmatchedPath, route));\n-    route = new StringBuilder(route);\n+  public PekkoRouteHolder createChild() {\n+    return new PekkoRouteHolder(this);\n   }\n \n-  public void restore() {\n-    State popped = savedStates.pollLast();\n-    if (popped != null) {\n-      lastUnmatchedPath = popped.lastUnmatchedPath;\n-      route = popped.route;\n+  public void setOverride(PekkoRouteHolder override) {\n+    if (override.override != null) {\n+      // The given override itself has an override, so just use that one instead\n+      this.override = override.override;",
+      "id": "PRRT_kwDODJKVX859nbZk",
+      "opened": "2026-04-25T21:59:03Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [
+        {
+          "at": "2026-05-04T08:42:57Z",
+          "body": "No, this branch ensures that if the given routeHolder `A` has an override `B`, this.override is set to `B`. Since every holder starts with no override, this ensures the max depth of overide.overide.overide... is 1.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3143294412"
+        }
+      ],
+      "reviewed": "319d72642b0e2b9f4595bdc8417b6b55bb55740a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3142624545"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "similar question whether overrides can have overrides (and if that affects calculation here)?",
+      "created": "2026-04-25T21:48:42Z",
+      "hunk": "@@ -51,43 +75,57 @@ public void didNotMatch() {\n     lastWasMatched = false;\n   }\n \n-  public void pushIfNotCompletelyMatched(String pathToPush) {\n-    if (lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty()) {\n-      route.append(pathToPush);\n+  @Nullable\n+  public String route() {\n+    if (override != null) {\n+      return override.route();\n+    }\n+    if (!lastWasMatched) {\n+      return null;\n+    }\n+    boolean shouldAddFinalWildcard = lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty();\n+    int size = shouldAddFinalWildcard ? 1 : 0;\n+    Deque<PekkoRouteHolder> routeHolders = new ArrayDeque<>();\n+    for (PekkoRouteHolder routeHolder = this;\n+        routeHolder != null;\n+        routeHolder = routeHolder.parent) {\n+      routeHolders.addFirst(routeHolder);\n+      for (String path : routeHolder.paths) {\n+        size += path.length();\n+      }\n+    }\n+    StringBuilder builder = new StringBuilder(size);\n+    for (PekkoRouteHolder routeHolder : routeHolders) {\n+      for (String path : routeHolder.paths) {\n+        builder.append(path);\n+      }\n+    }\n+    if (shouldAddFinalWildcard) {\n+      builder.append(\"*\");\n     }\n+\n+    return builder.toString();\n   }\n \n-  public String route() {\n-    return lastWasMatched ? route.toString() : null;\n+  public boolean hasRoute() {\n+    return override != null || lastWasMatched;",
+      "id": "PRRT_kwDODJKVX859nbwg",
+      "opened": "2026-04-25T21:59:03Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [
+        {
+          "at": "2026-05-04T08:42:57Z",
+          "body": "see answer below, but no it's not possible.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3143294836"
+        }
+      ],
+      "reviewed": "319d72642b0e2b9f4595bdc8417b6b55bb55740a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3142626432"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "not sure if the size precomputation is worth it?",
+      "created": "2026-04-25T21:50:38Z",
+      "hunk": "@@ -51,43 +75,57 @@ public void didNotMatch() {\n     lastWasMatched = false;\n   }\n \n-  public void pushIfNotCompletelyMatched(String pathToPush) {\n-    if (lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty()) {\n-      route.append(pathToPush);\n+  @Nullable\n+  public String route() {\n+    if (override != null) {\n+      return override.route();\n+    }\n+    if (!lastWasMatched) {\n+      return null;\n+    }\n+    boolean shouldAddFinalWildcard = lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty();\n+    int size = shouldAddFinalWildcard ? 1 : 0;\n+    Deque<PekkoRouteHolder> routeHolders = new ArrayDeque<>();\n+    for (PekkoRouteHolder routeHolder = this;\n+        routeHolder != null;\n+        routeHolder = routeHolder.parent) {\n+      routeHolders.addFirst(routeHolder);\n+      for (String path : routeHolder.paths) {\n+        size += path.length();\n+      }\n+    }\n+    StringBuilder builder = new StringBuilder(size);\n+    for (PekkoRouteHolder routeHolder : routeHolders) {\n+      for (String path : routeHolder.paths) {\n+        builder.append(path);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX859ncMd",
+      "opened": "2026-04-25T21:59:03Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [
+        {
+          "at": "2026-05-04T08:42:57Z",
+          "body": "Sure, I can remove it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3143290059"
+        }
+      ],
+      "reviewed": "319d72642b0e2b9f4595bdc8417b6b55bb55740a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3142628615"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Optional: a parent-recursion `appendRoute` helper is a bit shorter and avoids the intermediate `Deque` plus the reverse-iteration over each holder's paths.\r\n\r\n```suggestion\r\n    StringBuilder sb = new StringBuilder();\r\n    appendRoute(sb);\r\n    if (lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty()) {\r\n      sb.append('*');\r\n    }\r\n    return sb.toString();\r\n  }\r\n\r\n  private void appendRoute(StringBuilder sb) {\r\n    if (parent != null) {\r\n      parent.appendRoute(sb);\r\n    }\r\n    for (String path : paths) {\r\n      sb.append(path);\r\n    }\r\n  }\r\n```",
+      "created": "2026-05-04T20:14:18Z",
+      "hunk": "@@ -51,43 +75,53 @@ public void didNotMatch() {\n     lastWasMatched = false;\n   }\n \n-  public void pushIfNotCompletelyMatched(String pathToPush) {\n-    if (lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty()) {\n-      route.append(pathToPush);\n+  @Nullable\n+  public String route() {\n+    if (override != null && override != this) {\n+      return override.route();\n+    }\n+    if (fallback != null && fallback != this) {\n+      return fallback.route();\n+    }\n+    if (!lastWasMatched) {\n+      return null;\n+    }\n+    boolean shouldAddFinalWildcard = lastUnmatchedPath != null && !lastUnmatchedPath.isEmpty();\n+    Deque<String> routePaths = new ArrayDeque<>();\n+\n+    for (PekkoRouteHolder routeHolder = this;\n+        routeHolder != null;\n+        routeHolder = routeHolder.parent) {\n+\n+      for (int i = routeHolder.paths.size() - 1; i >= 0; i--) {\n+        routePaths.addFirst(routeHolder.paths.get(i));\n+      }\n+    }\n+    if (shouldAddFinalWildcard) {\n+      routePaths.addLast(\"*\");\n     }\n+    return String.join(\"\", routePaths);\n   }",
+      "id": "PRRT_kwDODJKVX85_dkmB",
+      "opened": "2026-05-04T20:16:00Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/route/PekkoRouteHolder.java",
+      "replies": [
+        {
+          "at": "2026-05-05T06:12:14Z",
+          "body": "I like the brevity, but that Deque is being replaced by frames in the stack, which could be a problem for very long/complex PathMatchers.\r\nThe reverse-iteration is cheap (operating on an ArrayList) so I don't think there's a performance improvement here (happy to be proven wrong though). I could replace Strings.join with a StringBuilder, if that's preferred? ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3186369268"
+        },
+        {
+          "at": "2026-05-05T14:03:31Z",
+          "body": "makes sense, let's merge as-is, thanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3189040739"
+        }
+      ],
+      "reviewed": "f3a6e73383017546babbe43e50cb274757741e3d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16390#discussion_r3184229925"
+    }
+  ]
+}

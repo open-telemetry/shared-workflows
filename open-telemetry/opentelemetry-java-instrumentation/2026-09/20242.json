@@ -1,0 +1,94 @@
+{
+  "head": "48991453118e564a63a140fe38ed76d757543e9f",
+  "merge": "037500b854b1545e31fcd8a58f70ce5179ac6aa0",
+  "merged": "2026-09-27T22:43:43Z",
+  "missing_roots": 0,
+  "number": 20242,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The compilation toolchain is still derived from `repositoryDefaultJavaVersion`, which remains 21 on the preceding line, so this only changes the default test JVM and does not make Java 25 the default compilation toolchain described by the PR. Set the compilation default to 25 as well.",
+      "created": "2026-09-25T05:23:23Z",
+      "hunk": "@@ -27,8 +27,9 @@ afterEvaluate {\n   }\n }\n \n-// Version to use to compile code and run tests.\n+// Versions to use to compile code and run tests.\n val repositoryDefaultJavaVersion = JavaVersion.VERSION_21\n+val repositoryDefaultTestJavaVersion = JavaVersion.VERSION_25",
+      "id": "PRRT_kwDODJKVX86l4HyW",
+      "opened": "2026-09-25T05:23:24Z",
+      "path": "conventions/src/main/kotlin/otel.java-conventions.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-25T20:47:22Z",
+          "body": "Addressed in b636f4d00645117ed83d07a388eca9299e885034.\n\nFixed in the verified source changes b636f4d00645117ed83d07a388eca9299e885034.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20242#discussion_r4108498196"
+        }
+      ],
+      "reviewed": "e52a2ce8af56d34c05278a0f29511ce6a2bb136f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20242#discussion_r4101367801"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Unconditionally setting this launcher prevents tests from inheriting a project's newer toolchain. For example, #20186 sets `maxJavaVersionSupported` to 27 for Helidon latest-dependency builds, but this branch would still launch those tests on 25 and fail to load Helidon 27 class files. Only override the launcher for projects capped below 25; otherwise leave it unset so Gradle inherits the project toolchain.",
+      "created": "2026-09-25T05:23:23Z",
+      "hunk": "@@ -404,16 +405,19 @@ afterEvaluate {\n       )\n       isEnabled = isEnabled && isJavaVersionAllowed(testJavaVersion)\n     } else {\n-      // We default to testing with Java 11 for most tests, but some tests don't support it, where we change\n-      // the default test task's version so commands like `./gradlew check` can test all projects regardless\n-      // of Java version.\n-      if (!isJavaVersionAllowed(repositoryDefaultJavaVersion) && otelJava.maxJavaVersionForTests.isPresent) {\n-        javaLauncher.set(\n-          javaToolchains.launcherFor {\n-            languageVersion.set(JavaLanguageVersion.of(otelJava.maxJavaVersionForTests.get().majorVersion))\n-          }\n-        )\n-      }\n+      // Tests capped below the repository default use their maximum supported test version,\n+      // so commands like `./gradlew check` can cover all projects.\n+      val defaultTestJavaVersion =\n+        if (!isJavaVersionAllowed(repositoryDefaultTestJavaVersion) && otelJava.maxJavaVersionForTests.isPresent) {\n+          otelJava.maxJavaVersionForTests.get()\n+        } else {\n+          repositoryDefaultTestJavaVersion\n+        }\n+      javaLauncher.set(\n+        javaToolchains.launcherFor {\n+          languageVersion.set(JavaLanguageVersion.of(defaultTestJavaVersion.majorVersion))\n+        }\n+      )",
+      "id": "PRRT_kwDODJKVX86l4Hyr",
+      "opened": "2026-09-25T05:23:24Z",
+      "path": "conventions/src/main/kotlin/otel.java-conventions.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-25T20:47:25Z",
+          "body": "Addressed in b636f4d00645117ed83d07a388eca9299e885034.\n\nFixed in the verified source changes b636f4d00645117ed83d07a388eca9299e885034.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20242#discussion_r4108498511"
+        }
+      ],
+      "reviewed": "e52a2ce8af56d34c05278a0f29511ce6a2bb136f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20242#discussion_r4101367832"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] `maxJavaVersionSupported` is not defined by `OtelJavaExtension`, and it is not used to select the compiler toolchain. This preview-source suite still needs `javaToolchainVersion` pinned to `minJavaVersionSupported`; otherwise the new Java 25 default does not preserve the required compile/run version match.",
+      "created": "2026-09-26T21:39:51Z",
+      "hunk": "@@ -24,6 +24,7 @@ otelJava {\n       )\n     )\n   )\n+  maxJavaVersionSupported.set(minJavaVersionSupported)",
+      "id": "PRRT_kwDODJKVX86mUX0N",
+      "opened": "2026-09-26T21:39:52Z",
+      "path": "instrumentation/executors/jdk21-testing/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-26T21:59:18Z",
+          "body": "Addressed in 52206c82adbd889c6e30069ab921a578e7148aa5.\n\nFixed in the verified source changes 52206c82adbd889c6e30069ab921a578e7148aa5.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20242#discussion_r4112943526"
+        }
+      ],
+      "reviewed": "54e78f804c1d2b5ca1f37ccc75d20a45f5cc94b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20242#discussion_r4112885697"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] `maxJavaVersionSupported` is not defined by `OtelJavaExtension`, and the compiler toolchain selection only reads `javaToolchainVersion`. This therefore does not cap Grails compilation at Java 21 as intended; configure the existing toolchain property instead.",
+      "created": "2026-09-26T21:39:52Z",
+      "hunk": "@@ -14,6 +14,11 @@ muzzle {\n val grailsVersion = \"3.0.6\" // first version that the tests pass on\n val springBootVersion = \"1.2.5.RELEASE\"\n \n+otelJava {\n+  // Grails 3 uses a Groovy compiler that cannot run on JDK 25.\n+  maxJavaVersionSupported.set(JavaVersion.VERSION_21)",
+      "id": "PRRT_kwDODJKVX86mUX0d",
+      "opened": "2026-09-26T21:39:52Z",
+      "path": "instrumentation/grails-3.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-26T21:59:20Z",
+          "body": "Addressed in 52206c82adbd889c6e30069ab921a578e7148aa5.\n\nFixed in the verified source changes 52206c82adbd889c6e30069ab921a578e7148aa5.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20242#discussion_r4112943596"
+        }
+      ],
+      "reviewed": "54e78f804c1d2b5ca1f37ccc75d20a45f5cc94b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20242#discussion_r4112885719"
+    }
+  ]
+}

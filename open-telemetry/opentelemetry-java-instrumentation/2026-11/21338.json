@@ -1,0 +1,31 @@
+{
+  "head": "a4ac6e3dcb9e4a7eba72ce1a3412cb4c0bbb1b4c",
+  "merge": "a3aed2c9ce9b48d5a46f1c003430296d9bfedb50",
+  "merged": "2026-11-19T06:58:52Z",
+  "missing_roots": 0,
+  "number": 21338,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  [Testing] Await warm-up telemetry before lifecycle resets**\n\nWhen the javaagent fixture executes this setup, `send()` is asynchronous and its span ends in `ProducerCallback.onCompletion()`; receiving the record does not synchronize with that producer callback. Setup can therefore return with a span still in flight, allowing it to cross the next `InstrumentationExtension` exporter reset. The setup-telemetry rule in `.github/instructions/java-tests.instructions.md` explicitly requires waiting for asynchronous setup traces before lifecycle clears. Add an appropriate trace-completion wait before leaving setup, accounting for the metrics-only library fixture, which does not produce these spans.\n\nAGENTS.md reference: [AGENTS.md:L20-L24](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a4ac6e3dcb9e4a7eba72ce1a3412cb4c0bbb1b4c/AGENTS.md#L20-L24)\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-11-18T12:33:34Z",
+      "hunk": "@@ -96,10 +109,62 @@ void beforeAll() {\n             .withStartupTimeout(Duration.ofMinutes(1));\n     cleanup.deferAfterAll(kafka::stop);\n     kafka.start();\n+\n+    // create test topic\n+    HashMap<String, Object> adminProps = new HashMap<>();\n+    adminProps.put(\"bootstrap.servers\", kafka.getBootstrapServers());\n+\n+    try (AdminClient admin = AdminClient.create(adminProps)) {\n+      admin\n+          .createTopics(singletonList(new NewTopic(SHARED_TOPIC, 1, (short) 1)))\n+          .all()\n+          .get(30, SECONDS);\n+    }\n+\n     producer = new KafkaProducer<>(producerConfig());\n     cleanup.deferAfterAll(producer);\n     consumer = new KafkaConsumer<>(consumerConfig());\n     cleanup.deferAfterAll(consumer);\n+\n+    // send and receive a message to ensure that cluster metadata is update before the actual tests\n+    // ant that kafka.cluster.id attribute is pesent on metrics\n+    CountDownLatch consumerReady = new CountDownLatch(1);\n+    consumer.subscribe(\n+        singletonList(SHARED_TOPIC),\n+        new ConsumerRebalanceListener() {\n+          @Override\n+          public void onPartitionsRevoked(Collection<TopicPartition> collection) {}\n+\n+          @Override\n+          public void onPartitionsAssigned(Collection<TopicPartition> collection) {\n+            consumerReady.countDown();\n+          }\n+        });\n+    awaitUntilConsumerIsReady(consumerReady);\n+\n+    consumer.seekToBeginning(emptyList());\n+\n+    producer.partitionsFor(SHARED_TOPIC);\n+    producer.send(new ProducerRecord<>(SHARED_TOPIC, \"value\".getBytes(UTF_8)));",
+      "id": "PRRT_kwDODJKVX8649DoT",
+      "opened": "2026-11-18T12:33:34Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/testing/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/AbstractOpenTelemetryMetricsReporterTest.java",
+      "replies": [
+        {
+          "at": "2026-11-18T12:56:41Z",
+          "body": "I think this isn't an issue since this test does not assert spans.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21338#discussion_r4614240312"
+        }
+      ],
+      "reviewed": "a4ac6e3dcb9e4a7eba72ce1a3412cb4c0bbb1b4c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21338#discussion_r4613956452"
+    }
+  ]
+}

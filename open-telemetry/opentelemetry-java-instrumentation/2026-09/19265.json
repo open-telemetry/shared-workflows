@@ -1,0 +1,94 @@
+{
+  "head": "a17fa7af5a8eafe14ec322658fbc4f5359cd1bbf",
+  "merge": "5039fa5cbbb8e9111eb6026249638f9cca22caeb",
+  "merged": "2026-09-02T16:38:34Z",
+  "missing_roots": 0,
+  "number": 19265,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Worth expanding this comment, because the call has a side effect that is not obvious from the\nname: `LazyStorage.<clinit>` ends with `ContextStorageWrappers.setStorageInitialized()`, after\nwhich every `ContextStorage.addWrapper(...)` call is dropped (logged only at `FINE`).\n\n`runAfterAgentListeners(...)` runs ~15 lines below this, so any distro/extension that registers a\ncontext storage wrapper from `AgentListener.afterAgent()` will now silently stop working. That is\nprobably an acceptable trade-off, but it should be spelled out here (and ideally in the PR\ndescription).\n\nAlso worth restating the *why*: on 1.64.0 `LazyStorage.createStorage()` uses\n`ComponentLoader.forClassLoader(LazyStorage.class.getClassLoader())`, so provider discovery no\nlonger walks the application class path the way the stack trace in\nopen-telemetry/opentelemetry-java#8434 shows. The hazard that remains (and that this fixes) is the\nclass-initialization monitor of `LazyStorage` being held by a thread that needs a class loader /\njar lock held by another thread that is itself waiting on that monitor.\n\n```suggestion\n    // eagerly initialize context storage before any instrumentation is active, so that its lazy\n    // initialization cannot happen while an instrumented method holds a class loader lock that\n    // the initializing thread needs, see\n    // https://github.com/open-telemetry/opentelemetry-java/issues/8434\n    // note that this also finalizes the storage - ContextStorage.addWrapper() calls made after\n    // this point are ignored\n```",
+      "created": "2026-07-29T19:10:47Z",
+      "hunk": "@@ -192,6 +192,9 @@ private static void installBytebuddyAgent(\n     logger.log(FINE, \"Installed {0} extension(s)\", numberOfLoadedExtensions);\n \n     agentBuilder = AgentBuilderUtil.optimize(agentBuilder);\n+    // initialize context storage before installed instrumentations can access it during class\n+    // loading",
+      "id": "PRRT_kwDODJKVX86U4NM3",
+      "opened": "2026-07-29T19:13:34Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentInstaller.java",
+      "replies": [
+        {
+          "at": "2026-07-29T20:44:56Z",
+          "body": "Expanded the comment to clarify the rationale and document the side effect",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19265#discussion_r3677909165"
+        }
+      ],
+      "reviewed": "72fd73c646f1ff2d7e7b9bebf972564f54462a2c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19265#discussion_r3677339694"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This is now the second eager-initialization site. `AgentStarterImpl.start()` already does the same\nthing, just later and only under a security manager:\n\n```java\n    AgentInstaller.installBytebuddyAgent(instrumentation, extensionClassLoader);\n\n    // LazyStorage reads system properties. Initialize it here where we have permissions to avoid\n    // failing permission checks when it is initialized from user code.\n    if (System.getSecurityManager() != null) {\n      Context.current();\n    }\n```\n\nWith this change that block is a no-op whenever the agent is enabled. The only path where it still\ndoes anything is the `EarlyInitAgentConfig.get().isEnabled() == false` branch, and there nothing\ninstalls the SDK or any instrumentation, so the shaded context storage is never used at all.\n\nPermissions are unaffected by moving it: `AgentClassLoader.getPermissions()` grants\n`AllPermission` when security manager support is enabled, and both call sites run entirely on\nagent frames.\n\nSuggest dropping `AgentStarterImpl.java` lines 107-111 plus the then-unused\n`import io.opentelemetry.context.Context;` (line 8, it is the only usage) in this PR, so there is\none place that owns this ordering instead of two with different rationales.",
+      "created": "2026-07-29T19:10:47Z",
+      "hunk": "@@ -192,6 +192,9 @@ private static void installBytebuddyAgent(\n     logger.log(FINE, \"Installed {0} extension(s)\", numberOfLoadedExtensions);\n \n     agentBuilder = AgentBuilderUtil.optimize(agentBuilder);\n+    // initialize context storage before installed instrumentations can access it during class\n+    // loading\n+    ContextStorage.get();",
+      "id": "PRRT_kwDODJKVX86U4NNA",
+      "opened": "2026-07-29T19:13:34Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentInstaller.java",
+      "replies": [
+        {
+          "at": "2026-07-29T20:45:07Z",
+          "body": "Removed the redundant context storage initialization",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19265#discussion_r3677910343"
+        }
+      ],
+      "reviewed": "72fd73c646f1ff2d7e7b9bebf972564f54462a2c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19265#discussion_r3677339709"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This works only because `TestAgentListener` is class-initialized before `AgentInstaller` calls\n`ContextStorage.get()` - `TestAgentExtension.extend()` touches `TestAgentListener.INSTANCE` while\nextensions are being loaded, which is a few lines earlier in `installBytebuddyAgent`.\n\nIf that ever stops holding, `addWrapper` is ignored with only a `FINE` log, `contextStorageInitialized`\nstays `false` forever, and `AgentForTestingTest` fails with a bare `expected: true but was: false`\nthat is indistinguishable from a real regression. Worth documenting the dependency here:\n\n```suggestion\n    // record when context storage is initialized so tests can verify the agent startup ordering\n    // note that this class must be initialized before AgentInstaller calls ContextStorage.get(),\n    // otherwise addWrapper() is silently ignored and the assertion in AgentForTestingTest fails\n    // for the wrong reason\n    ContextStorage.addWrapper(\n        storage -> {\n          contextStorageInitialized.set(true);\n          return storage;\n        });\n```",
+      "created": "2026-07-29T19:10:47Z",
+      "hunk": "@@ -37,8 +40,17 @@ public class TestAgentListener implements AgentBuilder.Listener {\n \n   private static final Trie<IgnoreAllow> ADDITIONAL_LIBRARIES_TRIE;\n   private static final Trie<IgnoreAllow> OTHER_IGNORES_TRIE;\n+  private static final AtomicBoolean contextStorageInitialized = new AtomicBoolean();\n+  private static final AtomicReference<Boolean> contextStorageInitializedBeforeInstrumentation =\n+      new AtomicReference<>();\n \n   static {\n+    // record when context storage is initialized so tests can verify the agent startup ordering\n+    ContextStorage.addWrapper(\n+        storage -> {\n+          contextStorageInitialized.set(true);\n+          return storage;\n+        });",
+      "id": "PRRT_kwDODJKVX86U4NND",
+      "opened": "2026-07-29T19:13:34Z",
+      "path": "testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/bytebuddy/TestAgentListener.java",
+      "replies": [
+        {
+          "at": "2026-07-29T20:45:21Z",
+          "body": "Documented the TestAgentListener initialization-order dependency",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19265#discussion_r3677912304"
+        }
+      ],
+      "reviewed": "72fd73c646f1ff2d7e7b9bebf972564f54462a2c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19265#discussion_r3677339712"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Is there a reason you chose to place this here instead of for example next to\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0ae4cc70d2c2a2bd02f71a33f90b80db7e65ef99/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentInstaller.java#L117\nI'm not opposed to this, but to me this looks more like an issue in the custom instrumentation than in the agent. Generally instrumentation authors need to take care when instrumenting code that runs early during the jvm start. I'd guess it could also be worked around by calling `Context.current()` in the constructor of their `InstrumentationModule` constructor.",
+      "created": "2026-08-11T15:28:31Z",
+      "hunk": "@@ -192,6 +192,13 @@ private static void installBytebuddyAgent(\n     logger.log(FINE, \"Installed {0} extension(s)\", numberOfLoadedExtensions);\n \n     agentBuilder = AgentBuilderUtil.optimize(agentBuilder);\n+    // eagerly initialize context storage before any instrumentation is active, so that its lazy\n+    // initialization cannot happen while an instrumented method holds a class loader lock that\n+    // the initializing thread needs, see\n+    // https://github.com/open-telemetry/opentelemetry-java/issues/8434\n+    // note that this also finalizes the storage - ContextStorage.addWrapper() calls made after\n+    // this point are ignored\n+    ContextStorage.get();",
+      "id": "PRRT_kwDODJKVX86YR9Nn",
+      "opened": "2026-08-11T15:28:31Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentInstaller.java",
+      "replies": [
+        {
+          "at": "2026-08-12T18:20:25Z",
+          "body": "I put it right before `installOn()` because `ContextStorage.get()` also finalizes the storage, so any later addWrapper() calls are ignored. Putting it near `preloadClasses()` would finalize it earlier than needed, before extensions are loaded and configured\r\n\r\nCalling `Context.current()` from that particular InstrumentationModule would work as a workaround. My concern is that the same issue could happen with other instrumentations that touch context during early class loading, so initializing it just before the main transformer is installed seemed like a safer boundary",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19265#discussion_r3769180218"
+        }
+      ],
+      "reviewed": "b1d661db7b355ce8274485aa456528ff56b4e860",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19265#discussion_r3759326546"
+    }
+  ]
+}

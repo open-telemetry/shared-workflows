@@ -1,0 +1,145 @@
+{
+  "head": "9f4c8a8b9abb9eeeaba2696c79b4c33bb04ceb73",
+  "merge": "58fe5f1dc8f95b69c8b64adfa43c9eca71973998",
+  "merged": "2026-09-01T05:18:44Z",
+  "missing_roots": 0,
+  "number": 19745,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When this data source is configured only through `serverName`/`portNumber`/`databaseName` connection properties, `getURL()` is null. `JdbcConnectionUrlParser.parse()` returns `DEFAULT` immediately for a null URL (`instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java:117-120`) without applying those properties, so these pools still receive the shared `oracle-ucp` fallback. Handle an absent URL with `JdbcConnectionPoolNameUtil.poolName(connectionProperties, DEFAULT_POOL_NAME)` and cover that configuration in the test.",
+      "created": "2026-08-21T09:43:19Z",
+      "hunk": "@@ -6,16 +6,49 @@\n package io.opentelemetry.javaagent.instrumentation.oracleucp.v11_2;\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionPoolNameUtil;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n import io.opentelemetry.instrumentation.oracleucp.v11_2.OracleUcpTelemetry;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import oracle.ucp.UniversalConnectionPool;\n+import oracle.ucp.jdbc.PoolDataSource;\n \n public class OracleUcpSingletons {\n \n+  private static final String DEFAULT_POOL_NAME = \"oracle-ucp\";\n+\n+  // Keep the derived name across stop/start because UCP restarts the same pool instance.\n+  private static final VirtualField<UniversalConnectionPool, String> metricPoolNameField =\n+      VirtualField.find(UniversalConnectionPool.class, String.class);\n+\n   private static final OracleUcpTelemetry telemetry =\n       OracleUcpTelemetry.create(GlobalOpenTelemetry.get());\n \n   public static OracleUcpTelemetry telemetry() {\n     return telemetry;\n   }\n \n+  public static void capturePoolName(\n+      PoolDataSource dataSource, UniversalConnectionPool connectionPool) {\n+    DbInfo dbInfo =\n+        JdbcConnectionUrlParser.parse(dataSource.getURL(), dataSource.getConnectionProperties());\n+    metricPoolNameField.set(\n+        connectionPool, JdbcConnectionPoolNameUtil.poolName(dbInfo, DEFAULT_POOL_NAME));",
+      "id": "PRRT_kwDODJKVX86bHICA",
+      "opened": "2026-08-21T09:43:20Z",
+      "path": "instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+      "replies": [],
+      "reviewed": "cd0d529ccd0a58e9786951cebc1ad1a25cca25d0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19745#discussion_r3829189450"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] `VirtualField` instances are constant-like semantic handles under the Java style rules, so this `static final` field must use `SCREAMING_SNAKE_CASE`. Rename it to `METRIC_POOL_NAME_FIELD` and update its references.",
+      "created": "2026-08-21T09:43:20Z",
+      "hunk": "@@ -6,16 +6,49 @@\n package io.opentelemetry.javaagent.instrumentation.oracleucp.v11_2;\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionPoolNameUtil;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n import io.opentelemetry.instrumentation.oracleucp.v11_2.OracleUcpTelemetry;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import oracle.ucp.UniversalConnectionPool;\n+import oracle.ucp.jdbc.PoolDataSource;\n \n public class OracleUcpSingletons {\n \n+  private static final String DEFAULT_POOL_NAME = \"oracle-ucp\";\n+\n+  // Keep the derived name across stop/start because UCP restarts the same pool instance.\n+  private static final VirtualField<UniversalConnectionPool, String> metricPoolNameField =\n+      VirtualField.find(UniversalConnectionPool.class, String.class);",
+      "id": "PRRT_kwDODJKVX86bHICf",
+      "opened": "2026-08-21T09:43:20Z",
+      "path": "instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+      "replies": [],
+      "reviewed": "cd0d529ccd0a58e9786951cebc1ad1a25cca25d0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19745#discussion_r3829189498"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] The style guide says not to add `final` to classes under `javaagent/src/main/`.\n\n```suggestion\nclass PoolDataSourceInstrumentation implements TypeInstrumentation {\n```\n",
+      "created": "2026-08-24T20:12:40Z",
+      "hunk": "@@ -0,0 +1,53 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.oracleucp.v11_2;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import oracle.ucp.UniversalConnectionPool;\n+import oracle.ucp.jdbc.PoolDataSource;\n+\n+final class PoolDataSourceInstrumentation implements TypeInstrumentation {",
+      "id": "PRRT_kwDODJKVX86b1p8L",
+      "opened": "2026-08-24T20:27:51Z",
+      "path": "instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/PoolDataSourceInstrumentation.java",
+      "replies": [],
+      "reviewed": "3c3414dbdba2df431cdcd69a7cc6cea872cb2e29",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19745#discussion_r3847090496"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Connection properties feed the derived name when a JDBC URL is present too — `shouldDerivePoolNameFromConnectionProperties` sets `jdbc:oracle:oci8:@` and still derives `properties.example:1523/inventory` from them. Only the values read directly off `PoolDataSource` are limited to the no-URL case.\n\n```suggestion\nJavaagent instrumentation derives the metric pool name from the `PoolDataSource` connection\nproperties and the JDBC URL, when present. Without a JDBC URL, it also uses the standard\n`serverName`, `portNumber`, and `databaseName` values exposed directly by the `PoolDataSource`.\nThis applies only when the `PoolDataSource` does\n```\n",
+      "created": "2026-08-24T20:12:40Z",
+      "hunk": "@@ -40,7 +40,25 @@ void configure(OpenTelemetry openTelemetry, UniversalConnectionPool universalCon\n   oracleUcpTelemetry.registerMetrics(universalConnectionPool);\n }\n \n+void configureWithMetricPoolName(\n+    OpenTelemetry openTelemetry, UniversalConnectionPool universalConnectionPool) {\n+  oracleUcpTelemetry = OracleUcpTelemetry.create(openTelemetry);\n+  oracleUcpTelemetry.registerMetrics(universalConnectionPool, \"ordersPool\");\n+}\n+\n void destroy(UniversalConnectionPool universalConnectionPool) {\n   oracleUcpTelemetry.unregisterMetrics(universalConnectionPool);\n }\n ```\n+\n+The single-argument `registerMetrics` method uses `UniversalConnectionPool.getName()` as the\n+OpenTelemetry metric pool name. The overload that accepts a pool name changes only the pool name\n+metric attribute and does not change the Oracle UCP pool name.\n+\n+Javaagent instrumentation derives the metric pool name from the JDBC URL or, when the URL is not\n+set, from the standard `serverName`, `portNumber`, and `databaseName` properties exposed by the\n+`PoolDataSource` and its connection properties. This applies only when the `PoolDataSource` does",
+      "id": "PRRT_kwDODJKVX86b1p8W",
+      "opened": "2026-08-24T20:27:51Z",
+      "path": "instrumentation/oracle-ucp-11.2/library/README.md",
+      "replies": [],
+      "reviewed": "3c3414dbdba2df431cdcd69a7cc6cea872cb2e29",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19745#discussion_r3847090514"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The host is optional here: `JdbcConnectionPoolNameUtil.poolName` emits only the database or service name when no server address is known. That happens for a TNS-alias URL such as `jdbc:oracle:thin:@orcl`, and when only `databaseName` is configured.\n\n```suggestion\nnot have an explicitly configured connection pool name. The derived format is\n`host[:port][/database-or-service]`, or just `database-or-service` when no host is known. When the\nconnection information is unavailable, the fallback name is `oracle-ucp`. Pools connected to the\nsame database intentionally share the derived name, so\n```",
+      "created": "2026-08-25T13:12:45Z",
+      "hunk": "@@ -40,7 +40,26 @@ void configure(OpenTelemetry openTelemetry, UniversalConnectionPool universalCon\n   oracleUcpTelemetry.registerMetrics(universalConnectionPool);\n }\n \n+void configureWithMetricPoolName(\n+    OpenTelemetry openTelemetry, UniversalConnectionPool universalConnectionPool) {\n+  oracleUcpTelemetry = OracleUcpTelemetry.create(openTelemetry);\n+  oracleUcpTelemetry.registerMetrics(universalConnectionPool, \"ordersPool\");\n+}\n+\n void destroy(UniversalConnectionPool universalConnectionPool) {\n   oracleUcpTelemetry.unregisterMetrics(universalConnectionPool);\n }\n ```\n+\n+The single-argument `registerMetrics` method uses `UniversalConnectionPool.getName()` as the\n+OpenTelemetry metric pool name. The overload that accepts a pool name changes only the pool name\n+metric attribute and does not change the Oracle UCP pool name.\n+\n+Javaagent instrumentation derives the metric pool name from the `PoolDataSource` connection\n+properties and the JDBC URL, when present. Without a JDBC URL, it also uses the standard\n+`serverName`, `portNumber`, and `databaseName` values exposed directly by the `PoolDataSource`.\n+This applies only when the `PoolDataSource` does\n+not have an explicitly configured connection pool name. The derived format is\n+`host[:port][/database-or-service]`; when the connection information is unavailable, the fallback\n+name is `oracle-ucp`. Pools connected to the same database intentionally share the derived name, so",
+      "id": "PRRT_kwDODJKVX86cFYZj",
+      "opened": "2026-08-25T13:19:19Z",
+      "path": "instrumentation/oracle-ucp-11.2/library/README.md",
+      "replies": [],
+      "reviewed": "689ebe2076ea2e794afb21cce8eb3aa712088f7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19745#discussion_r3853298883"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Neither subclass of this class calls this helper, so it can be private.\n\n```suggestion\n  private void assertNoConnectionPoolMetrics() {\n```",
+      "created": "2026-08-25T13:12:46Z",
+      "hunk": "@@ -95,9 +99,20 @@ void shouldReportMetrics(boolean setExplicitPoolName) throws Exception {\n     UniversalConnectionPoolManagerImpl.getUniversalConnectionPoolManager()\n         .destroyConnectionPool(connectionPool.getConnectionPoolName());\n \n+    assertNoConnectionPoolMetrics();\n+  }\n+\n+  protected static String expectedDefaultMetricPoolName() {\n+    return oracle.getHost().toLowerCase(Locale.ROOT)\n+        + \":\"\n+        + oracle.getOraclePort()\n+        + \"/\"\n+        + oracle.getDatabaseName().toLowerCase(Locale.ROOT);\n+  }\n+\n+  protected void assertNoConnectionPoolMetrics() {",
+      "id": "PRRT_kwDODJKVX86cFYZ1",
+      "opened": "2026-08-25T13:19:19Z",
+      "path": "instrumentation/oracle-ucp-11.2/testing/src/main/java/io/opentelemetry/instrumentation/oracleucp/AbstractOracleUcpInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "689ebe2076ea2e794afb21cce8eb3aa712088f7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19745#discussion_r3853298913"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This example reassigns the shared `oracleUcpTelemetry` field that `configure` already sets. c3p0 and Vibur document the same overload in a separate block after the explanatory sentence, with a local telemetry variable (`instrumentation/c3p0-0.9/library/README.md`, `instrumentation/vibur-dbcp-11.0/library/README.md`).\n\n````suggestion\nvoid destroy(UniversalConnectionPool universalConnectionPool) {\n  oracleUcpTelemetry.unregisterMetrics(universalConnectionPool);\n}\n```\n\nThe single-argument `registerMetrics` method uses `UniversalConnectionPool.getName()` as the\nOpenTelemetry metric pool name. To use an explicit metric pool name instead, without changing the\nOracle UCP pool name:\n\n```java\nvoid configureWithMetricPoolName(\n    OpenTelemetry openTelemetry, UniversalConnectionPool universalConnectionPool) {\n  OracleUcpTelemetry telemetry = OracleUcpTelemetry.create(openTelemetry);\n  telemetry.registerMetrics(universalConnectionPool, \"ordersPool\");\n}\n```\n````",
+      "created": "2026-08-26T15:03:27Z",
+      "hunk": "@@ -40,7 +40,27 @@ void configure(OpenTelemetry openTelemetry, UniversalConnectionPool universalCon\n   oracleUcpTelemetry.registerMetrics(universalConnectionPool);\n }\n \n+void configureWithMetricPoolName(\n+    OpenTelemetry openTelemetry, UniversalConnectionPool universalConnectionPool) {\n+  oracleUcpTelemetry = OracleUcpTelemetry.create(openTelemetry);\n+  oracleUcpTelemetry.registerMetrics(universalConnectionPool, \"ordersPool\");\n+}\n+\n void destroy(UniversalConnectionPool universalConnectionPool) {\n   oracleUcpTelemetry.unregisterMetrics(universalConnectionPool);\n }\n ```\n+\n+The single-argument `registerMetrics` method uses `UniversalConnectionPool.getName()` as the\n+OpenTelemetry metric pool name. The overload that accepts a pool name changes only the pool name\n+metric attribute and does not change the Oracle UCP pool name.",
+      "id": "PRRT_kwDODJKVX86cg0We",
+      "opened": "2026-08-26T15:15:02Z",
+      "path": "instrumentation/oracle-ucp-11.2/library/README.md",
+      "replies": [],
+      "reviewed": "eefc01bd7b20acf1f5845a97a1fe85afa622ef68",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19745#discussion_r3864112511"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `putAll` copies only this `Properties` object's direct entries and drops values inherited through its defaults chain. `JdbcConnectionPoolNameUtil` intentionally resolves defaults via `getProperty` (and tests that behavior), so a no-URL data source configured with default `serverName`, `portNumber`, or `databaseName` values will derive an incomplete/fallback name here. Preserve the source as the defaults while overlaying its direct entries.",
+      "created": "2026-08-27T03:54:16Z",
+      "hunk": "@@ -6,16 +6,77 @@\n package io.opentelemetry.javaagent.instrumentation.oracleucp.v11_2;\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionPoolNameUtil;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n import io.opentelemetry.instrumentation.oracleucp.v11_2.OracleUcpTelemetry;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import java.util.Properties;\n+import oracle.ucp.UniversalConnectionPool;\n+import oracle.ucp.jdbc.PoolDataSource;\n \n public class OracleUcpSingletons {\n \n+  private static final String DEFAULT_POOL_NAME = \"oracle-ucp\";\n+\n+  // Keep the derived name across stop/start because UCP restarts the same pool instance.\n+  private static final VirtualField<UniversalConnectionPool, String> METRIC_POOL_NAME_FIELD =\n+      VirtualField.find(UniversalConnectionPool.class, String.class);\n+\n   private static final OracleUcpTelemetry telemetry =\n       OracleUcpTelemetry.create(GlobalOpenTelemetry.get());\n \n   public static OracleUcpTelemetry telemetry() {\n     return telemetry;\n   }\n \n+  public static void capturePoolName(\n+      PoolDataSource dataSource, UniversalConnectionPool connectionPool) {\n+    METRIC_POOL_NAME_FIELD.set(connectionPool, getMetricPoolName(dataSource));\n+  }\n+\n+  private static String getMetricPoolName(PoolDataSource dataSource) {\n+    String connectionUrl = dataSource.getURL();\n+    Properties connectionProperties = dataSource.getConnectionProperties();\n+\n+    if (connectionUrl != null) {\n+      DbInfo dbInfo = JdbcConnectionUrlParser.parse(connectionUrl, connectionProperties);\n+      return JdbcConnectionPoolNameUtil.poolName(dbInfo, DEFAULT_POOL_NAME);\n+    }\n+\n+    Properties poolNameProperties = new Properties();\n+    poolNameProperties.putAll(connectionProperties);",
+      "id": "PRRT_kwDODJKVX86csHLJ",
+      "opened": "2026-08-27T03:54:16Z",
+      "path": "instrumentation/oracle-ucp-11.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oracleucp/v11_2/OracleUcpSingletons.java",
+      "replies": [],
+      "reviewed": "fa47a84ea0a38f82d0e30e891f6308dfa8f34723",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19745#discussion_r3868578900"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n  /** Start collecting metrics using {@code poolName} as the connection pool name. */\n```",
+      "created": "2026-08-31T12:37:55Z",
+      "hunk": "@@ -26,6 +26,11 @@ public void registerMetrics(UniversalConnectionPool universalConnectionPool) {\n     ConnectionPoolMetrics.registerMetrics(openTelemetry, universalConnectionPool);\n   }\n \n+  /** Start collecting metrics using {@code poolName} without changing the Oracle UCP pool name. */",
+      "id": "PRRT_kwDODJKVX86duMf0",
+      "opened": "2026-08-31T12:37:54Z",
+      "path": "instrumentation/oracle-ucp-11.2/library/src/main/java/io/opentelemetry/instrumentation/oracleucp/v11_2/OracleUcpTelemetry.java",
+      "replies": [],
+      "reviewed": "f15ecee24d22bdffd7461b115e1cbcddb841c630",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19745#discussion_r3894511228"
+    }
+  ]
+}

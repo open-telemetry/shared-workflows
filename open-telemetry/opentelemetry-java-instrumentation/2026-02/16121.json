@@ -1,0 +1,25 @@
+{
+  "head": "b56518f34de28fce2aef200532d99ecb78c0759a",
+  "merge": "79bec32eb728cb49d90dfe3e816208e617da2497",
+  "merged": "2026-02-09T22:17:46Z",
+  "missing_roots": 0,
+  "number": 16121,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I'm going to remove this one and merge to unblock your next PR, I'd like to see this one added with a bit more context of its usage, thanks\n\n```suggestion\n```",
+      "created": "2026-02-09T19:56:40Z",
+      "hunk": "@@ -34,4 +38,62 @@ default Long getRequestSize(REQUEST request) {\n   default Long getResponseSize(REQUEST request) {\n     return null;\n   }\n+\n+  /**\n+   * Returns the fully-qualified RPC method name for stable semconv.\n+   *\n+   * @param request the request object\n+   * @return the fully-qualified RPC method name (e.g., \"my.Service/Method\"), or null if service or\n+   *     method is unavailable\n+   */\n+  @Nullable\n+  default String getRpcMethod(REQUEST request) {\n+    return null;\n+  }\n+\n+  /**\n+   * Returns a description of a class of error the operation ended with.\n+   *\n+   * <p>This method should return {@code null} if there was no error.\n+   *\n+   * <p>If this method is not implemented, or if it returns {@code null}, the exception class name\n+   * will be used as error type.\n+   *\n+   * <p>The cardinality of the error type should be low. The instrumentations implementing this\n+   * method are recommended to document the custom values they support.\n+   *\n+   * <p>Examples: {@code OK}, {@code CANCELLED}, {@code UNKNOWN}, {@code -32602}\n+   */\n+  @Nullable\n+  default String getErrorType(\n+      REQUEST request, @Nullable RESPONSE response, @Nullable Throwable error) {\n+    return null;\n+  }\n+\n+  /**\n+   * Returns whether the RPC method is recognized as a predefined method by the RPC framework or\n+   * library.\n+   *\n+   * <p>Some RPC frameworks or libraries provide a fixed set of recognized methods for client stubs\n+   * and server implementations. Instrumentations for such frameworks MUST return {@code true} only\n+   * when the method is recognized by the framework or library.\n+   *\n+   * <p>When the method is not recognized (for example, when the server receives a request for a\n+   * method that is not predefined on the server), or when instrumentation is not able to reliably\n+   * detect if the method is predefined, this method MUST return {@code false}.\n+   *\n+   * <p>When this method returns {@code false}, the {@code rpc.method} attribute will be set to\n+   * {@code \"_OTHER\"} and the {@code rpc.method_original} attribute will be set to the original\n+   * method name.\n+   *\n+   * <p>Note: If the RPC instrumentation could end up converting valid RPC methods to {@code\n+   * \"_OTHER\"}, then it SHOULD provide a way to configure the list of recognized RPC methods.\n+   *\n+   * @param request the request object\n+   * @return {@code true} if the method is recognized as predefined by the framework, {@code false}\n+   *     otherwise\n+   */\n+  default boolean isPredefined(REQUEST request) {\n+    return false;\n+  }",
+      "id": "PRRT_kwDODJKVX85tkXFQ",
+      "opened": "2026-02-09T19:56:44Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcAttributesGetter.java",
+      "replies": [],
+      "reviewed": "957636e2599e019063af35465f7c597db038db62",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16121#discussion_r2784246634"
+    }
+  ]
+}

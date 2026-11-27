@@ -1,0 +1,283 @@
+{
+  "head": "e3b27d636f3b6a9ad44204c91dcf14042a315d7b",
+  "merge": "ab934b2165c5588a8fc2a94321a72f11ea218715",
+  "merged": "2026-09-04T06:21:46Z",
+  "missing_roots": 0,
+  "number": 19969,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Including `stability` in the `warnOnce` key means the same deprecated property can emit two separate warnings (one per stability) within the same JVM, which can reintroduce log noise even though the deprecated setting itself is always experimental. If the goal is \\\"warn once per deprecated property\\\", consider removing `stability` from the dedupe key (keep it just `flatProperty + \\\":deprecated\\\"`) and, if necessary, adjust the message to be correct for both modes (e.g., mention the stable replacement while still pointing out the experimental deprecated key).",
+      "created": "2026-09-03T18:45:05Z",
+      "hunk": "@@ -218,20 +334,23 @@ private static List<String> getDeprecated(\n     if (deprecated == null) {\n       return null;\n     }\n-    warnDeprecated(instrumentationName, selectorName, selectorName);\n+    warnDeprecated(instrumentationName, selectorName, selectorName, stability);\n     return deprecated;\n   }\n \n   private static void warnDeprecated(\n-      String instrumentationName, String selectorName, String deprecatedSelectorName) {\n+      String instrumentationName,\n+      String selectorName,\n+      String deprecatedSelectorName,\n+      Stability stability) {\n     String flatProperty = deprecatedFlatProperty(instrumentationName, deprecatedSelectorName);\n     warnOnce(\n-        flatProperty + \":deprecated\",\n+        flatProperty + \":\" + stability + \":deprecated\",\n         \"The \"\n             + flatProperty\n             + \" setting and the equivalent declarative configuration property are deprecated and\"\n             + \" may be removed in the next minor release. Use \"\n-            + flatProperty(instrumentationName, selectorName, \".included\")\n+            + flatProperty(instrumentationName, selectorName, \".included\", stability)\n             + \" or equivalent declarative configuration instead.\");",
+      "id": "PRRT_kwDODJKVX86fCWEt",
+      "opened": "2026-09-03T18:45:06Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-03T19:21:30Z",
+          "body": "No code change.\n\nAnalysis: The current head already uses `flatProperty + \":deprecated\"` as the warning key. Stability affects only the replacement property in the message, so the deprecated property emits at most one warning per JVM.\n\nUpsides: This keeps warning deduplication tied to the deprecated property while preserving the correct stable or experimental replacement in the first warning.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3927913569"
+        }
+      ],
+      "reviewed": "d1bf4d556d79efb1b1b5b1a66aa0e04dc50fca87",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3927622430"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test mutates global JVM `System` properties. If the test suite runs in parallel, this can still cause cross-test interference (even with `finally` cleanup) if any other test reads/writes the same keys during the window. Consider using the project’s existing test isolation mechanism (e.g., a JUnit resource lock / non-parallel annotation for this test/class) or a scoped system-properties helper so the mutation is serialized.",
+      "created": "2026-09-03T18:45:06Z",
+      "hunk": "@@ -180,6 +264,53 @@ void selectorTakesPrecedenceWithoutWarning() {\n     }\n   }\n \n+  @Test\n+  void stableSelectorTakesPrecedenceOverExperimentalDeprecatedConfig() {\n+    DeclarativeConfigProperties config = mockStableConfig();\n+    when(config.get(\"mdc_attributes\").getScalarList(\"included\", String.class))\n+        .thenReturn(singletonList(\"new\"));\n+    when(config.getScalarList(\"capture_mdc_attributes/development\", String.class))\n+        .thenReturn(singletonList(\"legacy\"));\n+    TestHandler handler = attachWarningHandler();\n+    try {\n+      IncludeExclude selector =\n+          SelectorConfig.resolve(config, \"stable-precedence\", SELECTOR, STABLE);\n+\n+      assertThat(selector).isNotNull();\n+      assertThat(selector.matches(\"new\")).isTrue();\n+      assertThat(selector.matches(\"legacy\")).isFalse();\n+      assertThat(handler.records).isEmpty();\n+      verify(config, never()).getScalarList(\"capture_mdc_attributes/development\", String.class);\n+    } finally {\n+      detachWarningHandler(handler);\n+    }\n+  }\n+\n+  @Test\n+  void stableSystemPropertyFallbackIsOnlyUsedWhenEnabled() {\n+    DeclarativeConfigProperties config = mockStableConfig();\n+    System.setProperty(\n+        \"otel.instrumentation.stable-flat.mdc-attributes.included\", \"public*,secret*\");\n+    System.setProperty(\"otel.instrumentation.stable-flat.mdc-attributes.excluded\", \"secret*\");\n+    System.setProperty(\n+        \"otel.instrumentation.stable-flat.experimental.mdc-attributes.included\", \"wrong\");\n+    try {\n+      assertThat(SelectorConfig.resolve(config, \"stable-flat\", SELECTOR, STABLE)).isNull();\n+\n+      IncludeExclude selector =\n+          SelectorConfig.resolve(config, \"stable-flat\", SELECTOR, STABLE, true);\n+\n+      assertThat(selector).isNotNull();\n+      assertThat(selector.matches(\"public-value\")).isTrue();\n+      assertThat(selector.matches(\"secret-value\")).isFalse();\n+      assertThat(selector.matches(\"wrong\")).isFalse();\n+    } finally {\n+      System.clearProperty(\"otel.instrumentation.stable-flat.mdc-attributes.included\");\n+      System.clearProperty(\"otel.instrumentation.stable-flat.mdc-attributes.excluded\");\n+      System.clearProperty(\"otel.instrumentation.stable-flat.experimental.mdc-attributes.included\");\n+    }",
+      "id": "PRRT_kwDODJKVX86fCWFT",
+      "opened": "2026-09-03T18:45:06Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-09-03T19:21:31Z",
+          "body": "Addressed in 397348101b64432cddd9e210273cef8e6fbc2bc6.\n\nAnalysis: The test now takes JUnit's shared `Resources.SYSTEM_PROPERTIES` lock for the full mutation and cleanup window. Method-level scope avoids serializing the other selector tests.\n\nUpsides: Parallel tests that use the standard system-properties resource cannot observe or overwrite these temporary values.\n\nDownsides: This test holds the global system-properties lock for its duration, which adds a small amount of test serialization.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3927913782"
+        }
+      ],
+      "reviewed": "d1bf4d556d79efb1b1b5b1a66aa0e04dc50fca87",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3927622484"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The updated class Javadoc no longer documents the concrete mapping between (instrumentationName, selectorName) and the declarative/flat property names (including the `/development` node and `.experimental.` prefix differences). Since the core change here is naming-mode selection, it would be helpful to add a short, explicit example for both `STABLE` and `EXPERIMENTAL` to reduce ambiguity and future regressions.",
+      "created": "2026-09-03T18:45:06Z",
+      "hunk": "@@ -23,12 +24,9 @@\n  * Resolves an {@code included}/{@code excluded} selector and its deprecated include-only\n  * predecessor, so that precedence and deprecation warnings are uniform across instrumentations.\n  *\n- * <p>The property names are derived from the instrumentation and selector names. For {@code\n- * (\"messaging\", \"headers\")} the declarative configuration is read from the {@code\n- * headers/development} node of the supplied configuration, falling back to the deprecated {@code\n- * capture_headers/development} node, and the corresponding flat properties are {@code\n- * otel.instrumentation.messaging.experimental.headers.included}, {@code ...headers.excluded} and\n- * {@code otel.instrumentation.messaging.experimental.capture-headers}.\n+ * <p>The property names are derived from the instrumentation and selector names. Existing overloads\n+ * resolve experimental included/excluded selectors. Overloads accepting {@link Stability} can\n+ * instead resolve stable selectors. Deprecated capture settings remain experimental.\n  *",
+      "id": "PRRT_kwDODJKVX86fCWFx",
+      "opened": "2026-09-03T18:45:06Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-03T19:21:33Z",
+          "body": "No code change.\n\nAnalysis: The current class Javadoc already gives the `(\"messaging\", \"headers\")` mapping for both modes. It names the experimental `headers/development` node and `.experimental.headers` flat properties, the stable `headers` node and non-experimental flat properties, and the shared deprecated fallback.\n\nUpsides: Readers can compare the stable and experimental names in one concrete example without adding duplicate documentation.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3927914005"
+        }
+      ],
+      "reviewed": "d1bf4d556d79efb1b1b5b1a66aa0e04dc50fca87",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3927622530"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These tests mutate global `java.util.logging` state by adding/removing handlers. If the build runs JUnit tests in parallel, log records can be interleaved across tests and handlers can be removed unexpectedly, causing flaky assertions like `hasSize(1)`. Consider guarding tests that call `attachWarningHandler()`/`detachWarningHandler()` with a `@ResourceLock` (a custom resource name is fine) or otherwise serializing access to the logger handler list.",
+      "created": "2026-09-03T19:38:43Z",
+      "hunk": "@@ -127,6 +179,33 @@ void deprecatedConfigUsesExactMatchingAndWarnsOnce() {\n     }\n   }\n \n+  @Test\n+  void stableSelectorFallsBackToExperimentalDeprecatedConfig() {\n+    DeclarativeConfigProperties config = mockStableConfig();\n+    when(config.getScalarList(\"capture_mdc_attributes/development\", String.class))\n+        .thenReturn(singletonList(\"legacy\"));\n+    TestHandler handler = attachWarningHandler();\n+    try {\n+      IncludeExclude selector =\n+          SelectorConfig.resolve(config, \"stable-deprecated\", SELECTOR, STABLE);\n+\n+      assertThat(selector).isNotNull();\n+      assertThat(selector.matches(\"legacy\")).isTrue();\n+      assertThat(selector.matches(\"other\")).isFalse();\n+      verify(config, never()).getScalarList(\"capture_mdc_attributes\", String.class);\n+      assertThat(handler.records).hasSize(1);\n+      assertThat(handler.records.get(0).getMessage())\n+          .isEqualTo(\n+              \"The otel.instrumentation.stable-deprecated.experimental.capture-mdc-attributes\"\n+                  + \" setting and the equivalent declarative configuration property are deprecated\"\n+                  + \" and may be removed in the next minor release. Use\"\n+                  + \" otel.instrumentation.stable-deprecated.mdc-attributes.included\"\n+                  + \" or equivalent declarative configuration instead.\");\n+    } finally {\n+      detachWarningHandler(handler);\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86fDa2j",
+      "opened": "2026-09-03T19:38:43Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-09-03T19:48:47Z",
+          "body": "Addressed in 6e8446d14daa79c88453888075b8e8cb32bc3f2c.\n\nAnalysis: A class-level JUnit resource lock now serializes all `SelectorConfigTest` methods that can attach a handler to the shared `SelectorConfig` logger.\n\nUpsides: Warning assertions cannot capture another method's records or race while handlers are added and removed.\n\nDownsides: The lock serializes this test class, which may add a small amount of test runtime.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928128907"
+        }
+      ],
+      "reviewed": "397348101b64432cddd9e210273cef8e6fbc2bc6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928048751"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The deprecation warning only points users to the `.included` replacement (via `replacementFlatProperty`). Since the replacement configuration is an include/exclude pair, this message can be misleading for users who intend to use exclusions only. Consider updating the message to reference both replacements (e.g., `.included|.excluded`) or the selector prefix (`otel.instrumentation.<name>.<selector>.*`) so it accurately describes the new stable/experimental configuration surface.",
+      "created": "2026-09-03T19:38:43Z",
+      "hunk": "@@ -218,20 +291,20 @@ private static List<String> getDeprecated(\n     if (deprecated == null) {\n       return null;\n     }\n-    warnDeprecated(instrumentationName, selectorName, selectorName);\n+    warnDeprecated(instrumentationName, selectorName, replacementFlatProperty);\n     return deprecated;\n   }\n \n   private static void warnDeprecated(\n-      String instrumentationName, String selectorName, String deprecatedSelectorName) {\n+      String instrumentationName, String deprecatedSelectorName, String replacementFlatProperty) {\n     String flatProperty = deprecatedFlatProperty(instrumentationName, deprecatedSelectorName);\n     warnOnce(\n         flatProperty + \":deprecated\",\n         \"The \"\n             + flatProperty\n             + \" setting and the equivalent declarative configuration property are deprecated and\"\n             + \" may be removed in the next minor release. Use \"\n-            + flatProperty(instrumentationName, selectorName, \".included\")\n+            + replacementFlatProperty\n             + \" or equivalent declarative configuration instead.\");\n   }\n ",
+      "id": "PRRT_kwDODJKVX86fDa3i",
+      "opened": "2026-09-03T19:38:43Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-03T19:48:48Z",
+          "body": "Addressed in eaa0f4f46dbc7058029703fb440561b171878b48.\n\nAnalysis: The replacement description now contains both full `.included` and `.excluded` property names. The shared description is used by deprecation warnings and invalid-pattern guidance for stable and experimental selectors.\n\nUpsides: Users can see the complete replacement surface and copy the property that matches their include-only or exclude-only configuration.\n\nDownsides: The warning message is longer because it repeats the full selector property prefix.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928129127"
+        }
+      ],
+      "reviewed": "397348101b64432cddd9e210273cef8e6fbc2bc6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928048834"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This class-level Javadoc states that both modes fall back to the deprecated *flat property*, but the code only consults flat system properties when `systemPropertyFallback` is enabled. To avoid misleading readers, update the Javadoc to clarify that flat-property fallback is conditional on `systemPropertyFallback` (for both included/excluded and deprecated capture properties).",
+      "created": "2026-09-03T20:06:16Z",
+      "hunk": "@@ -24,11 +25,12 @@\n  * predecessor, so that precedence and deprecation warnings are uniform across instrumentations.\n  *\n  * <p>The property names are derived from the instrumentation and selector names. For {@code\n- * (\"messaging\", \"headers\")} the declarative configuration is read from the {@code\n- * headers/development} node of the supplied configuration, falling back to the deprecated {@code\n- * capture_headers/development} node, and the corresponding flat properties are {@code\n- * otel.instrumentation.messaging.experimental.headers.included}, {@code ...headers.excluded} and\n- * {@code otel.instrumentation.messaging.experimental.capture-headers}.\n+ * (\"messaging\", \"headers\")}, experimental resolution reads the {@code headers/development} node and\n+ * {@code otel.instrumentation.messaging.experimental.headers.included|excluded}. Stable resolution\n+ * reads the {@code headers} node and {@code\n+ * otel.instrumentation.messaging.headers.included|excluded}. Both modes fall back to the deprecated\n+ * experimental {@code capture_headers/development} node and {@code\n+ * otel.instrumentation.messaging.experimental.capture-headers} flat property.",
+      "id": "PRRT_kwDODJKVX86fD9sV",
+      "opened": "2026-09-03T20:06:16Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-03T20:13:35Z",
+          "body": "Addressed in 15b1933a958811a91b02333774982438418bfc3e.\n\nAnalysis: The class Javadoc now states that direct flat-property reads require `systemPropertyFallback`. The enum keeps the exact class disclaimer because the repository's `OtelInternalJavadoc` check requires that wording for public internal types and rejects the proposed enum wording.\n\nUpsides: The fallback behavior is explicit, and the public internal enum continues to pass the repository's API documentation check.\n\nDownsides: The enum disclaimer retains the generic word \"class\" required by the repository check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928320812"
+        }
+      ],
+      "reviewed": "eaa0f4f46dbc7058029703fb440561b171878b48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928264402"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `warnOnce` key (`flatProperty + \":deprecated\"`) does not incorporate the *selected replacement* (`replacementFlatProperties` / stability). If the same deprecated capture property is encountered in both STABLE and EXPERIMENTAL contexts within the same JVM, only the first message will be logged and may point users to the wrong replacement property names. Consider including stability (or the replacement property string) in the dedupe key (e.g., `flatProperty + \":deprecated:\" + stability`) so the warning consistently references the correct replacement for the caller.",
+      "created": "2026-09-03T20:06:16Z",
+      "hunk": "@@ -218,20 +291,20 @@ private static List<String> getDeprecated(\n     if (deprecated == null) {\n       return null;\n     }\n-    warnDeprecated(instrumentationName, selectorName, selectorName);\n+    warnDeprecated(instrumentationName, selectorName, replacementFlatProperties);\n     return deprecated;\n   }\n \n   private static void warnDeprecated(\n-      String instrumentationName, String selectorName, String deprecatedSelectorName) {\n+      String instrumentationName, String deprecatedSelectorName, String replacementFlatProperties) {\n     String flatProperty = deprecatedFlatProperty(instrumentationName, deprecatedSelectorName);\n     warnOnce(\n         flatProperty + \":deprecated\",\n         \"The \"\n             + flatProperty\n             + \" setting and the equivalent declarative configuration property are deprecated and\"\n             + \" may be removed in the next minor release. Use \"\n-            + flatProperty(instrumentationName, selectorName, \".included\")\n+            + replacementFlatProperties\n             + \" or equivalent declarative configuration instead.\");\n   }",
+      "id": "PRRT_kwDODJKVX86fD9tB",
+      "opened": "2026-09-03T20:06:16Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-03T20:13:37Z",
+          "body": "No code change.\n\nAnalysis: The deprecated flat property identifies one instrumentation and selector. That instrumentation chooses one replacement stability when it calls `resolve`, so the first warning points to the replacement for the caller that applied the deprecated value. Keying by the replacement would emit duplicate warnings for the same deprecated setting if inconsistent callers used both modes.\n\nUpsides: Warning volume remains bounded to one message per deprecated property while the message still names the replacement selected by the applying caller.\n\nDownsides: If one instrumentation incorrectly resolves the same selector in both stability modes, only the first caller's migration path is logged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928321002"
+        }
+      ],
+      "reviewed": "eaa0f4f46dbc7058029703fb440561b171878b48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928264457"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Javadoc says “This class is internal …” but it’s documenting an enum (`Stability`). Consider rewording to “This enum is internal …” (or moving the “internal API” disclaimer to the enclosing class only) to avoid confusion for maintainers and generated Javadoc consumers.",
+      "created": "2026-09-03T20:06:16Z",
+      "hunk": "@@ -38,6 +40,18 @@ public final class SelectorConfig {\n   private static final Logger logger = Logger.getLogger(SelectorConfig.class.getName());\n   private static final Set<String> warnings = ConcurrentHashMap.newKeySet();\n \n+  /**\n+   * The stability of the included/excluded selector configuration. This does not change the\n+   * stability of the deprecated capture setting.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change",
+      "id": "PRRT_kwDODJKVX86fD9tj",
+      "opened": "2026-09-03T20:06:16Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-03T20:13:38Z",
+          "body": "Addressed in 15b1933a958811a91b02333774982438418bfc3e.\n\nAnalysis: The class Javadoc now states that direct flat-property reads require `systemPropertyFallback`. The enum keeps the exact class disclaimer because the repository's `OtelInternalJavadoc` check requires that wording for public internal types and rejects the proposed enum wording.\n\nUpsides: The fallback behavior is explicit, and the public internal enum continues to pass the repository's API documentation check.\n\nDownsides: The enum disclaimer retains the generic word \"class\" required by the repository check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928321143"
+        }
+      ],
+      "reviewed": "eaa0f4f46dbc7058029703fb440561b171878b48",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928264502"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `warnOnce` key is only based on the deprecated flat property name, but the warning’s replacement guidance varies by stability (`replacementFlatProperties` differs between STABLE vs EXPERIMENTAL). If both modes are used in the same JVM, whichever runs first “wins” and can suppress a later warning that would have pointed to a different (correct) replacement name. Consider including stability (or `replacementFlatProperties`) in the `warnOnce` key so STABLE and EXPERIMENTAL warnings don’t dedupe each other incorrectly.",
+      "created": "2026-09-03T20:30:43Z",
+      "hunk": "@@ -218,20 +295,20 @@ private static List<String> getDeprecated(\n     if (deprecated == null) {\n       return null;\n     }\n-    warnDeprecated(instrumentationName, selectorName, selectorName);\n+    warnDeprecated(instrumentationName, selectorName, replacementFlatProperties);\n     return deprecated;\n   }\n \n   private static void warnDeprecated(\n-      String instrumentationName, String selectorName, String deprecatedSelectorName) {\n+      String instrumentationName, String deprecatedSelectorName, String replacementFlatProperties) {\n     String flatProperty = deprecatedFlatProperty(instrumentationName, deprecatedSelectorName);\n     warnOnce(\n         flatProperty + \":deprecated\",\n         \"The \"\n             + flatProperty\n             + \" setting and the equivalent declarative configuration property are deprecated and\"\n             + \" may be removed in the next minor release. Use \"\n-            + flatProperty(instrumentationName, selectorName, \".included\")\n+            + replacementFlatProperties",
+      "id": "PRRT_kwDODJKVX86fEcLX",
+      "opened": "2026-09-03T20:30:44Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-03T20:32:50Z",
+          "body": "No code change.\n\nAnalysis: The deprecated property identifies one instrumentation and selector. That instrumentation selects one replacement stability, so the warning for the caller that applies the deprecated value names its configured replacement. Adding stability to the key would emit duplicate warnings for one deprecated property if inconsistent callers selected both modes.\n\nUpsides: The logger emits one actionable warning per deprecated property instead of repeating the same deprecation.\n\nDownsides: In unsupported dual-mode use of one selector, only the first caller's migration path is logged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928468415"
+        }
+      ],
+      "reviewed": "15b1933a958811a91b02333774982438418bfc3e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928452096"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This Javadoc is attached to the `Stability` enum but refers to “This class is internal…”. Updating it to “This enum…” (or otherwise clarifying that it applies to the enum) would avoid confusion and better match the documented scope.",
+      "created": "2026-09-03T20:30:44Z",
+      "hunk": "@@ -38,6 +44,18 @@ public final class SelectorConfig {\n   private static final Logger logger = Logger.getLogger(SelectorConfig.class.getName());\n   private static final Set<String> warnings = ConcurrentHashMap.newKeySet();\n \n+  /**\n+   * The stability of the included/excluded selector configuration. This does not change the\n+   * stability of the deprecated capture setting.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change",
+      "id": "PRRT_kwDODJKVX86fEcMD",
+      "opened": "2026-09-03T20:30:44Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-03T20:32:52Z",
+          "body": "No code change.\n\nAnalysis: The repository's `OtelInternalJavadoc` check requires this exact class disclaimer on every public internal type, including enums. Replacing \"class\" with \"enum\" causes `:instrumentation-api-incubator:compileJava` to fail with `-Werror`.\n\nUpsides: Keeping the standard wording preserves the enforced internal API warning and a successful build.\n\nDownsides: The shared disclaimer uses \"class\" as the generic Java type term rather than naming the enum kind.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928468596"
+        }
+      ],
+      "reviewed": "15b1933a958811a91b02333774982438418bfc3e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928452154"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] The repository's class-organization rule places nested types after methods, but `Stability` is inserted between the static fields and methods. Move this enum to the end of `SelectorConfig` (after the utility constructor) to preserve the required member order.",
+      "created": "2026-09-03T20:48:00Z",
+      "hunk": "@@ -38,6 +44,18 @@ public final class SelectorConfig {\n   private static final Logger logger = Logger.getLogger(SelectorConfig.class.getName());\n   private static final Set<String> warnings = ConcurrentHashMap.newKeySet();\n \n+  /**\n+   * The stability of the included/excluded selector configuration. This does not change the\n+   * stability of the deprecated capture setting.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public enum Stability {\n+    STABLE,\n+    EXPERIMENTAL\n+  }",
+      "id": "PRRT_kwDODJKVX86fExFj",
+      "opened": "2026-09-03T20:48:01Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-03T20:50:25Z",
+          "body": "Addressed in cd5088426a6cdd6b1f4baf21b97e72519fd886a0.\n\nAnalysis: `Stability` is a nested type, so it now follows all methods and the utility constructor at the end of `SelectorConfig`.\n\nUpsides: The class follows the repository's member-order convention and keeps its public entry points together.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928599279"
+        }
+      ],
+      "reviewed": "15b1933a958811a91b02333774982438418bfc3e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928581517"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The test unconditionally clears system properties in `finally`, which can break test isolation if those properties were already set by the build/test environment (they won’t be restored to their prior values). Save the previous values (via `System.getProperty`) before overwriting them, and in `finally` restore them (set back to the old value or clear only if the old value was null).",
+      "created": "2026-09-03T21:07:25Z",
+      "hunk": "@@ -180,6 +262,54 @@ void selectorTakesPrecedenceWithoutWarning() {\n     }\n   }\n \n+  @Test\n+  void stableSelectorTakesPrecedenceOverExperimentalDeprecatedConfig() {\n+    DeclarativeConfigProperties config = mockStableConfig();\n+    when(config.get(\"mdc_attributes\").getScalarList(\"included\", String.class))\n+        .thenReturn(singletonList(\"new\"));\n+    when(config.getScalarList(\"capture_mdc_attributes/development\", String.class))\n+        .thenReturn(singletonList(\"legacy\"));\n+    TestHandler handler = attachWarningHandler();\n+    try {\n+      IncludeExclude selector =\n+          SelectorConfig.resolve(config, \"stable-precedence\", SELECTOR, STABLE);\n+\n+      assertThat(selector).isNotNull();\n+      assertThat(selector.matches(\"new\")).isTrue();\n+      assertThat(selector.matches(\"legacy\")).isFalse();\n+      assertThat(handler.records).isEmpty();\n+      verify(config, never()).getScalarList(\"capture_mdc_attributes/development\", String.class);\n+    } finally {\n+      detachWarningHandler(handler);\n+    }\n+  }\n+\n+  @Test\n+  @ResourceLock(Resources.SYSTEM_PROPERTIES)\n+  void stableSystemPropertyFallbackIsOnlyUsedWhenEnabled() {\n+    DeclarativeConfigProperties config = mockStableConfig();\n+    System.setProperty(\n+        \"otel.instrumentation.stable-flat.mdc-attributes.included\", \"public*,secret*\");\n+    System.setProperty(\"otel.instrumentation.stable-flat.mdc-attributes.excluded\", \"secret*\");\n+    System.setProperty(\n+        \"otel.instrumentation.stable-flat.experimental.mdc-attributes.included\", \"wrong\");\n+    try {\n+      assertThat(SelectorConfig.resolve(config, \"stable-flat\", SELECTOR, STABLE)).isNull();\n+\n+      IncludeExclude selector =\n+          SelectorConfig.resolve(config, \"stable-flat\", SELECTOR, STABLE, true);\n+\n+      assertThat(selector).isNotNull();\n+      assertThat(selector.matches(\"public-value\")).isTrue();\n+      assertThat(selector.matches(\"secret-value\")).isFalse();\n+      assertThat(selector.matches(\"wrong\")).isFalse();\n+    } finally {\n+      System.clearProperty(\"otel.instrumentation.stable-flat.mdc-attributes.included\");\n+      System.clearProperty(\"otel.instrumentation.stable-flat.mdc-attributes.excluded\");\n+      System.clearProperty(\"otel.instrumentation.stable-flat.experimental.mdc-attributes.included\");\n+    }",
+      "id": "PRRT_kwDODJKVX86fFIKP",
+      "opened": "2026-09-03T21:07:26Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-09-03T21:50:23Z",
+          "body": "Addressed in 5fa3507cc48c9cc664f2b0febbf6176b547dce1a.\n\nAnalysis: The test captures each property's existing value before overriding it and restores that value in `finally`. A shared helper clears only properties that were originally absent.\n\nUpsides: Build or test environment configuration survives the test unchanged while cleanup still runs after assertion failures.\n\nDownsides: The test adds three local snapshots and a small restoration helper.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3929019063"
+        }
+      ],
+      "reviewed": "cd5088426a6cdd6b1f4baf21b97e72519fd886a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3928723956"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The expected warning message mixes stable and experimental property prefixes: the included property is missing the `.experimental.` segment while the excluded property includes it. `SelectorConfig.resolveLegacyBoolean(...)` passes `Stability.EXPERIMENTAL` into the replacement properties, so both included and excluded should use the experimental prefix (or neither should if the production output changed accordingly). Update the assertion string to match the actual replacement properties emitted by `selectorFlatProperties(..., Stability.EXPERIMENTAL)`.",
+      "created": "2026-09-03T22:07:00Z",
+      "hunk": "@@ -281,8 +442,9 @@ void legacyBooleanTrueCapturesEverythingAndWarnsOnce() {\n                   + \".capture-key-value-pair-attributes setting and the equivalent declarative\"\n                   + \" configuration property are deprecated and may be removed in the next minor\"\n                   + \" release. Use otel.instrumentation.boolean-enabled.experimental\"\n-                  + \".key-value-pair-attributes.included or equivalent declarative configuration\"\n-                  + \" instead.\");\n+                  + \".key-value-pair-attributes.included or otel.instrumentation.boolean-enabled\"\n+                  + \".experimental.key-value-pair-attributes.excluded or equivalent declarative\"\n+                  + \" configuration instead.\");",
+      "id": "PRRT_kwDODJKVX86fGJHB",
+      "opened": "2026-09-03T22:07:01Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-09-03T22:08:42Z",
+          "body": "No code change.\n\nAnalysis: The included prefix is split between adjacent string literals: `otel.instrumentation.boolean-enabled.experimental` plus `.key-value-pair-attributes.included` yields the full experimental property. The excluded prefix uses `otel.instrumentation.boolean-enabled` plus `.experimental.key-value-pair-attributes.excluded`, which yields the same experimental prefix. The production helper constructs both with `Stability.EXPERIMENTAL`, and the focused test passed on the current head.\n\nUpsides: This avoids changing an assertion that already exactly matches the emitted warning.\n\nDownsides: Different line-break placement makes the two equivalent prefixes less obvious in the source.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3929136286"
+        }
+      ],
+      "reviewed": "5fa3507cc48c9cc664f2b0febbf6176b547dce1a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19969#discussion_r3929123842"
+    }
+  ]
+}

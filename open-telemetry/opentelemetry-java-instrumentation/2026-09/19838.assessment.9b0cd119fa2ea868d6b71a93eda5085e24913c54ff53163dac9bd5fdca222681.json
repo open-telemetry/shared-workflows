@@ -1,0 +1,44 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a22a0a4d394ba940cb8be33563b4274d3058e483f2066c1d23d303de3cd7d52b",
+  "input_digest": "9b0cd119fa2ea868d6b71a93eda5085e24913c54ff53163dac9bd5fdca222681",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/59750231f207d19bd2da655f577cd0171fe00df7/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f211b41b7ab781f3871ccc29b68cc9cd32ee03a7/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/ConnectionFactoryInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f211b41b7ab781f3871ccc29b68cc9cd32ee03a7/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f211b41b7ab781f3871ccc29b68cc9cd32ee03a7/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbServerTargetBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dmuH_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f0415b8d6546939fac6c0c6a70278e1c27e36f0/instrumentation/spymemcached-2.12/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedServerTargetTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f211b41b7ab781f3871ccc29b68cc9cd32ee03a7/instrumentation/spymemcached-2.12/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dm2l7",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f84de9082b24b15251b6d841c1d1fafaeb4b9917/instrumentation/spymemcached-2.12/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f211b41b7ab781f3871ccc29b68cc9cd32ee03a7/instrumentation/spymemcached-2.12/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86fVRUi",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

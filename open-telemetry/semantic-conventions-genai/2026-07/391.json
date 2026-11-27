@@ -1,0 +1,40 @@
+{
+  "head": "3ae75c1529e2b9054fc190bae8277e5e95292b71",
+  "merge": "2e994c6d59a93bb4fc1752c5378eedb9b8e14d6b",
+  "merged": "2026-07-21T16:57:39Z",
+  "missing_roots": 0,
+  "number": 391,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These `[tool.uv].override-dependencies` pins appear to exactly match the versions already defined in `reference/shared/pyproject.toml`. If the override isn’t required to resolve a specific transitive conflict for this scenario, consider removing it (or adding a short comment explaining why the override is necessary) to avoid duplicating the same version pins in multiple places.",
+      "created": "2026-07-21T09:43:37Z",
+      "hunk": "@@ -14,7 +14,7 @@ genai-reference-shared = { path = \"../../shared\", editable = true }\n [tool.uv]\n package = false\n override-dependencies = [\n-    \"opentelemetry-api==1.43.0\",\n-    \"opentelemetry-sdk==1.43.0\",\n-    \"opentelemetry-exporter-otlp-proto-grpc==1.43.0\",\n+    \"opentelemetry-api==1.44.0\",\n+    \"opentelemetry-sdk==1.44.0\",\n+    \"opentelemetry-exporter-otlp-proto-grpc==1.44.0\",",
+      "id": "PRRT_kwDOSUeMrM6Shyft",
+      "opened": "2026-07-21T09:43:37Z",
+      "path": "reference/scenarios/google-adk/pyproject.toml",
+      "replies": [],
+      "reviewed": "6effcba8da1fde3429fc5c512a331ac7ae9eb070",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/391#discussion_r3621060625"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Similar to other scenario overrides, the API/SDK pins align with the shared reference pins. If the intent is only to switch exporters (http vs grpc), consider overriding only the exporter (and relying on shared for `opentelemetry-api`/`opentelemetry-sdk`) or document why re-pinning API/SDK here is needed; this reduces duplicated version management across scenarios.",
+      "created": "2026-07-21T09:43:37Z",
+      "hunk": "@@ -13,7 +13,7 @@ genai-reference-shared = { path = \"../../shared\", editable = true }\n [tool.uv]\n package = false\n override-dependencies = [\n-    \"opentelemetry-api==1.43.0\",\n-    \"opentelemetry-sdk==1.43.0\",\n-    \"opentelemetry-exporter-otlp-proto-http==1.43.0\",\n+    \"opentelemetry-api==1.44.0\",\n+    \"opentelemetry-sdk==1.44.0\",\n+    \"opentelemetry-exporter-otlp-proto-http==1.44.0\",",
+      "id": "PRRT_kwDOSUeMrM6ShygI",
+      "opened": "2026-07-21T09:43:37Z",
+      "path": "reference/scenarios/crewai/pyproject.toml",
+      "replies": [],
+      "reviewed": "6effcba8da1fde3429fc5c512a331ac7ae9eb070",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/391#discussion_r3621060660"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "02781c7e878de54c2b9322b2cb7502fafef74c5a",
+  "merge": "382c945b68ede07eed7d28c41a9c4399f4dc086c",
+  "merged": "2026-10-28T14:42:39Z",
+  "missing_roots": 0,
+  "number": 21040,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the two deprecated histogram API calls causing CI compilation failures in this PR, #21040. Update this PR directly; do not create a replacement or follow-up PR, modify other stack branches, rebase, or merge anything.\n\nThe downloaded CI bundle identifies :instrumentation-api-incubator:compileTestJava as the failure in both representative jobs 122609381542 and 122609381810. ErrorProne reports OtelDeprecatedApiUsage for Aggregation.explicitBucketHistogram(List<Double>) in RpcClientMetricsTest.java:165 and RpcServerMetricsTest.java:171. This PR removed the class-level deprecation suppressions but retained those pre-existing SDK calls.\n\nIn instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcClientMetricsTest.java and RpcServerMetricsTest.java, migrate the customViewOverridesBucketAdvice setup to Aggregation.explicitBucketHistogram(ExplicitBucketHistogramOptions.builder().setBucketBoundaries(asList(0.1, 0.2, 0.3)).build()), adding the io.opentelemetry.sdk.metrics.ExplicitBucketHistogramOptions import. This overload is supported by SDK 1.67.0 and preserves the existing boundaries and default behavior.\n\nKeep the fix limited to these two tests. Do not restore blanket deprecation suppressions, disable ErrorProne, change telemetry or expected values, address unrelated review threads, or change the PR's ready/draft state. Run the narrow instrumentation-api-incubator formatting task directly before validating compileTestJava and RpcClientMetricsTest/RpcServerMetricsTest with normal compiler checks enabled. Report actual results and any limitations.",
+      "created": "2026-10-28T04:55:20Z",
+      "hunk": "@@ -34,21 +30,15 @@\n import io.opentelemetry.sdk.metrics.InstrumentSelector;\n import io.opentelemetry.sdk.metrics.SdkMeterProvider;\n import io.opentelemetry.sdk.metrics.View;\n-import io.opentelemetry.sdk.metrics.data.MetricData;\n import io.opentelemetry.sdk.testing.exporter.InMemoryMetricReader;\n-import java.util.Collection;\n import org.junit.jupiter.api.Test;\n import org.junit.jupiter.api.extension.RegisterExtension;\n \n-@SuppressWarnings(\"deprecation\") // using deprecated semconv",
+      "id": "PRRT_kwDODJKVX86w_JOm",
+      "opened": "2026-10-28T04:55:20Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcClientMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-28T05:05:25Z",
+          "body": "Updated both RPC metric tests to use `ExplicitBucketHistogramOptions` with the same bucket boundaries. `spotlessJavaApply`, `compileTestJava`, and both targeted test classes passed with normal compiler checks enabled. Commit: `eebbae61`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21040#discussion_r4397062242"
+        }
+      ],
+      "reviewed": "82e63c883aa6694cd03d204e77cb64feae74317a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21040#discussion_r4397013283"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "shouldn't this go under `Breaking changes to non-stable APIs` (if it is worth mentioning at all). Also probably should be `Removed` instead of `Remove`.",
+      "created": "2026-10-28T08:24:39Z",
+      "hunk": "@@ -4,6 +4,7 @@\n \n ### ⚠️ Breaking changes\n \n+- Remove `SemconvRpcStabilityUtil` from the alpha `opentelemetry-testing-common` artifact.",
+      "id": "PRRT_kwDODJKVX86xCU2o",
+      "opened": "2026-10-28T08:24:39Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "78c4942dab606c4fa02b15d6819ac3f1e96b16e7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21040#discussion_r4398360942"
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d8b2bac3da5753c2b5a333c79b512436f0322a5d34949b76c37bc61ba4dab5d1",
+  "input_digest": "51c403b3c889456aefaf39393d0581c4ffd9b443cb195a3f8420e451b88fc913",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/12750bbd88aa65e0520cdc8c3efaa9c576200efc/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/TelemetryParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/12750bbd88aa65e0520cdc8c3efaa9c576200efc/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/TelemetryParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20054c2ca27ef811905884f42797dd4d38e52839/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/TelemetryParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20054c2ca27ef811905884f42797dd4d38e52839/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/TelemetryParserTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86sCPkt",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/12750bbd88aa65e0520cdc8c3efaa9c576200efc/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/TelemetryParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20054c2ca27ef811905884f42797dd4d38e52839/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/TelemetryParser.java"
+      ],
+      "id": "PRRT_kwDODJKVX86sCPle",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/12750bbd88aa65e0520cdc8c3efaa9c576200efc/instrumentation/jaxrs/jaxrs-1.0-annotations/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxrs/v1_0/JaxrsSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20054c2ca27ef811905884f42797dd4d38e52839/instrumentation/jaxrs/jaxrs-1.0-annotations/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxrs/v1_0/JaxrsSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86sCPmG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65ab84ae7efca1d58110393100b0abd5842fee16/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbConnectionPoolMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20054c2ca27ef811905884f42797dd4d38e52839/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbConnectionPoolMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b59e6dd28da4da8415cd0584b39a362594787f3d"
+      ],
+      "id": "PRRT_kwDODJKVX86sDoQt",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65ab84ae7efca1d58110393100b0abd5842fee16/instrumentation/jaxws/jaxws-2.0-cxf-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jaxws/v2_0/cxf/v3_0/CxfJaxWs2Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65ab84ae7efca1d58110393100b0abd5842fee16/instrumentation/jaxws/jaxws-2.0-common-testing/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxws/v2_0/AbstractJaxWs2Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65ab84ae7efca1d58110393100b0abd5842fee16/instrumentation/jaxws/jaxws-2.0-metro-2.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jaxws/v2_0/metro/v2_2/MetroJaxWs2Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/65ab84ae7efca1d58110393100b0abd5842fee16/instrumentation/jaxws/jaxws-2.0-axis2-1.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jaxws/v2_0/axis2/v1_6/Axis2JaxWs2Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20054c2ca27ef811905884f42797dd4d38e52839/instrumentation/jaxws/jaxws-2.0-cxf-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jaxws/v2_0/cxf/v3_0/CxfJaxWs2Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20054c2ca27ef811905884f42797dd4d38e52839/instrumentation/jaxws/jaxws-2.0-common-testing/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxws/v2_0/AbstractJaxWs2Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20054c2ca27ef811905884f42797dd4d38e52839/instrumentation/jaxws/jaxws-2.0-metro-2.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jaxws/v2_0/metro/v2_2/MetroJaxWs2Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20054c2ca27ef811905884f42797dd4d38e52839/instrumentation/jaxws/jaxws-2.0-axis2-1.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jaxws/v2_0/axis2/v1_6/Axis2JaxWs2Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ddb839ed03b8ee23750f11797555f7513ee222b5"
+      ],
+      "id": "PRRT_kwDODJKVX86sDuHF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

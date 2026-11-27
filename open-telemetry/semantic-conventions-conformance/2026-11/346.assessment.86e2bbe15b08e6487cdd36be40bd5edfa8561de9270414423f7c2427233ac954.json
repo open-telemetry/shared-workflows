@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "93d52551de62a9fcc209f898d7bf548319e0c02e2b68e03bdccbf378430474b4",
+  "input_digest": "86e2bbe15b08e6487cdd36be40bd5edfa8561de9270414423f7c2427233ac954",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b381c787e89ba9f00d423621485604696ca8bfae/tools/http/runner/tests/test_http_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/39a7e87302ef2b8e1cf0f62fd046d2021196ff75/tools/http/runner/tests/test_http_model.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/719677f2779477c71cfca97e8ed2d43f41710c49"
+      ],
+      "id": "PRRT_kwDOTuzK5c6z2XSM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b381c787e89ba9f00d423621485604696ca8bfae/tools/runner/src/opentelemetry/conformance/weaver-templates/coverage-model/weaver.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/39a7e87302ef2b8e1cf0f62fd046d2021196ff75/tools/runner/src/opentelemetry/conformance/weaver-templates/coverage-model/weaver.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/719677f2779477c71cfca97e8ed2d43f41710c49"
+      ],
+      "id": "PRRT_kwDOTuzK5c6z2XSQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

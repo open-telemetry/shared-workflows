@@ -1,0 +1,31 @@
+{
+  "head": "f1c20a118f5aaa258c58031b2c36a32aeceb2268",
+  "merge": "602b6f01a04c86c642ce3a0ca6e216a132f6303d",
+  "merged": "2026-09-21T07:38:33Z",
+  "missing_roots": 0,
+  "number": 20072,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] For Lettuce 4.0–4.1, this exit-only hook installs the configured target after connection initialization commands have already been dispatched. In 4.0, both `connectToNode` and `connectClusterImpl` call `connection.async().auth(...)` before returning, while the enter hook below only covers 4.2+. Password-protected cluster clients therefore produce stable `AUTH` spans without the configured server attributes. Please attach the client target on the connection before those commands are dispatched and add coverage for authenticated cluster initialization on an affected version.",
+      "created": "2026-09-11T02:09:32Z",
+      "hunk": "@@ -0,0 +1,90 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v4_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import com.lambdaworks.redis.RedisChannelHandler;\n+import com.lambdaworks.redis.RedisURI;\n+import com.lambdaworks.redis.cluster.RedisClusterClient;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class LettuceClusterClientInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.lambdaworks.redis.cluster.RedisClusterClient\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // Every constructor stores the seed URIs, but the constructor argument lists differ.\n+    transformer.applyAdviceToMethod(isConstructor(), getClass().getName() + \"$ConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"connectClusterImpl\")\n+            .and(\n+                returns(named(\"com.lambdaworks.redis.cluster.StatefulRedisClusterConnectionImpl\"))),\n+        getClass().getName() + \"$AttachConnectionAdvice\");\n+    // Lettuce 4.0-4.3 opens node connections through connectToNode.\n+    transformer.applyAdviceToMethod(\n+        named(\"connectToNode\")\n+            .and(takesArgument(0, named(\"com.lambdaworks.redis.codec.RedisCodec\")))\n+            .and(returns(named(\"com.lambdaworks.redis.api.StatefulRedisConnection\"))),\n+        getClass().getName() + \"$AttachConnectionAdvice\");",
+      "id": "PRRT_kwDODJKVX86hUNv7",
+      "opened": "2026-09-11T02:09:32Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceClusterClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-12T01:33:12Z",
+          "body": "Addressed in aeee1697417d098e98b2a015ab865d3467d4ad41.\n\nAnalysis: Lettuce 4.0 and 4.1 call AbstractRedisClient.connectAsyncImpl after creating each cluster connection and before dispatching AUTH. The new entry advice copies the configured seed target to both cluster and node connections before initialization commands run. The authenticated 4.0 test checks the stable AUTH span attributes.\n\nUpsides: AUTH spans now report the configured seed list, and one shared hook covers both affected connection paths.\n\nDownsides: Every Lettuce connection setup runs the advice, but non-cluster clients only perform an instanceof check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20072#discussion_r3994599753"
+        }
+      ],
+      "reviewed": "70fdfb9e6b6ff0c97f658220ecc47bcb34e0c1a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20072#discussion_r3985315683"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "fde19d0d813096e0f18c31519c00ec4f7f6eea75",
+  "merge": "c876f5490b084a94322e4ddaeb5ca0b9e2e4028c",
+  "merged": "2026-06-08T20:45:53Z",
+  "missing_roots": 0,
+  "number": 18934,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`SemconvStability.v3Preview()` is derived from `GlobalOpenTelemetry` declarative config, so it may not reflect the `openTelemetry` instance being configured here (and may not reflect the flat `otel.instrumentation.common.v3-preview` property in the standalone-library fallback path). That can cause the deprecated `otel.instrumentation.common.db-statement-sanitizer.enabled` fallback to still be consulted even when users believe v3-preview is enabled. Consider deriving `v3Preview` from the passed `openTelemetry` common config with a flat-property fallback, and use that boolean to decide whether to skip the deprecated key.",
+      "created": "2026-06-08T12:15:06Z",
+      "hunk": "@@ -52,8 +53,10 @@ static Instrumenter<DbRequest, Void> createStatementInstrumenter(\n             openTelemetry,\n             ConfigPropertiesUtil.getBoolean(\n                 \"otel.instrumentation.common.db.query-sanitization.enabled\",\n-                ConfigPropertiesUtil.getBoolean(\n-                    \"otel.instrumentation.common.db-statement-sanitizer.enabled\", true)));\n+                SemconvStability.v3Preview()\n+                    ? true\n+                    : ConfigPropertiesUtil.getBoolean(\n+                        \"otel.instrumentation.common.db-statement-sanitizer.enabled\", true)));",
+      "id": "PRRT_kwDODJKVX86H0jX4",
+      "opened": "2026-06-08T12:15:07Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-06-08T20:42:50Z",
+          "body": "This is a good point (or rather 2 points).\n\nSent this to address one:\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18936\n\nAnd additional this tracking issue for the other:\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/18938\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18934#discussion_r3376230452"
+        }
+      ],
+      "reviewed": "fde19d0d813096e0f18c31519c00ec4f7f6eea75",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18934#discussion_r3373093942"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getCommonQuerySanitizationEnabled()` already has access to the `commonConfig` derived from the passed `openTelemetry`, but it gates deprecated alias reads on `SemconvStability.v3Preview()` (which is computed from `GlobalOpenTelemetry`). This can diverge from the `openTelemetry` instance being queried and lead to deprecated aliases still being read even when `commonConfig` has `v3_preview` enabled. Prefer checking `commonConfig.getBoolean(\"v3_preview\", false)` here so the behavior is consistent with the provided `OpenTelemetry`.",
+      "created": "2026-06-08T12:15:07Z",
+      "hunk": "@@ -98,24 +99,26 @@ private static Boolean getCommonQuerySanitizationEnabled(OpenTelemetry openTelem\n       return value;\n     }\n \n-    // this variant was never a regular (non-declarative) configuration property name\n-    Boolean deprecatedStatementSanitizerValue =\n-        commonConfig.get(\"database\").get(\"statement_sanitizer\").getBoolean(\"enabled\");\n-    if (deprecatedStatementSanitizerValue != null) {\n-      warnIfDeprecatedDeclarativeConfigurationUsed(\n-          \"instrumentation/development: java: common: database: statement_sanitizer: enabled\",\n-          \"instrumentation/development: java: common: db: query_sanitization: enabled\");\n-      return deprecatedStatementSanitizerValue;\n-    }\n-\n-    // this variant was never a declarative configuration property name\n-    Boolean deprecatedStatementSanitizerPropertyValue =\n-        commonConfig.get(\"db_statement_sanitizer\").getBoolean(\"enabled\");\n-    if (deprecatedStatementSanitizerPropertyValue != null) {\n-      warnIfDeprecatedSystemPropertyUsed(\n-          \"otel.instrumentation.common.db-statement-sanitizer.enabled\",\n-          \"otel.instrumentation.common.db.query-sanitization.enabled\");\n-      return deprecatedStatementSanitizerPropertyValue;\n+    if (!SemconvStability.v3Preview()) {\n+      // this variant was never a regular (non-declarative) configuration property name\n+      Boolean deprecatedStatementSanitizerValue =\n+          commonConfig.get(\"database\").get(\"statement_sanitizer\").getBoolean(\"enabled\");\n+      if (deprecatedStatementSanitizerValue != null) {",
+      "id": "PRRT_kwDODJKVX86H0jYb",
+      "opened": "2026-06-08T12:15:07Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfig.java",
+      "replies": [],
+      "reviewed": "fde19d0d813096e0f18c31519c00ec4f7f6eea75",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18934#discussion_r3373093993"
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "head": "8e3bb54013a82a454dfc4da70ed3f1c59fe1e941",
+  "merge": "78e8115157cd4e6ad067e618be22e53aa3138fc1",
+  "merged": "2026-07-10T07:16:11Z",
+  "missing_roots": 0,
+  "number": 19082,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `@deprecated` tag points callers to `create()`, but `get()` returns `INSTANCE` (= `create(true)`), which still emits `process.command_args` / `process.command_line`. Migrating from `get()` to `create()` therefore silently drops the command-line attributes, since `create()` defaults to `create(false)`. Consider clarifying the Javadoc so callers who want the current behavior are pointed at `create(true)`, and those who want the new safer default understand the command attributes are omitted.",
+      "created": "2026-06-25T22:49:46Z",
+      "hunk": "@@ -39,32 +39,52 @@ public final class ProcessResource {\n   private static final Pattern SCRUB_PATTERN =\n       Pattern.compile(\"(-D.*(password|secret).*=).*\", Pattern.CASE_INSENSITIVE);\n \n-  private static final Resource INSTANCE = buildResource();\n+  private static final Resource INSTANCE = create(true);\n \n   /**\n    * Returns a factory for a {@link Resource} which provides information about the current running\n    * process.\n+   *\n+   * @deprecated Use {@link #create()} instead. Will be removed in 3.0.\n    */\n+  @Deprecated // to be removed in 3.0\n   public static Resource get() {\n     return INSTANCE;\n   }",
+      "id": "PRRT_kwDODJKVX86MYHwp",
+      "opened": "2026-06-25T22:49:46Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessResource.java",
+      "replies": [],
+      "reviewed": "1d9cb4249b7d0113eea51de51bc6f13092428be4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082#discussion_r3478133982"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The lambda ignores its config parameter `p` and unconditionally calls `create()`, so command attributes are always suppressed in declarative config mode. This means the option declared in `metadata.yaml` (`declarative_name: java.resources.process_command_attributes/development.enabled`) has no effect — a user cannot opt back in via declarative config, which is inconsistent with the autoconfigure `ProcessResourceProvider` path. Consider reading the declarative property from `p` to drive `ProcessResource.create(emitCommandAttributes)`, or removing the `declarative_name` from `metadata.yaml` if it is intentionally unsupported.",
+      "created": "2026-06-25T23:08:37Z",
+      "hunk": "@@ -20,6 +20,6 @@\n @AutoService(ComponentProvider.class)\n public class ProcessResourceComponentProvider extends ResourceComponentProvider {\n   public ProcessResourceComponentProvider() {\n-    super(\"process\", p -> ProcessResource.get().merge(ProcessRuntimeResource.get()));\n+    super(\"process\", p -> ProcessResource.create().merge(ProcessRuntimeResource.get()));",
+      "id": "PRRT_kwDODJKVX86MYSfs",
+      "opened": "2026-06-25T23:08:37Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/internal/ProcessResourceComponentProvider.java",
+      "replies": [
+        {
+          "at": "2026-06-25T23:34:32Z",
+          "body": "Removed the unsupported `declarative_name` from `instrumentation/resources/metadata.yaml` and added a comment explaining that declarative resource detection uses the separate process detector schema, which currently has no toggle for these attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082#discussion_r3478284056"
+        }
+      ],
+      "reviewed": "8353ec70dfd3ec1770a1a774dde91f54b83038fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082#discussion_r3478195789"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Grammatical error: 'isn't well document' should be 'isn't well documented'.",
+      "created": "2026-06-25T23:08:37Z",
+      "hunk": "@@ -90,42 +112,51 @@ private static Resource doBuildResource() {\n         executablePath.append(\".exe\");\n       }\n \n-      attributes.put(PROCESS_EXECUTABLE_PATH, executablePath.toString());\n-\n-      String[] args = ProcessArguments.getProcessArguments();\n-      // This will only work with Java 9+ and Linux but provides everything except the\n-      // executablePath.\n-      // Argument array may be empty on Java 9+ when the command line is too long, see\n-      // https://bugs.openjdk.org/browse/JDK-8345117\n-      if (args.length > 0) {\n-        List<String> commandArgs = new ArrayList<>(args.length + 1);\n-        commandArgs.add(executablePath.toString());\n-        for (String arg : args) {\n-          commandArgs.add(scrub(arg));\n-        }\n-        attributes.put(PROCESS_COMMAND_ARGS, commandArgs);\n-      } else { // Java 8 or Windows or long command line\n-        StringBuilder commandLine = new StringBuilder(executablePath);\n-        for (String arg : runtime.getInputArguments()) {\n-          commandLine.append(' ').append(scrub(arg));\n-        }\n-        // sun.java.command isn't well document and may not be available on all systems.\n-        String javaCommand = System.getProperty(\"sun.java.command\");\n-        if (javaCommand != null) {\n-          // This property doesn't include -jar when launching a jar directly.  Try to determine\n-          // if that's the case and add it back in.\n-          if (JAR_FILE_PATTERN.matcher(javaCommand).matches()) {\n-            commandLine.append(\" -jar\");\n-          }\n-          commandLine.append(' ').append(javaCommand);\n-        }\n-        attributes.put(PROCESS_COMMAND_LINE, commandLine.toString());\n+      String executablePathValue = executablePath.toString();\n+      attributes.put(PROCESS_EXECUTABLE_PATH, executablePathValue);\n+\n+      if (emitCommandAttributes) {\n+        addCommandAttributes(attributes, executablePathValue);\n       }\n     }\n \n     return Resource.create(attributes.build(), SchemaUrls.V1_24_0);\n   }\n \n+  private static void addCommandAttributes(AttributesBuilder attributes, String executablePath) {\n+    RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();\n+\n+    String[] args = ProcessArguments.getProcessArguments();\n+    // This will only work with Java 9+ and Linux but provides everything except the\n+    // executablePath.\n+    // Argument array may be empty on Java 9+ when the command line is too long, see\n+    // https://bugs.openjdk.org/browse/JDK-8345117\n+    if (args.length > 0) {\n+      List<String> commandArgs = new ArrayList<>(args.length + 1);\n+      commandArgs.add(executablePath);\n+      for (String arg : args) {\n+        commandArgs.add(scrub(arg));\n+      }\n+      attributes.put(PROCESS_COMMAND_ARGS, commandArgs);\n+    } else { // Java 8 or Windows or long command line\n+      StringBuilder commandLine = new StringBuilder(executablePath);\n+      for (String arg : runtime.getInputArguments()) {\n+        commandLine.append(' ').append(scrub(arg));\n+      }\n+      // sun.java.command isn't well document and may not be available on all systems.",
+      "id": "PRRT_kwDODJKVX86MYSgE",
+      "opened": "2026-06-25T23:08:37Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessResource.java",
+      "replies": [
+        {
+          "at": "2026-06-25T23:34:33Z",
+          "body": "Fixed the typo: `sun.java.command` is now described as not well documented.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082#discussion_r3478284112"
+        }
+      ],
+      "reviewed": "8353ec70dfd3ec1770a1a774dde91f54b83038fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082#discussion_r3478195815"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "declarative configuration no longer emits these attributes, related to https://github.com/open-telemetry/opentelemetry-configuration/issues/671",
+      "created": "2026-06-25T23:09:52Z",
+      "hunk": "@@ -67,12 +65,9 @@ void endToEnd() {\n               // OsResourceComponentProvider\n               assertThat(attributeKeys).contains(\"os.description\", \"os.type\");\n               // ProcessResourceComponentProvider\n-              assertThat(attributeKeys)\n-                  .contains(\n-                      java8 || OS.WINDOWS.isCurrentOs()\n-                          ? \"process.command_line\"\n-                          : \"process.command_args\");\n               assertThat(attributeKeys).contains(\"process.executable.path\", \"process.pid\");\n+              assertThat(attributeKeys)\n+                  .doesNotContain(\"process.command_args\", \"process.command_line\");",
+      "id": "PRRT_kwDODJKVX86MYTMr",
+      "opened": "2026-06-25T23:09:52Z",
+      "path": "instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/internal/ResourceDeclarativeConfigTest.java",
+      "replies": [],
+      "reviewed": "8353ec70dfd3ec1770a1a774dde91f54b83038fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082#discussion_r3478199772"
+    }
+  ]
+}

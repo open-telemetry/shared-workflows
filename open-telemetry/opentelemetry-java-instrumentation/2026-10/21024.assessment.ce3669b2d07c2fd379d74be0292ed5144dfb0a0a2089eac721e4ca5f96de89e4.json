@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "29c09e41b92df0aaafdd9da5368b5f82a1860a8fd66255cc43e210c961ec0596",
+  "input_digest": "ce3669b2d07c2fd379d74be0292ed5144dfb0a0a2089eac721e4ca5f96de89e4",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c729c00a332ff43b3ac06ab392d8d9994787791/instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55171b455c43a84319cbede4525b2264d2c097cb/instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86xrB3E",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c729c00a332ff43b3ac06ab392d8d9994787791/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/HttpExtServerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c729c00a332ff43b3ac06ab392d8d9994787791/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerHandlerWrapper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55171b455c43a84319cbede4525b2264d2c097cb/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/HttpExtServerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55171b455c43a84319cbede4525b2264d2c097cb/instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerHandlerWrapper.java"
+      ],
+      "id": "PRRT_kwDODJKVX86xrM0i",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

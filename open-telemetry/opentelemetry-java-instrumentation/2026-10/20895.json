@@ -1,0 +1,88 @@
+{
+  "head": "405da5285f4ed0be22adc757fbd4ef23590d7a71",
+  "merge": "60f314dfbc6b144fd5e35123e648acba7cc3279c",
+  "merged": "2026-10-27T15:19:11Z",
+  "missing_roots": 0,
+  "number": 20895,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to use the repository's conventional version-specific JvmTestSuite for the AsyncEventBus regression test instead of the feature-named testEventBus suite.\n\nThe user asked about versionXTest as an alternative to latest-dependency-only gating, and explicitly selected this change through /cloud. Keep EventBus coverage in normal check runs. Do not move it into the baseline test suite with a latest-dependencies-only condition.\n\nIn instrumentation/guava-10.0/javaagent/build.gradle.kts, replace testEventBus with a versionNNTest suite named for an intentional, verified Guava version boundary, and rename src/testEventBus to the matching src/versionNNTest source set. Establish the first Guava release where AsyncEventBusTest's context propagation works with the existing production ignore rules by inspecting the concrete upstream EventBus task implementation and validating the boundary. Older task classes are excluded by the current com.google.common ignore rules, while com.google.common.eventbus.Subscriber$ classes are allowed. Do not blindly name the suite after 33.7.2 merely because that was the old BOM version. Use the corresponding verified version as this suite's baseline and preserve the test's assertions unchanged. Follow existing version-suite dependency conventions; baseVersion(...).orLatest() is available when appropriate.\n\nKeep the suite wired into check. Keep the main Guava test and testExperimental suites on their declared 10.0 baseline in normal builds, with no new shared constraints or version overrides. Preserve this PR's Guava BOM removal and the explicit versions for the remaining direct consumers, and leave the lower PR #20889 and its Commons Lang cleanup untouched. Do not change production instrumentation or ignore rules, raise the main Guava baseline, weaken propagation assertions, or alter native stack membership.\n\nApply the narrowest relevant Spotless task immediately before behavior validation. Run targeted Guava baseline, experimental, and version-specific tests, confirm the resolved runtime versions, and provide the concrete evidence supporting the chosen boundary. Preserve this PR's existing draft state, head branch, and stacked base, and update it directly rather than creating a separate PR.",
+      "created": "2026-10-23T04:52:22Z",
+      "hunk": "@@ -28,6 +28,17 @@ dependencies {\n   testImplementation(\"io.opentelemetry:opentelemetry-extension-annotations\")\n }\n \n+testing {\n+  suites {\n+    // Older AsyncEventBus tasks are excluded by the agent's library ignore rules.\n+    register<JvmTestSuite>(\"testEventBus\") {",
+      "id": "PRRT_kwDODJKVX86veepL",
+      "opened": "2026-10-23T04:52:22Z",
+      "path": "instrumentation/guava-10.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-23T05:04:24Z",
+          "body": "Updated in d2d4ab97. `version19Test` keeps the unchanged context-propagation assertion wired into `check`; Guava 18.0 dispatches through ignored `AsyncEventBus$1`, while 19.0 dispatches through allowed `Subscriber$1`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20895#discussion_r4356280318"
+        }
+      ],
+      "reviewed": "11e6e0e8a5c71de66140e2b97a96987a0e023309",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20895#discussion_r4356207406"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the two old-Guava compilation failures exposed by this PR's BOM removal. Update this existing PR directly, without creating a separate PR.\n\nCI on head ea893834b4b1c5f983d8c97836cf46231c5c51d3 fails in instrumentation/cassandra/cassandra-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/TracingSession.java:53 and instrumentation/grpc-1.6/testing/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/AbstractGrpcTest.java:272. Both Futures.transform(input, lambda, executor) calls are ambiguous between the Function and AsyncFunction overloads in older Guava. The compiler additionally reports that the lambda's TracingSession or Response return value cannot be converted to ListenableFuture<O>.\n\nThe coordinator downloaded the deterministic CI failure bundle using .github/scripts/pr-triage/fix_ci.py 20895 --download-only. Representative Cassandra failure: https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/39903621143/job/120250526050 . The gRPC failure is in job 120250526290 of that run. Other downloaded build, smoke-test, examples, latest-dependency, and muzzle representative logs fail at one of these same compilation points. Cassandra driver 3.0.0 declares Guava 16.0.1 through its parent POM; grpc-core 1.6.0 declares Guava 19.0. The enforced modern Guava BOM previously masked this source incompatibility.\n\nDisambiguate both synchronous transforms by giving each lambda an explicit com.google.common.base.Function type, using the smallest clear type-safe change. Preserve the returned values, child-span creation, executor choice, and exception behavior. Do not switch to an asynchronous transform, change propagation assertions, or raise or force Guava versions to hide the incompatibility.\n\nKeep the enforced Guava BOM removed, existing intentional direct-consumer versions unchanged, both Guava instrumentation baselines at 10.0, and version19Test with baseVersion(\"19.0\").orLatest() wired into check. Preserve production ignore rules, the merged lower PR's Commons Lang work, this PR's draft state, head branch, and main base. Limit changes to these failures and tightly coupled necessary corrections.\n\nApply the narrowest relevant Spotless tasks immediately before validation. First run :instrumentation:cassandra:cassandra-3.0:javaagent:compileJava and :instrumentation:grpc-1.6:testing:compileJava without reintroducing the BOM, then run targeted tests for the affected Cassandra async initialization and gRPC future-stub propagation where feasible. Verify old-Guava compilation and preserved synchronous transform behavior. Do not run a repository-wide build or wait for CI.",
+      "created": "2026-10-23T05:38:09Z",
+      "hunk": "@@ -28,7 +28,6 @@ val DEPENDENCY_BOMS = listOf(\n   // even if they are only used by test dependencies, so not using junit bom since it is LGPL\n \n   \"com.fasterxml.jackson:jackson-bom:2.22.4\",\n-  \"com.google.guava:guava-bom:33.7.2-jre\",",
+      "id": "PRRT_kwDODJKVX86vfK3d",
+      "opened": "2026-10-23T05:38:09Z",
+      "path": "dependencyManagement/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-23T05:49:30Z",
+          "body": "Fixed in 405da528. Both callbacks now explicitly target Guava `Function`, preserving synchronous execution, returned values, child-span creation, and exception handling. Both compile tasks and the focused tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20895#discussion_r4356547546"
+        }
+      ],
+      "reviewed": "ea893834b4b1c5f983d8c97836cf46231c5c51d3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20895#discussion_r4356483478"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "These casts disambiguate the `Function` and `AsyncFunction` overloads of `Futures.transform` in older Guava versions now that the enforced Guava BOM is removed.",
+      "created": "2026-10-23T15:44:51Z",
+      "hunk": "@@ -52,7 +53,8 @@ public Session init() {\n   public ListenableFuture<Session> initAsync() {\n     return Futures.transform(\n         session.initAsync(),\n-        initializedSession -> new TracingSession(initializedSession, serverTarget),\n+        (Function<Session, Session>)\n+            initializedSession -> new TracingSession(initializedSession, serverTarget),",
+      "id": "PRRT_kwDODJKVX86vq3VA",
+      "opened": "2026-10-23T15:44:51Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/TracingSession.java",
+      "replies": [],
+      "reviewed": "405da5285f4ed0be22adc757fbd4ef23590d7a71",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20895#discussion_r4361386113"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "might have been easier to force guava version here to get the old versions",
+      "created": "2026-10-27T12:45:59Z",
+      "hunk": "@@ -28,6 +28,16 @@ dependencies {\n   testImplementation(\"io.opentelemetry:opentelemetry-extension-annotations\")\n }\n \n+testing {",
+      "id": "PRRT_kwDODJKVX86wsA4s",
+      "opened": "2026-10-27T12:45:59Z",
+      "path": "instrumentation/guava-10.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-27T15:18:55Z",
+          "body": "yeah, though it's nice to get dependencies that we instrument out of the bom",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20895#discussion_r4390520261"
+        }
+      ],
+      "reviewed": "405da5285f4ed0be22adc757fbd4ef23590d7a71",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20895#discussion_r4388812067"
+    }
+  ]
+}

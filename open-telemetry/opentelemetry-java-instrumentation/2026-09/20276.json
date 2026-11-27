@@ -1,0 +1,31 @@
+{
+  "head": "bae42bd6c6f4283fdace0eef99caad04451f9ea7",
+  "merge": "6c02c66ab6a3d02267c35172f49e4ebcb6f8771a",
+  "merged": "2026-09-26T21:37:05Z",
+  "missing_roots": 0,
+  "number": 20276,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This only caps the reusable image workflow, while several image-build jobs covered by the PR's stated scope still retain GitHub's 360-minute default: `pr-/publish-smoke-test-{fake-backend,early-jdk8}-images.yml`, `publish-smoke-test-servlet-images.yml`, and `publish-petclinic-benchmark-image.yml`. A hang in any of those jobs still incurs the cost this PR is intended to prevent; please add job-level timeouts to their build/publish jobs as well.",
+      "created": "2026-09-26T03:42:30Z",
+      "hunk": "@@ -30,6 +30,7 @@ permissions:\n jobs:\n   build:\n     runs-on: ubuntu-latest\n+    timeout-minutes: 60",
+      "id": "PRRT_kwDODJKVX86mNa38",
+      "opened": "2026-09-26T03:42:31Z",
+      "path": ".github/workflows/reusable-pr-smoke-test-images.yml",
+      "replies": [
+        {
+          "at": "2026-09-26T04:13:16Z",
+          "body": "Good catch. Added in 1a204f52e28e95b8f4b8fbbc847503d50aabc224: `pr-/publish-smoke-test-{fake-backend,early-jdk8}-images.yml` (60), `publish-smoke-test-servlet-images.yml` (`prepare` 10, `publish` 90 for the 13-cell Windows+Linux matrix), `publish-petclinic-benchmark-image.yml` (60), and the `publish-snapshots` job in `build-daily.yml` (60), which is a Gradle build in the same path.\n\nThe remaining jobs without a timeout are bot/automation/release-tooling workflows (issue labelling, renovate helpers, release prep, gh-aw agents); I've left those out as outside this PR's scope.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20276#discussion_r4110136727"
+        }
+      ],
+      "reviewed": "f424fbffc892572547f3509747a3a16055a440dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20276#discussion_r4110061637"
+    }
+  ]
+}

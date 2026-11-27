@@ -1,0 +1,83 @@
+{
+  "head": "818cee7b1cdd3fc945d83bbbc95b2d850adcc506",
+  "merge": "ff09e5fc234632b6c81a1180646539fa267e1192",
+  "merged": "2026-01-27T16:23:16Z",
+  "missing_roots": 0,
+  "number": 15936,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot is `testing.suites.named(\"version5TestStableSemconv\")` covered by `testing.suites`?",
+      "created": "2026-01-19T18:30:25Z",
+      "hunk": "@@ -106,6 +145,6 @@ tasks {\n   }\n \n   check {\n-    dependsOn(testing.suites, testStableSemconv, testExperimental)\n+    dependsOn(testing.suites, testStableSemconv, testExperimental, testing.suites.named(\"version5TestStableSemconv\"))",
+      "id": "PRRT_kwDODJKVX85qCsaO",
+      "opened": "2026-01-19T18:32:06Z",
+      "path": "instrumentation/hibernate/hibernate-4.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-01-19T18:39:19Z",
+          "body": "Yes, `testing.suites` includes all test suites registered in the `testing.suites` block, so the explicit `testing.suites.named(\"version5TestStableSemconv\")` was redundant. Removed in 6f9c7f0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15936#discussion_r2705781849"
+        }
+      ],
+      "reviewed": "578a5bf1b409923f63b6e1698f8d8a62d26286d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15936#discussion_r2705765205"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot is `testing.suites.named(\"...\")` covered by `testing.suites`?",
+      "created": "2026-01-19T18:31:03Z",
+      "hunk": "@@ -109,6 +173,12 @@ tasks {\n   }\n \n   check {\n-    dependsOn(testing.suites, testStableSemconv, testExperimental)\n+    dependsOn(\n+      testing.suites,\n+      testStableSemconv,\n+      testExperimental,\n+      testing.suites.named(\"hibernate6TestStableSemconv\"),\n+      testing.suites.named(\"hibernate7TestStableSemconv\")",
+      "id": "PRRT_kwDODJKVX85qCsqD",
+      "opened": "2026-01-19T18:32:06Z",
+      "path": "instrumentation/hibernate/hibernate-6.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-01-19T18:39:19Z",
+          "body": "Yes, `testing.suites` covers all suites registered in the testing block. Removed the redundant named references in 6f9c7f0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15936#discussion_r2705781847"
+        }
+      ],
+      "reviewed": "578a5bf1b409923f63b6e1698f8d8a62d26286d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15936#discussion_r2705766489"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot is there a way to avoid the duplication between *Test and *TestStableSemconv test suites?",
+      "created": "2026-01-19T18:32:03Z",
+      "hunk": "@@ -72,6 +72,101 @@ testing {\n         compileOnly(\"io.vertx:vertx-codegen:4.4.2\")\n       }\n     }\n+\n+    val hibernateReactive1TestStableSemconv by registering(JvmTestSuite::class) {\n+      sources {\n+        java {\n+          setSrcDirs(listOf(\"src/hibernateReactive1Test/java\"))\n+        }\n+        resources {\n+          setSrcDirs(listOf(\"src/hibernateReactive1Test/resources\"))\n+        }\n+      }\n+\n+      dependencies {\n+        implementation(\"org.testcontainers:testcontainers\")\n+        if (latestDepTest) {\n+          implementation(\"org.hibernate.reactive:hibernate-reactive-core:1.+\")\n+          implementation(\"io.vertx:vertx-pg-client:4.+\")\n+        } else {\n+          implementation(\"org.hibernate.reactive:hibernate-reactive-core:1.0.0.Final\")\n+          implementation(\"io.vertx:vertx-pg-client:4.1.5\")\n+        }\n+        compileOnly(\"io.vertx:vertx-codegen:4.1.5\")\n+      }\n+\n+      targets {\n+        all {\n+          testTask.configure {\n+            jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+          }\n+        }\n+      }\n+    }\n+\n+    val hibernateReactive2TestStableSemconv by registering(JvmTestSuite::class) {",
+      "id": "PRRT_kwDODJKVX85qCtDo",
+      "opened": "2026-01-19T18:32:06Z",
+      "path": "instrumentation/hibernate/hibernate-reactive-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-01-19T18:39:20Z",
+          "body": "Yes, I've extracted the common dependency configuration into helper extension functions (`configureReactive1Dependencies()`, `configureReactive2Dependencies()`, `configureReactive4Dependencies()`) that are now shared between the base test suites and their stable semconv variants. This reduces the duplication significantly. See 6f9c7f0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15936#discussion_r2705781872"
+        },
+        {
+          "at": "2026-01-19T18:52:51Z",
+          "body": "@copilot what about this instead. if it works, apply to all 3 gradle files in this PR\n\n```\n  val stableSemconvSuites = testing.suites.withType(JvmTestSuite::class).map { suite ->\n    register<Test>(\"${suite.name}StableSemconv\") {\n      testClassesDirs = suite.sources.output.classesDirs\n      classpath = suite.sources.runtimeClasspath\n\n      jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n    }\n  }\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15936#discussion_r2705808139"
+        },
+        {
+          "at": "2026-01-19T19:16:54Z",
+          "body": "Applied the suggested approach to all 3 files in c19cf74. This completely eliminates duplication - Test tasks now reference compiled classes from JvmTestSuites using `suite.sources.output.classesDirs` and `suite.sources.runtimeClasspath`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15936#discussion_r2705853050"
+        }
+      ],
+      "reviewed": "578a5bf1b409923f63b6e1698f8d8a62d26286d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15936#discussion_r2705768519"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ffae998395d25ec5e138285a0ff0595c6838a01315392ca482b0eb8cff077393",
+  "input_digest": "fe2f433f31873b5678674d5610a0c716ef701d95b8735860e47fc9e000d465e4",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/169c57100438ba9548330d769aefa72716becc4a/scenarios/gen-ai/python/llama-index/scenarios/workflow.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ae9613fc3400efd584447d529f0ba6c27f216893/scenarios/gen-ai/python/llama-index/scenarios/workflow.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/d221ac5aced997d621aaf4a880a35530c2bfe5ff"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dVV8C",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/39c8a2fcd31269494a77f09eddb4e0eced7cb0ac/scenarios/gen-ai/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ae9613fc3400efd584447d529f0ba6c27f216893/scenarios/gen-ai/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/a006c77d775d0a816892c4283b63f8362422975d"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dV_mk",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

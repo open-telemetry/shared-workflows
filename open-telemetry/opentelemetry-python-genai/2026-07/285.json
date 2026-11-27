@@ -1,0 +1,106 @@
+{
+  "head": "a6ef098bbcdb80358fb8933a553636719dc9d45d",
+  "merge": "a776131c83462c536f51021f2a8af0663919d9c9",
+  "merged": "2026-07-30T03:57:19Z",
+  "missing_roots": 0,
+  "number": 285,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `apply` job has no way to know whether the `generate` job produced a patch artifact, so it will still run (and attempt to download an artifact) even when no policies changed. Expose `create-patch`'s result as a job output so downstream jobs can skip entirely when nothing was generated.",
+      "created": "2026-07-18T21:40:33Z",
+      "hunk": "@@ -0,0 +1,120 @@\n+name: Auto conformance policies\n+\n+# Keeps the committed conformance policies (policies/genai_span_validation.rego\n+# and policies/_schemas.rego) in sync when Renovate bumps SEMCONV_GENAI_REF or\n+# WEAVER_VERSION in versions.env. Renovate's postUpgradeTasks only run on\n+# self-hosted Renovate, so we regenerate here instead and push the result back\n+# to the Renovate branch. Mirrors opentelemetry-java-instrumentation's\n+# auto-license-report workflow.\n+on:\n+  push:\n+    branches:\n+      - 'renovate/**'\n+    paths:\n+      - 'versions.env'\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.ref }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  generate:\n+    runs-on: ubuntu-latest\n+    steps:",
+      "id": "PRRT_kwDOSbspP86SBibH",
+      "opened": "2026-07-18T21:40:33Z",
+      "path": ".github/workflows/auto-conformance-policies.yml",
+      "replies": [],
+      "reviewed": "99adab10a8dfe001eb5b83bff9de48a585e5384b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/285#discussion_r3609243725"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This job should be skipped when `generate` didn't produce a patch (otherwise it will try to download a non-existent artifact and fail the workflow). Gate the `apply` job on the `generate` job output.",
+      "created": "2026-07-18T21:40:33Z",
+      "hunk": "@@ -0,0 +1,120 @@\n+name: Auto conformance policies\n+\n+# Keeps the committed conformance policies (policies/genai_span_validation.rego\n+# and policies/_schemas.rego) in sync when Renovate bumps SEMCONV_GENAI_REF or\n+# WEAVER_VERSION in versions.env. Renovate's postUpgradeTasks only run on\n+# self-hosted Renovate, so we regenerate here instead and push the result back\n+# to the Renovate branch. Mirrors opentelemetry-java-instrumentation's\n+# auto-license-report workflow.\n+on:\n+  push:\n+    branches:\n+      - 'renovate/**'\n+    paths:\n+      - 'versions.env'\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.ref }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  generate:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+\n+      - name: Set up Python\n+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0\n+        with:\n+          python-version: \"3.14\"\n+\n+      - name: Set up uv\n+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2\n+\n+      - name: Read pinned weaver version\n+        id: versions\n+        run: |\n+          # shellcheck disable=SC2002\n+          cat versions.env | grep -E '^WEAVER_VERSION=' >> \"$GITHUB_OUTPUT\"\n+\n+      - name: Install weaver ${{ steps.versions.outputs.WEAVER_VERSION }}\n+        env:\n+          WEAVER_VERSION: ${{ steps.versions.outputs.WEAVER_VERSION }}\n+        run: |\n+          WEAVER_ASSET=\"weaver-x86_64-unknown-linux-gnu\"\n+          WEAVER_URL=\"https://github.com/open-telemetry/weaver/releases/download/${WEAVER_VERSION}/${WEAVER_ASSET}.tar.xz\"\n+          curl -sSL \"$WEAVER_URL\" | tar -xJ -C /tmp \"${WEAVER_ASSET}/weaver\"\n+          sudo mv \"/tmp/${WEAVER_ASSET}/weaver\" /usr/local/bin/weaver\n+          weaver --version\n+\n+      - name: Provision semconv registry\n+        run: |\n+          uv sync --frozen --all-packages\n+          uv run python -c \"from opentelemetry.test_util_genai import _setup_weaver; _setup_weaver.semconv_registry()\"\n+\n+      - name: Regenerate conformance policies\n+        run: make generate-conformance-policies\n+\n+      - id: create-patch\n+        name: Create patch file\n+        run: |\n+          git add -N --ignore-removal policies\n+          git diff > patch\n+          if [ -s patch ]; then\n+            echo \"exists=true\" >> \"$GITHUB_OUTPUT\"\n+          fi\n+\n+      - name: Upload patch file\n+        if: steps.create-patch.outputs.exists == 'true'\n+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1\n+        with:\n+          path: patch\n+          name: patch\n+\n+  # Separate job to isolate the OTELBOT private key: job `generate` runs weaver\n+  # against freshly-fetched semconv content and never sees the push credential;\n+  # this job runs no untrusted code, only `git apply` of the produced patch.\n+  apply:\n+    runs-on: ubuntu-latest\n+    needs: generate\n+    steps:",
+      "id": "PRRT_kwDOSbspP86SBibR",
+      "opened": "2026-07-18T21:40:33Z",
+      "path": ".github/workflows/auto-conformance-policies.yml",
+      "replies": [],
+      "reviewed": "99adab10a8dfe001eb5b83bff9de48a585e5384b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/285#discussion_r3609243736"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`actions/download-artifact` is missing the `name:` input. Without it, the action extracts artifacts into per-artifact subdirectories, so `${{ runner.temp }}/patch` (and the `-f patch` check) won't point at the downloaded file. Specify `name: patch` so the artifact is extracted directly into `runner.temp` as `patch`.",
+      "created": "2026-07-18T21:40:33Z",
+      "hunk": "@@ -0,0 +1,120 @@\n+name: Auto conformance policies\n+\n+# Keeps the committed conformance policies (policies/genai_span_validation.rego\n+# and policies/_schemas.rego) in sync when Renovate bumps SEMCONV_GENAI_REF or\n+# WEAVER_VERSION in versions.env. Renovate's postUpgradeTasks only run on\n+# self-hosted Renovate, so we regenerate here instead and push the result back\n+# to the Renovate branch. Mirrors opentelemetry-java-instrumentation's\n+# auto-license-report workflow.\n+on:\n+  push:\n+    branches:\n+      - 'renovate/**'\n+    paths:\n+      - 'versions.env'\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.ref }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  generate:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+\n+      - name: Set up Python\n+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0\n+        with:\n+          python-version: \"3.14\"\n+\n+      - name: Set up uv\n+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2\n+\n+      - name: Read pinned weaver version\n+        id: versions\n+        run: |\n+          # shellcheck disable=SC2002\n+          cat versions.env | grep -E '^WEAVER_VERSION=' >> \"$GITHUB_OUTPUT\"\n+\n+      - name: Install weaver ${{ steps.versions.outputs.WEAVER_VERSION }}\n+        env:\n+          WEAVER_VERSION: ${{ steps.versions.outputs.WEAVER_VERSION }}\n+        run: |\n+          WEAVER_ASSET=\"weaver-x86_64-unknown-linux-gnu\"\n+          WEAVER_URL=\"https://github.com/open-telemetry/weaver/releases/download/${WEAVER_VERSION}/${WEAVER_ASSET}.tar.xz\"\n+          curl -sSL \"$WEAVER_URL\" | tar -xJ -C /tmp \"${WEAVER_ASSET}/weaver\"\n+          sudo mv \"/tmp/${WEAVER_ASSET}/weaver\" /usr/local/bin/weaver\n+          weaver --version\n+\n+      - name: Provision semconv registry\n+        run: |\n+          uv sync --frozen --all-packages\n+          uv run python -c \"from opentelemetry.test_util_genai import _setup_weaver; _setup_weaver.semconv_registry()\"\n+\n+      - name: Regenerate conformance policies\n+        run: make generate-conformance-policies\n+\n+      - id: create-patch\n+        name: Create patch file\n+        run: |\n+          git add -N --ignore-removal policies\n+          git diff > patch\n+          if [ -s patch ]; then\n+            echo \"exists=true\" >> \"$GITHUB_OUTPUT\"\n+          fi\n+\n+      - name: Upload patch file\n+        if: steps.create-patch.outputs.exists == 'true'\n+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1\n+        with:\n+          path: patch\n+          name: patch\n+\n+  # Separate job to isolate the OTELBOT private key: job `generate` runs weaver\n+  # against freshly-fetched semconv content and never sees the push credential;\n+  # this job runs no untrusted code, only `git apply` of the produced patch.\n+  apply:\n+    runs-on: ubuntu-latest\n+    needs: generate\n+    steps:\n+      - name: Download patch\n+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n+        with:\n+          path: ${{ runner.temp }}\n+",
+      "id": "PRRT_kwDOSbspP86SBibS",
+      "opened": "2026-07-18T21:40:33Z",
+      "path": ".github/workflows/auto-conformance-policies.yml",
+      "replies": [],
+      "reviewed": "99adab10a8dfe001eb5b83bff9de48a585e5384b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/285#discussion_r3609243738"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this won't be necessary with next weaver release https://github.com/open-telemetry/weaver/pull/1539, will address in a follow up",
+      "created": "2026-07-18T21:45:09Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86SBjkt",
+      "opened": "2026-07-18T21:45:09Z",
+      "path": "policies/_schemas.rego",
+      "replies": [
+        {
+          "at": "2026-07-30T03:54:55Z",
+          "body": "we have new weaver, so this is removed ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/285#discussion_r3679832543"
+        }
+      ],
+      "reviewed": "57caa9badb226b7d0afd5eb082dedc88f67a59ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/285#discussion_r3609250263"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `apply` job checks out the Renovate branch with a GitHub App token and then executes `.github/scripts/use-cla-approved-github-bot.sh` from that branch. That contradicts the job’s intent of running no untrusted code and can leak the push credential if a `renovate/**` branch is ever compromised. Inline the two `git config` commands instead of running a repo script.",
+      "created": "2026-07-20T23:54:48Z",
+      "hunk": "@@ -0,0 +1,112 @@\n+name: Auto conformance policies\n+\n+# Keeps the committed conformance policies (policies/genai_span_validation.rego\n+# and policies/_schemas.rego) in sync when Renovate bumps SEMCONV_GENAI_REF or\n+# WEAVER_VERSION in versions.env. Renovate's postUpgradeTasks only run on\n+# self-hosted Renovate, so we regenerate here instead and push the result back\n+# to the Renovate branch. Mirrors opentelemetry-java-instrumentation's\n+# auto-license-report workflow.\n+on:\n+  push:\n+    branches:\n+      - 'renovate/**'\n+    paths:\n+      - 'versions.env'\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.ref }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  generate:\n+    runs-on: ubuntu-latest\n+    outputs:\n+      patch: ${{ steps.create-patch.outputs.exists }}\n+    steps:\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+\n+      - name: Set up Python\n+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0\n+        with:\n+          python-version: \"3.14\"\n+\n+      - name: Set up uv\n+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2\n+\n+      - name: Read pinned weaver version\n+        id: versions\n+        run: |\n+          # shellcheck disable=SC2002\n+          cat versions.env | grep -E '^WEAVER_VERSION=' >> \"$GITHUB_OUTPUT\"\n+\n+      - name: Install weaver ${{ steps.versions.outputs.WEAVER_VERSION }}\n+        env:\n+          WEAVER_VERSION: ${{ steps.versions.outputs.WEAVER_VERSION }}\n+        run: |\n+          WEAVER_ASSET=\"weaver-x86_64-unknown-linux-gnu\"\n+          WEAVER_URL=\"https://github.com/open-telemetry/weaver/releases/download/${WEAVER_VERSION}/${WEAVER_ASSET}.tar.xz\"\n+          curl -sSL \"$WEAVER_URL\" | tar -xJ -C /tmp \"${WEAVER_ASSET}/weaver\"\n+          sudo mv \"/tmp/${WEAVER_ASSET}/weaver\" /usr/local/bin/weaver\n+          weaver --version\n+\n+      - name: Provision semconv registry\n+        run: |\n+          uv sync --frozen --all-packages\n+          uv run python -c \"from opentelemetry.test_util_genai import _setup_weaver; _setup_weaver.semconv_registry()\"\n+\n+      - name: Regenerate conformance policies\n+        run: make generate-conformance-policies\n+\n+      - id: create-patch\n+        name: Create patch file\n+        run: |\n+          git add -N --ignore-removal policies\n+          git diff > patch\n+          if [ -s patch ]; then\n+            echo \"exists=true\" >> \"$GITHUB_OUTPUT\"\n+          fi\n+\n+      - name: Upload patch file\n+        if: steps.create-patch.outputs.exists == 'true'\n+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1\n+        with:\n+          path: patch\n+          name: patch\n+\n+  # Separate job to isolate the OTELBOT private key: job `generate` runs weaver\n+  # against freshly-fetched semconv content and never sees the push credential;\n+  # this job runs no untrusted code, only `git apply` of the produced patch.\n+  apply:\n+    runs-on: ubuntu-latest\n+    needs: generate\n+    if: needs.generate.outputs.patch == 'true'\n+    steps:\n+      - name: Download patch\n+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n+        with:\n+          name: patch\n+          path: ${{ runner.temp }}\n+\n+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0\n+        id: otelbot-token\n+        with:\n+          client-id: ${{ vars.OTELBOT_CLIENT_ID }}\n+          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}\n+\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          ref: ${{ github.ref_name }}\n+          token: ${{ steps.otelbot-token.outputs.token }}\n+\n+      - name: Configure CLA-approved git bot\n+        run: .github/scripts/use-cla-approved-github-bot.sh",
+      "id": "PRRT_kwDOSbspP86SakHm",
+      "opened": "2026-07-20T23:54:49Z",
+      "path": ".github/workflows/auto-conformance-policies.yml",
+      "replies": [],
+      "reviewed": "7438a1a0d11f578426e01bfad9261a65a1cfc338",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/285#discussion_r3618347531"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`git diff > patch` can include changes outside `policies/` if anything else modifies tracked files during the `generate` job. Since the `apply` job is intended to only replay policy updates, restrict the patch generation to the `policies/` pathspec.",
+      "created": "2026-07-20T23:54:48Z",
+      "hunk": "@@ -0,0 +1,112 @@\n+name: Auto conformance policies\n+\n+# Keeps the committed conformance policies (policies/genai_span_validation.rego\n+# and policies/_schemas.rego) in sync when Renovate bumps SEMCONV_GENAI_REF or\n+# WEAVER_VERSION in versions.env. Renovate's postUpgradeTasks only run on\n+# self-hosted Renovate, so we regenerate here instead and push the result back\n+# to the Renovate branch. Mirrors opentelemetry-java-instrumentation's\n+# auto-license-report workflow.\n+on:\n+  push:\n+    branches:\n+      - 'renovate/**'\n+    paths:\n+      - 'versions.env'\n+\n+concurrency:\n+  group: ${{ github.workflow }}-${{ github.ref }}\n+  cancel-in-progress: true\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  generate:\n+    runs-on: ubuntu-latest\n+    outputs:\n+      patch: ${{ steps.create-patch.outputs.exists }}\n+    steps:\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+\n+      - name: Set up Python\n+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0\n+        with:\n+          python-version: \"3.14\"\n+\n+      - name: Set up uv\n+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2\n+\n+      - name: Read pinned weaver version\n+        id: versions\n+        run: |\n+          # shellcheck disable=SC2002\n+          cat versions.env | grep -E '^WEAVER_VERSION=' >> \"$GITHUB_OUTPUT\"\n+\n+      - name: Install weaver ${{ steps.versions.outputs.WEAVER_VERSION }}\n+        env:\n+          WEAVER_VERSION: ${{ steps.versions.outputs.WEAVER_VERSION }}\n+        run: |\n+          WEAVER_ASSET=\"weaver-x86_64-unknown-linux-gnu\"\n+          WEAVER_URL=\"https://github.com/open-telemetry/weaver/releases/download/${WEAVER_VERSION}/${WEAVER_ASSET}.tar.xz\"\n+          curl -sSL \"$WEAVER_URL\" | tar -xJ -C /tmp \"${WEAVER_ASSET}/weaver\"\n+          sudo mv \"/tmp/${WEAVER_ASSET}/weaver\" /usr/local/bin/weaver\n+          weaver --version\n+\n+      - name: Provision semconv registry\n+        run: |\n+          uv sync --frozen --all-packages\n+          uv run python -c \"from opentelemetry.test_util_genai import _setup_weaver; _setup_weaver.semconv_registry()\"\n+\n+      - name: Regenerate conformance policies\n+        run: make generate-conformance-policies\n+\n+      - id: create-patch\n+        name: Create patch file\n+        run: |\n+          git add -N --ignore-removal policies\n+          git diff > patch",
+      "id": "PRRT_kwDOSbspP86SakIQ",
+      "opened": "2026-07-20T23:54:49Z",
+      "path": ".github/workflows/auto-conformance-policies.yml",
+      "replies": [],
+      "reviewed": "7438a1a0d11f578426e01bfad9261a65a1cfc338",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/285#discussion_r3618347581"
+    }
+  ]
+}

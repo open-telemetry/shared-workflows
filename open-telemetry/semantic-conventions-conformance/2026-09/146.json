@@ -1,0 +1,52 @@
+{
+  "head": "f287a298af9ac92e3bc73bcf784d21961836a0b3",
+  "merge": "ffd0843d2ace1db209c776e4f6be624ec8316bb9",
+  "merged": "2026-09-10T00:26:59Z",
+  "missing_roots": 0,
+  "number": 146,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This unbounded `Future.get()` can leave the new Ratpack library scenario hung forever when the mock server accepts a request but never completes it. Honor `HttpClientWorkload.REQUEST_TIMEOUT`, as the other asynchronous Java client workloads do, so the run fails deterministically.",
+      "created": "2026-08-31T03:34:17Z",
+      "hunk": "@@ -26,33 +33,84 @@ public static void run() throws Exception {\n       HttpClientWorkload.drive(\n           ScenarioEnvironment.require(\"MOCK_SERVER_URL\"),\n           (method, url, body) ->\n-              harness\n-                  .yield(\n-                      execution ->\n-                          client\n-                              .request(\n-                                  URI.create(url),\n-                                  request -> {\n-                                    request.method(method);\n-                                    request.headers(\n-                                        headers -> {\n-                                          headers.set(\"user-agent\", HttpContract.USER_AGENT);\n-                                          if (body != null) {\n-                                            headers.set(\"content-type\", HttpContract.CONTENT_TYPE);\n-                                          }\n-                                        });\n-                                    if (body != null) {\n-                                      request.body(content -> content.text(body));\n-                                    }\n-                                  })\n-                              // Read inside the execution: the buffer backing the response is\n-                              // released as soon as it ends.\n-                              .map(\n-                                  response ->\n-                                      new HttpContract.Response(\n-                                          response.getStatus().getCode(),\n-                                          response.getBody().getText())))\n-                  .getValueOrThrow());\n+              harness.yield(execution -> request(client, method, url, body)).getValueOrThrow());\n     }\n   }\n+\n+  public static void run(ClientInstrumenter instrumenter, ExecInitializer execInitializer)\n+      throws Exception {\n+    RatpackServer server =\n+        RatpackServer.of(\n+            definition -> {\n+              definition.serverConfig(\n+                  config -> config.port(0).address(InetAddress.getByName(\"127.0.0.1\")));\n+              definition.registryOf(registry -> registry.add(execInitializer));\n+              definition.handlers(chain -> {});\n+            });\n+    server.start();\n+    try {\n+      ExecController controller =\n+          server\n+              .getRegistry()\n+              .orElseThrow(() -> new IllegalStateException(\"Ratpack server did not start\"))\n+              .get(ExecController.class);\n+      CompletableFuture<HttpClient> instrumentedClient = new CompletableFuture<>();\n+      controller\n+          .fork()\n+          .onError(instrumentedClient::completeExceptionally)\n+          .start(\n+              execution ->\n+                  instrumentedClient.complete(\n+                      instrumenter.instrument(HttpClient.of(Action.noop()))));\n+      try (HttpClient client = instrumentedClient.get()) {\n+        HttpClientWorkload.drive(\n+            ScenarioEnvironment.require(\"MOCK_SERVER_URL\"),\n+            (method, url, body) -> request(controller, client, method, url, body));\n+      }\n+    } finally {\n+      server.stop();\n+    }\n+  }\n+\n+  private static HttpContract.Response request(\n+      ExecController controller, HttpClient client, String method, String url, String body)\n+      throws Exception {\n+    CompletableFuture<HttpContract.Response> result = new CompletableFuture<>();\n+    controller\n+        .fork()\n+        .onError(result::completeExceptionally)\n+        .start(execution -> request(client, method, url, body).then(result::complete));\n+    return result.get();",
+      "id": "PRRT_kwDOTuzK5c6dmlcq",
+      "opened": "2026-08-31T03:34:18Z",
+      "path": "scenarios/http/java/ratpack/scenarios/src/main/java/io/opentelemetry/conformance/http/ratpack/RatpackClientScenario.java",
+      "replies": [
+        {
+          "at": "2026-08-31T03:39:46Z",
+          "body": "Addressed in 0355b86e5be2fe34abc30056649855adcaf956b5.\n\nAnalysis: The Ratpack library path waited on its response future without a deadline. Spring's default request factory also leaves connect and read timeouts unbounded. Both clients now use `HttpClientWorkload.REQUEST_TIMEOUT` at the layer that can block.\n\nUpsides: Stalled Ratpack responses and Spring connections or reads now fail within the shared request limit. Conformance runs fail with a useful timeout instead of hanging.\n\nDownsides: Requests that exceed the shared timeout now fail even if they would eventually complete.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/146#discussion_r3891546286"
+        }
+      ],
+      "reviewed": "43ff63b0b5b27a8e6e8df829cb0e4a5eb1f96200",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/146#discussion_r3891526817"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`RestTemplate` uses `SimpleClientHttpRequestFactory` with unset connect/read timeouts here, so a stalled mock server can block this conformance scenario indefinitely even though `HttpClientWorkload.REQUEST_TIMEOUT` defines the maximum per-request wait. Configure both timeouts on the request factory before constructing the template.",
+      "created": "2026-08-31T03:34:18Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+package io.opentelemetry.conformance.http.springweb;\n+\n+import io.opentelemetry.conformance.http.HttpClientWorkload;\n+import io.opentelemetry.conformance.http.HttpContract;\n+import io.opentelemetry.conformance.scenario.ScenarioEnvironment;\n+import java.util.function.Consumer;\n+import org.springframework.http.HttpEntity;\n+import org.springframework.http.HttpHeaders;\n+import org.springframework.http.HttpMethod;\n+import org.springframework.http.ResponseEntity;\n+import org.springframework.web.client.RestTemplate;\n+\n+/** Runs the shared request contract through a Spring {@link RestTemplate}. */\n+public final class SpringWebClientScenario {\n+  private SpringWebClientScenario() {}\n+\n+  public static void run(Consumer<RestTemplate> configureTelemetry) throws Exception {\n+    RestTemplate restTemplate = new RestTemplate();\n+    restTemplate.setErrorHandler(response -> false);\n+    configureTelemetry.accept(restTemplate);",
+      "id": "PRRT_kwDOTuzK5c6dmlc9",
+      "opened": "2026-08-31T03:34:18Z",
+      "path": "scenarios/http/java/spring-web/scenarios/src/main/java/io/opentelemetry/conformance/http/springweb/SpringWebClientScenario.java",
+      "replies": [
+        {
+          "at": "2026-08-31T03:39:48Z",
+          "body": "Addressed in 0355b86e5be2fe34abc30056649855adcaf956b5.\n\nAnalysis: The Ratpack library path waited on its response future without a deadline. Spring's default request factory also leaves connect and read timeouts unbounded. Both clients now use `HttpClientWorkload.REQUEST_TIMEOUT` at the layer that can block.\n\nUpsides: Stalled Ratpack responses and Spring connections or reads now fail within the shared request limit. Conformance runs fail with a useful timeout instead of hanging.\n\nDownsides: Requests that exceed the shared timeout now fail even if they would eventually complete.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/146#discussion_r3891546366"
+        }
+      ],
+      "reviewed": "43ff63b0b5b27a8e6e8df829cb0e4a5eb1f96200",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/146#discussion_r3891526841"
+    }
+  ]
+}

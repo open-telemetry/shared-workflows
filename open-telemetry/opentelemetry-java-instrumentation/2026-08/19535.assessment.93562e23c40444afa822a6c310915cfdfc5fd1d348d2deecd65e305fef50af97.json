@@ -1,0 +1,36 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "07a4a7236f3e500b50db42de13736c95c5bc21ee0cfa3ac05ff89ef14a119eca",
+  "input_digest": "93562e23c40444afa822a6c310915cfdfc5fd1d348d2deecd65e305fef50af97",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX86Y99c-",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5445e2080a62991ba015531a1f4ce421e88e1426/instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/BasePulsarRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/08334847891076f0dc3979a2437416ab97f5a445/instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/BasePulsarRequest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZBlAr",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5445e2080a62991ba015531a1f4ce421e88e1426/instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/BasePulsarRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/08334847891076f0dc3979a2437416ab97f5a445/instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/BasePulsarRequest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZBlBX",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

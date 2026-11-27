@@ -1,0 +1,25 @@
+{
+  "head": "9727bc8d84003bc34c8347e3d5d3e7ecb8eb8e27",
+  "merge": "bccf866f27a4f21fe882795ae17719a44abb9f78",
+  "merged": "2026-09-28T11:49:15Z",
+  "missing_roots": 0,
+  "number": 20273,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] This now omits `server.port` from the stable telemetry contract even though `ElasticsearchTransportAttributesGetter#getServerPort` still returns the non-default target port and the shared transport tests assert it (`elasticsearch-transport-common-5.0/.../AbstractElasticsearchTransportClientTest.java:123-137`). Please fix the telemetry collection/source coverage so this generated entry retains `server.port`, then regenerate this file rather than editing it directly.\n\nThis issue also appears on line 9583 of the same file.",
+      "created": "2026-09-26T02:46:26Z",
+      "hunk": "@@ -9469,8 +9492,6 @@ libraries:\n         type: LONG\n       - name: server.address\n         type: STRING",
+      "id": "PRRT_kwDODJKVX86mNGUn",
+      "opened": "2026-09-26T02:46:26Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "04ac91a312bbcf4fc92bfa0b1139f2a480d0d305",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20273#discussion_r4109925626"
+    }
+  ]
+}

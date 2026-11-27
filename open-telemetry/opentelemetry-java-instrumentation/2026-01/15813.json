@@ -1,0 +1,102 @@
+{
+  "head": "2bbec8ad00d3a885229393b90cea1171f1b52c75",
+  "merge": "c291e8a5802b02e0b2a8b3d04b5fbd9369016214",
+  "merged": "2026-01-22T17:37:28Z",
+  "missing_roots": 0,
+  "number": 15813,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n  private static Boolean evaluateBooleanPropertyDeclarativeConfigOrLegacy(\r\n```",
+      "created": "2026-01-09T15:33:49Z",
+      "hunk": "@@ -237,7 +234,7 @@ private static void initializeMdcAppenderFromProperties(\n     }\n   }\n \n-  private static Boolean evaluateBooleanProperty(\n+  private static Boolean evaluateBooleanPropertyDeclarativeConifigOrLegacy(",
+      "id": "PRRT_kwDODJKVX85ouQ56",
+      "opened": "2026-01-09T15:33:50Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+      "replies": [],
+      "reviewed": "883c7d7cda7fbfff8f79639087c71a0b6bfca76f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15813#discussion_r2676639004"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is EarlyConfig necessary? is that the backcompat part?",
+      "created": "2026-01-09T15:34:54Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85ouRhx",
+      "opened": "2026-01-09T15:34:54Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+      "replies": [
+        {
+          "at": "2026-01-09T16:20:51Z",
+          "body": "yes, translates to declarative config syntax",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15813#discussion_r2676805756"
+        },
+        {
+          "at": "2026-01-09T16:21:46Z",
+          "body": "could move the method as it's only used here",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15813#discussion_r2676808929"
+        }
+      ],
+      "reviewed": "883c7d7cda7fbfff8f79639087c71a0b6bfca76f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15813#discussion_r2676642314"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "what is the \"or legacy\" part of this method?",
+      "created": "2026-01-09T16:39:45Z",
+      "hunk": "@@ -237,11 +235,26 @@ private static void initializeMdcAppenderFromProperties(\n     }\n   }\n \n-  private static Boolean evaluateBooleanProperty(\n+  private static Boolean evaluateBooleanPropertyDeclarativeConfigOrLegacy(",
+      "id": "PRRT_kwDODJKVX85ou7pN",
+      "opened": "2026-01-09T16:39:44Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+      "replies": [
+        {
+          "at": "2026-01-09T16:49:32Z",
+          "body": "inlined it right into the method for clarity\r\n\r\n```java\r\n    String key = property;\r\n    if (EarlyConfig.isDeclarativeConfig(environment)) {\r\n      if (property.startsWith(\"otel.instrumentation.\")) {\r\n        key =\r\n            String.format(\r\n                    \"otel.instrumentation/development.java.%s\",\r\n                    property.substring(\"otel.instrumentation.\".length()))\r\n                .replace('-', '_');\r\n      } else {\r\n        throw new IllegalStateException(\r\n            \"No mapping found for property name: \" + property + \". Please report this bug.\");\r\n      }\r\n    }\r\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15813#discussion_r2676897515"
+        },
+        {
+          "at": "2026-01-09T16:50:12Z",
+          "body": "can also do the translation the other way round - but it's still a flat string",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15813#discussion_r2676899626"
+        },
+        {
+          "at": "2026-01-12T08:06:30Z",
+          "body": "I'd suggest to avoid using the word `legacy`",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15813#discussion_r2681210871"
+        },
+        {
+          "at": "2026-01-12T08:45:05Z",
+          "body": "I renamed it back but added a comment",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15813#discussion_r2681312691"
+        }
+      ],
+      "reviewed": "f0611781ca20e7b466eaf2e452babdc572349641",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15813#discussion_r2676867745"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can you add a comment here explaining what we're doing here (reading directly from spring yaml instead of via declarative configuration) and why?",
+      "created": "2026-01-22T16:36:36Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85qldm9",
+      "opened": "2026-01-22T16:36:36Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+      "replies": [],
+      "reviewed": "2bbec8ad00d3a885229393b90cea1171f1b52c75",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15813#discussion_r2717695882"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9f31dfee4d29b4ece50a2e97570ba91e07ecb1e676523ab4082f9121c49714d3",
+  "input_digest": "6da17694f9c4bfc3eb99ba9a4c956ccce3497bf4f35e02a8798904ff77f9ea62",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9bb7de247015ea70a27cb28901761b1fd09a0630/instrumentation/graphql-java/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ff8bbe4633a8ce8f3241b5afba04eeb5831908b/instrumentation/graphql-java/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/612046943cfdfe8cc877cdf86bd3fc7e05b01b58"
+      ],
+      "id": "PRRT_kwDODJKVX86mJ9dh",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/612046943cfdfe8cc877cdf86bd3fc7e05b01b58/instrumentation/graphql-java/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ff8bbe4633a8ce8f3241b5afba04eeb5831908b/instrumentation/graphql-java/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ff8bbe4633a8ce8f3241b5afba04eeb5831908b/instrumentation/graphql-java/graphql-java-common-12.0/library/src/main/java/io/opentelemetry/instrumentation/graphql/common/v12_0/internal/OpenTelemetryInstrumentationHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/64a9a359383c0e64f870647d23b890c2199fc51b"
+      ],
+      "id": "PRRT_kwDODJKVX86mSENs",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86mSjQL",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

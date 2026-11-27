@@ -1,0 +1,25 @@
+{
+  "head": "be658daa9086513c282d53246a6fda79aead224c",
+  "merge": "586ea1d8b2b8c0f0baabb81e97d2de74e39a6343",
+  "merged": "2026-08-20T03:51:34Z",
+  "missing_roots": 0,
+  "number": 416,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "PR description/checklist states \"Unit tests added\", but this PR doesn't appear to add or modify any tests (and there are no test files matching typical changelog/preview naming patterns). Either add unit tests covering scripts/preview_changelogs.py failure/success paths, or update the PR description/checklist to reflect that no tests were added.",
+      "created": "2026-08-20T02:48:51Z",
+      "hunk": "@@ -345,16 +345,8 @@ commands =\n description = Render a draft changelog for every package that uses towncrier.\n deps =\n   towncrier==25.8.0\n-allowlist_externals = sh\n commands =\n-  sh -c '\\\n-    set -eu; \\\n-    for pkg in {toxinidir}/instrumentation/* {toxinidir}/util/opentelemetry-util-genai; do \\\n-      [ -f \"$pkg/pyproject.toml\" ] || continue; \\\n-      grep -q \"tool.towncrier\" \"$pkg/pyproject.toml\" || continue; \\\n-      echo \"=== $pkg ===\"; \\\n-      (cd \"$pkg\" && towncrier build --draft --version Unreleased); \\\n-    done'\n+  python {toxinidir}/scripts/preview_changelogs.py",
+      "id": "PRRT_kwDOSbspP86arIn7",
+      "opened": "2026-08-20T02:48:52Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "be658daa9086513c282d53246a6fda79aead224c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/416#discussion_r3818248106"
+    }
+  ]
+}

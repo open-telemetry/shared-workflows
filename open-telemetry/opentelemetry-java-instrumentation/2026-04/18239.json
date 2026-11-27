@@ -1,0 +1,40 @@
+{
+  "head": "e92f08a8636d4c5921bd2b21b1a15ad6ca8c91f7",
+  "merge": "bccf9e4491ae01624e4ba4fe19500ec6e3ba67ff",
+  "merged": "2026-04-24T14:19:55Z",
+  "missing_roots": 0,
+  "number": 18239,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "👀 ",
+      "created": "2026-04-23T18:53:36Z",
+      "hunk": "@@ -112,23 +113,28 @@ void shouldGetStatusWithTraces() throws IOException {\n   }\n \n   @Test\n-  void shouldGetStatusAsyncWithTraces() throws Exception {\n+  void shouldGetStatusAsyncWithTraces() throws InterruptedException {\n     CountDownLatch countDownLatch = new CountDownLatch(1);\n \n     CompletableFuture<HealthResponse> responseCompletableFuture =\n         getTesting()\n             .runWithSpan(\n                 \"client\",\n-                () ->\n-                    openSearchAsyncClient\n+                () -> {\n+                  try {\n+                    return openSearchAsyncClient\n                         .cluster()\n                         .health()\n                         .whenComplete(\n                             (response, throwable) ->\n-                                getTesting().runWithSpan(\"callback\", countDownLatch::countDown)));\n+                                getTesting().runWithSpan(\"callback\", countDownLatch::countDown));\n+                  } catch (IOException e) {\n+                    throw new UncheckedIOException(e);\n+                  }",
+      "id": "PRRT_kwDODJKVX859MPRB",
+      "opened": "2026-04-23T18:53:36Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/AbstractOpenSearchTest.java",
+      "replies": [],
+      "reviewed": "dc15692c2491593897822d8fb9436e6d9d6752f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18239#discussion_r3133083937"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "👀 ",
+      "created": "2026-04-23T18:53:51Z",
+      "hunk": "@@ -5,4 +5,8 @@ plugins {\n dependencies {\n   api(\"io.opentelemetry.javaagent:opentelemetry-testing-common\")\n   compileOnly(\"com.openai:openai-java:3.0.0\")\n+\n+  if (otelProps.testLatestDeps) {\n+    runtimeOnly(\"com.openai:openai-java:3.0.0\")\n+  }",
+      "id": "PRRT_kwDODJKVX859MPiE",
+      "opened": "2026-04-23T18:53:51Z",
+      "path": "instrumentation/openai/openai-java-1.1/openai3-testing/build.gradle.kts",
+      "replies": [],
+      "reviewed": "dc15692c2491593897822d8fb9436e6d9d6752f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18239#discussion_r3133085425"
+    }
+  ]
+}

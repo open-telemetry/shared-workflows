@@ -1,0 +1,31 @@
+{
+  "head": "f7649051db9d16a969b5c19632b5c9dfac77de14",
+  "merge": "885c8b87e522b342c62c20629c0ec2ad277a76ef",
+  "merged": "2026-10-15T22:31:41Z",
+  "missing_roots": 0,
+  "number": 881,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Consider to attempt batch conversion optimistically on the happy path, and check `isinstance(message, BaseMessage)` before calling `convert_to_messages` in the per-item fallback.\n\n```suggestion\n    materialized = list(messages)\n    try:\n        return convert_to_messages(materialized)\n    except Exception:  # pylint: disable=broad-except\n        normalized: list[BaseMessage] = []\n        for message in materialized:\n            if isinstance(message, BaseMessage):\n                normalized.append(message)\n                continue\n            try:\n                normalized.extend(convert_to_messages([message]))\n            except Exception:  # pylint: disable=broad-except\n                continue\n        return normalized\n```",
+      "created": "2026-10-13T18:34:45Z",
+      "hunk": "@@ -337,25 +338,29 @@ def _message_parts(message: BaseMessage) -> list[MessagePart]:\n     return _content_to_parts(message.content)\n \n \n+def _normalize_messages(\n+    messages: Iterable[MessageLikeRepresentation],\n+) -> list[BaseMessage]:\n+    \"\"\"Convert entries to ``BaseMessage`` s, skipping unconvertible ones.\"\"\"\n+    normalized: list[BaseMessage] = []\n+    for message in messages:\n+        try:\n+            normalized.extend(convert_to_messages([message]))\n+        except Exception:  # pylint: disable=broad-except\n+            continue\n+    return normalized",
+      "id": "PRRT_kwDOSbspP86sAY7y",
+      "opened": "2026-10-13T19:14:49Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-15T10:14:36Z",
+          "body": "Thank you, and I'm happy to do that as a follow-up, or I'll add it here, or anything you wish for.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/881#discussion_r4281732466"
+        }
+      ],
+      "reviewed": "053935224e9e7fc3815f6f3f060915b725aa6968",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/881#discussion_r4262541384"
+    }
+  ]
+}

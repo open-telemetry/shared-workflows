@@ -1,0 +1,361 @@
+{
+  "head": "d182af159660256f30355b5aae2708eff51240d0",
+  "merge": "f4174174c36e76f0c6753aa47c0aec8847e271f5",
+  "merged": "2026-06-10T13:02:37Z",
+  "missing_roots": 0,
+  "number": 18795,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`@SuppressWarnings(\"deprecation\")` was moved to class level, but this class only has a single test method that uses the deprecated semconv constants. Per the repo style guideline, prefer scoping the suppression to the smallest member that needs it (e.g., move it back onto the `test()` method) to avoid hiding future deprecation warnings elsewhere in the class.",
+      "created": "2026-05-19T04:33:19Z",
+      "hunk": "@@ -39,7 +46,6 @@ class EnduserAttributesCapturingServletFilterTest {\n    * io.opentelemetry.instrumentation.spring.security.config.v6_0.EnduserAttributesCapturerTest}\n    * tests many other scenarios.\n    */\n-  @SuppressWarnings(\"deprecation\") // using deprecated semconv\n   @Test\n   void test() throws Exception {",
+      "id": "PRRT_kwDODJKVX86DCWVF",
+      "opened": "2026-05-19T04:33:19Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/library/src/test/java/io/opentelemetry/instrumentation/spring/security/config/v6_0/servlet/EnduserAttributesCapturingServletFilterTest.java",
+      "replies": [
+        {
+          "at": "2026-05-19T04:45:07Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/83156eb5aa2b640a5de915cef79452f9d84dbc5c.\n\nMoved `@SuppressWarnings(\"deprecation\")` back onto the `test()` method.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263715108"
+        }
+      ],
+      "reviewed": "789477c47ace5d989ef4b1630c650b5bd3b9bffc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263671649"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The class Javadoc now says this config controls capturing `enduser.*` or `user.*` attributes depending on v3 preview, but the method-level Javadocs below still describe only `enduser.*` (e.g., `isIdEnabled()` says it controls `enduser.id`). Consider updating the method docs (and/or `isAnyEnabled()` doc) to reflect that in v3 preview these booleans correspond to `user.id` / `user.roles`, with `enduser.scope` always disabled.",
+      "created": "2026-05-19T04:33:19Z",
+      "hunk": "@@ -10,7 +10,11 @@\n import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n \n /**\n- * Configuration that controls capturing the {@code enduser.*} semantic attributes.\n+ * Configuration that controls capturing the {@code enduser.*} or {@code user.*} semantic\n+ * attributes.\n+ *\n+ * <p>When the v3 preview is enabled, this configuration reads the corresponding {@code user.*}\n+ * properties instead. Legacy {@code enduser.*} properties are not honored in v3 preview.\n  *",
+      "id": "PRRT_kwDODJKVX86DCWVR",
+      "opened": "2026-05-19T04:33:19Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/UserConfig.java",
+      "replies": [
+        {
+          "at": "2026-05-19T04:45:09Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/eabd7a63a691afba11dc65663963718e8c27502f.\n\nUpdated the method-level Javadocs on `isAnyEnabled`, `isIdEnabled`, `isRoleEnabled`, and `isScopeEnabled` to describe the v3 preview `user.*` mapping, and noted that `enduser.scope` is always disabled in v3 preview.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263715212"
+        }
+      ],
+      "reviewed": "789477c47ace5d989ef4b1630c650b5bd3b9bffc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263671665"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `otel.instrumentation.common.enduser.scope.enabled` entry says it \"enables capturing\" but then notes the attribute is not emitted in v3 preview. Since `enduser.scope` is always ignored in v3 preview (no `user.*` equivalent), consider aligning this wording with the other legacy enduser properties (e.g., explicitly state the property is not honored when v3 preview is enabled) to avoid confusion.\n",
+      "created": "2026-05-19T04:52:31Z",
+      "hunk": "@@ -1,33 +1,45 @@\n display_name: Spring Security\n description: >\n-  This instrumentation does not emit any telemetry on its own. Instead, it captures enduser\n-  attributes, and is only enabled when at least one of the `enduser` configurations is enabled.\n-  \n-  NOTE: The `enduser` attributes have been deprecated and will be removed in 3.0+ of the java agent.\n+  This instrumentation does not emit any telemetry on its own. Instead, it captures identity\n+  attributes, and is only enabled when at least one common identity configuration is enabled.\n+\n+  NOTE: The `enduser` attributes have been deprecated. When `otel.instrumentation.common.v3-preview`\n+  is enabled, `enduser.id` is emitted as `user.id`, `enduser.role` is emitted as `user.roles`,\n+  and `enduser.scope` is not emitted.\n library_link: https://spring.io/projects/spring-security\n configurations:\n   - name: otel.instrumentation.common.enduser.id.enabled\n     declarative_name: java.common.enduser.id.enabled\n-    description: Enables capturing the enduser.id attribute.\n+    description: Enables capturing the enduser.id attribute. This property is not honored when v3 preview is enabled.\n     type: boolean\n     default: false\n   - name: otel.instrumentation.common.enduser.role.enabled\n     declarative_name: java.common.enduser.role.enabled\n-    description: Enables capturing the enduser.role attribute.\n+    description: Enables capturing the enduser.role attribute. This property is not honored when v3 preview is enabled.\n     type: boolean\n     default: false\n   - name: otel.instrumentation.common.enduser.scope.enabled\n     declarative_name: java.common.enduser.scope.enabled\n-    description: Enables capturing the enduser.scope attribute.\n+    description: Enables capturing the enduser.scope attribute. This attribute is not emitted when v3 preview is enabled.",
+      "id": "PRRT_kwDODJKVX86DCh6O",
+      "opened": "2026-05-19T04:52:32Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-05-19T05:06:36Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795/commits/119d256cadec889275cc9a2868d92762242473e0",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263791725"
+        }
+      ],
+      "reviewed": "eabd7a63a691afba11dc65663963718e8c27502f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263740156"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The implementation now switches to emitting `user.id` / `user.roles` (and skipping `enduser.scope`) when `SemconvStability.v3Preview()` is enabled, but the class/method Javadocs still describe capturing only `enduser.*` attributes (including `enduser.scope`) and `enduser.role` as a comma-separated string. Please update the Javadocs to reflect the v3 preview behavior (attribute names and `user.roles` array type), so the public API docs match runtime behavior.",
+      "created": "2026-05-19T05:12:41Z",
+      "hunk": "@@ -73,12 +80,13 @@ public void captureEnduserAttributes(\n       Context otelContext, @Nullable Authentication authentication) {\n     if (authentication != null) {\n       Span localRootSpan = LocalRootSpan.fromContext(otelContext);\n+      boolean v3Preview = SemconvStability.v3Preview();\n \n       if (enduserIdEnabled) {\n-        localRootSpan.setAttribute(ENDUSER_ID, authentication.getName());\n+        localRootSpan.setAttribute(v3Preview ? USER_ID : ENDUSER_ID, authentication.getName());\n       }",
+      "id": "PRRT_kwDODJKVX86DCuq-",
+      "opened": "2026-05-19T05:12:41Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/library/src/main/java/io/opentelemetry/instrumentation/spring/security/config/v6_0/EnduserAttributesCapturer.java",
+      "replies": [
+        {
+          "at": "2026-05-19T05:17:17Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7a240a0a3f02e838c72ae6d35d91b0f86e5ceed1.\n\nUpdated the class and `captureEnduserAttributes` Javadocs to describe the v3 preview `user.id` / `user.roles` mapping (with `user.roles` as a string array) and that `enduser.scope` has no `user.*` equivalent.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263837212"
+        }
+      ],
+      "reviewed": "119d256cadec889275cc9a2868d92762242473e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263814354"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The method-level Javadoc above still states this captures only `EnduserIncubatingAttributes#ENDUSER_ID`, but the implementation now conditionally emits `user.id` when v3 preview is enabled. Update the Javadoc to reflect the `enduser.id` vs `user.id` behavior so docs match runtime output.",
+      "created": "2026-05-19T05:24:51Z",
+      "hunk": "@@ -180,7 +182,7 @@ private void captureEnduserId(Span serverSpan, REQUEST request) {\n \n     Principal principal = accessor.getRequestUserPrincipal(request);\n     if (principal != null) {\n-      serverSpan.setAttribute(ENDUSER_ID, principal.getName());\n+      serverSpan.setAttribute(v3Preview() ? USER_ID : ENDUSER_ID, principal.getName());",
+      "id": "PRRT_kwDODJKVX86DC65t",
+      "opened": "2026-05-19T05:24:52Z",
+      "path": "instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/BaseServletHelper.java",
+      "replies": [
+        {
+          "at": "2026-06-03T03:03:26Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795/commits/e44bb07f30b47a52e47141e8c25921ce85725dc2",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3345664599"
+        }
+      ],
+      "reviewed": "7a240a0a3f02e838c72ae6d35d91b0f86e5ceed1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263877493"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The NOTE explains `enduser.role` is emitted as `user.roles` in v3 preview, but it doesn’t mention that `user.roles` is a string array (while `enduser.role` is a comma-separated string). Consider calling out the type change explicitly to avoid confusing users consuming the attribute.\n",
+      "created": "2026-05-19T05:24:52Z",
+      "hunk": "@@ -1,33 +1,45 @@\n display_name: Spring Security\n description: >\n-  This instrumentation does not emit any telemetry on its own. Instead, it captures enduser\n-  attributes, and is only enabled when at least one of the `enduser` configurations is enabled.\n-  \n-  NOTE: The `enduser` attributes have been deprecated and will be removed in 3.0+ of the java agent.\n+  This instrumentation does not emit any telemetry on its own. Instead, it captures identity\n+  attributes, and is only enabled when at least one common identity configuration is enabled.\n+\n+  NOTE: The `enduser` attributes have been deprecated. When `otel.instrumentation.common.v3-preview`\n+  is enabled, `enduser.id` is emitted as `user.id`, `enduser.role` is emitted as `user.roles`,\n+  and `enduser.scope` is not emitted.",
+      "id": "PRRT_kwDODJKVX86DC65-",
+      "opened": "2026-05-19T05:24:52Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-06-03T03:03:17Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795/commits/e44bb07f30b47a52e47141e8c25921ce85725dc2",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3345664201"
+        }
+      ],
+      "reviewed": "7a240a0a3f02e838c72ae6d35d91b0f86e5ceed1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263877519"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This section mentions emitting `user.roles` in v3 preview, but doesn’t call out that `user.roles` is a string array (whereas the legacy `enduser.role` is a comma-separated string). Consider noting the type difference so consumers know what to expect.\n",
+      "created": "2026-05-19T05:24:52Z",
+      "hunk": "@@ -1,8 +1,12 @@\n # OpenTelemetry Instrumentation: Spring Security Config\n \n-Provides a Servlet `Filter` and a WebFlux `WebFilter` to capture `enduser.*` semantic attributes\n+Provides a Servlet `Filter` and a WebFlux `WebFilter` to capture identity semantic attributes\n from Spring Security `Authentication` objects.\n \n+By default this instrumentation emits the deprecated `enduser.*` attributes when enabled. When\n+`otel.instrumentation.common.v3-preview` is enabled, it emits `user.id` and `user.roles` instead,\n+and `enduser.scope` is not supported.",
+      "id": "PRRT_kwDODJKVX86DC66I",
+      "opened": "2026-05-19T05:24:52Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/library/README.md",
+      "replies": [
+        {
+          "at": "2026-06-03T03:03:09Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795/commits/e44bb07f30b47a52e47141e8c25921ce85725dc2",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3345663693"
+        }
+      ],
+      "reviewed": "7a240a0a3f02e838c72ae6d35d91b0f86e5ceed1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263877535"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This section mentions emitting `user.roles` in v3 preview, but doesn’t call out that `user.roles` is a string array (whereas the legacy `enduser.role` is a comma-separated string). Consider noting the type difference to avoid breaking assumptions for downstream consumers.\n",
+      "created": "2026-05-19T05:24:52Z",
+      "hunk": "@@ -1,14 +1,22 @@\n # OpenTelemetry Javaagent Instrumentation: Spring Security Config\n \n-Javaagent automatic instrumentation to capture `enduser.*` semantic attributes\n+Javaagent automatic instrumentation to capture identity semantic attributes\n from Spring Security `Authentication` objects.\n \n+By default this instrumentation emits the deprecated `enduser.*` attributes when enabled. When\n+`otel.instrumentation.common.v3-preview` is enabled, it emits `user.id` and `user.roles` instead,",
+      "id": "PRRT_kwDODJKVX86DC66e",
+      "opened": "2026-05-19T05:24:52Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/javaagent/README.md",
+      "replies": [
+        {
+          "at": "2026-06-03T03:03:03Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795/commits/e44bb07f30b47a52e47141e8c25921ce85725dc2",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3345663326"
+        }
+      ],
+      "reviewed": "7a240a0a3f02e838c72ae6d35d91b0f86e5ceed1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3263877561"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`CommonConfig` derives `v3Preview` only from declarative config (`commonConfig.getBoolean(\"v3_preview\", false)`). When the SDK is not an `ExtendedOpenTelemetry` (non-declarative mode), `DeclarativeConfigUtil.getInstrumentationConfig(...)` returns `empty()`, making `v3Preview` always `false` even if users set `-Dotel.instrumentation.common.v3-preview=true` (which `SemconvStability` now honors). This can cause `AgentCommonConfig.get().getUserConfig()` to keep reading legacy `enduser.*` flags and disable identity capture / instrumentation modules unexpectedly in v3 preview mode.",
+      "created": "2026-06-03T18:17:15Z",
+      "hunk": "@@ -87,14 +87,14 @@ public CommonConfig(OpenTelemetry openTelemetry) {\n             .get(\"http\")\n             .get(\"server\")\n             .getBoolean(\"emit_experimental_telemetry/development\", false);\n-    enduserConfig = new EnduserConfig(commonConfig);\n+    v3Preview = commonConfig.getBoolean(\"v3_preview\", false);\n+    userConfig = new UserConfig(commonConfig, v3Preview);",
+      "id": "PRRT_kwDODJKVX86G2SwY",
+      "opened": "2026-06-03T18:17:16Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+      "replies": [
+        {
+          "at": "2026-06-03T21:04:53Z",
+          "body": "In the agent, classic (system-property) configuration is wrapped in an ExtendedOpenTelemetrySdkWrapper backed by ConfigPropertiesBackedConfigProvider, so commonConfig.getBoolean(\"v3_preview\") already resolves through the config bridge to otel.instrumentation.common.v3-preview. CommonConfig is built lazily after that wrapper is installed, so there is no early-init gap here. SemconvStability needs the ConfigPropertiesUtil fallback only because it reads config from a static initializer (via GlobalOpenTelemetry.getOrNoop()) that can run before the wrapper exists. The only non-extended path for CommonConfig is the standalone library with a plain SDK, where reading the deprecated system property is intentionally being removed. So no change here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3351918230"
+        }
+      ],
+      "reviewed": "7f16db7ff871a4319fc25b9b8d54366a8e36e3c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3350873191"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Typo: \"appling\" should be \"applying\".",
+      "created": "2026-06-03T18:17:16Z",
+      "hunk": "@@ -1,20 +1,24 @@\n # OpenTelemetry Instrumentation: Spring Security Config\n \n-Provides a Servlet `Filter` and a WebFlux `WebFilter` to capture `enduser.*` semantic attributes\n+Provides a Servlet `Filter` and a WebFlux `WebFilter` to capture identity semantic attributes\n from Spring Security `Authentication` objects.\n \n+By default this instrumentation emits the deprecated `enduser.*` attributes when enabled. When\n+`otel.instrumentation.common.v3-preview` is enabled, it emits `user.name` and the string array\n+`user.roles` instead, and `enduser.scope` is not supported.\n+\n Also provides `Customizer` implementations to insert those filters into the filter chains created by\n `HttpSecurity` and `ServerHttpSecurity`, respectively.\n \n ## Usage in Spring WebMVC Applications\n \n-When not using [automatic instrumentation](../javaagent/), you can enable enduser attribute capturing\n-for a `SecurityFilterChain` by appling an `EnduserAttributesHttpSecurityCustomizer`\n+When not using [automatic instrumentation](../javaagent/), you can enable identity attribute capturing\n+for a `SecurityFilterChain` by appling a `UserAttributesHttpSecurityCustomizer`",
+      "id": "PRRT_kwDODJKVX86G2Sw9",
+      "opened": "2026-06-03T18:17:16Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/library/README.md",
+      "replies": [
+        {
+          "at": "2026-06-03T21:05:00Z",
+          "body": "Fixed in 9f08543ad0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3351918824"
+        }
+      ],
+      "reviewed": "7f16db7ff871a4319fc25b9b8d54366a8e36e3c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3350873254"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Typo: \"appling\" should be \"applying\".",
+      "created": "2026-06-03T18:17:16Z",
+      "hunk": "@@ -43,13 +47,13 @@ class MyWebSecurityConfig {\n \n ## Usage in Spring WebFlux Applications\n \n-When not using [automatic instrumentation](../javaagent/), you can enable enduser attribute capturing\n-for a `SecurityWebFilterChain` by appling an `EnduserAttributesServerHttpSecurityCustomizer`\n+When not using [automatic instrumentation](../javaagent/), you can enable identity attribute capturing\n+for a `SecurityWebFilterChain` by appling a `UserAttributesServerHttpSecurityCustomizer`",
+      "id": "PRRT_kwDODJKVX86G2SxN",
+      "opened": "2026-06-03T18:17:16Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/library/README.md",
+      "replies": [
+        {
+          "at": "2026-06-03T21:05:02Z",
+          "body": "Fixed in 9f08543ad0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3351919001"
+        }
+      ],
+      "reviewed": "7f16db7ff871a4319fc25b9b8d54366a8e36e3c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3350873275"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could rename to `isNameEnabled`",
+      "created": "2026-06-04T11:10:36Z",
+      "hunk": "@@ -83,17 +83,17 @@ public class EnduserConfig {\n    * corresponds to the {@code enduser.*} attributes.\n    */\n   public boolean isAnyEnabled() {\n-    return this.idEnabled || this.roleEnabled || this.scopeEnabled;\n+    return this.nameEnabled || this.roleEnabled || this.scopeEnabled;\n   }\n \n   /**\n    * Returns true if capturing the id semantic attribute is enabled.\n    *\n-   * <p>In v3 preview mode, this controls the {@code user.id} attribute; otherwise it controls the\n+   * <p>In v3 preview mode, this controls the {@code user.name} attribute; otherwise it controls the\n    * {@code enduser.id} attribute.\n    */\n   public boolean isIdEnabled() {",
+      "id": "PRRT_kwDODJKVX86HDOPj",
+      "opened": "2026-06-04T11:10:36Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/UserConfig.java",
+      "replies": [],
+      "reviewed": "9f08543ad01e2f108060cf3930eb0bad4c14ce1f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3355531420"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Semantic conventions mapping: `enduser.id` was deprecated in favor of `user.id` (not `user.name`) per open-telemetry/semantic-conventions PR #731. The NOTE here (and the associated config key names below) say v3-preview emits `user.name`, which looks inconsistent with the spec and will lead to the wrong attribute key being documented/emitted in v3-preview mode. Please switch the v3-preview mapping (and config key naming) to `user.id`.",
+      "created": "2026-06-09T19:01:20Z",
+      "hunk": "@@ -1,33 +1,50 @@\n display_name: Spring Security\n description: >\n-  This instrumentation does not emit any telemetry on its own. Instead, it captures enduser\n-  attributes, and is only enabled when at least one of the `enduser` configurations is enabled.\n-  \n-  NOTE: The `enduser` attributes have been deprecated and will be removed in 3.0+ of the java agent.\n+  This instrumentation does not emit any telemetry on its own. Instead, it captures identity\n+  attributes, and is only enabled when at least one common identity configuration is enabled.\n+\n+  NOTE: The `enduser` attributes have been deprecated. When `otel.instrumentation.common.v3-preview`\n+  is enabled, `enduser.id` is emitted as `user.name`, `enduser.role` is emitted as the string array\n+  `user.roles`, and `enduser.scope` is not emitted.",
+      "id": "PRRT_kwDODJKVX86IQfsc",
+      "opened": "2026-06-09T19:01:21Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-06-10T01:21:21Z",
+          "body": "No code change needed. The captured Spring Security and servlet values come from `Authentication#getName()` / `Principal#getName()`, so `user.name` is intentional unless the source is known to be a unique user ID; the PR description now documents this rationale.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3384856174"
+        }
+      ],
+      "reviewed": "921d89fe6870018585604b74e1881a6511ae1208",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3383136864"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `enduser.id` is deprecated in favor of `user.id` per semantic-conventions PR #731, but this capturer currently maps `enduser.id` -> `user.name` (constant `USER_NAME`, Javadoc, and `setAttribute` usage). This will emit a different attribute key than the semconv-defined replacement in v3-preview mode. Consider changing the v3-preview path to emit `user.id` instead (and renaming the related config/method naming to match).",
+      "created": "2026-06-09T19:01:20Z",
+      "hunk": "@@ -0,0 +1,202 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.security.config.v6_0;\n+\n+import static java.util.Objects.requireNonNull;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.LocalRootSpan;\n+import io.opentelemetry.instrumentation.api.internal.SemconvStability;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import org.springframework.security.core.Authentication;\n+import org.springframework.security.core.GrantedAuthority;\n+\n+/**\n+ * Captures identity semantic attributes from {@link Authentication} objects.\n+ *\n+ * <p>By default, this captures {@code enduser.*} attributes. When the v3 preview is enabled (via\n+ * {@link SemconvStability#v3Preview()}), the corresponding {@code user.*} attributes are captured\n+ * instead; in that mode {@code enduser.scope} has no {@code user.*} equivalent and is never\n+ * captured.\n+ *\n+ * <p>After construction, you must selectively enable which attributes you want captured by calling\n+ * the appropriate {@code set*Enabled(true)} method.\n+ */\n+public class UserAttributesCapturer {\n+\n+  // copied from EnduserIncubatingAttributes\n+  private static final AttributeKey<String> ENDUSER_ID = AttributeKey.stringKey(\"enduser.id\");\n+  private static final AttributeKey<String> ENDUSER_ROLE = AttributeKey.stringKey(\"enduser.role\");\n+  private static final AttributeKey<String> ENDUSER_SCOPE = AttributeKey.stringKey(\"enduser.scope\");\n+  // copied from UserIncubatingAttributes\n+  private static final AttributeKey<String> USER_NAME = AttributeKey.stringKey(\"user.name\");\n+  private static final AttributeKey<List<String>> USER_ROLES =\n+      AttributeKey.stringArrayKey(\"user.roles\");",
+      "id": "PRRT_kwDODJKVX86IQftE",
+      "opened": "2026-06-09T19:01:21Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/library/src/main/java/io/opentelemetry/instrumentation/spring/security/config/v6_0/UserAttributesCapturer.java",
+      "replies": [
+        {
+          "at": "2026-06-10T01:21:33Z",
+          "body": "No code change needed. `UserAttributesCapturer` captures `Authentication#getName()`, which semantic conventions align with `user.name` as a short login/username rather than `user.id` as a unique identifier; the PR description now documents this rationale.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3384856719"
+        }
+      ],
+      "reviewed": "921d89fe6870018585604b74e1881a6511ae1208",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3383136915"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] In v3-preview mode this config reads `commonConfig.get(\"user\").get(\"name\")` and documents `otel.instrumentation.common.user.name.enabled`, but semconv deprecates `enduser.id` in favor of `user.id` (PR #731). If the emitted attribute should be `user.id`, the v3-preview config namespace/key should likely be `user.id.enabled` (and the accessor naming should follow) to avoid drifting from the semconv replacement.",
+      "created": "2026-06-09T19:01:20Z",
+      "hunk": "@@ -0,0 +1,118 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.config.internal;\n+\n+import static java.util.Objects.requireNonNull;\n+\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+\n+/**\n+ * Configuration that controls capturing the {@code enduser.*} or {@code user.*} semantic\n+ * attributes.\n+ *\n+ * <p>When the v3 preview is enabled, this configuration reads the corresponding {@code user.*}\n+ * properties instead. Legacy {@code enduser.*} properties and their associated attributes are not\n+ * supported when v3 preview is enabled.\n+ *\n+ * <p>The {@code enduser.*} semantic attributes are not captured by default, due to this text in the\n+ * specification:\n+ *\n+ * <blockquote>\n+ *\n+ * <p>Given the sensitive nature of this information, SDKs and exporters SHOULD drop these\n+ * attributes by default and then provide a configuration parameter to turn on retention for use\n+ * cases where the information is required and would not violate any policies or regulations.\n+ *\n+ * </blockquote>\n+ *\n+ * <p>Capturing of the {@code enduser.*} semantic attributes can be individually enabled by\n+ * configuring the following properties:\n+ *\n+ * <pre>\n+ * otel.instrumentation.common.enduser.id.enabled=true\n+ * otel.instrumentation.common.enduser.role.enabled=true\n+ * otel.instrumentation.common.enduser.scope.enabled=true\n+ * </pre>\n+ *\n+ * <p>When v3 preview is enabled, capturing of the {@code user.*} semantic attributes can be\n+ * individually enabled by configuring the following properties:\n+ *\n+ * <pre>\n+ * otel.instrumentation.common.user.name.enabled=true\n+ * otel.instrumentation.common.user.roles.enabled=true\n+ * </pre>\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class UserConfig {\n+\n+  private final boolean nameEnabled;\n+  private final boolean rolesEnabled;\n+  private final boolean scopeEnabled;\n+\n+  UserConfig(DeclarativeConfigProperties commonConfig, boolean v3Preview) {\n+    requireNonNull(commonConfig, \"commonConfig must not be null\");\n+\n+    /*\n+     * Capturing enduser.* attributes is disabled by default, because of this requirement in the specification:\n+     *\n+     * Given the sensitive nature of this information, SDKs and exporters SHOULD drop these attributes by default and then provide a configuration parameter to turn on retention for use cases where the information is required and would not violate any policies or regulations.\n+     *\n+     * https://github.com/open-telemetry/semantic-conventions/blob/main/docs/general/attributes.md#general-identity-attributes\n+     */\n+    if (v3Preview) {\n+      this.nameEnabled = commonConfig.get(\"user\").get(\"name\").getBoolean(\"enabled\", false);\n+      this.rolesEnabled = commonConfig.get(\"user\").get(\"roles\").getBoolean(\"enabled\", false);\n+      this.scopeEnabled = false;\n+    } else {\n+      this.nameEnabled = commonConfig.get(\"enduser\").get(\"id\").getBoolean(\"enabled\", false);\n+      this.rolesEnabled = commonConfig.get(\"enduser\").get(\"role\").getBoolean(\"enabled\", false);",
+      "id": "PRRT_kwDODJKVX86IQftk",
+      "opened": "2026-06-09T19:01:21Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/UserConfig.java",
+      "replies": [
+        {
+          "at": "2026-06-10T01:21:36Z",
+          "body": "No code change needed. `otel.instrumentation.common.user.name.enabled` controls emission of authentication/principal names, so the `user.name` config key matches the value being captured; the PR description now documents this semantic distinction.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3384856831"
+        }
+      ],
+      "reviewed": "921d89fe6870018585604b74e1881a6511ae1208",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3383136953"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The v3-preview branch here emits `user.name`, but semconv deprecates `enduser.id` in favor of `user.id` (semantic-conventions PR #731). If v3-preview is intended to follow the replacement attribute, this should emit `user.id` instead of `user.name` (and update the constant name and any related config keys accordingly).",
+      "created": "2026-06-09T19:01:21Z",
+      "hunk": "@@ -24,6 +25,8 @@ public class ServletAdditionalAttributesExtractor<REQUEST, RESPONSE>\n \n   // copied from EnduserIncubatingAttributes\n   private static final AttributeKey<String> ENDUSER_ID = AttributeKey.stringKey(\"enduser.id\");\n+  // copied from UserIncubatingAttributes\n+  private static final AttributeKey<String> USER_NAME = AttributeKey.stringKey(\"user.name\");\n   private static final AttributeKey<Long> SERVLET_TIMEOUT = longKey(\"servlet.timeout\");\n ",
+      "id": "PRRT_kwDODJKVX86IQfuC",
+      "opened": "2026-06-09T19:01:21Z",
+      "path": "instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/common/internal/ServletAdditionalAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-10T01:21:38Z",
+          "body": "No code change needed. The servlet extractor captures `Principal#getName()`, which semantic conventions align with `user.name` as a short login/username unless the source is known to be a unique user ID; the PR description now documents this rationale.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3384857066"
+        }
+      ],
+      "reviewed": "921d89fe6870018585604b74e1881a6511ae1208",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3383136992"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This method (and its Javadoc) treats the v3-preview replacement for `enduser.id` as `user.name`, but semantic conventions deprecate `enduser.id` in favor of `user.id` (PR #731). If v3-preview is meant to follow the semconv replacement, this should set `user.id` rather than `user.name` (and the `UserConfig` accessor name `isNameEnabled()` would also become misleading).",
+      "created": "2026-06-09T19:01:21Z",
+      "hunk": "@@ -166,21 +169,22 @@ private void captureRequestParameters(Span serverSpan, REQUEST request) {\n   }\n \n   /**\n-   * Capture {@link EnduserIncubatingAttributes#ENDUSER_ID} as span attributes when SERVER span is\n-   * not created by servlet instrumentation.\n+   * Capture {@link EnduserIncubatingAttributes#ENDUSER_ID}, or {@link\n+   * UserIncubatingAttributes#USER_NAME} when v3 preview is enabled, as a span attribute when SERVER\n+   * span is not created by servlet instrumentation.",
+      "id": "PRRT_kwDODJKVX86IQfum",
+      "opened": "2026-06-09T19:01:21Z",
+      "path": "instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/BaseServletHelper.java",
+      "replies": [
+        {
+          "at": "2026-06-10T01:21:41Z",
+          "body": "No code change needed. The servlet javaagent fallback captures `Principal#getName()`, so `user.name` is the semconv-aligned v3-preview attribute unless the source is known to be a unique user identifier; the PR description now documents this rationale.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3384857180"
+        }
+      ],
+      "reviewed": "921d89fe6870018585604b74e1881a6511ae1208",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18795#discussion_r3383137038"
+    }
+  ]
+}

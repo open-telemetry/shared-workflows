@@ -1,0 +1,52 @@
+{
+  "head": "6165094f97010b2d3cd1bc55d8311fffb45dab9b",
+  "merge": "2a49e6e1e3addb05f790bc76753ce99249a9a13a",
+  "merged": "2026-08-19T16:15:15Z",
+  "missing_roots": 0,
+  "number": 19639,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This direct assertion bypasses the standard `InstrumentationTestRunner.waitAndAssertTraces` path, which also validates instrumentation scope versions and records emitted spans when `collectMetadata` is enabled (`testing-common/.../InstrumentationTestRunner.java:155-165`). As a result, all four stable Vert.x test paths migrated to this helper silently lose those checks and metadata. Please add trace-filtering support to the standard runner/extension and use it here, or otherwise preserve both hooks.",
+      "created": "2026-08-15T21:10:40Z",
+      "hunk": "@@ -173,6 +181,27 @@ protected final void sendBatchMessages(KafkaProducerRecord<String, String>... re\n   protected abstract void sendRecord(\n       KafkaProducerRecord<String, String> record, Handler<AsyncResult<RecordMetadata>> handler);\n \n+  @SafeVarargs\n+  @SuppressWarnings(\"varargs\")\n+  protected final void waitAndAssertStableTraces(\n+      Comparator<List<SpanData>> traceComparator, Consumer<TraceAssert>... assertions) {\n+    await()\n+        .atMost(Duration.ofSeconds(20))\n+        .untilAsserted(\n+            () -> {\n+              List<List<SpanData>> traces =\n+                  groupTraces(testing().spans()).stream()\n+                      .filter(\n+                          trace ->\n+                              trace.size() != 1\n+                                  || trace.get(0).getKind() != SpanKind.CLIENT\n+                                  || !trace.get(0).getName().equals(\"poll\"))\n+                      .sorted(traceComparator)\n+                      .collect(toList());\n+              TracesAssert.assertThat(traces).hasTracesSatisfyingExactly(asList(assertions));",
+      "id": "PRRT_kwDODJKVX86Zi0zF",
+      "opened": "2026-08-15T21:10:41Z",
+      "path": "instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractVertxKafkaTest.java",
+      "replies": [
+        {
+          "at": "2026-08-15T21:21:22Z",
+          "body": "Addressed in 2f3446729384c20fd7f3a5fbe8c2b15f92438f28.\n\nAnalysis: The Vert.x helper reimplemented waiting, filtering, sorting, and assertion outside InstrumentationTestRunner, so it omitted scope-version validation and metadata collection. Add filtered sorted-trace overloads to the runner and JUnit extension, keep hooks applied to all captured traces, and filter only the traces passed to the ordered assertion.\n\nUpsides: Stable Vert.x assertions can ignore incidental poll traces without bypassing standard waiting, scope-version validation, or metadata collection, and future tests can reuse the same supported path.\n\nDownsides: Adds two overloads to the internal testing API and one extra filtered list allocation when filtering is requested.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19639#discussion_r3790290518"
+        }
+      ],
+      "reviewed": "011af449d77f0c11429c91db28db2d66bac2d824",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19639#discussion_r3790271438"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could consider closing it although it doesn't seem to be strictly necessary since no threads are started",
+      "created": "2026-08-18T12:51:23Z",
+      "hunk": "@@ -262,6 +262,34 @@ void consumedMessagesOnlyCountsFailedDelivery() {\n                                                 IllegalStateException.class.getName())))));\n   }\n \n+  @Test\n+  void clientOperationDurationOnlyDoesNotCountConsumedMessages() {\n+    InMemoryMetricReader metricReader = InMemoryMetricReader.createDelta();\n+    SdkMeterProvider meterProvider =\n+        SdkMeterProvider.builder().registerMetricReader(metricReader).build();",
+      "id": "PRRT_kwDODJKVX86aHHtp",
+      "opened": "2026-08-18T12:51:23Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumerMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T14:02:00Z",
+          "body": "No test in `MessagingConsumerMetricsTest` or `MessagingProducerMetricsTest` closes its meter provider today, and I couldn't find a test anywhere in the repo that does, so I'd rather not have this one test differ from its neighbors. I'll do it consistently across these test classes in a follow-up.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19639#discussion_r3804767041"
+        }
+      ],
+      "reviewed": "bfdc0bb0d8c8637198fdfd75ed59f34e7bcf7598",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19639#discussion_r3804188905"
+    }
+  ]
+}

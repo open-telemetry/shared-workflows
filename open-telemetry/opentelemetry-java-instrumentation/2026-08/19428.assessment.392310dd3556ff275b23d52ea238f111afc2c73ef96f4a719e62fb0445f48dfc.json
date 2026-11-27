@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "2b6b25828797e29329a97c4ebb47c8509df86964a389883a392c5160e358d2b8",
+  "input_digest": "392310dd3556ff275b23d52ea238f111afc2c73ef96f4a719e62fb0445f48dfc",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f86b114733694d3091e54d0a3eed637636aeb38e/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f86b114733694d3091e54d0a3eed637636aeb38e/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/InstrumentationAnalyzer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a6a5693c2dc7b08486cab2b106b34571fa404942/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a6a5693c2dc7b08486cab2b106b34571fa404942/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/InstrumentationAnalyzer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8d6d891d2cf75156cca88d4d041cda6188aa3b74"
+      ],
+      "id": "PRRT_kwDODJKVX86XBj6X",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8d6d891d2cf75156cca88d4d041cda6188aa3b74/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/FileManager.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a6a5693c2dc7b08486cab2b106b34571fa404942/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/FileManager.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XCVRx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

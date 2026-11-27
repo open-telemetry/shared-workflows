@@ -1,0 +1,87 @@
+{
+  "head": "d4d95dbcc41f880b0899c237a26a12a96b2ac4ea",
+  "merge": "8508fbfa5189ae50c7e95aa2fcd90c5c4998cbc7",
+  "merged": "2026-05-16T22:15:04Z",
+  "missing_roots": 0,
+  "number": 136,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Changelog entries in this file appear to link to the PR (e.g., the Enhancements entry links to `/pull/107`), but this new entry links only to the issue. For consistency/traceability, consider linking to the PR (and optionally the issue) using the same format as the other Unreleased bullets.\n",
+      "created": "2026-05-11T08:15:31Z",
+      "hunk": "@@ -15,4 +15,7 @@\n \n ### 🧰 Bug fixes 🧰\n \n+- Add missing `gen_ai.tool.call.arguments` and `gen_ai.tool.call.result` opt-in attributes to MCP server span.\n+  ([#92](https://github.com/open-telemetry/semantic-conventions-genai/issues/92))",
+      "id": "PRRT_kwDOSUeMrM6BAlf7",
+      "opened": "2026-05-11T08:15:31Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "380725ce2068362cf4239b7b4f6f7d6fe4884d74",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/136#discussion_r3217282922"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change updates the MCP server span’s normative attribute set, but the PR doesn’t include any update under `reference/scenarios/` (or an explanation of why a scenario update isn’t possible). Repo guidance expects convention changes under `model/`/`docs/` to be demonstrated via reference scenarios or an alternate prototype—please add coverage or document the rationale in the PR.",
+      "created": "2026-05-11T08:15:31Z",
+      "hunk": "@@ -106,3 +106,8 @@ spans:\n       - ref: client.port\n         requirement_level:\n           recommended: When `client.address` is set\n+\n+      - ref: gen_ai.tool.call.arguments\n+        requirement_level: opt_in\n+      - ref: gen_ai.tool.call.result\n+        requirement_level: opt_in",
+      "id": "PRRT_kwDOSUeMrM6BAlfP",
+      "opened": "2026-05-11T08:15:31Z",
+      "path": "model/mcp/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-05-16T19:34:50Z",
+          "body": " @trask Thanks for flagging. \r\n\r\nDocumented the rationale in the PR's Prototype section (per the new template):\r\n This PR is a doc-consistency fix for #92 the normative `mcp.server`  table omitted two attributes that the same doc's examples already showed on server spans, and that `mcp.client` already defines as opt-in. It is not introducing a new attribute.\r\n \r\nNo reference scenario currently emits `mcp.server` spans. All 27 scenarios under `reference/scenarios/` are client-side AI frameworks  that consume MCP servers, not implement them. The pre-existing normative `mcp.server` attributes (client.address, client.port, common MCP attrs) have no scenario coverage today either, so this PR  isn't introducing a new gap.\r\n \r\n Per `evaluate-reference.instructions.md`, recommending `leave unchanged; honest capture gap` here. A dedicated `reference/scenarios/mcp-server/` would credibly demonstrate these attributes from the Python MCP SDK's `tools/call` handler boundary, but that's a separate, meaningfully larger PR.\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/136#discussion_r3253353526"
+        }
+      ],
+      "reviewed": "380725ce2068362cf4239b7b4f6f7d6fe4884d74",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/136#discussion_r3217282866"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "singankit"
+      },
+      "body": "Is `?` at the end a typo ?",
+      "created": "2026-05-11T16:17:16Z",
+      "hunk": "@@ -9591,6 +9591,49 @@ refinements:\n         conditionally_required: When operation is related to a specific prompt.\n       stability: development\n       type: string\n+    - brief: Parameters passed to the tool call.\n+      examples:\n+      - |\n+        {\n+            \"location\": \"San Francisco?\",",
+      "id": "PRRT_kwDOSUeMrM6BJfvj",
+      "opened": "2026-05-11T16:20:48Z",
+      "path": "schema-snapshot/registry.yaml",
+      "replies": [],
+      "reviewed": "34165f8aacc4cd0c3c074f55edd85e3d2c603604",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/136#discussion_r3220434643"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "singankit"
+      },
+      "body": "Would be good to have these closer to other gen ai attributes for better readability.",
+      "created": "2026-05-11T16:20:33Z",
+      "hunk": "@@ -353,6 +353,8 @@ for more details.\n | [`network.protocol.name`](https://github.com/open-telemetry/semantic-conventions/blob/v1.41.0/docs/registry/attributes/network.md) | ![Stable](https://img.shields.io/badge/-stable-lightgreen) | `Recommended` When applicable. | string | [OSI application layer](https://wikipedia.org/wiki/Application_layer) or non-OSI equivalent. [11] | `http`; `websocket` |\n | [`network.protocol.version`](https://github.com/open-telemetry/semantic-conventions/blob/v1.41.0/docs/registry/attributes/network.md) | ![Stable](https://img.shields.io/badge/-stable-lightgreen) | `Recommended` When applicable. | string | The actual version of the protocol used for network communication. | `1.1`; `2` |\n | [`network.transport`](https://github.com/open-telemetry/semantic-conventions/blob/v1.41.0/docs/registry/attributes/network.md) | ![Stable](https://img.shields.io/badge/-stable-lightgreen) | `Recommended` | string | The transport protocol used for the MCP session. [12] | `tcp`; `quic`; `pipe` |\n+| [`gen_ai.tool.call.arguments`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Opt-In` | any | Parameters passed to the tool call. [13] | {<br>&nbsp;&nbsp;&nbsp;&nbsp;\"location\": \"San Francisco?\",<br>&nbsp;&nbsp;&nbsp;&nbsp;\"date\": \"2025-10-01\"<br>} |",
+      "id": "PRRT_kwDOSUeMrM6BJjfD",
+      "opened": "2026-05-11T16:20:48Z",
+      "path": "docs/gen-ai/mcp.md",
+      "replies": [
+        {
+          "at": "2026-05-12T15:10:58Z",
+          "body": "what do you mean by closer? attributes in the table are sorted based on name and requirement level and this table is auto-generated",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/136#discussion_r3227565653"
+        },
+        {
+          "at": "2026-05-12T18:01:16Z",
+          "body": "> what do you mean by closer? attributes in the table are sorted based on name and requirement level and this table is auto-generated\r\n\r\nAs @lmolkova mentioned, this table is auto-generated by weaver, attribute ordering is determined by name and requirement level. This PR only adds the missing attribute refs in `model/mcp/spans.yaml`, the rendered table layout isn't manually controlled.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/136#discussion_r3228681712"
+        }
+      ],
+      "reviewed": "34165f8aacc4cd0c3c074f55edd85e3d2c603604",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/136#discussion_r3220455491"
+    }
+  ]
+}

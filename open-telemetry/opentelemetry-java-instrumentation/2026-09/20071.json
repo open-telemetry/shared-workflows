@@ -1,0 +1,199 @@
+{
+  "head": "d62d1b534482c04ac07e02e7832756594f256662",
+  "merge": "b0bbc272c131e120e4f828af034f854fd384636e",
+  "merged": "2026-09-22T21:23:04Z",
+  "missing_roots": 0,
+  "number": 20071,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new cluster test invokes only `renewSlotCache`, which is covered by `RenewSlotCacheAdvice`; it never sends a normal command through `getConnection`/`getConnectionFromSlot`. This advice and its target attachment could therefore stop working while the suite remains green. Add a `SET` or `GET` through `JedisCluster` and assert the configured stable target/span name (and the unchanged legacy endpoint).",
+      "created": "2026-09-10T00:28:31Z",
+      "hunk": "@@ -0,0 +1,145 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.Map;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.jedis.HostAndPort;\n+import redis.clients.jedis.JedisClusterConnectionHandler;\n+\n+class JedisClusterInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.JedisClusterConnectionHandler\",\n+        \"redis.clients.jedis.JedisSlotBasedConnectionHandler\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisClusterConnectionHandler\")))\n+            .and(takesArgument(0, named(\"java.util.Set\"))),\n+        getClass().getName() + \"$ConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"initializeSlotsCache\").and(takesArgument(0, named(\"java.util.Set\"))),\n+        getClass().getName() + \"$InitializeAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"getConnection\", \"getConnectionFromSlot\")\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisSlotBasedConnectionHandler\")))\n+            .and(returns(named(\"redis.clients.jedis.Jedis\"))),\n+        getClass().getName() + \"$GetConnectionAdvice\");",
+      "id": "PRRT_kwDODJKVX86g4h40",
+      "opened": "2026-09-10T00:28:32Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisClusterInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-10T04:37:05Z",
+          "body": "Addressed in 7074a87d02d87b2cc2fc354987c94c3d33ad26dc.\n\nAnalysis: The test now sends SET through JedisCluster before renewing the slot cache. It checks the aggregate configured target in the stable span name and server attributes, and checks the announced Redis node in legacy mode.\n\nUpsides: The test now covers getConnection target propagation and protects both stable and legacy behavior.\n\nDownsides: The test sends one extra Redis command and makes three additional span assertions.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r3975538861"
+        }
+      ],
+      "reviewed": "6548c7af6a62e46bce1f0499b1f10c395520ea61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r3974287304"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Using the ubiquitous JDK `Set` interface as the carrier registers this virtual field against every concrete `Set` implementation, not just Jedis' temporary parsed-sentinel sets. That unnecessarily broadens class matching/field injection to unrelated application and JDK collection classes. Please derive the target from the parsed sentinels or carry it on a narrow Jedis carrier such as the pool/listener instead.",
+      "created": "2026-09-10T00:28:31Z",
+      "hunk": "@@ -8,20 +8,53 @@\n import static io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbExceptionEventExtractors.setDbClientExceptionEventExtractor;\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.Scope;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesExtractor;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientMetrics;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientSpanNameExtractor;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n import io.opentelemetry.instrumentation.api.incubator.semconv.service.peer.ServicePeerAttributesExtractor;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.ArrayList;\n+import java.util.Collection;\n+import java.util.Map;\n+import java.util.Set;\n import javax.annotation.Nullable;\n+import redis.clients.jedis.BinaryJedis;\n+import redis.clients.jedis.Connection;\n+import redis.clients.jedis.JedisClusterConnectionHandler;\n+import redis.clients.jedis.util.Pool;\n+import redis.clients.jedis.util.Sharded;\n \n public class JedisSingletons {\n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.jedis-3.0\";\n \n   private static final Instrumenter<JedisRequest, Void> instrumenter;\n \n+  private static final VirtualField<Connection, ConfiguredTarget> CONNECTION_TARGET =\n+      VirtualField.find(Connection.class, ConfiguredTarget.class);\n+\n+  private static final VirtualField<Sharded<?, ?>, ConfiguredTarget> SHARDED_TARGET =\n+      VirtualField.find(Sharded.class, ConfiguredTarget.class);\n+\n+  private static final VirtualField<Pool<?>, ConfiguredTarget> POOL_TARGET =\n+      VirtualField.find(Pool.class, ConfiguredTarget.class);\n+\n+  private static final VirtualField<Set<?>, ConfiguredSentinels> CONFIGURED_SENTINELS =\n+      VirtualField.find(Set.class, ConfiguredSentinels.class);",
+      "id": "PRRT_kwDODJKVX86g4h4W",
+      "opened": "2026-09-10T00:28:32Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-10T04:37:03Z",
+          "body": "Addressed in f71274af0bdce0f07910a01c896cf68c4a9f486f.\n\nAnalysis: JedisServerTargets.ofSentinels already accepts the parsed HostAndPort values. The initSentinels advice can derive the same normalized and sorted target from those values without attaching state to Set instances.\n\nUpsides: This removes virtual-field registration from unrelated Set implementations and deletes the parse-result bookkeeping.\n\nDownsides: The constructor and initSentinels paths normalize equivalent configured and parsed inputs independently. No material behavior change is expected.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r3975538671"
+        }
+      ],
+      "reviewed": "6548c7af6a62e46bce1f0499b1f10c395520ea61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r3974287250"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The cluster integration test exercises `getConnection` and `renewSlotCache`, but never calls `getNodes` or borrows a resource from one of its returned pools. Consequently, this target-propagation path can regress while all new tests still pass. Add a test that obtains a pool through `JedisCluster#getClusterNodes`, executes a command on a borrowed Jedis instance, and verifies the aggregate stable target plus the selected legacy endpoint.",
+      "created": "2026-09-10T08:26:54Z",
+      "hunk": "@@ -0,0 +1,145 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.Map;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.jedis.HostAndPort;\n+import redis.clients.jedis.JedisClusterConnectionHandler;\n+\n+class JedisClusterInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.JedisClusterConnectionHandler\",\n+        \"redis.clients.jedis.JedisSlotBasedConnectionHandler\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisClusterConnectionHandler\")))\n+            .and(takesArgument(0, named(\"java.util.Set\"))),\n+        getClass().getName() + \"$ConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"initializeSlotsCache\").and(takesArgument(0, named(\"java.util.Set\"))),\n+        getClass().getName() + \"$InitializeAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"getConnection\", \"getConnectionFromSlot\")\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisSlotBasedConnectionHandler\")))\n+            .and(returns(named(\"redis.clients.jedis.Jedis\"))),\n+        getClass().getName() + \"$GetConnectionAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"getConnectionFromNode\")\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisClusterConnectionHandler\")))\n+            .and(returns(named(\"redis.clients.jedis.Jedis\"))),\n+        getClass().getName() + \"$GetConnectionAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"getNodes\")\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisClusterConnectionHandler\")))\n+            .and(returns(named(\"java.util.Map\"))),\n+        getClass().getName() + \"$GetNodesAdvice\");",
+      "id": "PRRT_kwDODJKVX86g_gOZ",
+      "opened": "2026-09-10T08:26:54Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisClusterInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-10T08:52:16Z",
+          "body": "Addressed in f8e0d58309d7e878f7bf2568e2b0d2af9d9d162d.\n\nAnalysis: The new test gets the selected node pool from `JedisCluster#getClusterNodes`, borrows a Jedis resource, and runs `SET`. It checks the aggregate configured target in stable mode and the selected node endpoint in legacy mode.\n\nUpsides: The test now covers `GetNodesAdvice`, pool target propagation, and resource borrowing as one end-to-end path.\n\nDownsides: The test runs one more Redis command against the existing cluster fixture.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r3977296733"
+        }
+      ],
+      "reviewed": "312cc6015767e713096248084e9b5f2f46dca41b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r3977088993"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] The current diff still keys a `VirtualField` by the ubiquitous `Set` interface, so the agent must consider unrelated application/JDK `Set` implementations for context-store transformation. Keep this state on a Jedis-specific carrier, or derive the normalized target directly from the parsed sentinel values, rather than attaching it to the temporary set.",
+      "created": "2026-09-10T08:26:54Z",
+      "hunk": "@@ -8,20 +8,52 @@\n import static io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbExceptionEventExtractors.setDbClientExceptionEventExtractor;\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.Scope;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesExtractor;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientMetrics;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientSpanNameExtractor;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n import io.opentelemetry.instrumentation.api.incubator.semconv.service.peer.ServicePeerAttributesExtractor;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.util.Collection;\n+import java.util.Map;\n+import java.util.Set;\n import javax.annotation.Nullable;\n+import redis.clients.jedis.BinaryJedis;\n+import redis.clients.jedis.Connection;\n+import redis.clients.jedis.JedisClusterConnectionHandler;\n+import redis.clients.jedis.util.Pool;\n+import redis.clients.jedis.util.Sharded;\n \n public class JedisSingletons {\n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.jedis-3.0\";\n \n   private static final Instrumenter<JedisRequest, Void> instrumenter;\n \n+  private static final VirtualField<Connection, ConfiguredTarget> CONNECTION_TARGET =\n+      VirtualField.find(Connection.class, ConfiguredTarget.class);\n+\n+  private static final VirtualField<Sharded<?, ?>, ConfiguredTarget> SHARDED_TARGET =\n+      VirtualField.find(Sharded.class, ConfiguredTarget.class);\n+\n+  private static final VirtualField<Pool<?>, ConfiguredTarget> POOL_TARGET =\n+      VirtualField.find(Pool.class, ConfiguredTarget.class);\n+\n+  private static final VirtualField<Set<?>, ConfiguredSentinels> PARSED_SENTINELS =\n+      VirtualField.find(Set.class, ConfiguredSentinels.class);",
+      "id": "PRRT_kwDODJKVX86g_gO_",
+      "opened": "2026-09-10T08:26:54Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-10T08:52:18Z",
+          "body": "Addressed in 6012c74ee336b0ca397c60418c55a8b0cd9013d7.\n\nAnalysis: Each parsed `HostAndPort` now carries the original configured Sentinel collection. The target lookup reads that state from the Jedis-specific parsed values instead of registering a virtual field for every `Set` implementation.\n\nUpsides: Context-store transformation is limited to Jedis `HostAndPort` instances while configured hostnames still survive Jedis 3.9 address resolution.\n\nDownsides: The small configured-endpoint snapshot is attached to each parsed Sentinel address instead of once to the containing set.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r3977297019"
+        }
+      ],
+      "reviewed": "312cc6015767e713096248084e9b5f2f46dca41b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r3977089059"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This scope only covers the borrow itself, so it does not repair a pooled connection created outside `getResource()` (for example via `Pool.addObjects()` or Commons Pool's min-idle maintenance). Such a connection captures the selected node in its constructor; after this scope closes, normal commands on the returned Jedis still report that node instead of the configured cluster/Sentinel target in stable mode. Persist the pool target onto every returned Jedis connection before closing the scope, and ensure background factory-created setup commands receive the same target; add an eager/min-idle pool case to the integration tests.",
+      "created": "2026-09-11T02:14:39Z",
+      "hunk": "@@ -0,0 +1,60 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.jedis.util.Pool;\n+\n+class PoolResourceInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"redis.clients.jedis.util.Pool\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(isConstructor(), getClass().getName() + \"$ConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"getResource\").and(takesArguments(0)), getClass().getName() + \"$GetResourceAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(@Advice.This Pool<?> pool) {\n+      JedisConfiguredTargets.capturePoolTarget(pool);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class GetResourceAdvice {\n+\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Scope onEnter(@Advice.This Pool<?> pool) {\n+      return JedisConfiguredTargets.openPoolTargetScope(pool);",
+      "id": "PRRT_kwDODJKVX86hUSRK",
+      "opened": "2026-09-11T02:14:40Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/PoolResourceInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-12T01:35:26Z",
+          "body": "Addressed in f5ee8bd3d80bb56b5e84bb28f70626d850da09dd.\n\nAnalysis: The borrow scope supplied the configured target only while Commons Pool returned a resource. A connection that the min-idle thread created earlier retained its node target, and setup commands created outside the borrow had no configured target. The pool now binds its factory to the configured target, scopes factory lifecycle calls, and stores the pool target on each borrowed Jedis connection before closing the scope.\n\nUpsides: Stable database semantic conventions now report the configured cluster or Sentinel target for eager connections, background setup commands, and later commands on borrowed clients. Legacy attributes keep reporting the connected node.\n\nDownsides: The instrumentation adds two per-object target associations and wraps configured Jedis factory lifecycle calls in a context scope.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r3994605559"
+        }
+      ],
+      "reviewed": "d7b28d969fc8e647c12dc22811fa3b69e679c6c0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r3985344816"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "need rule / pattern about isDeclaredBy",
+      "created": "2026-09-14T02:54:01Z",
+      "hunk": "@@ -0,0 +1,99 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.jedis.HostAndPort;\n+import redis.clients.jedis.JedisClusterConnectionHandler;\n+\n+class JedisClusterInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.JedisClusterConnectionHandler\",\n+        \"redis.clients.jedis.JedisSlotBasedConnectionHandler\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisClusterConnectionHandler\")))",
+      "id": "PRRT_kwDODJKVX86h-hDr",
+      "opened": "2026-09-14T02:54:01Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisClusterInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:34:37Z",
+          "body": "Documented the matcher rule in #20153 ([`e0623ca`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e0623cad491d46ff8dc41d0c515d93bc605bd6b7)). This use stays because the type matcher covers both handler classes while the advice intentionally targets the base constructor.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r4010202093"
+        }
+      ],
+      "reviewed": "f5ee8bd3d80bb56b5e84bb28f70626d850da09dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r4001884312"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This exact matcher omits `JedisFactory` subclasses, even though Jedis 3.10 exposes a `JedisSentinelPool` constructor that accepts a caller-supplied `JedisFactory`. If such a factory overrides `makeObject`/activation, eager or background setup commands run without the Sentinel target; `capturePoolFactory` also rejects the subclass by exact class name. Match the `JedisFactory` hierarchy and accept that same hierarchy when binding the factory target.",
+      "created": "2026-09-21T21:14:44Z",
+      "hunk": "@@ -0,0 +1,54 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.commons.pool2.PooledObjectFactory;\n+\n+class JedisFactoryInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"redis.clients.jedis.JedisFactory\");",
+      "id": "PRRT_kwDODJKVX86khb7J",
+      "opened": "2026-09-21T21:14:45Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisFactoryInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-21T21:31:48Z",
+          "body": "Addressed in 8f8085ddfe23f60cdd486e60f03c33ff29913d7f.\n\nFixed in the verified source changes 8f8085ddfe23f60cdd486e60f03c33ff29913d7f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r4066598975"
+        }
+      ],
+      "reviewed": "4cadb61c9d18d8227bcf8e11cd05ae55bfb4d2c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r4066483003"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we also add `classLoaderOptimization` for type hierarchy matchers",
+      "created": "2026-09-22T06:19:48Z",
+      "hunk": "@@ -0,0 +1,55 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.hasSuperType;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.commons.pool2.PooledObjectFactory;\n+\n+class JedisFactoryInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {",
+      "id": "PRRT_kwDODJKVX86knkCv",
+      "opened": "2026-09-22T06:19:48Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisFactoryInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-22T21:22:57Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071/commits/d62d1b534482c04ac07e02e7832756594f256662",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r4076634764"
+        }
+      ],
+      "reviewed": "8bc56d5ff37678e9d8b6865768c3c63df9112a51",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r4068931303"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is this intentional or perhaps you intended to bump the dependency version only for test compilation?",
+      "created": "2026-09-22T06:24:10Z",
+      "hunk": "@@ -20,6 +20,7 @@ dependencies {\n \n   implementation(project(\":instrumentation:jedis:jedis-common-1.4:javaagent\"))\n \n+  testLibrary(\"redis.clients:jedis:3.6.1\")",
+      "id": "PRRT_kwDODJKVX86knnsz",
+      "opened": "2026-09-22T06:24:09Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-22T18:37:07Z",
+          "body": "ah, thanks\r\n\r\n- Fixed in this PR a08c41bb530514f916b3e5b25a501df899a92467\r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20221",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r4075088079"
+        }
+      ],
+      "reviewed": "8bc56d5ff37678e9d8b6865768c3c63df9112a51",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20071#discussion_r4068953793"
+    }
+  ]
+}

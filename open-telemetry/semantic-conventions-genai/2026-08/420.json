@@ -1,0 +1,55 @@
+{
+  "head": "dea11870aa90cc2f7b00f7d9f8c7f3eccb87dd43",
+  "merge": "a23ab113b48fbf7cca336114ca3cdae9700abb01",
+  "merged": "2026-08-02T18:17:37Z",
+  "missing_roots": 0,
+  "number": 420,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The inline version comment for `actions/checkout` (`# v7.0.1`) looks inconsistent with the action’s published major versions (commonly v4.x). Since the workflow pins by digest, the comment is the only human-readable indicator of the intended release—please update it to the actual tag that this digest corresponds to (or remove the semver comment entirely) to avoid confusion during audits and dependency reviews.",
+      "created": "2026-08-02T08:32:18Z",
+      "hunk": "@@ -21,12 +21,12 @@ jobs:\n     runs-on: ubuntu-latest\n     timeout-minutes: 10\n     steps:\n-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1",
+      "id": "PRRT_kwDOSUeMrM6VvXhF",
+      "opened": "2026-08-02T08:32:19Z",
+      "path": ".github/workflows/ci.yml",
+      "replies": [],
+      "reviewed": "460a5e6070bf038ce8186385d74e0f942521bf46",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/420#discussion_r3698411764"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `github/codeql-action` semver comments (`# v4.37.4`) appear likely to be incorrect for this action. Because you’re pinning by digest, please ensure the annotated version matches the release tag that produced this digest (or drop the version annotation) so future maintainers don’t assume a non-existent/incorrect major version during incident response or security reviews.",
+      "created": "2026-08-02T08:32:18Z",
+      "hunk": "@@ -33,17 +33,17 @@ jobs:\n           - language: python\n \n     steps:\n-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n         with:\n           persist-credentials: false\n \n       - name: Initialize CodeQL\n-        uses: github/codeql-action/init@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4.36.3\n+        uses: github/codeql-action/init@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4",
+      "id": "PRRT_kwDOSUeMrM6VvXhM",
+      "opened": "2026-08-02T08:32:19Z",
+      "path": ".github/workflows/codeql.yml",
+      "replies": [],
+      "reviewed": "460a5e6070bf038ce8186385d74e0f942521bf46",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/420#discussion_r3698411774"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `github/codeql-action` semver comments (`# v4.37.4`) appear likely to be incorrect for this action. Because you’re pinning by digest, please ensure the annotated version matches the release tag that produced this digest (or drop the version annotation) so future maintainers don’t assume a non-existent/incorrect major version during incident response or security reviews.",
+      "created": "2026-08-02T08:32:19Z",
+      "hunk": "@@ -33,17 +33,17 @@ jobs:\n           - language: python\n \n     steps:\n-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n         with:\n           persist-credentials: false\n \n       - name: Initialize CodeQL\n-        uses: github/codeql-action/init@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4.36.3\n+        uses: github/codeql-action/init@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4\n         with:\n           languages: ${{ matrix.language }}\n           config-file: ./.github/codeql/codeql-config.yml\n \n       - name: Perform CodeQL Analysis\n-        uses: github/codeql-action/analyze@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4.36.3\n+        uses: github/codeql-action/analyze@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4",
+      "id": "PRRT_kwDOSUeMrM6VvXhQ",
+      "opened": "2026-08-02T08:32:19Z",
+      "path": ".github/workflows/codeql.yml",
+      "replies": [],
+      "reviewed": "460a5e6070bf038ce8186385d74e0f942521bf46",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/420#discussion_r3698411783"
+    }
+  ]
+}

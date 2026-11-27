@@ -1,0 +1,101 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9117b68056610c920f791b6c0a5a56660d7cb2900443c2ad9b4e89a0257abef5",
+  "input_digest": "c0f797cdfd0b0ab6629310e1eba20e17e373e777147777ed788d5b0b004c42fd",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1312aba39bad54be5afe009a52bf66fd253bf57f/scenarios/http/java/apache-httpasyncclient/scenarios/src/main/java/io/opentelemetry/conformance/http/apachehttpasyncclient/ApacheHttpAsyncClientClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b215bab9b1e4ce719510efc3fb83044e778e99e4/scenarios/http/java/apache-httpasyncclient/scenarios/src/main/java/io/opentelemetry/conformance/http/apachehttpasyncclient/ApacheHttpAsyncClientClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/c790ab857858f24fe2570d3ba7868554cba26f5a"
+      ],
+      "id": "PRRT_kwDOTuzK5c6bzm7t",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1312aba39bad54be5afe009a52bf66fd253bf57f/scenarios/http/java/apache-httpclient/scenarios/src/main/java/io/opentelemetry/conformance/http/apachehttpclient/ApacheHttpClientClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b215bab9b1e4ce719510efc3fb83044e778e99e4/scenarios/http/java/apache-httpclient/scenarios/src/main/java/io/opentelemetry/conformance/http/apachehttpclient/ApacheHttpClientClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/c790ab857858f24fe2570d3ba7868554cba26f5a"
+      ],
+      "id": "PRRT_kwDOTuzK5c6bzm8M",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a68f74b2b80d08e854181593c14a33fd6c82e093/scenarios/http/java/async-http-client/scenarios/src/main/java/io/opentelemetry/conformance/http/asynchttpclient/AsyncHttpClientClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b215bab9b1e4ce719510efc3fb83044e778e99e4/scenarios/http/java/async-http-client/scenarios/src/main/java/io/opentelemetry/conformance/http/asynchttpclient/AsyncHttpClientClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/47f243b03da8858e8e2b4867c255d6d42338cdcd"
+      ],
+      "id": "PRRT_kwDOTuzK5c6b0l_Q",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/47f243b03da8858e8e2b4867c255d6d42338cdcd/scenarios/http/java/java-http-server/scenarios/src/main/java/io/opentelemetry/conformance/http/javahttpserver/JavaHttpServerServerScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b215bab9b1e4ce719510efc3fb83044e778e99e4/scenarios/http/java/java-http-server/scenarios/src/main/java/io/opentelemetry/conformance/http/javahttpserver/JavaHttpServerServerScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/8461ad7c9b71137569296aed4a3cc0b8822d23c6"
+      ],
+      "id": "PRRT_kwDOTuzK5c6b7BhJ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/47f243b03da8858e8e2b4867c255d6d42338cdcd/scenarios/http/java/java-http-client/scenarios/src/main/java/io/opentelemetry/conformance/http/javahttpclient/JavaHttpClientClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/47f243b03da8858e8e2b4867c255d6d42338cdcd/scenarios/http/java/apache-httpclient/scenarios/src/main/java/io/opentelemetry/conformance/http/apachehttpclient/ApacheHttpClientClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/47f243b03da8858e8e2b4867c255d6d42338cdcd/scenarios/http/java/jodd-http/scenarios/src/main/java/io/opentelemetry/conformance/http/joddhttp/JoddHttpClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b215bab9b1e4ce719510efc3fb83044e778e99e4/scenarios/http/java/java-http-client/scenarios/src/main/java/io/opentelemetry/conformance/http/javahttpclient/JavaHttpClientClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b215bab9b1e4ce719510efc3fb83044e778e99e4/scenarios/http/java/apache-httpclient/scenarios/src/main/java/io/opentelemetry/conformance/http/apachehttpclient/ApacheHttpClientClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b215bab9b1e4ce719510efc3fb83044e778e99e4/scenarios/http/java/jodd-http/scenarios/src/main/java/io/opentelemetry/conformance/http/joddhttp/JoddHttpClientScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/ded86877187f5f4fd40de1c2c86440911d5e9d28"
+      ],
+      "id": "PRRT_kwDOTuzK5c6b7BhN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/47f243b03da8858e8e2b4867c255d6d42338cdcd/scenarios/http/java/spring-webflux/scenarios/src/main/java/io/opentelemetry/conformance/http/springwebflux/SpringWebfluxServerScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/47f243b03da8858e8e2b4867c255d6d42338cdcd/scenarios/http/java/spring-webflux/opentelemetry-javaagent/server/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b215bab9b1e4ce719510efc3fb83044e778e99e4/scenarios/http/java/spring-webflux/scenarios/src/main/java/io/opentelemetry/conformance/http/springwebflux/SpringWebfluxServerScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b215bab9b1e4ce719510efc3fb83044e778e99e4/scenarios/http/java/spring-webflux/opentelemetry-javaagent/server/conformance.yaml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6b7BhP",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/47f243b03da8858e8e2b4867c255d6d42338cdcd/scenarios/http/java/ratpack/scenarios/src/main/java/io/opentelemetry/conformance/http/ratpack/RatpackServerScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/47f243b03da8858e8e2b4867c255d6d42338cdcd/scenarios/http/java/ratpack/opentelemetry-javaagent/server/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/47f243b03da8858e8e2b4867c255d6d42338cdcd/scenarios/http/java/ratpack/opentelemetry-javaagent/src/main/java/RatpackJavaagentServerScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b215bab9b1e4ce719510efc3fb83044e778e99e4/scenarios/http/java/ratpack/opentelemetry-javaagent/server/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b215bab9b1e4ce719510efc3fb83044e778e99e4/scenarios/http/java/ratpack/opentelemetry-javaagent/src/main/java/RatpackJavaagentServerScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/ded86877187f5f4fd40de1c2c86440911d5e9d28"
+      ],
+      "id": "PRRT_kwDOTuzK5c6b7BhQ",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

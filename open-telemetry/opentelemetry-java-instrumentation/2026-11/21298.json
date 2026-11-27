@@ -1,0 +1,210 @@
+{
+  "head": "624f5a715051e8114d63b0603646dfba9c2dc2be",
+  "merge": "5e9b7d77f1c2e2e2eaf4f3274d3d022c552027a2",
+  "merged": "2026-11-26T21:31:27Z",
+  "missing_roots": 0,
+  "number": 21298,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "[for reviewer] Using maps here (instead of `DeclarativeConfigProperties`) keeps the library’s public API independent of the incubating declarative configuration API.",
+      "created": "2026-11-16T12:09:38Z",
+      "hunk": "@@ -116,6 +117,32 @@ public JmxTelemetryBuilder addRules(Path path) {\n     }\n   }\n \n+  /**\n+   * Adds JMX rules from a list of maps. Each map uses the same syntax as an individual rule in a\n+   * YAML configuration file. All metrics are included unless filtered out by the {@link\n+   * #setMetrics(IncludeExclude)} method.\n+   *\n+   * <p>The supplied list and maps are not modified.\n+   *\n+   * @param rules rule definitions to add\n+   * @return builder instance\n+   * @throws IllegalArgumentException when rules is {@literal null} or can't be parsed\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder addRules(List<Map<String, Object>> rules) {",
+      "id": "PRRT_kwDODJKVX8636fv5",
+      "opened": "2026-11-16T12:27:00Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-11-19T13:59:35Z",
+          "body": "We should consider whether this method is useful to end users. If not, which I believe is the case here,  instead of adding public api for it we could call it through an internal api. See https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/Internal.java for ideas. Basically you make this method private and register a callback in `Internal` class where you have the a public method that ends up calling this method via the callback. This way this method becomes an internal implemenation detail and we can skip the discussion about whether `List<Map<String, Object>>` makes sense or should be replaced with something else. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4629756112"
+        },
+        {
+          "at": "2026-11-19T14:47:14Z",
+          "body": "The only use-case I see for this method to be public is when we want to add declarative config support in jmx-scraper without having to rely on internal APIs.\n\n- having the jmx-scraper rely on internal APIs is fine as a short-term implementation detail\n- we can always promote to the public API if needed, deprecating/replacing is harder",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4630377074"
+        },
+        {
+          "at": "2026-11-19T15:19:17Z",
+          "body": "Public API will be useful in custom agents that provide additional sources of JMX rules configuration.\nSurely, it can be handled with internal API as well, however it is not so clean IMHO.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4630800292"
+        },
+        {
+          "at": "2026-11-23T14:28:31Z",
+          "body": "My advice would be to go with the internal api. It is hard to justify a public api that accepts `Map<String, Object>`. At minimum there would need to be an explanation what this map contains. I don't think just saying that whatever snakeyaml returns while parsing the yaml is enough. Then there would be a natural question why not make the api accept something structured like some sort of rule object instead of a map. But that is not what you need, the only usage of this api really passes it yaml turned to map. Even if you push for public api it is likely that it will end up being something else than what you need.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4667155930"
+        },
+        {
+          "at": "2026-11-24T09:05:27Z",
+          "body": "Internal api used",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4677689103"
+        }
+      ],
+      "reviewed": "4c3b27238873fd29e12aa29351f6c61548d6485d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4585524526"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "[for reviewer] The inline list is treated as one configuration source. A parsing failure stops further parsing but keeps already processed rules. Bundled metrics and valid file rules are processed independently.",
+      "created": "2026-11-16T12:13:10Z",
+      "hunk": "@@ -79,6 +82,17 @@ static void configure(JmxTelemetryBuilder jmx, DeclarativeConfigProperties confi\n     }\n   }\n \n+  private static void addInlineRules(DeclarativeConfigProperties config, JmxTelemetryBuilder jmx) {\n+    try {\n+      jmx.addRules(\n+          config.getStructuredList(\"rules\", emptyList()).stream()\n+              .map(DeclarativeConfigProperties::toMap)\n+              .collect(toList()));\n+    } catch (RuntimeException e) {\n+      logger.log(SEVERE, \"Error while loading inline JMX rules\", e);",
+      "id": "PRRT_kwDODJKVX8636k3t",
+      "opened": "2026-11-16T12:27:00Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [],
+      "reviewed": "4c3b27238873fd29e12aa29351f6c61548d6485d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4585557869"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "[for reviewer] The invalid inline rule's unsupported metric type must prevent `custom.test.invalid-inline` from being emitted, while bundled metrics and the valid file rule continue working.",
+      "created": "2026-11-16T12:26:27Z",
+      "hunk": "@@ -172,6 +178,87 @@ void customFileDoesNotRequireExperimentalInclusion(@TempDir Path directory) thro\n                                     Attributes.of(stringKey(\"test.source\"), \"custom\")))));\n   }\n \n+  @Test\n+  void validInlineJmxRulesFromDeclarativeConfig() throws IOException {\n+    DeclarativeConfigProperties config;\n+    try (InputStream input = getClass().getResourceAsStream(\"/jmx-declarative-config.yaml\")) {\n+      config =\n+          DeclarativeConfiguration.toConfigProperties(DeclarativeConfiguration.parse(input))\n+              .get(\"instrumentation/development\")\n+              .get(\"java\")\n+              .get(\"jmx\");\n+    }\n+    JmxTelemetryBuilder builder = JmxTelemetry.builder(testing.getOpenTelemetry());\n+    JmxMetricInsightInstaller.configure(builder, config);\n+    cleanup.deferCleanup(builder.build().start());\n+\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.jmx\",\n+        metric -> metric.hasName(\"tomcat.test.unstable\"),\n+        metric ->\n+            metric\n+                .hasName(\"custom.test.embedded\")\n+                .hasUnit(\"{thread}\")\n+                .hasDescription(\"Current number of threads.\")\n+                .hasLongGaugeSatisfying(\n+                    gauge ->\n+                        gauge.hasPointsSatisfying(\n+                            point ->\n+                                point.hasAttributes(\n+                                    Attributes.of(stringKey(\"test.source\"), \"declarative\")))));\n+\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.jmx\", \"custom.test.excluded\", metrics -> metrics.isEmpty());\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.jmx\", \"other.test.not-included\", metrics -> metrics.isEmpty());\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.jmx\", \"tomcat.test.stable\", metrics -> metrics.isEmpty());\n+  }\n+\n+  @Test\n+  void invalidInlineJmxRulesDoNotPreventNonInlineMetrics(@TempDir Path directory)\n+      throws IOException {\n+    Path rules = directory.resolve(\"custom-jmx.yaml\");\n+    Files.write(\n+        rules,\n+        (\"rules:\\n\"\n+                + \"  - bean: java.lang:type=Threading\\n\"\n+                + \"    mapping:\\n\"\n+                + \"      ThreadCount:\\n\"\n+                + \"        metric: custom.test.from-file\\n\"\n+                + \"        type: gauge\\n\"\n+                + \"        unit: '{thread}'\\n\")\n+            .getBytes(UTF_8));\n+    // This is an invalid inline metric definition that will trigger error",
+      "id": "PRRT_kwDODJKVX86365D3",
+      "opened": "2026-11-16T12:27:00Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstallerTest.java",
+      "replies": [],
+      "reviewed": "ee662171d4934cc7b429deffe9f0cc9ddb6bd844",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4585689698"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This non-empty map example is passed to `DeclarativeConfigYamlGenerator.formatValue()`, which only handles empty maps and otherwise uses `String.valueOf`. The generated configuration reference therefore renders `mapping: {ThreadCount={metric=app.thread.count, ...}}` using Java map syntax rather than YAML, so users cannot copy the example to define a working rule. Please extend the generator to serialize nested map examples as YAML and cover this schema with a regression test.",
+      "created": "2026-11-16T12:32:29Z",
+      "hunk": "@@ -12,6 +12,29 @@ configurations:\n     description: List of paths to JMX metric definition YAML files.\n     type: list\n     default: \"\"\n+  - declarative_name: java.jmx.rules\n+    description: >\n+      Inline JMX metric definitions, using the same rule syntax as JMX metric definition YAML\n+      files. These rules are added to any rules loaded from files.\n+    type: list\n+    default: \"\"\n+    declarative_type: structured_list\n+    declarative_schema:\n+      type: object\n+      properties:\n+        bean:\n+          type: string\n+          description: MBean ObjectName or pattern to match.\n+          example: java.lang:type=Threading\n+        mapping:\n+          type: object\n+          description: MBean attribute names mapped to metric definitions.\n+          example:",
+      "id": "PRRT_kwDODJKVX8637B6I",
+      "opened": "2026-11-16T12:32:29Z",
+      "path": "instrumentation/jmx-metrics/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-11-16T15:56:31Z",
+          "body": "Reasonable finding, but in my opinion fix should be delivered as a separate PR.\nHowever if any reviewer needs it here I can add it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4588055468"
+        }
+      ],
+      "reviewed": "ee662171d4934cc7b429deffe9f0cc9ddb6bd844",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4585747566"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "I assume we do this to preserve ordering in the provided map, is that required ? \n\nThe ordering would only be preserved at the 1st level without doing a deep copy, and it would relies on the `ruleYaml` value implementation to preserve ordering when reading it.",
+      "created": "2026-11-19T10:13:40Z",
+      "hunk": "@@ -77,6 +77,7 @@ public JmxConfig loadConfig(InputStream is) {\n \n   @SuppressWarnings(\"unchecked\") // for casting yaml parsed objects\n   private static JmxRule parseJmxRule(Map<String, Object> ruleYaml) {\n+    ruleYaml = new LinkedHashMap<>(ruleYaml);",
+      "id": "PRRT_kwDODJKVX865biZY",
+      "opened": "2026-11-19T10:35:15Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/yaml/RuleParser.java",
+      "replies": [
+        {
+          "at": "2026-11-19T11:52:15Z",
+          "body": "Good point. LinkedHashMap is not needed here. HashMap will be fine.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4628299420"
+        }
+      ],
+      "reviewed": "ee662171d4934cc7b429deffe9f0cc9ddb6bd844",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4627215994"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "With `JmxTelemetryBuilder`, we can have multiple calls to `addRules`, so I would suggest to change the signature to `addRules(Map<String, Object> rules)` and invoke it multiple times instead of having a `List<Map<...>>` parameter.",
+      "created": "2026-11-19T10:20:23Z",
+      "hunk": "@@ -116,6 +117,32 @@ public JmxTelemetryBuilder addRules(Path path) {\n     }\n   }\n \n+  /**\n+   * Adds JMX rules from a list of maps. Each map uses the same syntax as an individual rule in a\n+   * YAML configuration file. All metrics are included unless filtered out by the {@link\n+   * #setMetrics(IncludeExclude)} method.\n+   *\n+   * <p>The supplied list and maps are not modified.\n+   *\n+   * @param rules rule definitions to add\n+   * @return builder instance\n+   * @throws IllegalArgumentException when rules is {@literal null} or can't be parsed\n+   */\n+  @CanIgnoreReturnValue\n+  public JmxTelemetryBuilder addRules(List<Map<String, Object>> rules) {",
+      "id": "PRRT_kwDODJKVX865btWr",
+      "opened": "2026-11-19T10:35:15Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-11-19T12:36:25Z",
+          "body": "I think in most cases client classes will operate on rules collection anyway, but if you think it is worth changing I can do that.\nNew method signature should have a singular form then:\n`addRule(Map<String, Object> rule)`",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4628789850"
+        },
+        {
+          "at": "2026-11-19T13:24:33Z",
+          "body": "There is one issue with this approach.\nIf declarative config has few rules inlined, and first few are valid, but then there is an invalid rule, then we are unable to discard already added rules. We can no longer satisfy \"all or nothing\" contract.\nWhat do you think about it?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4629341295"
+        },
+        {
+          "at": "2026-11-19T13:27:52Z",
+          "body": "That's a fair point.\n\nDo we really need to have the 'all or nothing' behavior ?\n\nI don't think it was an explicit requirement or an issue, this is probably implicit with the current implementation where we parse first then add all the created metrics definitions after.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4629379133"
+        },
+        {
+          "at": "2026-11-19T15:04:46Z",
+          "body": "Yes, it is just a convention. I'm OK with processing only a valid metric definitions, log and just skip invalid.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4630607000"
+        }
+      ],
+      "reviewed": "ee662171d4934cc7b429deffe9f0cc9ddb6bd844",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4627289251"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A malformed inline rule aborts this stream, so every valid rule after it is skipped. Putting the `type: invalid` rule first therefore prevents otherwise valid thread metrics from being registered. Catch parsing failures per rule so later definitions still load, and cover an invalid rule followed by a valid one.",
+      "created": "2026-11-24T09:59:51Z",
+      "hunk": "@@ -79,6 +82,16 @@ static void configure(JmxTelemetryBuilder jmx, DeclarativeConfigProperties confi\n     }\n   }\n \n+  private static void addInlineRules(DeclarativeConfigProperties config, JmxTelemetryBuilder jmx) {\n+    try {\n+      config.getStructuredList(\"rules\", emptyList()).stream()\n+          .map(DeclarativeConfigProperties::toMap)\n+          .forEach(rule -> Internal.addRule(jmx, rule));",
+      "id": "PRRT_kwDODJKVX867S1D7",
+      "opened": "2026-11-24T09:59:51Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstaller.java",
+      "replies": [
+        {
+          "at": "2026-11-24T10:43:14Z",
+          "body": "Recommendation was fine, but recommended code not. Fixed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4678801346"
+        }
+      ],
+      "reviewed": "f4ccf46a2251c07df945ec026c6907c8ac8e1ff0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4678300402"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] Use `hasLongGaugePointsSatisfying` here, as `customFileDoesNotRequireExperimentalInclusion` already does in this file. It removes the extra `gauge -> gauge.hasPointsSatisfying(...)` layer.\n\n```suggestion\n                .hasLongGaugePointsSatisfying(point ->\n                    point.hasAttributes(\n                        Attributes.of(stringKey(\"test.source\"), \"declarative\"))));\n```",
+      "created": "2026-11-25T18:22:06Z",
+      "hunk": "@@ -167,6 +173,109 @@ void customFileDoesNotRequireExperimentalInclusion(@TempDir Path directory) thro\n                     point.hasAttributes(Attributes.of(stringKey(\"test.source\"), \"custom\"))));\n   }\n \n+  @Test\n+  void validInlineJmxRulesFromDeclarativeConfig() throws IOException {\n+    DeclarativeConfigProperties config;\n+    try (InputStream input = getClass().getResourceAsStream(\"/jmx-declarative-config.yaml\")) {\n+      config =\n+          DeclarativeConfiguration.toConfigProperties(DeclarativeConfiguration.parse(input))\n+              .get(\"instrumentation/development\")\n+              .get(\"java\")\n+              .get(\"jmx\");\n+    }\n+    JmxTelemetryBuilder builder = JmxTelemetry.builder(testing.getOpenTelemetry());\n+    JmxMetricInsightInstaller.configure(builder, config);\n+    cleanup.deferCleanup(builder.build().start());\n+\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.jmx\",\n+        metric -> metric.hasName(\"tomcat.test.unstable\"),\n+        metric ->\n+            metric\n+                .hasName(\"custom.test.embedded\")\n+                .hasUnit(\"{thread}\")\n+                .hasDescription(\"Current number of threads.\")\n+                .hasLongGaugeSatisfying(gauge ->\n+                    gauge.hasPointsSatisfying(point ->\n+                        point.hasAttributes(\n+                            Attributes.of(stringKey(\"test.source\"), \"declarative\")))));",
+      "id": "PRRT_kwDODJKVX868C5qv",
+      "opened": "2026-11-25T18:22:06Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstallerTest.java",
+      "replies": [],
+      "reviewed": "3763b4a9586cfdf4c717148fdf6f6b525ad41d51",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4699097766"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] This test already imports `DeclarativeConfiguration`, and its map-based `toConfigProperties` overload builds the same config without setting up a `ComponentLoader` by hand. `SpringConfigProviderTest` already uses it this way. With this change you can also drop the `ComponentLoader` and `YamlDeclarativeConfigProperties` imports.\n\n```suggestion\n    DeclarativeConfigProperties config = DeclarativeConfiguration.toConfigProperties(properties);\n```",
+      "created": "2026-11-25T18:22:07Z",
+      "hunk": "@@ -167,6 +173,109 @@ void customFileDoesNotRequireExperimentalInclusion(@TempDir Path directory) thro\n                     point.hasAttributes(Attributes.of(stringKey(\"test.source\"), \"custom\"))));\n   }\n \n+  @Test\n+  void validInlineJmxRulesFromDeclarativeConfig() throws IOException {\n+    DeclarativeConfigProperties config;\n+    try (InputStream input = getClass().getResourceAsStream(\"/jmx-declarative-config.yaml\")) {\n+      config =\n+          DeclarativeConfiguration.toConfigProperties(DeclarativeConfiguration.parse(input))\n+              .get(\"instrumentation/development\")\n+              .get(\"java\")\n+              .get(\"jmx\");\n+    }\n+    JmxTelemetryBuilder builder = JmxTelemetry.builder(testing.getOpenTelemetry());\n+    JmxMetricInsightInstaller.configure(builder, config);\n+    cleanup.deferCleanup(builder.build().start());\n+\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.jmx\",\n+        metric -> metric.hasName(\"tomcat.test.unstable\"),\n+        metric ->\n+            metric\n+                .hasName(\"custom.test.embedded\")\n+                .hasUnit(\"{thread}\")\n+                .hasDescription(\"Current number of threads.\")\n+                .hasLongGaugeSatisfying(gauge ->\n+                    gauge.hasPointsSatisfying(point ->\n+                        point.hasAttributes(\n+                            Attributes.of(stringKey(\"test.source\"), \"declarative\")))));\n+\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.jmx\", \"custom.test.excluded\", metrics -> metrics.isEmpty());\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.jmx\", \"other.test.not-included\", metrics -> metrics.isEmpty());\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.jmx\", \"tomcat.test.stable\", metrics -> metrics.isEmpty());\n+  }\n+\n+  @Test\n+  void invalidInlineRuleDoesNotPreventOtherInlineRules() throws IOException {\n+    DeclarativeConfigProperties config;\n+    try (InputStream input = getClass().getResourceAsStream(\"/jmx-declarative-invalid-rule.yaml\")) {\n+      config =\n+          DeclarativeConfiguration.toConfigProperties(DeclarativeConfiguration.parse(input))\n+              .get(\"instrumentation/development\")\n+              .get(\"java\")\n+              .get(\"jmx\");\n+    }\n+    JmxTelemetryBuilder builder = JmxTelemetry.builder(testing.getOpenTelemetry());\n+    JmxMetricInsightInstaller.configure(builder, config);\n+    cleanup.deferCleanup(builder.build().start());\n+\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.jmx\",\n+        metric -> metric.hasName(\"custom.test.first\"),\n+        metric -> metric.hasName(\"custom.test.second\"),\n+        metric -> metric.hasName(\"custom.test.after_invalid\"));\n+\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.jmx\", \"custom.test.invalid\", AbstractIterableAssert::isEmpty);\n+  }\n+\n+  @Test\n+  void invalidInlineJmxRulesDoNotPreventNonInlineMetrics(@TempDir Path directory)\n+      throws IOException {\n+    Path rules = directory.resolve(\"custom-jmx.yaml\");\n+    Files.write(\n+        rules,\n+        (\"rules:\\n\"\n+                + \"  - bean: java.lang:type=Threading\\n\"\n+                + \"    mapping:\\n\"\n+                + \"      ThreadCount:\\n\"\n+                + \"        metric: custom.test.from-file\\n\"\n+                + \"        type: gauge\\n\"\n+                + \"        unit: '{thread}'\\n\")\n+            .getBytes(UTF_8));\n+    // This is an invalid inline metric definition that will trigger error\n+    Map<String, Object> inlineMetric = new HashMap<>();\n+    inlineMetric.put(\"metric\", \"custom.test.invalid-inline\");\n+    inlineMetric.put(\"type\", \"invalid\");\n+    inlineMetric.put(\"unit\", \"{thread}\");\n+    Map<String, Object> inlineRule = new HashMap<>();\n+    inlineRule.put(\"bean\", \"java.lang:type=Threading\");\n+    inlineRule.put(\"mapping\", singletonMap(\"ThreadCount\", inlineMetric));\n+\n+    Map<String, Object> properties = new HashMap<>();\n+    properties.put(\"config\", singletonList(rules.toString()));\n+    properties.put(\"rules\", singletonList(inlineRule));\n+    DeclarativeConfigProperties config =\n+        YamlDeclarativeConfigProperties.create(\n+            properties, ComponentLoader.forClassLoader(getClass().getClassLoader()));",
+      "id": "PRRT_kwDODJKVX868C5q8",
+      "opened": "2026-11-25T18:22:06Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstallerTest.java",
+      "replies": [],
+      "reviewed": "3763b4a9586cfdf4c717148fdf6f6b525ad41d51",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21298#discussion_r4699097783"
+    }
+  ]
+}

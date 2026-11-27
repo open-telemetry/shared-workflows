@@ -1,0 +1,25 @@
+{
+  "head": "c3479896053fe5e4cfef94710b99d7cee3e2d2d9",
+  "merge": "6a32dcfaade783e934e666ffa0cbde9ad18bb0e2",
+  "merged": "2026-04-08T20:40:46Z",
+  "missing_roots": 0,
+  "number": 17744,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    if (setEmitExperimentalTelemetry != null) {\n      setEmitExperimentalTelemetry.accept(builder, emitExperimentalTelemetry);\n```",
+      "created": "2026-04-08T20:18:43Z",
+      "hunk": "@@ -28,8 +28,10 @@ public final class Experimental {\n    */\n   public static void setEmitExperimentalTelemetry(\n       SpringWebTelemetryBuilder builder, boolean emitExperimentalTelemetry) {\n-    if (setEmitExperimentalTelemetry != null) {\n-      setEmitExperimentalTelemetry.accept(builder, emitExperimentalTelemetry);\n+    BiConsumer<SpringWebTelemetryBuilder, Boolean> emitExperimentalTelemetrySetter =\n+        setEmitExperimentalTelemetry;\n+    if (emitExperimentalTelemetrySetter != null) {\n+      emitExperimentalTelemetrySetter.accept(builder, emitExperimentalTelemetry);",
+      "id": "PRRT_kwDODJKVX855rGG2",
+      "opened": "2026-04-08T20:18:43Z",
+      "path": "instrumentation/spring/spring-web/spring-web-3.1/library/src/main/java/io/opentelemetry/instrumentation/spring/web/v3_1/internal/Experimental.java",
+      "replies": [],
+      "reviewed": "24cb19b716efed1c203e961a9fbc7aafd321dc69",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17744#discussion_r3053942076"
+    }
+  ]
+}

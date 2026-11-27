@@ -1,0 +1,31 @@
+{
+  "head": "91e2cd2c609ed4c542017f0c47a7b442caf933b0",
+  "merge": "d075a021e20bcc300239b85960dda567ccdfc9ce",
+  "merged": "2026-11-20T02:28:47Z",
+  "missing_roots": 0,
+  "number": 21327,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a focused test-only reduction in instrumentation/netty/netty-common-4.0/library/src/test/java/io/opentelemetry/instrumentation/netty/common/v4_0/internal/client/NettySocketAddressTest.java.\n\nShared network infrastructure already tests Unix path decoding, port omission and supported address implementations. In httpPeerAndTransportSurviveChannelClose, replace the shared NetworkAttributesExtractor exercise that repeats decoded path/attribute expectations with direct checks of captured raw peer identity and Netty's transport after channel.remoteAddress() becomes null. Preserve both client and server getter coverage. Keep the corresponding SSL peer/transport-after-close test: HTTP and TLS use different request/getter paths.\n\nIn connectKeepsLogicalServerSeparateFromSocketPeer, use an ordinary/mock SocketAddress to verify raw peer forwarding and logical server.address/server.port separation instead of reflectively constructing a JDK Unix address. Drop the redundant Unix transport-decoding assertion for the non-null channel in this identity test, and remove its now-unnecessary JRE annotation and throws clause. Preserve the relevant null-channel checks.\n\nKeep a real supported Unix address in the HTTP/TLS transport-after-close cases, because falling back to TCP after closure is a Netty-specific regression that common decoder tests cannot catch. It is fine to keep the JDK fixture and necessary JRE gating for those cases if existing dependencies provide no simpler supported fixture. Do not add dependencies, fake a recognized address class name, or replace a meaningful Unix transport regression with an unsupported mock.\n\nClean up directly unused imports/fixture code. Do not remove meaningful capture/lifecycle coverage or change production behavior, dependencies, test tasks, minimum Java or configuration. Run the focused existing NettySocketAddressTest and narrow relevant formatting.\n\nCommit only to this PR's current head. Preserve base copilot/add-socketaddress-support, current draft state and native stack membership. This work is independent of test reductions on other layers; do not merge, rebase, restack, modify another branch or create another PR.",
+      "created": "2026-11-18T00:35:28Z",
+      "hunk": "@@ -0,0 +1,101 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.netty.common.v4_0.internal.client;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PEER_ADDRESS;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PROTOCOL_NAME;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_PROTOCOL_VERSION;\n+import static io.opentelemetry.semconv.NetworkAttributes.NETWORK_TRANSPORT;\n+import static org.assertj.core.api.Assertions.entry;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import io.netty.channel.Channel;\n+import io.netty.handler.codec.http.DefaultHttpRequest;\n+import io.netty.handler.codec.http.HttpMethod;\n+import io.netty.handler.codec.http.HttpVersion;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.semconv.network.NetworkAttributesExtractor;\n+import io.opentelemetry.instrumentation.netty.common.internal.NettyConnectionRequest;\n+import io.opentelemetry.instrumentation.netty.common.v4_0.internal.NettyCommonRequest;\n+import io.opentelemetry.instrumentation.netty.common.v4_0.internal.server.NettyHttpServerAttributesGetter;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.condition.EnabledForJreRange;\n+import org.junit.jupiter.api.condition.JRE;\n+\n+class NettySocketAddressTest {\n+\n+  @Test\n+  @EnabledForJreRange(min = JRE.JAVA_16)\n+  void httpPeerAndTransportSurviveChannelClose() throws Exception {",
+      "id": "PRRT_kwDODJKVX864uT0O",
+      "opened": "2026-11-18T00:35:28Z",
+      "path": "instrumentation/netty/netty-common-4.0/library/src/test/java/io/opentelemetry/instrumentation/netty/common/v4_0/internal/client/NettySocketAddressTest.java",
+      "replies": [
+        {
+          "at": "2026-11-18T00:48:20Z",
+          "body": "Updated in commit `e51bcbd4`. The focused Netty test and targeted Spotless check pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21327#discussion_r4607798769"
+        }
+      ],
+      "reviewed": "b8258921b6ce8727719f7a944fe12d2ba500060a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21327#discussion_r4607703273"
+    }
+  ]
+}

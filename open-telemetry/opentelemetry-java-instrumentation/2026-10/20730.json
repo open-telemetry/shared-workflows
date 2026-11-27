@@ -1,0 +1,40 @@
+{
+  "head": "519bcb36a0f0a7cf004f8629eb0d6c95caf7eafe",
+  "merge": "d2a33ffdbaa84893e49d85525e43591288532539",
+  "merged": "2026-10-20T07:04:57Z",
+  "missing_roots": 0,
+  "number": 20730,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Force injecting-mode advice to inline**\n\nWhen an extension mixes inline and `inline = false` advice, or explicitly selects `HelperClassStrategy.INJECTED`, `AdviceInspector.useIsolatedAdvice()` intentionally falls back to the injecting installer, but this pool now preserves the source `inline = false`. Muzzle does not include the advice class itself in the default injected-helper list, so the transformed application emits a direct call to a class its loader cannot see and the advice hits `NoClassDefFoundError` (or is silently skipped when suppressed). Retain the `AdviceInliningPoolStrategy(..., true)` override so source `inline` remains only the strategy signal in this path.\n\nAGENTS.md reference: [AGENTS.md:L20-L22](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/519bcb36a0f0a7cf004f8629eb0d6c95caf7eafe/AGENTS.md#L20-L22)\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-10-19T15:55:39Z",
+      "hunk": "@@ -34,18 +33,15 @@ public void applyAdviceToMethod(\n       ElementMatcher<? super MethodDescription> methodMatcher,\n       Function<Advice.WithCustomMapping, Advice.WithCustomMapping> mappingCustomizer,\n       String adviceClassName) {\n-    // default strategy used by AgentBuilder.Transformer.ForAdvice\n-    AgentBuilder.PoolStrategy poolStrategy = AgentBuilder.PoolStrategy.Default.FAST;\n-\n     agentBuilder =\n         agentBuilder.transform(\n             new AgentBuilder.Transformer.ForAdvice(mappingCustomizer.apply(adviceMapping))\n                 .include(\n                     Utils.getBootstrapProxy(),\n                     Utils.getAgentClassLoader(),\n                     Utils.getExtensionsClassLoader())\n-                // set the advice \"inline\" attribute to true\n-                .with(new AdviceInliningPoolStrategy(poolStrategy, true))\n+                // default strategy used by AgentBuilder.Transformer.ForAdvice\n+                .with(AgentBuilder.PoolStrategy.Default.FAST)",
+      "id": "PRRT_kwDODJKVX86t_1kb",
+      "opened": "2026-10-19T15:55:39Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/TypeTransformerImpl.java",
+      "replies": [],
+      "reviewed": "519bcb36a0f0a7cf004f8629eb0d6c95caf7eafe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20730#discussion_r4315955851"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Force isolated-mode advice to stay non-inline**\n\nWhen an extension forces `HelperClassStrategy.ISOLATED` for source-inline or mixed advice that invokes normal helpers, `InstrumentationModuleInstaller.useIndy()` deliberately selects this transformer, but this pool leaves those methods inline. Byte Buddy then copies their helper calls into application bytecode even though `installIndyModule()` keeps the helpers in the isolated instrumentation loader, so the calls cannot link and telemetry fails or no-ops instead of being dispatched through `IndyBootstrap`. Retain the `AdviceInliningPoolStrategy(..., false)` override.\n\nAGENTS.md reference: [AGENTS.md:L20-L22](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/519bcb36a0f0a7cf004f8629eb0d6c95caf7eafe/AGENTS.md#L20-L22)\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-10-19T15:55:39Z",
+      "hunk": "@@ -45,16 +45,12 @@ public void applyAdviceToMethod(\n       ElementMatcher<? super MethodDescription> methodMatcher,\n       Function<Advice.WithCustomMapping, Advice.WithCustomMapping> mappingCustomizer,\n       String adviceClassName) {\n-    // default strategy used by AgentBuilder.Transformer.ForAdvice\n-    AgentBuilder.PoolStrategy poolStrategy = AgentBuilder.PoolStrategy.Default.FAST;\n-\n     agentBuilder =\n         agentBuilder.transform(\n             new AgentBuilder.Transformer.ForAdvice(mappingCustomizer.apply(adviceMapping))\n                 .advice(methodMatcher, adviceClassName)\n-                // change inline attribute for advice OnMethodEnter and OnMethodExit annotations to\n-                // false\n-                .with(new AdviceInliningPoolStrategy(poolStrategy, false))\n+                // default strategy used by AgentBuilder.Transformer.ForAdvice\n+                .with(AgentBuilder.PoolStrategy.Default.FAST)",
+      "id": "PRRT_kwDODJKVX86t_1kp",
+      "opened": "2026-10-19T15:55:39Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyTypeTransformerImpl.java",
+      "replies": [],
+      "reviewed": "519bcb36a0f0a7cf004f8629eb0d6c95caf7eafe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20730#discussion_r4315955865"
+    }
+  ]
+}

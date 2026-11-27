@@ -1,0 +1,229 @@
+{
+  "head": "f636193b28e2f1e7ea9d855283ab792589b8ffc7",
+  "merge": "b6694431d81f321a25c51c60e88d57b449a126ad",
+  "merged": "2026-05-18T20:36:20Z",
+  "missing_roots": 0,
+  "number": 14,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "TODO  (follow up, create issue): do multi-turn conversation",
+      "created": "2026-05-14T01:21:42Z",
+      "hunk": "@@ -0,0 +1,75 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: anthropic chat with tool calls.\"\"\"\n+\n+from __future__ import annotations\n+\n+import os\n+from typing import Any\n+from unittest import mock\n+\n+from anthropic import Anthropic\n+\n+from opentelemetry.instrumentation.anthropic import AnthropicInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+class ToolCallingScenario(Scenario):\n+    expected_spans = (\"chat\",)\n+    expected_metrics = (\n+        \"gen_ai.client.operation.duration\",\n+        \"gen_ai.client.token.usage\",\n+    )\n+\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None:\n+        key_override = (\n+            {}\n+            if os.getenv(\"ANTHROPIC_API_KEY\")\n+            else {\"ANTHROPIC_API_KEY\": \"test_anthropic_api_key\"}\n+        )\n+        with mock.patch.dict(os.environ, key_override):\n+            with instrument(\n+                AnthropicInstrumentor(),\n+                tracer_provider=tracer_provider,\n+                logger_provider=logger_provider,\n+                meter_provider=meter_provider,\n+                semconv=\"gen_ai_latest_experimental\",\n+                content_capture=\"SPAN_ONLY\",\n+            ):\n+                with vcr.use_cassette(\"tool_calling-conformance.yaml\"):\n+                    Anthropic().messages.create(\n+                        model=\"claude-sonnet-4-20250514\",\n+                        max_tokens=256,\n+                        messages=[\n+                            {\n+                                \"role\": \"user\",\n+                                \"content\": \"What is the weather in SF?\",\n+                            }\n+                        ],\n+                        tools=[\n+                            {\n+                                \"name\": \"get_weather\",\n+                                \"description\": \"Get weather by city\",\n+                                \"input_schema\": {\n+                                    \"type\": \"object\",\n+                                    \"properties\": {\n+                                        \"city\": {\"type\": \"string\"}\n+                                    },\n+                                    \"required\": [\"city\"],\n+                                },\n+                            }\n+                        ],\n+                        tool_choice={\"type\": \"tool\", \"name\": \"get_weather\"},",
+      "id": "PRRT_kwDOSbspP86B7zi_",
+      "opened": "2026-05-14T01:21:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-anthropic/tests/conformance/tool_calling.py",
+      "replies": [
+        {
+          "at": "2026-05-18T17:35:20Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-python-genai/issues/40",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3260837869"
+        }
+      ],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238453911"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "TODO  (follow up, create issue) bug in anthropic",
+      "created": "2026-05-14T01:22:05Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Per-scenario conformance tests for anthropic.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+import pytest\n+\n+from opentelemetry.test.weaver_live_check import WeaverLiveCheck\n+from opentelemetry.test_util_genai.conformance import (\n+    Scenario,\n+    run_conformance,\n+)\n+\n+from .conformance.inference import InferenceScenario\n+from .conformance.tool_calling import ToolCallingScenario\n+\n+pytestmark = pytest.mark.conformance\n+\n+_LEGACY_SYSTEM_SKIP = pytest.mark.skip(\n+    reason=\"anthropic emits legacy gen_ai.system in experimental mode\"\n+)\n+\n+\n+@pytest.mark.parametrize(\n+    \"scenario\",\n+    [\n+        pytest.param(InferenceScenario(), marks=_LEGACY_SYSTEM_SKIP),",
+      "id": "PRRT_kwDOSbspP86B7z2F",
+      "opened": "2026-05-14T01:22:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-anthropic/tests/test_conformance.py",
+      "replies": [
+        {
+          "at": "2026-05-18T17:34:04Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-python-genai/issues/39",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3260831584"
+        }
+      ],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238455525"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "TODO  (follow up, create issue): bug",
+      "created": "2026-05-14T01:23:40Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Per-scenario conformance tests for openai-v2.\n+\n+Each scenario runs the instrumentation against a recorded API call and\n+validates the emitted telemetry against the GenAI semantic conventions via\n+Weaver live-check.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+import pytest\n+\n+from opentelemetry.test.weaver_live_check import WeaverLiveCheck\n+from opentelemetry.test_util_genai.conformance import (\n+    Scenario,\n+    run_conformance,\n+)\n+\n+from .conformance.embedding import EmbeddingScenario\n+from .conformance.inference import InferenceScenario\n+from .conformance.tool_calling import ToolCallingScenario\n+\n+pytestmark = pytest.mark.conformance\n+\n+\n+@pytest.mark.parametrize(\n+    \"scenario\",\n+    [\n+        InferenceScenario(),\n+        pytest.param(\n+            EmbeddingScenario(),\n+            marks=pytest.mark.skip(\n+                reason=\"openai-v2 embeddings emit legacy gen_ai.system in experimental mode\"\n+            ),\n+        ),",
+      "id": "PRRT_kwDOSbspP86B71WR",
+      "opened": "2026-05-14T01:23:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-openai-v2/tests/test_conformance.py",
+      "replies": [
+        {
+          "at": "2026-05-18T17:28:30Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-python-genai/issues/38",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3260804073"
+        }
+      ],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238463648"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "todo: file name",
+      "created": "2026-05-14T01:26:04Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86B73rP",
+      "opened": "2026-05-14T01:26:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-openai-v2/tests/cassettes/tool_calling_conformance.yaml",
+      "replies": [],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238476127"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "need to check out to get json schemas and run custom `genai_content_validation.rego` policy",
+      "created": "2026-05-14T01:26:51Z",
+      "hunk": "@@ -0,0 +1,164 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Provision advice policies and the semconv registry for weaver.\n+\n+The weaver binary is installed by CI (see ``.github/workflows/test.yml``)\n+or locally by the contributor — this module only handles the schema / registry\n+side. Both ``policies_dir()`` and ``semconv_registry()`` read the\n+``SEMCONV_VERSION`` pin from ``versions.env`` and share one cached\n+semantic-conventions tarball.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+import logging\n+import os\n+import shutil\n+import tarfile\n+import tempfile\n+import urllib.request\n+from pathlib import Path\n+from typing import Any\n+\n+logger = logging.getLogger(__name__)\n+\n+\n+def _workspace_root() -> Path:\n+    here = Path(__file__).resolve()\n+    for ancestor in here.parents:\n+        if (ancestor / \"versions.env\").is_file() and (\n+            ancestor / \"policies\"\n+        ).is_dir():\n+            return ancestor\n+    raise RuntimeError(\n+        f\"Could not locate the genai workspace root (walked up from {here} \"\n+        \"looking for versions.env + policies/).\"\n+    )\n+\n+\n+def _load_version_pins() -> dict[str, str]:\n+    content = (_workspace_root() / \"versions.env\").read_text(encoding=\"utf-8\")\n+    pins: dict[str, str] = {}\n+    for raw_line in content.splitlines():\n+        line = raw_line.strip()\n+        if not line or line.startswith(\"#\"):\n+            continue\n+        key, sep, value = line.partition(\"=\")\n+        if not sep:\n+            raise RuntimeError(\n+                f\"Invalid version pin in versions.env: {raw_line!r}\"\n+            )\n+        pins[key.strip()] = value.strip().strip('\"').strip(\"'\")\n+    return pins\n+\n+\n+def _cache_dir() -> Path:\n+    override = os.environ.get(\"SEMCONV_CACHE\")\n+    if override:\n+        return Path(override)\n+    return Path.home() / \".cache\" / \"otel-conformance\" / \"semconv\"\n+\n+\n+def _fetch_semconv(version: str) -> Path:\n+    \"\"\"Download `semantic-conventions` at ``version`` and return the extracted root.\"\"\"\n+    cache_root = _cache_dir()\n+    safe = version.replace(\"/\", \"_\")\n+    target = cache_root / safe\n+    if (target / \"model\").is_dir() and (target / \"docs\" / \"gen-ai\").is_dir():\n+        return target\n+\n+    cache_root.mkdir(parents=True, exist_ok=True)\n+    url = (",
+      "id": "PRRT_kwDOSbspP86B74QE",
+      "opened": "2026-05-14T01:26:51Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/_setup_weaver.py",
+      "replies": [],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238479133"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not using GenAI repo yet, due to minor issues, TODO: create bug",
+      "created": "2026-05-14T01:27:35Z",
+      "hunk": "@@ -0,0 +1,164 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Provision advice policies and the semconv registry for weaver.\n+\n+The weaver binary is installed by CI (see ``.github/workflows/test.yml``)\n+or locally by the contributor — this module only handles the schema / registry\n+side. Both ``policies_dir()`` and ``semconv_registry()`` read the\n+``SEMCONV_VERSION`` pin from ``versions.env`` and share one cached\n+semantic-conventions tarball.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+import logging\n+import os\n+import shutil\n+import tarfile\n+import tempfile\n+import urllib.request\n+from pathlib import Path\n+from typing import Any\n+\n+logger = logging.getLogger(__name__)\n+\n+\n+def _workspace_root() -> Path:\n+    here = Path(__file__).resolve()\n+    for ancestor in here.parents:\n+        if (ancestor / \"versions.env\").is_file() and (\n+            ancestor / \"policies\"\n+        ).is_dir():\n+            return ancestor\n+    raise RuntimeError(\n+        f\"Could not locate the genai workspace root (walked up from {here} \"\n+        \"looking for versions.env + policies/).\"\n+    )\n+\n+\n+def _load_version_pins() -> dict[str, str]:\n+    content = (_workspace_root() / \"versions.env\").read_text(encoding=\"utf-8\")\n+    pins: dict[str, str] = {}\n+    for raw_line in content.splitlines():\n+        line = raw_line.strip()\n+        if not line or line.startswith(\"#\"):\n+            continue\n+        key, sep, value = line.partition(\"=\")\n+        if not sep:\n+            raise RuntimeError(\n+                f\"Invalid version pin in versions.env: {raw_line!r}\"\n+            )\n+        pins[key.strip()] = value.strip().strip('\"').strip(\"'\")\n+    return pins\n+\n+\n+def _cache_dir() -> Path:\n+    override = os.environ.get(\"SEMCONV_CACHE\")\n+    if override:\n+        return Path(override)\n+    return Path.home() / \".cache\" / \"otel-conformance\" / \"semconv\"\n+\n+\n+def _fetch_semconv(version: str) -> Path:\n+    \"\"\"Download `semantic-conventions` at ``version`` and return the extracted root.\"\"\"\n+    cache_root = _cache_dir()\n+    safe = version.replace(\"/\", \"_\")\n+    target = cache_root / safe\n+    if (target / \"model\").is_dir() and (target / \"docs\" / \"gen-ai\").is_dir():\n+        return target\n+\n+    cache_root.mkdir(parents=True, exist_ok=True)\n+    url = (\n+        \"https://github.com/open-telemetry/semantic-conventions/\"",
+      "id": "PRRT_kwDOSbspP86B74wM",
+      "opened": "2026-05-14T01:27:35Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/_setup_weaver.py",
+      "replies": [
+        {
+          "at": "2026-05-18T19:03:21Z",
+          "body": "not so minor. Changed this PR to use semconv-genai repo, but it needs to do the same [hackery](https://github.com/open-telemetry/semantic-conventions-genai/blob/8508fbfa5189ae50c7e95aa2fcd90c5c4998cbc7/Makefile#L104) as the repo does due to https://github.com/open-telemetry/weaver/issues/1455",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3261356369"
+        }
+      ],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238481754"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing the `vcr_cassette_name` fixture changes pytest-vcr’s cassette naming back to `request.node.name` (including parameter IDs). Several existing tests use `@pytest.mark.vcr()` with parametrized fixtures (e.g. openai-v2’s `content_mode`) and rely on the prior override so all parametrized cells share one cassette; without it they will look for new cassette filenames with `[...]` suffixes and fail.\n\nRe-introduce the `vcr_cassette_name` override (e.g., `request.node.originalname or request.node.name`) or otherwise configure pytest-vcr to derive cassette names without the parametrize suffix.",
+      "created": "2026-05-14T01:27:54Z",
+      "hunk": "@@ -130,20 +130,6 @@ def fixture_vcr(vcr: Any) -> Any:\n     return vcr\n \n \n-@pytest.fixture\n-def vcr_cassette_name(request: pytest.FixtureRequest) -> str:\n-    \"\"\"Cassette name = the test function name, without parametrize suffix.\n-\n-    Override of pytest-vcr's default, which uses ``request.node.name`` and\n-    so includes the ``[...]`` parametrize ID — causing tests that fan out\n-    via the shared ``content_capture`` matrix to look for cassettes named\n-    ``test_foo[NO_CONTENT].yaml`` instead of ``test_foo.yaml``. The actual\n-    HTTP request is identical across capture-mode cells, so all cells\n-    share the same cassette.\n-    \"\"\"\n-    return request.node.originalname or request.node.name\n-\n-\n def scrub_response_headers(\n     headers_to_scrub: Iterable[str],\n ) -> Callable[[dict[str, Any]], dict[str, Any]]:",
+      "id": "PRRT_kwDOSbspP86B74_J",
+      "opened": "2026-05-14T01:27:56Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/vcr.py",
+      "replies": [],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238482993"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These `[tool.uv.sources]` entries pin core OpenTelemetry packages to `git + branch = main` for *all* dev/test environments, which conflicts with the repo’s `requirements.{oldest,latest}.txt` matrices (they expect released distributions) and makes non-conformance CI depend on unreleased upstream main.\n\nConsider scoping the git pins to conformance-only (e.g., via the `dev-requirements-conformance.txt` tox factor / a dedicated uv lock or constraints for `*-conformance` envs) and leaving the default workspace resolution on PyPI releases.",
+      "created": "2026-05-14T01:27:54Z",
+      "hunk": "@@ -38,6 +38,19 @@ opentelemetry-instrumentation-openai-v2 = { workspace = true }\n opentelemetry-instrumentation-openai-agents-v2 = { workspace = true }\n opentelemetry-instrumentation-weaviate = { workspace = true }\n \n+# `opentelemetry.test.weaver_live_check` (used by conformance tests) is on\n+# main but not yet on PyPI (latest opentelemetry-test-utils is 0.62b1). Pin\n+# the whole otel-core stack to git+main so versions resolve coherently;\n+# drop once the file ships.\n+opentelemetry-api = { git = \"https://github.com/open-telemetry/opentelemetry-python\", branch = \"main\", subdirectory = \"opentelemetry-api\" }",
+      "id": "PRRT_kwDOSbspP86B74_Y",
+      "opened": "2026-05-14T01:27:56Z",
+      "path": "pyproject.toml",
+      "replies": [],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238483014"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The conformance requirements install several OpenTelemetry components from Git without pinning to a commit SHA or tag. That makes the `*-conformance` tox envs non-reproducible and can break CI whenever upstream `main` changes.\n\nPin these `git+...` URLs to a specific commit (and update intentionally), ideally matching whatever revision is used in `uv.lock`, so conformance runs are deterministic.\n",
+      "created": "2026-05-14T01:27:55Z",
+      "hunk": "@@ -0,0 +1,12 @@\n+# Conformance tests use `opentelemetry.test.weaver_live_check`, not yet on\n+# PyPI. Pin the whole stack from git+main so versions stay coherent. Mirrors\n+# pyproject.toml's [tool.uv.sources]. Drop once the file ships to PyPI.\n+\n+opentelemetry-api @ git+https://github.com/open-telemetry/opentelemetry-python#subdirectory=opentelemetry-api\n+opentelemetry-sdk @ git+https://github.com/open-telemetry/opentelemetry-python#subdirectory=opentelemetry-sdk\n+opentelemetry-semantic-conventions @ git+https://github.com/open-telemetry/opentelemetry-python#subdirectory=opentelemetry-semantic-conventions\n+opentelemetry-test-utils @ git+https://github.com/open-telemetry/opentelemetry-python#subdirectory=tests/opentelemetry-test-utils\n+opentelemetry-instrumentation @ git+https://github.com/open-telemetry/opentelemetry-python-contrib#subdirectory=opentelemetry-instrumentation\n+opentelemetry-exporter-otlp-proto-grpc @ git+https://github.com/open-telemetry/opentelemetry-python#subdirectory=exporter/opentelemetry-exporter-otlp-proto-grpc\n+opentelemetry-exporter-otlp-proto-common @ git+https://github.com/open-telemetry/opentelemetry-python#subdirectory=exporter/opentelemetry-exporter-otlp-proto-common\n+opentelemetry-proto @ git+https://github.com/open-telemetry/opentelemetry-python#subdirectory=opentelemetry-proto",
+      "id": "PRRT_kwDOSbspP86B74_k",
+      "opened": "2026-05-14T01:27:56Z",
+      "path": "dev-requirements-conformance.txt",
+      "replies": [],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238483030"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`urllib.request.urlopen(url)` is called without a timeout. If GitHub is slow/unreachable, conformance runs can hang until the OS-level socket timeout.\n\nConsider passing an explicit timeout (and optionally handling `URLError`) so CI/local conformance runs fail fast and produce a clearer error/skip reason.",
+      "created": "2026-05-14T01:27:55Z",
+      "hunk": "@@ -0,0 +1,164 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Provision advice policies and the semconv registry for weaver.\n+\n+The weaver binary is installed by CI (see ``.github/workflows/test.yml``)\n+or locally by the contributor — this module only handles the schema / registry\n+side. Both ``policies_dir()`` and ``semconv_registry()`` read the\n+``SEMCONV_VERSION`` pin from ``versions.env`` and share one cached\n+semantic-conventions tarball.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+import logging\n+import os\n+import shutil\n+import tarfile\n+import tempfile\n+import urllib.request\n+from pathlib import Path\n+from typing import Any\n+\n+logger = logging.getLogger(__name__)\n+\n+\n+def _workspace_root() -> Path:\n+    here = Path(__file__).resolve()\n+    for ancestor in here.parents:\n+        if (ancestor / \"versions.env\").is_file() and (\n+            ancestor / \"policies\"\n+        ).is_dir():\n+            return ancestor\n+    raise RuntimeError(\n+        f\"Could not locate the genai workspace root (walked up from {here} \"\n+        \"looking for versions.env + policies/).\"\n+    )\n+\n+\n+def _load_version_pins() -> dict[str, str]:\n+    content = (_workspace_root() / \"versions.env\").read_text(encoding=\"utf-8\")\n+    pins: dict[str, str] = {}\n+    for raw_line in content.splitlines():\n+        line = raw_line.strip()\n+        if not line or line.startswith(\"#\"):\n+            continue\n+        key, sep, value = line.partition(\"=\")\n+        if not sep:\n+            raise RuntimeError(\n+                f\"Invalid version pin in versions.env: {raw_line!r}\"\n+            )\n+        pins[key.strip()] = value.strip().strip('\"').strip(\"'\")\n+    return pins\n+\n+\n+def _cache_dir() -> Path:\n+    override = os.environ.get(\"SEMCONV_CACHE\")\n+    if override:\n+        return Path(override)\n+    return Path.home() / \".cache\" / \"otel-conformance\" / \"semconv\"\n+\n+\n+def _fetch_semconv(version: str) -> Path:\n+    \"\"\"Download `semantic-conventions` at ``version`` and return the extracted root.\"\"\"\n+    cache_root = _cache_dir()\n+    safe = version.replace(\"/\", \"_\")\n+    target = cache_root / safe\n+    if (target / \"model\").is_dir() and (target / \"docs\" / \"gen-ai\").is_dir():\n+        return target\n+\n+    cache_root.mkdir(parents=True, exist_ok=True)\n+    url = (\n+        \"https://github.com/open-telemetry/semantic-conventions/\"\n+        f\"archive/refs/tags/{version}.tar.gz\"\n+    )\n+    with tempfile.TemporaryDirectory(\n+        dir=str(cache_root), prefix=f\"semconv-{safe}-\"\n+    ) as tmp:\n+        tmp_path = Path(tmp)\n+        archive_path = tmp_path / \"src.tar.gz\"\n+        extract_dir = tmp_path / \"extract\"\n+        extract_dir.mkdir()\n+\n+        logger.info(\"Fetching semantic-conventions @ %s\", version)\n+        with (\n+            urllib.request.urlopen(url) as response,\n+            archive_path.open(\"wb\") as out,\n+        ):",
+      "id": "PRRT_kwDOSbspP86B74_y",
+      "opened": "2026-05-14T01:27:56Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/_setup_weaver.py",
+      "replies": [],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238483048"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_dump_report` always writes to `weaver_reports/full.json`, so running multiple scenarios overwrites the previous report (and can race if tests are ever run in parallel).\n\nConsider incorporating the scenario name (and/or test node id) into the filename so each scenario’s report is preserved for debugging.",
+      "created": "2026-05-14T01:27:55Z",
+      "hunk": "@@ -0,0 +1,189 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Per-scenario conformance runner for GenAI instrumentations.\n+\n+Intended call shape from a per-package ``tests/test_conformance.py``::\n+\n+    pytestmark = pytest.mark.conformance\n+\n+    @pytest.mark.parametrize(\n+        \"scenario\", [InferenceScenario(), ToolCallingScenario()]\n+    )\n+    def test_conformance(scenario, vcr, weaver_live_check):\n+        report = run_conformance(scenario, vcr=vcr, weaver=weaver_live_check)\n+        # Optionally layer lib-specific assertions on `report` here.\n+\n+The module-level ``pytestmark = pytest.mark.conformance`` is required: the\n+``*-conformance`` tox envs select these tests via ``-m conformance``, and the\n+regular ``*-{oldest,latest}`` envs deselect them via ``-m \"not conformance\"``.\n+\n+Each ``tests/conformance/<op>.py`` defines a :class:`Scenario` subclass with:\n+\n+- ``expected_spans`` — ``gen_ai.operation.name`` values that must appear in\n+  the report's span samples.\n+- ``expected_metrics`` — metric names that must appear in\n+  ``statistics.seen_registry_metrics``.\n+- ``run(*, tracer_provider, meter_provider, logger_provider, vcr)`` — wires\n+  the instrumentor against the providers and exercises one semconv operation\n+  type's happy path inside ``vcr.use_cassette(...)``.\n+- ``validate(report)`` — asserts the emitted telemetry matches the scenario.\n+  The base implementation enforces ``expected_spans`` / ``expected_metrics``\n+  presence; per-scenario overrides call ``super().validate(report)`` and\n+  layer on additional checks against the weaver report.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+from abc import ABC, abstractmethod\n+from pathlib import Path\n+from typing import Any, ClassVar\n+\n+from opentelemetry._logs import set_logger_provider\n+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (\n+    OTLPLogExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (\n+    OTLPMetricExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (\n+    OTLPSpanExporter,\n+)\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk._logs.export import SimpleLogRecordProcessor\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import SimpleSpanProcessor\n+from opentelemetry.test.weaver_live_check import (\n+    LiveCheckReport,\n+    WeaverLiveCheck,\n+)\n+\n+\n+class Scenario(ABC):\n+    \"\"\"Base class every ``tests/conformance/<op>.py`` scenario must subclass.\"\"\"\n+\n+    expected_spans: ClassVar[tuple[str, ...]] = ()\n+    expected_metrics: ClassVar[tuple[str, ...]] = ()\n+\n+    @abstractmethod\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None: ...\n+\n+    def validate(self, report: LiveCheckReport) -> None:\n+        \"\"\"Assert the weaver live-check report matches the scenario.\n+\n+        The base implementation enforces that every ``expected_spans`` and\n+        ``expected_metrics`` entry appears at least once. Subclasses should\n+        override and call ``super().validate(report)`` to layer on extra\n+        scenario-specific checks against the report.\n+        \"\"\"\n+        expected_spans = set(self.expected_spans)\n+        seen_spans = _seen_span_operations(report)\n+        missing_spans = expected_spans - seen_spans\n+        assert not missing_spans, (\n+            f\"Expected span operations {sorted(expected_spans)} but weaver \"\n+            f\"only saw {sorted(seen_spans)} — missing {sorted(missing_spans)}\"\n+        )\n+\n+        expected_metrics = set(self.expected_metrics)\n+        seen_metrics = _seen_metric_names(report)\n+        missing_metrics = expected_metrics - seen_metrics\n+        assert not missing_metrics, (\n+            f\"Expected metrics {sorted(expected_metrics)} but weaver only \"\n+            f\"saw {sorted(seen_metrics)} — missing {sorted(missing_metrics)}\"\n+        )\n+\n+\n+def _build_providers(\n+    endpoint: str,\n+) -> tuple[TracerProvider, MeterProvider, LoggerProvider]:\n+    tracer_provider = TracerProvider()\n+    tracer_provider.add_span_processor(\n+        SimpleSpanProcessor(OTLPSpanExporter(endpoint=endpoint, insecure=True))\n+    )\n+\n+    # Disable periodic export — metrics flush via the explicit force_flush()\n+    # at the end of the scenario, so the report is deterministic.\n+    metric_reader = PeriodicExportingMetricReader(\n+        OTLPMetricExporter(endpoint=endpoint, insecure=True),\n+        export_interval_millis=2**31 - 1,\n+    )\n+    meter_provider = MeterProvider(metric_readers=[metric_reader])\n+\n+    logger_provider = LoggerProvider()\n+    logger_provider.add_log_record_processor(\n+        SimpleLogRecordProcessor(\n+            OTLPLogExporter(endpoint=endpoint, insecure=True)\n+        )\n+    )\n+    # Some instrumentations resolve the logger off the module-level global\n+    # instead of the per-instrumentor provider.\n+    set_logger_provider(logger_provider)\n+\n+    return tracer_provider, meter_provider, logger_provider\n+\n+\n+def _seen_metric_names(report: LiveCheckReport) -> set[str]:\n+    \"\"\"Names of metrics weaver observed at least one data point for.\"\"\"\n+    seen = report[\"statistics\"][\"seen_registry_metrics\"]\n+    return {name for name, count in seen.items() if count}\n+\n+\n+def _seen_span_operations(report: LiveCheckReport) -> set[str]:\n+    \"\"\"`gen_ai.operation.name` values observed across the report's span samples.\"\"\"\n+    return {\n+        attr[\"value\"]\n+        for entry in report[\"samples\"]\n+        for attr in entry[\"span\"][\"attributes\"]\n+        if attr[\"name\"] == \"gen_ai.operation.name\"\n+    }\n+\n+\n+def _dump_report(report: LiveCheckReport) -> None:\n+    out = Path(\"weaver_reports\") / \"full.json\"\n+    out.parent.mkdir(parents=True, exist_ok=True)\n+    out.write_text(json.dumps(report, indent=2, sort_keys=True))\n+",
+      "id": "PRRT_kwDOSbspP86B75AK",
+      "opened": "2026-05-14T01:27:56Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238483078"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Adding `opentelemetry-exporter-otlp-proto-grpc` to the base dependencies of `opentelemetry-test-util-genai` means every test environment that installs this helper package will pull in `grpcio` (except PyPy), even though only the conformance suite needs OTLP/gRPC.\n\nTo keep non-conformance envs lighter/faster, consider making this an optional extra (or installing it only in the `*-conformance` tox factor via `dev-requirements-conformance.txt`) and keep the current runtime skip when it’s missing.",
+      "created": "2026-05-14T01:27:55Z",
+      "hunk": "@@ -15,9 +15,12 @@ dependencies = [\n   \"opentelemetry-instrumentation\",\n   \"opentelemetry-sdk\",\n   \"opentelemetry-semantic-conventions\",\n+  \"opentelemetry-test-utils\",\n   \"opentelemetry-util-genai\",\n   \"pytest\",\n   \"PyYAML\",\n+  # PyPy lacks grpcio wheels; the weaver fixture skips when this import fails.\n+  'opentelemetry-exporter-otlp-proto-grpc; implementation_name != \"pypy\"',",
+      "id": "PRRT_kwDOSbspP86B75AV",
+      "opened": "2026-05-14T01:27:56Z",
+      "path": "util/opentelemetry-test-util-genai/pyproject.toml",
+      "replies": [],
+      "reviewed": "22148e26083d27026e6b3f5c22c816dd62fd13c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3238483094"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can you update CONTRIBUTING.md to cover how to manage these cassettes? I've always found http replay to be a bit painful for contributors, especially when they require remote service setup.",
+      "created": "2026-05-14T19:29:18Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86CKuC2",
+      "opened": "2026-05-14T19:29:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-anthropic/tests/cassettes/inference_conformance.yaml",
+      "replies": [],
+      "reviewed": "bd7d350376f077a2b56962d35dd1dc93e6487071",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/14#discussion_r3243772126"
+    }
+  ]
+}

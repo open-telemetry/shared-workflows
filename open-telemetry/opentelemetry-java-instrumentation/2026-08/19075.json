@@ -1,0 +1,25 @@
+{
+  "head": "7883b5adf0529d58fd0e729eb9e825e49c74afd2",
+  "merge": "5e9cc855181f95c9b1f80bcaaaf3fbaeab543dac",
+  "merged": "2026-08-26T16:44:05Z",
+  "missing_roots": 0,
+  "number": 19075,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Lettuce reports these failures only as an error string on [5.1.0, 6.0.0), so the span becomes `ERROR` with no `error.type` under stable semconv. `LettuceDbAttributesGetter` doesn't override `getErrorType`, and `DbClientAttributesExtractor` falls back only to the exception class name, which is absent here. The `db.client.operation.duration` points for these failures also lose `error.type`. Overriding `getErrorType` to return the Redis error prefix from `response.getErrorMessage()`, such as `WRONGTYPE`, would set it.",
+      "created": "2026-08-26T03:12:30Z",
+      "hunk": "@@ -307,6 +311,11 @@ private synchronized void finishWithResponse(LettuceResponse resp) {\n     @Override\n     public synchronized void finish() {\n       if (context != null) {\n+        LettuceResponse response = this.response;\n+        if (response == null && errorMessage != null) {\n+          response = new LettuceResponse(errorMessage, null);",
+      "id": "PRRT_kwDODJKVX86cUmjT",
+      "opened": "2026-08-26T03:30:10Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+      "replies": [],
+      "reviewed": "1d8d60ecf9c331f54d62a418e9aafca5e64da260",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19075#discussion_r3859341020"
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "head": "35e11a718a5c1a6ec080b7fe223fb51f08d3475e",
+  "merge": "c08221ae93740eddbd8a29aa03306ee05a603379",
+  "merged": "2026-07-09T01:56:38Z",
+  "missing_roots": 0,
+  "number": 191,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`else:` branch defines a nested function without a blank line, which triggers Ruff E306 (pycodestyle) and will fail lint.",
+      "created": "2026-07-02T02:10:03Z",
+      "hunk": "@@ -328,11 +328,18 @@ class AsyncMessagesStreamManagerWrapper(Generic[ResponseFormatT]):\n     def __init__(\n         self,\n         manager: AsyncMessageStreamManager[ResponseFormatT],\n-        invocation: InferenceInvocation,\n+        invocation: InferenceInvocation | Callable[[], InferenceInvocation],\n         capture_content: bool,\n     ):\n         self._manager = manager\n-        self._invocation = invocation\n+        if callable(invocation):\n+            invocation_factory = invocation\n+        else:\n+            def invocation_factory() -> InferenceInvocation:\n+                return invocation",
+      "id": "PRRT_kwDOSbspP86Nwv1L",
+      "opened": "2026-07-02T02:10:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [],
+      "reviewed": "284e886685183dc6a94fffcc1163f3249c770c99",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/191#discussion_r3510024710"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_is_parse_supported()` only checks `Messages.parse`, but the instrumentor wraps both `Messages.parse` and `AsyncMessages.parse`. This can raise at instrumentation time if an SDK version ever exposes sync `parse` without async `parse` (and it already diverges from the tests’ support check). Consider checking both classes before wrapping.",
+      "created": "2026-07-02T02:10:03Z",
+      "hunk": "@@ -47,11 +47,28 @@\n from .package import _instruments\n from .patch import (\n     async_messages_create,\n+    async_messages_stream,\n     messages_create,\n     messages_stream,\n )\n \n \n+def _is_parse_supported() -> bool:\n+    \"\"\"Check if the parse() method is available on the Messages class.\n+\n+    Messages.parse() for structured outputs was added in a newer anthropic\n+    SDK release; create() and stream() are always present.\n+    \"\"\"\n+    try:\n+        from anthropic.resources.messages import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415\n+            Messages,\n+        )\n+\n+        return hasattr(Messages, \"parse\")\n+    except ImportError:\n+        return False",
+      "id": "PRRT_kwDOSbspP86Nwv1Y",
+      "opened": "2026-07-02T02:10:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/__init__.py",
+      "replies": [],
+      "reviewed": "284e886685183dc6a94fffcc1163f3249c770c99",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/191#discussion_r3510024725"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For consistency with the rest of the Anthropic instrumentation tests, assert the provider name using the generated semconv enum rather than a hard-coded string.",
+      "created": "2026-07-02T02:10:04Z",
+      "hunk": "@@ -0,0 +1,278 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for Messages.parse instrumentation.\"\"\"\n+\n+import json\n+import os\n+from pathlib import Path\n+\n+import pytest\n+from anthropic import NotFoundError\n+from anthropic.resources.messages import AsyncMessages, Messages\n+from pydantic import BaseModel\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    error_attributes as ErrorAttributes,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    server_attributes as ServerAttributes,\n+)\n+\n+_parse_supported = hasattr(Messages, \"parse\") and hasattr(\n+    AsyncMessages, \"parse\"\n+)\n+\n+pytestmark = pytest.mark.skipif(\n+    not _parse_supported,\n+    reason=\"anthropic SDK too old to support Messages.parse\",\n+)\n+\n+\n+class Greeting(BaseModel):\n+    greeting: str\n+\n+\n+def _skip_if_cassette_missing_and_no_real_key(request):\n+    cassette_path = (\n+        Path(__file__).parent / \"cassettes\" / f\"{request.node.name}.yaml\"\n+    )\n+    api_key = os.getenv(\"ANTHROPIC_API_KEY\")\n+    if not cassette_path.exists() and api_key == \"test_anthropic_api_key\":\n+        pytest.skip(\n+            f\"Cassette {cassette_path.name} is missing. \"\n+            \"Set a real ANTHROPIC_API_KEY to record it.\"\n+        )\n+\n+\n+def _load_span_messages(span, attribute):\n+    value = span.attributes.get(attribute)\n+    assert value is not None\n+    assert isinstance(value, str)\n+    parsed = json.loads(value)\n+    assert isinstance(parsed, list)\n+    return parsed\n+\n+\n+def _assert_parsed_response(response) -> None:\n+    parsed_blocks = [getattr(block, \"parsed\", None) for block in response.content]\n+    text_blocks = [getattr(block, \"text\", None) for block in response.content]\n+    text_payloads = [\n+        json.loads(text)\n+        for text in text_blocks\n+        if isinstance(text, str) and text.startswith(\"{\")\n+    ]\n+    greetings = [\n+        parsed.greeting\n+        for parsed in parsed_blocks\n+        if isinstance(parsed, Greeting)\n+    ]\n+    greetings.extend(\n+        parsed.get(\"greeting\")\n+        for parsed in parsed_blocks\n+        if isinstance(parsed, dict)\n+    )\n+    greetings.extend(\n+        payload.get(\"greeting\")\n+        for payload in text_payloads\n+        if isinstance(payload, dict)\n+    )\n+\n+    assert any(greetings), \"Expected a parsed greeting in the response content\"\n+\n+\n+def _assert_parse_span(span, *, model: str, response) -> None:\n+    assert span.name == f\"chat {model}\"\n+    assert span.attributes[GenAIAttributes.GEN_AI_OPERATION_NAME] == \"chat\"\n+    assert span.attributes[GenAIAttributes.GEN_AI_PROVIDER_NAME] == \"anthropic\"\n+    assert span.attributes[GenAIAttributes.GEN_AI_REQUEST_MODEL] == model",
+      "id": "PRRT_kwDOSbspP86Nwv1j",
+      "opened": "2026-07-02T02:10:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_parse_messages.py",
+      "replies": [],
+      "reviewed": "284e886685183dc6a94fffcc1163f3249c770c99",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/191#discussion_r3510024739"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For consistency with the existing span-assertion helpers in this package, prefer using the generated semconv enum for `gen_ai.provider.name` instead of a hard-coded string.",
+      "created": "2026-07-02T02:10:04Z",
+      "hunk": "@@ -3,7 +3,49 @@\n \n \"\"\"Tests for the AnthropicInstrumentor class.\"\"\"\n \n+from types import TracebackType\n+from typing import Any\n+\n+import pytest\n+from anthropic import Anthropic, AsyncAnthropic\n+from anthropic.resources.messages import AsyncMessages, Messages\n+from anthropic.types import Message, TextBlock, Usage\n+\n from opentelemetry.instrumentation.genai.anthropic import AnthropicInstrumentor\n+from opentelemetry.instrumentation.genai.anthropic.wrappers import (\n+    AsyncMessagesStreamManagerWrapper,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+def _fake_message(model: str) -> Message:\n+    return Message(\n+        id=\"msg_test\",\n+        content=[TextBlock(text=\"hello\", type=\"text\")],\n+        model=model,\n+        role=\"assistant\",\n+        stop_reason=\"end_turn\",\n+        stop_sequence=None,\n+        type=\"message\",\n+        usage=Usage(input_tokens=1, output_tokens=2),\n+    )\n+\n+\n+def _assert_chat_span(span_exporter, model: str) -> None:\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == f\"chat {model}\"\n+    assert span.attributes[GenAIAttributes.GEN_AI_OPERATION_NAME] == \"chat\"\n+    assert span.attributes[GenAIAttributes.GEN_AI_PROVIDER_NAME] == \"anthropic\"\n+    assert span.attributes[GenAIAttributes.GEN_AI_REQUEST_MODEL] == model",
+      "id": "PRRT_kwDOSbspP86Nwv1r",
+      "opened": "2026-07-02T02:10:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_instrumentor.py",
+      "replies": [],
+      "reviewed": "284e886685183dc6a94fffcc1163f3249c770c99",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/191#discussion_r3510024749"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description’s testing checklist leaves “VCR backed tests” unchecked, but this change adds several `@pytest.mark.vcr()` tests and new cassettes. Please update the PR description/checklist to reflect how this was tested.",
+      "created": "2026-07-02T02:10:04Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add Anthropic instrumentation for Messages.parse, AsyncMessages.parse, and AsyncMessages.stream.",
+      "id": "PRRT_kwDOSbspP86Nwv1w",
+      "opened": "2026-07-02T02:10:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/.changelog/191.added",
+      "replies": [],
+      "reviewed": "284e886685183dc6a94fffcc1163f3249c770c99",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/191#discussion_r3510024760"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "nit: call / set this in the initializer instead ?",
+      "created": "2026-07-07T14:32:16Z",
+      "hunk": "@@ -105,6 +122,28 @@ def _instrument(self, **kwargs: Any) -> None:\n             \"Messages.stream\",\n             messages_stream(handler),\n         )\n+        wrap_function_wrapper(\n+            \"anthropic.resources.messages\",\n+            \"AsyncMessages.stream\",\n+            async_messages_stream(handler),\n+        )\n+\n+        # parse() wraps create() internally in the Anthropic SDK and returns a\n+        # parsed message whose telemetry-relevant fields match Message, so the\n+        # existing create() wrappers handle it correctly. It was added in a\n+        # newer SDK release, so only wrap it when present.\n+        self._parse_supported = _is_parse_supported()",
+      "id": "PRRT_kwDOSbspP86O8p-i",
+      "opened": "2026-07-07T16:08:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/__init__.py",
+      "replies": [
+        {
+          "at": "2026-07-09T01:30:40Z",
+          "body": "Yep agreed, refined it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/191#discussion_r3548240259"
+        }
+      ],
+      "reviewed": "cb3f7f692297e475a87816a8922d0b1e64e920dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/191#discussion_r3537292944"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "When a cassette .yaml file exists, VCR replays the recorded responses without touching the network, so the dummy \"test_anthropic_api_key\" works fine right ?  Why do we require the API key always be set ?",
+      "created": "2026-07-07T15:49:59Z",
+      "hunk": "@@ -389,6 +424,226 @@ async def test_async_messages_create_streaming_delegates_response_attribute(\n     await stream.close()\n \n \n+@pytest.mark.asyncio\n+@pytest.mark.vcr()\n+async def test_async_messages_stream(  # pylint: disable=too-many-locals\n+    request, span_exporter, async_anthropic_client, instrument_no_content\n+):\n+    \"\"\"Test AsyncMessages.stream produces correct span.\"\"\"\n+    _skip_if_cassette_missing_and_no_real_key(request)\n+    model = \"claude-haiku-4-5\"\n+    messages = [{\"role\": \"user\", \"content\": \"Say hello in one word.\"}]\n+\n+    response_id = None\n+    response_model = None\n+    stop_reason = None\n+    input_tokens = None\n+    output_tokens = None\n+\n+    async with async_anthropic_client.messages.stream(\n+        model=model,\n+        max_tokens=100,\n+        messages=messages,\n+    ) as stream:\n+        async for chunk in stream:\n+            if chunk.type == \"message_start\":\n+                response_id = chunk.message.id\n+                response_model = chunk.message.model\n+                input_tokens = chunk.message.usage.input_tokens\n+            elif chunk.type == \"message_delta\":\n+                stop_reason = chunk.delta.stop_reason\n+                output_tokens = chunk.usage.output_tokens\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+\n+    span = spans[0]\n+    assert span.attributes[GenAIAttributes.GEN_AI_REQUEST_MODEL] == model\n+    assert span.attributes[GenAIAttributes.GEN_AI_RESPONSE_ID] == response_id\n+    assert (\n+        span.attributes[GenAIAttributes.GEN_AI_RESPONSE_MODEL]\n+        == response_model\n+    )\n+    assert (\n+        span.attributes[GenAIAttributes.GEN_AI_USAGE_INPUT_TOKENS]\n+        == input_tokens\n+    )\n+    assert (\n+        span.attributes[GenAIAttributes.GEN_AI_USAGE_OUTPUT_TOKENS]\n+        == output_tokens\n+    )\n+    assert span.attributes[GenAIAttributes.GEN_AI_RESPONSE_FINISH_REASONS] == (\n+        normalize_stop_reason(stop_reason),\n+    )\n+\n+\n+@pytest.mark.asyncio\n+@pytest.mark.vcr()\n+async def test_async_messages_stream_captures_content(\n+    request, span_exporter, async_anthropic_client, instrument_with_content\n+):\n+    \"\"\"Test content capture on AsyncMessages.stream.\"\"\"\n+    _skip_if_cassette_missing_and_no_real_key(request)",
+      "id": "PRRT_kwDOSbspP86O-Lxj",
+      "opened": "2026-07-07T16:08:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py",
+      "replies": [
+        {
+          "at": "2026-07-09T01:31:07Z",
+          "body": "Agreed Dylan, I removed it as this is confusing.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/191#discussion_r3548241673"
+        }
+      ],
+      "reviewed": "cb3f7f692297e475a87816a8922d0b1e64e920dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/191#discussion_r3537843811"
+    }
+  ]
+}

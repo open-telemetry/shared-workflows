@@ -1,0 +1,37 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "63fffc0496964b721c094bd4c3714fc894f2eae14c03eb9d9b279a7868d23625",
+  "input_digest": "ea3b1bf8785c22f548f178c3a4cd3396cc24d690a83b324655a9f88f415c3a0c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/011af449d77f0c11429c91db28db2d66bac2d824/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractVertxKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/011af449d77f0c11429c91db28db2d66bac2d824/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/InstrumentationTestRunner.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/011af449d77f0c11429c91db28db2d66bac2d824/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractBatchRecordsVertxKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2a49e6e1e3addb05f790bc76753ce99249a9a13a/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractVertxKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2a49e6e1e3addb05f790bc76753ce99249a9a13a/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/InstrumentationTestRunner.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2a49e6e1e3addb05f790bc76753ce99249a9a13a/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractBatchRecordsNoReceiveTelemetryVertxKafkaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2a49e6e1e3addb05f790bc76753ce99249a9a13a/instrumentation/vertx/vertx-kafka-client-3.6/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/kafka/AbstractBatchRecordsVertxKafkaTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Zi0zF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bfdc0bb0d8c8637198fdfd75ed59f34e7bcf7598/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumerMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2a49e6e1e3addb05f790bc76753ce99249a9a13a/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumerMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2a49e6e1e3addb05f790bc76753ce99249a9a13a"
+      ],
+      "id": "PRRT_kwDODJKVX86aHHtp",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

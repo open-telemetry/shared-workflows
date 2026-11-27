@@ -1,0 +1,52 @@
+{
+  "head": "886dc514e24f25b8241e07a210601d4c77beb306",
+  "merge": "17df55b24316a12b1921a6873b24437b52f9f81f",
+  "merged": "2026-09-10T16:14:46Z",
+  "missing_roots": 0,
+  "number": 141,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`httpserver.Host` is only the bind address, not the primary virtual server name these APIs expect. The v0.70.0 helper explicitly documents `\"\"` for an unknown server name and falls back to `req.Host` ([source](https://github.com/open-telemetry/opentelemetry-go-contrib/blob/c8a87a60ba1b3374fd16df11fc3eeae6c41abbc9/instrumentation/github.com/gin-gonic/gin/otelgin/internal/semconv/server.go#L83-L102)). Passing the bind address makes the scenario supply `server.address` instead of measuring what the instrumentation derives. Pass `\"\"` in all four scenarios, matching net/http.",
+      "created": "2026-09-06T04:27:57Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+// Command server runs the Echo server scenario with otelecho instrumentation.\n+package main\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"log\"\n+\t\"os\"\n+\n+\t\"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho\"\n+\n+\techoscenarios \"github.com/open-telemetry/semantic-conventions-conformance/scenarios/http/go/echo/scenarios\"\n+\t\"github.com/open-telemetry/semantic-conventions-conformance/scenarios/http/go/internal/httpserver\"\n+\t\"github.com/open-telemetry/semantic-conventions-conformance/tools/go/scenario\"\n+\t\"github.com/open-telemetry/semantic-conventions-conformance/tools/go/scenariosdk\"\n+)\n+\n+func main() {\n+\tstopping := make(chan error, 1)\n+\tgo func() { stopping <- scenario.WaitForEOF(os.Stdin) }()\n+\n+\tif err := run(context.Background(), stopping); err != nil {\n+\t\tlog.Fatal(err)\n+\t}\n+}\n+\n+func run(ctx context.Context, stopping <-chan error) (err error) {\n+\tsdk, err := scenariosdk.Initialize(ctx)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tdefer func() { err = errors.Join(err, sdk.Shutdown(ctx)) }()\n+\n+\treturn echoscenarios.RunServer(\n+\t\totelecho.Middleware(httpserver.Host),",
+      "id": "PRRT_kwDOTuzK5c6fpGVF",
+      "opened": "2026-09-06T04:29:11Z",
+      "path": "scenarios/http/go/echo/otelecho/server/main.go",
+      "replies": [
+        {
+          "at": "2026-09-09T22:48:56Z",
+          "body": "568babc88ce0c33f08f952b7e1028e50353e37c6",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/141#discussion_r3973702492"
+        }
+      ],
+      "reviewed": "680875d08c1830a6c13e86cedaf1f07f4a91989f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/141#discussion_r3942927506"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `main`/`run` are now identical across six commands except for the one middleware line. A helper in `tools/go` that owns the stdin wait, `scenariosdk` lifecycle and `log.Fatal` would leave each command with just its middleware. ",
+      "created": "2026-09-06T04:27:57Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+// Command server runs the Gin server scenario with otelgin instrumentation.\n+package main\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"log\"\n+\t\"os\"\n+\n+\t\"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin\"\n+\n+\tginscenarios \"github.com/open-telemetry/semantic-conventions-conformance/scenarios/http/go/gin/scenarios\"\n+\t\"github.com/open-telemetry/semantic-conventions-conformance/scenarios/http/go/internal/httpserver\"\n+\t\"github.com/open-telemetry/semantic-conventions-conformance/tools/go/scenario\"\n+\t\"github.com/open-telemetry/semantic-conventions-conformance/tools/go/scenariosdk\"\n+)\n+\n+func main() {\n+\tstopping := make(chan error, 1)\n+\tgo func() { stopping <- scenario.WaitForEOF(os.Stdin) }()\n+\n+\tif err := run(context.Background(), stopping); err != nil {\n+\t\tlog.Fatal(err)\n+\t}\n+}\n+\n+func run(ctx context.Context, stopping <-chan error) (err error) {",
+      "id": "PRRT_kwDOTuzK5c6fpGVG",
+      "opened": "2026-09-06T04:29:11Z",
+      "path": "scenarios/http/go/gin/otelgin/server/main.go",
+      "replies": [
+        {
+          "at": "2026-09-10T00:01:30Z",
+          "body": "e3a0633bb9eec4e9d0ff620a79136106f48c619f",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/141#discussion_r3974115072"
+        }
+      ],
+      "reviewed": "680875d08c1830a6c13e86cedaf1f07f4a91989f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/141#discussion_r3942927508"
+    }
+  ]
+}

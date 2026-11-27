@@ -1,0 +1,46 @@
+{
+  "head": "e24a099737470d4971e3d17610ee447760fcc88f",
+  "merge": "dba3aae717a1bd2010722ccbe20ad022d22e1129",
+  "merged": "2026-03-12T08:08:07Z",
+  "missing_roots": 0,
+  "number": 16443,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "looks like default values don't get set anymore if value is null?",
+      "created": "2026-03-11T16:19:21Z",
+      "hunk": "@@ -18,89 +23,99 @@\n  */\n public final class SemconvStability {\n \n-  private static final boolean emitOldDatabaseSemconv;\n-  private static final boolean emitStableDatabaseSemconv;\n+  private static boolean emitOldDatabaseSemconv;\n+  private static boolean emitStableDatabaseSemconv;\n \n-  private static final boolean emitOldCodeSemconv;\n-  private static final boolean emitStableCodeSemconv;\n+  private static boolean emitOldCodeSemconv;\n+  private static boolean emitStableCodeSemconv;\n \n-  private static final boolean emitOldServicePeerSemconv;\n-  private static final boolean emitStableServicePeerSemconv;\n+  private static boolean emitOldServicePeerSemconv;\n+  private static boolean emitStableServicePeerSemconv;\n \n-  private static final boolean emitOldRpcSemconv;\n-  private static final boolean emitStableRpcSemconv;\n+  private static boolean emitOldRpcSemconv;\n+  private static boolean emitStableRpcSemconv;\n \n   static {\n-    boolean oldDatabase = true;\n-    boolean stableDatabase = false;\n-\n-    boolean oldCode = true;\n-    boolean stableCode = false;\n-\n-    boolean oldServicePeer = true;\n-    boolean stableServicePeer = false;\n-\n-    boolean oldRpc = true;\n-    boolean stableRpc = false;\n-\n     String value = System.getProperty(\"otel.semconv-stability.opt-in\");\n     if (value == null) {\n       value = System.getenv(\"OTEL_SEMCONV_STABILITY_OPT_IN\");\n     }\n     if (value != null) {\n       Set<String> values = new HashSet<>(asList(value.split(\",\")));\n+      configure(values);\n+    }",
+      "id": "PRRT_kwDODJKVX85zpUjd",
+      "opened": "2026-03-11T16:19:21Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+      "replies": [
+        {
+          "at": "2026-03-11T16:50:22Z",
+          "body": "hopefully fixed now",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16443#discussion_r2919664978"
+        }
+      ],
+      "reviewed": "925d98dc85e8abfb26503d67f9762a9f859d1e56",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16443#discussion_r2919480812"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "just to be extra triple sure everything's configured before anyone can access the SDK\n```suggestion\n    SemconvStability.configure(sdk);\n    GlobalOpenTelemetry.set(sdk);\n```",
+      "created": "2026-03-11T19:51:06Z",
+      "hunk": "@@ -49,6 +50,7 @@ public static AutoConfiguredOpenTelemetrySdk installOpenTelemetrySdk(\n \n     setForceFlush(sdk);\n     GlobalOpenTelemetry.set(sdk);\n+    SemconvStability.configure(sdk);",
+      "id": "PRRT_kwDODJKVX85zsmDA",
+      "opened": "2026-03-11T19:51:11Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/OpenTelemetryInstaller.java",
+      "replies": [],
+      "reviewed": "679bcc742e8625ba1e99fb69b0ed5c09ed5c3f8f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16443#discussion_r2920640699"
+    }
+  ]
+}

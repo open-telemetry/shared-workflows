@@ -1,0 +1,55 @@
+{
+  "head": "d9a5dbf9e9e59a3e24bdad13e8630a0b8cfda1c9",
+  "merge": "208b5f0a3229216a8d0728f9471f9f55b6af6905",
+  "merged": "2026-03-22T01:05:15Z",
+  "missing_roots": 0,
+  "number": 16916,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot is there an existing test that exercises this method? add coverage for this",
+      "created": "2026-03-21T23:45:15Z",
+      "hunk": "@@ -68,7 +68,7 @@ protected static Value<?> convertValue(application.io.opentelemetry.api.common.V\n         ByteBuffer byteBuffer = (ByteBuffer) value.getValue();\n         byte[] bytes = new byte[byteBuffer.remaining()];\n         byteBuffer.get(bytes);\n-        break;\n+        return Value.of(bytes);",
+      "id": "PRRT_kwDODJKVX8517Xj8",
+      "opened": "2026-03-21T23:45:15Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.42/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_42/logs/ApplicationLogRecordBuilder142.java",
+      "replies": [],
+      "reviewed": "2529c5b332dc0c4d89267ff1d5146bf1779ade2f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16916#discussion_r2970550662"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  @SuppressWarnings(\"unused\")\n  public static class InitAdvice {\n```",
+      "created": "2026-03-21T23:51:36Z",
+      "hunk": "@@ -30,9 +30,9 @@ public void transform(TypeTransformer transformer) {\n         none(), OpenTelemetryIncubatorInstrumentation.class.getName() + \"$InitAdvice\");\n   }\n \n-  @SuppressWarnings({\"ReturnValueIgnored\", \"unused\"})\n   public static class InitAdvice {",
+      "id": "PRRT_kwDODJKVX8517ZZl",
+      "opened": "2026-03-21T23:53:42Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.47/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_47/incubator/OpenTelemetryIncubatorInstrumentation.java",
+      "replies": [],
+      "reviewed": "2529c5b332dc0c4d89267ff1d5146bf1779ade2f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16916#discussion_r2970560631"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    @SuppressWarnings(\"ReturnValueIgnored\")\n```",
+      "created": "2026-03-21T23:51:44Z",
+      "hunk": "@@ -30,9 +30,9 @@ public void transform(TypeTransformer transformer) {\n         none(), OpenTelemetryIncubatorInstrumentation.class.getName() + \"$InitAdvice\");\n   }\n \n-  @SuppressWarnings({\"ReturnValueIgnored\", \"unused\"})\n   public static class InitAdvice {\n     @Advice.OnMethodEnter\n+    @SuppressWarnings({\"ReturnValueIgnored\", \"unused\"})",
+      "id": "PRRT_kwDODJKVX8517ZcA",
+      "opened": "2026-03-21T23:53:42Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.47/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_47/incubator/OpenTelemetryIncubatorInstrumentation.java",
+      "replies": [],
+      "reviewed": "2529c5b332dc0c4d89267ff1d5146bf1779ade2f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16916#discussion_r2970560863"
+    }
+  ]
+}

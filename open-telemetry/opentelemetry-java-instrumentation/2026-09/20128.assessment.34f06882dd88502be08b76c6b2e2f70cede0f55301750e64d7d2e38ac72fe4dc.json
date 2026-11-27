@@ -1,0 +1,169 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a2723923b4b9ed9d61613c83d424e4c036a91227efa462a5935f7b680bf81fb4",
+  "input_digest": "34f06882dd88502be08b76c6b2e2f70cede0f55301750e64d7d2e38ac72fe4dc",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de6a1d46bc1ed4844ab91ccadd646bbdced44bc7/instrumentation/hibernate/hibernate-3.3/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de6a1d46bc1ed4844ab91ccadd646bbdced44bc7/instrumentation/hibernate/hibernate-3.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hibernate/v3_3/HibernateInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-3.3/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-3.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hibernate/v3_3/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/05cf23a4af568ab92e40ae81e4349ab7a50ab016"
+      ],
+      "id": "PRRT_kwDODJKVX86h0cSK",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de6a1d46bc1ed4844ab91ccadd646bbdced44bc7/instrumentation/hibernate/hibernate-4.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-4.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hibernate/v4_0/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/05cf23a4af568ab92e40ae81e4349ab7a50ab016"
+      ],
+      "id": "PRRT_kwDODJKVX86h0cSe",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de6a1d46bc1ed4844ab91ccadd646bbdced44bc7/instrumentation/hibernate/hibernate-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hibernate/v6_0/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/05cf23a4af568ab92e40ae81e4349ab7a50ab016"
+      ],
+      "id": "PRRT_kwDODJKVX86h0cSk",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de6a1d46bc1ed4844ab91ccadd646bbdced44bc7/instrumentation/hibernate/hibernate-procedure-call-4.3/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-procedure-call-4.3/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-procedure-call-4.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hibernate/procedure/call/v4_3/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/05cf23a4af568ab92e40ae81e4349ab7a50ab016"
+      ],
+      "id": "PRRT_kwDODJKVX86h0cSw",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de6a1d46bc1ed4844ab91ccadd646bbdced44bc7/instrumentation/hystrix-1.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hystrix-1.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hystrix-1.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hystrix/v1_4/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/05cf23a4af568ab92e40ae81e4349ab7a50ab016"
+      ],
+      "id": "PRRT_kwDODJKVX86h0cTB",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de6a1d46bc1ed4844ab91ccadd646bbdced44bc7/instrumentation/twilio-6.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/twilio-6.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/twilio-6.6/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/twilio/v6_6/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/05cf23a4af568ab92e40ae81e4349ab7a50ab016"
+      ],
+      "id": "PRRT_kwDODJKVX86h0cTJ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86h1Lm2",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86h4_Qt",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2ed3e34a2f8055e05bf52393eb022a428ba25eda/docs/scope.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/docs/scope.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6dc107e97c426cf47e4aca5c607569eaf99ad86a"
+      ],
+      "id": "PRRT_kwDODJKVX86iLtBg",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6dc107e97c426cf47e4aca5c607569eaf99ad86a/instrumentation/hibernate/hibernate-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hibernate/v4_0/HibernateInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6dc107e97c426cf47e4aca5c607569eaf99ad86a/instrumentation/hibernate/hibernate-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hibernate/v4_0/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6dc107e97c426cf47e4aca5c607569eaf99ad86a/instrumentation/hibernate/hibernate-4.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hibernate/v4_0/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-4.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2b971cf1119a98ea8d880ddbb13bdf931cc62d43"
+      ],
+      "id": "PRRT_kwDODJKVX86iT30C",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6dc107e97c426cf47e4aca5c607569eaf99ad86a/instrumentation/hibernate/hibernate-procedure-call-4.3/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hibernate/procedure/call/v4_3/HibernateInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6dc107e97c426cf47e4aca5c607569eaf99ad86a/instrumentation/hibernate/hibernate-procedure-call-4.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hibernate/procedure/call/v4_3/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6dc107e97c426cf47e4aca5c607569eaf99ad86a/instrumentation/hibernate/hibernate-procedure-call-4.3/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6dc107e97c426cf47e4aca5c607569eaf99ad86a/instrumentation/hibernate/hibernate-procedure-call-4.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hibernate/procedure/call/v4_3/ProcedureCallTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-procedure-call-4.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hibernate/procedure/call/v4_3/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-procedure-call-4.3/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2b971cf1119a98ea8d880ddbb13bdf931cc62d43"
+      ],
+      "id": "PRRT_kwDODJKVX86iT305",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6dc107e97c426cf47e4aca5c607569eaf99ad86a/instrumentation/hibernate/hibernate-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hibernate/v6_0/HibernateInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6dc107e97c426cf47e4aca5c607569eaf99ad86a/instrumentation/hibernate/hibernate-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hibernate/v6_0/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6dc107e97c426cf47e4aca5c607569eaf99ad86a/instrumentation/hibernate/hibernate-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hibernate/v6_0/HibernateInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hibernate/v6_0/DefaultEnablementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/instrumentation/hibernate/hibernate-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2b971cf1119a98ea8d880ddbb13bdf931cc62d43"
+      ],
+      "id": "PRRT_kwDODJKVX86iT30b",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6dc107e97c426cf47e4aca5c607569eaf99ad86a/.github/agents/knowledge/testing-default-enablement.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e4bbe121a968f8cab401ebd781a0271983f1fc7/.github/agents/knowledge/testing-default-enablement.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/851a9ba849d8a0d03617f3e6e509165c5c4230e0"
+      ],
+      "id": "PRRT_kwDODJKVX86iT31T",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

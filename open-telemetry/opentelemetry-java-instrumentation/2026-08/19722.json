@@ -1,0 +1,241 @@
+{
+  "head": "f276b633c2c31cb9d8c853c64b1da121e33a49f7",
+  "merge": "3bcccbe96016975304c6777a52a24022a7707f48",
+  "merged": "2026-08-25T01:13:34Z",
+  "missing_roots": 0,
+  "number": 19722,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `execInContainer` returns a nonzero `ExecResult` rather than throwing when the producer command fails. Ignoring that result treats a failed produce as success, so this setup no longer guarantees the sample operation intended to create flush metrics and later failures become opaque metric timeouts. Check the exit code and report stdout/stderr.",
+      "created": "2026-08-20T08:56:03Z",
+      "hunk": "@@ -0,0 +1,195 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules.kafka;\n+\n+import java.time.Duration;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.images.builder.Transferable;\n+\n+public class KafkaContainer extends GenericContainer<KafkaContainer> {\n+\n+  private static final int KAFKA_CONTROLLER_PORT = 9093;\n+\n+  private static final String KAFKA_ALIAS = \"kafka\";\n+  private static final int KAFKA_PORT = 9092;\n+\n+  private static final String CONNECT_ALIAS = \"kafka-connect\";\n+  private static final int CONNECT_PORT = 8083;\n+  private final boolean bitnamiImage;\n+\n+  private Mode mode;\n+  private String zookeeperAddress;\n+  private final String basePath;\n+\n+  private enum Mode {\n+    // default mode for new kafka versions\n+    KRAFT,\n+    // zookeeper was required for older versions of kafka\n+    ZOOKEEPER,\n+    // kafka connect runs alongside kafka\n+    CONNECT\n+  }\n+\n+  public static KafkaContainer create(String image) {\n+    return new KafkaContainer(image);\n+  }\n+\n+  private KafkaContainer(String image) {\n+    super(image);\n+    this.withStartupTimeout(Duration.ofMinutes(1));\n+    this.mode = Mode.KRAFT;\n+    this.bitnamiImage = image.startsWith(\"bitnami\");\n+    this.basePath = bitnamiImage ? \"/opt/bitnami/kafka\" : \"/opt/kafka\";\n+  }\n+\n+  public KafkaContainer withZookeeper(String host, int port) {\n+    this.mode = Mode.ZOOKEEPER;\n+    this.zookeeperAddress = host + \":\" + port;\n+    return this;\n+  }\n+\n+  public KafkaContainer withKafkaConnect() {\n+    this.mode = Mode.CONNECT;\n+    return this;\n+  }\n+\n+  @Override\n+  protected void doStart() {\n+    switch (mode) {\n+      case KRAFT:\n+        this.configureKRaft();\n+        break;\n+      case ZOOKEEPER:\n+        this.configureZookeeper(zookeeperAddress);\n+        break;\n+      case CONNECT:\n+        this.configureKafkaConnect();\n+        break;\n+    }\n+\n+    super.doStart();\n+    // send sample message to ensure we get log flush metrics\n+    sendSampleMessage();\n+  }\n+\n+  private void sendSampleMessage() {\n+    try {\n+      execInContainer(\n+          \"/bin/sh\",\n+          \"-c\",\n+          // we have to force empty JAVA_TOOL_OPTIONS to prevent agent being loaded on producer\n+          \"echo 'my message' | JAVA_TOOL_OPTIONS='' \"\n+              + basePath\n+              + \"/bin/kafka-console-producer.sh\"\n+              + \" --bootstrap-server localhost:\"\n+              + KAFKA_PORT\n+              + \" --topic my-topic\");",
+      "id": "PRRT_kwDODJKVX86avxgI",
+      "opened": "2026-08-20T08:56:03Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+      "replies": [
+        {
+          "at": "2026-08-20T11:25:19Z",
+          "body": "fixed ce5b6d4f04f42d600faca3c94b2bc3f8736a2b30",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3821081862"
+        }
+      ],
+      "reviewed": "ac11079e040094d5a2ada3cf9eff1272854d6a6e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3820049550"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Avoid running this broker-only producer in `CONNECT` mode. That container launches only `connect-distributed` and has no broker at `localhost:9092`, so the producer waits for metadata and then fails, adding a long and unnecessary delay to `KafkaConnectTest`. Invoke it only for the KRaft and ZooKeeper modes.",
+      "created": "2026-08-20T08:56:03Z",
+      "hunk": "@@ -0,0 +1,195 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules.kafka;\n+\n+import java.time.Duration;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.images.builder.Transferable;\n+\n+public class KafkaContainer extends GenericContainer<KafkaContainer> {\n+\n+  private static final int KAFKA_CONTROLLER_PORT = 9093;\n+\n+  private static final String KAFKA_ALIAS = \"kafka\";\n+  private static final int KAFKA_PORT = 9092;\n+\n+  private static final String CONNECT_ALIAS = \"kafka-connect\";\n+  private static final int CONNECT_PORT = 8083;\n+  private final boolean bitnamiImage;\n+\n+  private Mode mode;\n+  private String zookeeperAddress;\n+  private final String basePath;\n+\n+  private enum Mode {\n+    // default mode for new kafka versions\n+    KRAFT,\n+    // zookeeper was required for older versions of kafka\n+    ZOOKEEPER,\n+    // kafka connect runs alongside kafka\n+    CONNECT\n+  }\n+\n+  public static KafkaContainer create(String image) {\n+    return new KafkaContainer(image);\n+  }\n+\n+  private KafkaContainer(String image) {\n+    super(image);\n+    this.withStartupTimeout(Duration.ofMinutes(1));\n+    this.mode = Mode.KRAFT;\n+    this.bitnamiImage = image.startsWith(\"bitnami\");\n+    this.basePath = bitnamiImage ? \"/opt/bitnami/kafka\" : \"/opt/kafka\";\n+  }\n+\n+  public KafkaContainer withZookeeper(String host, int port) {\n+    this.mode = Mode.ZOOKEEPER;\n+    this.zookeeperAddress = host + \":\" + port;\n+    return this;\n+  }\n+\n+  public KafkaContainer withKafkaConnect() {\n+    this.mode = Mode.CONNECT;\n+    return this;\n+  }\n+\n+  @Override\n+  protected void doStart() {\n+    switch (mode) {\n+      case KRAFT:\n+        this.configureKRaft();\n+        break;\n+      case ZOOKEEPER:\n+        this.configureZookeeper(zookeeperAddress);\n+        break;\n+      case CONNECT:\n+        this.configureKafkaConnect();\n+        break;\n+    }\n+\n+    super.doStart();\n+    // send sample message to ensure we get log flush metrics\n+    sendSampleMessage();",
+      "id": "PRRT_kwDODJKVX86avxgu",
+      "opened": "2026-08-20T08:56:03Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+      "replies": [],
+      "reviewed": "ac11079e040094d5a2ada3cf9eff1272854d6a6e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3820049603"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "no longer necessary as the rules syntax is automatically tested by `TargetSystemTest` and we add an integration test to cover this.",
+      "created": "2026-08-20T12:44:23Z",
+      "hunk": "@@ -1,45 +0,0 @@\n-/*\n- * Copyright The OpenTelemetry Authors\n- * SPDX-License-Identifier: Apache-2.0\n- */\n-\n-package io.opentelemetry.javaagent.instrumentation.jmx;\n-\n-import static java.util.Collections.singleton;\n-import static org.assertj.core.api.Assertions.assertThat;\n-\n-import io.opentelemetry.api.OpenTelemetry;\n-import io.opentelemetry.instrumentation.jmx.JmxTelemetry;\n-import io.opentelemetry.instrumentation.jmx.internal.yaml.RuleParser;\n-import java.nio.file.Path;\n-import java.nio.file.Paths;\n-import java.util.Set;\n-import org.junit.jupiter.api.Test;\n-\n-/**\n- * TODO: This test will eventually go away when all yaml files are moved from javaagent to library\n- * directory. When yaml file is moved from javaagent to library then appropriate item must be\n- * removed from JmxMetricInsightInstallerTest#FILES_TO_BE_TESTED and corresponding test must be\n- * added in the library.\n- */\n-class JmxMetricInsightInstallerTest {",
+      "id": "PRRT_kwDODJKVX86az5fC",
+      "opened": "2026-08-20T12:54:24Z",
+      "path": "instrumentation/jmx-metrics/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jmx/JmxMetricInsightInstallerTest.java",
+      "replies": [],
+      "reviewed": "4dda1c2cc5b2566f8376a8c195f1204946d2c4fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3821649793"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "for now the metric assertions test the metrics \"as they currently are\", improving the metrics (and adding weaver validation) will be covered by https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/14279\n\nAs those definitions use the `experimental-` prefix in the target system, there should not be expectations for them to be stable, so we can improve them in a secondary step.",
+      "created": "2026-08-20T12:47:32Z",
+      "hunk": "@@ -0,0 +1,264 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules.kafka;\n+\n+import static io.opentelemetry.instrumentation.jmx.rules.assertions.DataPointAttributes.attribute;\n+import static io.opentelemetry.instrumentation.jmx.rules.assertions.DataPointAttributes.attributeGroup;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.jmx.rules.MetricsVerifier;\n+import io.opentelemetry.instrumentation.jmx.rules.TargetSystemTest;\n+import io.opentelemetry.instrumentation.jmx.rules.assertions.AttributeMatcherGroup;\n+import java.time.Duration;\n+import java.util.ArrayList;\n+import java.util.List;\n+import org.junit.jupiter.api.Test;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+\n+class KafkaBrokerTest extends TargetSystemTest {\n+\n+  @Test\n+  void kafkaBroker() {\n+    doTest(\"apache/kafka:3.8.0\", null);\n+  }\n+\n+  @Test\n+  void kafkaBrokerZookeeper() {\n+    // intentionally testing a rather old kafka version to ensure common metrics are still reported\n+    doTest(\"bitnamilegacy/kafka:2.8.1\", \"zookeeper:3.5\");\n+  }\n+\n+  private void doTest(String image, String zookeeperImage) {\n+    List<String> yamlFiles = singletonList(\"experimental-kafka-broker.yaml\");\n+\n+    yamlFiles.forEach(this::validateYamlSyntax);\n+\n+    List<String> jvmArgs = new ArrayList<>();\n+    jvmArgs.add(javaAgentJvmArgument());\n+    jvmArgs.addAll(javaPropertiesToJvmArgs(otelConfigProperties(yamlFiles)));\n+\n+    KafkaContainer target =\n+        KafkaContainer.create(image).withEnv(\"JAVA_TOOL_OPTIONS\", String.join(\" \", jvmArgs));\n+\n+    copyAgentToTarget(target);\n+    copyYamlFilesToTarget(target, yamlFiles);\n+\n+    // TODO: add weaver validation\n+\n+    List<GenericContainer<?>> dependencies = emptyList();\n+    if (zookeeperImage != null) {\n+      GenericContainer<?> zookeeper =\n+          new GenericContainer<>(zookeeperImage)\n+              .withNetworkAliases(\"zookeeper\")\n+              .withStartupTimeout(Duration.ofMinutes(1))\n+              .waitingFor(Wait.forListeningPort());\n+\n+      target.withZookeeper(\"zookeeper\", 2181);\n+      dependencies = singletonList(zookeeper);\n+    }\n+    startTarget(target, dependencies);\n+\n+    verifyMetrics(createMetricsVerifier(zookeeperImage != null));\n+  }\n+\n+  private static MetricsVerifier createMetricsVerifier(boolean useZookeeper) {",
+      "id": "PRRT_kwDODJKVX86az9P5",
+      "opened": "2026-08-20T12:54:24Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaBrokerTest.java",
+      "replies": [],
+      "reviewed": "4dda1c2cc5b2566f8376a8c195f1204946d2c4fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3821672743"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "all of this plumbing has been moved to `KafkaContainer` to allow reusing.",
+      "created": "2026-08-20T12:48:59Z",
+      "hunk": "@@ -143,39 +135,14 @@ void metricsAreReportedFromKafkaConnectContainer() throws Exception {\n     Set<String> expectedCreatedMetrics = loadKafkaConnectMetricNames(false);\n     Set<String> registeredMetrics = ConcurrentHashMap.newKeySet();\n \n-    String kafkaCommand =",
+      "id": "PRRT_kwDODJKVX86az-76",
+      "opened": "2026-08-20T12:54:24Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaConnectTest.java",
+      "replies": [],
+      "reviewed": "4dda1c2cc5b2566f8376a8c195f1204946d2c4fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3821683002"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "without this in older 2.x kafka there are no log flush metrics produced, this is no longer the case with 3.x",
+      "created": "2026-08-20T12:49:48Z",
+      "hunk": "@@ -0,0 +1,203 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules.kafka;\n+\n+import java.time.Duration;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.images.builder.Transferable;\n+\n+public class KafkaContainer extends GenericContainer<KafkaContainer> {\n+\n+  private static final int KAFKA_CONTROLLER_PORT = 9093;\n+\n+  private static final String KAFKA_ALIAS = \"kafka\";\n+  private static final int KAFKA_PORT = 9092;\n+\n+  private static final String CONNECT_ALIAS = \"kafka-connect\";\n+  private static final int CONNECT_PORT = 8083;\n+  private final boolean bitnamiImage;\n+\n+  private Mode mode;\n+  private String zookeeperAddress;\n+  private final String basePath;\n+\n+  private enum Mode {\n+    // default mode for new kafka versions\n+    KRAFT,\n+    // zookeeper was required for older versions of kafka\n+    ZOOKEEPER,\n+    // kafka connect runs alongside kafka\n+    CONNECT\n+  }\n+\n+  public static KafkaContainer create(String image) {\n+    return new KafkaContainer(image);\n+  }\n+\n+  private KafkaContainer(String image) {\n+    super(image);\n+    this.withStartupTimeout(Duration.ofMinutes(1));\n+    this.mode = Mode.KRAFT;\n+    this.bitnamiImage = image.startsWith(\"bitnami\");\n+    this.basePath = bitnamiImage ? \"/opt/bitnami/kafka\" : \"/opt/kafka\";\n+  }\n+\n+  public KafkaContainer withZookeeper(String host, int port) {\n+    this.mode = Mode.ZOOKEEPER;\n+    this.zookeeperAddress = host + \":\" + port;\n+    return this;\n+  }\n+\n+  public KafkaContainer withKafkaConnect() {\n+    this.mode = Mode.CONNECT;\n+    return this;\n+  }\n+\n+  @Override\n+  protected void doStart() {\n+    switch (mode) {\n+      case KRAFT:\n+        this.configureKRaft();\n+        break;\n+      case ZOOKEEPER:\n+        this.configureZookeeper(zookeeperAddress);\n+        break;\n+      case CONNECT:\n+        this.configureKafkaConnect();\n+        break;\n+    }\n+\n+    super.doStart();\n+    if (mode != Mode.CONNECT) {\n+      // send sample message to ensure we get log flush metrics\n+      sendSampleMessage();",
+      "id": "PRRT_kwDODJKVX86az_3Z",
+      "opened": "2026-08-20T12:54:24Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+      "replies": [],
+      "reviewed": "4dda1c2cc5b2566f8376a8c195f1204946d2c4fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3821688676"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "zookeeper setup is being deprecated and will be removed in 4.x, so it's probably not worth testing explicit for it, we only test it with a \"legacy\" image provided by bitnami that uses slightly different config options.\n\nThis setup is how it is currently tested [in jmx-scraper](https://github.com/open-telemetry/opentelemetry-java-contrib/blob/main/jmx-metrics/src/integrationTest/java/io/opentelemetry/contrib/jmxmetrics/target_systems/KafkaIntegrationTest.java) and will be extended to support both producer and consumer variants when adding them.",
+      "created": "2026-08-20T12:51:16Z",
+      "hunk": "@@ -0,0 +1,203 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules.kafka;\n+\n+import java.time.Duration;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.images.builder.Transferable;\n+\n+public class KafkaContainer extends GenericContainer<KafkaContainer> {\n+\n+  private static final int KAFKA_CONTROLLER_PORT = 9093;\n+\n+  private static final String KAFKA_ALIAS = \"kafka\";\n+  private static final int KAFKA_PORT = 9092;\n+\n+  private static final String CONNECT_ALIAS = \"kafka-connect\";\n+  private static final int CONNECT_PORT = 8083;\n+  private final boolean bitnamiImage;\n+\n+  private Mode mode;\n+  private String zookeeperAddress;\n+  private final String basePath;\n+\n+  private enum Mode {\n+    // default mode for new kafka versions\n+    KRAFT,\n+    // zookeeper was required for older versions of kafka\n+    ZOOKEEPER,\n+    // kafka connect runs alongside kafka\n+    CONNECT\n+  }\n+\n+  public static KafkaContainer create(String image) {\n+    return new KafkaContainer(image);\n+  }\n+\n+  private KafkaContainer(String image) {\n+    super(image);\n+    this.withStartupTimeout(Duration.ofMinutes(1));\n+    this.mode = Mode.KRAFT;\n+    this.bitnamiImage = image.startsWith(\"bitnami\");\n+    this.basePath = bitnamiImage ? \"/opt/bitnami/kafka\" : \"/opt/kafka\";\n+  }\n+\n+  public KafkaContainer withZookeeper(String host, int port) {\n+    this.mode = Mode.ZOOKEEPER;\n+    this.zookeeperAddress = host + \":\" + port;\n+    return this;\n+  }\n+\n+  public KafkaContainer withKafkaConnect() {\n+    this.mode = Mode.CONNECT;\n+    return this;\n+  }\n+\n+  @Override\n+  protected void doStart() {\n+    switch (mode) {\n+      case KRAFT:\n+        this.configureKRaft();\n+        break;\n+      case ZOOKEEPER:\n+        this.configureZookeeper(zookeeperAddress);\n+        break;\n+      case CONNECT:\n+        this.configureKafkaConnect();\n+        break;\n+    }\n+\n+    super.doStart();\n+    if (mode != Mode.CONNECT) {\n+      // send sample message to ensure we get log flush metrics\n+      sendSampleMessage();\n+    }\n+  }\n+\n+  private void sendSampleMessage() {\n+    ExecResult execResult;\n+    try {\n+      execResult =\n+          execInContainer(\n+              \"/bin/sh\",\n+              \"-c\",\n+              // we have to force empty JAVA_TOOL_OPTIONS to prevent agent being loaded on producer\n+              \"echo 'my message' | JAVA_TOOL_OPTIONS='' \"\n+                  + basePath\n+                  + \"/bin/kafka-console-producer.sh\"\n+                  + \" --bootstrap-server localhost:\"\n+                  + KAFKA_PORT\n+                  + \" --topic my-topic\");\n+    } catch (InterruptedException e) {\n+      Thread.currentThread().interrupt();\n+      throw new IllegalStateException(\"Failed to send sample message to Kafka\", e);\n+    } catch (Exception e) {\n+      throw new IllegalStateException(\"Failed to send sample message to Kafka\", e);\n+    }\n+    if (execResult.getExitCode() != 0) {\n+      throw new IllegalStateException(\n+          \"unable to send sample message to kafka: \" + execResult.getStderr());\n+    }\n+  }\n+\n+  private void configureKRaft() {\n+    String serverPropertiesPath = basePath + \"/config/kraft/server.properties\";\n+    String kafkaCommand =\n+        basePath\n+            + \"/bin/kafka-storage.sh format -t $(\"\n+            + basePath\n+            + \"/bin/kafka-storage.sh random-uuid) -c \"\n+            + serverPropertiesPath\n+            + \" && \"\n+            + basePath\n+            + \"/bin/kafka-server-start.sh \"\n+            + serverPropertiesPath;\n+\n+    this.withNetworkAliases(KAFKA_ALIAS)\n+        .withCopyToContainer(Transferable.of(kafkaServerProperties()), serverPropertiesPath)\n+        .withExposedPorts(KAFKA_PORT)\n+        .withCreateContainerCmdModifier(cmd -> cmd.withEntrypoint(\"/bin/sh\"))\n+        .withCommand(\"-c\", kafkaCommand)\n+        .waitingFor(Wait.forListeningPort());\n+  }\n+\n+  public void configureZookeeper(String zookeeperAddress) {\n+    if (bitnamiImage) {\n+      // bitnami images use different environment variable names\n+      this.withEnv(\"KAFKA_CFG_ZOOKEEPER_CONNECT\", zookeeperAddress)\n+          // makes flush metrics available quickly\n+          .withEnv(\"KAFKA_CFG_LOG_FLUSH_INTERVAL_MESSAGES\", \"1\")\n+          .withEnv(\"KAFKA_CFG_LOG_FLUSH_INTERVAL_MS\", \"100\")\n+          // Removed in 3.5.1\n+          .withEnv(\"ALLOW_PLAINTEXT_LISTENER\", \"yes\");\n+    } else {\n+      // this is more a to-do than a lack of support\n+      throw new IllegalStateException(\"not supported yet for non-bitnami images\");",
+      "id": "PRRT_kwDODJKVX86a0BrK",
+      "opened": "2026-08-20T12:54:24Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+      "replies": [],
+      "reviewed": "4dda1c2cc5b2566f8376a8c195f1204946d2c4fe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3821699553"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Testcontainers checks only the ports registered on the container, and none are registered here, so `Wait.forListeningPort()` returns at once and Kafka can start before ZooKeeper is listening.\n\n```suggestion\n      GenericContainer<?> zookeeper =\n          new GenericContainer<>(zookeeperImage)\n              .withNetworkAliases(\"zookeeper\")\n              .withExposedPorts(2181)\n              .withStartupTimeout(Duration.ofMinutes(1))\n              .waitingFor(Wait.forListeningPort());\n```",
+      "created": "2026-08-20T14:36:38Z",
+      "hunk": "@@ -0,0 +1,264 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules.kafka;\n+\n+import static io.opentelemetry.instrumentation.jmx.rules.assertions.DataPointAttributes.attribute;\n+import static io.opentelemetry.instrumentation.jmx.rules.assertions.DataPointAttributes.attributeGroup;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.jmx.rules.MetricsVerifier;\n+import io.opentelemetry.instrumentation.jmx.rules.TargetSystemTest;\n+import io.opentelemetry.instrumentation.jmx.rules.assertions.AttributeMatcherGroup;\n+import java.time.Duration;\n+import java.util.ArrayList;\n+import java.util.List;\n+import org.junit.jupiter.api.Test;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+\n+class KafkaBrokerTest extends TargetSystemTest {\n+\n+  @Test\n+  void kafkaBroker() {\n+    doTest(\"apache/kafka:3.8.0\", null);\n+  }\n+\n+  @Test\n+  void kafkaBrokerZookeeper() {\n+    // intentionally testing a rather old kafka version to ensure common metrics are still reported\n+    doTest(\"bitnamilegacy/kafka:2.8.1\", \"zookeeper:3.5\");\n+  }\n+\n+  private void doTest(String image, String zookeeperImage) {\n+    List<String> yamlFiles = singletonList(\"experimental-kafka-broker.yaml\");\n+\n+    yamlFiles.forEach(this::validateYamlSyntax);\n+\n+    List<String> jvmArgs = new ArrayList<>();\n+    jvmArgs.add(javaAgentJvmArgument());\n+    jvmArgs.addAll(javaPropertiesToJvmArgs(otelConfigProperties(yamlFiles)));\n+\n+    KafkaContainer target =\n+        KafkaContainer.create(image).withEnv(\"JAVA_TOOL_OPTIONS\", String.join(\" \", jvmArgs));\n+\n+    copyAgentToTarget(target);\n+    copyYamlFilesToTarget(target, yamlFiles);\n+\n+    // TODO: add weaver validation\n+\n+    List<GenericContainer<?>> dependencies = emptyList();\n+    if (zookeeperImage != null) {\n+      GenericContainer<?> zookeeper =\n+          new GenericContainer<>(zookeeperImage)\n+              .withNetworkAliases(\"zookeeper\")\n+              .withStartupTimeout(Duration.ofMinutes(1))\n+              .waitingFor(Wait.forListeningPort());",
+      "id": "PRRT_kwDODJKVX86a2Ldu",
+      "opened": "2026-08-20T14:40:28Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaBrokerTest.java",
+      "replies": [],
+      "reviewed": "5b602d4102c5e8e2ad0c2b5c866ced7a11ecde03",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3822529454"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`withStartupTimeout` applies to the wait strategy that exists when it is called, and every `configure*()` method then calls `waitingFor(...)`, which installs a new strategy and drops it. KRaft and ZooKeeper mode therefore run on the 60-second default, and raising this value later would change nothing; set the timeout on the strategy passed to `waitingFor` instead, as `configureKafkaConnect` does. (Same ordering on the ZooKeeper container in `KafkaBrokerTest`.)",
+      "created": "2026-08-20T17:40:21Z",
+      "hunk": "@@ -0,0 +1,203 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules.kafka;\n+\n+import java.time.Duration;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.images.builder.Transferable;\n+\n+public class KafkaContainer extends GenericContainer<KafkaContainer> {\n+\n+  private static final int KAFKA_CONTROLLER_PORT = 9093;\n+\n+  private static final String KAFKA_ALIAS = \"kafka\";\n+  private static final int KAFKA_PORT = 9092;\n+\n+  private static final String CONNECT_ALIAS = \"kafka-connect\";\n+  private static final int CONNECT_PORT = 8083;\n+  private final boolean bitnamiImage;\n+\n+  private Mode mode;\n+  private String zookeeperAddress;\n+  private final String basePath;\n+\n+  private enum Mode {\n+    // default mode for new kafka versions\n+    KRAFT,\n+    // zookeeper was required for older versions of kafka\n+    ZOOKEEPER,\n+    // kafka connect runs alongside kafka\n+    CONNECT\n+  }\n+\n+  public static KafkaContainer create(String image) {\n+    return new KafkaContainer(image);\n+  }\n+\n+  private KafkaContainer(String image) {\n+    super(image);\n+    this.withStartupTimeout(Duration.ofMinutes(1));",
+      "id": "PRRT_kwDODJKVX86a5zkd",
+      "opened": "2026-08-20T17:41:29Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+      "replies": [
+        {
+          "at": "2026-08-21T07:32:47Z",
+          "body": "fixed in f2ed18c08f519d7590ed1fe399dff246b2fcedac",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3828275232"
+        }
+      ],
+      "reviewed": "5855212b3842060e4d8fc64452a4e2b94b729831",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3823945620"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] `waitingFor` replaces the strategy that `withStartupTimeout` configured, so this timeout cannot affect the ZooKeeper container. Set it on the replacement strategy, as `KafkaContainer` does.\n\n```suggestion\n      GenericContainer<?> zookeeper =\n          new GenericContainer<>(zookeeperImage)\n              .withNetworkAliases(\"zookeeper\")\n              .withExposedPorts(2181)\n              .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(1)));\n```",
+      "created": "2026-08-21T16:26:36Z",
+      "hunk": "@@ -0,0 +1,265 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules.kafka;\n+\n+import static io.opentelemetry.instrumentation.jmx.rules.assertions.DataPointAttributes.attribute;\n+import static io.opentelemetry.instrumentation.jmx.rules.assertions.DataPointAttributes.attributeGroup;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.jmx.rules.MetricsVerifier;\n+import io.opentelemetry.instrumentation.jmx.rules.TargetSystemTest;\n+import io.opentelemetry.instrumentation.jmx.rules.assertions.AttributeMatcherGroup;\n+import java.time.Duration;\n+import java.util.ArrayList;\n+import java.util.List;\n+import org.junit.jupiter.api.Test;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+\n+class KafkaBrokerTest extends TargetSystemTest {\n+\n+  @Test\n+  void kafkaBroker() {\n+    doTest(\"apache/kafka:3.8.0\", null);\n+  }\n+\n+  @Test\n+  void kafkaBrokerZookeeper() {\n+    // intentionally testing a rather old kafka version to ensure common metrics are still reported\n+    doTest(\"bitnamilegacy/kafka:2.8.1\", \"zookeeper:3.5\");\n+  }\n+\n+  private void doTest(String image, String zookeeperImage) {\n+    List<String> yamlFiles = singletonList(\"experimental-kafka-broker.yaml\");\n+\n+    yamlFiles.forEach(this::validateYamlSyntax);\n+\n+    List<String> jvmArgs = new ArrayList<>();\n+    jvmArgs.add(javaAgentJvmArgument());\n+    jvmArgs.addAll(javaPropertiesToJvmArgs(otelConfigProperties(yamlFiles)));\n+\n+    KafkaContainer target =\n+        KafkaContainer.create(image).withEnv(\"JAVA_TOOL_OPTIONS\", String.join(\" \", jvmArgs));\n+\n+    copyAgentToTarget(target);\n+    copyYamlFilesToTarget(target, yamlFiles);\n+\n+    // TODO: add weaver validation\n+\n+    List<GenericContainer<?>> dependencies = emptyList();\n+    if (zookeeperImage != null) {\n+      GenericContainer<?> zookeeper =\n+          new GenericContainer<>(zookeeperImage)\n+              .withNetworkAliases(\"zookeeper\")\n+              .withExposedPorts(2181)\n+              .withStartupTimeout(Duration.ofMinutes(1))\n+              .waitingFor(Wait.forListeningPort());",
+      "id": "PRRT_kwDODJKVX86bOLFP",
+      "opened": "2026-08-21T16:29:27Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaBrokerTest.java",
+      "replies": [
+        {
+          "at": "2026-08-24T08:06:21Z",
+          "body": "fixed in f32e7a0b3f",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3841649420"
+        }
+      ],
+      "reviewed": "2a9f8bff058e890ee9d9af743a6b32e36a0dfb5d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3831915781"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `KafkaContainer` is used only by tests in this package, so package-private is the most restrictive modifier that works, like `WeaverContainer`. (Same for `create`, `withZookeeper`, and `withKafkaConnect`.)\n\n```suggestion\nclass KafkaContainer extends GenericContainer<KafkaContainer> {\n```",
+      "created": "2026-08-21T16:26:36Z",
+      "hunk": "@@ -0,0 +1,203 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules.kafka;\n+\n+import java.time.Duration;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.images.builder.Transferable;\n+\n+public class KafkaContainer extends GenericContainer<KafkaContainer> {",
+      "id": "PRRT_kwDODJKVX86bOLFi",
+      "opened": "2026-08-21T16:29:27Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+      "replies": [
+        {
+          "at": "2026-08-24T08:06:36Z",
+          "body": "fixed in f32e7a0b3f",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3841650889"
+        }
+      ],
+      "reviewed": "2a9f8bff058e890ee9d9af743a6b32e36a0dfb5d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3831915811"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] Kafka Connect waited up to 5 minutes for `/connectors` before this refactor, and 1 minute can time out on a loaded CI runner.\n\n```suggestion\n                .withStartupTimeout(Duration.ofMinutes(5)));\n```\n",
+      "created": "2026-08-24T17:26:07Z",
+      "hunk": "@@ -0,0 +1,203 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules.kafka;\n+\n+import java.time.Duration;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.images.builder.Transferable;\n+\n+class KafkaContainer extends GenericContainer<KafkaContainer> {\n+\n+  private static final int KAFKA_CONTROLLER_PORT = 9093;\n+\n+  private static final String KAFKA_ALIAS = \"kafka\";\n+  private static final int KAFKA_PORT = 9092;\n+\n+  private static final String CONNECT_ALIAS = \"kafka-connect\";\n+  private static final int CONNECT_PORT = 8083;\n+  private final boolean bitnamiImage;\n+\n+  private Mode mode;\n+  private String zookeeperAddress;\n+  private final String basePath;\n+\n+  private enum Mode {\n+    // default mode for new kafka versions\n+    KRAFT,\n+    // zookeeper was required for older versions of kafka\n+    ZOOKEEPER,\n+    // kafka connect runs alongside kafka\n+    CONNECT\n+  }\n+\n+  public static KafkaContainer create(String image) {\n+    return new KafkaContainer(image);\n+  }\n+\n+  private KafkaContainer(String image) {\n+    super(image);\n+    this.mode = Mode.KRAFT;\n+    this.bitnamiImage = image.startsWith(\"bitnami\");\n+    this.basePath = bitnamiImage ? \"/opt/bitnami/kafka\" : \"/opt/kafka\";\n+  }\n+\n+  public KafkaContainer withZookeeper(String host, int port) {\n+    this.mode = Mode.ZOOKEEPER;\n+    this.zookeeperAddress = host + \":\" + port;\n+    return this;\n+  }\n+\n+  public KafkaContainer withKafkaConnect() {\n+    this.mode = Mode.CONNECT;\n+    return this;\n+  }\n+\n+  @Override\n+  protected void doStart() {\n+    switch (mode) {\n+      case KRAFT:\n+        this.configureKRaft();\n+        break;\n+      case ZOOKEEPER:\n+        this.configureZookeeper(zookeeperAddress);\n+        break;\n+      case CONNECT:\n+        this.configureKafkaConnect();\n+        break;\n+    }\n+\n+    super.doStart();\n+    if (mode != Mode.CONNECT) {\n+      // send sample message to ensure we get log flush metrics\n+      sendSampleMessage();\n+    }\n+  }\n+\n+  private void sendSampleMessage() {\n+    ExecResult execResult;\n+    try {\n+      execResult =\n+          execInContainer(\n+              \"/bin/sh\",\n+              \"-c\",\n+              // we have to force empty JAVA_TOOL_OPTIONS to prevent agent being loaded on producer\n+              \"echo 'my message' | JAVA_TOOL_OPTIONS='' \"\n+                  + basePath\n+                  + \"/bin/kafka-console-producer.sh\"\n+                  + \" --bootstrap-server localhost:\"\n+                  + KAFKA_PORT\n+                  + \" --topic my-topic\");\n+    } catch (InterruptedException e) {\n+      Thread.currentThread().interrupt();\n+      throw new IllegalStateException(\"Failed to send sample message to Kafka\", e);\n+    } catch (Exception e) {\n+      throw new IllegalStateException(\"Failed to send sample message to Kafka\", e);\n+    }\n+    if (execResult.getExitCode() != 0) {\n+      throw new IllegalStateException(\n+          \"unable to send sample message to kafka: \" + execResult.getStderr());\n+    }\n+  }\n+\n+  private void configureKRaft() {\n+    String serverPropertiesPath = basePath + \"/config/kraft/server.properties\";\n+    String kafkaCommand =\n+        basePath\n+            + \"/bin/kafka-storage.sh format -t $(\"\n+            + basePath\n+            + \"/bin/kafka-storage.sh random-uuid) -c \"\n+            + serverPropertiesPath\n+            + \" && \"\n+            + basePath\n+            + \"/bin/kafka-server-start.sh \"\n+            + serverPropertiesPath;\n+\n+    this.withNetworkAliases(KAFKA_ALIAS)\n+        .withCopyToContainer(Transferable.of(kafkaServerProperties()), serverPropertiesPath)\n+        .withExposedPorts(KAFKA_PORT)\n+        .withCreateContainerCmdModifier(cmd -> cmd.withEntrypoint(\"/bin/sh\"))\n+        .withCommand(\"-c\", kafkaCommand)\n+        .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(1)));\n+  }\n+\n+  private void configureZookeeper(String zookeeperAddress) {\n+    if (bitnamiImage) {\n+      // bitnami images use different environment variable names\n+      this.withEnv(\"KAFKA_CFG_ZOOKEEPER_CONNECT\", zookeeperAddress)\n+          // makes flush metrics available quickly\n+          .withEnv(\"KAFKA_CFG_LOG_FLUSH_INTERVAL_MESSAGES\", \"1\")\n+          .withEnv(\"KAFKA_CFG_LOG_FLUSH_INTERVAL_MS\", \"100\")\n+          // Removed in 3.5.1\n+          .withEnv(\"ALLOW_PLAINTEXT_LISTENER\", \"yes\");\n+    } else {\n+      // this is more a to-do than a lack of support\n+      throw new IllegalStateException(\"not supported yet for non-bitnami images\");\n+    }\n+    this.withExposedPorts(KAFKA_PORT)\n+        .waitingFor(\n+            Wait.forLogMessage(\".*KafkaServer.*started \\\\(kafka.server.KafkaServer\\\\).*\", 1)\n+                .withStartupTimeout(Duration.ofMinutes(1)));\n+  }\n+\n+  private void configureKafkaConnect() {\n+    String connectPropertiesPath = basePath + \"/config/connect-distributed.properties\";\n+    this.withNetworkAliases(CONNECT_ALIAS)\n+        .withCopyToContainer(Transferable.of(connectWorkerProperties()), connectPropertiesPath)\n+        .withExposedPorts(CONNECT_PORT)\n+        .withCreateContainerCmdModifier(cmd -> cmd.withEntrypoint(\"/bin/sh\"))\n+        .withCommand(\"-c\", basePath + \"/bin/connect-distributed.sh \" + connectPropertiesPath)\n+        .waitingFor(\n+            Wait.forHttp(\"/connectors\")\n+                .forPort(CONNECT_PORT)\n+                .withStartupTimeout(Duration.ofMinutes(1)));",
+      "id": "PRRT_kwDODJKVX86byeeg",
+      "opened": "2026-08-24T17:37:05Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+      "replies": [
+        {
+          "at": "2026-08-24T19:38:11Z",
+          "body": "fixed in a9cbc0bc9f",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3846838568"
+        }
+      ],
+      "reviewed": "532a57f4c9f09f690d657d4f8460dbf0e2c474f7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3845856694"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] The class is package-private now, but these methods are still `public`, and every caller is in this package.\n\n```suggestion\n  static KafkaContainer create(String image) {\n```\n\n(Same for `withZookeeper` on line 48 and `withKafkaConnect` on line 54.)\n",
+      "created": "2026-08-24T17:26:07Z",
+      "hunk": "@@ -0,0 +1,203 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules.kafka;\n+\n+import java.time.Duration;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+import org.testcontainers.images.builder.Transferable;\n+\n+class KafkaContainer extends GenericContainer<KafkaContainer> {\n+\n+  private static final int KAFKA_CONTROLLER_PORT = 9093;\n+\n+  private static final String KAFKA_ALIAS = \"kafka\";\n+  private static final int KAFKA_PORT = 9092;\n+\n+  private static final String CONNECT_ALIAS = \"kafka-connect\";\n+  private static final int CONNECT_PORT = 8083;\n+  private final boolean bitnamiImage;\n+\n+  private Mode mode;\n+  private String zookeeperAddress;\n+  private final String basePath;\n+\n+  private enum Mode {\n+    // default mode for new kafka versions\n+    KRAFT,\n+    // zookeeper was required for older versions of kafka\n+    ZOOKEEPER,\n+    // kafka connect runs alongside kafka\n+    CONNECT\n+  }\n+\n+  public static KafkaContainer create(String image) {",
+      "id": "PRRT_kwDODJKVX86byeev",
+      "opened": "2026-08-24T17:37:05Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaContainer.java",
+      "replies": [
+        {
+          "at": "2026-08-24T19:38:17Z",
+          "body": "fixed in a9cbc0bc9f",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3846839173"
+        }
+      ],
+      "reviewed": "532a57f4c9f09f690d657d4f8460dbf0e2c474f7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19722#discussion_r3845856711"
+    }
+  ]
+}

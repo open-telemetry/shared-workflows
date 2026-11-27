@@ -1,0 +1,51 @@
+{
+  "head": "4060a9ff73cbcecf28530234fb58fb29c395af68",
+  "merge": "675afceae4d461aa0cf98275e1ef963c7d1c876d",
+  "merged": "2026-01-16T21:26:11Z",
+  "missing_roots": 0,
+  "number": 15829,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering that perhaps we should use `instrument` instead of `wrap` since it is a boarder term. Here the input client isn't really wrapped, the instrumented client won't delegate to the original client, but rather creates a new client based on the original and adds the tracing interceptors.",
+      "created": "2026-01-12T13:14:52Z",
+      "hunk": "@@ -26,7 +26,7 @@ public OpenTelemetryHttpClient(Instrumenter<RequestSpec, HttpResponse> instrumen\n     this.instrumenter = instrumenter;\n   }\n \n-  public HttpClient instrument(HttpClient httpClient) throws Exception {\n+  public HttpClient wrap(HttpClient httpClient) throws Exception {",
+      "id": "PRRT_kwDODJKVX85o-yz5",
+      "opened": "2026-01-12T13:14:52Z",
+      "path": "instrumentation/ratpack/ratpack-1.7/library/src/main/java/io/opentelemetry/instrumentation/ratpack/v1_7/internal/OpenTelemetryHttpClient.java",
+      "replies": [
+        {
+          "at": "2026-01-14T02:28:10Z",
+          "body": "I changed it here to `createHttpClient` to match other `create*` methods and to emphasize it creates a new HttpClient, wdyt?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15829#discussion_r2688715932"
+        },
+        {
+          "at": "2026-01-14T03:11:02Z",
+          "body": "hmm, thinking about it more, I think using `instrument` over `wrap` everywhere could be good: #15864 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15829#discussion_r2688775564"
+        },
+        {
+          "at": "2026-01-14T03:15:58Z",
+          "body": "otoh, I like `wrap` where it's appropriate because it's very explicit about what the method does, so maybe just leave this one `instrument` but use `wrap` elsewhere (where it's correct)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15829#discussion_r2688782114"
+        },
+        {
+          "at": "2026-01-14T03:18:36Z",
+          "body": "ok, I reverted the ratpack change (back to `instrument`)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15829#discussion_r2688785571"
+        },
+        {
+          "at": "2026-01-14T09:04:19Z",
+          "body": "On more thing to consider is that even if an instrumentation does not wrap now it might switch to wrapping in the future since it might be needed to propagate context into a `CompletableFuture` returned by the client or something else (this might not apply to the ratpack instrumentation). For example armeria client library instrumentation does not propagate context into callbacks, perhaps it could be solved by wrapping.\r\n\r\n> otoh, I like wrap where it's appropriate because it's very explicit about what the method does, so maybe just leave this one instrument but use wrap elsewhere (where it's correct)\r\n\r\nOn one hand it is nice that it says what it does, on the other it could prove to be limiting when you wish to make the method do something else. Overall I don't feel too strongly about it. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15829#discussion_r2689572955"
+        }
+      ],
+      "reviewed": "3950476c84a02072ed9fa32a1162972979537b2f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15829#discussion_r2682229766"
+    }
+  ]
+}

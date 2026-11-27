@@ -1,0 +1,109 @@
+{
+  "head": "7399f47d3116fd4a2671994e3db7857a05fa4e8d",
+  "merge": "9326640c28f4d9ab691c787fd358bcd87cf0797d",
+  "merged": "2026-11-24T22:33:51Z",
+  "missing_roots": 0,
+  "number": 980,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Retrieval and embedding never called the hook on main, so this isn't user-visible. Could we drop the fragment?\r\n",
+      "created": "2026-10-31T18:21:05Z",
+      "hunk": "@@ -0,0 +1 @@\n+Do not invoke completion hook for retrieval and embedding invocations.",
+      "id": "PRRT_kwDOSbspP86yTXUO",
+      "opened": "2026-10-31T18:26:39Z",
+      "path": "util/opentelemetry-util-genai/.changelog/980.changed",
+      "replies": [
+        {
+          "at": "2026-11-04T14:42:12Z",
+          "body": "Ack.. removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/980#discussion_r4468949682"
+        }
+      ],
+      "reviewed": "df2c8292243f45d781022eaf9a39dd2ed0a0d815",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/980#discussion_r4432780591"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the constructor ignores `completion_hook` now. Since these constructors are internal, could we drop the param from `RetrievalInvocation`/`EmbeddingInvocation` (and the `Suppressed*` variants) and stop passing it here? `check-util-api` may need the `Approve Public API check` label.\n",
+      "created": "2026-10-31T18:21:05Z",
+      "hunk": "@@ -217,7 +217,7 @@ def retrieval(\n             self._tracer,\n             self._instruments,\n             self._logger,\n-            self._completion_hook,\n+            _NoOpCompletionHook(),",
+      "id": "PRRT_kwDOSbspP86yTXUh",
+      "opened": "2026-10-31T18:26:39Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-11-04T14:42:23Z",
+          "body": "Yes. Removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/980#discussion_r4468952041"
+        }
+      ],
+      "reviewed": "df2c8292243f45d781022eaf9a39dd2ed0a0d815",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/980#discussion_r4432780613"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: same as above.\n",
+      "created": "2026-10-31T18:21:05Z",
+      "hunk": "@@ -313,7 +313,7 @@ def embedding(\n             self._tracer,\n             self._instruments,\n             self._logger,\n-            self._completion_hook,\n+            _NoOpCompletionHook(),",
+      "id": "PRRT_kwDOSbspP86yTXUr",
+      "opened": "2026-10-31T18:26:39Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "df2c8292243f45d781022eaf9a39dd2ed0a0d815",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/980#discussion_r4432780630"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the hook is always a no-op here now, so this value is unused.\n\n```suggestion\n            _,\n```",
+      "created": "2026-11-11T21:10:35Z",
+      "hunk": "@@ -313,15 +313,14 @@ def __init__(\n             self._capture_content_to_context,\n             _upload_completion,\n             effective_content_mode,\n-            effective_completion_hook,\n+            _effective_completion_hook,",
+      "id": "PRRT_kwDOSbspP862W9_O",
+      "opened": "2026-11-11T21:24:17Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_retrieval_invocation.py",
+      "replies": [
+        {
+          "at": "2026-11-24T19:29:43Z",
+          "body": "Ack applied",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/980#discussion_r4685400158"
+        }
+      ],
+      "reviewed": "ab2fbff9eeb30835d9204001f6c10387f40ed0a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/980#discussion_r4543233964"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Could we do the same for `ToolInvocation`? It never calls the hook, but still takes it, so `should_capture_content` is `True` for tools when only a hook is set. #950 goes the other way, but it'll be blocked for a while since it needs a multi-operation hook design (#649).\n",
+      "created": "2026-11-11T21:10:36Z",
+      "hunk": "@@ -275,6 +275,33 @@ def test_local_agent_hook_called_on_fail(self):\n         kwargs = hook.on_completion.call_args.kwargs\n         self.assertIsNotNone(kwargs[\"span\"])\n \n+    def test_retrieval_hook_not_called(self):\n+        hook = MagicMock()\n+        handler = self._make_handler(hook)\n+\n+        invocation = handler.retrieval(data_source_id=\"ds-1\")\n+        self.assertFalse(invocation.should_capture_content)\n+        invocation.query_text = \"search query\"\n+        invocation.stop()\n+\n+        failed_inv = handler.retrieval(data_source_id=\"ds-1\")\n+        failed_inv.fail(RuntimeError(\"retrieval failed\"))\n+\n+        hook.on_completion.assert_not_called()\n+\n+    def test_embedding_and_tool_hook_not_called(self):\n+        hook = MagicMock()\n+        handler = self._make_handler(hook)\n+\n+        emb_inv = handler.embedding(\"openai\", request_model=\"text-embedding-3\")\n+        self.assertFalse(emb_inv.should_capture_content)\n+        emb_inv.stop()\n+\n+        tool_inv = handler.tool(\"get_weather\")",
+      "id": "PRRT_kwDOSbspP862W9_X",
+      "opened": "2026-11-11T21:24:17Z",
+      "path": "util/opentelemetry-util-genai/tests/test_handler_completion_hook.py",
+      "replies": [
+        {
+          "at": "2026-11-24T19:35:53Z",
+          "body": "Ok added ToolInvocation for now.. we need to re-work the hook to accept arbitrary AttributeValues.. I will probably take a stab at that next",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/980#discussion_r4685471101"
+        }
+      ],
+      "reviewed": "ab2fbff9eeb30835d9204001f6c10387f40ed0a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/980#discussion_r4543233980"
+    }
+  ]
+}

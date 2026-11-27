@@ -1,0 +1,25 @@
+{
+  "head": "29e75da549ebd8572b7e18a74370ffe955e8987d",
+  "merge": "6035bd9818c759759702ff1841111767ff1c9629",
+  "merged": "2026-11-01T16:14:19Z",
+  "missing_roots": 0,
+  "number": 21114,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "several of these should use `telemetryConfig`, but will follow-up on that later since needs to be added to the metadata collection too",
+      "created": "2026-10-31T22:26:57Z",
+      "hunk": "@@ -63,22 +66,17 @@ tasks {\n     into(\"build/extracted/shadow-bootstrap\")\n     include(\"io/opentelemetry/javaagent/bootstrap/**\")\n   }\n-\n-  val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-\n-    jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n-  }\n-\n-  check {\n-    dependsOn(testExceptionSignalLogs)\n-  }\n }\n \n-tasks {\n-  withType<Test>().configureEach {\n-    systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n-    jvmArgs(\"-Dotel.instrumentation.jdbc.experimental.transaction.enabled=true\")\n+testing.suites.named<JvmTestSuite>(\"test\") {\n+  executions {\n+    configureEach {\n+      systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n+      jvmArgs(\"-Dotel.instrumentation.jdbc.experimental.transaction.enabled=true\")\n+    }\n+\n+    register(\"ExceptionSignalLogs\") {\n+      jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")",
+      "id": "PRRT_kwDODJKVX86yVKTl",
+      "opened": "2026-10-31T22:26:57Z",
+      "path": "instrumentation/jdbc/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "1ee2dc13c5b2b0d5a79eb23ef33fae5c9c9dac74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21114#discussion_r4433526136"
+    }
+  ]
+}

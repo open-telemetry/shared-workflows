@@ -1,0 +1,36 @@
+{
+  "head": "370e8c4be195153e0038a362bd42935678ba533c",
+  "merge": "cecf9f5fe669020addbeb57d77e96e6702384ff4",
+  "merged": "2026-10-11T23:30:08Z",
+  "missing_roots": 0,
+  "number": 206,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Guzzle and Slim scenario lockfiles still record this path package as requiring `symfony/yaml: ^7.2` and lock v7.4.18. The CI workflow installs those scenarios from their locks, so their conformance executions continue using v7 instead of the upgraded dependency. Regenerate both scenario lockfiles after changing this path package.\n\nThis issue also appears on line 7 of the same file.",
+      "created": "2026-09-14T06:09:17Z",
+      "hunk": "@@ -4,7 +4,7 @@\n   \"license\": \"Apache-2.0\",\n   \"require\": {\n     \"php\": \">=8.2\",\n-    \"symfony/yaml\": \"^7.2\"\n+    \"symfony/yaml\": \"^8.0\"",
+      "id": "PRRT_kwDOTuzK5c6iAUCI",
+      "opened": "2026-09-14T06:09:17Z",
+      "path": "tools/http/test-client/php/composer.json",
+      "replies": [
+        {
+          "at": "2026-09-14T17:04:52Z",
+          "body": "Could we catch this in CI?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/206#discussion_r4007598449"
+        },
+        {
+          "at": "2026-09-20T19:05:19Z",
+          "body": "Done in follow-up PR: https://github.com/open-telemetry/semantic-conventions-conformance/pull/227",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/206#discussion_r4057790786"
+        }
+      ],
+      "reviewed": "39980c6bf1ecd2dff30307965652030dec8ad3f1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/206#discussion_r4002594333"
+    }
+  ]
+}

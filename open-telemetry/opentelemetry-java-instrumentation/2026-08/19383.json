@@ -1,0 +1,25 @@
+{
+  "head": "79ef1ab298e7bedeb34ef2d7a5309f65d16d3432",
+  "merge": "9244492a1f44b8f4a5a7c4e30a61bf9d1e26f0c0",
+  "merged": "2026-08-04T02:02:18Z",
+  "missing_roots": 0,
+  "number": 19383,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Pinning `gh-aw` is good for reproducibility, but bumping the version can change validation/compiler behavior. To avoid unexpected CI drift, consider adding a short note in the script comment header indicating why `v0.84.3` is required (e.g., bugfix/feature) and, if applicable, the minimum compatible `gh` CLI version for this extension release.",
+      "created": "2026-08-04T01:19:32Z",
+      "hunk": "@@ -16,7 +16,7 @@\n # (e.g. added or removed actions) that strict mode otherwise refuses. It does not affect which\n # actions the compiler generates, so the output still matches what the CI check produces.\n \n-gh extension install github/gh-aw --pin v0.83.5\n+gh extension install github/gh-aw --pin v0.84.3",
+      "id": "PRRT_kwDODJKVX86WKuCl",
+      "opened": "2026-08-04T01:19:32Z",
+      "path": ".github/scripts/compile-gh-aw-workflows.sh",
+      "replies": [],
+      "reviewed": "5a67c8bf8b3c29ba53153154c542984394705bd1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19383#discussion_r3708777097"
+    }
+  ]
+}

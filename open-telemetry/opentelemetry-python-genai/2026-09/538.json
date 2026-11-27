@@ -1,0 +1,120 @@
+{
+  "head": "6494492fe70b0c4f9303bd5a8c760f47a5d81d3c",
+  "merge": "1516663ff80626741542f18bc20cd8bc599e542b",
+  "merged": "2026-09-03T20:34:53Z",
+  "missing_roots": 0,
+  "number": 538,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This new test uses `get_span_named`/`get_event_named` directly without first asserting the span/event exists, which makes failures harder to diagnose (and previously manifested as a `'NoneType' object has no attribute 'attributes'` error). Using the existing `assert_has_span_named`/`assert_has_event_named` helpers (as in the non-streaming exception test above) makes the intent clearer and the failure mode more direct.",
+      "created": "2026-09-02T08:04:25Z",
+      "hunk": "@@ -209,6 +209,21 @@ def test_span_and_event_still_written_when_response_is_exception(\n         self.assertEqual(span.attributes[\"error.type\"], \"ValueError\")\n         self.assertEqual(event.attributes[\"error.type\"], \"ValueError\")\n \n+    def test_streaming_request_exception_records_error(self) -> None:\n+        self.configure_exception(ValueError(\"stream request failed\"))\n+        with self.assertRaises(ValueError):\n+            self.run_streaming_interaction(\n+                model=\"gemini-2.5-flash\",\n+                input=\"Does this work?\",\n+                stream=True,\n+            )\n+        span = self.otel.get_span_named(\"interactions.create gemini-2.5-flash\")\n+        event = self.otel.get_event_named(\n+            \"gen_ai.client.inference.operation.details\"\n+        )",
+      "id": "PRRT_kwDOSbspP86earX8",
+      "opened": "2026-09-02T08:04:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/base.py",
+      "replies": [
+        {
+          "at": "2026-09-03T04:59:49Z",
+          "body": "Done in 2977eab.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/538#discussion_r3921192135"
+        }
+      ],
+      "reviewed": "fa8b1dab8e6342eae33cb5d0ea9f19466999f0b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/538#discussion_r3912013152"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new legacy tox factor installs the instrumentation package without its `[instruments]` extra, which can make this env drift from the other google-genai envs if additional instrument dependencies are ever added to that extra. Installing the package as `-e ...[instruments]` keeps the env aligned while still allowing the explicit `google-genai==2.8.0` pin.",
+      "created": "2026-09-02T08:04:26Z",
+      "hunk": "@@ -143,6 +144,11 @@ deps =\n   google-genai-latest: {[testenv]test_deps}\n   google-genai-latest: {[testenv]pytest_deps}\n   google-genai-latest: -r {toxinidir}/instrumentation/opentelemetry-instrumentation-google-genai/tests/requirements.latest.txt\n+  google-genai-interactions-legacy: {[testenv]test_deps}\n+  google-genai-interactions-legacy: {[testenv]pytest_deps}\n+  google-genai-interactions-legacy: google-genai==2.8.0\n+  google-genai-interactions-legacy: -e {toxinidir}/instrumentation/opentelemetry-instrumentation-google-genai\n+  google-genai-interactions-legacy: -e {toxinidir}/util/opentelemetry-util-genai[upload]",
+      "id": "PRRT_kwDOSbspP86earYv",
+      "opened": "2026-09-02T08:04:26Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-09-03T04:59:48Z",
+          "body": "Done in 2977eab.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/538#discussion_r3921192099"
+        }
+      ],
+      "reviewed": "fa8b1dab8e6342eae33cb5d0ea9f19466999f0b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/538#discussion_r3912013234"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This tox command omits `--vcr-record=none` even though the package’s test suite loads `pytest-vcr` via `pytest_plugins` in `tests/conftest.py`; adding the flag matches the other google-genai test envs and prevents accidental cassette recording if these tests start making HTTP calls in the future.",
+      "created": "2026-09-02T08:04:26Z",
+      "hunk": "@@ -280,6 +286,7 @@ commands =\n   test-instrumentation-genai-openai_agents-conformance: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/test_conformance.py --vcr-record=none {posargs}\n \n   test-instrumentation-google-genai-{oldest,latest}: pytest --ignore={toxinidir}/instrumentation/opentelemetry-instrumentation-google-genai/tests/test_conformance.py {toxinidir}/instrumentation/opentelemetry-instrumentation-google-genai/tests --vcr-record=none {posargs}\n+  test-instrumentation-google-genai-interactions-legacy: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/test_interactions_sync.py::TestInteractionsSync::test_streaming_request_exception_records_error {toxinidir}/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/test_interactions_async.py::TestInteractionsAsync::test_streaming_request_exception_records_error {posargs}",
+      "id": "PRRT_kwDOSbspP86earZE",
+      "opened": "2026-09-02T08:04:26Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-09-03T04:59:48Z",
+          "body": "Done in 2977eab.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/538#discussion_r3921192113"
+        }
+      ],
+      "reviewed": "fa8b1dab8e6342eae33cb5d0ea9f19466999f0b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/538#discussion_r3912013276"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "Why do we need to explicitly target this third version ? I'd rather not do this if we don't have to...",
+      "created": "2026-09-02T14:27:22Z",
+      "hunk": "@@ -21,6 +21,7 @@ envlist =\n     ; instrumentation-google-genai\n     py3{10,14}-test-instrumentation-google-genai-latest\n     py310-test-instrumentation-google-genai-oldest\n+    py310-test-instrumentation-google-genai-interactions-legacy",
+      "id": "PRRT_kwDOSbspP86eiyJO",
+      "opened": "2026-09-02T14:27:21Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-09-02T17:31:00Z",
+          "body": "I think it's the same motivation as we (used to) have in https://github.com/open-telemetry/opentelemetry-python-genai/pull/539 - test every major version we declare supported. Oldest tests v1, latest tests v3, nothing tests things in between, but we should.\r\n\r\n\r\nLet's do it consistently via special requirement.v{major}.txt though as in the PR I linked",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/538#discussion_r3916867255"
+        },
+        {
+          "at": "2026-09-03T04:59:49Z",
+          "body": "Done in 2977eab.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/538#discussion_r3921192138"
+        }
+      ],
+      "reviewed": "fa8b1dab8e6342eae33cb5d0ea9f19466999f0b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/538#discussion_r3915170544"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\r\n  test-instrumentation-google-genai-v2: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions --vcr-record=none {posargs}\r\n```\r\n\r\nthe goal is to catch all compatibility issues, not just this specific one",
+      "created": "2026-09-03T18:34:07Z",
+      "hunk": "@@ -284,6 +288,7 @@ commands =\n   test-instrumentation-genai-openai_agents-conformance: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-genai-openai-agents/tests/test_conformance.py --vcr-record=none {posargs}\n \n   test-instrumentation-google-genai-{oldest,latest}: pytest --ignore={toxinidir}/instrumentation/opentelemetry-instrumentation-google-genai/tests/test_conformance.py {toxinidir}/instrumentation/opentelemetry-instrumentation-google-genai/tests --vcr-record=none {posargs}\n+  test-instrumentation-google-genai-v2: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/test_interactions_sync.py::TestInteractionsSync::test_streaming_request_exception_records_error {toxinidir}/instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/test_interactions_async.py::TestInteractionsAsync::test_streaming_request_exception_records_error --vcr-record=none {posargs}",
+      "id": "PRRT_kwDOSbspP86fCH3v",
+      "opened": "2026-09-03T18:35:35Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-09-03T19:08:27Z",
+          "body": "Done in 6494492f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/538#discussion_r3927809479"
+        }
+      ],
+      "reviewed": "2977eabb9f6ca0198a1cf4b01a941a9cbc24f5c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/538#discussion_r3927534458"
+    }
+  ]
+}

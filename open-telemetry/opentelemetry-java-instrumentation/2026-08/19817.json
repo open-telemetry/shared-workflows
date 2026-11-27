@@ -1,0 +1,251 @@
+{
+  "head": "6a5fc8b808924d9458900e6a0de4bda490e0351f",
+  "merge": "6d18c89b77f2ff3aa9e6861e8ae4cba721a53110",
+  "merged": "2026-08-27T14:39:11Z",
+  "missing_roots": 0,
+  "number": 19817,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This HTTP/1.1 fallback branch is not exercised: the new suite enables `useHttp2()`, while the existing HTTP/1.1 suite binds with HTTP/2 disabled. Because restoring the current context for HTTP/1.1 requests on an HTTP/2-enabled binding is the reported regression, add a test that sends an `h1c://` request to `PekkoHttpTestHttp2WebServer` and verifies the handler child span shares the server trace without creating a duplicate server span.",
+      "created": "2026-08-25T23:35:47Z",
+      "hunk": "@@ -0,0 +1,126 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.PekkoHttpServerSingletons.instrumenter;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route.PekkoRouteHolder;\n+import org.apache.pekko.http.impl.engine.http2.Http2$;\n+import org.apache.pekko.http.scaladsl.model.HttpRequest;\n+import org.apache.pekko.http.scaladsl.model.HttpResponse;\n+import scala.Function1;\n+import scala.concurrent.ExecutionContext;\n+import scala.concurrent.Future;\n+import scala.runtime.AbstractFunction1;\n+import scala.util.Success;\n+import scala.util.Try;\n+\n+/**\n+ * Wraps the handler function that is passed to {@code Http2Ext.bindAndHandleAsync}.\n+ *\n+ * <p>With http/1.1 requests and responses are matched by their order in the connection flow, see\n+ * {@link PekkoHttpServerTracer}. Http/2 multiplexes concurrent streams on a single connection, so\n+ * responses can arrive in any order. Wrapping the handler function pairs each request with the\n+ * future that completes with the response for that request.\n+ */\n+public final class PekkoHttpServerHandlerWrapper\n+    extends AbstractFunction1<HttpRequest, Future<HttpResponse>> {\n+\n+  private final Function1<HttpRequest, Future<HttpResponse>> handler;\n+  private final ExecutionContext executionContext;\n+\n+  private PekkoHttpServerHandlerWrapper(\n+      Function1<HttpRequest, Future<HttpResponse>> handler, ExecutionContext executionContext) {\n+    this.handler = handler;\n+    this.executionContext = executionContext;\n+  }\n+\n+  public static Function1<HttpRequest, Future<HttpResponse>> wrap(\n+      Function1<HttpRequest, Future<HttpResponse>> handler, ExecutionContext executionContext) {\n+    if (handler instanceof PekkoHttpServerHandlerWrapper) {\n+      return handler;\n+    }\n+    return new PekkoHttpServerHandlerWrapper(handler, executionContext);\n+  }\n+\n+  @Override\n+  public Future<HttpResponse> apply(HttpRequest request) {\n+    HttpRequest serverRequest = request;\n+    PekkoTracingRequest tracedRequest =\n+        serverRequest.getAttribute(PekkoTracingRequest.ATTR_KEY).orElse(null);\n+    if (tracedRequest != null) {\n+      // remove the attribute before the request is passed to user code\n+      serverRequest = (HttpRequest) serverRequest.removeAttribute(PekkoTracingRequest.ATTR_KEY);\n+      if (!isHttp2(serverRequest)) {",
+      "id": "PRRT_kwDODJKVX86cSTAT",
+      "opened": "2026-08-25T23:35:48Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerHandlerWrapper.java",
+      "replies": [
+        {
+          "at": "2026-08-26T00:05:19Z",
+          "body": "addressed in new commit",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3858573499"
+        }
+      ],
+      "reviewed": "720ffcdce362ab666924815d104376b368977f08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3858415941"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] A used `Throwable` catch variable must be named `t` under the repository's catch-variable convention; rename this variable and its uses.",
+      "created": "2026-08-25T23:35:48Z",
+      "hunk": "@@ -0,0 +1,126 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.PekkoHttpServerSingletons.instrumenter;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route.PekkoRouteHolder;\n+import org.apache.pekko.http.impl.engine.http2.Http2$;\n+import org.apache.pekko.http.scaladsl.model.HttpRequest;\n+import org.apache.pekko.http.scaladsl.model.HttpResponse;\n+import scala.Function1;\n+import scala.concurrent.ExecutionContext;\n+import scala.concurrent.Future;\n+import scala.runtime.AbstractFunction1;\n+import scala.util.Success;\n+import scala.util.Try;\n+\n+/**\n+ * Wraps the handler function that is passed to {@code Http2Ext.bindAndHandleAsync}.\n+ *\n+ * <p>With http/1.1 requests and responses are matched by their order in the connection flow, see\n+ * {@link PekkoHttpServerTracer}. Http/2 multiplexes concurrent streams on a single connection, so\n+ * responses can arrive in any order. Wrapping the handler function pairs each request with the\n+ * future that completes with the response for that request.\n+ */\n+public final class PekkoHttpServerHandlerWrapper\n+    extends AbstractFunction1<HttpRequest, Future<HttpResponse>> {\n+\n+  private final Function1<HttpRequest, Future<HttpResponse>> handler;\n+  private final ExecutionContext executionContext;\n+\n+  private PekkoHttpServerHandlerWrapper(\n+      Function1<HttpRequest, Future<HttpResponse>> handler, ExecutionContext executionContext) {\n+    this.handler = handler;\n+    this.executionContext = executionContext;\n+  }\n+\n+  public static Function1<HttpRequest, Future<HttpResponse>> wrap(\n+      Function1<HttpRequest, Future<HttpResponse>> handler, ExecutionContext executionContext) {\n+    if (handler instanceof PekkoHttpServerHandlerWrapper) {\n+      return handler;\n+    }\n+    return new PekkoHttpServerHandlerWrapper(handler, executionContext);\n+  }\n+\n+  @Override\n+  public Future<HttpResponse> apply(HttpRequest request) {\n+    HttpRequest serverRequest = request;\n+    PekkoTracingRequest tracedRequest =\n+        serverRequest.getAttribute(PekkoTracingRequest.ATTR_KEY).orElse(null);\n+    if (tracedRequest != null) {\n+      // remove the attribute before the request is passed to user code\n+      serverRequest = (HttpRequest) serverRequest.removeAttribute(PekkoTracingRequest.ATTR_KEY);\n+      if (!isHttp2(serverRequest)) {\n+        // request was received over http/1.1, its span is started and ended by\n+        // PekkoHttpServerTracer that is attached to the http/1.1 server blueprint, here we only\n+        // need to make the context available to user code\n+        try (Scope ignored = tracedRequest.context.makeCurrent()) {\n+          return handler.apply(serverRequest);\n+        }\n+      }\n+      // request was upgraded from http/1.1 to http/2, the span for the upgrade request has already\n+      // been ended with the \"101 Switching Protocols\" response, start a new span for the http/2\n+      // request\n+    }\n+\n+    Context parentContext = Context.current();\n+    if (!instrumenter().shouldStart(parentContext, serverRequest)) {\n+      return handler.apply(serverRequest);\n+    }\n+\n+    PekkoRouteHolder routeHolder = PekkoRouteHolder.create();\n+    Context context = instrumenter().start(parentContext, serverRequest).with(routeHolder);\n+    PekkoTracingRequest tracingRequest =\n+        new PekkoTracingRequest(context, serverRequest, routeHolder);\n+    HttpRequest applicationRequest =\n+        (HttpRequest) serverRequest.addAttribute(PekkoRouteHolder.ATTRIBUTE_KEY, routeHolder);\n+\n+    Future<HttpResponse> responseFuture;\n+    try (Scope ignored = context.makeCurrent()) {\n+      responseFuture = handler.apply(applicationRequest);\n+    } catch (Throwable throwable) {\n+      PekkoHttpServerSingletons.endSpanWithError(tracingRequest, throwable);\n+      // rethrowing without any wrapping to avoid any change to the underlying application behavior\n+      throw sneakyThrow(throwable);",
+      "id": "PRRT_kwDODJKVX86cSTA3",
+      "opened": "2026-08-25T23:35:48Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerHandlerWrapper.java",
+      "replies": [
+        {
+          "at": "2026-08-26T00:04:50Z",
+          "body": "addressed in new commit",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3858571417"
+        }
+      ],
+      "reviewed": "720ffcdce362ab666924815d104376b368977f08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3858415997"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Javaagent implementation classes should not be declared `final`; remove this modifier per the repository's Java style rule for `javaagent/src/main`.",
+      "created": "2026-08-25T23:35:48Z",
+      "hunk": "@@ -0,0 +1,126 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.PekkoHttpServerSingletons.instrumenter;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route.PekkoRouteHolder;\n+import org.apache.pekko.http.impl.engine.http2.Http2$;\n+import org.apache.pekko.http.scaladsl.model.HttpRequest;\n+import org.apache.pekko.http.scaladsl.model.HttpResponse;\n+import scala.Function1;\n+import scala.concurrent.ExecutionContext;\n+import scala.concurrent.Future;\n+import scala.runtime.AbstractFunction1;\n+import scala.util.Success;\n+import scala.util.Try;\n+\n+/**\n+ * Wraps the handler function that is passed to {@code Http2Ext.bindAndHandleAsync}.\n+ *\n+ * <p>With http/1.1 requests and responses are matched by their order in the connection flow, see\n+ * {@link PekkoHttpServerTracer}. Http/2 multiplexes concurrent streams on a single connection, so\n+ * responses can arrive in any order. Wrapping the handler function pairs each request with the\n+ * future that completes with the response for that request.\n+ */\n+public final class PekkoHttpServerHandlerWrapper",
+      "id": "PRRT_kwDODJKVX86cSTAp",
+      "opened": "2026-08-25T23:35:48Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerHandlerWrapper.java",
+      "replies": [
+        {
+          "at": "2026-08-26T00:04:59Z",
+          "body": "addressed in new commit",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3858572095"
+        }
+      ],
+      "reviewed": "720ffcdce362ab666924815d104376b368977f08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3858415972"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new `h2c://` suite exercises prior-knowledge HTTP/2, so it never enters this upgrade-replay branch. Add an actual HTTP/1.1-to-h2c upgrade test that verifies the replayed request gets one new span rather than reusing or duplicating the completed upgrade-request span.",
+      "created": "2026-08-25T23:35:48Z",
+      "hunk": "@@ -0,0 +1,126 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.PekkoHttpServerSingletons.instrumenter;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route.PekkoRouteHolder;\n+import org.apache.pekko.http.impl.engine.http2.Http2$;\n+import org.apache.pekko.http.scaladsl.model.HttpRequest;\n+import org.apache.pekko.http.scaladsl.model.HttpResponse;\n+import scala.Function1;\n+import scala.concurrent.ExecutionContext;\n+import scala.concurrent.Future;\n+import scala.runtime.AbstractFunction1;\n+import scala.util.Success;\n+import scala.util.Try;\n+\n+/**\n+ * Wraps the handler function that is passed to {@code Http2Ext.bindAndHandleAsync}.\n+ *\n+ * <p>With http/1.1 requests and responses are matched by their order in the connection flow, see\n+ * {@link PekkoHttpServerTracer}. Http/2 multiplexes concurrent streams on a single connection, so\n+ * responses can arrive in any order. Wrapping the handler function pairs each request with the\n+ * future that completes with the response for that request.\n+ */\n+public final class PekkoHttpServerHandlerWrapper\n+    extends AbstractFunction1<HttpRequest, Future<HttpResponse>> {\n+\n+  private final Function1<HttpRequest, Future<HttpResponse>> handler;\n+  private final ExecutionContext executionContext;\n+\n+  private PekkoHttpServerHandlerWrapper(\n+      Function1<HttpRequest, Future<HttpResponse>> handler, ExecutionContext executionContext) {\n+    this.handler = handler;\n+    this.executionContext = executionContext;\n+  }\n+\n+  public static Function1<HttpRequest, Future<HttpResponse>> wrap(\n+      Function1<HttpRequest, Future<HttpResponse>> handler, ExecutionContext executionContext) {\n+    if (handler instanceof PekkoHttpServerHandlerWrapper) {\n+      return handler;\n+    }\n+    return new PekkoHttpServerHandlerWrapper(handler, executionContext);\n+  }\n+\n+  @Override\n+  public Future<HttpResponse> apply(HttpRequest request) {\n+    HttpRequest serverRequest = request;\n+    PekkoTracingRequest tracedRequest =\n+        serverRequest.getAttribute(PekkoTracingRequest.ATTR_KEY).orElse(null);\n+    if (tracedRequest != null) {\n+      // remove the attribute before the request is passed to user code\n+      serverRequest = (HttpRequest) serverRequest.removeAttribute(PekkoTracingRequest.ATTR_KEY);\n+      if (!isHttp2(serverRequest)) {\n+        // request was received over http/1.1, its span is started and ended by\n+        // PekkoHttpServerTracer that is attached to the http/1.1 server blueprint, here we only\n+        // need to make the context available to user code\n+        try (Scope ignored = tracedRequest.context.makeCurrent()) {\n+          return handler.apply(serverRequest);\n+        }\n+      }\n+      // request was upgraded from http/1.1 to http/2, the span for the upgrade request has already\n+      // been ended with the \"101 Switching Protocols\" response, start a new span for the http/2\n+      // request",
+      "id": "PRRT_kwDODJKVX86cSTBO",
+      "opened": "2026-08-25T23:35:48Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerHandlerWrapper.java",
+      "replies": [
+        {
+          "at": "2026-08-26T00:04:42Z",
+          "body": "addressed in new commit",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3858570803"
+        }
+      ],
+      "reviewed": "720ffcdce362ab666924815d104376b368977f08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3858416029"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Static factory entry points belong immediately above constructors. Move `wrap` above the private constructor so construction-related members follow the repository's class-organization rule.",
+      "created": "2026-08-25T23:35:48Z",
+      "hunk": "@@ -0,0 +1,126 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.PekkoHttpServerSingletons.instrumenter;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route.PekkoRouteHolder;\n+import org.apache.pekko.http.impl.engine.http2.Http2$;\n+import org.apache.pekko.http.scaladsl.model.HttpRequest;\n+import org.apache.pekko.http.scaladsl.model.HttpResponse;\n+import scala.Function1;\n+import scala.concurrent.ExecutionContext;\n+import scala.concurrent.Future;\n+import scala.runtime.AbstractFunction1;\n+import scala.util.Success;\n+import scala.util.Try;\n+\n+/**\n+ * Wraps the handler function that is passed to {@code Http2Ext.bindAndHandleAsync}.\n+ *\n+ * <p>With http/1.1 requests and responses are matched by their order in the connection flow, see\n+ * {@link PekkoHttpServerTracer}. Http/2 multiplexes concurrent streams on a single connection, so\n+ * responses can arrive in any order. Wrapping the handler function pairs each request with the\n+ * future that completes with the response for that request.\n+ */\n+public final class PekkoHttpServerHandlerWrapper\n+    extends AbstractFunction1<HttpRequest, Future<HttpResponse>> {\n+\n+  private final Function1<HttpRequest, Future<HttpResponse>> handler;\n+  private final ExecutionContext executionContext;\n+\n+  private PekkoHttpServerHandlerWrapper(\n+      Function1<HttpRequest, Future<HttpResponse>> handler, ExecutionContext executionContext) {\n+    this.handler = handler;\n+    this.executionContext = executionContext;\n+  }\n+\n+  public static Function1<HttpRequest, Future<HttpResponse>> wrap(\n+      Function1<HttpRequest, Future<HttpResponse>> handler, ExecutionContext executionContext) {\n+    if (handler instanceof PekkoHttpServerHandlerWrapper) {\n+      return handler;\n+    }\n+    return new PekkoHttpServerHandlerWrapper(handler, executionContext);\n+  }",
+      "id": "PRRT_kwDODJKVX86cSTBg",
+      "opened": "2026-08-25T23:35:48Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerHandlerWrapper.java",
+      "replies": [
+        {
+          "at": "2026-08-26T00:04:31Z",
+          "body": "addressed in new commit",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3858570062"
+        }
+      ],
+      "reviewed": "720ffcdce362ab666924815d104376b368977f08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3858416059"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Using an explicit `h2c://` URI prevents this test from exercising HTTP/1.1 upgrade: Armeria always uses the HTTP/2 connection preface when the selected session protocol is H2C, regardless of `useHttp2Preface(false)`. The request therefore still takes the prior-knowledge path and leaves the upgrade-replay branch untested. Use an `http://` URI while retaining `useHttp2Preface(false)` so upgrade is attempted first.",
+      "created": "2026-08-26T00:25:27Z",
+      "hunk": "@@ -0,0 +1,162 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0\n+\n+import io.opentelemetry.api.trace.SpanKind\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension\n+import io.opentelemetry.instrumentation.testing.junit.http.{\n+  HttpServerInstrumentationExtension,\n+  HttpServerTestOptions,\n+  ServerEndpoint\n+}\n+import io.opentelemetry.sdk.testing.assertj.{\n+  OpenTelemetryAssertions,\n+  SpanDataAssert,\n+  TraceAssert\n+}\n+import io.opentelemetry.sdk.trace.data.{SpanData, StatusData}\n+import io.opentelemetry.semconv.NetworkAttributes.NETWORK_PROTOCOL_VERSION\n+import io.opentelemetry.testing.internal.armeria.client.{\n+  ClientFactory,\n+  WebClient\n+}\n+import io.opentelemetry.testing.internal.armeria.common.{\n+  AggregatedHttpRequest,\n+  HttpMethod\n+}\n+import org.assertj.core.api.Assertions.assertThat\n+import org.junit.jupiter.api.Test\n+import org.junit.jupiter.api.extension.RegisterExtension\n+\n+import java.util.function.Consumer\n+import scala.util.Try\n+\n+class PekkoHttpServerInstrumentationTestHttp2\n+    extends AbstractHttpServerInstrumentationTest {\n+\n+  @RegisterExtension val extension: InstrumentationExtension =\n+    HttpServerInstrumentationExtension.forAgent()\n+\n+  override protected def setupServer(): AnyRef = {\n+    PekkoHttpTestHttp2WebServer.start(port)\n+    null\n+  }\n+\n+  override protected def stopServer(server: Object): Unit =\n+    PekkoHttpTestHttp2WebServer.stop()\n+\n+  override protected def protocolPrefix: String = \"h2c://\"\n+\n+  override protected def configure(\n+      options: HttpServerTestOptions\n+  ): Unit = {\n+    super.configure(options)\n+    options.setTestHttpPipelining(false)\n+    options.useHttp2()\n+    // pekko-http tears down the http/2 connection when the handler future fails instead of\n+    // responding with 500, see testException for the span that is produced\n+    options.setTestException(false)\n+  }\n+\n+  @Test def testException(): Unit = {\n+    val request = AggregatedHttpRequest.of(\n+      HttpMethod.GET,\n+      resolveAddress(ServerEndpoint.EXCEPTION, protocolPrefix)\n+    )\n+    // the connection is torn down without a response, we only care about the emitted span\n+    Try(client.execute(request).aggregate.join)\n+\n+    testing.waitAndAssertTraces(new Consumer[TraceAssert] {\n+      override def accept(trace: TraceAssert): Unit = {\n+        trace.anySatisfy(new Consumer[SpanData] {\n+          override def accept(span: SpanData): Unit =\n+            OpenTelemetryAssertions\n+              .assertThat(span)\n+              .hasKind(SpanKind.SERVER)\n+              .hasStatus(StatusData.error())\n+              .hasException(\n+                new IllegalStateException(ServerEndpoint.EXCEPTION.getBody)\n+              )\n+        })\n+      }\n+    })\n+  }\n+\n+  // an http/2 enabled binding serves http/1.1 connections as well, those requests are traced by\n+  // PekkoHttpServerTracer and the handler wrapper only makes the context available to user code\n+  @Test def testHttp1Request(): Unit = {\n+    val request = AggregatedHttpRequest.of(\n+      HttpMethod.GET,\n+      resolveAddress(ServerEndpoint.SUCCESS, \"h1c://\")\n+    )\n+    val response = client.execute(request).aggregate.join\n+    assertThat(response.status.code).isEqualTo(ServerEndpoint.SUCCESS.getStatus)\n+\n+    testing.waitAndAssertTraces(new Consumer[TraceAssert] {\n+      override def accept(trace: TraceAssert): Unit = {\n+        trace.hasSpansSatisfyingExactly(\n+          serverSpan(\"1.1\"),\n+          controllerSpan(trace)\n+        )\n+        ()\n+      }\n+    })\n+  }\n+\n+  // the client negotiates an upgrade from http/1.1 to h2c instead of using the http/2 preface,\n+  // the request that is served over the upgraded connection must produce exactly one server span\n+  @Test def testHttp2Upgrade(): Unit = {\n+    val factory = ClientFactory.builder().useHttp2Preface(false).build()\n+    val response =\n+      try {\n+        WebClient\n+          .builder(s\"h2c://localhost:$port\")",
+      "id": "PRRT_kwDODJKVX86cS59k",
+      "opened": "2026-08-26T00:25:28Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerInstrumentationTestHttp2.scala",
+      "replies": [
+        {
+          "at": "2026-08-26T14:58:57Z",
+          "body": "You are right, and thanks, this was a real gap. Armeria uses the preface when the uri names h2c, so the test took the prior knowledge path and the branch stayed untested. Switching to an `http://` uri while keeping `useHttp2Preface(false)` makes it negotiate, and a debug print in the wrapper confirms the branch is now reached:\n\n```\nhandler path= protocol=HTTP/1.1 tracedAttr=true streamId=true upgrade=true\n```\n\nThat is the replayed request: parsed by the http/1.1 engine, so it carries the attribute that `PekkoHttpServerTracer` attached, and replayed through the http/2 stack, so it also has the stream id.\n\nTwo things fell out of making it upgrade for real:\n\nArmeria upgrades with an `OPTIONS *` request, and the handler that the other tests share only answers `GET`, so the replay hit a `MatchError` that killed the connection. The http/2 test server now answers anything that is not a `GET` with 404.\n\nThe upgrade produces three traces, not the two I expected: the http/1.1 exchange ending with 101, the replayed request with a span of its own, and the request over the upgraded connection with its controller child. The test asserts all three.\n\nI also checked that the test fails without the branch: with `isHttp2` forced to false, `testHttp2Upgrade` fails, and it passes with the branch in place, so the coverage is real rather than incidental. That also corrects something I wrote earlier in this PR: the 101 response does get a span, my note that it did not came from the `h2c://` version of the test, where no upgrade ever happened.\n\nPushed in 71c45e9557.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3864071970"
+        }
+      ],
+      "reviewed": "b5b3849e2e9996865476d06962cbcc928e47eaf4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3858657261"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "since java 7 you can just use `throw t` to retrhow the checked exception without declaring it",
+      "created": "2026-08-27T08:19:46Z",
+      "hunk": "@@ -0,0 +1,126 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.PekkoHttpServerSingletons.instrumenter;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server.route.PekkoRouteHolder;\n+import org.apache.pekko.http.impl.engine.http2.Http2$;\n+import org.apache.pekko.http.scaladsl.model.HttpRequest;\n+import org.apache.pekko.http.scaladsl.model.HttpResponse;\n+import scala.Function1;\n+import scala.concurrent.ExecutionContext;\n+import scala.concurrent.Future;\n+import scala.runtime.AbstractFunction1;\n+import scala.util.Success;\n+import scala.util.Try;\n+\n+/**\n+ * Wraps the handler function that is passed to {@code Http2Ext.bindAndHandleAsync}.\n+ *\n+ * <p>With http/1.1 requests and responses are matched by their order in the connection flow, see\n+ * {@link PekkoHttpServerTracer}. Http/2 multiplexes concurrent streams on a single connection, so\n+ * responses can arrive in any order. Wrapping the handler function pairs each request with the\n+ * future that completes with the response for that request.\n+ */\n+public class PekkoHttpServerHandlerWrapper\n+    extends AbstractFunction1<HttpRequest, Future<HttpResponse>> {\n+\n+  private final Function1<HttpRequest, Future<HttpResponse>> handler;\n+  private final ExecutionContext executionContext;\n+\n+  public static Function1<HttpRequest, Future<HttpResponse>> wrap(\n+      Function1<HttpRequest, Future<HttpResponse>> handler, ExecutionContext executionContext) {\n+    if (handler instanceof PekkoHttpServerHandlerWrapper) {\n+      return handler;\n+    }\n+    return new PekkoHttpServerHandlerWrapper(handler, executionContext);\n+  }\n+\n+  private PekkoHttpServerHandlerWrapper(\n+      Function1<HttpRequest, Future<HttpResponse>> handler, ExecutionContext executionContext) {\n+    this.handler = handler;\n+    this.executionContext = executionContext;\n+  }\n+\n+  @Override\n+  public Future<HttpResponse> apply(HttpRequest request) {\n+    HttpRequest serverRequest = request;\n+    PekkoTracingRequest tracedRequest =\n+        serverRequest.getAttribute(PekkoTracingRequest.ATTR_KEY).orElse(null);\n+    if (tracedRequest != null) {\n+      // remove the attribute before the request is passed to user code\n+      serverRequest = (HttpRequest) serverRequest.removeAttribute(PekkoTracingRequest.ATTR_KEY);\n+      if (!isHttp2(serverRequest)) {\n+        // request was received over http/1.1, its span is started and ended by\n+        // PekkoHttpServerTracer that is attached to the http/1.1 server blueprint, here we only\n+        // need to make the context available to user code\n+        try (Scope ignored = tracedRequest.context.makeCurrent()) {\n+          return handler.apply(serverRequest);\n+        }\n+      }\n+      // request was upgraded from http/1.1 to http/2 and replayed through the http/2 stack, the\n+      // span that PekkoHttpServerTracer started for it was ended with the \"101 Switching\n+      // Protocols\" response, so the replayed request needs a span of its own\n+    }\n+\n+    Context parentContext = Context.current();\n+    if (!instrumenter().shouldStart(parentContext, serverRequest)) {\n+      return handler.apply(serverRequest);\n+    }\n+\n+    PekkoRouteHolder routeHolder = PekkoRouteHolder.create();\n+    Context context = instrumenter().start(parentContext, serverRequest).with(routeHolder);\n+    PekkoTracingRequest tracingRequest =\n+        new PekkoTracingRequest(context, serverRequest, routeHolder);\n+    HttpRequest applicationRequest =\n+        (HttpRequest) serverRequest.addAttribute(PekkoRouteHolder.ATTRIBUTE_KEY, routeHolder);\n+\n+    Future<HttpResponse> responseFuture;\n+    try (Scope ignored = context.makeCurrent()) {\n+      responseFuture = handler.apply(applicationRequest);\n+    } catch (Throwable t) {\n+      PekkoHttpServerSingletons.endSpanWithError(tracingRequest, t);\n+      // rethrowing without any wrapping to avoid any change to the underlying application behavior\n+      throw sneakyThrow(t);",
+      "id": "PRRT_kwDODJKVX86cvnLg",
+      "opened": "2026-08-27T08:19:46Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerHandlerWrapper.java",
+      "replies": [
+        {
+          "at": "2026-08-27T08:31:28Z",
+          "body": "thanks @laurit - fixed\r\n\r\nI am investigating the CI issue, there may be an issue in one of the new tests in this PR, possibly flaky",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3870037776"
+        },
+        {
+          "at": "2026-08-27T08:50:00Z",
+          "body": "> I am investigating the CI issue, there may be an issue in one of the new tests in this PR, possibly flaky\r\n\r\nLooks like the scala3 suite added in another PR is failing for some reason",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3870164834"
+        },
+        {
+          "at": "2026-08-27T09:01:26Z",
+          "body": "If you want to revert the scala3 test change, that's ok with me. I have a Claude Agent investigating the issue but if the flakiness in the tests is blocking other merges, it might be worth considering a revert. I can get back to you in the next hour or so to say if I have a fix for it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3870259566"
+        }
+      ],
+      "reviewed": "06eaf18977d8e7c10b34612a5d27f07cfaf7ca52",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3869956605"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether updating the route or customizing the response would make sense for errors too. Since it wasn't done before it is fine as it is.",
+      "created": "2026-08-27T08:23:20Z",
+      "hunk": "@@ -27,6 +34,38 @@ public static Instrumenter<HttpRequest, HttpResponse> instrumenter() {\n     return instrumenter;\n   }\n \n+  /**\n+   * Ends the span for the given request. Returns the response with the headers added by the\n+   * response customizer, pekko responses are immutable so a new response is built when the\n+   * customizer adds headers.\n+   */\n+  static HttpResponse endSpan(PekkoTracingRequest tracingRequest, HttpResponse response) {\n+    // pekko response is immutable so the customizer just captures the added headers\n+    PekkoHttpResponseMutator responseMutator = new PekkoHttpResponseMutator();\n+    HttpServerResponseCustomizerHolder.getCustomizer()\n+        .customize(tracingRequest.context, response, responseMutator);\n+    // build a new response with the added headers\n+    List<HttpHeader> headers = responseMutator.getHeaders();\n+    if (!headers.isEmpty()) {\n+      response = (HttpResponse) response.addHeaders(headers);\n+    }\n+\n+    PekkoRouteHolder routeHolder =\n+        response\n+            .getAttribute(PekkoRouteHolder.ATTRIBUTE_KEY)\n+            .orElse(tracingRequest.initialRouteHolder);\n+    HttpServerRoute.update(\n+        tracingRequest.context, HttpServerRouteSource.CONTROLLER, routeHolder.route());\n+    instrumenter().end(tracingRequest.context, tracingRequest.request, response, null);\n+\n+    return response;\n+  }\n+\n+  /** Ends the span for a request that failed with the given error. */\n+  static void endSpanWithError(PekkoTracingRequest tracingRequest, @Nullable Throwable error) {\n+    instrumenter().end(tracingRequest.context, tracingRequest.request, errorResponse(), error);",
+      "id": "PRRT_kwDODJKVX86cvrPy",
+      "opened": "2026-08-27T08:23:20Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpServerSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-27T08:38:34Z",
+          "body": "I can look at this as a follow up to this PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3870085981"
+        }
+      ],
+      "reviewed": "06eaf18977d8e7c10b34612a5d27f07cfaf7ca52",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3869981271"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is this comment needed?",
+      "created": "2026-08-27T08:29:18Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0\n+\n+import io.opentelemetry.instrumentation.testing.junit.http.{\n+  AbstractHttpServerTest,\n+  ServerEndpoint\n+}\n+import io.opentelemetry.instrumentation.testing.junit.http.ServerEndpoint._\n+import io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.AbstractHttpServerInstrumentationTest.TIMEOUT\n+import org.apache.pekko.http.scaladsl.model.HttpMethods.GET\n+import org.apache.pekko.http.scaladsl.model._\n+\n+import scala.concurrent.{ExecutionContext, Future}\n+\n+object PekkoHttpTestAsyncHandler {\n+\n+  def asyncHandler(implicit\n+      executionContext: ExecutionContext\n+  ): HttpRequest => Future[HttpResponse] = {\n+    case HttpRequest(GET, uri: Uri, _, _, _) =>\n+      Future {\n+        val endpoint = ServerEndpoint.forPath(uri.path.toString())\n+        AbstractHttpServerTest.controller(\n+          endpoint,\n+          () => {\n+            val resp = HttpResponse(status =\n+              endpoint.getStatus\n+            ) // .withHeaders(headers.Type)resp.contentType = \"text/plain\"",
+      "id": "PRRT_kwDODJKVX86cvx8Q",
+      "opened": "2026-08-27T08:29:17Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpTestAsyncHandler.scala",
+      "replies": [
+        {
+          "at": "2026-08-27T08:37:41Z",
+          "body": "fixed in feb7f37b5e",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3870079822"
+        }
+      ],
+      "reviewed": "06eaf18977d8e7c10b34612a5d27f07cfaf7ca52",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3870022043"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "not really for this PR, but I think it could be useful to have this test in the `AbstractHttpServerInstrumentationTest`",
+      "created": "2026-08-27T08:32:08Z",
+      "hunk": "@@ -0,0 +1,198 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0\n+\n+import io.opentelemetry.api.trace.SpanKind\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension\n+import io.opentelemetry.instrumentation.testing.junit.http.{\n+  HttpServerInstrumentationExtension,\n+  HttpServerTestOptions,\n+  ServerEndpoint\n+}\n+import io.opentelemetry.sdk.testing.assertj.{\n+  OpenTelemetryAssertions,\n+  SpanDataAssert,\n+  TraceAssert\n+}\n+import io.opentelemetry.sdk.trace.data.{SpanData, StatusData}\n+import io.opentelemetry.semconv.HttpAttributes\n+import io.opentelemetry.semconv.NetworkAttributes.NETWORK_PROTOCOL_VERSION\n+import io.opentelemetry.testing.internal.armeria.client.{\n+  ClientFactory,\n+  WebClient\n+}\n+import io.opentelemetry.testing.internal.armeria.common.{\n+  AggregatedHttpRequest,\n+  HttpMethod\n+}\n+import org.assertj.core.api.Assertions.assertThat\n+import org.junit.jupiter.api.Test\n+import org.junit.jupiter.api.extension.RegisterExtension\n+\n+import java.util.function.Consumer\n+import scala.util.Try\n+\n+class PekkoHttpServerInstrumentationTestHttp2\n+    extends AbstractHttpServerInstrumentationTest {\n+\n+  @RegisterExtension val extension: InstrumentationExtension =\n+    HttpServerInstrumentationExtension.forAgent()\n+\n+  override protected def setupServer(): AnyRef = {\n+    PekkoHttpTestHttp2WebServer.start(port)\n+    null\n+  }\n+\n+  override protected def stopServer(server: Object): Unit =\n+    PekkoHttpTestHttp2WebServer.stop()\n+\n+  override protected def protocolPrefix: String = \"h2c://\"\n+\n+  override protected def configure(\n+      options: HttpServerTestOptions\n+  ): Unit = {\n+    super.configure(options)\n+    options.setTestHttpPipelining(false)\n+    options.useHttp2()\n+    // pekko-http tears down the http/2 connection when the handler future fails instead of\n+    // responding with 500, see testException for the span that is produced\n+    options.setTestException(false)\n+  }\n+\n+  @Test def testException(): Unit = {\n+    val request = AggregatedHttpRequest.of(\n+      HttpMethod.GET,\n+      resolveAddress(ServerEndpoint.EXCEPTION, protocolPrefix)\n+    )\n+    // the connection is torn down without a response, we only care about the emitted span\n+    Try(client.execute(request).aggregate.join)\n+\n+    testing.waitAndAssertTraces(new Consumer[TraceAssert] {\n+      override def accept(trace: TraceAssert): Unit = {\n+        trace.anySatisfy(new Consumer[SpanData] {\n+          override def accept(span: SpanData): Unit =\n+            OpenTelemetryAssertions\n+              .assertThat(span)\n+              .hasKind(SpanKind.SERVER)\n+              .hasStatus(StatusData.error())\n+              .hasException(\n+                new IllegalStateException(ServerEndpoint.EXCEPTION.getBody)\n+              )\n+        })\n+      }\n+    })\n+  }\n+\n+  // an http/2 enabled binding serves http/1.1 connections as well, those requests are traced by\n+  // PekkoHttpServerTracer and the handler wrapper only makes the context available to user code\n+  @Test def testHttp1Request(): Unit = {\n+    val request = AggregatedHttpRequest.of(\n+      HttpMethod.GET,\n+      resolveAddress(ServerEndpoint.SUCCESS, \"h1c://\")\n+    )\n+    val response = client.execute(request).aggregate.join\n+    assertThat(response.status.code).isEqualTo(ServerEndpoint.SUCCESS.getStatus)\n+\n+    testing.waitAndAssertTraces(new Consumer[TraceAssert] {\n+      override def accept(trace: TraceAssert): Unit = {\n+        trace.hasSpansSatisfyingExactly(\n+          serverSpan(\"1.1\"),\n+          controllerSpan(trace)\n+        )\n+        ()\n+      }\n+    })\n+  }\n+\n+  // the client negotiates an upgrade from http/1.1 to h2c rather than using the http/2 preface.\n+  // pekko replays the request that was upgraded with through the http/2 stack, so it arrives with\n+  // the attribute that PekkoHttpServerTracer attached to it while it was still an http/1.1\n+  // request, and has to be given a span of its own\n+  @Test def testHttp2Upgrade(): Unit = {",
+      "id": "PRRT_kwDODJKVX86cv1O2",
+      "opened": "2026-08-27T08:32:08Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerInstrumentationTestHttp2.scala",
+      "replies": [
+        {
+          "at": "2026-08-27T08:36:18Z",
+          "body": "I can have a look at this as a follow up to this PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3870070587"
+        }
+      ],
+      "reviewed": "06eaf18977d8e7c10b34612a5d27f07cfaf7ca52",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3870042022"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think it would be better to move this under pekko-actor instrumentation ",
+      "created": "2026-08-27T12:26:12Z",
+      "hunk": "@@ -0,0 +1,94 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasSuperType;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.bootstrap.executors.ExecutorAdviceHelper;\n+import io.opentelemetry.javaagent.bootstrap.executors.PropagatedContext;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * A pekko dispatcher batches the tasks that scala marks as {@code Batchable}, which since scala\n+ * 2.13 includes the one that runs the body of a {@code Future}. A batched task is appended to a\n+ * batch that is already running on the current thread and is run when that batch is drained,\n+ * without being submitted to the underlying pool. The context that the executor instrumentation\n+ * captures when the batch itself is submitted is therefore the only context such a task can get,\n+ * and a task that is added to a batch that started before the current context became current runs\n+ * without it.\n+ *\n+ * <p>Attaching the current context to the task when it is handed to the dispatcher gives it a\n+ * context of its own, which the runnable instrumentation makes current while it runs.\n+ */\n+class BatchingExecutorInstrumentation implements TypeInstrumentation {",
+      "id": "PRRT_kwDODJKVX86c0A34",
+      "opened": "2026-08-27T12:26:12Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/BatchingExecutorInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-27T12:52:52Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3871866327"
+        }
+      ],
+      "reviewed": "20127fd04708a2dfe72e3a03975baf22627e0caf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19817#discussion_r3871666663"
+    }
+  ]
+}

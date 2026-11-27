@@ -1,0 +1,31 @@
+{
+  "head": "d7e49b8a1dfbc3432e4ac4f2ba72dd5d699275dc",
+  "merge": "24cdda01560f0ce547a4a394d6ec9e6ac5e17bcf",
+  "merged": "2026-06-04T14:23:58Z",
+  "missing_roots": 0,
+  "number": 235,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The schedule comment is slightly misleading/ambiguous: with `0-3` the window is 00:00–03:59 (not through 04:59), and because a timezone is configured the intended timezone should be stated in the comment to avoid confusion when reading logs/UI that default to UTC.",
+      "created": "2026-06-02T19:21:36Z",
+      "hunk": "@@ -50,8 +50,9 @@\n         \".github/**\"\n       ],\n       \"schedule\": [\n-        \"* * 2 * *\"\n-      ]\n+        \"* 0-3 2 * *\" // 2nd of the month, midnight–4am",
+      "id": "PRRT_kwDOSUeMrM6GiovM",
+      "opened": "2026-06-02T19:21:36Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-06-02T19:27:16Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/235/commits/d7e49b8a1dfbc3432e4ac4f2ba72dd5d699275dc",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/235#discussion_r3343868076"
+        }
+      ],
+      "reviewed": "0bfa6d3be1c9562d2c2f5f657e22b746696ea11d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/235#discussion_r3343836426"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "200b0b43cb0e98c1d5c8b9b4db529066dc399e4a780ba33ec54745448426a081",
+  "input_digest": "e3e3da3854f2a0c67e00c5a8512d2f9a029e2384bd19b12844251979a5f3594c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7fb33b681d1318b709eec0b5c6333b9359dde182/tools/database/runner/src/database_conformance/_mongodb.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3b7cded48fd51cd6638db62adcf89ba300dd683b/tools/database/runner/src/database_conformance/_mongodb.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6wG61-",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/bb22c8bb75b0c1ab9e50722d5ec66e5801e7d6e9/scenarios/database/contracts/mongodb.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/bb22c8bb75b0c1ab9e50722d5ec66e5801e7d6e9/scenarios/database/contracts/mongodb-reactive.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3b7cded48fd51cd6638db62adcf89ba300dd683b/scenarios/database/contracts/mongodb.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3b7cded48fd51cd6638db62adcf89ba300dd683b/scenarios/database/contracts/mongodb-reactive.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3b7cded48fd51cd6638db62adcf89ba300dd683b/scenarios/database/java/mongodb/reactive/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/2661c5d9bae2bdd95e02dcb3bc666acb68c8bd92"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zAEsT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/bb22c8bb75b0c1ab9e50722d5ec66e5801e7d6e9/scenarios/database/contracts/mongodb.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3b7cded48fd51cd6638db62adcf89ba300dd683b/scenarios/database/contracts/mongodb.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3b7cded48fd51cd6638db62adcf89ba300dd683b/scenarios/database/java/shared/mongodb/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zAEsV",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/bb22c8bb75b0c1ab9e50722d5ec66e5801e7d6e9/scenarios/database/java/shared/mongodb/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3b7cded48fd51cd6638db62adcf89ba300dd683b/scenarios/database/java/shared/mongodb/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/bb22c8bb75b0c1ab9e50722d5ec66e5801e7d6e9/tools/database/runner/tests/test_mongodb_contracts.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3b7cded48fd51cd6638db62adcf89ba300dd683b/tools/database/runner/tests/test_mongodb_contracts.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/46109cba92705bcec9295ddf6140119fd6a26dfa"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zAEsX",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/bb22c8bb75b0c1ab9e50722d5ec66e5801e7d6e9/scenarios/database/java/mongodb/sync/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3b7cded48fd51cd6638db62adcf89ba300dd683b/scenarios/database/java/mongodb/sync/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/6b4c855de8d3b21f1d8ec9a2fc8640023cec95fa"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zAEsb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

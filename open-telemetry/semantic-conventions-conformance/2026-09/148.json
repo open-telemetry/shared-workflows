@@ -1,0 +1,190 @@
+{
+  "head": "f6681d103cb78bef91ff14f2b4ba2b4af5cf4b2a",
+  "merge": "fd55ffc62b12acc1a7d7afbc04660914565b13bc",
+  "merged": "2026-09-02T00:59:31Z",
+  "missing_roots": 0,
+  "number": 148,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This cohort does not constrain the span kind, so a SERVER or INTERNAL span carrying the same HTTP attributes can satisfy the client contract. The HTTP classifier only omits such a span from client coverage; it does not make this exact expectation fail. Require `CLIENT` here and in every cohort so the shared oracle actually validates client spans.\n\nThis issue also appears in the following locations of the same file:\n- line 15\n- line 23\n- line 31",
+      "created": "2026-08-30T02:06:53Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:\n+  client:\n+    spans:\n+      - match:\n+          attributes:",
+      "id": "PRRT_kwDOTuzK5c6deGbL",
+      "opened": "2026-08-30T02:06:53Z",
+      "path": "tools/http/test-client/client-telemetry.yaml",
+      "replies": [
+        {
+          "at": "2026-08-30T03:09:49Z",
+          "body": "Addressed in 4cbcddef14fbf837ac0382d8cc1165f6ea09bb16.\n\nAnalysis: Each shared HTTP cohort selected spans only by method and response status. Adding `kind: CLIENT` to every match makes the expectations reject server and internal spans with the same attributes.\n\nUpsides: The shared contract now checks the intended span type for every response cohort and cannot pass against unrelated spans.\n\nDownsides: The contract now rejects telemetry that omits or misreports the client span kind. That stricter result is intended.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3888328356"
+        }
+      ],
+      "reviewed": "8ff3b828a07cd41842b2b1592809fe404b019f97",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3888227583"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we make it part of https://github.com/open-telemetry/semantic-conventions-conformance/blob/main/tools/http/test-client/contract.json ? \n\nwe can construct yaml expectations from it. We can keep the expectations part generic and scenarios part arbitrary (domain-specific).\n\ntotally fine as a follow up, but would we great to add a comment saying where the requests we're asserting come from",
+      "created": "2026-08-30T16:17:06Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:",
+      "id": "PRRT_kwDOTuzK5c6diWuS",
+      "opened": "2026-08-30T16:55:17Z",
+      "path": "tools/http/test-client/client-telemetry.yaml",
+      "replies": [],
+      "reviewed": "6fba41c5df36ce599fad440064d8a098522e9d75",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3889876182"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we add metrics? (there will be some failures)",
+      "created": "2026-08-30T16:54:49Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:\n+  client:\n+    spans:\n+      - match:\n+          kind: CLIENT\n+          attributes:\n+            http.request.method: GET\n+            http.response.status_code: 200\n+        expect:\n+          count: 2\n+          attributes:\n+            url.full: {present: true}\n+      - match:\n+          kind: CLIENT\n+          attributes:\n+            http.request.method: POST\n+            http.response.status_code: 201\n+        expect:\n+          count: 1\n+          attributes:\n+            url.full: {present: true}\n+      - match:\n+          kind: CLIENT\n+          attributes:\n+            http.request.method: GET\n+            http.response.status_code: 404\n+        expect:\n+          count: 1\n+          attributes:\n+            url.full: {present: true}\n+      - match:\n+          kind: CLIENT\n+          attributes:\n+            http.request.method: GET\n+            http.response.status_code: 500\n+        expect:\n+          count: 1\n+          attributes:\n+            url.full: {present: true}\n+    events: []",
+      "id": "PRRT_kwDOTuzK5c6dilbb",
+      "opened": "2026-08-30T16:55:17Z",
+      "path": "tools/http/test-client/client-telemetry.yaml",
+      "replies": [],
+      "reviewed": "6fba41c5df36ce599fad440064d8a098522e9d75",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3889964631"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ObjectMapper.readTree` returns `null` for an empty or whitespace-only response, so calling `.equals` on the actual node throws `NullPointerException` rather than reporting a contract validation failure. Compare from the known-valid expected node (or explicitly handle a null actual node) so blank server responses fail cleanly.",
+      "created": "2026-09-01T03:17:31Z",
+      "hunk": "@@ -68,14 +73,97 @@ public String renderResponseBody(String requestBody) {\n     }\n   }\n \n+  private record Request(String method, String path, String body) {}\n+\n+  private record ExpectedResponse(int status, String body) {}\n+\n+  private record Action(Request request, ExpectedResponse response) {}\n+\n+  private record ContractDocument(String description, List<ScenarioEntry> scenarios) {}\n+\n+  private record ScenarioEntry(String description, Action action) {\n+    Exchange exchange() {\n+      return new Exchange(\n+          action.request.method,\n+          action.request.path,\n+          action.request.body,\n+          action.response.status,\n+          action.response.body,\n+          false,\n+          description);\n+    }\n+  }\n+\n+  private static final Exchange READINESS =\n+      new Exchange(\n+          \"GET\",\n+          \"/health\",\n+          null,\n+          200,\n+          \"{\\\"ok\\\": true}\",\n+          true,\n+          \"Checks whether the server is ready.\");\n+\n   /** Every exchange the contract describes, including readiness, in order. */\n   public static List<Exchange> exchanges() {\n-    return document().requests();\n+    return java.util.stream.Stream.concat(\n+            java.util.stream.Stream.of(READINESS), requests().stream())\n+        .toList();\n   }\n \n   /** The measured requests to send, in order. */\n   public static List<Exchange> requests() {\n-    return exchanges().stream().filter(exchange -> !exchange.readiness()).toList();\n+    List<Exchange> loaded = requests;\n+    if (loaded == null) {\n+      loaded = load();\n+      requests = loaded;\n+    }\n+    return loaded;\n+  }\n+\n+  /** The one request selected by the runner's zero-based contract index. */\n+  public static Exchange scenarioRequest() {\n+    String raw = System.getenv(SCENARIO_INDEX_VARIABLE);\n+    if (raw == null || !raw.matches(\"0|[1-9][0-9]*\")) {\n+      throw new IllegalStateException(\n+          SCENARIO_INDEX_VARIABLE + \" must be a zero-based decimal index, got \" + raw);\n+    }\n+    return request(Integer.parseInt(raw));\n+  }\n+\n+  static Exchange request(int index) {\n+    if (index < 0 || index >= requests().size()) {\n+      throw new IllegalArgumentException(\n+          SCENARIO_INDEX_VARIABLE\n+              + \"=\"\n+              + index\n+              + \" selects no contract entry; expected 0..\"\n+              + (requests().size() - 1));\n+    }\n+    return requests().get(index);\n+  }\n+\n+  static void verify(Exchange exchange, Response response) {\n+    if (response.statusCode() != exchange.status()) {\n+      throw new IllegalStateException(\n+          exchange.method()\n+              + \" \"\n+              + exchange.path()\n+              + \" answered \"\n+              + response.statusCode()\n+              + \", expected \"\n+              + exchange.status());\n+    }\n+    try {\n+      if (!JSON.readTree(response.body())\n+          .equals(JSON.readTree(exchange.renderResponseBody(exchange.body())))) {",
+      "id": "PRRT_kwDOTuzK5c6d9Rmx",
+      "opened": "2026-09-01T03:17:32Z",
+      "path": "tools/http/test-client/java/src/main/java/io/opentelemetry/conformance/http/HttpContract.java",
+      "replies": [
+        {
+          "at": "2026-09-01T03:22:38Z",
+          "body": "Addressed in 9dea068a47f1a4e4c861ba9641e3d7d5c0a09404.\n\nAnalysis: The contract renders a known-valid expected JSON body. Using that node as the equality receiver lets an empty response parse to null and compare unequal instead of throwing NullPointerException.\n\nUpsides: Blank responses now produce the same clear contract validation failure as other mismatched JSON bodies. The regression test covers this edge case.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3900506179"
+        }
+      ],
+      "reviewed": "30bbb584c822af122105d2c218ef059983a35a3d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3900477258"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The declaration check happens after `json.loads`, so a truncated or otherwise malformed stale report for a deleted scenario still aborts reduction with `JSONDecodeError` instead of being ignored. Filter by `path.stem` before opening/parsing the file so undeclared reports are truly excluded.",
+      "created": "2026-09-01T03:17:31Z",
+      "hunk": "@@ -151,9 +151,11 @@ def read(\n         if not isinstance(report, dict):\n             continue\n         document = cast(_Json, report)\n+        scenario_spec = spec.scenarios.get(path.stem) if spec else None\n+        if spec is not None and scenario_spec is None:\n+            continue",
+      "id": "PRRT_kwDOTuzK5c6d9RnF",
+      "opened": "2026-09-01T03:17:32Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_report.py",
+      "replies": [
+        {
+          "at": "2026-09-01T03:22:39Z",
+          "body": "Addressed in 55983b34ecc81c5a9e8ce2e9f4d06cf5022abb3c.\n\nAnalysis: The scenario name is available from the report filename without reading its contents. Checking the package specification first ensures that every undeclared report is skipped before JSON parsing.\n\nUpsides: Stale malformed reports for deleted scenarios no longer abort coverage reduction. The existing undeclared-report test now covers both valid and truncated stale files.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3900506270"
+        }
+      ],
+      "reviewed": "30bbb584c822af122105d2c218ef059983a35a3d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3900477285"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`npm ci` requires a lockfile (typically `package-lock.json`) in `tools/http/test-client/js`. Since this PR introduces a new dependency there, ensure the corresponding lockfile is added/updated so CI doesn’t fail at install time (or switch to `npm install` if the repo intentionally doesn’t commit lockfiles).",
+      "created": "2026-09-01T20:50:53Z",
+      "hunk": "@@ -10,7 +10,7 @@\n     \"undici/*\"\n   ],\n   \"scripts\": {\n-    \"test\": \"npm --prefix ../../../tools/http/test-client/js test && npm --prefix ../../../tools/js/scenario-sdk test\",\n+    \"test\": \"npm ci --ignore-scripts --prefix ../../../tools/http/test-client/js && npm --prefix ../../../tools/http/test-client/js test && npm --prefix ../../../tools/js/scenario-sdk test\",",
+      "id": "PRRT_kwDOTuzK5c6eRZrf",
+      "opened": "2026-09-01T20:50:53Z",
+      "path": "scenarios/http/js/package.json",
+      "replies": [
+        {
+          "at": "2026-09-01T20:59:15Z",
+          "body": "No code change.\n\nAnalysis: `tools/http/test-client/js/package-lock.json` is committed for the helper package. The workspace lockfile at `scenarios/http/js/package-lock.json` is also committed and records the helper's `yaml` dependency. `npm ci --prefix scenarios/http/js` completes without changing either lockfile.\n\nUpsides: CI keeps deterministic installs through the existing lockfiles. No package-manager behavior needs to change.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3908388575"
+        }
+      ],
+      "reviewed": "154f24bed6177db8c8619b14a3fd604cce479bcf",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3908322789"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Reduction reads reports recursively (`_report.py:150`), but this cleanup only scans one nested level. A stale `old/unrelated/inference.json` therefore survives and is treated as the current declared `inference` scenario, allowing old samples and findings to contaminate the newly reduced data. Remove matching report names at every nested depth while preserving the freshly written root-level reports, and update the new test that currently expects the deep duplicate to survive.",
+      "created": "2026-09-01T21:30:21Z",
+      "hunk": "@@ -345,6 +343,10 @@ def close(self) -> None:\n         \"\"\"\n         if self._ran != set(self._spec.scenarios):\n             return\n+        expected_reports = {f\"{name}.json\" for name in self._spec.scenarios}\n+        for report in self._report_dir.glob(\"*/*.json\"):\n+            if report.name in expected_reports:\n+                report.unlink()",
+      "id": "PRRT_kwDOTuzK5c6eSI9u",
+      "opened": "2026-09-01T21:30:21Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_session.py",
+      "replies": [],
+      "reviewed": "f5f277943dc2bdf10f6f696ff6bc80873fcfec99",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3908612452"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "feel free to ignore, we can always come back to it later\r\n\r\n\r\nwdyt about some structured form for contract and run\r\n\r\n```yaml\r\nscenarios:\r\n  - contract: ../../../../../../tools/http/test-client/contract.yaml\r\n     run:  otel-conformance-java run armeria:opentelemetry-library ArmeriaLibraryClientScenario\r\n```\r\n\r\nwe can disallow a mix between contract and regular scenarios, call it differently (not `scenarios`), would just be nice to keep related things together",
+      "created": "2026-09-01T23:09:11Z",
+      "hunk": "@@ -13,6 +14,4 @@ setup: otel-conformance-java prepare armeria:opentelemetry-library\n server:\n   run: http-mock-server --port ${PORT}\n \n-scenarios:\n-  client:\n-    run: otel-conformance-java run armeria:opentelemetry-library ArmeriaLibraryClientScenario\n+scenario_run: otel-conformance-java run armeria:opentelemetry-library ArmeriaLibraryClientScenario",
+      "id": "PRRT_kwDOTuzK5c6eTp2r",
+      "opened": "2026-09-01T23:32:59Z",
+      "path": "scenarios/http/java/armeria/opentelemetry-library/client/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-09-01T23:53:15Z",
+          "body": "yeah, I like that, will open tracking issue",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3909495548"
+        }
+      ],
+      "reviewed": "64a9dd6a73d85d1d926a0cbc5596066163d7087e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3909217177"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "I feel nostalgic 😆 ",
+      "created": "2026-09-01T23:10:21Z",
+      "hunk": "@@ -44,6 +44,7 @@ helidon-webserver = { module = \"io.helidon.webserver:helidon-webserver\", version\n httpasyncclient = { module = \"org.apache.httpcomponents:httpasyncclient\", version.ref = \"httpasyncclient\" }\n httpclient5 = { module = \"org.apache.httpcomponents.client5:httpclient5\", version.ref = \"httpclient5\" }\n jackson-databind = { module = \"com.fasterxml.jackson.core:jackson-databind\", version.ref = \"jackson\" }\n+jackson-dataformat-yaml = { module = \"com.fasterxml.jackson.dataformat:jackson-dataformat-yaml\", version.ref = \"jackson\" }",
+      "id": "PRRT_kwDOTuzK5c6eTrPI",
+      "opened": "2026-09-01T23:32:59Z",
+      "path": "scenarios/http/java/gradle/libs.versions.toml",
+      "replies": [],
+      "reviewed": "64a9dd6a73d85d1d926a0cbc5596066163d7087e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3909226110"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`describeBody` throws `NullPointerException` when `response.body()` is null.\n\n```java\nprivate static String describeBody(String body) {\n  if (body == null) {\n    return \"null\";\n  }\n  return body.length() <= MAX_BODY_DESCRIPTION_LENGTH\n      ? body\n      : body.substring(0, MAX_BODY_DESCRIPTION_LENGTH) + \"...\";\n}\n```\n\nSimilarly, `HttpClientWorkload.abbreviate` throws `NullPointerException` if `response.body()` is null.",
+      "created": "2026-09-01T23:26:16Z",
+      "hunk": "@@ -68,14 +75,108 @@ public String renderResponseBody(String requestBody) {\n     }\n   }\n \n+  private record Request(String method, String path, String body) {}\n+\n+  private record ExpectedResponse(int status, String body) {}\n+\n+  private record Action(Request request, ExpectedResponse response) {}\n+\n+  private record ContractDocument(\n+      String description, ScenarioEntry readiness, List<ScenarioEntry> scenarios) {}\n+\n+  private record ScenarioEntry(String description, Action action) {\n+    Exchange exchange(boolean readiness) {\n+      return new Exchange(\n+          action.request.method,\n+          action.request.path,\n+          action.request.body,\n+          action.response.status,\n+          action.response.body,\n+          readiness,\n+          description);\n+    }\n+  }\n+\n+  /** The readiness exchange and the measured requests, as one load of the file. */\n+  record Contract(List<Exchange> exchanges, List<Exchange> requests) {}\n+\n   /** Every exchange the contract describes, including readiness, in order. */\n   public static List<Exchange> exchanges() {\n-    return document().requests();\n+    return contract().exchanges();\n   }\n \n   /** The measured requests to send, in order. */\n   public static List<Exchange> requests() {\n-    return exchanges().stream().filter(exchange -> !exchange.readiness()).toList();\n+    return contract().requests();\n+  }\n+\n+  private static Contract contract() {\n+    Contract loaded = contract;\n+    if (loaded == null) {\n+      loaded = load();\n+      contract = loaded;\n+    }\n+    return loaded;\n+  }\n+\n+  /** The one request selected by the runner's zero-based contract index. */\n+  public static Exchange scenarioRequest() {\n+    String raw = System.getenv(SCENARIO_INDEX_VARIABLE);\n+    if (raw == null) {\n+      throw new IllegalStateException(SCENARIO_INDEX_VARIABLE + \" is not set\");\n+    }\n+    if (!raw.matches(\"0|[1-9][0-9]*\")) {\n+      throw new IllegalStateException(\n+          SCENARIO_INDEX_VARIABLE + \" must be a zero-based decimal index, got \" + raw);\n+    }\n+    return request(Integer.parseInt(raw));\n+  }\n+\n+  static Exchange request(int index) {\n+    if (index < 0 || index >= requests().size()) {\n+      throw new IllegalArgumentException(\n+          SCENARIO_INDEX_VARIABLE\n+              + \"=\"\n+              + index\n+              + \" selects no contract entry; expected 0..\"\n+              + (requests().size() - 1));\n+    }\n+    return requests().get(index);\n+  }\n+\n+  static void verify(Exchange exchange, Response response) {\n+    if (response.statusCode() != exchange.status()) {\n+      throw new IllegalStateException(\n+          exchange.method()\n+              + \" \"\n+              + exchange.path()\n+              + \" answered \"\n+              + response.statusCode()\n+              + \", expected \"\n+              + exchange.status());\n+    }\n+    try {\n+      String expectedBody = exchange.renderResponseBody(exchange.body());\n+      if (!JSON.readTree(expectedBody).equals(JSON.readTree(response.body()))) {\n+        throw new IllegalStateException(\n+            exchange.method()\n+                + \" \"\n+                + exchange.path()\n+                + \" returned \"\n+                + describeBody(response.body())\n+                + \", expected \"\n+                + describeBody(expectedBody));\n+      }\n+    } catch (IOException error) {\n+      throw new UncheckedIOException(\n+          exchange.method() + \" \" + exchange.path() + \" did not return the expected JSON\", error);\n+    }",
+      "id": "PRRT_kwDOTuzK5c6eT81K",
+      "opened": "2026-09-01T23:32:59Z",
+      "path": "tools/http/test-client/java/src/main/java/io/opentelemetry/conformance/http/HttpContract.java",
+      "replies": [],
+      "reviewed": "64a9dd6a73d85d1d926a0cbc5596066163d7087e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/148#discussion_r3909334660"
+    }
+  ]
+}

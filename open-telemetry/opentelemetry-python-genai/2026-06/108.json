@@ -1,0 +1,241 @@
+{
+  "head": "7b07613dacf02eed1f1f4ba5478d99da9caffdc0",
+  "merge": "7656fc898ce54a5ccb0659845c2b26cd80ee4ff1",
+  "merged": "2026-06-09T18:19:40Z",
+  "missing_roots": 0,
+  "number": 108,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The docs no longer mention that GenAI event emission and the span_only/event_only/span_and_event content-capture modes are gated by semantic-convention stability opt-in. Without `OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental`, the util layer will not emit the `gen_ai.client.inference.operation.details` log event and will not record message content attributes/events, even if `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` is set to one of these modes. This is also inconsistent with this package’s example READMEs, which still document the stability flag.",
+      "created": "2026-06-02T18:38:48Z",
+      "hunk": "@@ -28,19 +28,13 @@\n Configuration\n -------------\n \n-By default, the instrumentation aligns with `Semantic Conventions v1.30.0\n-<https://github.com/open-telemetry/semantic-conventions/tree/v1.30.0/docs/gen-ai>`_\n-and does not capture prompt or completion content. Behavior is controlled\n-via environment variables:\n-\n-- ``OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental`` - opt into the\n-  latest GenAI semantic conventions. Required to access the newer attributes\n-  and the ``span_only`` / ``event_only`` / ``span_and_event`` content modes.\n-  Without this flag, the instrumentation stays on v1.30.0 conventions.\n+This instrumentation emits telemetry using the latest GenAI semantic\n+conventions and does not capture prompt or completion content by default.\n+Behavior is controlled via environment variables:\n+\n - ``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`` - enable capture of",
+      "id": "PRRT_kwDOSbspP86Gh7zt",
+      "opened": "2026-06-02T18:38:50Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-06-03T16:10:28Z",
+          "body": "Re-added stability env var.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3350107496"
+        }
+      ],
+      "reviewed": "92798957cf62ea873613158e375b67ddab637911",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3343588111"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This embeddings wrapper path still creates spans directly via a `Tracer` rather than going through `opentelemetry-util-genai`’s `TelemetryHandler`, which violates the repo’s instrumentation guidance (see `.github/instructions/instrumentation.instructions.md#2-telemetry-and-configuration-via-opentelemetry-util-genai`). Now that the instrumentation is switching to latest-only semconv routing, it would be a good time to migrate embeddings to the util’s embedding invocation lifecycle as well, so spans/metrics/events/config are consistently handled in one place.",
+      "created": "2026-06-02T18:38:49Z",
+      "hunk": "@@ -159,42 +141,26 @@ def _instrument(self, **kwargs):\n         wrap_function_wrapper(\n             \"openai.resources.chat.completions\",\n             \"Completions.create\",\n-            (\n-                chat_completions_create_v_new(handler)\n-                if latest_experimental_enabled\n-                else chat_completions_create_v_old(\n-                    tracer, logger, instruments, is_content_enabled()\n-                )\n-            ),\n+            chat_completions_create_v_new(handler),\n         )\n \n         wrap_function_wrapper(\n             \"openai.resources.chat.completions\",\n             \"AsyncCompletions.create\",\n-            (\n-                async_chat_completions_create_v_new(handler)\n-                if latest_experimental_enabled\n-                else async_chat_completions_create_v_old(\n-                    tracer, logger, instruments, is_content_enabled()\n-                )\n-            ),\n+            async_chat_completions_create_v_new(handler),\n         )\n \n         # Add instrumentation for the embeddings API\n         wrap_function_wrapper(\n             \"openai.resources.embeddings\",\n             \"Embeddings.create\",\n-            embeddings_create(\n-                tracer, instruments, latest_experimental_enabled\n-            ),\n+            embeddings_create(tracer, instruments, True),\n         )",
+      "id": "PRRT_kwDOSbspP86Gh70Q",
+      "opened": "2026-06-02T18:38:50Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [],
+      "reviewed": "92798957cf62ea873613158e375b67ddab637911",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3343588163"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same concern as the sync embeddings wrapper: this async embeddings wrapper still instruments by creating spans directly via a `Tracer` instead of using `opentelemetry-util-genai`’s `TelemetryHandler` (see `.github/instructions/instrumentation.instructions.md#2-telemetry-and-configuration-via-opentelemetry-util-genai`). This keeps embeddings behavior/config split from the rest of the OpenAI instrumentation, which already uses the util handler.",
+      "created": "2026-06-02T18:38:49Z",
+      "hunk": "@@ -159,42 +141,26 @@ def _instrument(self, **kwargs):\n         wrap_function_wrapper(\n             \"openai.resources.chat.completions\",\n             \"Completions.create\",\n-            (\n-                chat_completions_create_v_new(handler)\n-                if latest_experimental_enabled\n-                else chat_completions_create_v_old(\n-                    tracer, logger, instruments, is_content_enabled()\n-                )\n-            ),\n+            chat_completions_create_v_new(handler),\n         )\n \n         wrap_function_wrapper(\n             \"openai.resources.chat.completions\",\n             \"AsyncCompletions.create\",\n-            (\n-                async_chat_completions_create_v_new(handler)\n-                if latest_experimental_enabled\n-                else async_chat_completions_create_v_old(\n-                    tracer, logger, instruments, is_content_enabled()\n-                )\n-            ),\n+            async_chat_completions_create_v_new(handler),\n         )\n \n         # Add instrumentation for the embeddings API\n         wrap_function_wrapper(\n             \"openai.resources.embeddings\",\n             \"Embeddings.create\",\n-            embeddings_create(\n-                tracer, instruments, latest_experimental_enabled\n-            ),\n+            embeddings_create(tracer, instruments, True),\n         )\n \n         wrap_function_wrapper(\n             \"openai.resources.embeddings\",\n             \"AsyncEmbeddings.create\",\n-            async_embeddings_create(\n-                tracer, instruments, latest_experimental_enabled\n-            ),\n+            async_embeddings_create(tracer, instruments, True),\n         )",
+      "id": "PRRT_kwDOSbspP86Gh70f",
+      "opened": "2026-06-02T18:38:50Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [],
+      "reviewed": "92798957cf62ea873613158e375b67ddab637911",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3343588183"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`get_tracer(... schema_url=Schemas.V1_30_0.value)` / `get_meter(... schema_url=Schemas.V1_30_0.value)` are now used even after removing the legacy semconv path, but the comments still say they’re “only used on the legacy path”. This is misleading, and it also makes the embeddings spans/metrics use a different schema URL than the util-based handler (which uses Schemas.V1_37_0).",
+      "created": "2026-06-02T18:38:49Z",
+      "hunk": "@@ -132,12 +120,6 @@ def _instrument(self, **kwargs):\n             schema_url=Schemas.V1_30_0.value,  # only used on the legacy path\n         )",
+      "id": "PRRT_kwDOSbspP86Gh7z_",
+      "opened": "2026-06-02T18:38:50Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [],
+      "reviewed": "92798957cf62ea873613158e375b67ddab637911",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3343588138"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog fragment filename (`PR_NUMBER.changed`) will fail the `changelog` workflow: fragments must be named `<PR_NUMBER>.<type>` and the PR number in the filename must match the actual PR number (see `.github/workflows/changelog.yml`). Please rename this file to the actual PR number before merging (e.g. `instrumentation/.../.changelog/123.changed`).",
+      "created": "2026-06-02T18:38:50Z",
+      "hunk": "@@ -0,0 +1 @@\n+Switch OpenAI instrumentation and tests to the latest GenAI semantic convention mode.",
+      "id": "PRRT_kwDOSbspP86Gh709",
+      "opened": "2026-06-02T18:38:50Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/.changelog/PR_NUMBER.changed",
+      "replies": [],
+      "reviewed": "92798957cf62ea873613158e375b67ddab637911",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3343588224"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is it different from https://github.com/lzchen/opentelemetry-python-genai/blob/ed0e7cdb87e90f8b37bc526ff65a46f89815de02/instrumentation/opentelemetry-instrumentation-genai-openai/examples/manual/main.py ? do we need both ?",
+      "created": "2026-06-02T22:06:29Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86GlKzZ",
+      "opened": "2026-06-02T22:08:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/examples/manual/main_console.py",
+      "replies": [
+        {
+          "at": "2026-06-03T15:30:44Z",
+          "body": "Oops, didn't mean to check this in. Reverted.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3349810425"
+        }
+      ],
+      "reviewed": "ed0e7cdb87e90f8b37bc526ff65a46f89815de02",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3344756575"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "let's remove unused code from the patch? there should be quite a lot of it",
+      "created": "2026-06-02T22:07:07Z",
+      "hunk": "@@ -81,15 +73,12 @@\n from opentelemetry.util.genai.handler import (\n     TelemetryHandler,\n )\n-from opentelemetry.util.genai.utils import is_experimental_mode\n \n from .instruments import Instruments\n from .patch import (\n     async_chat_completions_create_v_new,\n-    async_chat_completions_create_v_old,",
+      "id": "PRRT_kwDOSbspP86GlLOp",
+      "opened": "2026-06-02T22:08:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-06-03T16:10:34Z",
+          "body": "I was going to split up the pr for just init.py and patch.py but i've change the scope to just target chat completions in this pr.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3350108140"
+        }
+      ],
+      "reviewed": "ed0e7cdb87e90f8b37bc526ff65a46f89815de02",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3344758961"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we still need tracer? ",
+      "created": "2026-06-02T22:07:27Z",
+      "hunk": "@@ -123,7 +112,6 @@ def instrumentation_dependencies(self) -> Collection[str]:\n     def _instrument(self, **kwargs):\n         \"\"\"Enable OpenAI instrumentation.\"\"\"\n \n-        latest_experimental_enabled = is_experimental_mode()\n         tracer_provider = kwargs.get(\"tracer_provider\")\n         tracer = get_tracer(",
+      "id": "PRRT_kwDOSbspP86GlLgC",
+      "opened": "2026-06-02T22:08:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-06-03T16:11:12Z",
+          "body": "I'm removing embeddings in a separate pr that still uses it and meter.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3350112477"
+        }
+      ],
+      "reviewed": "ed0e7cdb87e90f8b37bc526ff65a46f89815de02",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3344760438"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "and meter?",
+      "created": "2026-06-02T22:07:38Z",
+      "hunk": "@@ -132,12 +120,6 @@ def _instrument(self, **kwargs):\n             schema_url=Schemas.V1_30_0.value,  # only used on the legacy path\n         )\n         logger_provider = kwargs.get(\"logger_provider\")\n-        logger = get_logger(\n-            __name__,\n-            \"\",\n-            logger_provider=logger_provider,\n-            schema_url=Schemas.V1_30_0.value,  # only used on the legacy path\n-        )\n         meter_provider = kwargs.get(\"meter_provider\")\n         self._meter = get_meter(",
+      "id": "PRRT_kwDOSbspP86GlLnp",
+      "opened": "2026-06-02T22:08:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [],
+      "reviewed": "ed0e7cdb87e90f8b37bc526ff65a46f89815de02",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3344761079"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we update impl to not require True as last argument ?",
+      "created": "2026-06-02T22:08:05Z",
+      "hunk": "@@ -159,42 +141,26 @@ def _instrument(self, **kwargs):\n         wrap_function_wrapper(\n             \"openai.resources.chat.completions\",\n             \"Completions.create\",\n-            (\n-                chat_completions_create_v_new(handler)\n-                if latest_experimental_enabled\n-                else chat_completions_create_v_old(\n-                    tracer, logger, instruments, is_content_enabled()\n-                )\n-            ),\n+            chat_completions_create_v_new(handler),\n         )\n \n         wrap_function_wrapper(\n             \"openai.resources.chat.completions\",\n             \"AsyncCompletions.create\",\n-            (\n-                async_chat_completions_create_v_new(handler)\n-                if latest_experimental_enabled\n-                else async_chat_completions_create_v_old(\n-                    tracer, logger, instruments, is_content_enabled()\n-                )\n-            ),\n+            async_chat_completions_create_v_new(handler),\n         )\n \n         # Add instrumentation for the embeddings API\n         wrap_function_wrapper(\n             \"openai.resources.embeddings\",\n             \"Embeddings.create\",\n-            embeddings_create(\n-                tracer, instruments, latest_experimental_enabled\n-            ),\n+            embeddings_create(tracer, instruments, True),",
+      "id": "PRRT_kwDOSbspP86GlL8Q",
+      "opened": "2026-06-02T22:08:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-06-03T16:18:29Z",
+          "body": "Yes, i'll leave embeddings to a separate pr.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3350163754"
+        }
+      ],
+      "reviewed": "ed0e7cdb87e90f8b37bc526ff65a46f89815de02",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3344762833"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "@lmolkova \n\nDid we want to eventually change genai utils to not rely on stability opt in env var to enable content capture?",
+      "created": "2026-06-03T16:10:08Z",
+      "hunk": "@@ -28,19 +28,13 @@\n Configuration\n -------------\n \n-By default, the instrumentation aligns with `Semantic Conventions v1.30.0\n-<https://github.com/open-telemetry/semantic-conventions/tree/v1.30.0/docs/gen-ai>`_\n-and does not capture prompt or completion content. Behavior is controlled\n-via environment variables:\n-\n-- ``OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental`` - opt into the",
+      "id": "PRRT_kwDOSbspP86G0JJF",
+      "opened": "2026-06-03T16:10:08Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [],
+      "reviewed": "ed0e7cdb87e90f8b37bc526ff65a46f89815de02",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3350105232"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nwill be more confusing than helpful once we clean things up",
+      "created": "2026-06-05T21:11:08Z",
+      "hunk": "@@ -62,13 +62,15 @@ def vcr_config():\n \n @pytest.fixture(\n     scope=\"function\",\n-    params=[(True, \"span_only\"), (False, \"True\")],\n+    params=[(True, \"span_only\")],\n     name=\"content_mode\",\n )\n def fixture_content_mode(request):\n     # returns tuple: (latest_experimental_enabled: bool, content_mode: str)\n     # we don't test (True, \"event_only\"), (True, \"span_and_event\") because it's util's\n-    # responsibility\n+    # responsibility.\n+    # (False, \"True\") is not tested because the instrumentation always emits\n+    # gen_ai.provider.name (latest semconv) on spans regardless of OTEL_SEMCONV_STABILITY_OPT_IN.",
+      "id": "PRRT_kwDOSbspP86HezZc",
+      "opened": "2026-06-05T21:11:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/conftest.py",
+      "replies": [],
+      "reviewed": "b437213e79b0d208756ba22c384ca25e7b784e18",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3365412669"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): Are we going to change the name of this method in the next pr?",
+      "created": "2026-06-07T01:56:58Z",
+      "hunk": "@@ -159,42 +142,26 @@ def _instrument(self, **kwargs):\n         wrap_function_wrapper(\n             \"openai.resources.chat.completions\",\n             \"Completions.create\",\n-            (\n-                chat_completions_create_v_new(handler)\n-                if latest_experimental_enabled\n-                else chat_completions_create_v_old(\n-                    tracer, logger, instruments, is_content_enabled()\n-                )\n-            ),\n+            chat_completions_create_v_new(handler),\n         )\n \n         wrap_function_wrapper(\n             \"openai.resources.chat.completions\",\n             \"AsyncCompletions.create\",\n-            (\n-                async_chat_completions_create_v_new(handler)\n-                if latest_experimental_enabled\n-                else async_chat_completions_create_v_old(\n-                    tracer, logger, instruments, is_content_enabled()\n-                )\n-            ),\n+            async_chat_completions_create_v_new(handler),",
+      "id": "PRRT_kwDOSbspP86HnqxM",
+      "opened": "2026-06-07T01:56:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/__init__.py",
+      "replies": [
+        {
+          "at": "2026-06-08T13:54:28Z",
+          "body": "Yeah I would prefer to remove the `v_new`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3373734068"
+        }
+      ],
+      "reviewed": "b437213e79b0d208756ba22c384ca25e7b784e18",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/108#discussion_r3368591770"
+    }
+  ]
+}

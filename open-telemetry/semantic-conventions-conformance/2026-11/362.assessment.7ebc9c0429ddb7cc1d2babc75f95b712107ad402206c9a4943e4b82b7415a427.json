@@ -1,0 +1,43 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d04d58307a945f293260b9d71c28e84a712320dbe42d379f03ad58780efc04a9",
+  "input_digest": "7ebc9c0429ddb7cc1d2babc75f95b712107ad402206c9a4943e4b82b7415a427",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fc5b3eb7cf374aacff48b55b3ce0d77ab91a4e8d/tools/gen-ai/mock-server/tests/test_mock_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/c41a6f046a64e1239de018b2d94f83da8c16eebe/tools/gen-ai/mock-server/tests/test_mock_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/c41a6f046a64e1239de018b2d94f83da8c16eebe"
+      ],
+      "id": "PRRT_kwDOTuzK5c6vSOS6",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/cc5229b661fbd4accf6b6a4096cd8fdd89c13bad/tools/gen-ai/mock-server/src/genai_mock_server/bedrock_agentcore.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/c41a6f046a64e1239de018b2d94f83da8c16eebe/tools/gen-ai/mock-server/src/genai_mock_server/bedrock_agentcore.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6yhm_p",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/cc5229b661fbd4accf6b6a4096cd8fdd89c13bad/tools/gen-ai/mock-server/tests/test_mock_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/c41a6f046a64e1239de018b2d94f83da8c16eebe/tools/gen-ai/mock-server/tests/test_mock_server.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6yhm_r",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

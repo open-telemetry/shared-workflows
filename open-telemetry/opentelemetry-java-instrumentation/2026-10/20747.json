@@ -1,0 +1,82 @@
+{
+  "head": "a8e8bd1261643810d14cf7b3d9793fd2bc69e1c7",
+  "merge": "0a253ea4b57df1d80a16da515398fba5e753276d",
+  "merged": "2026-10-21T06:25:16Z",
+  "missing_roots": 0,
+  "number": 20747,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. Remove the redundant `private static final String SCHEMA_URL = DbSchemaUrls.SCHEMA_URL;` field from all three `CouchbaseRequestTracer` classes in `instrumentation/couchbase/couchbase-3.0/javaagent`, `instrumentation/couchbase/couchbase-3.1/javaagent`, and `instrumentation/couchbase/couchbase-3.2/javaagent`. In each class, use `DbSchemaUrls.SCHEMA_URL` directly in both the tracer builder and the exception logger builder, covering all six call sites. Keep the database domain owner and the GraphQL module-local `SCHEMA_URL = SchemaUrls.V1_44_0` constant unchanged. Preserve emitted schema URLs and keep this update limited to removing these three unnecessary aliases. Do not create another PR as a workaround, post additional comments, or change the PR description or draft state.",
+      "created": "2026-10-20T02:41:59Z",
+      "hunk": "@@ -24,26 +24,28 @@\n import io.opentelemetry.api.OpenTelemetry;\n import io.opentelemetry.api.logs.Logger;\n import io.opentelemetry.api.trace.Tracer;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbSchemaUrls;\n import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_0.CouchbaseSpan;\n import io.opentelemetry.javaagent.instrumentation.couchbase.common.v3_0.CouchbaseTracer;\n-import io.opentelemetry.semconv.SchemaUrls;\n import java.time.Duration;\n import javax.annotation.Nullable;\n import reactor.core.publisher.Mono;\n \n public final class CouchbaseRequestTracer implements RequestTracer {\n \n+  private static final String SCHEMA_URL = DbSchemaUrls.SCHEMA_URL;",
+      "id": "PRRT_kwDODJKVX86uLfOM",
+      "opened": "2026-10-20T02:41:59Z",
+      "path": "instrumentation/couchbase/couchbase-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_0/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-10-20T02:48:24Z",
+          "body": "Removed the three aliases and switched all six builder calls to `DbSchemaUrls.SCHEMA_URL` directly. Commit: `5f11949a`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20747#discussion_r4320968351"
+        }
+      ],
+      "reviewed": "c627bf34b8c45e3eda38fb750085c295e6b673b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20747#discussion_r4320935959"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot remove this file",
+      "created": "2026-10-20T18:11:38Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86udaGX",
+      "opened": "2026-10-20T18:11:37Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/HttpInstrumenterSchemaTest.java",
+      "replies": [
+        {
+          "at": "2026-10-20T18:17:37Z",
+          "body": "Removed the test file. Commit: `a03767f9`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20747#discussion_r4328588130"
+        }
+      ],
+      "reviewed": "24b89012c9f21a8c3defc3a84b24bdb1b5cd831c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20747#discussion_r4328524572"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Non-blocking: this factory is now public for direct access from `RpcInstanceSemconvTest`; both production calls remain inside this class. Add `// visible for testing` to document the visibility exception required by `.github/instructions/java-style.instructions.md:11–13`.",
+      "created": "2026-10-20T21:47:52Z",
+      "hunk": "@@ -59,7 +60,7 @@ private Selection(boolean emitOld, boolean emitPreview) {\n       this.emitPreview = emitPreview;\n     }\n \n-    static Selection forOpenTelemetry(OpenTelemetry openTelemetry) {\n+    public static Selection forOpenTelemetry(OpenTelemetry openTelemetry) {",
+      "id": "PRRT_kwDODJKVX86uie-S",
+      "opened": "2026-10-20T21:47:53Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/internal/RpcSemconvSelection.java",
+      "replies": [],
+      "reviewed": "cf39371f973249551daa47a0344a91e8b246da9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20747#discussion_r4330695866"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whey we have a separate class for each semconv. Under what circumstances would we add additional constants here?",
+      "created": "2026-10-21T06:24:52Z",
+      "hunk": "@@ -0,0 +1,19 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.db.internal;\n+\n+import io.opentelemetry.semconv.SchemaUrls;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class DbSchemaUrls {\n+\n+  public static final String SCHEMA_URL = SchemaUrls.V1_44_0;",
+      "id": "PRRT_kwDODJKVX86upaRH",
+      "opened": "2026-10-21T06:24:52Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbSchemaUrls.java",
+      "replies": [],
+      "reviewed": "a8e8bd1261643810d14cf7b3d9793fd2bc69e1c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20747#discussion_r4333671098"
+    }
+  ]
+}

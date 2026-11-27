@@ -1,0 +1,123 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "22a0720eec4878696d9ff055ee9a4e2941652574fd3527a05cbfa1b6ad3a5ef4",
+  "input_digest": "ab811a7b5eb0dc887ab192ccd2419e02f702ca8fea3896004ebd5d81fcaa3e01",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c/instrumentation/akka/akka-actor-2.3/javaagent/src/test/scala/io/opentelemetry/instrumentation/akkaactor/AkkaSchedulerTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b34ea8c288570ee8c7dff25fba8a02debd06790e/instrumentation/akka/akka-actor-2.3/javaagent/src/test/scala/io/opentelemetry/instrumentation/akkaactor/AkkaSchedulerTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/86f6b10cdd22716399700b49eac36f7c27995e0c"
+      ],
+      "id": "PRRT_kwDODJKVX868BxnL",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c/instrumentation/pekko/pekko-actor-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoSchedulerTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b34ea8c288570ee8c7dff25fba8a02debd06790e/instrumentation/pekko/pekko-actor-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoSchedulerTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/86f6b10cdd22716399700b49eac36f7c27995e0c"
+      ],
+      "id": "PRRT_kwDODJKVX868BxnW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c/instrumentation/jms/jms-1.1/javaagent/src/jms2Test/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/Jms2InstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b34ea8c288570ee8c7dff25fba8a02debd06790e/instrumentation/jms/jms-1.1/javaagent/src/jms2Test/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/Jms2InstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c...734a8e3bf9f6139eb625054efb761db3b63f3dce",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/86f6b10cdd22716399700b49eac36f7c27995e0c"
+      ],
+      "id": "PRRT_kwDODJKVX868BxnZ",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c/instrumentation/jms/jms-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/Jms3InstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b34ea8c288570ee8c7dff25fba8a02debd06790e/instrumentation/jms/jms-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/Jms3InstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c...734a8e3bf9f6139eb625054efb761db3b63f3dce",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/86f6b10cdd22716399700b49eac36f7c27995e0c"
+      ],
+      "id": "PRRT_kwDODJKVX868Bxnk",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoStreamAsyncInputTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b34ea8c288570ee8c7dff25fba8a02debd06790e/instrumentation/pekko/pekko-http-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoStreamAsyncInputTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/86f6b10cdd22716399700b49eac36f7c27995e0c"
+      ],
+      "id": "PRRT_kwDODJKVX868Bxnu",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c/instrumentation/spring/spring-jms/spring-jms-2.0/javaagent/src/version20Test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v2_0/SpringJmsBaselineTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b34ea8c288570ee8c7dff25fba8a02debd06790e/instrumentation/spring/spring-jms/spring-jms-2.0/javaagent/src/version20Test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v2_0/SpringJmsBaselineTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/86f6b10cdd22716399700b49eac36f7c27995e0c"
+      ],
+      "id": "PRRT_kwDODJKVX868Bxnz",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86f6b10cdd22716399700b49eac36f7c27995e0c/instrumentation/reactor/reactor-netty/reactor-netty-0.9/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/reactornetty/v0_9/AbstractReactorNettyHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b34ea8c288570ee8c7dff25fba8a02debd06790e/instrumentation/reactor/reactor-netty/reactor-netty-0.9/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/reactornetty/v0_9/AbstractReactorNettyHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2312d89518e5647204c5dd4cee688f42033f4a02"
+      ],
+      "id": "PRRT_kwDODJKVX868DB5A",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86f6b10cdd22716399700b49eac36f7c27995e0c/instrumentation/reactor/reactor-netty/reactor-netty-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/reactornetty/v1_0/AbstractReactorNettyHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b34ea8c288570ee8c7dff25fba8a02debd06790e/instrumentation/reactor/reactor-netty/reactor-netty-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/reactornetty/v1_0/AbstractReactorNettyHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2312d89518e5647204c5dd4cee688f42033f4a02"
+      ],
+      "id": "PRRT_kwDODJKVX868DB5U",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0742fbd2d13228a88c13821ed750c2fe07d0a4bb/instrumentation/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpCallbackContextTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b34ea8c288570ee8c7dff25fba8a02debd06790e/instrumentation/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpCallbackContextTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0742fbd2d13228a88c13821ed750c2fe07d0a4bb/instrumentation/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpSseClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b34ea8c288570ee8c7dff25fba8a02debd06790e/instrumentation/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpSseClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0742fbd2d13228a88c13821ed750c2fe07d0a4bb/instrumentation/akka/akka-actor-2.3/javaagent/src/test/scala/io/opentelemetry/instrumentation/akkaactor/AkkaSchedulerTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b34ea8c288570ee8c7dff25fba8a02debd06790e/instrumentation/akka/akka-actor-2.3/javaagent/src/test/scala/io/opentelemetry/instrumentation/akkaactor/AkkaSchedulerTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/734a8e3bf9f6139eb625054efb761db3b63f3dce"
+      ],
+      "id": "PRRT_kwDODJKVX868NTxD",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

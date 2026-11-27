@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e2d62c75c549508ce3d23b66fdd1dca0c708067257d7f94cd9054e3aaf44a165",
+  "input_digest": "dc218c5f8a9245a48711bebceb3239c13e3036e2e7ffdc798da01eb31061f0be",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3fb62504aee9d6b6fedcf9a413856423f9af947d/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47b7ee1cf755e80658e26eabd25d8d13540d5c62/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/3fb62504aee9d6b6fedcf9a413856423f9af947d...4949a9d26087b5b37e05dd4bc9aff7fe3fe2fa16",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/47b7ee1cf755e80658e26eabd25d8d13540d5c62",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c568d7f665a3f9bc3ad1e281a598cf67dd86c697"
+      ],
+      "id": "PRRT_kwDODJKVX86c2s4I",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c568d7f665a3f9bc3ad1e281a598cf67dd86c697/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/47b7ee1cf755e80658e26eabd25d8d13540d5c62/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/http/AbstractHttpClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/165afcaf1a3e600c4ebdcf4d435c2497201c68c3"
+      ],
+      "id": "PRRT_kwDODJKVX86dGEu_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

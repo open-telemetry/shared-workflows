@@ -1,0 +1,25 @@
+{
+  "head": "aa8106e81e30ace9c29521be530bbee22200d29e",
+  "merge": "042ed00ce04b402faa2248a9729b80acf5001ae6",
+  "merged": "2026-09-03T17:31:09Z",
+  "missing_roots": 0,
+  "number": 577,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `TelemetryHandler.tool()` bullet no longer mentions that `tool_call_id` and `tool_description` are still accepted (but deprecated) and that the recommended approach is to set them on the returned invocation. As written, this can mislead contributors into thinking those values are no longer supported at all.",
+      "created": "2026-09-03T00:07:07Z",
+      "hunk": "@@ -45,7 +45,7 @@ Factory methods on `TelemetryHandler` (`handler.py`):\n - `embedding(provider, request_model, *, server_address, server_port)` → `EmbeddingInvocation`\n - `retrieval(*, data_source_id, provider, request_model, server_address, server_port)` → `RetrievalInvocation`\n - `fetch_response(provider, *, response_id, server_address, server_port)` → `FetchResponseInvocation`\n-- `tool(name, *, arguments, tool_call_id, tool_type, tool_description)` → `ToolInvocation`\n+- `tool(name, *, tool_type, agent_name)` → `ToolInvocation`",
+      "id": "PRRT_kwDOSbspP86euiug",
+      "opened": "2026-09-03T00:07:07Z",
+      "path": "util/opentelemetry-util-genai/AGENTS.md",
+      "replies": [],
+      "reviewed": "0d234792afdffc7a4dfd75a110f90bdf1ee0fbfc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/577#discussion_r3919831955"
+    }
+  ]
+}

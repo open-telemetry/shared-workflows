@@ -1,0 +1,52 @@
+{
+  "head": "b9809d84102f468feecfe28d197cb16acad8cac8",
+  "merge": "61893214505b73ae2a1cdc5c281ba7854cf7a8a3",
+  "merged": "2026-03-24T14:05:46Z",
+  "missing_roots": 0,
+  "number": 16953,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could import from `MessagingIncubatingAttributes`",
+      "created": "2026-03-22T17:08:11Z",
+      "hunk": "@@ -70,6 +71,7 @@ static <T> T experimental(T value) {\n   private static final Logger logger = LoggerFactory.getLogger(AbstractPulsarClientTest.class);\n \n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.pulsar-2.8\";\n+  static final AttributeKey<String> MESSAGING_OPERATION_KEY = stringKey(\"messaging.operation\");",
+      "id": "PRRT_kwDODJKVX851-6mP",
+      "opened": "2026-03-22T17:08:10Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/AbstractPulsarClientTest.java",
+      "replies": [
+        {
+          "at": "2026-03-23T20:13:40Z",
+          "body": "@copilot import from MessagingIncubatingAttributes and delete this field",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16953#discussion_r2977345051"
+        }
+      ],
+      "reviewed": "ce6c41dd15a923c1fba84da30fd9475693b2c4fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16953#discussion_r2971781306"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could get rid of the field and inline `getClass().getName()`",
+      "created": "2026-03-22T17:09:12Z",
+      "hunk": "@@ -42,34 +41,30 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n \n   @Override\n   public void transform(TypeTransformer transformer) {\n-    String className = ConsumerImplInstrumentation.class.getName();\n+    String className = getClass().getName();",
+      "id": "PRRT_kwDODJKVX851-61-",
+      "opened": "2026-03-22T17:09:12Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/ConsumerImplInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-03-23T20:13:40Z",
+          "body": "@copilot get rid of the field and inline getClass().getName()",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16953#discussion_r2977343117"
+        }
+      ],
+      "reviewed": "ce6c41dd15a923c1fba84da30fd9475693b2c4fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16953#discussion_r2971782596"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "3ad1a9f76230f67c478d286468dc3a2d102372ea",
+  "merge": "4b5bf391a39cabffe6a0e840bd888f23456300f5",
+  "merged": "2026-09-21T07:07:21Z",
+  "missing_roots": 0,
+  "number": 20183,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] `ClassValue` is a runtime cache, so naming it like a constant contradicts the repository convention that static-final caches remain lower camel case (`docs/contributing/style-guide.md:147-151`). Use a lower-camel name in the example so this guidance does not teach the opposite convention.",
+      "created": "2026-09-19T17:34:03Z",
+      "hunk": "@@ -8,8 +8,52 @@ only when compatibility, access, or runtime discovery requires it.\n \n Before treating a lookup as runtime-class-dependent, identify the member's actual declaring type.\n A receiver typed as `Object`, or existing code that calls `receiver.getClass()`, does not prove that\n-each implementation needs a separate lookup. Check whether a stable interface or base class\n-declares the member. A `Method` obtained from that type can invoke compatible implementations.\n+each implementation needs a separate lookup. An existing `ClassValue` does not prove it either.\n+A `Method` obtained from an interface or base class can invoke compatible implementations.\n+\n+## Decide from the declaring type\n+\n+Choose a cache with this checklist:\n+\n+1. Identify the class or interface that declares the member.\n+2. For one fixed optional class or one version-selected stable interface, cache one nullable\n+   `static final Method` or `MethodHandle`.\n+3. Use `ClassValue` only when the required metadata truly varies by concrete runtime class.\n+\n+For a fixed optional `DomainSocketAddress.path()`, avoid\n+`pathMethods.get(address.getClass())`. An exact class-name check strongly indicates one declaring\n+type. Load that class once without initialization and cache its method:\n+\n+```java\n+private static final @Nullable Method DOMAIN_SOCKET_PATH =\n+    findMethod(\"io.netty.channel.unix.DomainSocketAddress\", \"path\");\n+```\n+\n+Likewise, avoid `unwrapMethods.get(connection.getClass())` when a stable `Connection` interface\n+declares `unwrap()`. Resolve the interface selected for the detected library version once:\n+\n+```java\n+private static final @Nullable Method CONNECTION_UNWRAP =\n+    findVersionedInterfaceMethod(\"Connection\", \"unwrap\");\n+```\n+\n+An interface `Method` can invoke compatible implementations; their concrete classes do not require\n+separate entries.\n+\n+In contrast, use `ClassValue` when unrelated generated classes each declare the required method and\n+no shared type declares it:\n+\n+```java\n+private static final ClassValue<Method> GENERATED_VALUE_METHOD =\n+    new ClassValue<Method>() {\n+      @Override\n+      protected Method computeValue(Class<?> type) {\n+        return findGeneratedValueMethod(type);\n+      }\n+    };\n+\n+return GENERATED_VALUE_METHOD.get(receiver.getClass()).invoke(receiver);",
+      "id": "PRRT_kwDODJKVX86kBqU1",
+      "opened": "2026-09-19T17:34:03Z",
+      "path": ".github/agents/knowledge/java-reflection.md",
+      "replies": [],
+      "reviewed": "ec49e4b26bce79ee2a0b12a15aadd978f3f9d846",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20183#discussion_r4054025619"
+    }
+  ]
+}

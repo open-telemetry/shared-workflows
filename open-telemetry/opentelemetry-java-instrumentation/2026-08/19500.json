@@ -1,0 +1,73 @@
+{
+  "head": "a9f211e70b989b9113faa2e383ed12a9f479961c",
+  "merge": "ce9269ab7a7234d06183913585fb08bb51c82a69",
+  "merged": "2026-08-14T15:59:34Z",
+  "missing_roots": 0,
+  "number": 19500,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we add `testing.waitForTraces(1);` before `clearData`",
+      "created": "2026-08-14T12:37:28Z",
+      "hunk": "@@ -104,14 +112,63 @@ void cleanup() throws IOException, TimeoutException {\n       if (channel != null) {\n         channel.close();\n       }\n-      if (conn != null) {\n-        conn.close();\n-      }\n     } catch (ShutdownSignalException ignored) {\n       // ignored\n+    } finally {\n+      try {\n+        if (conn != null) {\n+          conn.close();\n+        }\n+      } catch (ShutdownSignalException ignored) {\n+        // ignored\n+      }\n     }\n   }\n \n+  @Test\n+  void testEmptyPullReceive() throws IOException {\n+    String queueName = \"empty-pull-queue\";\n+    channel.queueDeclare(queueName, false, true, true, null);\n+    testing.clearData();\n+\n+    GetResponse response = channel.basicGet(queueName, true);\n+\n+    assertThat(response).isNull();\n+    assertThat(testing.spans()).isEmpty();\n+    assertNoMessagingMetrics(testing);\n+  }\n+\n+  @Test\n+  void testMessagingClientMetrics() throws IOException {\n+    String queueName = channel.queueDeclare(\"metrics\", false, true, true, null).getQueue();\n+    testing.clearData();",
+      "id": "PRRT_kwDODJKVX86ZROt7",
+      "opened": "2026-08-14T12:37:28Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+      "replies": [
+        {
+          "at": "2026-08-14T15:19:51Z",
+          "body": "Will bundle this into a follow-up where I check this across all the code",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19500#discussion_r3785014882"
+        }
+      ],
+      "reviewed": "a9f211e70b989b9113faa2e383ed12a9f479961c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19500#discussion_r3783653412"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "One area that could require some thought is whether to create the receive span when spring `@RabbitListener` is used. This decision would need to be aligned with spring kafka etc.",
+      "created": "2026-08-14T12:56:46Z",
+      "hunk": "@@ -14,8 +14,9 @@ configurations:\n   - name: otel.instrumentation.messaging.experimental.receive-telemetry.enabled\n     declarative_name: java.common.messaging.receive_telemetry/development.enabled\n     description: >\n-      Enables the creation of consumer spans on messaging receive operations. These spans will\n-      measure the time between receiving a message and the consumer processing that message.\n+      Enables consumer spans for RabbitMQ `basicGet` receive operations when legacy messaging\n+      semantic conventions are emitted. Stable messaging semantic conventions emit these spans",
+      "id": "PRRT_kwDODJKVX86ZRi-p",
+      "opened": "2026-08-14T12:56:46Z",
+      "path": "instrumentation/rabbitmq-2.7/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-08-14T15:59:28Z",
+          "body": "I don't think we would have a receive span in this case b/c my understanding is that this is a true push from the broker as opposed to polling of the broker.\r\n\r\nWe do have a problem with spring rabbit of capturing two consumer spans which is preexisting issue, but worsened with the double capture of metrics now.\r\n\r\nWill follow-up on that: https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/19588",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19500#discussion_r3785344735"
+        }
+      ],
+      "reviewed": "a9f211e70b989b9113faa2e383ed12a9f479961c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19500#discussion_r3783772723"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is this necessary?",
+      "created": "2026-08-14T12:57:27Z",
+      "hunk": "@@ -280,6 +287,34 @@ void testContextPropagation(boolean testHeaders) throws Exception {\n         trace -> {\n           trace.hasSpansSatisfyingExactly(SpringRabbitMqTest::verifyAckSpan);\n         });\n+    assertProcessMetrics(testing, ConsumerConfig.TEST_QUEUE, null);\n+  }\n+\n+  @Test\n+  void testDefaultReceiveTelemetryMetricOwnership() throws InterruptedException {\n+    testing.clearData();",
+      "id": "PRRT_kwDODJKVX86ZRjp0",
+      "opened": "2026-08-14T12:57:27Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitMqTest.java",
+      "replies": [
+        {
+          "at": "2026-08-14T15:19:46Z",
+          "body": "Will bundle this into a follow-up where I check this across all the code",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19500#discussion_r3785014217"
+        }
+      ],
+      "reviewed": "a9f211e70b989b9113faa2e383ed12a9f479961c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19500#discussion_r3783776781"
+    }
+  ]
+}

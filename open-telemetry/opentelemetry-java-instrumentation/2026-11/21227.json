@@ -1,0 +1,87 @@
+{
+  "head": "3a5dbe055e996b2a98988f1fb1269491d8e42994",
+  "merge": "b803b5cf8ee745407f9e9f83fbfcd136fcafbe19",
+  "merged": "2026-11-06T22:52:51Z",
+  "missing_roots": 0,
+  "number": 21227,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix both SDK 1.68.0 CI incompatibilities discussed below. Keep the SDK upgrade to 1.68.0 and preserve this PR's draft/ready state. Do not create another PR.\n\nUpdate the Java contrib dependencies to the just-released 1.62.1 release, using the appropriate published alpha coordinates for the existing dependency set in dependencyManagement/build.gradle.kts. The AWS X-Ray propagator currently calls io.opentelemetry.api.internal.StringUtils.padLeft(String, int), which SDK 1.68.0 removed. Contrib 1.62.1 includes open-telemetry/opentelemetry-java-contrib#3208 and removes that internal dependency. This causes NoSuchMethodError failures in AWS SDK SQS, Lambda, and Camel tests, missing Lambda spans and trace-wait timeouts, and the X-Ray propagation smoke failure. Update directly related generated license information as needed.\n\nFix instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/internal/ResourceDeclarativeConfigTest.java. Its endToEnd test at line 53 introspects sharedState.resource, but SDK 1.68.0 replaced that field with resourceProvider. Prefer verifying the configured resource through an exported span using existing test helpers rather than reflecting into SDK internals. Preserve all existing resource attribute, entity, and schema assertions and the declarative configuration coverage.\n\nFollow the repository instructions, run the narrowest applicable formatting and relevant tests for both fixes, and keep changes limited to these two compatibility issues. Acceptance criteria: the fixed contrib artifact is selected, X-Ray extraction no longer links to the removed method, and the resource test verifies the same configured resource without relying on the removed SDK field.",
+      "created": "2026-11-06T21:16:03Z",
+      "hunk": "@@ -5,7 +5,7 @@ plugins {\n data class DependencySet(val group: String, val version: String, val modules: List<String>)\n \n // this line is managed by .github/scripts/update-sdk-version.sh\n-val otelSdkVersion = \"1.67.0\"\n+val otelSdkVersion = \"1.68.0\"",
+      "id": "PRRT_kwDODJKVX860shQx",
+      "opened": "2026-11-06T21:16:03Z",
+      "path": "dependencyManagement/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T21:36:26Z",
+          "body": "Updated and pushed as `e43de506`: contrib dependencies now use `1.62.1-alpha`, and the resource test verifies the configured resource through an exported span. The targeted resource and AWS SQS checks pass. The local Lambda test still fails its `sameSource()` link-count assertion (2 actual links vs. 1 expected), rather than a `NoSuchMethodError`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21227#discussion_r4497876753"
+        },
+        {
+          "at": "2026-11-06T21:36:32Z",
+          "body": "Updated and pushed as `e43de506`: contrib dependencies now use `1.62.1-alpha`, and the resource test verifies the configured resource through an exported span. The targeted resource and AWS SQS checks pass. The local Lambda test still fails its `sameSource()` link-count assertion (2 actual links vs. 1 expected), rather than a `NoSuchMethodError`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21227#discussion_r4497877639"
+        },
+        {
+          "at": "2026-11-06T21:36:39Z",
+          "body": "Updated and pushed as `e43de506`: contrib dependencies now use `1.62.1-alpha`, and the resource test verifies the configured resource through an exported span. The targeted resource and AWS SQS checks pass. The local Lambda test still fails its `sameSource()` link-count assertion (2 actual links vs. 1 expected), rather than a `NoSuchMethodError`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21227#discussion_r4497878651"
+        },
+        {
+          "at": "2026-11-06T21:36:46Z",
+          "body": "Updated and pushed as `e43de506`: contrib dependencies now use `1.62.1-alpha`, and the resource test verifies the configured resource through an exported span. The targeted resource and AWS SQS checks pass. The local Lambda test still fails its `sameSource()` link-count assertion (2 actual links vs. 1 expected), rather than a `NoSuchMethodError`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21227#discussion_r4497879531"
+        },
+        {
+          "at": "2026-11-06T21:36:52Z",
+          "body": "Updated and pushed as `e43de506`: contrib dependencies now use `1.62.1-alpha`, and the resource test verifies the configured resource through an exported span. The targeted resource and AWS SQS checks pass. The local Lambda test still fails its `sameSource()` link-count assertion (2 actual links vs. 1 expected), rather than a `NoSuchMethodError`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21227#discussion_r4497880542"
+        }
+      ],
+      "reviewed": "b0bb205b0a49f3a8ff63c6707f354ce9cfb8452f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21227#discussion_r4497670868"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a scoped follow-up for the remaining Lambda sameSource() failure reported by the previous coding attempt. Keep the existing SDK 1.68.0 and contrib 1.62.1-alpha fixes, the exported-resource test, and this PR's draft/ready state. Do not create another PR.\n\nThe remaining failure has a verified SDK-contract cause. In SDK 1.67.0, SdkSpanBuilder.addLink(SpanContext, Attributes) discarded every invalid context. In SDK 1.68.0 it retains an invalid context when link attributes or tracestate are nonempty, rejecting it only when the context is invalid and both attributes and tracestate are empty. In AbstractAwsLambdaSqsEventHandlerTest.sameSource(), message2 has no AWSTraceHeader but does have message ID message2. SqsEventSpanLinksExtractor unconditionally adds each message's extracted context with message attributes. SDK 1.68.0 therefore correctly retains a second attribute-bearing link, which explains the observed 2 actual links versus 1 expected.\n\nKeep production instrumentation behavior unchanged. Update the narrowly affected Lambda test expectations to verify the SDK 1.68.0 behavior explicitly, including the valid first link and the second invalid-context link with its message attributes. Preserve coverage for missing propagation and message identity instead of merely weakening the link-count assertion. Inspect the related Lambda variants and supported test SDK configurations so shared expectations remain correct wherever the test is used. Do not add a production validity filter just to restore an obsolete SDK assumption. Follow repository instructions and run the narrowest applicable formatter and relevant Lambda tests. Keep the change limited to SDK-upgrade compatibility; investigate and report any genuinely unrelated failure rather than changing behavior to silence it.",
+      "created": "2026-11-06T21:47:53Z",
+      "hunk": "@@ -5,8 +5,8 @@ plugins {\n data class DependencySet(val group: String, val version: String, val modules: List<String>)\n \n // this line is managed by .github/scripts/update-sdk-version.sh\n-val otelSdkVersion = \"1.67.0\"\n-val otelContribVersion = \"1.62.0-alpha\"\n+val otelSdkVersion = \"1.68.0\"",
+      "id": "PRRT_kwDODJKVX860tOcJ",
+      "opened": "2026-11-06T21:47:53Z",
+      "path": "dependencyManagement/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T22:02:12Z",
+          "body": "Updated in `3a5dbe05`. The shared `sameSource()` assertion now verifies the valid first link and the invalid-context second link with `message2` attributes. The 2.2 javaagent, 3.11 library, and `core12Test` runs pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21227#discussion_r4498088271"
+        }
+      ],
+      "reviewed": "e43de506ef8112cd4c6787ddd706d8d77dff380e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21227#discussion_r4497975420"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is from https://github.com/open-telemetry/opentelemetry-java/pull/8917",
+      "created": "2026-11-06T22:25:14Z",
+      "hunk": "@@ -111,8 +111,10 @@ void sameSource() {\n                                         .satisfiesExactly(\n                                             link(\n                                                 \"53995c3f42cd8ad8\",\n+                                                Attributes.of(MESSAGING_MESSAGE_ID, \"message1\")),\n+                                            invalidLink(",
+      "id": "PRRT_kwDODJKVX860t4Im",
+      "opened": "2026-11-06T22:25:14Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/AbstractAwsLambdaSqsEventHandlerTest.java",
+      "replies": [],
+      "reviewed": "3a5dbe055e996b2a98988f1fb1269491d8e42994",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21227#discussion_r4498260445"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "00b51df7d3ba2c8acb25562670229d461565f1b1",
+  "merge": "87901da40a51b5c42d01367de504f1451d85d639",
+  "merged": "2026-10-06T09:53:03Z",
+  "missing_roots": 0,
+  "number": 20394,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Weaver 0.27.0 changed the `--output=http` protocol: `POST /stop` no longer returns the report. The existing `stop()` implementation still parses that response body as the report, so `afterEach()` will fail instead of validating the collected metrics. Update the lifecycle to call `POST /stop`, read the report with `GET /report`, and then call `POST /shutdown` before stopping the container (or retain 0.26.1 until that adaptation is made).",
+      "created": "2026-10-06T00:04:15Z",
+      "hunk": "@@ -43,7 +43,7 @@ public class WeaverContainer extends GenericContainer<WeaverContainer> {\n   @Nullable private JsonNode result = null;\n \n   WeaverContainer(Path registryRoot, String... registryFiles) {\n-    super(\"otel/weaver:v0.26.1\");\n+    super(\"otel/weaver:v0.27.0@sha256:3049b4079049d4abb1b5632f511ada2c33505a1c60f3f8535e93f87f0696f056\");",
+      "id": "PRRT_kwDODJKVX86pRCbD",
+      "opened": "2026-10-06T00:04:16Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [],
+      "reviewed": "07338b836bcff03ddf3c638b97e83d65bbd071c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20394#discussion_r4190143462"
+    }
+  ]
+}

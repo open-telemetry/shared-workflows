@@ -1,0 +1,46 @@
+{
+  "head": "7d83e87e147b41193ec326fa01a287cb858ba9d8",
+  "merge": "ad8a0139184a35ff5b7055aee488b746d27d61b5",
+  "merged": "2026-10-13T07:40:55Z",
+  "missing_roots": 0,
+  "number": 20543,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This breaking-change entry omits the removal of the stable `jedis-2.0-core` and `jedis-2.3-cluster` enablement selectors performed by the constructor changes. Users relying on either selector will otherwise see their setting silently stop applying without migration guidance in the release notes; include the replacement selector here.",
+      "created": "2026-10-12T17:57:48Z",
+      "hunk": "@@ -4,6 +4,8 @@\n \n ### ⚠️ Breaking changes\n \n+- The Java agent no longer instruments Jedis 1.x. Upgrade to Jedis 2.0 or later to continue receiving\n+  automatic Redis database client spans and metrics.",
+      "id": "PRRT_kwDODJKVX86rkYuQ",
+      "opened": "2026-10-12T17:57:48Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-12T18:54:32Z",
+          "body": "removed those changes",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20543#discussion_r4251365292"
+        }
+      ],
+      "reviewed": "4142c9b4f1db483908b0bbbad4c782bb635bd98f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20543#discussion_r4250923826"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- The Java agent no longer instruments Jedis 1.x.\n```",
+      "created": "2026-10-12T18:54:56Z",
+      "hunk": "@@ -4,6 +4,8 @@\n \n ### ⚠️ Breaking changes\n \n+- The Java agent no longer instruments Jedis 1.x. Upgrade to Jedis 2.0 or later to continue receiving\n+  automatic Redis database client spans and metrics.",
+      "id": "PRRT_kwDODJKVX86rlc2r",
+      "opened": "2026-10-12T18:54:56Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "058a5c07baf6b292b4c2908bbd59d7e67e2ded60",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20543#discussion_r4251368311"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "head": "91368ad6444de5a08c41f4fe2d062f5d8ec33856",
+  "merge": "015bdde05de38a978aa17ed0f260753136664a81",
+  "merged": "2026-06-15T14:52:39Z",
+  "missing_roots": 0,
+  "number": 18989,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Javadoc here says \"DO NOT USE OR OVERRIDE THIS METHOD\", but the extractor API is designed so instrumentations can provide explicit values (and SqlClientAttributesExtractor even calls DbClientAttributesExtractor.onStartCommon() last specifically to allow explicit getter overrides). This wording is likely to confuse users and prevents legitimate cases where the operation name can’t be derived from raw SQL text (or raw SQL isn’t available). Consider rewording to describe the intended default behavior and when overriding is appropriate.",
+      "created": "2026-06-14T02:28:14Z",
+      "hunk": "@@ -23,8 +23,11 @@ public interface SqlClientAttributesGetter<REQUEST, RESPONSE>\n     extends DbClientAttributesGetter<REQUEST, RESPONSE> {\n \n   /**\n-   * SqlClientAttributesExtractor will try to populate db.operation.name based on {@link\n-   * #getRawQueryTexts(REQUEST)}, but this can be used to explicitly provide the operation name.\n+   * DO NOT USE OR OVERRIDE THIS METHOD.\n+   *\n+   * <p>{@link SqlClientAttributesExtractor} will try to populate {@code db.operation.name} based on\n+   * {@link #getRawQueryTexts(REQUEST)} when {@link\n+   * SqlClientAttributesExtractorBuilder#setSingleOperationAndCollection(boolean)} is enabled.",
+      "id": "PRRT_kwDODJKVX86JXoH_",
+      "opened": "2026-06-14T02:28:14Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-14T03:24:11Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5795d344bb71a9296de17e4fd9b383d35ab177ac.\n\nReworded the getDbOperationName() Javadoc to steer SQL instrumentations toward raw query text and setSingleOperationAndCollection instead of overriding the SQL getter.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18989#discussion_r3408952925"
+        }
+      ],
+      "reviewed": "90944e75f70a634283bada377cc85c97215d6011",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18989#discussion_r3408906830"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same as above: \"DO NOT USE OR OVERRIDE\" is overly absolute for a public getter. Even with SQL parsing enabled, there are valid cases where an instrumentation may need to provide a collection name explicitly. Rewording this to describe the default (parsed) behavior and the override semantics would make the API less confusing.",
+      "created": "2026-06-14T02:28:14Z",
+      "hunk": "@@ -52,6 +55,19 @@ default String getDbQuerySummary(REQUEST request) {\n     return null;\n   }\n \n+  /**\n+   * DO NOT USE OR OVERRIDE THIS METHOD.\n+   *\n+   * <p>{@link SqlClientAttributesExtractor} will try to populate {@code db.collection.name} based\n+   * on {@link #getRawQueryTexts(REQUEST)} when {@link\n+   * SqlClientAttributesExtractorBuilder#setSingleOperationAndCollection(boolean)} is enabled.",
+      "id": "PRRT_kwDODJKVX86JXoID",
+      "opened": "2026-06-14T02:28:14Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-06-14T03:24:12Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5795d344bb71a9296de17e4fd9b383d35ab177ac.\n\nReworded the getDbCollectionName() Javadoc the same way, including the semantic-convention caveat for databases that support query text with multiple collections in non-batch operations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18989#discussion_r3408952938"
+        }
+      ],
+      "reviewed": "90944e75f70a634283bada377cc85c97215d6011",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18989#discussion_r3408906834"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In stable-only mode (emitStableDatabaseSemconv() true and emitOldDatabaseSemconv() false), SqlClientAttributesExtractor no longer consults SqlClientAttributesGetter#getDbQueryText() / #getDbQuerySummary(), even though their Javadoc says they can be used to explicitly provide those values. This makes the getters a no-op depending on configuration, and prevents instrumentations from supplying query text/summary when rawQueryTexts is empty/unavailable.",
+      "created": "2026-06-15T00:05:18Z",
+      "hunk": "@@ -141,10 +148,24 @@ public void onStart(AttributesBuilder attributes, Context parentContext, REQUEST\n       }\n     }\n \n-    // calling this last so explicit getDbOperationName(), getDbCollectionName(),\n-    // getDbQueryText(), and getDbQuerySummary() implementations can override\n-    // the parsed values from above\n-    DbClientAttributesExtractor.onStartCommon(attributes, getter, request, captureQueryParameters);\n+    if (emitOldDatabaseSemconv()) {\n+      // calling this last so explicit getDbOperationName(), getDbCollectionName(),\n+      // getDbQueryText(), and getDbQuerySummary() implementations can override\n+      // the parsed values from above\n+      DbClientAttributesExtractor.onStartCommon(\n+          attributes, getter, request, captureQueryParameters);\n+    } else if (emitStableDatabaseSemconv()) {\n+      attributes.put(DB_SYSTEM_NAME, stableDbSystemName(getter.getDbSystemName(request)));\n+      attributes.put(DB_NAMESPACE, getter.getDbNamespace(request));\n+      if (captureQueryParameters && !isBatch) {",
+      "id": "PRRT_kwDODJKVX86JcRpN",
+      "opened": "2026-06-15T00:05:19Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-06-15T00:26:40Z",
+          "body": "No code change needed for this one. I updated the `SqlClientAttributesGetter` Javadocs instead so SQL instrumentations are directed not to override `getDbQueryText()` / `getDbQuerySummary()`, and to provide raw query text through `getRawQueryTexts()` so `SqlClientAttributesExtractor` can derive those attributes consistently.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18989#discussion_r3410510738"
+        }
+      ],
+      "reviewed": "af23dee054dc2eb122103b51e9953b8948f766ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18989#discussion_r3410480873"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "changing this one because it's just a method name (and the method doesn't result in sending \"sql\" like the two above)",
+      "created": "2026-06-15T00:43:22Z",
+      "hunk": "@@ -137,30 +140,33 @@ public static InfluxDbScope onEnter(\n           (arg0 instanceof BatchPoints)\n               ? ((BatchPoints) arg0).getDatabase()\n               // write data by UDP protocol, in this way, can't get database name.\n-              : arg0 instanceof Integer ? \"\" : String.valueOf(arg0);\n+              : arg0 instanceof Integer ? null : String.valueOf(arg0);\n \n       String operationName;\n       if (\"createDatabase\".equals(methodName)) {\n+        // createDatabase emits a CREATE DATABASE query.\n         operationName = \"CREATE DATABASE\";\n       } else if (\"deleteDatabase\".equals(methodName)) {\n+        // deleteDatabase emits a DROP DATABASE query.\n         operationName = \"DROP DATABASE\";\n       } else {\n-        operationName = \"WRITE\";\n+        operationName = methodName;",
+      "id": "PRRT_kwDODJKVX86Jcb3b",
+      "opened": "2026-06-15T00:43:22Z",
+      "path": "instrumentation/influxdb-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/influxdb/v2_4/InfluxDbImplInstrumentation.java",
+      "replies": [],
+      "reviewed": "68c9f1761cd301199c5c7fa643fdc9a65aefb19f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18989#discussion_r3410536114"
+    }
+  ]
+}

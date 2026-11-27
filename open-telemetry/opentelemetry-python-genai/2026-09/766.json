@@ -1,0 +1,40 @@
+{
+  "head": "b777e346c88dc287cdd38691419b582df4593d03",
+  "merge": "2d625872cda2710c7583f0299c0c4b89d9884094",
+  "merged": "2026-09-22T05:10:48Z",
+  "missing_roots": 0,
+  "number": 766,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This guard treats any `langgraph_node` metadata as proof that the resolved name is an internal node. A legitimate chain/runnable named `SupportAgentRunner` nested in a graph with `metadata={\"langgraph_node\": \"model\"}` is therefore not classified as `invoke_agent` and can fall through to workflow/None, contrary to the new name-based behavior. Limit the exception to when the resolved name is the node being classified (and add a regression test).",
+      "created": "2026-09-21T19:26:17Z",
+      "hunk": "@@ -159,6 +159,19 @@ def _has_agent_signals(\n     )\n \n \n+def _detect_agent_name(\n+    agent_name: str | None,\n+    metadata: dict[str, Any] | None,\n+) -> bool:\n+    \"\"\"Return whether a chain name identifies an agent-like runnable.\"\"\"\n+    if not agent_name or \"agent\" not in agent_name.lower():\n+        return False\n+\n+    # A LangGraph node named \"agent\" is internal graph plumbing, not proof\n+    # that the graph itself represents an agent.\n+    return not (metadata and metadata.get(LANGGRAPH_NODE_KEY))",
+      "id": "PRRT_kwDOSbspP86kfS-d",
+      "opened": "2026-09-21T19:26:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+      "replies": [],
+      "reviewed": "325607d2a1562d45ced103536d8378059d3a691c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/766#discussion_r4065624127"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This adds a user-visible span-mapping rule: root `AgentExecutor` and named runnables can now emit `invoke_agent`, but the package README still describes agent spans only as invocations nested inside a workflow and does not document name-based detection. Please update the README to explain the heuristic and root-agent behavior so users can predict the new spans.",
+      "created": "2026-09-21T20:34:01Z",
+      "hunk": "@@ -277,6 +291,7 @@ def classify_chain_run(\n         announced_agent\n         or declared_agent_name\n         or _has_agent_signals(metadata, ancestor_agent_names)\n+        or _detect_agent_name(agent_name, metadata)",
+      "id": "PRRT_kwDOSbspP86kgr9u",
+      "opened": "2026-09-21T20:34:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/operation_mapping.py",
+      "replies": [],
+      "reviewed": "089a233178a0a6fb5ccfe49fe3370abc0ec6a011",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/766#discussion_r4066185393"
+    }
+  ]
+}

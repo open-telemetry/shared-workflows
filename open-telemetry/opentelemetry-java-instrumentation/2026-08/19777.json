@@ -1,0 +1,76 @@
+{
+  "head": "5a658c4c55bcbc01d7d65ae9da7c126fcaf48c50",
+  "merge": "0c4043354a7000a6ef96e2028abbaf31b7bfe418",
+  "merged": "2026-08-24T20:31:12Z",
+  "missing_roots": 0,
+  "number": 19777,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The custom dependency will not be updated with the Gradle semconv dependency as intended. The existing package rule at `.github/renovate.json5:35-46` groups every `custom.regex` update into the `weekly update` branch, while the Gradle-managed `io.opentelemetry.semconv:opentelemetry-semconv` update is excluded from that group. Renovate will therefore open separate PRs—one changing this manifest and one changing the library version—and each will fail the new equality test. Add a later package rule for this dependency that assigns both the Gradle and custom-regex records to the same group/branch.",
+      "created": "2026-08-24T09:31:12Z",
+      "hunk": "@@ -484,5 +484,17 @@\n         '\"(?<depName>otel/weaver):(?<currentValue>[^\"]+)\"',\n       ],\n     },\n+    {\n+      customType: 'regex',\n+      datasourceTemplate: 'maven',\n+      depNameTemplate: 'io.opentelemetry.semconv:opentelemetry-semconv',",
+      "id": "PRRT_kwDODJKVX86bpAd3",
+      "opened": "2026-08-24T09:31:13Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-08-24T09:52:29Z",
+          "body": "should be fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19777/commits/368c7317502b13b6c90f1cf325c0e04b6c906116",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19777#discussion_r3842367782"
+        }
+      ],
+      "reviewed": "23c013e6986b5d0b596dce0c090b2d70528303ca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19777#discussion_r3842223083"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "On Windows, converting the file URI with `URI#getPath()` produces a path such as `/C:/...`, which `JarFile(String)` does not interpret as the original drive path. Convert the URI directly to a `Path` and pass its `File` form so this test remains platform-independent.",
+      "created": "2026-08-24T10:20:40Z",
+      "hunk": "@@ -0,0 +1,75 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.semconv.OtelAttributes;\n+import java.io.InputStream;\n+import java.nio.file.Files;\n+import java.nio.file.Path;\n+import java.nio.file.Paths;\n+import java.security.CodeSource;\n+import java.security.ProtectionDomain;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.jar.Attributes;\n+import java.util.jar.JarFile;\n+import java.util.jar.Manifest;\n+import org.junit.jupiter.api.Test;\n+import org.snakeyaml.engine.v2.api.Load;\n+import org.snakeyaml.engine.v2.api.LoadSettings;\n+\n+class RegistryManifestTest {\n+\n+  @Test\n+  void semconvVersion() throws Exception {\n+    ProtectionDomain protectionDomain = OtelAttributes.class.getProtectionDomain();\n+    CodeSource codeSource = protectionDomain.getCodeSource();\n+    assertThat(codeSource).isNotNull();\n+    String jarPath = codeSource.getLocation().toURI().getPath();\n+\n+    String semconvLibraryVersion;\n+    try (JarFile jarFile = new JarFile(jarPath)) {",
+      "id": "PRRT_kwDODJKVX86bp5Ck",
+      "opened": "2026-08-24T10:20:40Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/RegistryManifestTest.java",
+      "replies": [],
+      "reviewed": "59b2312de309a45f95283dbea9e33ea825a413ee",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19777#discussion_r3842558531"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The `custom.regex` record still inherits `schedule: ['* 0-7 * * 2']` from the rule above, and Renovate takes a grouped branch's schedule from one of its upgrades, so semconv updates move into the Tuesday window. The first rule deliberately excludes OpenTelemetry artifacts from that batching so they land individually.\n\n```suggestion\n    {\n      // keep the Gradle semconv dep and manifest.yaml updates in the same group,\n      // without the weekly schedule inherited from the custom.regex rule above\n      matchPackageNames: [\n        'io.opentelemetry.semconv:opentelemetry-semconv',\n      ],\n      groupName: 'opentelemetry semconv',\n      schedule: [],\n    },\n```",
+      "created": "2026-08-24T17:34:38Z",
+      "hunk": "@@ -44,6 +44,13 @@\n       ],\n       groupName: 'weekly update',\n     },\n+    {\n+      // keep the Gradle semconv dep and manifest.yaml updates in the same group\n+      matchPackageNames: [\n+        'io.opentelemetry.semconv:opentelemetry-semconv',\n+      ],\n+      groupName: 'opentelemetry semconv',\n+    },",
+      "id": "PRRT_kwDODJKVX86byp41",
+      "opened": "2026-08-24T19:44:02Z",
+      "path": ".github/renovate.json5",
+      "replies": [],
+      "reviewed": "91511029cbbf4c236f5289360740b9c86d155ef0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19777#discussion_r3845926836"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`isNotEmpty()` already rejects `null`, so `isNotNull()` is redundant.\n\n```suggestion\n    assertThat(dependencies).isNotEmpty();\n```",
+      "created": "2026-08-24T17:34:38Z",
+      "hunk": "@@ -0,0 +1,75 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.semconv.OtelAttributes;\n+import java.io.InputStream;\n+import java.nio.file.Files;\n+import java.nio.file.Path;\n+import java.nio.file.Paths;\n+import java.security.CodeSource;\n+import java.security.ProtectionDomain;\n+import java.util.List;\n+import java.util.Map;\n+import java.util.jar.Attributes;\n+import java.util.jar.JarFile;\n+import java.util.jar.Manifest;\n+import org.junit.jupiter.api.Test;\n+import org.snakeyaml.engine.v2.api.Load;\n+import org.snakeyaml.engine.v2.api.LoadSettings;\n+\n+class RegistryManifestTest {\n+\n+  @Test\n+  void semconvVersion() throws Exception {\n+    ProtectionDomain protectionDomain = OtelAttributes.class.getProtectionDomain();\n+    CodeSource codeSource = protectionDomain.getCodeSource();\n+    assertThat(codeSource).isNotNull();\n+    Path jarPath = Paths.get(codeSource.getLocation().toURI());\n+\n+    String semconvLibraryVersion;\n+    try (JarFile jarFile = new JarFile(jarPath.toFile())) {\n+      Manifest jarManifest = jarFile.getManifest();\n+      Attributes mainAttributes = jarManifest.getMainAttributes();\n+      assertThat(mainAttributes.getValue(\"Implementation-Title\"))\n+          .isEqualTo(\"opentelemetry-semconv\");\n+      semconvLibraryVersion = mainAttributes.getValue(\"Implementation-Version\");\n+    }\n+    assertThat(semconvLibraryVersion).isNotNull();\n+\n+    Path manifestPath =\n+        Paths.get(System.getProperty(\"io.opentelemetry.registry.path\")).resolve(\"manifest.yaml\");\n+    assertThat(manifestPath).isNotEmptyFile();\n+\n+    Map<String, Object> registryManifest;\n+    Load yaml = new Load(LoadSettings.builder().build());\n+    try (InputStream is = Files.newInputStream(manifestPath)) {\n+      @SuppressWarnings(\"unchecked\")\n+      Map<String, Object> loaded = (Map<String, Object>) yaml.loadFromInputStream(is);\n+      registryManifest = loaded;\n+    }\n+\n+    @SuppressWarnings(\"unchecked\")\n+    List<Map<String, Object>> dependencies =\n+        (List<Map<String, Object>>) registryManifest.get(\"dependencies\");\n+    assertThat(dependencies).isNotNull().isNotEmpty();",
+      "id": "PRRT_kwDODJKVX86byp4n",
+      "opened": "2026-08-24T19:44:02Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/RegistryManifestTest.java",
+      "replies": [],
+      "reviewed": "91511029cbbf4c236f5289360740b9c86d155ef0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19777#discussion_r3845926816"
+    }
+  ]
+}

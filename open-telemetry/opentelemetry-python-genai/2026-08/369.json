@@ -1,0 +1,55 @@
+{
+  "head": "326ad29c25097f9c8e7eacaee6369ab768467cd9",
+  "merge": "d345b413d24576658a218a9e702315b7967b4ac3",
+  "merged": "2026-08-11T00:06:15Z",
+  "missing_roots": 0,
+  "number": 369,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This file appears to be a pinned 'latest' test requirements set; bumping `boto3` is fine, but consider also updating any constraints/lockfiles used by CI (if present) to keep reproducibility consistent across local runs and CI. If CI consumes a different requirements/constraints set, it can lead to confusing version skew.",
+      "created": "2026-08-10T00:23:56Z",
+      "hunk": "@@ -19,7 +19,7 @@ langchain-openai==1.4.2\n langchain-aws==1.6.4\n langchain-google-genai==4.3.2\n langchain-anthropic==1.5.4\n-boto3==1.43.66\n+boto3==1.43.67",
+      "id": "PRRT_kwDOSbspP86XtKTl",
+      "opened": "2026-08-10T00:23:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.latest.txt",
+      "replies": [],
+      "reviewed": "73dc710f8fd44860c5b97fa48602feafec32a344",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/369#discussion_r3745805255"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The minimum `claude-agent-sdk` version is duplicated across multiple requirements files in this PR. To reduce future drift, consider centralizing this version (e.g., via a shared constraints file or a single referenced `.txt` included by the example requirements) so it only needs to be updated in one place.",
+      "created": "2026-08-10T00:23:56Z",
+      "hunk": "@@ -1,4 +1,4 @@\n-claude-agent-sdk>=0.2.132\n+claude-agent-sdk>=0.2.134",
+      "id": "PRRT_kwDOSbspP86XtKTs",
+      "opened": "2026-08-10T00:23:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-claude-agent-sdk/examples/zero-code/requirements.txt",
+      "replies": [],
+      "reviewed": "73dc710f8fd44860c5b97fa48602feafec32a344",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/369#discussion_r3745805266"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same duplication concern as the zero-code example: maintaining the `claude-agent-sdk` minimum in multiple example requirement files increases the chance of them getting out of sync. Consider factoring the shared dependencies into a common included requirements/constraints file.",
+      "created": "2026-08-10T00:23:57Z",
+      "hunk": "@@ -1,4 +1,4 @@\n-claude-agent-sdk>=0.2.132\n+claude-agent-sdk>=0.2.134",
+      "id": "PRRT_kwDOSbspP86XtKT2",
+      "opened": "2026-08-10T00:23:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-claude-agent-sdk/examples/manual/requirements.txt",
+      "replies": [],
+      "reviewed": "73dc710f8fd44860c5b97fa48602feafec32a344",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/369#discussion_r3745805279"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "head": "01818768508734c21a2345b6129daeae98264c4e",
+  "merge": "676500eb6b9678dec71a6d59ad969d20430bf453",
+  "merged": "2026-08-13T13:24:39Z",
+  "missing_roots": 0,
+  "number": 19515,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This replaces every `CompositeMeterRegistry` bean, including user-defined subclasses and composites that do not contain the OTel registry. Because the replacement is only an anonymous base `CompositeMeterRegistry`, a bean declared or injected by its concrete subtype will become a different runtime type and can fail with `BeanNotOfRequiredTypeException`. Restrict the post-processor to the Boot-managed composite that needs reordering, or use an approach that preserves the original bean's assignability and behavior.",
+      "created": "2026-08-11T18:09:12Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.autoconfigure.internal.instrumentation.micrometer;\n+\n+import static java.util.Collections.singletonList;\n+\n+import io.micrometer.core.instrument.MeterRegistry;\n+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;\n+import io.opentelemetry.instrumentation.micrometer.v1_5.OpenTelemetryMeterRegistry;\n+import java.util.ArrayList;\n+import java.util.Comparator;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Set;\n+import org.springframework.beans.factory.config.BeanPostProcessor;\n+\n+/**\n+ * Replaces the composite meter registry with one that returns its members in a deterministic order,\n+ * with the OpenTelemetry registry last.\n+ *\n+ * <p>{@link CompositeMeterRegistry} keeps its members in an identity hash set, so the iteration\n+ * order of {@link CompositeMeterRegistry#getRegistries()} is arbitrary and can differ between JVM\n+ * runs. Spring Boot's metrics endpoint reads meter values from the first registry that has a\n+ * matching meter, which makes reading metrics through the actuator endpoint unreliable when the\n+ * OpenTelemetry registry, which does not support reading metric values, is part of the composite.\n+ */\n+class CompositeMeterRegistryPostProcessor implements BeanPostProcessor {\n+\n+  @Override\n+  public Object postProcessAfterInitialization(Object bean, String beanName) {\n+    if (!(bean instanceof CompositeMeterRegistry)) {",
+      "id": "PRRT_kwDODJKVX86YVCET",
+      "opened": "2026-08-11T18:09:13Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/micrometer/CompositeMeterRegistryPostProcessor.java",
+      "replies": [
+        {
+          "at": "2026-08-11T20:57:54Z",
+          "body": "Addressed in 9a8f99e3f0be83fa3c03dcf58997e01e36770898.\n\nAnalysis: Restrict replacement to Spring Boot's named auto-configured composite containing the OpenTelemetry registry. The wrapper delegates membership mutations to the original composite and computes a fresh ordered, unmodifiable registry snapshot for every read, preserving live membership and metric propagation.\n\nUpsides: User-defined composite beans retain their concrete type and identity; supported add/remove operations remain visible to MetricsEndpoint; OpenTelemetry remains ordered last across Spring Boot 2 through 4.\n\nDownsides: Each getRegistries() call allocates and sorts a small snapshot; identifying Boot's package-private implementation relies on its stable bean and simple class names.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19515#discussion_r3761663529"
+        }
+      ],
+      "reviewed": "ffa95f6973783960a1f5a12394c088437faa4956",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19515#discussion_r3760518381"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This captured set immediately becomes stale if either composite is changed through the supported `add`/`remove` API. The exposed wrapper still accepts those operations, but `getRegistries()` continues returning the initialization-time members, so `MetricsEndpoint` can omit a newly added registry or continue reading a removed one. Return a dynamically sorted, unmodifiable view of the current registry hierarchy, or keep this ordered view synchronized with membership changes.",
+      "created": "2026-08-11T18:09:12Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.autoconfigure.internal.instrumentation.micrometer;\n+\n+import static java.util.Collections.singletonList;\n+\n+import io.micrometer.core.instrument.MeterRegistry;\n+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;\n+import io.opentelemetry.instrumentation.micrometer.v1_5.OpenTelemetryMeterRegistry;\n+import java.util.ArrayList;\n+import java.util.Comparator;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Set;\n+import org.springframework.beans.factory.config.BeanPostProcessor;\n+\n+/**\n+ * Replaces the composite meter registry with one that returns its members in a deterministic order,\n+ * with the OpenTelemetry registry last.\n+ *\n+ * <p>{@link CompositeMeterRegistry} keeps its members in an identity hash set, so the iteration\n+ * order of {@link CompositeMeterRegistry#getRegistries()} is arbitrary and can differ between JVM\n+ * runs. Spring Boot's metrics endpoint reads meter values from the first registry that has a\n+ * matching meter, which makes reading metrics through the actuator endpoint unreliable when the\n+ * OpenTelemetry registry, which does not support reading metric values, is part of the composite.\n+ */\n+class CompositeMeterRegistryPostProcessor implements BeanPostProcessor {\n+\n+  @Override\n+  public Object postProcessAfterInitialization(Object bean, String beanName) {\n+    if (!(bean instanceof CompositeMeterRegistry)) {\n+      return bean;\n+    }\n+    CompositeMeterRegistry original = (CompositeMeterRegistry) bean;\n+    List<MeterRegistry> list = new ArrayList<>(original.getRegistries());\n+    // sort otel registry last since it doesn't support reading metric values\n+    // and the actuator endpoint reads metrics from the first registry\n+    list.sort(\n+        Comparator.comparingInt(value -> value instanceof OpenTelemetryMeterRegistry ? 1 : 0));\n+    Set<MeterRegistry> registries = new LinkedHashSet<>(list);\n+    return new CompositeMeterRegistry(original.config().clock(), singletonList(original)) {\n+      @Override\n+      public Set<MeterRegistry> getRegistries() {\n+        return registries;",
+      "id": "PRRT_kwDODJKVX86YVCEl",
+      "opened": "2026-08-11T18:09:13Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/micrometer/CompositeMeterRegistryPostProcessor.java",
+      "replies": [
+        {
+          "at": "2026-08-11T20:57:56Z",
+          "body": "Addressed in 9a8f99e3f0be83fa3c03dcf58997e01e36770898.\n\nAnalysis: Restrict replacement to Spring Boot's named auto-configured composite containing the OpenTelemetry registry. The wrapper delegates membership mutations to the original composite and computes a fresh ordered, unmodifiable registry snapshot for every read, preserving live membership and metric propagation.\n\nUpsides: User-defined composite beans retain their concrete type and identity; supported add/remove operations remain visible to MetricsEndpoint; OpenTelemetry remains ordered last across Spring Boot 2 through 4.\n\nDownsides: Each getRegistries() call allocates and sorts a small snapshot; identifying Boot's package-private implementation relies on its stable bean and simple class names.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19515#discussion_r3761663651"
+        }
+      ],
+      "reviewed": "ffa95f6973783960a1f5a12394c088437faa4956",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19515#discussion_r3760518407"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`CompositeMeterRegistry.add` normally rejects itself (and composites containing itself) to prevent cycles. Delegating directly to `original` bypasses that check because this wrapper's `getRegistries()` hides `original`; calling `meterRegistry.add(meterRegistry)` therefore creates a parent cycle and recurses until `StackOverflowError`. Reapply the cycle check before delegation.",
+      "created": "2026-08-11T21:11:02Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.autoconfigure.internal.instrumentation.micrometer;\n+\n+import static java.util.Collections.unmodifiableSet;\n+\n+import io.micrometer.core.instrument.MeterRegistry;\n+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;\n+import io.opentelemetry.instrumentation.micrometer.v1_5.OpenTelemetryMeterRegistry;\n+import java.util.ArrayList;\n+import java.util.Comparator;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Set;\n+import org.springframework.beans.factory.config.BeanPostProcessor;\n+\n+/**\n+ * Replaces the composite meter registry with one that returns its members in a deterministic order,\n+ * with the OpenTelemetry registry last.\n+ *\n+ * <p>{@link CompositeMeterRegistry} keeps its members in an identity hash set, so the iteration\n+ * order of {@link CompositeMeterRegistry#getRegistries()} is arbitrary and can differ between JVM\n+ * runs. Spring Boot's metrics endpoint reads meter values from the first registry that has a\n+ * matching meter, which makes reading metrics through the actuator endpoint unreliable when the\n+ * OpenTelemetry registry, which does not support reading metric values, is part of the composite.\n+ */\n+class CompositeMeterRegistryPostProcessor implements BeanPostProcessor {\n+\n+  @Override\n+  public Object postProcessAfterInitialization(Object bean, String beanName) {\n+    if (!(bean instanceof CompositeMeterRegistry)\n+        || !beanName.equals(\"compositeMeterRegistry\")\n+        || !bean.getClass().getSimpleName().equals(\"AutoConfiguredCompositeMeterRegistry\")) {\n+      return bean;\n+    }\n+    CompositeMeterRegistry original = (CompositeMeterRegistry) bean;\n+    if (original.getRegistries().stream().noneMatch(OpenTelemetryMeterRegistry.class::isInstance)) {\n+      return bean;\n+    }\n+    return new OrderedCompositeMeterRegistry(original);\n+  }\n+\n+  private static class OrderedCompositeMeterRegistry extends CompositeMeterRegistry {\n+\n+    private final CompositeMeterRegistry original;\n+\n+    private OrderedCompositeMeterRegistry(CompositeMeterRegistry original) {\n+      super(original.config().clock());\n+      this.original = original;\n+      super.add(original);\n+    }\n+\n+    @Override\n+    public CompositeMeterRegistry add(MeterRegistry registry) {\n+      original.add(registry);\n+      return this;\n+    }",
+      "id": "PRRT_kwDODJKVX86YYNkp",
+      "opened": "2026-08-11T21:11:02Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/micrometer/CompositeMeterRegistryPostProcessor.java",
+      "replies": [
+        {
+          "at": "2026-08-11T21:13:49Z",
+          "body": "Addressed in b2d5004166ce70c6bbe6dd41caee8e3c0fbf3cc9.\n\nAnalysis: Delegating add operations must retain the wrapper-level cycle guard that CompositeMeterRegistry normally applies. Recursively inspect a candidate composite hierarchy for the wrapper before delegating membership changes to the original registry.\n\nUpsides: Self-addition and indirect parent cycles fail immediately with IllegalArgumentException instead of creating recursive registry graphs and eventual StackOverflowError.\n\nDownsides: Composite additions perform an extra traversal of the candidate registry hierarchy.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19515#discussion_r3761764149"
+        }
+      ],
+      "reviewed": "9a8f99e3f0be83fa3c03dcf58997e01e36770898",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19515#discussion_r3761747058"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Spring Boot's `MeterRegistryPostProcessor` has already processed `original` and defers all `MeterBinder` binding against that instance. Returning a fresh composite here creates separate meter state: binders later add meters to `original`, and Micrometer does not propagate child meter creation back into this parent wrapper. As a result, the injected primary registry's normal `getMeters()`/`find(...)` APIs omit auto-bound metrics, even though `MetricsEndpoint` happens to work through the overridden `getRegistries()`. Please avoid replacing the bean with an independent registry, or make the replacement fully expose/delegate the original meter state.",
+      "created": "2026-08-11T21:27:48Z",
+      "hunk": "@@ -0,0 +1,89 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.autoconfigure.internal.instrumentation.micrometer;\n+\n+import static java.util.Collections.unmodifiableSet;\n+\n+import io.micrometer.core.instrument.MeterRegistry;\n+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;\n+import io.opentelemetry.instrumentation.micrometer.v1_5.OpenTelemetryMeterRegistry;\n+import java.util.ArrayList;\n+import java.util.Comparator;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Set;\n+import org.springframework.beans.factory.config.BeanPostProcessor;\n+\n+/**\n+ * Replaces the composite meter registry with one that returns its members in a deterministic order,\n+ * with the OpenTelemetry registry last.\n+ *\n+ * <p>{@link CompositeMeterRegistry} keeps its members in an identity hash set, so the iteration\n+ * order of {@link CompositeMeterRegistry#getRegistries()} is arbitrary and can differ between JVM\n+ * runs. Spring Boot's metrics endpoint reads meter values from the first registry that has a\n+ * matching meter, which makes reading metrics through the actuator endpoint unreliable when the\n+ * OpenTelemetry registry, which does not support reading metric values, is part of the composite.\n+ */\n+class CompositeMeterRegistryPostProcessor implements BeanPostProcessor {\n+\n+  @Override\n+  public Object postProcessAfterInitialization(Object bean, String beanName) {\n+    if (!(bean instanceof CompositeMeterRegistry)\n+        || !beanName.equals(\"compositeMeterRegistry\")\n+        || !bean.getClass().getSimpleName().equals(\"AutoConfiguredCompositeMeterRegistry\")) {\n+      return bean;\n+    }\n+    CompositeMeterRegistry original = (CompositeMeterRegistry) bean;\n+    if (original.getRegistries().stream().noneMatch(OpenTelemetryMeterRegistry.class::isInstance)) {\n+      return bean;\n+    }\n+    return new OrderedCompositeMeterRegistry(original);",
+      "id": "PRRT_kwDODJKVX86YYeV4",
+      "opened": "2026-08-11T21:27:49Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/micrometer/CompositeMeterRegistryPostProcessor.java",
+      "replies": [
+        {
+          "at": "2026-08-11T21:35:14Z",
+          "body": "Addressed in d217bd20cbfa1cbafa553068dd9af0c5be71dc88.\n\nAnalysis: Make the ordered postprocessor PriorityOrdered and expose its concrete return type so Spring runs it before Boot's registry postprocessor. Boot 2 and 3 then bind meters to the replacement itself. Boot 4 only recognizes its package-private auto-configured subtype for binding, so the replacement defers and applies Boot 4 MeterBinders after singleton initialization.\n\nUpsides: Auto-bound meters live in the injected primary registry and remain available through getMeters() and find(...), while registry ordering and exporter propagation remain intact across Spring Boot 2 through 4.\n\nDownsides: Spring Boot 4 binder application is explicitly mirrored because Boot's bindability check cannot recognize the replacement subtype.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19515#discussion_r3761889924"
+        }
+      ],
+      "reviewed": "b2d5004166ce70c6bbe6dd41caee8e3c0fbf3cc9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19515#discussion_r3761847295"
+    }
+  ]
+}

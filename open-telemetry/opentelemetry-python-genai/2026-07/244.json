@@ -1,0 +1,61 @@
+{
+  "head": "19bec1f759403ce5ad4d21c498762a751ed59d76",
+  "merge": "48ed2219b024e1dddea291cefc4c3240968f3a3c",
+  "merged": "2026-07-11T00:59:47Z",
+  "missing_roots": 0,
+  "number": 244,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`opentelemetry-util-genai` is a pre-release/beta package, but this dependency is missing an upper bound. That contradicts the newly documented guidance (pin to the next major) and makes it easier to accidentally pull an incompatible future major.",
+      "created": "2026-07-10T00:53:54Z",
+      "hunk": "@@ -39,10 +39,10 @@ classifiers = [\n   \"Programming Language :: Python :: 3.14\",\n ]\n dependencies = [\n-  \"opentelemetry-api ~=1.40\",\n-  \"opentelemetry-instrumentation >=0.61b0, <2\",\n-  \"opentelemetry-semantic-conventions >=0.61b0, <2\",\n-  \"opentelemetry-util-genai >= 0.4b0, <2\",\n+  \"opentelemetry-api ~= 1.40\",\n+  \"opentelemetry-instrumentation >= 0.61b0, <2\",\n+  \"opentelemetry-semantic-conventions >= 0.61b0, <2\",\n+  \"opentelemetry-util-genai >= 1.0b0\",",
+      "id": "PRRT_kwDOSbspP86Pvn5A",
+      "opened": "2026-07-10T00:53:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-07-10T01:13:27Z",
+          "body": "suggestion(non-blocking): I think this is a legitimate advise from copilot. Should we pin the util-genai version?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/244#discussion_r3555780993"
+        }
+      ],
+      "reviewed": "175759d807aec2b2b85c56275e393f011156d77d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/244#discussion_r3555722859"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This requirements file pins `opentelemetry-instrumentation-requests~=0.51b0` while also pinning `opentelemetry-api/sdk~=1.43.0`. In this repo’s test matrix, `opentelemetry-api==1.43.0` pairs with `opentelemetry-instrumentation==0.64b0`, so keeping `0.51b0` here is very likely to create incompatible dependency sets for users running the example.",
+      "created": "2026-07-10T00:53:55Z",
+      "hunk": "@@ -12,9 +12,9 @@\n # See the License for the specific language governing permissions and\n # limitations under the License.\n \n-google-genai ~=2.10.0\n-opentelemetry-api ~=1.43.0\n-opentelemetry-sdk ~=1.43.0\n-opentelemetry-exporter-otlp-proto-grpc ~=1.43.0\n-opentelemetry-instrumentation-requests ~= 0.51b0\n-opentelemetry-instrumentation-google-genai\n+google-genai~=2.10.0\n+opentelemetry-api~=1.43.0\n+opentelemetry-sdk~=1.43.0\n+opentelemetry-exporter-otlp-proto-grpc~=1.43.0\n+opentelemetry-instrumentation-requests~=0.51b0\n+opentelemetry-instrumentation-google-genai~=1.0b0",
+      "id": "PRRT_kwDOSbspP86Pvn5Y",
+      "opened": "2026-07-10T00:53:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/examples/manual/requirements.txt",
+      "replies": [],
+      "reviewed": "175759d807aec2b2b85c56275e393f011156d77d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/244#discussion_r3555722891"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These bullets end with stray backticks, which breaks Markdown rendering and also makes the guidance harder to copy/paste accurately.",
+      "created": "2026-07-10T00:53:55Z",
+      "hunk": "@@ -113,4 +113,11 @@ New instrumentations must ship a minimal example under the package's `examples/`\n - Versions use the OpenTelemetry beta versioning format `MAJOR.MINORbN` (e.g. `1.0b0`);\n   `version.py` carries a `.dev` suffix during development.\n \n+## 10. Dependency versioning and compatibility\n+\n+- Reject dependency changes in `pyproject.toml` that unnecessarily pin versions to exact patch ranges (like `== x.y.z` or `~= x.y.z`).\n+- Prefer ranges that allow minor updates (e.g., `~= x.y` or `>= x.y.z, < (x+1)`).`\n+- For OpenTelemetry-owned beta/pre-release packages (e.g., `opentelemetry-instrumentation`, `opentelemetry-semantic-conventions`, `opentelemetry-util-genai`), enforce the use of `>=` specifiers while pinning the upper boundary to the next major version (e.g., `>= 0.64b0, <1` for `0.x` packages, or `>= 1.0b0, <2` for `1.x` packages) instead of `~=`.`",
+      "id": "PRRT_kwDOSbspP86Pvn5r",
+      "opened": "2026-07-10T00:53:55Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [],
+      "reviewed": "175759d807aec2b2b85c56275e393f011156d77d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/244#discussion_r3555722916"
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "head": "f9fdef9edd18644a6ba176c30994c09fcfbdb2d0",
+  "merge": "267f78730769927a940ffda6acba232520860884",
+  "merged": "2026-09-03T15:35:43Z",
+  "missing_roots": 0,
+  "number": 19483,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `cometds` is the TLS endpoint scheme for the same CometD messaging system, so this currently emits a different `messaging.system` value from `cometd`. Normalize the scheme alias to `cometd` so telemetry for the same system is not split.",
+      "created": "2026-08-10T23:35:27Z",
+      "hunk": "@@ -18,12 +20,15 @@ public class DecoratorRegistry {\n   private static Map<String, SpanDecorator> loadDecorators() {\n     Map<String, SpanDecorator> result = new HashMap<>();\n     result.put(\"ahc\", new HttpSpanDecorator());\n-    result.put(\"ampq\", new MessagingSpanDecorator(\"ampq\"));\n+    registerMessaging(result, \"ampq\");\n+    if (emitStableMessagingSemconv()) {\n+      registerMessaging(result, \"amqp\");\n+    }\n     result.put(\"aws-s3\", new S3SpanDecorator());\n-    result.put(\"aws-sns\", new MessagingSpanDecorator(\"aws-sns\"));\n-    result.put(\"aws-sqs\", new MessagingSpanDecorator(\"aws-sqs\"));\n-    result.put(\"cometd\", new MessagingSpanDecorator(\"cometd\"));\n-    result.put(\"cometds\", new MessagingSpanDecorator(\"cometds\"));\n+    registerMessaging(result, \"aws-sns\", \"aws.sns\", false);\n+    registerMessaging(result, \"aws-sqs\", \"aws_sqs\", false);\n+    registerMessaging(result, \"cometd\");\n+    registerMessaging(result, \"cometds\");",
+      "id": "PRRT_kwDODJKVX86YEisF",
+      "opened": "2026-08-10T23:35:27Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/decorators/DecoratorRegistry.java",
+      "replies": [
+        {
+          "at": "2026-08-11T00:29:10Z",
+          "body": "Fixed in 57932e38256: the `cometds` endpoint alias now reports `messaging.system=cometd`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3754441458"
+        }
+      ],
+      "reviewed": "4d8d6eb6f49f42e011b45c8fb3e61dfa65f95b0f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3754215735"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Eclipse Paho is an MQTT client implementation, not a distinct messaging system. Emitting `messaging.system=paho` fragments MQTT telemetry and contradicts the normalization already applied to aliases such as `sjms`; map this component to `mqtt`.",
+      "created": "2026-08-10T23:35:27Z",
+      "hunk": "@@ -37,31 +42,48 @@ private static Map<String, SpanDecorator> loadDecorators() {\n     result.put(\"http4\", new Http4SpanDecorator());\n     result.put(\"https4\", new Https4SpanDecorator());\n     result.put(\"http\", new HttpSpanDecorator());\n-    result.put(\"ironmq\", new MessagingSpanDecorator(\"ironmq\"));\n+    registerMessaging(result, \"ironmq\");\n     result.put(\"jdbc\", new DbSpanDecorator(\"jdbc\", DbSystemNameIncubatingValues.OTHER_SQL));\n     result.put(\"jetty\", new HttpSpanDecorator());\n-    result.put(\"jms\", new MessagingSpanDecorator(\"jms\"));\n+    registerMessaging(result, \"jms\");\n     result.put(\"kafka\", new KafkaSpanDecorator());\n     result.put(\"log\", new LogSpanDecorator());\n     result.put(\"mongodb\", new DbSpanDecorator(\"mongodb\", DbSystemNameIncubatingValues.MONGODB));\n-    result.put(\"mqtt\", new MessagingSpanDecorator(\"mqtt\"));\n+    registerMessaging(result, \"mqtt\");\n     result.put(\"netty-http4\", new HttpSpanDecorator());\n     result.put(\"netty-http\", new HttpSpanDecorator());\n-    result.put(\"paho\", new MessagingSpanDecorator(\"paho\"));\n-    result.put(\"rabbitmq\", new MessagingSpanDecorator(\"rabbitmq\"));\n+    registerMessaging(result, \"paho\");",
+      "id": "PRRT_kwDODJKVX86YEisN",
+      "opened": "2026-08-10T23:35:27Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/decorators/DecoratorRegistry.java",
+      "replies": [
+        {
+          "at": "2026-08-11T00:29:11Z",
+          "body": "Fixed in 57932e38256: the Paho component now reports `messaging.system=mqtt`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3754441476"
+        }
+      ],
+      "reviewed": "4d8d6eb6f49f42e011b45c8fb3e61dfa65f95b0f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3754215757"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This makes the Camel SQS span keyless/CLIENT, but it does not stop that span from being propagated: `CamelEventNotifier` still unconditionally calls `injectParent`, and Camel 2.20's `SqsProducer` copies every unfiltered string header into SQS message attributes. The message therefore carries a W3C `traceparent` for this CLIENT span in addition to the nested AWS SDK span's `AWSTraceHeader`; consumers using W3C extraction can continue the wrong span. In stable mode, skip Camel's injection when `isMessagingSpanContextPropagated()` is false (while preserving the legacy path), and add an assertion that SQS sends contain only the nested SDK propagation context.",
+      "created": "2026-08-13T19:52:52Z",
+      "hunk": "@@ -36,48 +55,75 @@ class CamelSingletons {\n                     camelRequest.getEndpoint(),\n                     camelRequest.getCamelDirection());\n \n-    AttributesExtractor<CamelRequest, Void> attributesExtractor =\n-        new AttributesExtractor<CamelRequest, Void>() {\n-\n-          @Override\n-          public void onStart(\n-              AttributesBuilder attributes, Context parentContext, CamelRequest camelRequest) {\n-            SpanDecorator spanDecorator = camelRequest.getSpanDecorator();\n-            spanDecorator.pre(\n-                attributes,\n-                camelRequest.getExchange(),\n-                camelRequest.getEndpoint(),\n-                camelRequest.getCamelDirection());\n-          }\n+    return instrumenterBuilder(spanNameExtractor).buildInstrumenter(CamelRequest::getSpanKind);\n+  }\n \n-          @Override\n-          public void onEnd(\n-              AttributesBuilder attributes,\n-              Context context,\n-              CamelRequest camelRequest,\n-              @Nullable Void unused,\n-              @Nullable Throwable error) {\n-            SpanDecorator spanDecorator = camelRequest.getSpanDecorator();\n-            spanDecorator.post(attributes, camelRequest.getExchange(), camelRequest.getEndpoint());\n-          }\n-        };\n+  private static Instrumenter<CamelRequest, Void> createMessagingInstrumenter(\n+      MessagingOperationType operationType, String operationName, boolean exposeSpanKey) {\n+    MessagingAttributesGetter<CamelRequest, Void> getter = new CamelMessagingAttributesGetter();\n+    SpanNameExtractor<CamelRequest> legacySpanNameExtractor =\n+        request ->\n+            request\n+                .getSpanDecorator()\n+                .getOperationName(\n+                    request.getExchange(), request.getEndpoint(), request.getCamelDirection());\n+    SpanNameExtractor<CamelRequest> spanNameExtractor =\n+        emitStableMessagingSemconv()\n+            ? MessagingSpanNameExtractor.create(getter, operationType, operationName)\n+            : legacySpanNameExtractor;\n+    InstrumenterBuilder<CamelRequest, Void> builder = instrumenterBuilder(spanNameExtractor);\n+    if (emitStableMessagingSemconv()) {\n+      AttributesExtractor<CamelRequest, Void> attributesExtractor =\n+          MessagingAttributesExtractor.create(getter, operationType, operationName);\n+      builder.addAttributesExtractor(\n+          exposeSpanKey\n+              ? attributesExtractor\n+              : new KeylessAttributesExtractor(attributesExtractor));\n+    }\n+\n+    if (operationType == PROCESS && emitStableMessagingSemconv()) {\n+      return MessagingProcessInstrumenterFactory.create(\n+          builder,\n+          CamelPropagationUtil.messagingPropagator(),\n+          CamelPropagationUtil.messagingGetter(),\n+          false);\n+    }\n+    if (emitStableMessagingSemconv()) {\n+      return builder.buildInstrumenter(\n+          operationType == SEND\n+              ? MessagingSpanKindExtractor.create(\n+                  operationType, CamelRequest::isMessagingSpanContextPropagated)\n+              : MessagingSpanKindExtractor.create(operationType));\n+    }\n+    return builder.buildInstrumenter(CamelRequest::getSpanKind);\n+  }\n \n+  private static InstrumenterBuilder<CamelRequest, Void> instrumenterBuilder(\n+      SpanNameExtractor<CamelRequest> spanNameExtractor) {\n     SpanStatusExtractor<CamelRequest, Void> spanStatusExtractor =\n         (spanStatusBuilder, request, unused, error) -> {\n           if (request.getExchange().isFailed()) {\n             spanStatusBuilder.setStatus(StatusCode.ERROR);\n           }\n         };\n-\n-    InstrumenterBuilder<CamelRequest, Void> builder =\n-        Instrumenter.builder(GlobalOpenTelemetry.get(), INSTRUMENTATION_NAME, spanNameExtractor);\n-    builder.addAttributesExtractor(attributesExtractor);\n-    builder.setSpanStatusExtractor(spanStatusExtractor);\n-\n-    instrumenter = builder.buildInstrumenter(request -> request.getSpanKind());\n+    return Instrumenter.<CamelRequest, Void>builder(\n+            GlobalOpenTelemetry.get(), INSTRUMENTATION_NAME, spanNameExtractor)\n+        .addAttributesExtractor(new CamelAttributesExtractor())\n+        .setSpanStatusExtractor(spanStatusExtractor);\n   }\n \n-  static Instrumenter<CamelRequest, Void> instrumenter() {\n+  static Instrumenter<CamelRequest, Void> instrumenter(CamelRequest request) {\n+    if (request.isMessaging()) {\n+      if (request.getCamelDirection() == CamelDirection.OUTBOUND) {\n+        if (!request.isMessagingSpanContextPropagated()) {\n+          return keylessMessagingSendInstrumenter;\n+        }",
+      "id": "PRRT_kwDODJKVX86ZELDa",
+      "opened": "2026-08-13T19:52:52Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-13T20:06:45Z",
+          "body": "Addressed in 6b98e86c803cc0a0bba60d35a47b8b4aa982f39d.\n\nAnalysis: The keyless stable SQS instrumenter prevents semantic suppression but does not control CamelEventNotifier's separate exchange-header injection. Gating that injection for stable messaging requests whose decorator reports no propagation leaves the AWS SDK producer as the sole SQS propagation source, while explicit non-messaging and legacy branches preserve their existing behavior.\n\nUpsides: Stable SQS messages carry the nested AWS SDK `AWSTraceHeader` without a competing Camel `traceparent`; tests inspect the received message and verify both stable suppression and legacy W3C propagation.\n\nDownsides: The SQS test helper now requests all custom message attributes and returns the received message; production behavior for other messaging and non-messaging components is unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3778720429"
+        }
+      ],
+      "reviewed": "53ae343c8df7f2c4418e7a37f019130236513004",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3778633606"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Skipping injection does not remove propagation headers already present on the Camel exchange. For example, an HTTP-to-SQS route can retain the inbound `traceparent`; Camel's SQS producer copies string exchange headers into message attributes, so stable mode will still publish that stale W3C context alongside the nested AWS SDK span's `AWSTraceHeader`. Clear the configured propagator fields for non-propagating stable sends (and cover a send whose exchange already contains `traceparent`) so the SDK context is the only creation context carried by SQS.",
+      "created": "2026-08-21T21:08:51Z",
+      "hunk": "@@ -65,18 +66,23 @@ private static void onExchangeSending(ExchangeSendingEvent ese) {\n     Context context = startOnExchangeSending(request);\n \n     ActiveContextManager.activate(context, request);\n-    CamelPropagationUtil.injectParent(context, ese.getExchange().getIn().getHeaders());\n+    if (!emitStableMessagingSemconv()\n+        || !request.isMessaging()\n+        || request.isMessagingSpanContextPropagated()) {\n+      CamelPropagationUtil.injectParent(\n+          context != null ? context : Context.current(), ese.getExchange().getIn().getHeaders());",
+      "id": "PRRT_kwDODJKVX86bS2EQ",
+      "opened": "2026-08-21T21:08:51Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelEventNotifier.java",
+      "replies": [
+        {
+          "at": "2026-08-21T21:13:28Z",
+          "body": "Addressed in 914823bed9bb441f158371348767434546deebd3.\n\nAnalysis: The condition on lines 69-74 correctly skips injecting span context for non-propagating stable messaging sends (e.g., aws-sqs). However, skipping injection leaves any propagation headers already on the exchange in place. In an HTTP-to-SQS route, the inbound `traceparent` header lands on the Camel exchange; the SQS producer then copies all string exchange headers into SQS message attributes. This means a stale W3C trace context travels alongside the AWS SDK's own `AWSTraceHeader`, giving downstream consumers two conflicting creation contexts. The fix adds an else branch that calls `CamelPropagationUtil.clearPropagationFields`, which removes every field the configured TextMapPropagator declares, so non-propagating sends carry no inherited trace context at all.\n\nUpsides: Non-propagating stable messaging sends no longer leak inbound propagation headers into the outbound message carrier. For SQS routes originating from HTTP, the AWS SDK's `AWSTraceHeader` becomes the sole context on the message, matching the semantic intent of `isSpanContextPropagated() == false`.\n\nDownsides: Any exchange header whose name matches a propagator field (e.g., `traceparent`, `tracestate`, `b3`) will be removed before a non-propagating send, even if the application placed it there deliberately. This is a deliberate trade-off: a non-propagating endpoint should not forward trace context regardless of where the header originated.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3833762921"
+        }
+      ],
+      "reviewed": "daf674327f2081705ebd60c638b8395adc0efccb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3833735744"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This clears only the globally configured propagator fields, but Camel stores an incoming SQS creation context under `AWSTraceHeader` and the new messaging propagator explicitly extracts that alias. In a stable SQS-to-SQS route, the old `AWSTraceHeader` therefore survives this branch and Camel can copy it as a message attribute alongside the nested SDK span's new system attribute, leaving consumers with conflicting creation contexts. Remove the Camel SQS alias here as well.",
+      "created": "2026-09-01T23:44:42Z",
+      "hunk": "@@ -50,6 +56,68 @@ static void injectParent(Context context, Map<String, Object> exchangeHeaders) {\n         .inject(context, exchangeHeaders, MapSetter.INSTANCE);\n   }\n \n+  static void clearPropagationFields(Map<String, Object> exchangeHeaders) {\n+    for (String field : GlobalOpenTelemetry.getPropagators().getTextMapPropagator().fields()) {\n+      exchangeHeaders.remove(field);\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86eUOf7",
+      "opened": "2026-09-01T23:44:43Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelPropagationUtil.java",
+      "replies": [
+        {
+          "at": "2026-09-02T00:02:35Z",
+          "body": "Addressed in 1977ef238d4520725dcb0a49bcf95836132f081c.\n\nAnalysis: The stable messaging path suppresses Camel propagation but only removed fields from the configured global propagator. Camel's `AWSTraceHeader` alias is outside that field set and remained available for downstream SQS propagation. Clear the alias explicitly and cover both the configured field and the Camel-specific alias in a unit test.\n\nUpsides: Stable SQS-to-SQS routes cannot carry a stale Camel creation context alongside the nested AWS SDK span's system context. The unit test protects both clearing paths while confirming unrelated headers remain intact.\n\nDownsides: Stable messaging sends that suppress propagation now remove `AWSTraceHeader` even when a custom component uses that name for another purpose.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3909540831"
+        }
+      ],
+      "reviewed": "214c312cd945ab2f346d37313a591da8b9b110a1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3909452690"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This uses producer-style RabbitMQ destination formatting for inbound process spans as well. The migrated RabbitMQ instrumentation includes the queue when it differs from the routing key (`RabbitInstrumenterHelper.consumerDestinationName`, lines 115-122), but this method never reads Camel's `queue` endpoint option and returns `amq.default` even for an otherwise empty inbound destination. Pass the Camel direction into this extraction and apply the consumer formatting for inbound routes so, for example, `orders?routingKey=created&queue=workers` produces `orders:created:workers`.",
+      "created": "2026-09-02T12:54:33Z",
+      "hunk": "@@ -96,6 +144,42 @@ protected String getDestination(Exchange exchange, Endpoint endpoint) {\n     }\n   }\n \n+  @Nullable\n+  public String getStableDestination(Exchange exchange, Endpoint endpoint) {\n+    if (!component.equals(\"rabbitmq\")) {\n+      return getDestination(exchange, endpoint);",
+      "id": "PRRT_kwDODJKVX86eggOf",
+      "opened": "2026-09-02T12:54:33Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/decorators/MessagingSpanDecorator.java",
+      "replies": [
+        {
+          "at": "2026-09-02T13:08:20Z",
+          "body": "Fixed in efa3d09cfd. Stable RabbitMQ destination extraction now receives the Camel direction, includes a distinct queue for inbound process spans, returns `null` for an empty inbound destination, and applies `bridgeEndpoint` only to outbound sends. The destination tests now cover inbound queue formatting, matching queue/routing keys, empty inbound destinations, and direction-specific bridge behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3914408765"
+        }
+      ],
+      "reviewed": "212314040a23d3f2baefc583e3f6e396556c8deb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19483#discussion_r3914284008"
+    }
+  ]
+}

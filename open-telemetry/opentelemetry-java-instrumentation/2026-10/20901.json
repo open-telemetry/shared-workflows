@@ -1,0 +1,52 @@
+{
+  "head": "147325986287bfc3181449ece268db03db35a13d",
+  "merge": "5196db828f12f730983b6864fbbfd1da0b8b4f1a",
+  "merged": "2026-10-23T19:16:11Z",
+  "missing_roots": 0,
+  "number": 20901,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Please revert all changes to this generated catalog and leave the refresh to `.github/workflows/metadata-update.yml`. The repository's generated-catalog convention reserves these updates for the nightly workflow. Keep the production and test changes; the workflow will regenerate the matching catalog entries and metric references.",
+      "created": "2026-10-23T16:54:37Z",
+      "hunk": "@@ -5248,7 +5248,7 @@ definitions:\n         type: STRING\n       - name: server.port\n         type: LONG\n-    rpc.client.call.duration-019ae5d4:\n+    rpc.client.call.duration-3bb27bbc:",
+      "id": "PRRT_kwDODJKVX86vshiK",
+      "opened": "2026-10-23T16:54:37Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-10-23T17:08:56Z",
+          "body": "Removed the generated catalog changes in 147325986287bfc3181449ece268db03db35a13d. The current PR diff no longer includes docs/instrumentation-list.yaml; the nightly metadata workflow will regenerate it. The production and test changes are unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20901#discussion_r4362221942"
+        }
+      ],
+      "reviewed": "a62558e200b1784fded95faac2927e229dc5563c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20901#discussion_r4362093702"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to address the generated-catalog finding at https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20901#discussion_r4362093702. Remove only this PR's changes to docs/instrumentation-list.yaml so the file has no diff against the PR base. The applicable .github/instructions/instrumentation-list.instructions.md explicitly reserves this generated file for the nightly .github/workflows/metadata-update.yml workflow. This corrects my earlier assignment's request to include catalog updates. Preserve all RPC status-key production changes, metric advice, unary/streaming/Armeria and shared metric assertions, and directly related instruction examples. Keep legacy/preview/duplicate gating and existing status/error semantics unchanged. Do not change PR title or description, do not create another PR, and do not implement the 3.0 default switch. Verify the resulting diff excludes docs/instrumentation-list.yaml and retains the complete rpc.status_code alignment.",
+      "created": "2026-10-23T16:57:24Z",
+      "hunk": "@@ -5248,7 +5248,7 @@ definitions:\n         type: STRING\n       - name: server.port\n         type: LONG\n-    rpc.client.call.duration-019ae5d4:\n+    rpc.client.call.duration-3bb27bbc:",
+      "id": "PRRT_kwDODJKVX86vslZL",
+      "opened": "2026-10-23T16:57:24Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-10-23T17:06:24Z",
+          "body": "Removed the generated catalog changes in commit `14732598`. The catalog now has no diff against the PR base, and the RPC status alignment changes remain intact. Targeted RPC, gRPC, and Armeria tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20901#discussion_r4362199317"
+        }
+      ],
+      "reviewed": "a62558e200b1784fded95faac2927e229dc5563c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20901#discussion_r4362119335"
+    }
+  ]
+}

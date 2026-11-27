@@ -1,0 +1,52 @@
+{
+  "head": "63b028dd78bde74fe69886a7fd612db32a14b42c",
+  "merge": "7b5713f7905abe16c80110c21992d7db998e7c35",
+  "merged": "2026-10-17T17:55:17Z",
+  "missing_roots": 0,
+  "number": 20625,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Wire these regression tests into PR CI. `conventions` is a separate included build (`settings.gradle.kts:127`), and root test partitioning visits only `subprojects` (`build.gradle.kts:105–115`). The common workflow runs only `spotlessCheck` for `conventions`; its separate build job targets `gradle-plugins`. Consequently, these ordering, metadata-composition, and argument-provider assertions do not guard future changes. Add `./gradlew -p conventions test` to the PR workflow or explicitly wire the included build's test task into verification.",
+      "created": "2026-10-15T18:56:42Z",
+      "hunk": "@@ -0,0 +1,213 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.gradle\n+\n+import org.assertj.core.api.Assertions.assertThat\n+import org.assertj.core.api.Assertions.assertThatThrownBy\n+import org.gradle.api.plugins.jvm.JvmTestSuite\n+import org.gradle.api.tasks.SourceSetContainer\n+import org.gradle.api.tasks.testing.Test\n+import org.gradle.testfixtures.ProjectBuilder\n+import org.gradle.testing.base.TestingExtension\n+import org.gradle.process.CommandLineArgumentProvider\n+import org.junit.jupiter.api.Test as JunitTest\n+\n+class TestSuiteExecutionsTest {",
+      "id": "PRRT_kwDODJKVX86s7BlH",
+      "opened": "2026-10-15T18:56:43Z",
+      "path": "conventions/src/test/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutionsTest.kt",
+      "replies": [
+        {
+          "at": "2026-10-15T19:23:54Z",
+          "body": "Addressed in c96a4ff34ade98477b6b6b88620ab8de4c50e26f.\n\nConfirmed: settings.gradle.kts includes conventions as a separate build; root test partitioning iterates only subprojects; common CI previously ran conventions spotlessCheck but not test. Added an unconditional ./gradlew -p conventions test step to the existing gradle-plugins job, preserving inputs.no-build-cache behavior. A real standalone compilation failed with GC overhead limit exceeded at the default Kotlin compiler heap, so the command now sets -Pkotlin.daemon.jvmargs=-Xmx2g. The documented local command matches CI. Clean no-build-cache validation executed all seven regression tests with zero failures, errors, or skips.\n\n<!-- copilot-loop:cd7b21f5e27b22caafb181c75f985082307604d7a814249b9213da4c5fa82079:4287068923:2ad45556e20245bfa9e2801517f7023c -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20625#discussion_r4287340191"
+        }
+      ],
+      "reviewed": "16bd05cc5f11283e60da5870b883b5a69741fc70",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20625#discussion_r4287068923"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] A named suite declared with `register<JvmTestSuite>(\"integrationTest\") { executions { ... } }` can remain unrealized when running `check`: this lazy callback does not realize it, and its `check` dependencies are only added inside the suite's configuration. Without another reference that realizes the suite, `check` silently skips both its default execution and variants. The named-suite test hides this by calling `.get()` first. Eagerly configure suite registrations here, and add a regression that resolves `check` dependencies without first realizing the named suite or its tasks.",
+      "created": "2026-10-15T20:05:59Z",
+      "hunk": "@@ -0,0 +1,89 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.gradle\n+\n+import org.gradle.api.Action\n+import org.gradle.api.Plugin\n+import org.gradle.api.Project\n+import org.gradle.api.plugins.ExtensionAware\n+import org.gradle.api.plugins.jvm.JvmTestSuite\n+import org.gradle.api.tasks.testing.Test\n+import org.gradle.testing.base.TestingExtension\n+\n+class TestSuiteExecutionsPlugin : Plugin<Project> {\n+  override fun apply(project: Project) {\n+    project.pluginManager.apply(\"jvm-test-suite\")\n+    project.extensions.getByType(TestingExtension::class.java).suites\n+      .withType(JvmTestSuite::class.java).configureEach {",
+      "id": "PRRT_kwDODJKVX86s8mbf",
+      "opened": "2026-10-15T20:05:59Z",
+      "path": "conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutions.kt",
+      "replies": [
+        {
+          "at": "2026-10-15T20:28:55Z",
+          "body": "No code change.\n\nNot reproducible on the frozen repository's pinned Gradle 9.8.1. TestSuiteExecutionsPlugin applies jvm-test-suite before attaching its configureEach callback (TestSuiteExecutions.kt:18-21). Gradle 9.8.1 JvmTestSuitePlugin.apply already installs testing.suites.withType(JvmTestSuite).all(...), and its callback also installs targets.all(...). Consequently register<JvmTestSuite>(\"integrationTest\") executes the suite configuration without an explicit provider.get(), and the existing code adds both default and variant tasks to check (TestSuiteExecutions.kt:56-73). An investigation-only ProjectBuilder regression resolved check dependencies without first realizing the named suite or any Test tasks and passed unchanged; it observed test, integrationTest, and integrationTestExperimental. A separate evaluated Kotlin DSL build using the exact register<JvmTestSuite> form also included both named-suite tasks in check --dry-run, with an assertion that no Test task was realized during configuration. The existing seven convention tests passed after removing the investigation-only test. Changing configureEach to all would not fix a supported failure on this frozen build.\n\n<!-- copilot-loop:582fd0969f4190379777849047fe06032eb2024b49018c12ac5c44a2f175a2f8:4287738622:96d502eb3d964f8eae95be3349e0830f -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20625#discussion_r4287949208"
+        }
+      ],
+      "reviewed": "3d12005c1124535f125eeab705f7ca41aa5d640b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20625#discussion_r4287738622"
+    }
+  ]
+}

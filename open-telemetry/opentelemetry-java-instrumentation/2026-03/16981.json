@@ -1,0 +1,31 @@
+{
+  "head": "2464d04b4f4bf00f390d5408e1450497f88bbe5b",
+  "merge": "bafe919677342ed3e1bfa8ff68eb9465c3097bd5",
+  "merged": "2026-03-25T14:57:54Z",
+  "missing_roots": 0,
+  "number": 16981,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "maybe it would be better to use `ContextPropagatingRunnable.propagateContext` like in https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/919fc5bf57b5171be8bdb15cab81f058b899dc00/instrumentation/finagle-http-23.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/LocalSchedulerActivationInstrumentation.java#L35-L48",
+      "created": "2026-03-24T13:00:52Z",
+      "hunk": "@@ -49,9 +49,7 @@ public static class ExecuteAdvice {\n     public static PropagatedContext enterJobSubmit(@Advice.Argument(0) Runnable task) {\n       Context context = Java8BytecodeBridge.currentContext();\n       if (ExecutorAdviceHelper.shouldPropagateContext(context, task)) {\n-        VirtualField<Runnable, PropagatedContext> virtualField =\n-            VirtualField.find(Runnable.class, PropagatedContext.class);\n-        return ExecutorAdviceHelper.attachContextToTask(context, virtualField, task);\n+        return ExecutorAdviceHelper.attachContextToTask(context, PROPAGATED_CONTEXT, task);",
+      "id": "PRRT_kwDODJKVX852ajcI",
+      "opened": "2026-03-24T13:00:52Z",
+      "path": "instrumentation/spring/spring-core-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/core/v2_0/SimpleAsyncTaskExecutorInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-03-24T14:57:23Z",
+          "body": "done in 2464d04, I'm not sure it's 100% equivalent to what we had before but the tests are passing so this seems fine here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16981#discussion_r2982229960"
+        }
+      ],
+      "reviewed": "a214e85503cd2a0291f88b61fccd17d554d734ba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16981#discussion_r2981396742"
+    }
+  ]
+}

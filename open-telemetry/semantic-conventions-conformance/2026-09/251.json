@@ -1,0 +1,55 @@
+{
+  "head": "d9f963b311e522108bbc5d6578e44f85f9add1df",
+  "merge": "60372493ef2765575f61376635393b3ec34112f1",
+  "merged": "2026-09-28T05:42:47Z",
+  "missing_roots": 0,
+  "number": 251,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The exercised LiteLLM version changes here, but the corresponding `openinference/data.json` was not regenerated. The GenAI scenario contract requires committing the refreshed report for dependency changes; run this implementation through `otel-conformance --report-only` and commit the resulting artifact.",
+      "created": "2026-09-28T04:47:57Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"litellm-openinference-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"litellm==1.102.1\",\n+    \"litellm==1.103.0\",",
+      "id": "PRRT_kwDOTuzK5c6mihf4",
+      "opened": "2026-09-28T04:47:58Z",
+      "path": "scenarios/gen-ai/python/litellm/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "d9f963b311e522108bbc5d6578e44f85f9add1df",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/251#discussion_r4118661170"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This updates the library whose native telemetry is being measured, but the corresponding `native/data.json` was not regenerated. The GenAI scenario contract requires committing the refreshed report for dependency changes; run this implementation through `otel-conformance --report-only` and commit the resulting artifact.",
+      "created": "2026-09-28T04:47:57Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"litellm-native-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"litellm==1.102.1\",\n+    \"litellm==1.103.0\",",
+      "id": "PRRT_kwDOTuzK5c6mihfk",
+      "opened": "2026-09-28T04:47:58Z",
+      "path": "scenarios/gen-ai/python/litellm/native/pyproject.toml",
+      "replies": [],
+      "reviewed": "d9f963b311e522108bbc5d6578e44f85f9add1df",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/251#discussion_r4118661117"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The exercised LiteLLM version changes here, but the corresponding `openllmetry/data.json` was not regenerated. The GenAI scenario contract requires committing the refreshed report for dependency changes; run this implementation through `otel-conformance --report-only` and commit the resulting artifact.",
+      "created": "2026-09-28T04:47:58Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"litellm-openllmetry-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"litellm==1.102.1\",\n+    \"litellm==1.103.0\",",
+      "id": "PRRT_kwDOTuzK5c6mihgD",
+      "opened": "2026-09-28T04:47:58Z",
+      "path": "scenarios/gen-ai/python/litellm/openllmetry/pyproject.toml",
+      "replies": [],
+      "reviewed": "d9f963b311e522108bbc5d6578e44f85f9add1df",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/251#discussion_r4118661198"
+    }
+  ]
+}

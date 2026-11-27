@@ -1,0 +1,244 @@
+{
+  "head": "307269f49a9548a11a2afe527910774bf23f107f",
+  "merge": "012ada1edc4f763a33524e43e24666eba655e731",
+  "merged": "2026-07-16T21:37:34Z",
+  "missing_roots": 0,
+  "number": 17719,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Setting the ThreadLocal to `NOP` here can silently corrupt outer state.\n\n`beforeDefineClass` now returns `DefineClassContextImpl.NOP` for the J9ROMCLASSCOOKIE path **without** calling `enter()` (so the ThreadLocal is not pushed). But `afterDefineClass` has been simplified to always call `context.exit()`, so `NOP.exit()` runs — and since `NOP.previous` is `null`, this line writes `NOP` into `defineClassContext`.\n\nIn a nested scenario (outer `beforeDefineClass` triggers a nested class definition via `Class.forName` during super-type resolution, and the nested class hits the J9 path), the inner `NOP.exit()` overwrites the outer context with `NOP`. Between that point and the outer `afterDefineClass`, `isFailedClass()` / `getSuperTypes()` will read `NOP` instead of the outer context.\n\nConsider making `exit()` a no-op on `NOP` (e.g. early-return when `this == NOP`), or restore the previous behavior of skipping `exit()` when `beforeDefineClass` returned the no-op sentinel.",
+      "created": "2026-04-19T23:52:09Z",
+      "hunk": "@@ -130,7 +129,7 @@ static DefineClassContextImpl enter() {\n \n     @Override\n     public void exit() {\n-      defineClassContext.set(previous);\n+      defineClassContext.set(previous != null ? previous : NOP);",
+      "id": "PRRT_kwDODJKVX858D11r",
+      "opened": "2026-04-19T23:58:07Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/DefineClassHandler.java",
+      "replies": [
+        {
+          "at": "2026-07-13T13:54:16Z",
+          "body": "Rebased onto current `main` and addressed this in the refreshed branch. I kept the `null`/no-context behavior for the J9ROMCLASSCOOKIE and ignored-class-loader paths, and updated the nullability on `DefineClassHelper` / `DefineClassHandler` so the contract matches that behavior under NullAway. That avoids the outer-frame clobbering concern while preserving the existing semantics for the no-op path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3571198000"
+        },
+        {
+          "at": "2026-07-13T13:59:48Z",
+          "body": "More explicitly: the refreshed branch does **not** use `NOP` as the returned no-op context for the J9 / ignored-class-loader paths anymore. `beforeDefineClass(...)` now returns `null` on those paths again, and `afterDefineClass(...)` null-checks before calling `exit()`. So in the scenario you described there is no inner `NOP.exit()` call at all, which is what avoids clobbering an outer active frame. `NOP` is only retained as the ThreadLocal's default / fallback sentinel for real entered contexts.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3571240334"
+        }
+      ],
+      "reviewed": "9c0e6c5fd404e6b633952c25536ea638d1e5168f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3107711696"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Behavior change worth confirming: previously, in declarative-config mode, the returned `AutoConfiguredOpenTelemetrySdk.getConfig()` was `null`. Downstream callers (`AgentInstaller.setBootstrapPackages`, `configureIgnoredTypes`, `BeforeAgentListener#beforeAgent`, `AgentExtension#extend`) now receive an empty-map-backed `ConfigProperties` instead.\n\nAny extension that disambiguated declarative mode via `config == null` will silently switch to the empty-config branch. Is this the intended contract going forward? If so, it's probably worth noting in the changelog / extension docs.",
+      "created": "2026-04-19T23:52:09Z",
+      "hunk": "@@ -36,15 +38,17 @@ public static AutoConfiguredOpenTelemetrySdk installOpenTelemetrySdk(\n             .build();\n     OpenTelemetrySdk sdk = autoConfiguredSdk.getOpenTelemetrySdk();\n     ConfigProperties configProperties = AutoConfigureUtil.getConfig(autoConfiguredSdk);\n-    boolean declarativeConfigUsed = configProperties == null;\n \n-    if (!declarativeConfigUsed) {\n+    if (configProperties != null) {\n       // Provide a fake declarative configuration based on config properties\n       // so that declarative configuration API can be used everywhere\n       sdk =\n           new ExtendedOpenTelemetrySdkWrapper(\n               sdk, ConfigPropertiesBackedConfigProvider.create(configProperties));\n       AgentDistributionConfig.set(AgentDistributionConfig.fromConfigProperties(configProperties));\n+    } else {\n+      // Declarative config path: no ConfigProperties available, use empty defaults\n+      configProperties = DefaultConfigProperties.createFromMap(emptyMap());",
+      "id": "PRRT_kwDODJKVX858D11t",
+      "opened": "2026-04-19T23:58:07Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/OpenTelemetryInstaller.java",
+      "replies": [
+        {
+          "at": "2026-07-13T13:54:19Z",
+          "body": "Rebased onto current `main` and removed this behavior change from `OpenTelemetryInstaller` in the refreshed branch, so declarative-config mode is no longer normalized to empty config here. Separately, the broader extension-SPI direction ended up being handled in #19148, which introduced the no-config overloads / deprecation path instead.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3571198346"
+        }
+      ],
+      "reviewed": "9c0e6c5fd404e6b633952c25536ea638d1e5168f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3107711698"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] The `requireNonNull` here is redundant — `InstrumentationModuleInstaller`'s constructor already calls `requireNonNull(instrumentation, \"Instrumentation must not be null\")` on its argument (see the change in `InstrumentationModuleInstaller.java`). The `instrumentation` local is only forwarded into the constructor, so it can be inlined.\n\n```suggestion\n    InstrumentationModuleInstaller instrumentationModuleInstaller =\n        new InstrumentationModuleInstaller(InstrumentationHolder.getInstrumentation());\n```",
+      "created": "2026-04-19T23:52:09Z",
+      "hunk": "@@ -15,21 +16,27 @@\n import io.opentelemetry.javaagent.tooling.AgentExtension;\n import io.opentelemetry.javaagent.tooling.Utils;\n import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.lang.instrument.Instrumentation;\n import java.util.logging.Logger;\n import net.bytebuddy.agent.builder.AgentBuilder;\n \n @AutoService(AgentExtension.class)\n public class InstrumentationLoader implements AgentExtension {\n   private static final Logger logger = Logger.getLogger(InstrumentationLoader.class.getName());\n \n-  private final InstrumentationModuleInstaller instrumentationModuleInstaller =\n-      new InstrumentationModuleInstaller(InstrumentationHolder.getInstrumentation());\n-\n   @Override\n   public AgentBuilder extend(AgentBuilder agentBuilder, ConfigProperties config) {\n+    Instrumentation instrumentation =\n+        requireNonNull(\n+            InstrumentationHolder.getInstrumentation(), \"Instrumentation must not be null\");\n+    InstrumentationModuleInstaller instrumentationModuleInstaller =\n+        new InstrumentationModuleInstaller(instrumentation);",
+      "id": "PRRT_kwDODJKVX858D11u",
+      "opened": "2026-04-19T23:58:07Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationLoader.java",
+      "replies": [],
+      "reviewed": "9c0e6c5fd404e6b633952c25536ea638d1e5168f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3107711700"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `requireNonNull` runs once per element in the stream; hoist it outside. Guard on `!helperClassNames.isEmpty()` to preserve the current semantics (no failure when the list is empty, as the message implies).\n\nSomething like:\n\n```java\nif (!helperClassNames.isEmpty()) {\n  requireNonNull(\n      helpersSource,\n      \"helpersSource must not be null when helperClassNames is non-empty\");\n}\nList<HelperClassDefinition> helpers =\n    helperClassNames.stream()\n        .distinct()\n        .map(\n            className ->\n                HelperClassDefinition.create(className, helpersSource, InjectionMode.CLASS_ONLY))\n        .collect(toList());\n```",
+      "created": "2026-04-19T23:52:09Z",
+      "hunk": "@@ -134,7 +134,11 @@ public HelperInjector(\n             .map(\n                 className ->\n                     HelperClassDefinition.create(\n-                        className, helpersSource, InjectionMode.CLASS_ONLY))\n+                        className,\n+                        requireNonNull(\n+                            helpersSource,\n+                            \"helpersSource must not be null when helperClassNames is non-empty\"),",
+      "id": "PRRT_kwDODJKVX858D11w",
+      "opened": "2026-04-19T23:58:07Z",
+      "path": "muzzle/src/main/java/io/opentelemetry/javaagent/tooling/HelperInjector.java",
+      "replies": [],
+      "reviewed": "9c0e6c5fd404e6b633952c25536ea638d1e5168f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3107711702"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Making `getOrNull` abstract while turning `getOrDefault` into a default method is source- and binary-incompatible for existing `Trie` implementations. Classes compiled against the current interface implement only `getOrDefault`, so invoking `getOrNull` with the new interface can fail with `AbstractMethodError`. Since this PR only needs to enable NullAway, please retain the existing abstract/default method layout, using a narrowly scoped NullAway suppression for the intentional null sentinel, and keep the implementation in `TrieImpl`.",
+      "created": "2026-07-13T14:06:19Z",
+      "hunk": "@@ -22,16 +22,17 @@ static <V> Builder<V> builder() {\n    * will return {@code 10}.\n    */\n   @Nullable\n-  default V getOrNull(CharSequence str) {\n-    return getOrDefault(str, null);\n-  }\n+  V getOrNull(CharSequence str);",
+      "id": "PRRT_kwDODJKVX86QatOY",
+      "opened": "2026-07-13T14:06:20Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/util/Trie.java",
+      "replies": [
+        {
+          "at": "2026-07-13T16:46:49Z",
+          "body": "Good catch — I updated this in the refreshed branch to preserve the original interface layout for compatibility. `Trie.getOrNull(...)` is default again, `Trie.getOrDefault(...)` stays abstract, and the null-sentinel handling remains in `TrieImpl`. For NullAway I used a narrowly scoped suppression on the default `getOrNull(...)` implementation, which is the only place intentionally passing `null` as the no-match sentinel.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3572484509"
+        }
+      ],
+      "reviewed": "19359aa4a0fc3e00a321996521a00482d7d059bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3571292920"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "why this?",
+      "created": "2026-07-14T04:56:09Z",
+      "hunk": "@@ -68,7 +69,7 @@ public final class InstrumentationModuleInstaller {\n               ClassFileLocator.ForClassLoader.of(Utils.getExtensionsClassLoader())));\n \n   public InstrumentationModuleInstaller(Instrumentation instrumentation) {\n-    this.instrumentation = instrumentation;\n+    this.instrumentation = requireNonNull(instrumentation, \"Instrumentation must not be null\");",
+      "id": "PRRT_kwDODJKVX86Qnvir",
+      "opened": "2026-07-14T05:01:12Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/InstrumentationModuleInstaller.java",
+      "replies": [
+        {
+          "at": "2026-07-14T14:04:30Z",
+          "body": "Removed that extra null-tightening. `InstrumentationModuleInstaller` now just stores the constructor argument as-is again.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3579664765"
+        }
+      ],
+      "reviewed": "25b41454181097a0d1eb83824a73181a1217ce6c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3576124705"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I only see `instrumentation` passed into a method which accepts `@Nullable`, so maybe ok for it to be `@Nullable`?",
+      "created": "2026-07-14T04:58:33Z",
+      "hunk": "@@ -78,8 +80,10 @@ public FieldBackedImplementationInstaller(\n       Class<?> instrumenterClass, VirtualFieldMappings virtualFieldMappings) {\n     this.instrumenterClass = instrumenterClass;\n     this.virtualFieldMappings = virtualFieldMappings;\n-    // This class is used only when running with javaagent, thus this calls is safe\n-    this.instrumentation = InstrumentationHolder.getInstrumentation();\n+    // This class is used only when running with javaagent, thus this call is safe\n+    this.instrumentation =\n+        requireNonNull(\n+            InstrumentationHolder.getInstrumentation(), \"Instrumentation must not be null\");",
+      "id": "PRRT_kwDODJKVX86QnxBk",
+      "opened": "2026-07-14T05:01:12Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/field/FieldBackedImplementationInstaller.java",
+      "replies": [
+        {
+          "at": "2026-07-14T14:04:31Z",
+          "body": "Yep — I kept the field nullable instead. `FieldBackedImplementationInstaller.instrumentation` is `@Nullable` now, and it just passes through to the downstream API that already accepts `@Nullable`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3579664936"
+        }
+      ],
+      "reviewed": "25b41454181097a0d1eb83824a73181a1217ce6c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3576133265"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is `null` ever passed in here?\n\n\n```suggestion\n    private DefineClassContextImpl(DefineClassContextImpl previous) {\n```",
+      "created": "2026-07-14T05:05:32Z",
+      "hunk": "@@ -119,17 +121,24 @@ public static Set<String> getSuperTypes() {\n   }\n \n   private static class DefineClassContextImpl implements DefineClassContext {\n-    private static final DefineClassContextImpl NOP = new DefineClassContextImpl();\n-\n-    private final DefineClassContextImpl previous;\n-    String failedClassDotName;\n-    Set<String> superDotNames;\n+    // NOP is returned from beforeDefineClass without calling enter() (no frame pushed),\n+    // so exit() must not mutate the ThreadLocal — otherwise a nested J9 defineClass would\n+    // clobber an outer frame that is still active.\n+    private static final DefineClassContextImpl NOP =\n+        new DefineClassContextImpl() {\n+          @Override\n+          public void exit() {}\n+        };\n+\n+    @Nullable private final DefineClassContextImpl previous;\n+    @Nullable String failedClassDotName;\n+    @Nullable Set<String> superDotNames;\n \n     private DefineClassContextImpl() {\n       previous = null;\n     }\n \n-    private DefineClassContextImpl(DefineClassContextImpl previous) {\n+    private DefineClassContextImpl(@Nullable DefineClassContextImpl previous) {",
+      "id": "PRRT_kwDODJKVX86Qn2Fp",
+      "opened": "2026-07-14T05:06:53Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/DefineClassHandler.java",
+      "replies": [
+        {
+          "at": "2026-07-14T14:04:32Z",
+          "body": "I tightened this one to non-null. I couldn’t find a path that passes `null` here, so the constructor now takes a non-null `previous` reference.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3579665090"
+        }
+      ],
+      "reviewed": "25b41454181097a0d1eb83824a73181a1217ce6c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3576161310"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "does this ever return null?",
+      "created": "2026-07-14T05:06:50Z",
+      "hunk": "@@ -146,6 +150,7 @@ private AgentBuilder.Transformer bootstrapHelperInjector(\n       final HelperInjector injector =\n           HelperInjector.forDynamicTypes(getClass().getSimpleName(), helpers, instrumentation);\n \n+      @Nullable",
+      "id": "PRRT_kwDODJKVX86Qn22t",
+      "opened": "2026-07-14T05:06:53Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/field/FieldBackedImplementationInstaller.java",
+      "replies": [
+        {
+          "at": "2026-07-14T14:04:34Z",
+          "body": "Yes, in non-javaagent / build-time paths `InstrumentationHolder.getInstrumentation()` can still be absent here. I kept the stored field nullable and aligned it with the downstream `@Nullable` contract instead of forcing it non-null.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3579665276"
+        },
+        {
+          "at": "2026-07-14T15:24:31Z",
+          "body": "I think this could work to be able to remove `@Nullable` return?\n\n```java\ninjector.transform(builder, typeDescription, null, javaModule, protectionDomain);\nreturn builder;",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3580327200"
+        },
+        {
+          "at": "2026-07-14T15:42:19Z",
+          "body": "Applied this approach: bootstrapHelperInjector now calls injector.transform(...) for the side effect and returns the original builder, so this path stays non-null.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3580461503"
+        }
+      ],
+      "reviewed": "25b41454181097a0d1eb83824a73181a1217ce6c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3576165679"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "maybe better to remove `boolean declarativeConfigUsed`\n\nuse `if (configProperties != null)`\n\nand add comment to explain instead of explaining via var name",
+      "created": "2026-07-14T19:03:12Z",
+      "hunk": "@@ -39,12 +40,14 @@ public static AutoConfiguredOpenTelemetrySdk installOpenTelemetrySdk(\n     boolean declarativeConfigUsed = configProperties == null;\n \n     if (!declarativeConfigUsed) {\n+      ConfigProperties nonNullConfigProperties = requireNonNull(configProperties);",
+      "id": "PRRT_kwDODJKVX86Q3fTv",
+      "opened": "2026-07-14T19:24:56Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/OpenTelemetryInstaller.java",
+      "replies": [
+        {
+          "at": "2026-07-15T09:21:07Z",
+          "body": "Updated this to use `if (configProperties != null)` directly and moved the explanation into an inline comment about why declarative-config mode preserves the SDK as-is. I also rebased the branch onto current `main`, so the PR is no longer conflicting.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3586016962"
+        }
+      ],
+      "reviewed": "d5556e359bf0e497576ae2191b09af445e54828d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3581867857"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is this needed? I assume NullAway doesn't need this with the configProperties != null above",
+      "created": "2026-07-15T15:46:04Z",
+      "hunk": "@@ -36,15 +37,17 @@ public static AutoConfiguredOpenTelemetrySdk installOpenTelemetrySdk(\n             .build();\n     OpenTelemetrySdk sdk = autoConfiguredSdk.getOpenTelemetrySdk();\n     ConfigProperties configProperties = AutoConfigureUtil.getConfig(autoConfiguredSdk);\n-    boolean declarativeConfigUsed = configProperties == null;\n \n-    if (!declarativeConfigUsed) {\n+    if (configProperties != null) {\n+      ConfigProperties nonNullConfigProperties = requireNonNull(configProperties);",
+      "id": "PRRT_kwDODJKVX86RKHwO",
+      "opened": "2026-07-15T15:46:04Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/OpenTelemetryInstaller.java",
+      "replies": [
+        {
+          "at": "2026-07-16T10:35:10Z",
+          "body": "no - removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3594673650"
+        }
+      ],
+      "reviewed": "36453afaee842fa6b9ad867636a24edc3ac4c828",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719#discussion_r3588731208"
+    }
+  ]
+}

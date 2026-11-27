@@ -1,0 +1,25 @@
+{
+  "head": "f3fde261d7aec0f42419ebdd096619469e122dce",
+  "merge": "db5dd69e50d2f169628e666ba2458c8af80fdf6f",
+  "merged": "2026-11-05T13:39:33Z",
+  "missing_roots": 0,
+  "number": 21208,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Replacing these entries changes the registrations exposed by MCP 2.1's `asyncHttpRequestCustomizers(...)` API. After the first `build()`, `list.remove(originalCustomizer)` no longer finds the registered instance, so a rebuilt transport still invokes the customizer the application tried to remove. Leave the builder's registration list unchanged and wrap the composed customizer used by the transport instead; add an installed-agent regression covering build, removal, and rebuild.",
+      "created": "2026-11-05T09:14:01Z",
+      "hunk": "@@ -29,6 +30,12 @@ static McpAsyncHttpClientRequestCustomizer wrap(\n     return new McpHttpRequestCustomizer(customizer);\n   }\n \n+  static void wrap(List<McpAsyncHttpClientRequestCustomizer> customizers) {\n+    for (int i = 0; i < customizers.size(); i++) {\n+      customizers.set(i, wrap(customizers.get(i)));",
+      "id": "PRRT_kwDODJKVX86z_uyl",
+      "opened": "2026-11-05T09:14:02Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpHttpRequestCustomizer.java",
+      "replies": [],
+      "reviewed": "06eed61edfcd4e2f83ef0f8c3601ce564a037ab6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21208#discussion_r4478571877"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "head": "a6f12a69b1a14d0fa6abf48c03ffaf10c45e5158",
+  "merge": "981b2ce7354f41f625255bf483373e9fc85f2214",
+  "merged": "2026-06-05T22:25:11Z",
+  "missing_roots": 0,
+  "number": 85,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Typo in comment: \"attibutes\" should be \"attributes\".\n",
+      "created": "2026-05-23T05:20:39Z",
+      "hunk": "@@ -1,11 +1,39 @@\n+# Optionally override the agent name reported on spans\n+# OTEL_GENAI_AGENT_NAME=Travel Concierge\n+\n # Update this with your real OpenAI API key\n OPENAI_API_KEY=sk-YOUR_API_KEY\n \n-# Uncomment and adjust if you use a non-default OTLP collector endpoint\n+# Uncomment to use Ollama instead of OpenAI\n+# OPENAI_BASE_URL=http://localhost:11434/v1\n+# OPENAI_API_KEY=unused\n+# CHAT_MODEL=qwen2.5:0.5b\n+\n+# Uncomment and change to your OTLP endpoint\n # OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317\n # OTEL_EXPORTER_OTLP_PROTOCOL=grpc\n \n-OTEL_SERVICE_NAME=opentelemetry-python-openai-agents-zero-code\n+OTEL_SERVICE_NAME=openai-agents-zero-code-demo\n \n-# Optionally override the agent name reported on spans\n-# OTEL_GENAI_AGENT_NAME=Travel Concierge\n+# Remove to hide prompt and completion content\n+# Possible values (case insensitive):\n+# - `span_only` - record content on span attibutes",
+      "id": "PRRT_kwDOSbspP86ERfG5",
+      "opened": "2026-05-23T05:20:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/zero-code/.env.example",
+      "replies": [],
+      "reviewed": "ef93fc21323edecf89007b8c4b88f86c82a99335",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/85#discussion_r3292132980"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Typo in comment: \"attibutes\" should be \"attributes\".\n",
+      "created": "2026-05-23T05:20:40Z",
+      "hunk": "@@ -1,5 +1,36 @@\n-# Copy to .env and add real values before running main.py\n-OPENAI_API_KEY=\n-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317\n-OTEL_EXPORTER_OTLP_PROTOCOL=grpc\n+# Update this with your real OpenAI API key\n+OPENAI_API_KEY=sk-YOUR_API_KEY\n+\n+# Uncomment to use Ollama instead of OpenAI\n+# OPENAI_BASE_URL=http://localhost:11434/v1\n+# OPENAI_API_KEY=unused\n+# CHAT_MODEL=qwen2.5:0.5b\n+\n+# Uncomment and change to your OTLP endpoint\n+# OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317\n+# OTEL_EXPORTER_OTLP_PROTOCOL=grpc\n+\n OTEL_SERVICE_NAME=openai-agents-manual-demo\n+\n+# Remove to hide prompt and completion content\n+# Possible values (case insensitive):\n+# - `span_only` - record content on span attibutes",
+      "id": "PRRT_kwDOSbspP86ERfHA",
+      "opened": "2026-05-23T05:20:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/manual/.env.example",
+      "replies": [],
+      "reviewed": "ef93fc21323edecf89007b8c4b88f86c82a99335",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/85#discussion_r3292132987"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This rule flags any span with status.code == \"ok\", including non-GenAI spans created by application code. To avoid false positives, scope the check to spans that carry GenAI context (e.g., require the \"gen_ai.operation.name\" attribute to be present) before emitting this finding.\n",
+      "created": "2026-05-23T05:20:40Z",
+      "hunk": "@@ -198,6 +198,62 @@ deny contains _span_finding(\n \tnot _has_attr(input.sample.span, attr_name)\n }\n \n+# ─── Unknown gen_ai.operation.name (violation) ──────────────────────────────\n+#\n+# Weaver's built-in `undefined_enum_variant` advice is `information`-level;\n+# we raise unknown values on `gen_ai.operation.name` to a violation. Keep\n+# `_known_operation_names` in sync with model/gen-ai/registry.yaml.\n+\n+_known_operation_names := {\n+\t\"chat\",\n+\t\"generate_content\",\n+\t\"text_completion\",\n+\t\"embeddings\",\n+\t\"retrieval\",\n+\t\"create_agent\",\n+\t\"invoke_agent\",\n+\t\"execute_tool\",\n+\t\"invoke_workflow\",\n+\t\"plan\",\n+}\n+\n+deny contains _span_finding(\n+\t\"genai_operation_name_unknown\",\n+\t\"violation\",\n+\tinput.sample.span,\n+\t{\"operation\": op},\n+\tsprintf(\n+\t\t\"Span '%v' has gen_ai.operation.name='%v' which is not a documented enum value\",\n+\t\t[input.sample.span.name, op],\n+\t),\n+) if {\n+\tinput.sample.span\n+\top := _attr_value(input.sample.span, \"gen_ai.operation.name\")\n+\tnot _known_operation_names[op]\n+}\n+\n+# ─── Span status (violation) ────────────────────────────────────────────────\n+#\n+# Per the OpenTelemetry trace spec, instrumentation libraries MUST NOT set\n+# span status to OK — that value is reserved for application code that has\n+# explicitly verified the call succeeded. Instrumentations should leave\n+# status UNSET on success and set ERROR on failure.\n+# https://opentelemetry.io/docs/specs/otel/trace/api/#set-status\n+\n+deny contains _span_finding(\n+\t\"genai_span_status_ok_set_by_instrumentation\",\n+\t\"violation\",\n+\tinput.sample.span,\n+\t{\"status_code\": input.sample.span.status.code},\n+\tsprintf(\n+\t\t\"Span '%v' has status.code='ok'; instrumentations must leave status UNSET on success (OK is reserved for application code).\",\n+\t\t[input.sample.span.name],\n+\t),\n+) if {\n+\tinput.sample.span",
+      "id": "PRRT_kwDOSbspP86ERfHE",
+      "opened": "2026-05-23T05:20:40Z",
+      "path": "policies/genai_span_validation.rego",
+      "replies": [],
+      "reviewed": "ef93fc21323edecf89007b8c4b88f86c82a99335",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/85#discussion_r3292132993"
+    }
+  ]
+}

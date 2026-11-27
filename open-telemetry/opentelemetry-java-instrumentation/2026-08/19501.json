@@ -1,0 +1,70 @@
+{
+  "head": "8bd3a490ae75a2ed0441e6825e3434a3f08a3b1e",
+  "merge": "446f43ec049731ba89eb9d413ce24ff32f8fc352",
+  "merged": "2026-08-11T07:54:25Z",
+  "missing_roots": 0,
+  "number": 19501,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change removes `jvm.gc.duration-e20d0032` from the runtime-telemetry metric list. If the runtime telemetry instrumentation still emits GC duration (and the metric is still defined elsewhere in this YAML), this will silently drop it from the published instrumentation list. Please confirm the removal is intentional; otherwise, restore the metric ref (or, if it’s truly deprecated, consider removing/annotating the metric definition accordingly to avoid a dangling/undocumented metric).",
+      "created": "2026-08-11T03:14:51Z",
+      "hunk": "@@ -13049,7 +13239,6 @@ libraries:\n     - jvm.cpu.count-ae176c2b\n     - jvm.cpu.recent_utilization-6056df51\n     - jvm.cpu.time-e00d5c75\n-    - jvm.gc.duration-e20d0032\n     - jvm.memory.committed-75750f2f\n     - jvm.memory.limit-13513f5f\n     - jvm.memory.used-0d769189",
+      "id": "PRRT_kwDODJKVX86YGjiC",
+      "opened": "2026-08-11T03:14:52Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "8bd3a490ae75a2ed0441e6825e3434a3f08a3b1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19501#discussion_r3754994468"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Renaming the metric key from `...-dab7c60a` to `...-df200871` is likely necessary due to the attribute set change, but it can be a breaking change for any downstream references that use these IDs as stable identifiers (e.g., links, generated artifacts, or external consumers of this YAML). If backward compatibility matters here, consider keeping the old ID as a deprecated alias/redirect (or documenting the replacement) so existing references don’t break.",
+      "created": "2026-08-11T03:14:51Z",
+      "hunk": "@@ -2023,7 +2023,7 @@ definitions:\n         type: STRING\n       - name: server.port\n         type: LONG\n-    messaging.client.operation.duration-dab7c60a:\n+    messaging.client.operation.duration-df200871:\n       name: messaging.client.operation.duration\n       description: Duration of messaging operation initiated by a producer or consumer\n         client.",
+      "id": "PRRT_kwDODJKVX86YGjiM",
+      "opened": "2026-08-11T03:14:52Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "8bd3a490ae75a2ed0441e6825e3434a3f08a3b1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19501#discussion_r3754994481"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Renaming the metric key from `...-dab7c60a` to `...-df200871` is likely necessary due to the attribute set change, but it can be a breaking change for any downstream references that use these IDs as stable identifiers (e.g., links, generated artifacts, or external consumers of this YAML). If backward compatibility matters here, consider keeping the old ID as a deprecated alias/redirect (or documenting the replacement) so existing references don’t break.",
+      "created": "2026-08-11T03:14:51Z",
+      "hunk": "@@ -2033,6 +2033,8 @@ definitions:\n       attributes:\n       - name: messaging.destination.name\n         type: STRING\n+      - name: messaging.destination.subscription.name\n+        type: STRING",
+      "id": "PRRT_kwDODJKVX86YGjiY",
+      "opened": "2026-08-11T03:14:52Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "8bd3a490ae75a2ed0441e6825e3434a3f08a3b1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19501#discussion_r3754994495"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The newly added preview messaging blocks introduce large, mostly duplicated attribute lists across multiple span kinds (and across multiple libraries). This increases the risk of drift/inconsistencies over time when attributes are added/removed. If your YAML tooling supports it, consider refactoring repeated attribute sets using YAML anchors/aliases (or shared named attribute groups in this schema, if available) to keep updates centralized.",
+      "created": "2026-08-11T03:14:52Z",
+      "hunk": "@@ -12167,6 +12169,88 @@ libraries:\n         type: STRING\n       - name: rabbitmq.delivery_mode\n         type: LONG\n+  - when: otel.semconv-stability.preview=messaging\n+    spans:\n+    - span_kind: CLIENT\n+      attributes:\n+      - name: error.type\n+        type: STRING\n+      - name: messaging.destination.anonymous\n+        type: BOOLEAN\n+      - name: messaging.destination.name\n+        type: STRING\n+      - name: messaging.operation.name\n+        type: STRING",
+      "id": "PRRT_kwDODJKVX86YGjih",
+      "opened": "2026-08-11T03:14:52Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "8bd3a490ae75a2ed0441e6825e3434a3f08a3b1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19501#discussion_r3754994505"
+    }
+  ]
+}

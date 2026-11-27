@@ -1,0 +1,50 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "df2a6c402494092d94b0ec46132ea603ddbee618654d6672b034fa4944a49261",
+  "input_digest": "e3734af55e67b310ccebcbe1b29d02548011e9a7d568b9f9a2ba327de7a52ea4",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20934dd6619a0b5483b4fb39218981ccaf6370e1/instrumentation/scala-fork-join-2.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/scala/fork/join/v2_8/AsyncChild.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20934dd6619a0b5483b4fb39218981ccaf6370e1/instrumentation/scala-fork-join-2.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/scala/fork/join/v2_8/ExecutorInstrumentationTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20934dd6619a0b5483b4fb39218981ccaf6370e1/instrumentation/scala-forkjoin-2.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/scala/forkjoin/v2_8/AsyncChild.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20934dd6619a0b5483b4fb39218981ccaf6370e1/instrumentation/scala-forkjoin-2.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/scala/forkjoin/v2_8/ExecutorInstrumentationTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48ca9d71aaeb4f6cc909edf915e9ece158168c92/instrumentation/scala-forkjoin-2.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/scala/forkjoin/v2_8/AsyncChild.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48ca9d71aaeb4f6cc909edf915e9ece158168c92/instrumentation/scala-forkjoin-2.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/scala/forkjoin/v2_8/ExecutorInstrumentationTest.scala"
+      ],
+      "id": "PRRT_kwDODJKVX86CtQ2f",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20934dd6619a0b5483b4fb39218981ccaf6370e1/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20934dd6619a0b5483b4fb39218981ccaf6370e1/instrumentation/akka/akka-actor-fork-join-2.5/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/20934dd6619a0b5483b4fb39218981ccaf6370e1/instrumentation/akka/akka-actor-forkjoin-2.5/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48ca9d71aaeb4f6cc909edf915e9ece158168c92/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48ca9d71aaeb4f6cc909edf915e9ece158168c92/instrumentation/akka/akka-actor-fork-join-2.5/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48ca9d71aaeb4f6cc909edf915e9ece158168c92/instrumentation/akka/akka-actor-forkjoin-2.5/metadata.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86CtQ2q",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/89cc5feb6f7b2fba95875f42ccca57cb0cfe5046/.github/scripts/check-javaagent-suppression-keys.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48ca9d71aaeb4f6cc909edf915e9ece158168c92/.github/scripts/check-javaagent-suppression-keys.sh"
+      ],
+      "id": "PRRT_kwDODJKVX86E5A8_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

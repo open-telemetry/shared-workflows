@@ -1,0 +1,76 @@
+{
+  "head": "8f308a062e5517bb16ec2f6897cff4643473bb71",
+  "merge": "4f04220c23657cf8bc3a9f5320104217cdc55f3a",
+  "merged": "2026-08-11T19:34:27Z",
+  "missing_roots": 0,
+  "number": 19247,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This brief does not match the metric emitted by the ActiveMQ rule: `library/src/main/resources/jmx/rules/activemq.yaml:24` describes consumers as “subscribed to this destination,” and the existing integration assertion expects that wording. Weaver currently does not enforce descriptions, so this mismatch passes validation and leaves the new registry definition inaccurate.",
+      "created": "2026-07-27T13:48:54Z",
+      "hunk": "@@ -0,0 +1,222 @@\n+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-telemetry/weaver/v0.24.2/schemas/semconv.schema.json\n+\n+groups:\n+  - id: attributes.activemq\n+    type: attribute_group\n+    brief: ActiveMQ attributes\n+    attributes:\n+      - id: activemq.destination.type\n+        type: string\n+        stability: development\n+        brief: ActiveMQ destination type (queue or topic)\n+        examples:\n+          - \"queue\"\n+          - \"topic\"\n+      - id: activemq.broker.name\n+        type: string\n+        stability: development\n+        brief: ActiveMQ broker name\n+        examples:\n+          - \"localhost\"\n+\n+  - id: metric.activemq.producer.count\n+    metric_name: activemq.producer.count\n+    type: metric\n+    stability: development\n+    brief: The number of producers attached to this destination\n+    unit: \"{producer}\"\n+    instrument: updowncounter\n+    attributes:\n+      - ref: activemq.broker.name\n+      - ref: messaging.destination.name\n+      - ref: activemq.destination.type\n+\n+  - id: metric.activemq.consumer.count\n+    metric_name: activemq.consumer.count\n+    type: metric\n+    stability: development\n+    brief: The number of consumers attached to this destination",
+      "id": "PRRT_kwDODJKVX86UFAF2",
+      "opened": "2026-07-27T13:48:55Z",
+      "path": "instrumentation/jmx-metrics/model/activemq.yaml",
+      "replies": [],
+      "reviewed": "526ddbfb739363ca0c1a9ac6f6e05557d4539309",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19247#discussion_r3657806984"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This is a closed value set — the rule produces it via `lowercase(param(destinationType))`, so it is always `queue` or `topic`. Modeling it as an enum with those two members would let weaver validate the values rather than accept any string. Optional, but same idea applies to `wildfly.rollback.cause` in the sibling PR.",
+      "created": "2026-07-29T16:00:09Z",
+      "hunk": "@@ -0,0 +1,222 @@\n+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-telemetry/weaver/v0.24.2/schemas/semconv.schema.json\n+\n+groups:\n+  - id: attributes.activemq\n+    type: attribute_group\n+    brief: ActiveMQ attributes\n+    attributes:\n+      - id: activemq.destination.type\n+        type: string\n+        stability: development\n+        brief: ActiveMQ destination type (queue or topic)\n+        examples:\n+          - \"queue\"\n+          - \"topic\"",
+      "id": "PRRT_kwDODJKVX86U0vgV",
+      "opened": "2026-07-29T16:00:09Z",
+      "path": "instrumentation/jmx-metrics/model/activemq.yaml",
+      "replies": [
+        {
+          "at": "2026-07-30T09:36:38Z",
+          "body": "fixed in e51f0a4",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19247#discussion_r3681625265"
+        }
+      ],
+      "reviewed": "5ac60b0cdb7b5f4eeace87f6171e35b93ad7a805",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19247#discussion_r3676011032"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] The `brief` values in this file don't have the trailing period that this PR just added to every `desc` in `activemq.yaml` — all 18 of them differ from the rule description by exactly that character. `model/tomcat.yaml` uses trailing periods, so this file is the odd one out. Worth a pass over the whole file so `brief` and `desc` stay byte-identical and easy to diff.\n\n```suggestion\n    brief: The number of producers attached to this destination.\n```",
+      "created": "2026-07-30T12:56:59Z",
+      "hunk": "@@ -0,0 +1,231 @@\n+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-telemetry/weaver/v0.24.2/schemas/semconv.schema.json\n+\n+groups:\n+  - id: attributes.activemq\n+    type: attribute_group\n+    brief: ActiveMQ attributes\n+    attributes:\n+      - id: activemq.destination.type\n+        type:\n+          members:\n+            - id: queue\n+              value: \"queue\"\n+              brief: Queue destination type\n+              stability: development\n+            - id: topic\n+              value: \"topic\"\n+              brief: Topic destination type\n+              stability: development\n+        stability: development\n+        brief: ActiveMQ destination type\n+        examples:\n+          - \"queue\"\n+          - \"topic\"\n+      - id: activemq.broker.name\n+        type: string\n+        stability: development\n+        brief: ActiveMQ broker name\n+        examples:\n+          - \"localhost\"\n+\n+  - id: metric.activemq.producer.count\n+    metric_name: activemq.producer.count\n+    type: metric\n+    stability: development\n+    brief: The number of producers attached to this destination",
+      "id": "PRRT_kwDODJKVX86VGst2",
+      "opened": "2026-07-30T13:13:11Z",
+      "path": "instrumentation/jmx-metrics/model/activemq.yaml",
+      "replies": [],
+      "reviewed": "407b2727ab19b6014b2a3f894e1ec1beea9da65b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19247#discussion_r3682839194"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This one is missing `sourceUnit: \"%\"`. `DestinationViewMBean.getTempUsagePercentUsage()` returns 0-100, exactly like the broker-level `MemoryPercentUsage` / `StorePercentUsage` / `TempPercentUsage` below — all three of which do declare `sourceUnit: \"%\"` so the value gets scaled to the `\"1\"` unit. Without it this metric reports a percentage while claiming `unit: \"1\"`, and the reworded description now asserts it is a fraction, so the mismatch is no longer just implicit.\n\n```suggestion\n        metric: destination.temp.utilization\n        sourceUnit: \"%\"\n        unit: \"1\"\n        type: gauge\n        desc: The fraction of non-persistent storage used by this destination.\n```",
+      "created": "2026-07-30T12:56:59Z",
+      "hunk": "@@ -15,68 +15,68 @@ rules:\n         metric: producer.count\n         unit: \"{producer}\"\n         type: updowncounter\n-        desc: The number of producers attached to this destination\n+        desc: The number of producers attached to this destination.\n       # activemq.consumer.count\n       ConsumerCount:\n         metric: consumer.count\n         unit: \"{consumer}\"\n         type: updowncounter\n-        desc: The number of consumers subscribed to this destination\n+        desc: The number of consumers subscribed to this destination.\n       # activemq.destination.memory.usage\n       MemoryUsageByteCount:\n         metric: destination.memory.usage\n         unit: By\n         type: updowncounter\n-        desc: The amount of used memory by this destination\n+        desc: The amount of used memory by this destination.\n       # activemq.destination.memory.limit\n       MemoryLimit:\n         metric: destination.memory.limit\n         unit: By\n         type: updowncounter\n-        desc: The amount of configured memory limit for this destination\n+        desc: The amount of configured memory limit for this destination.\n       # activemq.destination.temp.utilization\n       TempUsagePercentUsage:\n         metric: destination.temp.utilization\n         unit: \"1\"\n         type: gauge\n-        desc: The percentage of non-persistent storage used by this destination\n+        desc: The fraction of non-persistent storage used by this destination.",
+      "id": "PRRT_kwDODJKVX86VGstp",
+      "opened": "2026-07-30T13:13:11Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/activemq.yaml",
+      "replies": [],
+      "reviewed": "407b2727ab19b6014b2a3f894e1ec1beea9da65b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19247#discussion_r3682839176"
+    }
+  ]
+}

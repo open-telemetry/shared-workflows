@@ -1,0 +1,106 @@
+{
+  "head": "5e81bee9508d517639d2beba0dc240e186b0823a",
+  "merge": "2fc63f2c3df7b8f5bd48559e8f6b4b72aa37f82a",
+  "merged": "2026-10-28T08:14:14Z",
+  "missing_roots": 0,
+  "number": 21034,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should these be removed?",
+      "created": "2026-10-28T08:04:36Z",
+      "hunk": "@@ -34,10 +33,10 @@ testing {\n           jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n         }\n         register(\"PreviewSemconv\") {\n-          telemetryConfig(\"otel.semconv-stability.preview\", \"rpc\")\n+          jvmArgs(\"-Dotel.semconv-stability.preview=rpc\")\n         }\n         register(\"BothSemconv\") {\n-          telemetryConfig(\"otel.semconv-stability.preview\", \"rpc/dup\")\n+          jvmArgs(\"-Dotel.semconv-stability.preview=rpc/dup\")\n         }",
+      "id": "PRRT_kwDODJKVX86xB-dX",
+      "opened": "2026-10-28T08:04:36Z",
+      "path": "instrumentation/sofa-rpc-5.4/library-autoconfigure/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-28T08:13:52Z",
+          "body": "looks like it is done in a follow up PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21034#discussion_r4398280159"
+        }
+      ],
+      "reviewed": "5e81bee9508d517639d2beba0dc240e186b0823a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21034#discussion_r4398213148"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should these be removed?",
+      "created": "2026-10-28T08:04:58Z",
+      "hunk": "@@ -28,10 +27,10 @@ testing {\n           systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n         }\n         register(\"PreviewSemconv\") {\n-          telemetryConfig(\"otel.semconv-stability.preview\", \"rpc\")\n+          jvmArgs(\"-Dotel.semconv-stability.preview=rpc\")\n         }\n         register(\"BothSemconv\") {\n-          telemetryConfig(\"otel.semconv-stability.preview\", \"rpc/dup\")\n+          jvmArgs(\"-Dotel.semconv-stability.preview=rpc/dup\")\n         }",
+      "id": "PRRT_kwDODJKVX86xB-1K",
+      "opened": "2026-10-28T08:04:58Z",
+      "path": "instrumentation/thrift-0.13/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "5e81bee9508d517639d2beba0dc240e186b0823a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21034#discussion_r4398215615"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could remove the whole suite?",
+      "created": "2026-10-28T08:05:27Z",
+      "hunk": "@@ -126,14 +126,12 @@ tasks {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n \n     jvmArgs(\"-Dotel.semconv-stability.preview=rpc\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=rpc\")",
+      "id": "PRRT_kwDODJKVX86xB_UZ",
+      "opened": "2026-10-28T08:05:26Z",
+      "path": "instrumentation/gwt-2.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "5e81bee9508d517639d2beba0dc240e186b0823a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21034#discussion_r4398218873"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should remove `rpc/dup`",
+      "created": "2026-10-28T08:06:07Z",
+      "hunk": "@@ -103,7 +103,7 @@ val bothSemconvSuites = testing.suites.withType(JvmTestSuite::class).map { suite\n     classpath = suite.sources.runtimeClasspath\n \n     jvmArgs(\"-Dotel.semconv-stability.preview=rpc/dup,service.peer\")",
+      "id": "PRRT_kwDODJKVX86xCABC",
+      "opened": "2026-10-28T08:06:07Z",
+      "path": "instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "5e81bee9508d517639d2beba0dc240e186b0823a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21034#discussion_r4398223528"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wasn't there guidance for not testing removed flags?",
+      "created": "2026-10-28T08:07:41Z",
+      "hunk": "@@ -57,16 +55,64 @@\n import org.junit.jupiter.api.Test;\n import org.junit.jupiter.api.extension.RegisterExtension;\n import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.CsvSource;\n import org.junit.jupiter.params.provider.ValueSource;\n+import org.junitpioneer.jupiter.SetSystemProperty;\n \n @SuppressWarnings(\"deprecation\") // old semconv and dual-emission customizer\n class RpcInstanceSemconvTest {\n \n+  private static final double[] DURATION_BUCKETS = {\n+    0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100\n+  };\n+\n   @RegisterExtension final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n \n+  @ParameterizedTest\n+  @CsvSource({\"true,''\", \"false,''\", \"true,rpc/dup\", \"false,rpc/dup\"})\n+  @SetSystemProperty(key = \"otel.semconv-stability.preview\", value = \"\")\n+  void defaultSdkEmitsOnlyNewRpcTelemetry(boolean client, String preview) {",
+      "id": "PRRT_kwDODJKVX86xCB2z",
+      "opened": "2026-10-28T08:07:41Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcInstanceSemconvTest.java",
+      "replies": [],
+      "reviewed": "5e81bee9508d517639d2beba0dc240e186b0823a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21034#discussion_r4398236158"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "it there are are no old and new modes for the rpc then that part of the test become irrelevant",
+      "created": "2026-10-28T08:11:05Z",
+      "hunk": "@@ -57,16 +55,64 @@\n import org.junit.jupiter.api.Test;\n import org.junit.jupiter.api.extension.RegisterExtension;\n import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.CsvSource;\n import org.junit.jupiter.params.provider.ValueSource;\n+import org.junitpioneer.jupiter.SetSystemProperty;\n \n @SuppressWarnings(\"deprecation\") // old semconv and dual-emission customizer\n class RpcInstanceSemconvTest {\n \n+  private static final double[] DURATION_BUCKETS = {\n+    0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100\n+  };\n+\n   @RegisterExtension final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n \n+  @ParameterizedTest\n+  @CsvSource({\"true,''\", \"false,''\", \"true,rpc/dup\", \"false,rpc/dup\"})\n+  @SetSystemProperty(key = \"otel.semconv-stability.preview\", value = \"\")\n+  void defaultSdkEmitsOnlyNewRpcTelemetry(boolean client, String preview) {\n+    System.setProperty(\"otel.semconv-stability.preview\", preview);\n+    ConfiguredInstrumenter instance = new ConfiguredInstrumenter(client, false, false, true);\n+    Context context = instance.instrumenter.start(Context.root(), \"request\");\n+    instance.instrumenter.end(context, \"request\", null, null);\n+\n+    assertThat(instance.spanExporter.getFinishedSpanItems())\n+        .singleElement()\n+        .satisfies(\n+            span -> {\n+              assertThat(span)\n+                  .hasName(\"Service/Method\")\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(RPC_SYSTEM_NAME, \"test\"), equalTo(RPC_METHOD, \"Service/Method\"));\n+              assertThat(span.getInstrumentationScopeInfo().getSchemaUrl())\n+                  .isEqualTo(SchemaUrls.V1_44_0);\n+            });\n+    assertThat(instance.metricReader.collectAllMetrics())\n+        .singleElement()\n+        .satisfies(\n+            metric -> {\n+              assertThat(metric)\n+                  .hasName(client ? \"rpc.client.call.duration\" : \"rpc.server.call.duration\")\n+                  .hasUnit(\"s\")\n+                  .hasHistogramSatisfying(\n+                      histogram ->\n+                          histogram.hasPointsSatisfying(\n+                              point ->\n+                                  point\n+                                      .hasCount(1)\n+                                      .hasBucketBoundaries(DURATION_BUCKETS)\n+                                      .hasAttributesSatisfyingExactly(\n+                                          equalTo(RPC_SYSTEM_NAME, \"test\"),\n+                                          equalTo(RPC_METHOD, \"Service/Method\"))));\n+              assertThat(metric.getInstrumentationScopeInfo().getSchemaUrl())\n+                  .isEqualTo(SchemaUrls.V1_44_0);\n+            });\n+  }\n+\n   @ParameterizedTest\n   @ValueSource(booleans = {true, false})\n-  void instancesEmitIndependentSemconv(boolean client) {\n+  void instancesUseNewRpcConventionsAndIndependentServicePeerConventions(boolean client) {",
+      "id": "PRRT_kwDODJKVX86xCFXi",
+      "opened": "2026-10-28T08:11:04Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcInstanceSemconvTest.java",
+      "replies": [],
+      "reviewed": "5e81bee9508d517639d2beba0dc240e186b0823a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21034#discussion_r4398259596"
+    }
+  ]
+}

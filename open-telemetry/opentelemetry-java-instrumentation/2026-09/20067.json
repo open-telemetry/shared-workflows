@@ -1,0 +1,94 @@
+{
+  "head": "93d2d90b9607cc92be671a1ee8f1dc0a76030a8f",
+  "merge": "a154f3d1adcee5145834cab8a5742f771cd6d41d",
+  "merged": "2026-09-12T00:48:12Z",
+  "missing_roots": 0,
+  "number": 20067,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Similar to the aws-sdk-2.2 test: removing the `end == start` assertion drops all validation that create spans have sane timing. Please consider adding a stable assertion like `endEpochNanos >= startEpochNanos` for all create spans to preserve coverage without requiring exact-zero duration.",
+      "created": "2026-09-09T22:57:29Z",
+      "hunk": "@@ -500,9 +500,6 @@ void testBatchReceiveLinkAttributes() {\n                                           Attributes.of(MESSAGING_MESSAGE_ID, messageIds.get(1)),\n                                           Attributes.of(MESSAGING_MESSAGE_ID, messageIds.get(2)));\n                                 })));",
+      "id": "PRRT_kwDODJKVX86g3Rg4",
+      "opened": "2026-09-09T22:57:30Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+      "replies": [
+        {
+          "at": "2026-09-09T23:24:28Z",
+          "body": "Addressed in 7a0e3d0ce3c80a102f5dabaf5aa81aa06a5d2162.\n\nAnalysis: The SDK clock can give the immediate start and end calls distinct timestamps, so exact equality is no longer valid. Checking that each end timestamp is at least its start timestamp preserves timing sanity coverage without constraining the synthetic span to zero duration.\n\nUpsides: Both SDK generations now detect negative Create span durations while allowing the SDK clock to report elapsed time.\n\nDownsides: The invariant is intentionally weaker than the removed exact-zero-duration check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20067#discussion_r3973912275"
+        }
+      ],
+      "reviewed": "ea83dc5de063aacf131cae90276bba5511e0b3d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20067#discussion_r3973767466"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as the v2.2 implementation: `start()`/`end()` should not be called unconditionally. Please add a `producerCreateInstrumenter.shouldStart(parentContext, createRequest)` guard and only call `start()`/`end()` when true to avoid creating spans when suppressed and to prevent `end()` from being invoked on a context that may represent the parent span.",
+      "created": "2026-09-09T22:57:29Z",
+      "hunk": "@@ -179,16 +178,9 @@ private static SendMessageBatchRequest injectBatchCreationContexts(\n         preparedEntries.add(entry.clone());\n         continue;\n       }\n-      Instant timestamp = Instant.now();\n-      Context creationContext =\n-          InstrumenterUtil.startAndEnd(\n-              producerCreateInstrumenter,\n-              parentContext,\n-              createRequest,\n-              null,\n-              null,\n-              timestamp,\n-              timestamp);\n+      Context creationContext = producerCreateInstrumenter.start(parentContext, createRequest);\n+      // These synthetic spans provide creation contexts without measuring message creation.\n+      producerCreateInstrumenter.end(creationContext, createRequest, null, null);",
+      "id": "PRRT_kwDODJKVX86g3RgB",
+      "opened": "2026-09-09T22:57:30Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-09T23:24:25Z",
+          "body": "No code change.\n\nAnalysis: Both SqsImpl versions already call shouldStart immediately before start. Each path continues without calling start or end when shouldStart returns false. The current head therefore preserves suppression and never passes the parent context to end.\n\nUpsides: Keeps the existing suppression-safe flow and avoids a redundant code change.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20067#discussion_r3973912043"
+        }
+      ],
+      "reviewed": "ea83dc5de063aacf131cae90276bba5511e0b3d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20067#discussion_r3973767384"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Calling `start()`/`end()` unconditionally can break Instrumenter suppression semantics and can be dangerous if `start()` returns the parent context when it decides not to start (e.g., suppression): `end(parentContext, ...)` may incorrectly end/modify the parent span. Please gate this with `producerCreateInstrumenter.shouldStart(creationParentContext, createRequest)` and only call `start()`/`end()` when it returns true (otherwise skip creation-context injection for that entry, consistent with previous `InstrumenterUtil.startAndEnd` behavior).",
+      "created": "2026-09-09T22:57:29Z",
+      "hunk": "@@ -238,16 +237,10 @@ static SdkRequest prepareBatchRequest(\n         continue;\n       }\n \n-      Instant timestamp = Instant.now();\n       io.opentelemetry.context.Context creationContext =\n-          InstrumenterUtil.startAndEnd(\n-              producerCreateInstrumenter,\n-              creationParentContext,\n-              createRequest,\n-              null,\n-              null,\n-              timestamp,\n-              timestamp);\n+          producerCreateInstrumenter.start(creationParentContext, createRequest);\n+      // These synthetic spans provide creation contexts without measuring message creation.\n+      producerCreateInstrumenter.end(creationContext, createRequest, null, null);",
+      "id": "PRRT_kwDODJKVX86g3Rge",
+      "opened": "2026-09-09T22:57:30Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsImpl.java",
+      "replies": [
+        {
+          "at": "2026-09-09T23:24:27Z",
+          "body": "No code change.\n\nAnalysis: Both SqsImpl versions already call shouldStart immediately before start. Each path continues without calling start or end when shouldStart returns false. The current head therefore preserves suppression and never passes the parent context to end.\n\nUpsides: Keeps the existing suppression-safe flow and avoids a redundant code change.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20067#discussion_r3973912174"
+        }
+      ],
+      "reviewed": "ea83dc5de063aacf131cae90276bba5511e0b3d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20067#discussion_r3973767430"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The test no longer asserts anything about create-span timing. Even if exact-zero duration is no longer expected, it would be good to keep a non-flaky invariant to catch regressions (e.g., `endEpochNanos >= startEpochNanos`). Consider adding such an assertion here instead of removing timestamp validation entirely.",
+      "created": "2026-09-09T22:57:30Z",
+      "hunk": "@@ -351,9 +351,6 @@ private static void assertCreateSpan(SpanDataAssert span) {\n     span.hasName(\"create testSdkSqs\")\n         .hasKind(SpanKind.PRODUCER)\n         .hasNoParent()\n-        .satisfies(\n-            spanData ->\n-                assertThat(spanData.getEndEpochNanos()).isEqualTo(spanData.getStartEpochNanos()))\n         .hasAttributesSatisfyingExactly(\n             equalTo(MESSAGING_SYSTEM, AWS_SQS),\n             equalTo(MESSAGING_DESTINATION_NAME, \"testSdkSqs\"),",
+      "id": "PRRT_kwDODJKVX86g3RhL",
+      "opened": "2026-09-09T22:57:30Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2SqsTracingTest.java",
+      "replies": [
+        {
+          "at": "2026-09-09T23:24:29Z",
+          "body": "Addressed in 7a0e3d0ce3c80a102f5dabaf5aa81aa06a5d2162.\n\nAnalysis: The SDK clock can give the immediate start and end calls distinct timestamps, so exact equality is no longer valid. Checking that each end timestamp is at least its start timestamp preserves timing sanity coverage without constraining the synthetic span to zero duration.\n\nUpsides: Both SDK generations now detect negative Create span durations while allowing the SDK clock to report elapsed time.\n\nDownsides: The invariant is intentionally weaker than the removed exact-zero-duration check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20067#discussion_r3973912392"
+        }
+      ],
+      "reviewed": "ea83dc5de063aacf131cae90276bba5511e0b3d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20067#discussion_r3973767499"
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ab95afb055ec2861207bbf87b3abb2ffd92d762ce4d14e1e3ebc7d5e7962ad20",
+  "input_digest": "8ac97dd28f78439722dd21b98c3956499e0407337ffcda88eb351200fe749921",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c5285164d6a1af4c3a852a66d304d3113381e515/instrumentation/spring/spring-boot-autoconfigure/src/main/javaSpring3/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/web/RestClientBeanPostProcessor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77a26cda98b422b9c69030af1c101dd76d70fe48/instrumentation/spring/spring-boot-autoconfigure/src/main/javaSpring3/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/web/RestClientBeanPostProcessor.java"
+      ],
+      "id": "PRRT_kwDODJKVX85lf3rQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX85m526h",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69a6c452d56dcd57687102e6cd056eb2d5d4d48a/instrumentation/spring/spring-boot-autoconfigure/src/main/javaSpring3/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/web/RestClientBeanPostProcessor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77a26cda98b422b9c69030af1c101dd76d70fe48/instrumentation/spring/spring-boot-autoconfigure/src/main/javaSpring3/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/web/RestClientBeanPostProcessor.java"
+      ],
+      "id": "PRRT_kwDODJKVX85oMqiI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69a6c452d56dcd57687102e6cd056eb2d5d4d48a/instrumentation/spring/spring-boot-autoconfigure/testing/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/AbstractWebClientCustomizerAutoConfigurationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77a26cda98b422b9c69030af1c101dd76d70fe48/instrumentation/spring/spring-boot-autoconfigure/testing/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/AbstractWebClientCustomizerAutoConfigurationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX85oNzhj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/79ec6d86d88841486bf0ff8391277b1cb0f2a1cb/instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/WebClientBeanPostProcessorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77a26cda98b422b9c69030af1c101dd76d70fe48/instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/WebClientBeanPostProcessorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX85omI_H",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/79ec6d86d88841486bf0ff8391277b1cb0f2a1cb/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/WebClientBeanPostProcessor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/79ec6d86d88841486bf0ff8391277b1cb0f2a1cb/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/SpringWebfluxInstrumentationAutoConfiguration.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77a26cda98b422b9c69030af1c101dd76d70fe48/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/WebClientBeanPostProcessor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77a26cda98b422b9c69030af1c101dd76d70fe48/instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/WebClientBeanPostProcessorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77a26cda98b422b9c69030af1c101dd76d70fe48/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/SpringWebfluxInstrumentationAutoConfiguration.java"
+      ],
+      "id": "PRRT_kwDODJKVX85oskTd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX857YzsB",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

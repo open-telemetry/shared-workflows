@@ -1,0 +1,55 @@
+{
+  "head": "c3bc41df7fb3859ea71e07618f51cde1882067cc",
+  "merge": "811d374fde4a2d82a8755feb1e81c5d25444222a",
+  "merged": "2026-08-14T01:22:42Z",
+  "missing_roots": 0,
+  "number": 383,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This file mixes pinned LangChain provider packages with a pinned transitive dependency (`boto3`). If `boto3` is only pulled in via `langchain-aws`, consider documenting why it must be pinned here (e.g., known incompatibility/regression) or moving the pin to a central constraints file to avoid future drift across requirement sets.",
+      "created": "2026-08-14T01:00:43Z",
+      "hunk": "@@ -19,7 +19,7 @@ langchain-openai==1.4.3\n langchain-aws==1.7.0\n langchain-google-genai==4.3.3\n langchain-anthropic==1.5.6",
+      "id": "PRRT_kwDOSbspP86ZIU-O",
+      "opened": "2026-08-14T01:00:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.latest.txt",
+      "replies": [],
+      "reviewed": "c3bc41df7fb3859ea71e07618f51cde1882067cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/383#discussion_r3780245781"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For example `requirements.txt`, using only a lower-bound (`>=`) can make the example non-reproducible over time. Consider pinning to a known-good version (or adding an upper bound / using a constraints file) so the example keeps working as dependencies evolve.",
+      "created": "2026-08-14T01:00:44Z",
+      "hunk": "@@ -1,4 +1,4 @@\n-claude-agent-sdk>=0.2.137\n+claude-agent-sdk>=0.2.138\n anyio>=4.14.2",
+      "id": "PRRT_kwDOSbspP86ZIU-d",
+      "opened": "2026-08-14T01:00:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-claude-agent-sdk/examples/zero-code/requirements.txt",
+      "replies": [],
+      "reviewed": "c3bc41df7fb3859ea71e07618f51cde1882067cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/383#discussion_r3780245801"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same as the zero-code example: consider pinning (or constraining) `claude-agent-sdk` to keep the manual example reproducible and reduce breakage from upstream releases.",
+      "created": "2026-08-14T01:00:44Z",
+      "hunk": "@@ -1,4 +1,4 @@\n-claude-agent-sdk>=0.2.137\n+claude-agent-sdk>=0.2.138\n anyio>=4.14.2",
+      "id": "PRRT_kwDOSbspP86ZIU-l",
+      "opened": "2026-08-14T01:00:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-claude-agent-sdk/examples/manual/requirements.txt",
+      "replies": [],
+      "reviewed": "c3bc41df7fb3859ea71e07618f51cde1882067cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/383#discussion_r3780245812"
+    }
+  ]
+}

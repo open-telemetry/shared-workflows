@@ -1,0 +1,52 @@
+{
+  "head": "fe351bd9869bf5c9bac55e7d454b2965e26ddac9",
+  "merge": "e03c84119ad392b94c1a6c64b49d6687f61c4bc8",
+  "merged": "2026-05-26T18:57:20Z",
+  "missing_roots": 0,
+  "number": 193,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The heredoc used to build `body` is indented, so the posted comment will include leading spaces on each line. In GitHub-flavored Markdown, that will render the whole message as a code block and break list formatting. Consider left-aligning the heredoc content (or otherwise stripping indentation) so the guidance renders as normal Markdown text.\n",
+      "created": "2026-05-23T18:22:45Z",
+      "hunk": "@@ -0,0 +1,87 @@\n+name: Copilot review guidance poster\n+\n+# Posts a one-time comment on a PR after Copilot's first review, instructing\n+# the PR author how we expect Copilot review comments to be handled.\n+\n+on:\n+  workflow_run:\n+    workflows: [Copilot review guidance detector]\n+    types: [completed]\n+\n+permissions:\n+  actions: read\n+\n+jobs:\n+  post-guidance:\n+    if: >-\n+      github.repository == 'open-telemetry/semantic-conventions-genai' &&\n+      github.event.workflow_run.conclusion == 'success'\n+    runs-on: ubuntu-latest\n+    steps:\n+      - name: Resolve PR number\n+        id: pr\n+        env:\n+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n+          REPO: ${{ github.repository }}\n+          RUN_ID: ${{ github.event.workflow_run.id }}\n+        run: |\n+          set -euo pipefail\n+          if ! gh run download \"${RUN_ID}\" \\\n+            --repo \"${REPO}\" \\\n+            --name copilot-review-guidance \\\n+            --dir \"${RUNNER_TEMP}/copilot-review-guidance\"; then\n+            echo \"No Copilot guidance artifact found; skipping.\"\n+            exit 0\n+          fi\n+\n+          pr_number=$(cat \"${RUNNER_TEMP}/copilot-review-guidance/pr-number\")\n+          [[ \"${pr_number}\" =~ ^[1-9][0-9]{0,6}$ ]] \\\n+            || { echo \"bad PR number: ${pr_number}\"; exit 1; }\n+          echo \"number=${pr_number}\" >> \"${GITHUB_OUTPUT}\"\n+\n+      - uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1\n+        if: steps.pr.outputs.number != ''\n+        id: otelbot-token\n+        with:\n+          app-id: ${{ vars.OTELBOT_APP_ID }}\n+          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}\n+\n+      - name: Post guidance comment once per PR\n+        if: steps.pr.outputs.number != ''\n+        env:\n+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}\n+          PR_NUMBER: ${{ steps.pr.outputs.number }}\n+          REPO: ${{ github.repository }}\n+          # Hidden HTML marker used to detect whether the guidance comment\n+          # has already been posted on this PR.\n+          MARKER: <!-- copilot-review-guidance -->\n+        run: |\n+          set -euo pipefail\n+\n+          if gh api \\\n+            --paginate \\\n+            \"repos/${REPO}/issues/${PR_NUMBER}/comments\" \\\n+            --jq '.[] | select(.body | contains(\"'\"${MARKER}\"'\")) | .id' \\\n+            | grep -q .; then\n+            echo \"Guidance comment already posted on PR #${PR_NUMBER}; skipping.\"\n+            exit 0\n+          fi\n+\n+          body=$(cat <<EOF\n+          ${MARKER}\n+          Copilot has reviewed this PR. Copilot's suggestions aren't always correct or applicable, so please evaluate each comment on its merits and then handle it in one of these ways:\n+\n+          - click GitHub's \"Apply suggestion\" button (auto-resolves the thread);\n+          - reply that it was **applied** (ideally linking to the commit); or\n+          - reply that it was **not applied**, with the reason.\n+\n+          Approvers rely on automation that flags a PR for human review once every Copilot comment has been replied to or marked as resolved, so keeping these threads up to date is what tells reviewers the PR is ready for another look.\n+\n+          Status across open PRs is visible on the [pull request dashboard](https://github.com/open-telemetry/semantic-conventions-genai/issues/102).\n+          EOF",
+      "id": "PRRT_kwDOSUeMrM6EU6EQ",
+      "opened": "2026-05-23T18:22:45Z",
+      "path": ".github/workflows/copilot-review-guidance-post.yml",
+      "replies": [
+        {
+          "at": "2026-05-23T19:00:19Z",
+          "body": "this comment is incorrect",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/193#discussion_r3293346773"
+        }
+      ],
+      "reviewed": "e59bd4d9ff9c6c07d32afdc4b2f259cdf9de7264",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/193#discussion_r3293303388"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`actions/upload-artifact` will use the default artifact retention period (currently 90 days). Since this workflow may run for every Copilot review submission, consider setting an explicit low `retention-days` value to avoid unnecessary artifact storage growth over time.\n",
+      "created": "2026-05-23T18:22:45Z",
+      "hunk": "@@ -0,0 +1,28 @@\n+name: Copilot review guidance detector\n+\n+# Detects Copilot's first review and records the PR number for the privileged\n+# poster workflow. This workflow cannot post directly on fork PRs because\n+# pull_request_review runs do not receive write tokens or normal secrets there.\n+\n+on:\n+  pull_request_review:\n+    types: [submitted]\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  record-pr:\n+    if: >-\n+      github.repository == 'open-telemetry/semantic-conventions-genai' &&\n+      github.event.review.user.login == 'copilot-pull-request-reviewer[bot]'\n+    runs-on: ubuntu-latest\n+    steps:\n+      - name: Record PR number\n+        run: printf '%s\\n' '${{ github.event.pull_request.number }}' > pr-number\n+\n+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2\n+        with:\n+          name: copilot-review-guidance\n+          path: pr-number\n+          if-no-files-found: error",
+      "id": "PRRT_kwDOSUeMrM6EU6Ec",
+      "opened": "2026-05-23T18:22:45Z",
+      "path": ".github/workflows/copilot-review-guidance.yml",
+      "replies": [
+        {
+          "at": "2026-05-23T19:00:43Z",
+          "body": "rewrote, no longer using upload artifact",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/193#discussion_r3293347207"
+        }
+      ],
+      "reviewed": "e59bd4d9ff9c6c07d32afdc4b2f259cdf9de7264",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/193#discussion_r3293303402"
+    }
+  ]
+}

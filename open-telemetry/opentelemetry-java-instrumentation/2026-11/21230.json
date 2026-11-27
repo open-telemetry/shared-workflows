@@ -1,0 +1,52 @@
+{
+  "head": "91b510938f0f6c2c8f7ead852f9bf842e3b209c7",
+  "merge": "7849493ad7ee4572a420fe0724d232f6d79820fd",
+  "merged": "2026-11-07T08:22:16Z",
+  "missing_roots": 0,
+  "number": 21230,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to finish the originally requested suite-owned compiler setup cleanup in instrumentation/xxl-job/xxl-job-2.3.0/javaagent/build.gradle.kts. Keep the existing cloud-managed head branch and do not rename/switch branches or create another PR.\n\nThe initial migration is delivered and Copilot review 5804527378 has no actionable findings, but one explicit #21198 layout requirement remains incomplete. The xxlJob33Test JavaCompile configuration still lives in the outer tasks block under the literal task name compileXxlJob33TestJava, while the other migrated versioned suites now keep compiler setup in their registrations.\n\nInside register<JvmTestSuite>(\"xxlJob33Test\"), configure project.tasks.named<JavaCompile>(sources.compileJavaTaskName) { options.release.set(17) }. Remove only the equivalent outer named(\"compileXxlJob33TestJava\", JavaCompile::class).configure block. Preserve Java 17 compilation even when execution is gated off, existing sources/dependencies, default and experimental variant flags/filters, test-JVM selection and gates, shared JVM opens, and check wiring. Do not remove the compiler release or change production behavior.\n\nLimit this correction to that script and necessary focused validation. Run the narrowest applicable spotlessApply directly before validating suite configuration and the check graph in baseline/latest and the relevant older-JVM selection, confirming the compile release remains 17 and disabled execution does not discard compilation requirements. No clean, cache bypass, whole-repository build, hosted-CI wait, shared-conventions redesign, or unrelated cleanup. Commit and publish the correction to this original PR's current head; a local-only commit is not delivery.",
+      "created": "2026-11-06T17:51:02Z",
+      "hunk": "@@ -43,21 +43,21 @@ testing.suites {\n       implementation(\"com.xuxueli:xxl-job-core:$version\")\n       implementation(project(\":instrumentation:xxl-job:xxl-job-common-1.9.2:testing\"))\n     }\n+  }\n \n-    executions {\n-      configureEach {\n-        if (!testJavaVersion.isCompatibleWith(JavaVersion.VERSION_17)) {\n-          enabled = false\n-        }\n-      }\n+  executions(\"test\") {\n+    register(\"Experimental\") {\n+      telemetryConfig(\"otel.instrumentation.xxl-job.experimental-span-attributes\", \"true\")\n+    }\n+  }\n \n-      register(\"Experimental\") {\n-        telemetryConfig(\"otel.instrumentation.xxl-job.experimental-span-attributes\", \"true\")\n+  executions(\"xxlJob33Test\") {",
+      "id": "PRRT_kwDODJKVX860oH6g",
+      "opened": "2026-11-06T17:51:02Z",
+      "path": "instrumentation/xxl-job/xxl-job-2.3.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T18:00:54Z",
+          "body": "Moved the Java 17 release setting into the `xxlJob33Test` suite registration and verified the compile task remains in the Java 11 check graph even when execution is disabled. Published in `12d90b2f`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21230#discussion_r4495863076"
+        }
+      ],
+      "reviewed": "85522e7c9fdbed6c0bf28e4632399b3ff9cd76a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21230#discussion_r4495768081"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. In instrumentation/redisson/redisson-3.17/javaagent/build.gradle.kts, verify that register(\"ServerTarget\") {} in executions(\"redisson324Test\") creates a redundant execution, then remove that registration if confirmed. The default redisson324Test already receives the same two RedissonClientTest filters through configureEach and uses the same suite outputs and runtime classpath. Preserve that default execution, both existing filters, Redisson 3.24.3 dependencies, JVM configuration, and check wiring. Remove any references made obsolete specifically by deleting this duplicate task, but do not change unrelated suites or shared conventions. Run the narrowest applicable spotlessApply before focused validation, and verify check still includes the filtered redisson324Test execution without a duplicate redisson324TestServerTarget task. Commit and push the change to this PR's existing head branch, not a new PR.",
+      "created": "2026-11-06T18:28:40Z",
+      "hunk": "@@ -37,24 +37,16 @@ testing.suites {\n       // Redisson 3.24.3 routes configuration through ServiceManager.\n       implementation(\"org.redisson:redisson:3.24.3\")\n     }\n+  }\n \n-    targets.all {\n-      testTask.configure {\n-        filter {\n-          includeTestsMatching(\"*RedissonClientTest.configuredMasterSlaveServerTarget\")\n-          includeTestsMatching(\"*RedissonClientTest.configuredSingleServerTarget\")\n-        }\n-      }\n-    }\n-\n-    executions {\n-      register(\"ServerTarget\") {\n-        filter {\n-          includeTestsMatching(\"*RedissonClientTest.configuredMasterSlaveServerTarget\")\n-          includeTestsMatching(\"*RedissonClientTest.configuredSingleServerTarget\")\n-        }\n+  executions(\"redisson324Test\") {\n+    configureEach {\n+      filter {\n+        includeTestsMatching(\"*RedissonClientTest.configuredMasterSlaveServerTarget\")\n+        includeTestsMatching(\"*RedissonClientTest.configuredSingleServerTarget\")\n       }\n     }\n+    register(\"ServerTarget\") {}",
+      "id": "PRRT_kwDODJKVX860o7Wp",
+      "opened": "2026-11-06T18:28:39Z",
+      "path": "instrumentation/redisson/redisson-3.17/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T18:34:20Z",
+          "body": "Removed the redundant `ServerTarget` variant; `redisson324Test` remains in `check` with both filters, and no duplicate task is registered. Published in `91b51093`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21230#discussion_r4496175681"
+        }
+      ],
+      "reviewed": "12d90b2f6bf36c4f95d4bc18b84591e0fef0c67b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21230#discussion_r4496116866"
+    }
+  ]
+}

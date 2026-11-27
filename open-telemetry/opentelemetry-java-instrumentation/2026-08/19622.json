@@ -1,0 +1,31 @@
+{
+  "head": "62d0002248f9206fcc621db2f2743a35e25f6580",
+  "merge": "29fb9f033bfe82ce95b1680ad7cc740324a0a168",
+  "merged": "2026-08-17T06:17:38Z",
+  "missing_roots": 0,
+  "number": 19622,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new tests only cover successful batch execution. Please add a failure-then-retry case that verifies the original query/batch size is still reported after the first `executeBatch()` throws; retaining state on failure is an explicit part of this change and none of the existing JDBC batch tests exercise that branch. Ideally cover the analogous `executeLargeBatch()` path as well.",
+      "created": "2026-08-15T02:53:39Z",
+      "hunk": "@@ -2093,6 +2167,62 @@ DB_CONNECTION_STRING, emitStableDatabaseSemconv() ? null : url),\n                                     emitStableDatabaseSemconv() ? 2L : null))));\n   }\n \n+  @Test\n+  void testPreparedBatchStateCleared() throws SQLException {\n+    Connection connection = wrap(new org.h2.Driver().connect(JDBC_URLS.get(\"h2\"), null));\n+    cleanup.deferCleanup(connection);\n+    String tableName = \"prepared_batch_state_test\";\n+    Statement createTable = connection.createStatement();\n+    createTable.execute(\"CREATE TABLE \" + tableName + \" (id INTEGER not NULL, PRIMARY KEY ( id ))\");\n+    cleanup.deferCleanup(createTable);\n+    testing().waitForTraces(1);\n+    testing().clearData();\n+\n+    PreparedStatement statement =\n+        connection.prepareStatement(\"INSERT INTO \" + tableName + \" VALUES(?)\");\n+    cleanup.deferCleanup(statement);\n+    statement.setInt(1, 1);\n+    statement.addBatch();\n+    statement.setInt(1, 2);\n+    statement.addBatch();\n+    statement.executeBatch();",
+      "id": "PRRT_kwDODJKVX86Zdmbi",
+      "opened": "2026-08-15T02:53:40Z",
+      "path": "instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:15:28Z",
+          "body": "Added failure-then-retry coverage for both `executeBatch()` and `executeLargeBatch()` across the shared library and javaagent test suite. The large-batch case also exposed and now covers the missing prepared-statement `executeLargeBatch()` override, so the retained query and batch size are reported on retry.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19622#discussion_r3788463748"
+        }
+      ],
+      "reviewed": "a35aee2f7ffe501435658f5f3efd8879c937fd20",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19622#discussion_r3788310679"
+    }
+  ]
+}

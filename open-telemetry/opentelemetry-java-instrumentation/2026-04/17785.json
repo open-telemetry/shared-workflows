@@ -1,0 +1,122 @@
+{
+  "head": "6d20895f068950ebea4336cc6e448863be721bbe",
+  "merge": "6561066e6581da58517035a68ee59c34f2a4f803",
+  "merged": "2026-04-19T23:24:28Z",
+  "missing_roots": 0,
+  "number": 17785,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new stable/old semconv gating changes which Kafka offset attribute(s) are emitted, but there’s no test coverage in this module that exercises the `otel.semconv-stability.opt-in=messaging` (stable-only) and `messaging/dup` (both) cases. Adding/adjusting Kafka client tests to assert `messaging.kafka.offset` when opted-in (and absence/presence of the deprecated `messaging.kafka.message.offset` depending on `/dup`) would prevent regressions.",
+      "created": "2026-04-09T20:26:35Z",
+      "hunk": "@@ -55,7 +60,12 @@ public void onEnd(\n     if (recordMetadata != null) {\n       attributes.put(\n           MESSAGING_DESTINATION_PARTITION_ID, String.valueOf(recordMetadata.partition()));\n-      attributes.put(MESSAGING_KAFKA_MESSAGE_OFFSET, recordMetadata.offset());\n+      if (emitStableMessagingSemconv()) {\n+        attributes.put(MESSAGING_KAFKA_OFFSET, recordMetadata.offset());\n+      }\n+      if (emitOldMessagingSemconv()) {\n+        attributes.put(MESSAGING_KAFKA_MESSAGE_OFFSET, recordMetadata.offset());\n+      }",
+      "id": "PRRT_kwDODJKVX8559uQ8",
+      "opened": "2026-04-09T20:26:36Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "a9e84f753b00f7f475d73fea6c00ffebe78269bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17785#discussion_r3060464506"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The consumer span now conditionally emits either `messaging.kafka.offset`, the deprecated `messaging.kafka.message.offset`, or both based on SemconvStability flags. Please add/adjust tests to cover the stable opt-in (`otel.semconv-stability.opt-in=messaging`) and dup (`messaging/dup`) modes so CI will catch mismatches in emitted attributes.",
+      "created": "2026-04-09T20:26:35Z",
+      "hunk": "@@ -35,8 +40,12 @@ public void onStart(\n     ConsumerRecord<?, ?> record = request.getRecord();\n \n     attributes.put(MESSAGING_DESTINATION_PARTITION_ID, String.valueOf(record.partition()));\n-    attributes.put(MESSAGING_KAFKA_MESSAGE_OFFSET, record.offset());\n-\n+    if (emitStableMessagingSemconv()) {\n+      attributes.put(MESSAGING_KAFKA_OFFSET, record.offset());\n+    }\n+    if (emitOldMessagingSemconv()) {\n+      attributes.put(MESSAGING_KAFKA_MESSAGE_OFFSET, record.offset());\n+    }",
+      "id": "PRRT_kwDODJKVX8559uRf",
+      "opened": "2026-04-09T20:26:36Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaConsumerAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "a9e84f753b00f7f475d73fea6c00ffebe78269bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17785#discussion_r3060464549"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This introduces new SemconvStability opt-in keys for \"messaging\" and \"messaging/dup\" that change emitted attributes across instrumentations, but there’s no direct verification that these new flags behave as intended (stable-only vs old-only vs both). Consider adding a focused test (or extending an existing semconv-stability integration test) that asserts the behavior for the new messaging keys to prevent accidental behavior changes.",
+      "created": "2026-04-09T20:26:36Z",
+      "hunk": "@@ -54,8 +59,36 @@ public final class SemconvStability {\n \n     emitOldRpcSemconv = shouldEmitOld(\"rpc\", v3Preview, optInValues);\n     emitStableRpcSemconv = shouldEmitStable(\"rpc\", v3Preview, optInValues);\n+\n+    emitOldMessagingSemconv = shouldEmitOld(\"messaging\", v3Preview, optInValues);\n+    emitStableMessagingSemconv = shouldEmitStable(\"messaging\", v3Preview, optInValues);\n+  }",
+      "id": "PRRT_kwDODJKVX8559uRt",
+      "opened": "2026-04-09T20:26:36Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+      "replies": [],
+      "reviewed": "a9e84f753b00f7f475d73fea6c00ffebe78269bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17785#discussion_r3060464568"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@trask wdyt should we test this with `messaging/dup` or is this overkill?",
+      "created": "2026-04-14T13:00:36Z",
+      "hunk": "@@ -66,6 +66,34 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.instrumentation.kafka.experimental-span-attributes=true\")\n   }\n \n+  val testStableSemconv by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+    filter {\n+      excludeTestsMatching(\"KafkaClientPropagationDisabledTest\")\n+      excludeTestsMatching(\"KafkaClientSuppressReceiveSpansTest\")\n+    }\n+    jvmArgs(\"-Dotel.instrumentation.messaging.experimental.receive-telemetry.enabled=true\")\n+    jvmArgs(\"-Dotel.semconv-stability.opt-in=messaging\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=messaging\")\n+  }\n+\n+  val testBothSemconv by registering(Test::class) {",
+      "id": "PRRT_kwDODJKVX8560X8Q",
+      "opened": "2026-04-14T13:00:36Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-04-14T18:13:16Z",
+          "body": "I'm ok removing it. We didn't test `http/dup` or `database/dup`. (we are only testing `rpc/dup` because of some additional edge cases in RPC)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17785#discussion_r3081508789"
+        }
+      ],
+      "reviewed": "51ec987cd218bfb188548ee1ec2a803daf068494",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17785#discussion_r3079610993"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@Tusharika725 can you revert unrelated method ordering changes in this file? thanks",
+      "created": "2026-04-14T18:12:05Z",
+      "hunk": "@@ -54,8 +59,36 @@ public final class SemconvStability {\n \n     emitOldRpcSemconv = shouldEmitOld(\"rpc\", v3Preview, optInValues);\n     emitStableRpcSemconv = shouldEmitStable(\"rpc\", v3Preview, optInValues);\n+\n+    emitOldMessagingSemconv = shouldEmitOld(\"messaging\", v3Preview, optInValues);\n+    emitStableMessagingSemconv = shouldEmitStable(\"messaging\", v3Preview, optInValues);\n+  }\n+\n+  static {\n+    dbSystemNameMap.put(\"adabas\", \"softwareag.adabas\");\n+    dbSystemNameMap.put(\"intersystems_cache\", \"intersystems.cache\");\n+    dbSystemNameMap.put(\"cosmosdb\", \"azure.cosmosdb\");\n+    dbSystemNameMap.put(\"db2\", \"ibm.db2\");\n+    dbSystemNameMap.put(\"dynamodb\", \"aws.dynamodb\");\n+    dbSystemNameMap.put(\"h2\", \"h2database\");\n+    dbSystemNameMap.put(\"hanadb\", \"sap.hana\");\n+    dbSystemNameMap.put(\"informix\", \"ibm.informix\");\n+    dbSystemNameMap.put(\"ingres\", \"actian.ingres\");\n+    dbSystemNameMap.put(\"maxdb\", \"sap.maxdb\");\n+    dbSystemNameMap.put(\"mssql\", \"microsoft.sql_server\");\n+    dbSystemNameMap.put(\"netezza\", \"ibm.netezza\");\n+    dbSystemNameMap.put(\"oracle\", \"oracle.db\");\n+    dbSystemNameMap.put(\"redshift\", \"aws.redshift\");\n+    dbSystemNameMap.put(\"spanner\", \"gcp.spanner\");\n   }",
+      "id": "PRRT_kwDODJKVX8565ybx",
+      "opened": "2026-04-14T18:12:05Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+      "replies": [],
+      "reviewed": "51ec987cd218bfb188548ee1ec2a803daf068494",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17785#discussion_r3081501756"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think I'd prefer to put these breaking changes under v3 preview flag, since it's probably going to be a while for stable messaging, and I'd also like to get away from our pattern of adding \"stable\" flag but then introducing further breaking changes under the stable flag while we build out the stable telemetry\n\n@laurit wdyt?",
+      "created": "2026-04-16T15:32:00Z",
+      "hunk": "@@ -37,6 +37,9 @@ public final class SemconvStability {\n   private static final boolean emitOldRpcSemconv;\n   private static final boolean emitStableRpcSemconv;\n \n+  private static final boolean emitOldMessagingSemconv;\n+  private static final boolean emitStableMessagingSemconv;",
+      "id": "PRRT_kwDODJKVX857eNGy",
+      "opened": "2026-04-16T15:31:59Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+      "replies": [
+        {
+          "at": "2026-04-16T16:20:13Z",
+          "body": "It depends on how we are going to treat this. If we wish to do this change in v3 then v3 preview would be a good fit. If we treat this as part of the messaging semconv stabilization, which is not going to be ready for v3, then the semconv stability opt-in would be better. My understanding is that this is the first step for implementing the latest messaging semconv so using the opt-in flag seems fine to me.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17785#discussion_r3094714639"
+        },
+        {
+          "at": "2026-04-17T02:22:52Z",
+          "body": "> My understanding is that this is the first step for implementing the latest messaging semconv so using the opt-in flag seems fine to me.\n\nya, makes sense\n\nI still don't love our existing practice of the `OTEL_SEMCONV_STABILITY_OPT_IN=database` flag not following our stability guidelines (it looks like a stable option, but it's not since it's essentially in-progress work)\n\nmessaging would be a good chance to switch, since the others will hopefully get wrapped up by 3.0 and this will hopefully be the only one to extend into 3.x\n\nmaybe we could use `OTEL_SEMCONV_STABILITY_PREVIEW=messaging`?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17785#discussion_r3097519674"
+        },
+        {
+          "at": "2026-04-17T06:09:40Z",
+          "body": "changed to preview flag",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17785#discussion_r3098223364"
+        }
+      ],
+      "reviewed": "75ed42750918abe9dd0bb8394589299ce73516fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17785#discussion_r3094390478"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "head": "3695389542288cc9db3792d8f9ca22795ef53f1b",
+  "merge": "d22f1e311b48c5a80bce34812e1e8a210a469e23",
+  "merged": "2026-08-11T03:25:40Z",
+  "missing_roots": 0,
+  "number": 19493,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The workflow still checks out additional agent/config directories (.claude/.codex/.gemini/.pi), but the base-branch save/restore lists now only cover `.agents` and `.github`. This weakens the base-branch restoration guard because PR changes in those checked-out directories would persist and could influence agent behavior. Either (mandatory) add the checked-out config dirs/files back into `GH_AW_AGENT_FOLDERS`/`GH_AW_AGENT_FILES`, or remove those dirs from `sparse-checkout` so un-restored data isn’t present.",
+      "created": "2026-08-11T01:50:50Z",
+      "hunk": "@@ -220,18 +221,16 @@ jobs:\n           sparse-checkout: |\n             .github\n             .agents\n-            .antigravity\n             .claude\n             .codex\n             .gemini\n-            .opencode\n             .pi\n           sparse-checkout-cone-mode: true",
+      "id": "PRRT_kwDODJKVX86YF1ja",
+      "opened": "2026-08-11T01:50:51Z",
+      "path": ".github/workflows/pr-review.lock.yml",
+      "replies": [],
+      "reviewed": "3695389542288cc9db3792d8f9ca22795ef53f1b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19493#discussion_r3754723324"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as PR Review: the workflow checks out `.claude/.codex/.gemini/.pi` but does not include them in the base-branch save/restore lists. If these directories affect behavior, a PR could modify them and bypass the intended ‘restore base’ protection. Align `GH_AW_AGENT_FOLDERS`/`GH_AW_AGENT_FILES` with the directories being checked out (or stop checking them out).",
+      "created": "2026-08-11T01:50:51Z",
+      "hunk": "@@ -226,18 +227,16 @@ jobs:\n           sparse-checkout: |\n             .github\n             .agents\n-            .antigravity\n             .claude\n             .codex\n             .gemini\n-            .opencode\n             .pi\n           sparse-checkout-cone-mode: true\n           fetch-depth: 1\n       - name: Save agent config folders for base branch restoration\n         env:\n-          GH_AW_AGENT_FOLDERS: \".agents .antigravity .claude .codex .gemini .github .opencode .pi\"\n-          GH_AW_AGENT_FILES: \"AGENTS.md ANTIGRAVITY.md CLAUDE.md GEMINI.md PI.md opencode.jsonc\"\n+          GH_AW_AGENT_FOLDERS: \".agents .github\"\n+          GH_AW_AGENT_FILES: \"AGENTS.md\"",
+      "id": "PRRT_kwDODJKVX86YF1j2",
+      "opened": "2026-08-11T01:50:51Z",
+      "path": ".github/workflows/module-cleanup.lock.yml",
+      "replies": [],
+      "reviewed": "3695389542288cc9db3792d8f9ca22795ef53f1b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19493#discussion_r3754723367"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The workflow still checks out additional agent/config directories (.claude/.codex/.gemini/.pi), but the base-branch save/restore lists now only cover `.agents` and `.github`. This weakens the base-branch restoration guard because PR changes in those checked-out directories would persist and could influence agent behavior. Either (mandatory) add the checked-out config dirs/files back into `GH_AW_AGENT_FOLDERS`/`GH_AW_AGENT_FILES`, or remove those dirs from `sparse-checkout` so un-restored data isn’t present.",
+      "created": "2026-08-11T01:50:51Z",
+      "hunk": "@@ -220,18 +221,16 @@ jobs:\n           sparse-checkout: |\n             .github\n             .agents\n-            .antigravity\n             .claude\n             .codex\n             .gemini\n-            .opencode\n             .pi\n           sparse-checkout-cone-mode: true\n           fetch-depth: 1\n       - name: Save agent config folders for base branch restoration\n         env:\n-          GH_AW_AGENT_FOLDERS: \".agents .antigravity .claude .codex .gemini .github .opencode .pi\"\n-          GH_AW_AGENT_FILES: \"AGENTS.md ANTIGRAVITY.md CLAUDE.md GEMINI.md PI.md opencode.jsonc\"\n+          GH_AW_AGENT_FOLDERS: \".agents .github\"\n+          GH_AW_AGENT_FILES: \"AGENTS.md\"",
+      "id": "PRRT_kwDODJKVX86YF1jm",
+      "opened": "2026-08-11T01:50:51Z",
+      "path": ".github/workflows/pr-review.lock.yml",
+      "replies": [],
+      "reviewed": "3695389542288cc9db3792d8f9ca22795ef53f1b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19493#discussion_r3754723344"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as PR Review: the workflow checks out `.claude/.codex/.gemini/.pi` but does not include them in the base-branch save/restore lists. If these directories affect behavior, a PR could modify them and bypass the intended ‘restore base’ protection. Align `GH_AW_AGENT_FOLDERS`/`GH_AW_AGENT_FILES` with the directories being checked out (or stop checking them out).",
+      "created": "2026-08-11T01:50:51Z",
+      "hunk": "@@ -226,18 +227,16 @@ jobs:\n           sparse-checkout: |\n             .github\n             .agents\n-            .antigravity\n             .claude\n             .codex\n             .gemini\n-            .opencode\n             .pi\n           sparse-checkout-cone-mode: true",
+      "id": "PRRT_kwDODJKVX86YF1jz",
+      "opened": "2026-08-11T01:50:51Z",
+      "path": ".github/workflows/module-cleanup.lock.yml",
+      "replies": [],
+      "reviewed": "3695389542288cc9db3792d8f9ca22795ef53f1b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19493#discussion_r3754723361"
+    }
+  ]
+}

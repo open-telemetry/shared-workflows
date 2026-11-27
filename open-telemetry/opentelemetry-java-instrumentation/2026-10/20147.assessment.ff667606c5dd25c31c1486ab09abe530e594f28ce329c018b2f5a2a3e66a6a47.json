@@ -1,0 +1,23 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "fdf26900d8944d12118f01cf5ed3c5034c3c5021bd55f2d049320a5a075079f2",
+  "input_digest": "ff667606c5dd25c31c1486ab09abe530e594f28ce329c018b2f5a2a3e66a6a47",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0aeb2e3823913cf0922497fae3d77feb51be834b/examples/distro/smoke-tests/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0aeb2e3823913cf0922497fae3d77feb51be834b/examples/distro/buildSrc/src/main/kotlin/otel.nullaway-conventions.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4db886967a9326f824069acf576681e3b232d772/examples/distro/smoke-tests/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4db886967a9326f824069acf576681e3b232d772/examples/distro/buildSrc/src/main/kotlin/otel.nullaway-conventions.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/67f24e4f17513bc9578e2f92c442a9106259351b"
+      ],
+      "id": "PRRT_kwDODJKVX86iGPCP",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

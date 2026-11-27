@@ -1,0 +1,31 @@
+{
+  "head": "0da88e048712b190f929caa9faeff4dad91dd9d1",
+  "merge": "85f027200f39403b140b712f0a1869cebfb47646",
+  "merged": "2026-08-14T01:39:16Z",
+  "missing_roots": 0,
+  "number": 19571,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This verification likely doesn’t assert what the test intends. In this test, scalar lists are stubbed via `config.get(\\\"...\\\").getScalarList(...)`, which suggests `getScalarList(...)` is usually invoked on the object returned by `config.get(path)` (a nested `DeclarativeConfigProperties`), not on the root `config`. As written, this `verify(config, never()).getScalarList(...)` may pass even if the legacy path is still read via `config.get(\\\"capture_mdc_attributes/development\\\")...`. Consider instead verifying that `config.get(\\\"capture_mdc_attributes/development\\\")` is never called, or verifying no interactions on the specific nested mock used for legacy reads, to ensure the test fails if legacy configuration is accessed.",
+      "created": "2026-08-13T17:21:09Z",
+      "hunk": "@@ -158,21 +160,18 @@ void selectorTakesPrecedenceAndWarnsOnce() {\n       Predicate<String> first = SelectorConfig.resolveLegacyLiteral(config, \"precedence\", SELECTOR);\n       Predicate<String> second =\n           SelectorConfig.resolveLegacyLiteral(config, \"precedence\", SELECTOR);\n+      IncludeExclude resolved = SelectorConfig.resolve(config, \"precedence\", SELECTOR);\n \n       assertThat(first).isNotNull();\n       assertThat(first.test(\"new\")).isTrue();\n       assertThat(first.test(\"legacy\")).isFalse();\n       assertThat(second).isNotNull();\n       assertThat(second.test(\"new\")).isTrue();\n-      assertThat(handler.records).hasSize(1);\n-      assertThat(handler.records.get(0).getMessage())\n-          .isEqualTo(\n-              \"The otel.instrumentation.precedence.experimental.capture-mdc-attributes\"\n-                  + \" setting and the equivalent declarative configuration property are deprecated\"\n-                  + \" and ignored because\"\n-                  + \" otel.instrumentation.precedence.experimental.mdc-attributes.included\"\n-                  + \" or otel.instrumentation.precedence.experimental.mdc-attributes.excluded\"\n-                  + \" is configured. They may be removed in the next minor release.\");\n+      assertThat(resolved).isNotNull();\n+      assertThat(resolved.matches(\"new\")).isTrue();\n+      assertThat(resolved.matches(\"legacy\")).isFalse();\n+      assertThat(handler.records).isEmpty();\n+      verify(config, never()).getScalarList(\"capture_mdc_attributes/development\", String.class);",
+      "id": "PRRT_kwDODJKVX86ZBYjl",
+      "opened": "2026-08-13T17:21:10Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-08-13T17:56:58Z",
+          "body": "No code change.\n\nAnalysis: `getDeprecated()` passes the root `DeclarativeConfigProperties` to `getList()` with `capture_mdc_attributes/development`, and `getList()` invokes `config.getScalarList(...)` directly. Only the replacement selector is read from `config.get(\"mdc_attributes/development\")`. The existing `never()` verification therefore targets the exact deprecated read path and would fail if either resolve method accessed it.\n\nUpsides: Preserves a precise regression assertion that both selector resolution paths skip deprecated configuration when the replacement selector is configured.\n\nDownsides: The test is intentionally coupled to the deprecated configuration's root-level declarative access shape.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19571#discussion_r3777833802"
+        }
+      ],
+      "reviewed": "0da88e048712b190f929caa9faeff4dad91dd9d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19571#discussion_r3777568226"
+    }
+  ]
+}

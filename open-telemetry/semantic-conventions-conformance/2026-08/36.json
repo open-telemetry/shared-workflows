@@ -1,0 +1,31 @@
+{
+  "head": "5dd4259ca7d65c0afaa50f915a87287b548bd14c",
+  "merge": "c5f6cfdaa1ebf5972ff333114e1654bc464ad260",
+  "merged": "2026-08-17T02:38:45Z",
+  "missing_roots": 0,
+  "number": 36,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The docstring still hardcodes the command name as `otel-conformance`, but this method now forwards `prog=self.name` so the CLI usage banner can be `http-conformance`, `genai-conformance`, etc. Updating the docstring avoids misleading/help text drift.",
+      "created": "2026-08-15T20:02:59Z",
+      "hunk": "@@ -231,7 +231,7 @@ def main(self, argv: list[str] | None = None) -> int:\n         \"\"\"This domain's CLI: ``otel-conformance`` with the domain pinned.\"\"\"",
+      "id": "PRRT_kwDOTuzK5c6Zigbw",
+      "opened": "2026-08-15T20:02:59Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_domain.py",
+      "replies": [
+        {
+          "at": "2026-08-15T21:13:34Z",
+          "body": "Addressed in 0691120723f5d9e209f25b0450491cfdb16c918a.\n\nAnalysis: The method now delegates the program name to each domain, so naming one fixed executable in its docstring is inaccurate. Describing it as the domain's named CLI keeps the documentation aligned with the behavior.\n\nUpsides: Prevents misleading documentation and remains accurate for every domain-specific command name.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/36#discussion_r3790276508"
+        }
+      ],
+      "reviewed": "6784ff99b169b35ac933baf4a53c3e67a672de31",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/36#discussion_r3790153441"
+    }
+  ]
+}

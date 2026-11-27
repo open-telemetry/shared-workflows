@@ -1,0 +1,25 @@
+{
+  "head": "717046cff0e2b76672ab5d40a8598aa5e546e1c4",
+  "merge": "b793a9f43f84e571ed3609ffefef98fca65a1aab",
+  "merged": "2026-05-10T06:43:20Z",
+  "missing_roots": 0,
+  "number": 18668,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`applyTo: \"**/*.java\"` causes these test-specific rules to be loaded for *all* Java changes, but the document says \"Apply only to changes in test code.\" This mismatch can make Copilot apply test-only guidance to production code reviews. Either narrow `applyTo` to match the repo’s test/source patterns (e.g., `**/src/test*/**/*.java` and any other test-only source roots you want covered), or reword the intro to clarify that the file is loaded for all Java files but should only be applied when reviewing test code.",
+      "created": "2026-05-09T21:57:30Z",
+      "hunk": "@@ -0,0 +1,66 @@\n+---\n+applyTo: \"**/*.java\"\n+---\n+\n+# Java Test Rules (first-pass review)\n+\n+Apply only to changes in test code.\n+",
+      "id": "PRRT_kwDODJKVX86A2zYk",
+      "opened": "2026-05-09T21:57:30Z",
+      "path": ".github/instructions/java-tests.instructions.md",
+      "replies": [],
+      "reviewed": "e8b6545dcb4567b9f09a45a6666caa9aabe971f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18668#discussion_r3213949999"
+    }
+  ]
+}

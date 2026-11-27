@@ -1,0 +1,55 @@
+{
+  "head": "33257bf2a70bfebf88bef904fcb25231891fe509",
+  "merge": "d9d44fcdb5328287f15625f327bb8d5ad8a61a42",
+  "merged": "2026-08-05T06:24:57Z",
+  "missing_roots": 0,
+  "number": 19409,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changes the `hbase-client#+` entry from 2.6.6 to 3.0.0 (major version). If this file is consumed by automation that resolves artifacts from Maven repositories, please verify `3.0.0` is actually published in the configured repos and is intended to be treated as the ‘latest’ (vs latest GA in the 2.x line). If you want to avoid major-version jumps, consider constraining this key to a major line (e.g., `#2.+`) or introducing a separate entry for the 3.x track.",
+      "created": "2026-08-05T05:28:12Z",
+      "hunk": "@@ -297,7 +297,7 @@\n     \"org.apache.dubbo:dubbo#+\": \"3.3.6\",\n     \"org.apache.dubbo:dubbo-config-api#+\": \"3.3.6\",\n     \"org.apache.geode:geode-core#+\": \"2.0.2\",\n-    \"org.apache.hbase:hbase-client#+\": \"2.6.6\",\n+    \"org.apache.hbase:hbase-client#+\": \"3.0.0\",",
+      "id": "PRRT_kwDODJKVX86WjQCe",
+      "opened": "2026-08-05T05:28:13Z",
+      "path": ".github/config/latest-dep-versions.json",
+      "replies": [],
+      "reviewed": "33257bf2a70bfebf88bef904fcb25231891fe509",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19409#discussion_r3718177818"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Quarkus REST version (`3.38.1`) appears out of line with the nearby Quarkus platform BOM entries (`3.5.x` and `3.9.x`). If this config is meant to suggest compatible Quarkus coordinates, this mismatch is likely to confuse consumers or cause resolution/compatibility issues. Consider aligning `io.quarkus:quarkus-rest` with the latest `io.quarkus.platform:quarkus-bom` version tracked here (or document why it intentionally diverges).",
+      "created": "2026-08-05T05:28:13Z",
+      "hunk": "@@ -194,7 +194,7 @@\n     \"io.projectreactor:reactor-test#+\": \"3.8.6\",\n     \"io.quarkus.platform:quarkus-bom#3.5.+\": \"3.5.3\",\n     \"io.quarkus.platform:quarkus-bom#3.9.+\": \"3.9.5\",\n-    \"io.quarkus:quarkus-rest#+\": \"3.38.0\",\n+    \"io.quarkus:quarkus-rest#+\": \"3.38.1\",",
+      "id": "PRRT_kwDODJKVX86WjQCu",
+      "opened": "2026-08-05T05:28:13Z",
+      "path": ".github/config/latest-dep-versions.json",
+      "replies": [],
+      "reviewed": "33257bf2a70bfebf88bef904fcb25231891fe509",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19409#discussion_r3718177845"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These two OpenSearch client artifacts are now on different minor versions (3.9.0 vs 3.8.0). If they are expected to be used together, version skew can lead to subtle incompatibilities. Consider keeping them on the same released version unless you have a known reason to pin them differently.",
+      "created": "2026-08-05T05:28:13Z",
+      "hunk": "@@ -447,7 +447,7 @@\n     \"org.mongodb:mongodb-driver-sync#+\": \"5.9.1\",\n     \"org.mybatis:mybatis#+\": \"3.5.19\",\n     \"org.opensearch.client:opensearch-java#+\": \"3.9.0\",\n-    \"org.opensearch.client:opensearch-rest-client#+\": \"3.7.0\",\n+    \"org.opensearch.client:opensearch-rest-client#+\": \"3.8.0\",",
+      "id": "PRRT_kwDODJKVX86WjQDD",
+      "opened": "2026-08-05T05:28:13Z",
+      "path": ".github/config/latest-dep-versions.json",
+      "replies": [],
+      "reviewed": "33257bf2a70bfebf88bef904fcb25231891fe509",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19409#discussion_r3718177870"
+    }
+  ]
+}

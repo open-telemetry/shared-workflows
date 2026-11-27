@@ -1,0 +1,31 @@
+{
+  "head": "d93eb9a03dfe7adc84feab7e6e9e0cce4419ad5b",
+  "merge": "a20ac60b42697b6abde02adf70ef77a23ccd6046",
+  "merged": "2026-03-27T11:43:33Z",
+  "missing_roots": 0,
+  "number": 17121,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I don't get this.",
+      "created": "2026-03-27T07:21:07Z",
+      "hunk": "@@ -83,10 +84,8 @@ void setUpTemplates() {\n   }\n \n   @AfterAll\n-  void cleanUp() throws Exception {\n-    for (AutoCloseable closeable : cleanup) {\n-      closeable.close();\n-    }\n+  void cleanUp() {\n+    assertAll(cleanup.stream().map(closeable -> closeable::close));",
+      "id": "PRRT_kwDODJKVX853NuV6",
+      "opened": "2026-03-27T07:21:07Z",
+      "path": "instrumentation/couchbase/couchbase-common/testing/src/main/java/io/opentelemetry/instrumentation/couchbase/springdata/AbstractCouchbaseSpringTemplateTest.java",
+      "replies": [
+        {
+          "at": "2026-03-27T11:43:17Z",
+          "body": "figured it out after looking at the oshi PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17121#discussion_r3000522903"
+        }
+      ],
+      "reviewed": "d93eb9a03dfe7adc84feab7e6e9e0cce4419ad5b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17121#discussion_r2999403058"
+    }
+  ]
+}

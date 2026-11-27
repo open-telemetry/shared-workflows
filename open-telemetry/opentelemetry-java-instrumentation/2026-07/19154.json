@@ -1,0 +1,131 @@
+{
+  "head": "8b9fa0f36462b8debed5ef9ac553201acf4ac48e",
+  "merge": "b8553aa4bbf376481831d7244fcb2b640a16dc3e",
+  "merged": "2026-07-13T21:15:21Z",
+  "missing_roots": 0,
+  "number": 19154,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This entry is placed under `### 🌟 New instrumentation`, but this PR adds configuration options to existing instrumentations rather than introducing new instrumentation modules (that section is reserved for entirely new modules such as SOFARPC/HBase). The analogous logback `capture-template` change was recorded under `### 📈 Enhancements` (see CHANGELOG.md:790-794). Consider moving this entry to an `### 📈 Enhancements` section for consistency.",
+      "created": "2026-07-09T07:43:26Z",
+      "hunk": "@@ -2,6 +2,15 @@\n \n ## Unreleased\n \n+### 🌟 New instrumentation",
+      "id": "PRRT_kwDODJKVX86PfSmD",
+      "opened": "2026-07-09T07:43:26Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "50746d8c2faec5c5faf980c72bad688df3ad108e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154#discussion_r3549818432"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could consider something like\n```java\n  private static final boolean captureExperimentalAttributes;\n  private static final boolean captureTemplate;\n  private static final boolean captureArguments;\n\n  static {\n    DeclarativeConfigProperties config =\n        DeclarativeConfigUtil.getInstrumentationConfig(\n            GlobalOpenTelemetry.get(), \"java_util_logging\");\n    captureExperimentalAttributes =  config..getBoolean(\"experimental_log_attributes/development\", false);\n    ...\n  }\n```",
+      "created": "2026-07-09T11:02:19Z",
+      "hunk": "@@ -15,25 +15,40 @@\n import static java.util.logging.Level.INFO;\n import static java.util.logging.Level.SEVERE;\n import static java.util.logging.Level.WARNING;\n+import static java.util.stream.Collectors.toList;\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.common.AttributeKey;\n import io.opentelemetry.api.common.Attributes;\n import io.opentelemetry.api.common.AttributesBuilder;\n import io.opentelemetry.api.logs.LogRecordBuilder;\n import io.opentelemetry.api.logs.Severity;\n import io.opentelemetry.context.Context;\n import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import java.util.Arrays;\n+import java.util.List;\n import java.util.logging.Formatter;\n import java.util.logging.Level;\n import java.util.logging.LogRecord;\n \n public class JavaUtilLoggingHelper {\n \n+  private static final AttributeKey<String> LOG_BODY_TEMPLATE =\n+      AttributeKey.stringKey(\"log.body.template\");\n+  private static final AttributeKey<List<String>> LOG_BODY_PARAMETERS =\n+      AttributeKey.stringArrayKey(\"log.body.parameters\");\n+\n   private static final Formatter formatter = new AccessibleFormatter();\n \n   private static final boolean captureExperimentalAttributes =\n       DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"java_util_logging\")\n           .getBoolean(\"experimental_log_attributes/development\", false);\n+  private static final boolean captureTemplate =",
+      "id": "PRRT_kwDODJKVX86PiyCi",
+      "opened": "2026-07-09T11:02:19Z",
+      "path": "instrumentation/java-util-logging/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jul/JavaUtilLoggingHelper.java",
+      "replies": [],
+      "reviewed": "1631cd64da5a642ccc1394bad11b4b82cf2976e6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154#discussion_r3551073192"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wouldn't `.hasAttributesSatisfyingExactly(expectedAttributes)` work?",
+      "created": "2026-07-09T11:11:12Z",
+      "hunk": "@@ -113,22 +127,29 @@ private static void test(\n           .hasInstrumentationScope(InstrumentationScopeInfo.builder(expectedLoggerName).build())\n           .hasSeverity(expectedSeverity)\n           .hasSeverityText(expectedSeverityText);\n+      List<AttributeAssertion> expectedAttributes = new ArrayList<>();\n+      expectedAttributes.add(equalTo(THREAD_NAME, experimental(Thread.currentThread().getName())));\n+      expectedAttributes.add(equalTo(THREAD_ID, experimental(Thread.currentThread().getId())));\n       if (logException) {\n-        assertThat(log)\n-            .hasAttributesSatisfyingExactly(\n-                equalTo(THREAD_NAME, experimental(Thread.currentThread().getName())),\n-                equalTo(THREAD_ID, experimental(Thread.currentThread().getId())),\n-                equalTo(EXCEPTION_TYPE, IllegalStateException.class.getName()),\n-                equalTo(EXCEPTION_MESSAGE, \"hello\"),\n-                satisfies(\n-                    EXCEPTION_STACKTRACE,\n-                    val -> val.contains(JavaUtilLoggingTest.class.getName())));\n-      } else {\n-        assertThat(log)\n-            .hasAttributesSatisfyingExactly(\n-                equalTo(THREAD_NAME, experimental(Thread.currentThread().getName())),\n-                equalTo(THREAD_ID, experimental(Thread.currentThread().getId())));\n+        expectedAttributes.add(equalTo(EXCEPTION_TYPE, IllegalStateException.class.getName()));\n+        expectedAttributes.add(equalTo(EXCEPTION_MESSAGE, \"hello\"));\n+        expectedAttributes.add(\n+            satisfies(\n+                EXCEPTION_STACKTRACE, val -> val.contains(JavaUtilLoggingTest.class.getName())));\n       }\n+      // logging via the Supplier + Throwable overload used above for logException doesn't support\n+      // parameters, so the template/arguments attributes are only captured in the plain\n+      // withParam case\n+      if (withParam && !logException) {\n+        if (CAPTURE_TEMPLATE) {\n+          expectedAttributes.add(equalTo(LOG_BODY_TEMPLATE, \"xyz: {0}\"));\n+        }\n+        if (CAPTURE_ARGUMENTS) {\n+          expectedAttributes.add(equalTo(LOG_BODY_PARAMETERS, singletonList(\"123\")));\n+        }\n+      }\n+      assertThat(log)\n+          .hasAttributesSatisfyingExactly(expectedAttributes.toArray(new AttributeAssertion[0]));",
+      "id": "PRRT_kwDODJKVX86Pi7k9",
+      "opened": "2026-07-09T11:11:12Z",
+      "path": "instrumentation/java-util-logging/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jul/JavaUtilLoggingTest.java",
+      "replies": [],
+      "reviewed": "1631cd64da5a642ccc1394bad11b4b82cf2976e6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154#discussion_r3551127417"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "another option to using a list of attributes is to compare to `null` when attribute is missing\n```java\n.hasAttributesSatisfyingExactly(\n  equalTo(THREAD_NAME, experimental(Thread.currentThread().getName())),\n  equalTo(THREAD_ID, experimental(Thread.currentThread().getId())),\n  equalTo(EXCEPTION_TYPE, logException ? IllegalStateException.class.getName() : null),\n  equalTo(EXCEPTION_MESSAGE, logException ? \"hello\" : null),\n  satisfies(\n      EXCEPTION_STACKTRACE,\n      val -> {\n        if (logException) {\n          val.contains(JavaUtilLoggingTest.class.getName();\n        }\n      }),\n  equalTo(LOG_BODY_TEMPLATE, CAPTURE_TEMPLATE && withParam && !logException ? \"xyz: {0}\" : null)\n);\n```",
+      "created": "2026-07-09T11:15:24Z",
+      "hunk": "@@ -113,22 +127,29 @@ private static void test(\n           .hasInstrumentationScope(InstrumentationScopeInfo.builder(expectedLoggerName).build())\n           .hasSeverity(expectedSeverity)\n           .hasSeverityText(expectedSeverityText);\n+      List<AttributeAssertion> expectedAttributes = new ArrayList<>();",
+      "id": "PRRT_kwDODJKVX86PjALe",
+      "opened": "2026-07-09T11:15:23Z",
+      "path": "instrumentation/java-util-logging/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jul/JavaUtilLoggingTest.java",
+      "replies": [],
+      "reviewed": "1631cd64da5a642ccc1394bad11b4b82cf2976e6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154#discussion_r3551153601"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-07-10T11:33:15Z",
+      "hunk": "@@ -30,3 +30,22 @@ tasks.test {\n   jvmArgs(\"-Dotel.instrumentation.jboss-logmanager.experimental-log-attributes=true\")\n   jvmArgs(\"-Dotel.instrumentation.java-util-logging.experimental-log-attributes=true\")\n }\n+\n+tasks {\n+  val testCaptureTemplateAndArguments = register<Test>(\"testCaptureTemplateAndArguments\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    jvmArgs(\n+      \"-Dotel.instrumentation.jboss-logmanager.experimental.capture-mdc-attributes=*\",\n+      \"-Dotel.instrumentation.jboss-logmanager.experimental-log-attributes=true\",\n+      \"-Dotel.instrumentation.java-util-logging.experimental-log-attributes=true\",",
+      "id": "PRRT_kwDODJKVX86P3e6A",
+      "opened": "2026-07-10T11:33:15Z",
+      "path": "instrumentation/jboss-logmanager/jboss-logmanager-appender-1.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-07-10T12:30:34Z",
+          "body": "Good catch on the duplication. Turns out that line isn't purely redundant though: for the `Logger.log(Level, Throwable, Supplier<String>)` overload, jboss-logmanager doesn't have its own advice for that particular JDK-declared method, so the call falls through to `java.util.logging.Logger`'s default implementation and ends up going through the java-util-logging instrumentation instead — without `java-util-logging.experimental-log-attributes=true` enabled, `thread.name`/`thread.id` are dropped for that path and `JbossLogmanagerTest` fails (verified locally).\n\nExtracted the three shared `-D` flags into a `commonTestJvmArgs` list reused by both `test` and `testCaptureTemplateAndArguments` instead, so the flag stays in exactly one place without being copy-pasted. Pushed in 66b168f9.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154#discussion_r3558873525"
+        },
+        {
+          "at": "2026-07-10T12:34:55Z",
+          "body": "thanks for clarifying",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154#discussion_r3558899478"
+        },
+        {
+          "at": "2026-07-10T12:45:49Z",
+          "body": "Good idea, that's cleaner. Switched to `tasks.withType<Test>().configureEach { ... }` for the shared jvm args instead of the custom list. Pushed in 6cd6beec.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154#discussion_r3558977355"
+        }
+      ],
+      "reviewed": "02f5f8817121fe904a09eef7abc1be440a0d2979",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154#discussion_r3558569798"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Usually we use `withType<Test>().configureEach` when we need to add a jvm arg to all test task\n```\ntasks {\n  withType<Test>().configureEach {\n    jvmArgs(\"-Dotel.instrumentation.jboss-logmanager.experimental.capture-mdc-attributes=*\")\n    jvmArgs(\"-Dotel.instrumentation.jboss-logmanager.experimental-log-attributes=true\")\n    jvmArgs(\"-Dotel.instrumentation.java-util-logging.experimental-log-attributes=true\")\n  }\n\n  val testCaptureTemplateAndArguments = register<Test>(\"testCaptureTemplateAndArguments\") {\n    testClassesDirs = sourceSets.test.get().output.classesDirs\n    classpath = sourceSets.test.get().runtimeClasspath\n\n    jvmArgs(\n      \"-Dotel.instrumentation.jboss-logmanager.experimental.capture-template=true\",\n      \"-Dotel.instrumentation.jboss-logmanager.experimental.capture-arguments=true\",\n    )\n  }\n}\n```",
+      "created": "2026-07-10T12:39:16Z",
+      "hunk": "@@ -24,9 +24,31 @@ if (otelProps.testLatestDeps) {\n   }\n }\n \n+// TODO run tests both with and without experimental log attributes\n+val commonTestJvmArgs =",
+      "id": "PRRT_kwDODJKVX86P4f0u",
+      "opened": "2026-07-10T12:39:16Z",
+      "path": "instrumentation/jboss-logmanager/jboss-logmanager-appender-1.1/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "66b168f953f2c0626aa1a8a56c766904e23a16a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154#discussion_r3558932519"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `satisfies(EXCEPTION_STACKTRACE, ...)` assertion becomes a no-op when `logException` is false, so the test would still pass even if a stacktrace attribute were unexpectedly present. It should explicitly assert that the stacktrace attribute is absent in the non-exception case (e.g., `val.isNull()`).",
+      "created": "2026-07-13T20:47:16Z",
+      "hunk": "@@ -113,22 +125,29 @@ private static void test(\n           .hasInstrumentationScope(InstrumentationScopeInfo.builder(expectedLoggerName).build())\n           .hasSeverity(expectedSeverity)\n           .hasSeverityText(expectedSeverityText);\n-      if (logException) {\n-        assertThat(log)\n-            .hasAttributesSatisfyingExactly(\n-                equalTo(THREAD_NAME, experimental(Thread.currentThread().getName())),\n-                equalTo(THREAD_ID, experimental(Thread.currentThread().getId())),\n-                equalTo(EXCEPTION_TYPE, IllegalStateException.class.getName()),\n-                equalTo(EXCEPTION_MESSAGE, \"hello\"),\n-                satisfies(\n-                    EXCEPTION_STACKTRACE,\n-                    val -> val.contains(JavaUtilLoggingTest.class.getName())));\n-      } else {\n-        assertThat(log)\n-            .hasAttributesSatisfyingExactly(\n-                equalTo(THREAD_NAME, experimental(Thread.currentThread().getName())),\n-                equalTo(THREAD_ID, experimental(Thread.currentThread().getId())));\n-      }\n+      // logging via the Supplier + Throwable overload used below for logException doesn't support\n+      // parameters, so the template/arguments attributes are only captured in the plain\n+      // withParam case\n+      boolean withTemplateOrArguments = withParam && !logException;\n+      assertThat(log)\n+          .hasAttributesSatisfyingExactly(\n+              equalTo(THREAD_NAME, experimental(Thread.currentThread().getName())),\n+              equalTo(THREAD_ID, experimental(Thread.currentThread().getId())),\n+              equalTo(EXCEPTION_TYPE, logException ? IllegalStateException.class.getName() : null),\n+              equalTo(EXCEPTION_MESSAGE, logException ? \"hello\" : null),\n+              satisfies(\n+                  EXCEPTION_STACKTRACE,\n+                  val -> {\n+                    if (logException) {\n+                      val.contains(JavaUtilLoggingTest.class.getName());\n+                    }\n+                  }),",
+      "id": "PRRT_kwDODJKVX86QiO1w",
+      "opened": "2026-07-13T20:47:16Z",
+      "path": "instrumentation/java-util-logging/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jul/JavaUtilLoggingTest.java",
+      "replies": [],
+      "reviewed": "0fdd1ce8efc5a5c0473c9216a3011d0a1a3e45b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154#discussion_r3574039958"
+    }
+  ]
+}

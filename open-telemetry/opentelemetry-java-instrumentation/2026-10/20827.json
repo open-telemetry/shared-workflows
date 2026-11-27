@@ -1,0 +1,82 @@
+{
+  "head": "ff3aa6c9947c288566b1c41499cd9555fa180e43",
+  "merge": "bd49e3f0a546f59e7756fa56393b5fdd6f7d3fd5",
+  "merged": "2026-10-22T05:44:51Z",
+  "missing_roots": 0,
+  "number": 20827,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the documentation in this PR and update this PR directly. Do not create a separate follow-up PR as a workaround.\n\nIn `docs/contributing/writing-instrumentation-module.md`, delete the entire `Inline advice exceptions` section, including its inline-specific constraints, examples, and `Java8BytecodeBridge` tutorial. Keep the existing short policy naming `instrumentation/internal/internal-class-loader` and `instrumentation/internal/internal-lambda` as the only production exceptions. Remove links to the deleted section. Describe passing state from enter to exit with `@Advice.Enter` directly, without introducing `@Advice.Local`. Preserve the general explanation of `suppress = Throwable.class` and the javaagent's exception handler in the remaining advice guidance. Retain the `[suppress]` link definition because it is used elsewhere in the document.\n\nIn `.github/agents/knowledge/javaagent-advice-patterns.md`, replace the entire `Keep Production Advice Non-inlined` section with the following, retaining its level-two heading level:\n\n## Keep production advice non-inlined\n\nUse `inline = false` consistently throughout each production module. Mixing inlined and non-inlined advice disables automatic indy isolation.\n\nRemove that section's `AdviceInspector` implementation details, explicit helper-loading strategy override discussion, `getAdditionalHelperClassNames()` workaround warning, and repeated `VirtualField` guidance. Leave the dedicated virtual-field article unchanged. Preserve the existing annotation rule and its two named exceptions in the other guidance, including `.github/instructions/javaagent.instructions.md`.\n\nKeep this documentation-only and focused on this simplification. Acceptance criteria: the inline-exceptions section and links to it are gone, the replacement section contains exactly the two requested sentences, the non-inlined annotation policy and its two exceptions remain, and useful exception-suppression guidance and the suppression reference link are preserved. Use the repository's existing Markdown validation for the changed files; no runtime builds or tests are needed for these documentation-only changes.",
+      "created": "2026-10-22T03:19:41Z",
+      "hunk": "@@ -44,31 +44,47 @@ suppressions to a single advice method.\n ## Advice Methods Must Be Static\n \n All `@Advice.OnMethodEnter` and `@Advice.OnMethodExit` methods **must be `static`**. ByteBuddy\n-inlines advice code directly into the instrumented method by default — there is no advice object\n-instance. Do not add or remove `inline = false` as cleanup; it is a semantic signal used by\n-muzzle/indy tooling.\n+defaults to inlining advice code directly into the instrumented method — there is no advice object\n+instance. For production javaagent advice, explicitly set `inline = false` on both annotations in\n+every module except `instrumentation/internal/internal-class-loader` and\n+`instrumentation/internal/internal-lambda`.\n \n ```java\n // ✅ Correct\n-@Advice.OnMethodEnter(suppress = Throwable.class)\n+@Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n public static void onEnter(/* ... */) { /* ... */ }\n \n // ❌ Wrong — instance method\n-@Advice.OnMethodEnter(suppress = Throwable.class)\n+@Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n public void onEnter(/* ... */) { /* ... */ }\n ```\n \n Advice classes should also have **no instance fields** — they are never instantiated.\n \n+## Keep Production Advice Non-inlined\n+\n+`AdviceInspector` selects isolated indy loading automatically when every advice annotation in a",
+      "id": "PRRT_kwDODJKVX86vCOgl",
+      "opened": "2026-10-22T03:19:41Z",
+      "path": ".github/agents/knowledge/javaagent-advice-patterns.md",
+      "replies": [
+        {
+          "at": "2026-10-22T03:25:17Z",
+          "body": "Updated the docs as requested in 3b6a5597. The contributor guide no longer has the inline-exceptions section or links, and the agent guidance now has the exact concise policy. Markdown lint could not run because `mise`/`flint` are unavailable; acceptance checks and `git diff --check` passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20827#discussion_r4344246454"
+        }
+      ],
+      "reviewed": "3c2d0bed98f211e9424a2a7e57e9260fb7c27940",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20827#discussion_r4344221078"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly with the three remaining indy-first guidance corrections below. Do not create a separate follow-up PR as a workaround.\n\n1. Remove stale claims that the transformer may inline advice despite source-level inline = false. In .github/agents/knowledge/javaagent-advice-patterns.md, the last paragraph of the Java8BytecodeBridge section still says source-level inline = false does not create an exception because the transformer controls inlining. In .github/instructions/java-style.instructions.md, the visibility rule still requires members called directly by advice to remain public on the same assumption. Current TypeTransformerImpl and IndyTypeTransformerImpl use the normal Byte Buddy PoolStrategy.Default.FAST and respect the annotations. Keep actual advice classes and their static entry points public for indy method-handle dispatch, but allow ordinary helpers narrower access when their callers and actual classloader boundaries permit it. Do not change runtime code or blindly narrow implementation visibility in this documentation PR.\n\n2. Align the Java8BytecodeBridge rule in .github/instructions/javaagent.instructions.md with this PR's updated knowledge article: use normal OpenTelemetry APIs in non-inlined advice and ordinary helpers, and reserve the bridge caveat for supported calls directly in genuinely inlined advice in the two documented internal exceptions. Do not retain the old blanket advice-versus-helper distinction. Bridge deprecation and caller migration are a separate PR, so do not add those changes here or describe an unmerged deprecation as already released.\n\n3. Add a concise clarification in the existing contributor advice guidance that non-inlined advice can use private helper methods and lambdas. Static fields and methods are already covered. Keep the existing static-method/no-advice-instance requirements and necessary indy entry-point access. Do not reintroduce the deleted inline-exceptions tutorial, a Java8BytecodeBridge tutorial, a second mode-selection API, or lengthy implementation details.\n\nPreserve this PR's existing simplified policy: explicitly use inline = false consistently in ordinary production modules; internal-class-loader and internal-lambda are the only production inline exceptions. Keep the Keep production advice non-inlined section's existing concise two-sentence policy, suppression guidance, and useful examples. Acceptance: these files no longer contradict each other or current annotation handling, private helpers and lambdas are explicitly allowed for non-inlined advice, and the two exceptions and public indy entry points remain correctly described. Keep changes documentation-only, with no helper reshuffling or unrelated cleanup. Use the repository's existing Markdown validation on changed files; report any concrete tooling blocker instead of claiming it ran. No runtime build or test is needed for this documentation-only update.",
+      "created": "2026-10-22T04:59:32Z",
+      "hunk": "@@ -16,7 +16,7 @@ class MyInstrumentation implements TypeInstrumentation {\n \n   @SuppressWarnings(\"unused\")\n   public static class MethodAdvice {\n-    @Advice.OnMethodEnter(suppress = Throwable.class)\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)",
+      "id": "PRRT_kwDODJKVX86vDXXs",
+      "opened": "2026-10-22T04:59:32Z",
+      "path": ".github/agents/knowledge/javaagent-advice-patterns.md",
+      "replies": [
+        {
+          "at": "2026-10-22T05:03:30Z",
+          "body": "Updated in ff3aa6c9. The advice visibility and bridge guidance now reflect indy dispatch, and the contributor guide explicitly allows private helpers and lambdas for non-inlined advice.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20827#discussion_r4344728323"
+        }
+      ],
+      "reviewed": "3b6a5597021ce3d14456f047af3b9cee21f1b613",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20827#discussion_r4344707980"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "replace indy with advice?",
+      "created": "2026-10-22T05:38:03Z",
+      "hunk": "@@ -44,36 +44,40 @@ suppressions to a single advice method.\n ## Advice Methods Must Be Static\n \n All `@Advice.OnMethodEnter` and `@Advice.OnMethodExit` methods **must be `static`**. ByteBuddy\n-inlines advice code directly into the instrumented method by default — there is no advice object\n-instance. Do not add or remove `inline = false` as cleanup; it is a semantic signal used by\n-muzzle/indy tooling.\n+defaults to inlining advice code directly into the instrumented method — there is no advice object\n+instance. For production javaagent advice, explicitly set `inline = false` on both annotations in\n+every module except `instrumentation/internal/internal-class-loader` and\n+`instrumentation/internal/internal-lambda`.\n \n ```java\n // ✅ Correct\n-@Advice.OnMethodEnter(suppress = Throwable.class)\n+@Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n public static void onEnter(/* ... */) { /* ... */ }\n \n // ❌ Wrong — instance method\n-@Advice.OnMethodEnter(suppress = Throwable.class)\n+@Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n public void onEnter(/* ... */) { /* ... */ }\n ```\n \n Advice classes should also have **no instance fields** — they are never instantiated.\n \n+## Keep production advice non-inlined\n+\n+Use `inline = false` consistently throughout each production module. Mixing inlined and non-inlined advice disables automatic indy isolation.",
+      "id": "PRRT_kwDODJKVX86vD16u",
+      "opened": "2026-10-22T05:38:03Z",
+      "path": ".github/agents/knowledge/javaagent-advice-patterns.md",
+      "replies": [],
+      "reviewed": "ff3aa6c9947c288566b1c41499cd9555fa180e43",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20827#discussion_r4344910287"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "maybe replace `for indy method-handle dispatch` with something like `so they could be called from the instrumented class`",
+      "created": "2026-10-22T05:40:48Z",
+      "hunk": "@@ -10,10 +10,10 @@ the stated exception before reporting a repository convention.\n \n - **Visibility**: use the narrowest access that works. Add `// visible for\n   testing` if a production member has broader visibility solely for direct\n-  test access. Members referenced directly by advice must remain public because\n-  the transformer may inline the advice even when its source annotation sets\n-  `inline = false`; transitive helper members may use narrower visibility. A\n-  single public class in a module may be needed for Javadoc.\n+  test access. Keep advice classes and their static entry points public for\n+  indy method-handle dispatch. Ordinary helpers may use narrower access when",
+      "id": "PRRT_kwDODJKVX86vD4JA",
+      "opened": "2026-10-22T05:40:48Z",
+      "path": ".github/instructions/java-style.instructions.md",
+      "replies": [],
+      "reviewed": "ff3aa6c9947c288566b1c41499cd9555fa180e43",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20827#discussion_r4344925349"
+    }
+  ]
+}

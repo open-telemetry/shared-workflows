@@ -1,0 +1,171 @@
+{
+  "head": "37779eb7ebf509515bef892d98faf385ecf81bdf",
+  "merge": "98a6628a62d4ad250e7063b13a329c76a61f290f",
+  "merged": "2026-06-25T05:17:12Z",
+  "missing_roots": 0,
+  "number": 20,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This release flow depends on towncrier, but the current repository does not declare a towncrier dependency or package towncrier configuration. If this PR lands before the towncrier setup, the documented `uv run towncrier build` step will not be executable.\n\nThis issue also appears in the following locations of the same file:\n- line 76\n- line 98\n- line 118",
+      "created": "2026-05-15T12:35:44Z",
+      "hunk": "@@ -0,0 +1,133 @@\n+# Release process\n+\n+This repo follows an **independent per-package release model**: every\n+publishable package owns its own version, `CHANGELOG.md`, and release cadence.\n+There is no coordinated bulk release across packages. The packages listed in\n+`[exclude_release]` of [`eachdist.ini`](eachdist.ini) are excluded from any\n+bulk-release tooling carried over from `opentelemetry-python-contrib`.\n+\n+> [!IMPORTANT]\n+> The CI workflows for fully automated releases (`prepare-release`,\n+> `package-release`, etc.) have **not yet been ported** from\n+> `opentelemetry-python-contrib`. Until they are, releases are performed\n+> manually using the steps below. Tracked in #15.\n+\n+## Publishable packages\n+\n+| Package | PyPI name |\n+| --- | --- |\n+| `opentelemetry-instrumentation-anthropic`        | _TBD_ |\n+| `opentelemetry-instrumentation-claude-agent-sdk` | _TBD_ |\n+| `opentelemetry-instrumentation-google-genai`     | _TBD_ |\n+| `opentelemetry-instrumentation-langchain`        | _TBD_ |\n+| `opentelemetry-instrumentation-openai-agents-v2` | _TBD_ |\n+| `opentelemetry-instrumentation-openai-v2`        | _TBD_ |\n+| `opentelemetry-instrumentation-weaviate`         | _TBD_ |\n+| `opentelemetry-util-genai`                       | _TBD_ |\n+\n+> [!NOTE]\n+> The PyPI names will differ from the names used in\n+> `opentelemetry-python-contrib`. Until each name is chosen and reserved on\n+> PyPI, packages cannot be published from this repo. Tracked in #15.\n+\n+## Releasing a package\n+\n+The steps below cover releasing a single package end-to-end. Repeat per\n+package as needed.\n+\n+### 1. Prepare the changelog\n+\n+Changelog entries are managed with [towncrier](https://towncrier.readthedocs.io/).\n+Each PR adds a fragment under `<package>/.changelog/<PR_NUMBER>.<type>`; at\n+release time those fragments are compiled into the package's `CHANGELOG.md`.",
+      "id": "PRRT_kwDOSbspP86CW3LJ",
+      "opened": "2026-05-15T12:35:44Z",
+      "path": "RELEASING.md",
+      "replies": [],
+      "reviewed": "b55d3c3b90e064666d03f26a916ed159864b1692",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3248203178"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can we just port them? I don't think we should ever release manually",
+      "created": "2026-05-18T23:32:26Z",
+      "hunk": "@@ -0,0 +1,133 @@\n+# Release process\n+\n+This repo follows an **independent per-package release model**: every\n+publishable package owns its own version, `CHANGELOG.md`, and release cadence.\n+There is no coordinated bulk release across packages. The packages listed in\n+`[exclude_release]` of [`eachdist.ini`](eachdist.ini) are excluded from any\n+bulk-release tooling carried over from `opentelemetry-python-contrib`.\n+\n+> [!IMPORTANT]\n+> The CI workflows for fully automated releases (`prepare-release`,\n+> `package-release`, etc.) have **not yet been ported** from\n+> `opentelemetry-python-contrib`. Until they are, releases are performed\n+> manually using the steps below. Tracked in #15.",
+      "id": "PRRT_kwDOSbspP86C_66L",
+      "opened": "2026-05-18T23:32:26Z",
+      "path": "RELEASING.md",
+      "replies": [
+        {
+          "at": "2026-05-19T13:11:05Z",
+          "body": "You're right - I updated to port the workflows here instead of just adding a releasing.md.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3266527959"
+        }
+      ],
+      "reviewed": "9c439ade90d5f465cdf4519afc9654da4d8c1b9f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3262774217"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "Does this require uv?\n```\n- name: Install uv\n  uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0\n```\n",
+      "created": "2026-05-19T18:43:44Z",
+      "hunk": "@@ -0,0 +1,158 @@\n+name: \"[Package] Release\"\n+on:\n+  workflow_dispatch:\n+    inputs:\n+      package:\n+        type: choice\n+        options:\n+        - opentelemetry-instrumentation-anthropic\n+        - opentelemetry-instrumentation-claude-agent-sdk\n+        - opentelemetry-instrumentation-google-genai\n+        - opentelemetry-instrumentation-langchain\n+        - opentelemetry-instrumentation-openai-agents-v2\n+        - opentelemetry-instrumentation-openai-v2\n+        - opentelemetry-instrumentation-weaviate\n+        - opentelemetry-util-genai\n+        description: 'Package to be released'\n+        required: true\n+permissions:\n+  contents: read\n+run-name: \"[Package][${{ inputs.package }}] Release\"\n+jobs:\n+  release:\n+    permissions:\n+      contents: write # required for creating releases\n+      pull-requests: write # required for creating pull requests\n+    runs-on: ubuntu-latest\n+    steps:\n+      - run: |\n+          if [[ $GITHUB_REF_NAME != package-release/${{ inputs.package }}* ]]; then\n+            echo this workflow should only be run against package-release/${{ inputs.package }}* branches\n+            exit 1\n+          fi\n+\n+      - uses: actions/checkout@v4\n+\n+      - name: Set environment variables\n+        run: |\n+          version=$(./scripts/eachdist.py version --package ${{ inputs.package }})\n+          if [[ $version =~ ^([0-9]+)\\.([0-9]+)\\.([0-9]+) ]]; then\n+            major=\"${BASH_REMATCH[1]}\"\n+            minor=\"${BASH_REMATCH[2]}\"\n+            patch=\"${BASH_REMATCH[3]}\"\n+            if [[ $patch != 0 ]]; then\n+              prior_version_when_patch=\"${major}.${minor}.$((patch - 1))\"\n+            fi\n+          elif [[ $version =~ ^([0-9]+)\\.([0-9]+)b([0-9]+)$ ]]; then\n+            major=\"${BASH_REMATCH[1]}\"\n+            minor=\"${BASH_REMATCH[2]}\"\n+            patch=\"${BASH_REMATCH[3]}\"\n+\n+            if [[ $patch != 0 ]]; then\n+              prior_version_when_patch=\"${major}.${minor}b$((patch - 1))\"\n+            fi\n+          else\n+            echo \"unexpected version: $version\"\n+            exit 1\n+          fi\n+\n+          path=$(./scripts/eachdist.py find-package --package ${{ inputs.package }})\n+          echo \"CHANGELOG=./$path/CHANGELOG.md\" >> $GITHUB_ENV\n+          echo \"PACKAGE_NAME=${{ inputs.package }}\" >> $GITHUB_ENV\n+          echo \"VERSION=$version\" >> $GITHUB_ENV\n+          echo \"RELEASE_TAG=${{ inputs.package }}==$version\" >> $GITHUB_ENV\n+          echo \"PRIOR_VERSION_WHEN_PATCH=$prior_version_when_patch\" >> $GITHUB_ENV\n+\n+      # check out main branch to verify there won't be problems with merging the change log\n+      # at the end of this workflow\n+      - uses: actions/checkout@v4\n+        with:\n+          ref: main\n+\n+      - name: Check that change log update was merged to main\n+        run: |\n+          if [[ -z $PRIOR_VERSION_WHEN_PATCH ]]; then\n+            # not making a patch release\n+            if ! grep --quiet \"^## Version ${VERSION}\" ${CHANGELOG}; then\n+              echo the pull request generated by prepare-release-branch.yml needs to be merged first\n+              exit 1\n+            fi\n+          fi\n+\n+        # back to the release branch\n+      - uses: actions/checkout@v4\n+\n+        # next few steps publish to pypi\n+      - uses: actions/setup-python@v5\n+        with:\n+          python-version: '3.10'\n+\n+      - name: Build wheels",
+      "id": "PRRT_kwDOSbspP86DQcLD",
+      "opened": "2026-05-19T18:53:51Z",
+      "path": ".github/workflows/package-release.yml",
+      "replies": [
+        {
+          "at": "2026-05-28T10:40:50Z",
+          "body": "The release workflow doesn't need uv, it only needs _Python_ + `pip install build twine` to build and upload the single package being released. `scripts/build_a_package.sh` invokes `python3 -m build` directly, so there's no workspace install and no `uv.lock` resolution involved.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3317181728"
+        },
+        {
+          "at": "2026-06-03T16:47:12Z",
+          "body": "Apologies if I am wrong, but I rechecked `scripts/build_a_package.sh` and it calls `uv run` and `uv build` not `python3 -m build`. Is this expected?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3350344849"
+        }
+      ],
+      "reviewed": "df8f1e5588b79019795a5e106a1070386c0a6654",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3268753913"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "Do we need to enable discussions and add an announcement category before releasing with this flag?",
+      "created": "2026-05-19T18:53:42Z",
+      "hunk": "@@ -0,0 +1,158 @@\n+name: \"[Package] Release\"\n+on:\n+  workflow_dispatch:\n+    inputs:\n+      package:\n+        type: choice\n+        options:\n+        - opentelemetry-instrumentation-anthropic\n+        - opentelemetry-instrumentation-claude-agent-sdk\n+        - opentelemetry-instrumentation-google-genai\n+        - opentelemetry-instrumentation-langchain\n+        - opentelemetry-instrumentation-openai-agents-v2\n+        - opentelemetry-instrumentation-openai-v2\n+        - opentelemetry-instrumentation-weaviate\n+        - opentelemetry-util-genai\n+        description: 'Package to be released'\n+        required: true\n+permissions:\n+  contents: read\n+run-name: \"[Package][${{ inputs.package }}] Release\"\n+jobs:\n+  release:\n+    permissions:\n+      contents: write # required for creating releases\n+      pull-requests: write # required for creating pull requests\n+    runs-on: ubuntu-latest\n+    steps:\n+      - run: |\n+          if [[ $GITHUB_REF_NAME != package-release/${{ inputs.package }}* ]]; then\n+            echo this workflow should only be run against package-release/${{ inputs.package }}* branches\n+            exit 1\n+          fi\n+\n+      - uses: actions/checkout@v4\n+\n+      - name: Set environment variables\n+        run: |\n+          version=$(./scripts/eachdist.py version --package ${{ inputs.package }})\n+          if [[ $version =~ ^([0-9]+)\\.([0-9]+)\\.([0-9]+) ]]; then\n+            major=\"${BASH_REMATCH[1]}\"\n+            minor=\"${BASH_REMATCH[2]}\"\n+            patch=\"${BASH_REMATCH[3]}\"\n+            if [[ $patch != 0 ]]; then\n+              prior_version_when_patch=\"${major}.${minor}.$((patch - 1))\"\n+            fi\n+          elif [[ $version =~ ^([0-9]+)\\.([0-9]+)b([0-9]+)$ ]]; then\n+            major=\"${BASH_REMATCH[1]}\"\n+            minor=\"${BASH_REMATCH[2]}\"\n+            patch=\"${BASH_REMATCH[3]}\"\n+\n+            if [[ $patch != 0 ]]; then\n+              prior_version_when_patch=\"${major}.${minor}b$((patch - 1))\"\n+            fi\n+          else\n+            echo \"unexpected version: $version\"\n+            exit 1\n+          fi\n+\n+          path=$(./scripts/eachdist.py find-package --package ${{ inputs.package }})\n+          echo \"CHANGELOG=./$path/CHANGELOG.md\" >> $GITHUB_ENV\n+          echo \"PACKAGE_NAME=${{ inputs.package }}\" >> $GITHUB_ENV\n+          echo \"VERSION=$version\" >> $GITHUB_ENV\n+          echo \"RELEASE_TAG=${{ inputs.package }}==$version\" >> $GITHUB_ENV\n+          echo \"PRIOR_VERSION_WHEN_PATCH=$prior_version_when_patch\" >> $GITHUB_ENV\n+\n+      # check out main branch to verify there won't be problems with merging the change log\n+      # at the end of this workflow\n+      - uses: actions/checkout@v4\n+        with:\n+          ref: main\n+\n+      - name: Check that change log update was merged to main\n+        run: |\n+          if [[ -z $PRIOR_VERSION_WHEN_PATCH ]]; then\n+            # not making a patch release\n+            if ! grep --quiet \"^## Version ${VERSION}\" ${CHANGELOG}; then\n+              echo the pull request generated by prepare-release-branch.yml needs to be merged first\n+              exit 1\n+            fi\n+          fi\n+\n+        # back to the release branch\n+      - uses: actions/checkout@v4\n+\n+        # next few steps publish to pypi\n+      - uses: actions/setup-python@v5\n+        with:\n+          python-version: '3.10'\n+\n+      - name: Build wheels\n+        run: ./scripts/build_a_package.sh\n+\n+      - name: Install twine\n+        run: |\n+          pip install twine\n+\n+      - name: Publish to PyPI\n+        env:\n+          TWINE_USERNAME: '__token__'\n+          TWINE_PASSWORD: ${{ secrets.pypi_password }}\n+        run: |\n+          twine upload --skip-existing --verbose dist/*\n+\n+      - name: Generate release notes\n+        env:\n+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n+        run: ./scripts/generate_release_notes.sh\n+\n+      - name: Create GitHub release\n+        env:\n+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n+        run: |\n+          gh release create --target $GITHUB_REF_NAME \\\n+                            --title \"${PACKAGE_NAME} ${VERSION}\" \\\n+                            --notes-file /tmp/release-notes.txt \\\n+                            --discussion-category announcements \\",
+      "id": "PRRT_kwDOSbspP86DQnps",
+      "opened": "2026-05-19T18:53:51Z",
+      "path": ".github/workflows/package-release.yml",
+      "replies": [
+        {
+          "at": "2026-05-28T10:37:09Z",
+          "body": "You're right, we shouldn't - it actually might break the release because the repo doesn't have discussions enabled. I've removed in [ad2bec4](https://github.com/open-telemetry/opentelemetry-python-genai/pull/20/commits/ad2bec4a926ce8bab53939abab4aa5b7df91f274)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3317162389"
+        }
+      ],
+      "reviewed": "df8f1e5588b79019795a5e106a1070386c0a6654",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3268821602"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "the package names were updated, but also it'd. be much easier to start with all-together release and if we end up releasing something too much (without new features), we can start leveraging per-package release. Let's add a common one?",
+      "created": "2026-06-10T05:00:09Z",
+      "hunk": "@@ -0,0 +1,129 @@\n+name: \"[Package] Prepare patch release\"\n+on:\n+  workflow_dispatch:\n+    inputs:\n+      package:\n+        type: choice\n+        options:\n+        - opentelemetry-instrumentation-anthropic",
+      "id": "PRRT_kwDOSbspP86IXTis",
+      "opened": "2026-06-10T05:00:09Z",
+      "path": ".github/workflows/package-prepare-patch-release.yml",
+      "replies": [],
+      "reviewed": "beb49fa164b939bcbf0ecd640d1106ffa8c9c501",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3385618462"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not for this PR: should we just convert all unreleased we have now to towncrier ? ",
+      "created": "2026-06-13T00:05:04Z",
+      "hunk": "@@ -0,0 +1,204 @@\n+# Release process\n+\n+Every package releases independently. The default path is a coordinated\n+**release-all** workflow; per-package workflows are for urgent or partial\n+releases.\n+\n+Releases are **tag-from-`main`**: each publish creates a tag\n+(`<pkg>==<version>`) pointing at the release commit on `main`. Backport\n+branches (`package-release/<pkg>/v*`) are created lazily from an old tag only\n+when patching an older minor line — not for every release.\n+\n+Releases are driven by GitHub Actions workflows. They handle version bumps,\n+changelog generation (via [towncrier](https://towncrier.readthedocs.io/)),\n+tagging, PyPI publishing, GitHub releases, and changelog updates on `main`.\n+\n+## Release model\n+\n+Unlike `opentelemetry-python-contrib`, we do not maintain a long-lived release\n+branch for every minor. Normal releases tag `main` directly; backport branches\n+are created on demand from an existing tag when patching an older minor.\n+\n+| | opentelemetry-python-contrib | This repo |\n+|---|---|---|\n+| Normal release | Long-lived `package-release/<pkg>/v*` branch | Tag on `main` |\n+| Tag target | Commit on the release branch | Commit on `main` |\n+| Patch in current line | Commits + tags on the release branch | Tags on `main` |\n+| Backport to older minor | Same branch (already exists) | Branch from old tag (lazy) |\n+| Branch sprawl | One branch per package per minor | Branches only for backports |\n+\n+## Prerequisites (one-time, repo-level)\n+\n+These must be configured by maintainers before the workflows can run:\n+\n+- **`OTELBOT_APP_ID`** (repo or org variable) and **`OTELBOT_PRIVATE_KEY`**\n+  (repo or org secret) — credentials for the `otelbot` GitHub App. The\n+  workflows commit and open PRs through this App so the resulting PRs\n+  trigger CI (a plain `GITHUB_TOKEN` doesn't).\n+- **PyPI Trusted Publishing** — each publishable package needs a trusted\n+  publisher on PyPI (see [PyPI publishing setup](#pypi-publishing-setup)).\n+  No long-lived PyPI API token is stored in GitHub secrets.\n+- **`pypi` GitHub environment** — release jobs deploy through this\n+  environment so publishing can be restricted (branch rules, required\n+  reviewers). See [GitHub environment setup](#github-environment-setup).\n+- **Branch protection** on `package-release/*/v*` branches so backport changes\n+  only land via reviewed PRs.\n+\n+### PyPI publishing setup\n+\n+For each publishable package, add a trusted publisher on PyPI\n+(*Manage* → *Publishing* → *Add a new pending publisher*):\n+\n+| Field | Value |\n+|-------|-------|\n+| PyPI project name | e.g. `opentelemetry-util-genai` |\n+| Owner | `open-telemetry` |\n+| Repository name | `opentelemetry-python-genai` |\n+| Workflow name | `_release-package.yml` |\n+| Environment name | `pypi` |\n+\n+All packages share the same workflow and environment. Register one publisher\n+entry per PyPI project. The first upload from CI activates the publisher.\n+\n+Publishable packages (from `eachdist.ini`):\n+\n+- `opentelemetry-instrumentation-genai-anthropic`\n+- `opentelemetry-instrumentation-genai-claude-agent-sdk`\n+- `opentelemetry-instrumentation-google-genai`\n+- `opentelemetry-instrumentation-genai-langchain`\n+- `opentelemetry-instrumentation-genai-openai`\n+- `opentelemetry-instrumentation-genai-openai-agents`\n+- `opentelemetry-instrumentation-genai-weaviate-client`\n+- `opentelemetry-util-genai`\n+\n+### GitHub environment setup\n+\n+Create a **`pypi`** environment under repository *Settings* → *Environments*.\n+\n+Recommended restrictions:\n+\n+- **Deployment branches**: limit to `main` and `package-release/**` (backport\n+  releases run from backport branches).\n+- **Required reviewers** (optional): gate PyPI uploads behind maintainer\n+  approval. Bulk `[All] Release` runs one matrix job per package; each job\n+  waits on the environment, so consider whether reviewers should approve once\n+  per run or per matrix leg.\n+\n+Release jobs in `_release-package.yml` set `environment: pypi` and request\n+`id-token: write` so GitHub can mint a short-lived OIDC token for PyPI.\n+\n+## Bulk release (default)\n+\n+For releasing every package that has towncrier changelog fragments:\n+\n+1. Run the\n+   [`[All] Prepare release`](./.github/workflows/release-all-prepare.yml)\n+   workflow against `main`.\n+   - Finds packages with fragments under `.changelog/`.\n+   - Opens one combined PR on `main` that drops `.dev` suffixes and runs\n+     `towncrier build` for each eligible package.\n+   - Labels the PR `release`.\n+2. Review and merge the prepare PR.\n+3. The\n+   [`[All] Release`](./.github/workflows/release-all.yml)\n+   workflow runs automatically when a labelled prepare PR merges (or trigger it\n+   manually against `main`).\n+   - Publishes each ready package to PyPI.\n+   - Creates a GitHub release tag (`<pkg>==<version>`) on `main` for each.\n+   - Opens a PR bumping released packages back to the next `.dev` version.\n+\n+Packages without changelog fragments are skipped during prepare and logged in\n+the workflow output.\n+\n+## Per-package release\n+\n+Use when only one package needs to ship, or the rest of the workspace is not\n+ready for a bulk release.\n+\n+1. Run\n+   [`[Package] Prepare release`](./.github/workflows/package-prepare-release.yml)\n+   against `main`. Select the package from the dropdown.\n+   - Opens a PR on `main` that drops the `.dev` suffix and runs\n+     `towncrier build`.\n+2. Review and merge the prepare PR.\n+3. Run\n+   [`[Package] Release`](./.github/workflows/package-release.yml)\n+   against `main`.\n+   - Builds the wheel, publishes to PyPI, creates the GitHub release tag, and\n+     opens PRs for any changelog date updates and the next `.dev` bump.\n+\n+## Patch release (current minor line)\n+\n+1. Land the fix on `main` as a normal PR (with a towncrier fragment).\n+2. Run\n+   [`[Package] Prepare patch release`](./.github/workflows/package-prepare-patch-release.yml)\n+   against `main`.\n+   - Same mechanics as prepare release: drops `.dev`, runs `towncrier build`.\n+3. Review and merge the prepare PR.\n+4. Run\n+   [`[Package] Release`](./.github/workflows/package-release.yml)\n+   against `main`.\n+\n+## Backport patch (older minor line)\n+\n+1. Create `package-release/<pkg>/v<X>.<Y>bx` from the `<pkg>==<X>.<Y>b<N>`\n+   tag if it does not exist yet.\n+2. Cherry-pick or develop the fix on the branch.\n+3. Run\n+   [`[Package] Prepare patch release`](./.github/workflows/package-prepare-patch-release.yml)\n+   against the backport branch.\n+   - Bumps the patch version and runs `towncrier build`.\n+4. Review and merge the prepare PR into the backport branch.\n+5. Run\n+   [`[Package] Release`](./.github/workflows/package-release.yml)\n+   against the backport branch.\n+   - Tags the backport branch and opens a PR copying changelog updates to\n+     `main`.\n+\n+## Pre-existing static `## Unreleased` entries\n+\n+Several packages carry CHANGELOG entries that pre-date towncrier (added\n+before the towncrier marker was inserted). `towncrier build` does **not**\n+fold them into the generated release section. Before the first towncrier\n+release of a given package, fold those entries by hand into the new\n+release section produced by `towncrier build` (or convert them into\n+fragments first). The do-not-edit comment in each `CHANGELOG.md` flags\n+this.",
+      "id": "PRRT_kwDOSbspP86JRtPp",
+      "opened": "2026-06-13T00:22:14Z",
+      "path": "RELEASING.md",
+      "replies": [
+        {
+          "at": "2026-06-18T03:27:13Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/149",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3432780186"
+        }
+      ],
+      "reviewed": "40f134c7c07f6576669737f5fcf3444559340ad2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3406857644"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this one and `opentelemetry-instrumentation-genai-claude-agent-sdk` are just a scaffolding with no content. Can we avoid releasing them for now ? ",
+      "created": "2026-06-13T00:10:15Z",
+      "hunk": "@@ -0,0 +1,204 @@\n+# Release process\n+\n+Every package releases independently. The default path is a coordinated\n+**release-all** workflow; per-package workflows are for urgent or partial\n+releases.\n+\n+Releases are **tag-from-`main`**: each publish creates a tag\n+(`<pkg>==<version>`) pointing at the release commit on `main`. Backport\n+branches (`package-release/<pkg>/v*`) are created lazily from an old tag only\n+when patching an older minor line — not for every release.\n+\n+Releases are driven by GitHub Actions workflows. They handle version bumps,\n+changelog generation (via [towncrier](https://towncrier.readthedocs.io/)),\n+tagging, PyPI publishing, GitHub releases, and changelog updates on `main`.\n+\n+## Release model\n+\n+Unlike `opentelemetry-python-contrib`, we do not maintain a long-lived release\n+branch for every minor. Normal releases tag `main` directly; backport branches\n+are created on demand from an existing tag when patching an older minor.\n+\n+| | opentelemetry-python-contrib | This repo |\n+|---|---|---|\n+| Normal release | Long-lived `package-release/<pkg>/v*` branch | Tag on `main` |\n+| Tag target | Commit on the release branch | Commit on `main` |\n+| Patch in current line | Commits + tags on the release branch | Tags on `main` |\n+| Backport to older minor | Same branch (already exists) | Branch from old tag (lazy) |\n+| Branch sprawl | One branch per package per minor | Branches only for backports |\n+\n+## Prerequisites (one-time, repo-level)\n+\n+These must be configured by maintainers before the workflows can run:\n+\n+- **`OTELBOT_APP_ID`** (repo or org variable) and **`OTELBOT_PRIVATE_KEY`**\n+  (repo or org secret) — credentials for the `otelbot` GitHub App. The\n+  workflows commit and open PRs through this App so the resulting PRs\n+  trigger CI (a plain `GITHUB_TOKEN` doesn't).\n+- **PyPI Trusted Publishing** — each publishable package needs a trusted\n+  publisher on PyPI (see [PyPI publishing setup](#pypi-publishing-setup)).\n+  No long-lived PyPI API token is stored in GitHub secrets.\n+- **`pypi` GitHub environment** — release jobs deploy through this\n+  environment so publishing can be restricted (branch rules, required\n+  reviewers). See [GitHub environment setup](#github-environment-setup).\n+- **Branch protection** on `package-release/*/v*` branches so backport changes\n+  only land via reviewed PRs.\n+\n+### PyPI publishing setup\n+\n+For each publishable package, add a trusted publisher on PyPI\n+(*Manage* → *Publishing* → *Add a new pending publisher*):\n+\n+| Field | Value |\n+|-------|-------|\n+| PyPI project name | e.g. `opentelemetry-util-genai` |\n+| Owner | `open-telemetry` |\n+| Repository name | `opentelemetry-python-genai` |\n+| Workflow name | `_release-package.yml` |\n+| Environment name | `pypi` |\n+\n+All packages share the same workflow and environment. Register one publisher\n+entry per PyPI project. The first upload from CI activates the publisher.\n+\n+Publishable packages (from `eachdist.ini`):\n+\n+- `opentelemetry-instrumentation-genai-anthropic`\n+- `opentelemetry-instrumentation-genai-claude-agent-sdk`\n+- `opentelemetry-instrumentation-google-genai`\n+- `opentelemetry-instrumentation-genai-langchain`\n+- `opentelemetry-instrumentation-genai-openai`\n+- `opentelemetry-instrumentation-genai-openai-agents`\n+- `opentelemetry-instrumentation-genai-weaviate-client`",
+      "id": "PRRT_kwDOSbspP86JRwPM",
+      "opened": "2026-06-13T00:22:14Z",
+      "path": "RELEASING.md",
+      "replies": [
+        {
+          "at": "2026-06-15T16:25:29Z",
+          "body": "Done, I updated the list of release packages to not include those yet.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3414991925"
+        }
+      ],
+      "reviewed": "40f134c7c07f6576669737f5fcf3444559340ad2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3406874134"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it's a bit confusing to see both one-time-setup and per-every-release steps mixed together. Would it be possible to separate them either into two different sections, two different docs, or just remove one-time setup section?",
+      "created": "2026-06-13T00:14:01Z",
+      "hunk": "@@ -0,0 +1,204 @@\n+# Release process\n+\n+Every package releases independently. The default path is a coordinated\n+**release-all** workflow; per-package workflows are for urgent or partial\n+releases.\n+\n+Releases are **tag-from-`main`**: each publish creates a tag\n+(`<pkg>==<version>`) pointing at the release commit on `main`. Backport\n+branches (`package-release/<pkg>/v*`) are created lazily from an old tag only\n+when patching an older minor line — not for every release.\n+\n+Releases are driven by GitHub Actions workflows. They handle version bumps,\n+changelog generation (via [towncrier](https://towncrier.readthedocs.io/)),\n+tagging, PyPI publishing, GitHub releases, and changelog updates on `main`.\n+\n+## Release model\n+\n+Unlike `opentelemetry-python-contrib`, we do not maintain a long-lived release\n+branch for every minor. Normal releases tag `main` directly; backport branches\n+are created on demand from an existing tag when patching an older minor.\n+\n+| | opentelemetry-python-contrib | This repo |\n+|---|---|---|\n+| Normal release | Long-lived `package-release/<pkg>/v*` branch | Tag on `main` |\n+| Tag target | Commit on the release branch | Commit on `main` |\n+| Patch in current line | Commits + tags on the release branch | Tags on `main` |\n+| Backport to older minor | Same branch (already exists) | Branch from old tag (lazy) |\n+| Branch sprawl | One branch per package per minor | Branches only for backports |\n+\n+## Prerequisites (one-time, repo-level)\n+\n+These must be configured by maintainers before the workflows can run:\n+\n+- **`OTELBOT_APP_ID`** (repo or org variable) and **`OTELBOT_PRIVATE_KEY`**\n+  (repo or org secret) — credentials for the `otelbot` GitHub App. The\n+  workflows commit and open PRs through this App so the resulting PRs\n+  trigger CI (a plain `GITHUB_TOKEN` doesn't).\n+- **PyPI Trusted Publishing** — each publishable package needs a trusted\n+  publisher on PyPI (see [PyPI publishing setup](#pypi-publishing-setup)).\n+  No long-lived PyPI API token is stored in GitHub secrets.\n+- **`pypi` GitHub environment** — release jobs deploy through this\n+  environment so publishing can be restricted (branch rules, required\n+  reviewers). See [GitHub environment setup](#github-environment-setup).\n+- **Branch protection** on `package-release/*/v*` branches so backport changes\n+  only land via reviewed PRs.\n+\n+### PyPI publishing setup\n+\n+For each publishable package, add a trusted publisher on PyPI\n+(*Manage* → *Publishing* → *Add a new pending publisher*):\n+\n+| Field | Value |\n+|-------|-------|\n+| PyPI project name | e.g. `opentelemetry-util-genai` |\n+| Owner | `open-telemetry` |\n+| Repository name | `opentelemetry-python-genai` |\n+| Workflow name | `_release-package.yml` |\n+| Environment name | `pypi` |\n+\n+All packages share the same workflow and environment. Register one publisher\n+entry per PyPI project. The first upload from CI activates the publisher.\n+\n+Publishable packages (from `eachdist.ini`):\n+\n+- `opentelemetry-instrumentation-genai-anthropic`\n+- `opentelemetry-instrumentation-genai-claude-agent-sdk`\n+- `opentelemetry-instrumentation-google-genai`\n+- `opentelemetry-instrumentation-genai-langchain`\n+- `opentelemetry-instrumentation-genai-openai`\n+- `opentelemetry-instrumentation-genai-openai-agents`\n+- `opentelemetry-instrumentation-genai-weaviate-client`\n+- `opentelemetry-util-genai`\n+\n+### GitHub environment setup",
+      "id": "PRRT_kwDOSbspP86JRyvc",
+      "opened": "2026-06-13T00:22:14Z",
+      "path": "RELEASING.md",
+      "replies": [
+        {
+          "at": "2026-06-15T16:25:59Z",
+          "body": "Yeah, I've removed that section and updated the releasing section to show how to add new packages to the release process.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3414994702"
+        }
+      ],
+      "reviewed": "40f134c7c07f6576669737f5fcf3444559340ad2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/20#discussion_r3406888605"
+    }
+  ]
+}

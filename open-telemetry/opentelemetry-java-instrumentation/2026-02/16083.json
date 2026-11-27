@@ -1,0 +1,31 @@
+{
+  "head": "0c06515b165ef2ecaa74898dcfbfcc9e62015790",
+  "merge": "45d016a716e51ab7d3ad5e9998e97c8008605370",
+  "merged": "2026-02-26T16:50:20Z",
+  "missing_roots": 0,
+  "number": 16083,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@laurit what do you think about checking this in? I've been using it locally to help find and fix edge cases in the sql summarization. not sure if it's worth baking in to the main test, or leaving as \"edge cases\" test, or just dropping it",
+      "created": "2026-02-20T18:24:33Z",
+      "hunk": "@@ -0,0 +1,817 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.db;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import java.util.stream.Stream;\n+import org.junit.jupiter.api.Disabled;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n+\n+/**\n+ * AI generated edge case tests for SQL query summary generation. Covers database-specific syntax,\n+ * subqueries, CTEs, window functions, vendor-specific features, and various lexical edge cases.\n+ */\n+class SqlQuerySummaryEdgeCasesTest {",
+      "id": "PRRT_kwDODJKVX85v14RX",
+      "opened": "2026-02-20T18:24:33Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuerySummaryEdgeCasesTest.java",
+      "replies": [
+        {
+          "at": "2026-02-26T14:30:00Z",
+          "body": "Let's add it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16083#discussion_r2859360757"
+        }
+      ],
+      "reviewed": "9a58c1e91b5e2d77b20210f3ebba341d2189d5aa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16083#discussion_r2834540543"
+    }
+  ]
+}

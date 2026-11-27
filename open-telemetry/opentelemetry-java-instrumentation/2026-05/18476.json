@@ -1,0 +1,25 @@
+{
+  "head": "14ef9258f867d362796f7bf5b59b88965eb4ddab",
+  "merge": "787e9fcd83ed3a66e179b4a886e52792b2d145b3",
+  "merged": "2026-05-01T16:54:40Z",
+  "missing_roots": 0,
+  "number": 18476,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Might as well remove it from the list above",
+      "created": "2026-05-01T05:22:37Z",
+      "hunk": "@@ -306,9 +306,11 @@ protected void assertAdditionalMetrics() throws InterruptedException, TimeoutExc\n             \"jvm.network.io\",\n             \"jvm.thread.count\")) {\n       // cpu longlock is missing on jdk 25\n-      // jvm.network.io is flaky on jdk 25\n-      if (javaVersion >= 25\n-          && (\"jvm.cpu.longlock\".equals(metric) || \"jvm.network.io\".equals(metric))) {\n+      if (javaVersion >= 25 && \"jvm.cpu.longlock\".equals(metric)) {\n+        continue;\n+      }\n+      // jvm.network.io is flaky on all JDK versions\n+      if (\"jvm.network.io\".equals(metric)) {",
+      "id": "PRRT_kwDODJKVX85-69JW",
+      "opened": "2026-05-01T05:22:37Z",
+      "path": "smoke-tests-otel-starter/spring-boot-common/src/main/java/io/opentelemetry/spring/smoketest/AbstractOtelSpringStarterSmokeTest.java",
+      "replies": [],
+      "reviewed": "dd175484470df1e228e90c78e95f235b88929700",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18476#discussion_r3172192733"
+    }
+  ]
+}

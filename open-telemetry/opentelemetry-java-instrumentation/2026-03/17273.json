@@ -1,0 +1,25 @@
+{
+  "head": "96eac5737329feebe2efbc6a08658d4666f95453",
+  "merge": "a933e38eb872bbe88806b334e1ba659bdaa65a42",
+  "merged": "2026-03-31T20:00:42Z",
+  "missing_roots": 0,
+  "number": 17273,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "probably a losing battle to fight this, may as well lean in",
+      "created": "2026-03-31T19:20:45Z",
+      "hunk": "@@ -151,7 +151,7 @@ private static SQSEvent.SQSMessage newMessage() {\n       Constructor<SQSEvent.SQSMessage> ctor = SQSEvent.SQSMessage.class.getDeclaredConstructor();\n       ctor.setAccessible(true);\n       return ctor.newInstance();\n-    } catch (Throwable t) {\n+    } catch (ReflectiveOperationException | SecurityException t) {",
+      "id": "PRRT_kwDODJKVX854C8zm",
+      "opened": "2026-03-31T19:20:48Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/AbstractAwsLambdaSqsEventHandlerTest.java",
+      "replies": [],
+      "reviewed": "96eac5737329feebe2efbc6a08658d4666f95453",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17273#discussion_r3017854464"
+    }
+  ]
+}

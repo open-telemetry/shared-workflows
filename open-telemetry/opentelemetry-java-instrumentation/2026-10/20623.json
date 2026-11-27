@@ -1,0 +1,61 @@
+{
+  "head": "d7c0cdb4fd1061cc2356de42a6c8e95742c60979",
+  "merge": "18cb17b3e68b50d885693b56be931970958d8811",
+  "merged": "2026-10-20T11:47:03Z",
+  "missing_roots": 0,
+  "number": 20623,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Rejecting every bridge removes existing controller telemetry when the implementation is inherited from an uninstrumented superclass. For example, an annotated resource interface declares `Object get()`, an unannotated superclass supplies `public String get()`, and the resource subclass extends that superclass and implements the interface. javac declares only the forwarding `Object get()` bridge on the subclass. The superclass does not match the annotation instrumentation's type matcher, so excluding the bridge leaves interface dispatch without a controller span. The same problem affects accessibility bridges on public `@Path` resources inheriting an `@GET` method from a package-private superclass without `@Path`. Preserve bridges that are the only instrumentation point, while avoiding duplicate spans for same-class covariant implementations. Add installed-agent regression coverage for both inherited cases.",
+      "created": "2026-10-15T19:52:23Z",
+      "hunk": "@@ -33,20 +32,19 @@ public HasSuperMethodMatcher(ElementMatcher<? super MethodDescription> matcher)\n \n   @Override\n   public boolean matches(MethodDescription target) {\n-    if (target.isConstructor()) {\n+    if (target.isConstructor() || target.isBridge()) {",
+      "id": "PRRT_kwDODJKVX86s8TMG",
+      "opened": "2026-10-15T19:52:24Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/matcher/HasSuperMethodMatcher.java",
+      "replies": [
+        {
+          "at": "2026-10-15T20:49:53Z",
+          "body": "No code change.\n\nThe telemetry regression is not introduced by this PR. AgentInstaller.java:124 already uses Byte Buddy MethodGraph.Compiler.ForDeclaredMethods.INSTANCE before the PR (468480a3), and Byte Buddy 1.18.14 explicitly filters out isBridge() methods in that compiler. Installed-agent tests for both reported cases still emitted only the parent SERVER span with an experimental matcher that accepts inherited bridges. Replacing the matcher with its exact pre-PR implementation reproduced both missing-controller-span failures (2 tests, 2 failures). Changing this matcher alone cannot restore those spans; enabling bridge instrumentation would fix a separate pre-existing method-graph limitation. The original frozen-head matcher and installed-agent suites pass. No source change is warranted for the reported PR regression.\n\n<!-- copilot-loop:cf59a6db5b12b2d133cf4294eff82e0980015117ec3d52d1b135c2982c99e77e:4287612216:eead888206534f098a05d961f1b8f843 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20623#discussion_r4288135249"
+        }
+      ],
+      "reviewed": "117d7f4b684852b3259cc50941b68df5faf91d76",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20623#discussion_r4287612216"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "these could be hoisted out of the loop",
+      "created": "2026-10-20T11:36:45Z",
+      "hunk": "@@ -132,6 +134,26 @@ private static Method findMatchingMethod(Method baseMethod, Method[] methods) {\n     return null;\n   }\n \n+  private static boolean hasMatchingReturnType(Method baseMethod, Method candidate) {\n+    if (baseMethod.getReturnType().equals(candidate.getReturnType())) {\n+      return true;\n+    }\n+    // Allow covariant return types: baseMethod is the overriding method, so its return type\n+    // may be a subtype of candidate's return type. This requires an accessible instance\n+    // method that can be overridden.\n+    int baseModifiers = baseMethod.getModifiers();\n+    int candidateModifiers = candidate.getModifiers();\n+    return !Modifier.isStatic(baseModifiers)\n+        && !Modifier.isPrivate(baseModifiers)",
+      "id": "PRRT_kwDODJKVX86uT2Rl",
+      "opened": "2026-10-20T11:36:45Z",
+      "path": "instrumentation/jaxrs/jaxrs-1.0-annotations/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxrs/v1_0/HandlerData.java",
+      "replies": [],
+      "reviewed": "d7c0cdb4fd1061cc2356de42a6c8e95742c60979",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20623#discussion_r4324489591"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "to complicate things\n```java\npublic interface I1 {\n    String test();\n}\npublic interface I2 {\n    Object test();\n}\npublic class Test implements I1, I2{\n    @Override\n    public String test() {\n        return \"\";\n    }\n}\n```\na method overrides 2 different interface methods. I guess it is not possible to tell the path based on just the method. Luckily this isn't important since the framework specific instrumentations we have shouldn't have this problem.",
+      "created": "2026-10-20T11:46:31Z",
+      "hunk": "@@ -109,7 +111,7 @@ private static Path findClassPath(Class<?> target) {\n   private static Method findMatchingMethod(Method baseMethod, Method[] methods) {\n     nextMethod:\n     for (Method method : methods) {\n-      if (!baseMethod.getReturnType().equals(method.getReturnType())) {\n+      if (!hasMatchingReturnType(baseMethod, method)) {",
+      "id": "PRRT_kwDODJKVX86uUB__",
+      "opened": "2026-10-20T11:46:31Z",
+      "path": "instrumentation/jaxrs/jaxrs-1.0-annotations/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxrs/v1_0/HandlerData.java",
+      "replies": [],
+      "reviewed": "d7c0cdb4fd1061cc2356de42a6c8e95742c60979",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20623#discussion_r4324567089"
+    }
+  ]
+}

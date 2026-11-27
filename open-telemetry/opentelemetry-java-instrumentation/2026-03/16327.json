@@ -1,0 +1,31 @@
+{
+  "head": "3d069a31b228abb52a13cfc084b2f554547ac1cc",
+  "merge": "1f03f03a5be5f7aca276e51ef8b54efd98f349b8",
+  "merged": "2026-03-02T07:28:53Z",
+  "missing_roots": 0,
+  "number": 16327,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot \n\nprompt was wrong,\n\nrename the package to match the module name\n\nio.opentelemetry.javaagent.instrumentation.netty.common.v4_0",
+      "created": "2026-02-28T18:48:16Z",
+      "hunk": "@@ -3,11 +3,11 @@\n  * SPDX-License-Identifier: Apache-2.0\n  */\n \n-package io.opentelemetry.javaagent.instrumentation.netty.v4.common;\n+package io.opentelemetry.javaagent.instrumentation.netty.v4_0.common;",
+      "id": "PRRT_kwDODJKVX85xVuLX",
+      "opened": "2026-02-28T18:48:16Z",
+      "path": "instrumentation/netty/netty-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/netty/v4_0/common/AbstractNettyChannelPipelineInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-02-28T18:53:39Z",
+          "body": "Done in 3d069a31 — renamed to `io.opentelemetry.javaagent.instrumentation.netty.common.v4_0` with `common` before `v4_0` to match the module name.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16327#discussion_r2867763646"
+        }
+      ],
+      "reviewed": "d92eed234d871105c0c2b20a3f320efba651fe6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16327#discussion_r2867758888"
+    }
+  ]
+}

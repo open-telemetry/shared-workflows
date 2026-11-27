@@ -1,0 +1,40 @@
+{
+  "head": "a019f28dfe946a13f8a99c4ecd4ba56d815e8cd4",
+  "merge": "9af08349db7e70b2528accde90bae81d4ebcfa1e",
+  "merged": "2026-08-02T19:13:30Z",
+  "missing_roots": 0,
+  "number": 419,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`func = function_map.get(call.name)` may be `None` (tool not registered). In that case this wrapper still starts an `execute_tool` span and also derives a description from `None.__doc__` (which is the string \"None\"), producing an incorrect `gen_ai.tool.description` and emitting an execute_tool span even though no tool can be executed.",
+      "created": "2026-08-01T19:27:19Z",
+      "hunk": "@@ -15,6 +15,53 @@\n _reference_tracer = reference_tracer()\n \n \n+def _patch_automatic_function_calling():\n+    \"\"\"Emit execute_tool spans from the SDK's automatic-function-calling dispatch.\n+\n+    `_extra_utils.get_function_response_parts` is where the SDK invokes the\n+    application's callable: the `FunctionCall` (id, name, args) and the callable\n+    itself are both in scope, so this is the hook generic instrumentation would\n+    patch. Wrapping the callable instead would lose the tool call id.\n+    \"\"\"\n+    from google.genai import _extra_utils\n+\n+    original = _extra_utils.get_function_response_parts\n+\n+    def instrumented(response, function_map):\n+        parts = []\n+        candidate = response.candidates[0] if response.candidates else None\n+        for part in (candidate.content.parts if candidate and candidate.content else None) or []:\n+            call = part.function_call\n+            if not call or not call.name:\n+                continue\n+            func = function_map.get(call.name)\n+            tool_span_attributes = {\n+                \"gen_ai.operation.name\": \"execute_tool\",\n+                \"gen_ai.tool.name\": call.name,\n+                \"gen_ai.tool.type\": \"function\",\n+            }\n+            description = (getattr(func, \"__doc__\", None) or \"\").strip().splitlines()\n+            if description:\n+                tool_span_attributes[\"gen_ai.tool.description\"] = description[0]",
+      "id": "PRRT_kwDOSUeMrM6VqcLC",
+      "opened": "2026-08-01T19:27:19Z",
+      "path": "reference/scenarios/google-genai/scenario.py",
+      "replies": [],
+      "reviewed": "41b0c4377ae4c8168d202f01235e706f00eca1db",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/419#discussion_r3696441306"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "vertexai ends up as the only one of the three execute_tool scenarios added here without `gen_ai.tool.call.id`. That follows from emitting inside `get_weather`: Vertex AI's automatic function calling hands the callable only the model args, so the id never reaches it.\n\nIt is available one level up. `AutomaticFunctionCallingResponder.respond_to_model_response` is the dispatch site and has the `FunctionCall` in scope, and `function_call.to_dict().get(\"id\")` picks up the `call_mock_001` the mock server already returns on the v1beta1 path this PR wires up — the v1beta1 `FunctionCall` proto carries `id`, and `Part.function_call` preserves it through `_from_gapic`. Patching there, the same move as `_patch_automatic_function_calling` in the google-genai scenario, would put vertexai in the `gen_ai.tool.call.id` row alongside google-genai and langchain.",
+      "created": "2026-08-01T23:54:15Z",
+      "hunk": "@@ -118,22 +127,41 @@ def run_chat():\n \n def run_chat_tool_call():\n     \"\"\"Scenario: chat with tool calling with reference implementation.\"\"\"\n-    from vertexai.generative_models import FunctionDeclaration, GenerativeModel, Tool\n+    # Automatic function calling lives under `preview` in google-cloud-aiplatform 2.x.\n+    from vertexai.preview.generative_models import (\n+        AutomaticFunctionCallingResponder,\n+        CallableFunctionDeclaration,\n+        GenerativeModel,\n+        Tool,\n+    )\n \n     print(\"  [chat_tool_call] chat with tool calling via Vertex AI (reference implementation)\")\n     request_model = \"gemini-2.0-flash\"\n-    get_weather_func = FunctionDeclaration(\n-        name=\"get_weather\",\n-        description=\"Get the current weather\",\n-        parameters={\n-            \"type\": \"object\",\n-            \"properties\": {\n-                \"location\": {\"type\": \"string\", \"description\": \"City name\"},\n-            },\n-            \"required\": [\"location\"],\n-        },\n-    )\n-    tool = Tool(function_declarations=[get_weather_func])\n+\n+    def get_weather(location: str) -> str:\n+        \"\"\"Get the current weather.\n+\n+        Args:\n+            location: City name\n+        \"\"\"\n+        # The SDK invokes this callable as part of automatic function calling.\n+        # The public FunctionCall wrapper exposes only name/args, so the tool call\n+        # id is not recorded here.",
+      "id": "PRRT_kwDOSUeMrM6VrzWy",
+      "opened": "2026-08-02T00:08:03Z",
+      "path": "reference/scenarios/vertexai/scenario.py",
+      "replies": [],
+      "reviewed": "bea961f4b4b3d576a281f286afb9beef9f667045",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/419#discussion_r3696956299"
+    }
+  ]
+}

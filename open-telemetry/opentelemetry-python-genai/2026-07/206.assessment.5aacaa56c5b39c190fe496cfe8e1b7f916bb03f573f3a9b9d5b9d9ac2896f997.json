@@ -1,0 +1,74 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e4b227bbef0e0b60beca0fac9df3f26b396961e0da630ba2c2710fd213af36a6",
+  "input_digest": "5aacaa56c5b39c190fe496cfe8e1b7f916bb03f573f3a9b9d5b9d9ac2896f997",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDOSbspP86PYE2k",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/8fe7df4f8803a42a342d4516fb2468f61049ec6d/instrumentation/opentelemetry-instrumentation-genai-openai/examples/manual/.env",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/099428bd6ce1e4e94d0656f09cfa755a2a99bd40/instrumentation/opentelemetry-instrumentation-genai-openai/examples/manual/.env",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/2757fcc5104fa31214bddba0691b4278ab9e7392"
+      ],
+      "id": "PRRT_kwDOSbspP86PYE5q",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/8fe7df4f8803a42a342d4516fb2468f61049ec6d/instrumentation/opentelemetry-instrumentation-genai-openai/examples/zero-code/.env",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/099428bd6ce1e4e94d0656f09cfa755a2a99bd40/instrumentation/opentelemetry-instrumentation-genai-openai/examples/zero-code/.env",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/2757fcc5104fa31214bddba0691b4278ab9e7392"
+      ],
+      "id": "PRRT_kwDOSbspP86PYE6k",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/8fe7df4f8803a42a342d4516fb2468f61049ec6d/instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/manual/.env.example",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/099428bd6ce1e4e94d0656f09cfa755a2a99bd40/instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/manual/.env.example",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/2757fcc5104fa31214bddba0691b4278ab9e7392"
+      ],
+      "id": "PRRT_kwDOSbspP86PYE7B",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/8fe7df4f8803a42a342d4516fb2468f61049ec6d/instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/zero-code/.env.example",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/099428bd6ce1e4e94d0656f09cfa755a2a99bd40/instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/zero-code/.env.example",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/2757fcc5104fa31214bddba0691b4278ab9e7392"
+      ],
+      "id": "PRRT_kwDOSbspP86PYE7v",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_at_or_before_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/8fe7df4f8803a42a342d4516fb2468f61049ec6d/instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/zero-code/.env.example",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/099428bd6ce1e4e94d0656f09cfa755a2a99bd40/instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/zero-code/.env.example",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/2757fcc5104fa31214bddba0691b4278ab9e7392"
+      ],
+      "id": "PRRT_kwDOSbspP86PZK-t",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "c989a11728c99453b4c87acdc361b930e7ecc875",
+  "merge": "21a4c40aeb8dc9c97c0e5844f9f32dec7ec08101",
+  "merged": "2026-03-21T01:23:32Z",
+  "missing_roots": 0,
+  "number": 16507,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "changes in this file are because this test uses old OpenTelemetry API and doesn't have ExtendedOpenTelemetry available",
+      "created": "2026-03-16T14:40:15Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX850mUU1",
+      "opened": "2026-03-16T14:40:15Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/ContextBridgeTest.java",
+      "replies": [],
+      "reviewed": "8afdeca5d142847f90009562a7f3f72db26af858",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16507#discussion_r2940818328"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Maybe should call `getOrNoop` instead of `get`. As pointed out in https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/16506 `get` can be destructive when called from library instrumentations.",
+      "created": "2026-03-17T08:34:22Z",
+      "hunk": "@@ -22,110 +22,56 @@\n  * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n  * any time.\n  */\n+@SuppressWarnings(\"deprecation\")\n public final class SemconvStability {\n \n-  private static boolean emitOldDatabaseSemconv;\n-  private static boolean emitStableDatabaseSemconv;\n+  private static final boolean emitOldDatabaseSemconv;\n+  private static final boolean emitStableDatabaseSemconv;\n \n-  private static boolean emitOldCodeSemconv;\n-  private static boolean emitStableCodeSemconv;\n+  private static final boolean emitOldCodeSemconv;\n+  private static final boolean emitStableCodeSemconv;\n \n-  private static boolean emitOldServicePeerSemconv;\n-  private static boolean emitStableServicePeerSemconv;\n+  private static final boolean emitOldServicePeerSemconv;\n+  private static final boolean emitStableServicePeerSemconv;\n \n-  private static boolean emitOldRpcSemconv;\n-  private static boolean emitStableRpcSemconv;\n+  private static final boolean emitOldRpcSemconv;\n+  private static final boolean emitStableRpcSemconv;\n \n   static {\n-    String value = System.getProperty(\"otel.semconv-stability.opt-in\");\n-    if (value == null) {\n-      value = System.getenv(\"OTEL_SEMCONV_STABILITY_OPT_IN\");\n-    }\n-    Set<String> values = value != null ? new HashSet<>(asList(value.split(\",\"))) : emptySet();\n-    configure(values);\n-  }\n-\n-  private static void configure(Set<String> values) {\n-    // set default values\n-    emitOldDatabaseSemconv = true;\n-    emitStableDatabaseSemconv = false;\n-\n-    emitOldCodeSemconv = true;\n-    emitStableCodeSemconv = false;\n-\n-    emitOldServicePeerSemconv = true;\n-    emitStableServicePeerSemconv = false;\n-\n-    emitOldRpcSemconv = true;\n-    emitStableRpcSemconv = false;\n+    OpenTelemetry openTelemetry = GlobalOpenTelemetry.get();",
+      "id": "PRRT_kwDODJKVX850yxpF",
+      "opened": "2026-03-17T08:34:22Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+      "replies": [],
+      "reviewed": "8afdeca5d142847f90009562a7f3f72db26af858",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16507#discussion_r2945163964"
+    }
+  ]
+}

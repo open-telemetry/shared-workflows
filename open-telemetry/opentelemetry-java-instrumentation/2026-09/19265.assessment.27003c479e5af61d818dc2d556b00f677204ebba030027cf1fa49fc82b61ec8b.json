@@ -1,0 +1,49 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "973e1bd5af19eea7bd058a9e4c2ef18232aca7bf2b13826d341fbf19240f25f2",
+  "input_digest": "27003c479e5af61d818dc2d556b00f677204ebba030027cf1fa49fc82b61ec8b",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72fd73c646f1ff2d7e7b9bebf972564f54462a2c/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5039fa5cbbb8e9111eb6026249638f9cca22caeb/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentInstaller.java"
+      ],
+      "id": "PRRT_kwDODJKVX86U4NM3",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72fd73c646f1ff2d7e7b9bebf972564f54462a2c/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentStarterImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5039fa5cbbb8e9111eb6026249638f9cca22caeb/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentStarterImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/583db4e08a1e700e49504acebf563dc867e7f9fb"
+      ],
+      "id": "PRRT_kwDODJKVX86U4NNA",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72fd73c646f1ff2d7e7b9bebf972564f54462a2c/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/bytebuddy/TestAgentListener.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5039fa5cbbb8e9111eb6026249638f9cca22caeb/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/bytebuddy/TestAgentListener.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/583db4e08a1e700e49504acebf563dc867e7f9fb"
+      ],
+      "id": "PRRT_kwDODJKVX86U4NND",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86YR9Nn",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

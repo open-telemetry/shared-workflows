@@ -1,0 +1,49 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "279ff131b589e7f78e9f2f18c4f884c98e6e5041538b77ae21e7b90faea7696e",
+  "input_digest": "681283e3cbe89a6facaa7ba9cb7d1e0fd2968b353efedc1ac798132e3c8dc276",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c76b672cd6ef86d5e2166660b0ac047a1776f49d/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/MetaDataCollector.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48bd09348edc676c8fb69f0754564ff87cec6349/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/MetaDataCollector.java"
+      ],
+      "id": "PRRT_kwDODJKVX85qngjY",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c76b672cd6ef86d5e2166660b0ac047a1776f49d/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/SpanParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48bd09348edc676c8fb69f0754564ff87cec6349/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/SpanParser.java"
+      ],
+      "id": "PRRT_kwDODJKVX85qnhKs",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c76b672cd6ef86d5e2166660b0ac047a1776f49d/instrumentation/servlet/servlet-2.2/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c76b672cd6ef86d5e2166660b0ac047a1776f49d/instrumentation/servlet/servlet-3.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c76b672cd6ef86d5e2166660b0ac047a1776f49d/instrumentation/servlet/servlet-5.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48bd09348edc676c8fb69f0754564ff87cec6349/instrumentation/servlet/servlet-2.2/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48bd09348edc676c8fb69f0754564ff87cec6349/instrumentation/servlet/servlet-3.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48bd09348edc676c8fb69f0754564ff87cec6349/instrumentation/servlet/servlet-5.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/c76b672cd6ef86d5e2166660b0ac047a1776f49d...3b971ea86b7dde453a1d954c99bd2fff62d3a268",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/48bd09348edc676c8fb69f0754564ff87cec6349",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3b971ea86b7dde453a1d954c99bd2fff62d3a268"
+      ],
+      "id": "PRRT_kwDODJKVX85rZ3n8",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

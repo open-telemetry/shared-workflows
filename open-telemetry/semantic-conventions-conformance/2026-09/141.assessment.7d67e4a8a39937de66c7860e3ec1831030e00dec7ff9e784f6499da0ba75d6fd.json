@@ -1,0 +1,31 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c1e42953ed66ff87e276d76c700b02a996f0eb9f44209be7638c00e64b39293d",
+  "input_digest": "7d67e4a8a39937de66c7860e3ec1831030e00dec7ff9e784f6499da0ba75d6fd",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/680875d08c1830a6c13e86cedaf1f07f4a91989f/scenarios/http/go/echo/otelecho/server/main.go",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17df55b24316a12b1921a6873b24437b52f9f81f/scenarios/http/go/echo/otelecho/server/main.go"
+      ],
+      "id": "PRRT_kwDOTuzK5c6fpGVF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/680875d08c1830a6c13e86cedaf1f07f4a91989f/scenarios/http/go/gin/otelgin/server/main.go",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/17df55b24316a12b1921a6873b24437b52f9f81f/scenarios/http/go/gin/otelgin/server/main.go"
+      ],
+      "id": "PRRT_kwDOTuzK5c6fpGVG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "head": "80dcdee9400a17efaa0098588f26cd7017198670",
+  "merge": "d855e7631bd6c525c76a8b59758f76e890660969",
+  "merged": "2026-01-21T11:45:34Z",
+  "missing_roots": 0,
+  "number": 15938,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot would something like this work? explain\n\n```\nval stableSemconvSuites = testing.suites.withType(JvmTestSuite::class).map { suite ->\n    register<Test>(\"${suite.name}StableSemconv\") {\n      testClassesDirs = suite.sources.output.classesDirs\n      classpath = suite.sources.runtimeClasspath\n\n      jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n    }\n  }\n```",
+      "created": "2026-01-19T18:36:52Z",
+      "hunk": "@@ -76,16 +76,43 @@ tasks {\n   named(\"compileVersion5TestJava\", JavaCompile::class).configure {\n     options.release.set(11)\n   }\n+\n+  val version35TestStableSemconv by registering(Test::class) {\n+    testClassesDirs = sourceSets.named(\"version35Test\").get().output.classesDirs\n+    classpath = sourceSets.named(\"version35Test\").get().runtimeClasspath\n+    jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+  }\n+\n+  val version41TestStableSemconv by registering(Test::class) {\n+    testClassesDirs = sourceSets.named(\"version41Test\").get().output.classesDirs\n+    classpath = sourceSets.named(\"version41Test\").get().runtimeClasspath\n+    jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+  }\n+\n+  val version5TestStableSemconv by registering(Test::class) {\n+    testClassesDirs = sourceSets.named(\"version5Test\").get().output.classesDirs\n+    classpath = sourceSets.named(\"version5Test\").get().runtimeClasspath\n+    jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+  }\n+",
+      "id": "PRRT_kwDODJKVX85qCuyU",
+      "opened": "2026-01-19T18:36:52Z",
+      "path": "instrumentation/vertx/vertx-rx-java-3.5/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-01-19T18:41:56Z",
+          "body": "Yes, this approach works and is better! I can see the elasticsearch-transport-6.0 module already uses this exact pattern. It's more maintainable since it automatically creates stable semconv variants for all test suites without manual duplication. I'll refactor to use this approach.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15938#discussion_r2705786702"
+        },
+        {
+          "at": "2026-01-19T18:48:40Z",
+          "body": "Done in 4b64acc8. The refactored code uses the map-based pattern and is much cleaner - reduced from ~40 lines to ~15 lines while maintaining the same functionality.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15938#discussion_r2705799666"
+        }
+      ],
+      "reviewed": "035f5c027c34149ae0de4ac7a4ab505d276a2bdb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15938#discussion_r2705777340"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot inline `testSuites`",
+      "created": "2026-01-19T18:51:15Z",
+      "hunk": "@@ -76,16 +76,31 @@ tasks {\n   named(\"compileVersion5TestJava\", JavaCompile::class).configure {\n     options.release.set(11)\n   }\n+\n+  val testSuites = testing.suites.withType(JvmTestSuite::class)",
+      "id": "PRRT_kwDODJKVX85qC0UV",
+      "opened": "2026-01-19T18:51:15Z",
+      "path": "instrumentation/vertx/vertx-rx-java-3.5/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-01-19T18:58:08Z",
+          "body": "Done in 8136159a",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15938#discussion_r2705818587"
+        }
+      ],
+      "reviewed": "4b64acc8409b8373f07fd79c984d9ad8bab3c426",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15938#discussion_r2705805070"
+    }
+  ]
+}

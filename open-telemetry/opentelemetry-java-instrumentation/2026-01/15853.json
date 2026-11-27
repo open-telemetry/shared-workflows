@@ -1,0 +1,31 @@
+{
+  "head": "636e5d527624e685dc4c96e6aab6ffeecd092525",
+  "merge": "9f8fa5c6761e5cd7c7cf406244a41ace33b4e6a5",
+  "merged": "2026-01-13T15:08:00Z",
+  "missing_roots": 0,
+  "number": 15853,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "Is the intention to switch this pattern for all libraries?\n\n<img width=\"809\" height=\"807\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/5515f126-16ff-4fb7-b3c0-c6ac9f43fe78\" />",
+      "created": "2026-01-12T21:10:25Z",
+      "hunk": "@@ -16,10 +16,7 @@\n /** Entrypoint for instrumenting Apache HTTP Client. */\n public final class ApacheHttpClientTelemetry {\n \n-  /**\n-   * Returns a new {@link ApacheHttpClientTelemetry} configured with the given {@link\n-   * OpenTelemetry}.\n-   */\n+  /** Returns a new instance configured with the given {@link OpenTelemetry} instance. */",
+      "id": "PRRT_kwDODJKVX85pDv1V",
+      "opened": "2026-01-12T21:10:25Z",
+      "path": "instrumentation/apache-httpclient/apache-httpclient-5.2/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v5_2/ApacheHttpClientTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-01-12T21:10:52Z",
+          "body": "nvm, now i see the PR description",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15853#discussion_r2683922802"
+        }
+      ],
+      "reviewed": "636e5d527624e685dc4c96e6aab6ffeecd092525",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15853#discussion_r2683921521"
+    }
+  ]
+}

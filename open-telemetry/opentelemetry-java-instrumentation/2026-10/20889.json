@@ -1,0 +1,31 @@
+{
+  "head": "83aaf32a26f91c7c05f989d260b56b46b28bc24e",
+  "merge": "d4f0efff61f012e29a04c65aba370eb28b111364",
+  "merged": "2026-10-23T05:02:59Z",
+  "missing_roots": 0,
+  "number": 20889,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to use Apache Commons Lang as the compile-only missing type instead of maintaining a local fixture. The user explicitly prefers an extra non-Guava dependency over a custom test fixture because this repository instruments Guava. This user-directed revision supersedes the earlier preference for a local fixture and the earlier prohibition on using another third-party artifact for this purpose.\n\nIn javaagent-tooling/build.gradle.kts, replace compileOnly(testMissingTypeFixtures.output) in the testMissingType suite with compileOnly(\"org.apache.commons:commons-lang3:3.21.0\"). Remove the testMissingTypeFixtures source set and its MissingType.java source file. In MissingTypeTest.java, use org.apache.commons.lang3.StringUtils in place of MissingType in the field and instance/static method parameter and return types. Rename the fixture-specific test and comments appropriately, and retain an explicit check that org.apache.commons.lang3.StringUtils is unavailable at runtime. No StringUtils methods need to run.\n\nVerify the resolved testMissingType runtime classpath really excludes Commons Lang, including transitive paths. Do not weaken or delete the runtime-absence assertion to accommodate a dependency leak. Preserve all existing missing-field, instance/static missing-parameter and missing-return-type scenarios, successful instrumentation, and the assertion that transformation has no errors. Keep the ordinary-test direct Guava dependency removed and do not reintroduce Guava anywhere in javaagent-tooling.\n\nKeep this revision limited to the missing-type dependency, source-set cleanup, and test changes. Leave the shared Guava BOM, other modules, and agent ignore/instrumentation rules untouched. Apply the narrowest relevant Spotless task immediately before behavior validation, run the testMissingType suite and targeted javaagent-tooling ordinary tests, and confirm the runtime absence requirement. Preserve the PR's current draft state and base. Update this PR's existing branch rather than creating a separate PR.",
+      "created": "2026-10-23T03:42:55Z",
+      "hunk": "@@ -85,7 +86,7 @@ testing {\n         implementation(project(\":javaagent-bootstrap\"))\n         implementation(project(\":javaagent-tooling\"))\n         implementation(\"net.bytebuddy:byte-buddy-dep\")\n-        compileOnly(\"com.google.guava:guava\")\n+        compileOnly(testMissingTypeFixtures.output)",
+      "id": "PRRT_kwDODJKVX86vdr3s",
+      "opened": "2026-10-23T03:42:55Z",
+      "path": "javaagent-tooling/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-23T03:50:52Z",
+          "body": "Updated in 83aaf32a. The test now uses compile-only Commons Lang with an explicit runtime-absence assertion; the local fixture/source set is removed. Both requested test tasks pass, and dependency insight confirms Commons Lang is absent from `testMissingTypeRuntimeClasspath`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20889#discussion_r4355905234"
+        }
+      ],
+      "reviewed": "1ed435c829f3ea85e42532462a3d4c78e4a98647",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20889#discussion_r4355867235"
+    }
+  ]
+}

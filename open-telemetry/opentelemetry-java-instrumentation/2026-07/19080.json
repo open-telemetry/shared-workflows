@@ -1,0 +1,316 @@
+{
+  "head": "bdfd58f5c3d89b7446b1a4e7af42669ce1af8229",
+  "merge": "9308df4084e549f90afcf8385a7182d9f95b1cef",
+  "merged": "2026-07-10T15:06:33Z",
+  "missing_roots": 0,
+  "number": 19080,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There is a leftover empty list item (`- `) here, and the blank line that previously separated this bullet list from the following paragraph was removed. In Markdown, without a blank line the `The [jvm]...` paragraph becomes a lazy continuation of the last list item, so the list and paragraph won't render correctly. Remove the stray bullet and restore the blank separator line.",
+      "created": "2026-06-25T17:39:14Z",
+      "hunk": "@@ -33,7 +33,8 @@ No targets are enabled by default. The supported target environments are listed\n - [tomcat](library/tomcat.md)\n - [wildfly](library/wildfly.md)\n - [hadoop](library/hadoop.md)\n-\n+- [cassandra](library/cassandra.md)\n+- ",
+      "id": "PRRT_kwDODJKVX86MTe4z",
+      "opened": "2026-06-25T17:39:15Z",
+      "path": "instrumentation/jmx-metrics/README.md",
+      "replies": [],
+      "reviewed": "69cd9c9b36e018d1a0029e6a7f9030d3198ec422",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3476425252"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The changelog entry links to PR `#0`, which is a placeholder and points to a non-existent pull request. Update the link to reference the actual PR number once it is known.",
+      "created": "2026-06-25T17:39:15Z",
+      "hunk": "@@ -2,6 +2,9 @@\n \n ## Unreleased\n \n+- Add Cassandra JMX metrics target system. \n+  ([#0](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/0))",
+      "id": "PRRT_kwDODJKVX86MTe5C",
+      "opened": "2026-06-25T17:39:15Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "69cd9c9b36e018d1a0029e6a7f9030d3198ec422",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3476425274"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "The descriptions for otel stable metrics end with a `.`. For the jmx metrics we have it both ways, but I think it might be better to follow the pattern set in otel stable metrics.\nNone of of the other metrics use `[re]start`, perhaps `since server start` would be enugh?",
+      "created": "2026-06-29T11:27:30Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+---\n+rules:\n+\n+  # Compaction\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=CompletedTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.completed\n+        type: counter\n+        unit: \"{task}\"\n+        desc: Number of completed compactions since server [re]start",
+      "id": "PRRT_kwDODJKVX86M82fx",
+      "opened": "2026-06-29T11:27:30Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/cassandra.yaml",
+      "replies": [
+        {
+          "at": "2026-07-02T16:40:55Z",
+          "body": "Makes sense, I adjusted it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3514701464"
+        }
+      ],
+      "reviewed": "f15553898fca8771e1e0cd450469a7b59b68b117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3491322051"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@SylvainJuge @robsunday do you guys remember what was the decision for units in JMX metrics. Use whatever the library provides or prefer seconds? ",
+      "created": "2026-06-29T11:28:45Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+---\n+rules:\n+\n+  # Compaction\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=CompletedTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.completed\n+        type: counter\n+        unit: \"{task}\"\n+        desc: Number of completed compactions since server [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=PendingTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.pending\n+        type: gauge\n+        unit: \"{task}\"\n+        desc: Estimated number of compactions remaining to perform\n+\n+  # Storage\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=Load\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.load.count\n+        type: updowncounter\n+        unit: By\n+        desc: Size of the on disk data size this node manages\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHints\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.count\n+        type: counter\n+        unit: \"{hint}\"\n+        desc: Number of hint messages written to this node since [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHintsInProgress\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.in_progress.count\n+        type: updowncounter\n+        unit: \"{hint}\"\n+        desc: Number of hints attempting to be sent currently\n+\n+  # Client request latency percentiles (pre-aggregated values from the Latency MBean)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+    unit: us",
+      "id": "PRRT_kwDODJKVX86M83yV",
+      "opened": "2026-06-29T11:28:45Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/cassandra.yaml",
+      "replies": [
+        {
+          "at": "2026-06-30T08:59:58Z",
+          "body": "For JMX metrics we try to align on seconds for consistency:\r\n- semantic conventions [defaults to seconds for duration](https://opentelemetry.io/docs/specs/semconv/general/metrics/#instrument-units), this was introduced in https://github.com/open-telemetry/opentelemetry-specification/issues/2977\r\n- we also recommend duration to be in seconds in [JMX metrics recommendations](https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/main/instrumentation/jmx-metrics#jmx-metrics-definitions-recommendations)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3497469250"
+        },
+        {
+          "at": "2026-07-02T16:59:37Z",
+          "body": "I changed to:\r\n```yaml\r\nsourceUnit: us\r\nunit: s\r\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3514821081"
+        }
+      ],
+      "reviewed": "f15553898fca8771e1e0cd450469a7b59b68b117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3491329121"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "you should be able to use `lowercase` modifier here to capture the value as lower-case: https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/main/instrumentation/jmx-metrics#metric-attributes-modifiers",
+      "created": "2026-06-30T11:40:56Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+---\n+rules:\n+\n+  # Compaction\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=CompletedTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.completed\n+        type: counter\n+        unit: \"{task}\"\n+        desc: Number of completed compactions since server [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=PendingTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.pending\n+        type: gauge\n+        unit: \"{task}\"\n+        desc: Estimated number of compactions remaining to perform\n+\n+  # Storage\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=Load\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.load.count\n+        type: updowncounter\n+        unit: By\n+        desc: Size of the on disk data size this node manages\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHints\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.count\n+        type: counter\n+        unit: \"{hint}\"\n+        desc: Number of hint messages written to this node since [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHintsInProgress\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.in_progress.count\n+        type: updowncounter\n+        unit: \"{hint}\"\n+        desc: Number of hints attempting to be sent currently\n+\n+  # Client request latency percentiles (pre-aggregated values from the Latency MBean)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)",
+      "id": "PRRT_kwDODJKVX86NQhaq",
+      "opened": "2026-06-30T11:40:56Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/cassandra.yaml",
+      "replies": [],
+      "reviewed": "f15553898fca8771e1e0cd450469a7b59b68b117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3498413351"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "```suggestion\n        metric: cassandra.storage.load\n```\n\nThis is not a \"count\", but the \"load\" is the amount stored on disk, so we should remove the \".count\" suffix to avoid any confusion.",
+      "created": "2026-06-30T11:44:14Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+---\n+rules:\n+\n+  # Compaction\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=CompletedTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.completed\n+        type: counter\n+        unit: \"{task}\"\n+        desc: Number of completed compactions since server [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=PendingTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.pending\n+        type: gauge\n+        unit: \"{task}\"\n+        desc: Estimated number of compactions remaining to perform\n+\n+  # Storage\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=Load\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.load.count",
+      "id": "PRRT_kwDODJKVX86NQkol",
+      "opened": "2026-06-30T12:23:09Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/cassandra.yaml",
+      "replies": [],
+      "reviewed": "f15553898fca8771e1e0cd450469a7b59b68b117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3498430882"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "```suggestion\n        metric: cassandra.storage.total_hints.in_progress\n```\n\nWe can remove the `.count` suffix here as there is nothing else with `cassandra.storage.total_hints.in_progress` prefix",
+      "created": "2026-06-30T11:58:42Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+---\n+rules:\n+\n+  # Compaction\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=CompletedTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.completed\n+        type: counter\n+        unit: \"{task}\"\n+        desc: Number of completed compactions since server [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=PendingTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.pending\n+        type: gauge\n+        unit: \"{task}\"\n+        desc: Estimated number of compactions remaining to perform\n+\n+  # Storage\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=Load\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.load.count\n+        type: updowncounter\n+        unit: By\n+        desc: Size of the on disk data size this node manages\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHints\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.count\n+        type: counter\n+        unit: \"{hint}\"\n+        desc: Number of hint messages written to this node since [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHintsInProgress\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.in_progress.count",
+      "id": "PRRT_kwDODJKVX86NQ0bD",
+      "opened": "2026-06-30T12:23:09Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/cassandra.yaml",
+      "replies": [],
+      "reviewed": "f15553898fca8771e1e0cd450469a7b59b68b117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3498517668"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "```suggestion\n      cassandra.operation: lowercase(param(scope))\n```",
+      "created": "2026-06-30T12:00:12Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+---\n+rules:\n+\n+  # Compaction\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=CompletedTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.completed\n+        type: counter\n+        unit: \"{task}\"\n+        desc: Number of completed compactions since server [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=PendingTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.pending\n+        type: gauge\n+        unit: \"{task}\"\n+        desc: Estimated number of compactions remaining to perform\n+\n+  # Storage\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=Load\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.load.count\n+        type: updowncounter\n+        unit: By\n+        desc: Size of the on disk data size this node manages\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHints\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.count\n+        type: counter\n+        unit: \"{hint}\"\n+        desc: Number of hint messages written to this node since [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHintsInProgress\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.in_progress.count\n+        type: updowncounter\n+        unit: \"{hint}\"\n+        desc: Number of hints attempting to be sent currently\n+\n+  # Client request latency percentiles (pre-aggregated values from the Latency MBean)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+    unit: us\n+    type: gauge\n+    mapping:\n+      50thPercentile:\n+        metric: cassandra.client.request.latency.p50\n+        desc: Request latency 50th percentile by operation\n+      99thPercentile:\n+        metric: cassandra.client.request.latency.p99\n+        desc: Request latency 99th percentile by operation\n+      Max:\n+        metric: cassandra.client.request.latency.max\n+        desc: Maximum request latency by operation\n+\n+  # Client request count (Count attribute on the same Latency MBeans)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)",
+      "id": "PRRT_kwDODJKVX86NQ15e",
+      "opened": "2026-06-30T12:23:09Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/cassandra.yaml",
+      "replies": [],
+      "reviewed": "f15553898fca8771e1e0cd450469a7b59b68b117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3498525856"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "```suggestion\n      cassandra.operation: lowercase(param(scope))\n      cassandra.status: const(unavailable)\n```",
+      "created": "2026-06-30T12:02:12Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+---\n+rules:\n+\n+  # Compaction\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=CompletedTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.completed\n+        type: counter\n+        unit: \"{task}\"\n+        desc: Number of completed compactions since server [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=PendingTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.pending\n+        type: gauge\n+        unit: \"{task}\"\n+        desc: Estimated number of compactions remaining to perform\n+\n+  # Storage\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=Load\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.load.count\n+        type: updowncounter\n+        unit: By\n+        desc: Size of the on disk data size this node manages\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHints\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.count\n+        type: counter\n+        unit: \"{hint}\"\n+        desc: Number of hint messages written to this node since [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHintsInProgress\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.in_progress.count\n+        type: updowncounter\n+        unit: \"{hint}\"\n+        desc: Number of hints attempting to be sent currently\n+\n+  # Client request latency percentiles (pre-aggregated values from the Latency MBean)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+    unit: us\n+    type: gauge\n+    mapping:\n+      50thPercentile:\n+        metric: cassandra.client.request.latency.p50\n+        desc: Request latency 50th percentile by operation\n+      99thPercentile:\n+        metric: cassandra.client.request.latency.p99\n+        desc: Request latency 99th percentile by operation\n+      Max:\n+        metric: cassandra.client.request.latency.max\n+        desc: Maximum request latency by operation\n+\n+  # Client request count (Count attribute on the same Latency MBeans)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+    mapping:\n+      Count:\n+        metric: cassandra.client.request.count\n+        type: counter\n+        unit: \"{request}\"\n+        desc: Number of requests by operation\n+\n+  # Client request errors (one rule per error type, status hardcoded)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Unavailables\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Unavailables\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Unavailables\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+      cassandra.status: const(Unavailable)",
+      "id": "PRRT_kwDODJKVX86NQ3x0",
+      "opened": "2026-06-30T12:23:09Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/cassandra.yaml",
+      "replies": [],
+      "reviewed": "f15553898fca8771e1e0cd450469a7b59b68b117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3498536426"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "```suggestion\n      cassandra.operation: lowercase(param(scope))\n      cassandra.status: const(timeout)\n```",
+      "created": "2026-06-30T12:02:46Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+---\n+rules:\n+\n+  # Compaction\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=CompletedTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.completed\n+        type: counter\n+        unit: \"{task}\"\n+        desc: Number of completed compactions since server [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=PendingTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.pending\n+        type: gauge\n+        unit: \"{task}\"\n+        desc: Estimated number of compactions remaining to perform\n+\n+  # Storage\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=Load\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.load.count\n+        type: updowncounter\n+        unit: By\n+        desc: Size of the on disk data size this node manages\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHints\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.count\n+        type: counter\n+        unit: \"{hint}\"\n+        desc: Number of hint messages written to this node since [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHintsInProgress\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.in_progress.count\n+        type: updowncounter\n+        unit: \"{hint}\"\n+        desc: Number of hints attempting to be sent currently\n+\n+  # Client request latency percentiles (pre-aggregated values from the Latency MBean)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+    unit: us\n+    type: gauge\n+    mapping:\n+      50thPercentile:\n+        metric: cassandra.client.request.latency.p50\n+        desc: Request latency 50th percentile by operation\n+      99thPercentile:\n+        metric: cassandra.client.request.latency.p99\n+        desc: Request latency 99th percentile by operation\n+      Max:\n+        metric: cassandra.client.request.latency.max\n+        desc: Maximum request latency by operation\n+\n+  # Client request count (Count attribute on the same Latency MBeans)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+    mapping:\n+      Count:\n+        metric: cassandra.client.request.count\n+        type: counter\n+        unit: \"{request}\"\n+        desc: Number of requests by operation\n+\n+  # Client request errors (one rule per error type, status hardcoded)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Unavailables\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Unavailables\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Unavailables\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+      cassandra.status: const(Unavailable)\n+    mapping:\n+      Count:\n+        metric: &error cassandra.client.request.error.count\n+        type: &errortype counter\n+        unit: &errorunit \"{error}\"\n+        desc: &errordesc Number of request errors by operation\n+\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Timeouts\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Timeouts\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Timeouts\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+      cassandra.status: const(Timeout)",
+      "id": "PRRT_kwDODJKVX86NQ4PP",
+      "opened": "2026-06-30T12:23:09Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/cassandra.yaml",
+      "replies": [],
+      "reviewed": "f15553898fca8771e1e0cd450469a7b59b68b117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3498539053"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "```suggestion\n      cassandra.operation: lowercase(param(scope))\n      cassandra.status: const(failure)\n```",
+      "created": "2026-06-30T12:03:09Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+---\n+rules:\n+\n+  # Compaction\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=CompletedTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.completed\n+        type: counter\n+        unit: \"{task}\"\n+        desc: Number of completed compactions since server [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=PendingTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.pending\n+        type: gauge\n+        unit: \"{task}\"\n+        desc: Estimated number of compactions remaining to perform\n+\n+  # Storage\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=Load\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.load.count\n+        type: updowncounter\n+        unit: By\n+        desc: Size of the on disk data size this node manages\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHints\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.count\n+        type: counter\n+        unit: \"{hint}\"\n+        desc: Number of hint messages written to this node since [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHintsInProgress\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.in_progress.count\n+        type: updowncounter\n+        unit: \"{hint}\"\n+        desc: Number of hints attempting to be sent currently\n+\n+  # Client request latency percentiles (pre-aggregated values from the Latency MBean)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+    unit: us\n+    type: gauge\n+    mapping:\n+      50thPercentile:\n+        metric: cassandra.client.request.latency.p50\n+        desc: Request latency 50th percentile by operation\n+      99thPercentile:\n+        metric: cassandra.client.request.latency.p99\n+        desc: Request latency 99th percentile by operation\n+      Max:\n+        metric: cassandra.client.request.latency.max\n+        desc: Maximum request latency by operation\n+\n+  # Client request count (Count attribute on the same Latency MBeans)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+    mapping:\n+      Count:\n+        metric: cassandra.client.request.count\n+        type: counter\n+        unit: \"{request}\"\n+        desc: Number of requests by operation\n+\n+  # Client request errors (one rule per error type, status hardcoded)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Unavailables\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Unavailables\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Unavailables\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+      cassandra.status: const(Unavailable)\n+    mapping:\n+      Count:\n+        metric: &error cassandra.client.request.error.count\n+        type: &errortype counter\n+        unit: &errorunit \"{error}\"\n+        desc: &errordesc Number of request errors by operation\n+\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Timeouts\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Timeouts\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Timeouts\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+      cassandra.status: const(Timeout)\n+    mapping:\n+      Count:\n+        metric: *error\n+        type: *errortype\n+        unit: *errorunit\n+        desc: *errordesc\n+\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Failures\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Failures\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Failures\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+      cassandra.status: const(Failure)",
+      "id": "PRRT_kwDODJKVX86NQ4lL",
+      "opened": "2026-06-30T12:23:09Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/cassandra.yaml",
+      "replies": [],
+      "reviewed": "f15553898fca8771e1e0cd450469a7b59b68b117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3498540991"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "Modeling cassandra client error like this assumes that all the values we capture for the `Timeouts`, `Failures`, `Unavailables` form a partition and do not overlap.\n\nDo we have any guarantees in the implementation about this ? For example, when there is an increment in the timeout, does it also increments the failure count ?\nIf there is never any overlap, then we could even use the `name` mbean parameter as a metric attribute (for example `cassandra.error.type`, so querying the `cassandra.client.request.error.count` metric without any attribute would be the total number of client errors, and the `cassandra.error.type` attribute could provide breakdown on errors.\n\nAlso, when looking at cassandra 5.x documentation, we can see that there are a few other possible values not covered here: https://cassandra.apache.org/doc/5.0/cassandra/managing/operating/metrics.html#client-request-metrics\n\nIf we don't have guarantees about the overlap/partition, then capturing those as individual metrics (likely with a common prefix) would probably be more relevant. Also, even if it is not the goal of this PR, it could help dealing with previous/recent versions that might not provide the exact same mapping.",
+      "created": "2026-06-30T12:20:55Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+---\n+rules:\n+\n+  # Compaction\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=CompletedTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.completed\n+        type: counter\n+        unit: \"{task}\"\n+        desc: Number of completed compactions since server [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Compaction,name=PendingTasks\n+    mapping:\n+      Value:\n+        metric: cassandra.compaction.tasks.pending\n+        type: gauge\n+        unit: \"{task}\"\n+        desc: Estimated number of compactions remaining to perform\n+\n+  # Storage\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=Load\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.load.count\n+        type: updowncounter\n+        unit: By\n+        desc: Size of the on disk data size this node manages\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHints\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.count\n+        type: counter\n+        unit: \"{hint}\"\n+        desc: Number of hint messages written to this node since [re]start\n+\n+  - bean: org.apache.cassandra.metrics:type=Storage,name=TotalHintsInProgress\n+    mapping:\n+      Count:\n+        metric: cassandra.storage.total_hints.in_progress.count\n+        type: updowncounter\n+        unit: \"{hint}\"\n+        desc: Number of hints attempting to be sent currently\n+\n+  # Client request latency percentiles (pre-aggregated values from the Latency MBean)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+    unit: us\n+    type: gauge\n+    mapping:\n+      50thPercentile:\n+        metric: cassandra.client.request.latency.p50\n+        desc: Request latency 50th percentile by operation\n+      99thPercentile:\n+        metric: cassandra.client.request.latency.p99\n+        desc: Request latency 99th percentile by operation\n+      Max:\n+        metric: cassandra.client.request.latency.max\n+        desc: Maximum request latency by operation\n+\n+  # Client request count (Count attribute on the same Latency MBeans)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Latency\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Latency\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+    mapping:\n+      Count:\n+        metric: cassandra.client.request.count\n+        type: counter\n+        unit: \"{request}\"\n+        desc: Number of requests by operation\n+\n+  # Client request errors (one rule per error type, status hardcoded)\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Unavailables\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Unavailables\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Write,name=Unavailables\n+    metricAttribute:\n+      cassandra.operation: param(scope)\n+      cassandra.status: const(Unavailable)\n+    mapping:\n+      Count:\n+        metric: &error cassandra.client.request.error.count\n+        type: &errortype counter\n+        unit: &errorunit \"{error}\"\n+        desc: &errordesc Number of request errors by operation\n+\n+  - beans:\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=RangeSlice,name=Timeouts\n+      - org.apache.cassandra.metrics:type=ClientRequest,scope=Read,name=Timeouts",
+      "id": "PRRT_kwDODJKVX86NRLQT",
+      "opened": "2026-06-30T12:23:09Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/experimental-cassandra.yaml",
+      "replies": [
+        {
+          "at": "2026-07-02T12:10:08Z",
+          "body": "In Cassandra, `Timeouts`, `Failures`, and `Unavailables` are tracked as separate, non-overlapping counters — a timeout is not also counted as a failure or unavailable. So modelling them as a single metric with a `cassandra.status` attribute is safe and gives a clean per-operation breakdown without double-counting.\n\nAgreed that there are additional error types in Cassandra 5.x docs not covered here (e.g. `SpeculativeRetries`, per-keyspace variants). The goal of this PR is to cover the three most commonly observed error categories; additional types can be added in follow-up PRs once we have more operational experience with the broader set.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3512888760"
+        },
+        {
+          "at": "2026-07-02T12:56:45Z",
+          "body": "Given the way cassandra client error metrics are structured, we can assume that any new type of error would likely be captured in the same way: no overlap with other counters and a dedicated counter with its own `name` and `scope` values.\r\n\r\nWhat could be done here is to use a wildcard on the MBean `name` (and maybe `scope`) to simply allow all values without having to map them individually:\r\n- `org.apache.cassandra.metrics:type=ClientRequest,scope=*,name=*`\r\n- with that, the actual metric breakdown will differ from version to version, but we would not have to maintain it, also the total number of client errors (when aggregating without metric attributes) would always match the breakdown, whereas if we have an explicit list then will miss error types that are not explicitly listed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3513161517"
+        },
+        {
+          "at": "2026-07-02T17:13:19Z",
+          "body": "I'm afraid `name=*` would be too broad — every scope also registers Latency, TotalLatency, Aborts, LocalRequests, etc., all of which expose a Count attribute and would incorrectly end up in `cassandra.client.request.error`.\r\n\r\nThe safe approach is `scope=*` with explicit error names:\r\n```yaml\r\n- beans:\r\n  - org.apache.cassandra.metrics:type=ClientRequest,scope=*,name=Unavailables\r\n ```\r\nThis also has a nice side effect of covering CASRead, CASWrite, and ViewWrite scopes that the current explicit list misses. Should we expand the scope in this PR or a follow-up?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3514902618"
+        },
+        {
+          "at": "2026-07-03T08:02:17Z",
+          "body": "Ok, then let's keep the explicit `name` with client error types.\r\n\r\nFor adding new scopes like `CASRead` or `CASWrite`, I am not sure if those would fit the definition of \"errors\" as they most likely relate to performance metrics and behavior than actual client errors, so it's probably better to deal with that with a dedicated follow-up PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3518368947"
+        }
+      ],
+      "reviewed": "f15553898fca8771e1e0cd450469a7b59b68b117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3498645573"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "If we need to break down this metric into individual metrics:\n- `cassandra.client.request.error.count` would be the total of all errors (if such value is available)\n- `cassandra.client.request.error.{type}` would be the count of errors of type `{type}`",
+      "created": "2026-06-30T12:23:01Z",
+      "hunk": "@@ -0,0 +1,16 @@\n+# Cassandra Metrics\n+\n+Here is the list of metrics based on MBeans exposed by Cassandra.\n+\n+| Metric Name                                     | Type          | Unit      | Attributes                            | Description                                                  |\n+| ----------------------------------------------- | ------------- | --------- | ------------------------------------- | ------------------------------------------------------------ |\n+| cassandra.client.request.count                  | Counter       | {request} | cassandra.operation                   | Number of requests by operation                              |\n+| cassandra.client.request.error.count            | Counter       | {error}   | cassandra.operation, cassandra.status | Number of request errors by operation                        |",
+      "id": "PRRT_kwDODJKVX86NRNZB",
+      "opened": "2026-06-30T12:23:09Z",
+      "path": "instrumentation/jmx-metrics/library/cassandra.md",
+      "replies": [
+        {
+          "at": "2026-07-02T12:10:19Z",
+          "body": "Keeping the current design: one `cassandra.client.request.error.count` metric with a `cassandra.status` attribute (`timeout`, `failure`, `unavailable`). The three error counters are non-overlapping in Cassandra's implementation, so this gives a clean breakdown without double-counting and follows the OTel convention of using attributes for breakdowns rather than encoding the dimension in the metric name.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3512889838"
+        },
+        {
+          "at": "2026-07-02T12:51:33Z",
+          "body": "In that case, we can simplify `cassandra.client.request.error.count` to remove the `.count` suffix as there is nothing in the `.error` sub-part.\r\n\r\nSo we have:\r\n- `cassandra.client.request.count`\r\n- `cassandra.client.request.error`",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3513128127"
+        },
+        {
+          "at": "2026-07-02T17:02:54Z",
+          "body": "Done 👍 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3514839523"
+        }
+      ],
+      "reviewed": "f15553898fca8771e1e0cd450469a7b59b68b117",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3498657816"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "Just to make it more future-proof attributes prefix could be `cassandra.client` instead of just `cassandra`. It may help avoiding naming collisions in the future.",
+      "created": "2026-07-03T11:49:19Z",
+      "hunk": "@@ -0,0 +1,16 @@\n+# Cassandra Metrics\n+\n+Here is the list of metrics based on MBeans exposed by Cassandra.\n+\n+| Metric Name                               | Type          | Unit      | Attributes                            | Description                                                      |\n+| ----------------------------------------- | ------------- | --------- | ------------------------------------- | ---------------------------------------------------------------- |\n+| cassandra.client.request.count            | Counter       | {request} | cassandra.operation                   | Number of requests by operation.                                 |",
+      "id": "PRRT_kwDODJKVX86OLhrI",
+      "opened": "2026-07-03T12:04:19Z",
+      "path": "instrumentation/jmx-metrics/library/cassandra.md",
+      "replies": [
+        {
+          "at": "2026-07-03T15:32:05Z",
+          "body": "I'd prefer to keep `cassandra.operation` and `cassandra.status` as-is. Using a single-segment namespace (`cassandra.`) is consistent with how other JMX target systems name their attributes in this repo — none of them use multi-segment prefixes. Adding `.client.` would also diverge further from the contrib jmx-scraper which uses operation/status (without any prefix), making future alignment harder.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3520797787"
+        }
+      ],
+      "reviewed": "015a710f549b3e2bd1b0f4a65fbd31e7afe193e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3519643960"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "I think the name could skip 'total_', so we have `cassandra.storage.hints.count` instead. Others metrics also counts values since server start and do not have 'total_' prefix (i.e. `cassandra.compaction.tasks.completed`)",
+      "created": "2026-07-03T11:53:22Z",
+      "hunk": "@@ -0,0 +1,16 @@\n+# Cassandra Metrics\n+\n+Here is the list of metrics based on MBeans exposed by Cassandra.\n+\n+| Metric Name                               | Type          | Unit      | Attributes                            | Description                                                      |\n+| ----------------------------------------- | ------------- | --------- | ------------------------------------- | ---------------------------------------------------------------- |\n+| cassandra.client.request.count            | Counter       | {request} | cassandra.operation                   | Number of requests by operation.                                 |\n+| cassandra.client.request.error            | Counter       | {error}   | cassandra.operation, cassandra.status | Number of request errors by operation.                           |\n+| cassandra.client.request.latency.p50      | Gauge         | s         | cassandra.operation                   | Request latency 50th percentile by operation.                    |\n+| cassandra.client.request.latency.p99      | Gauge         | s         | cassandra.operation                   | Request latency 99th percentile by operation.                    |\n+| cassandra.client.request.latency.max      | Gauge         | s         | cassandra.operation                   | Maximum request latency by operation.                            |\n+| cassandra.compaction.tasks.completed      | Counter       | {task}    |                                       | Number of completed compactions since server start.              |\n+| cassandra.compaction.tasks.pending        | Gauge         | {task}    |                                       | Estimated number of compactions remaining to perform.            |\n+| cassandra.storage.load                    | UpDownCounter | By        |                                       | Size of the on disk data size this node manages.                 |\n+| cassandra.storage.total_hints.count       | Counter       | {hint}    |                                       | Number of hint messages written to this node since server start. |",
+      "id": "PRRT_kwDODJKVX86OLla-",
+      "opened": "2026-07-03T12:04:19Z",
+      "path": "instrumentation/jmx-metrics/library/cassandra.md",
+      "replies": [
+        {
+          "at": "2026-07-03T15:31:06Z",
+          "body": "Good point, changed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3520793226"
+        }
+      ],
+      "reviewed": "015a710f549b3e2bd1b0f4a65fbd31e7afe193e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3519664191"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "Maybe it is a nitpicking, but I'd prefer more descriptive name, like errorAttributesGroup",
+      "created": "2026-07-03T12:00:54Z",
+      "hunk": "@@ -0,0 +1,163 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import static io.opentelemetry.instrumentation.jmx.rules.assertions.DataPointAttributes.attribute;\n+import static io.opentelemetry.instrumentation.jmx.rules.assertions.DataPointAttributes.attributeGroup;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.jmx.rules.assertions.AttributeMatcherGroup;\n+import java.time.Duration;\n+import java.util.ArrayList;\n+import java.util.List;\n+import org.junit.jupiter.api.Test;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+\n+class CassandraTest extends TargetSystemTest {\n+\n+  private static final int CASSANDRA_PORT = 9042;\n+\n+  @Test\n+  void testCassandraMetrics() {\n+    List<String> yamlFiles = singletonList(\"cassandra.yaml\");\n+\n+    yamlFiles.forEach(this::validateYamlSyntax);\n+\n+    List<String> jvmArgs = new ArrayList<>();\n+    jvmArgs.add(javaAgentJvmArgument());\n+    jvmArgs.addAll(javaPropertiesToJvmArgs(otelConfigProperties(yamlFiles)));\n+\n+    GenericContainer<?> target =\n+        new GenericContainer<>(\"cassandra:5.0.2\")\n+            .withEnv(\"JAVA_TOOL_OPTIONS\", String.join(\" \", jvmArgs))\n+            // speed up single-node startup from ~1min to ~15s\n+            .withEnv(\n+                \"JVM_EXTRA_OPTS\",\n+                \"-Dcassandra.skip_wait_for_gossip_to_settle=0 -Dcassandra.initial_token=0\")\n+            .withStartupTimeout(Duration.ofMinutes(2))\n+            .withExposedPorts(CASSANDRA_PORT)\n+            .waitingFor(Wait.forListeningPorts(CASSANDRA_PORT));\n+\n+    copyAgentToTarget(target);\n+    copyYamlFilesToTarget(target, yamlFiles);\n+\n+    startTarget(target);\n+\n+    verifyMetrics(createMetricsVerifier());\n+  }\n+\n+  private static MetricsVerifier createMetricsVerifier() {\n+    return MetricsVerifier.create()\n+        .add(\n+            \"cassandra.compaction.tasks.completed\",\n+            metric ->\n+                metric\n+                    .hasDescription(\"Number of completed compactions since server start.\")\n+                    .hasUnit(\"{task}\")\n+                    .isCounter()\n+                    .hasDataPointsWithoutAttributes())\n+        .add(\n+            \"cassandra.compaction.tasks.pending\",\n+            metric ->\n+                metric\n+                    .hasDescription(\"Estimated number of compactions remaining to perform.\")\n+                    .hasUnit(\"{task}\")\n+                    .isGauge()\n+                    .hasDataPointsWithoutAttributes())\n+        .add(\n+            \"cassandra.storage.load\",\n+            metric ->\n+                metric\n+                    .hasDescription(\"Size of the on disk data size this node manages.\")\n+                    .hasUnit(\"By\")\n+                    .isUpDownCounter()\n+                    .hasDataPointsWithoutAttributes())\n+        .add(\n+            \"cassandra.storage.total_hints.count\",\n+            metric ->\n+                metric\n+                    .hasDescription(\n+                        \"Number of hint messages written to this node since server start.\")\n+                    .hasUnit(\"{hint}\")\n+                    .isCounter()\n+                    .hasDataPointsWithoutAttributes())\n+        .add(\n+            \"cassandra.storage.total_hints.in_progress\",\n+            metric ->\n+                metric\n+                    .hasDescription(\"Number of hints attempting to be sent currently.\")\n+                    .hasUnit(\"{hint}\")\n+                    .isUpDownCounter()\n+                    .hasDataPointsWithoutAttributes())\n+        .add(\n+            \"cassandra.client.request.latency.p50\",\n+            metric ->\n+                metric\n+                    .hasDescription(\"Request latency 50th percentile by operation.\")\n+                    .hasUnit(\"s\")\n+                    .isGauge()\n+                    .hasDataPointsWithAttributes(\n+                        attributeGroup(attribute(\"cassandra.operation\", \"read\")),\n+                        attributeGroup(attribute(\"cassandra.operation\", \"write\")),\n+                        attributeGroup(attribute(\"cassandra.operation\", \"rangeslice\"))))\n+        .add(\n+            \"cassandra.client.request.latency.p99\",\n+            metric ->\n+                metric\n+                    .hasDescription(\"Request latency 99th percentile by operation.\")\n+                    .hasUnit(\"s\")\n+                    .isGauge()\n+                    .hasDataPointsWithAttributes(\n+                        attributeGroup(attribute(\"cassandra.operation\", \"read\")),\n+                        attributeGroup(attribute(\"cassandra.operation\", \"write\")),\n+                        attributeGroup(attribute(\"cassandra.operation\", \"rangeslice\"))))\n+        .add(\n+            \"cassandra.client.request.latency.max\",\n+            metric ->\n+                metric\n+                    .hasDescription(\"Maximum request latency by operation.\")\n+                    .hasUnit(\"s\")\n+                    .isGauge()\n+                    .hasDataPointsWithAttributes(\n+                        attributeGroup(attribute(\"cassandra.operation\", \"read\")),\n+                        attributeGroup(attribute(\"cassandra.operation\", \"write\")),\n+                        attributeGroup(attribute(\"cassandra.operation\", \"rangeslice\"))))\n+        .add(\n+            \"cassandra.client.request.count\",\n+            metric ->\n+                metric\n+                    .hasDescription(\"Number of requests by operation.\")\n+                    .hasUnit(\"{request}\")\n+                    .isCounter()\n+                    .hasDataPointsWithAttributes(\n+                        attributeGroup(attribute(\"cassandra.operation\", \"rangeslice\")),\n+                        attributeGroup(attribute(\"cassandra.operation\", \"read\")),\n+                        attributeGroup(attribute(\"cassandra.operation\", \"write\"))))\n+        .add(\n+            \"cassandra.client.request.error\",\n+            metric ->\n+                metric\n+                    .hasDescription(\"Number of request errors by operation.\")\n+                    .hasUnit(\"{error}\")\n+                    .isCounter()\n+                    .hasDataPointsWithAttributes(\n+                        errorAttrs(\"rangeslice\", \"timeout\"),\n+                        errorAttrs(\"rangeslice\", \"failure\"),\n+                        errorAttrs(\"rangeslice\", \"unavailable\"),\n+                        errorAttrs(\"read\", \"timeout\"),\n+                        errorAttrs(\"read\", \"failure\"),\n+                        errorAttrs(\"read\", \"unavailable\"),\n+                        errorAttrs(\"write\", \"timeout\"),\n+                        errorAttrs(\"write\", \"failure\"),\n+                        errorAttrs(\"write\", \"unavailable\")));\n+  }\n+\n+  private static AttributeMatcherGroup errorAttrs(String operation, String status) {",
+      "id": "PRRT_kwDODJKVX86OLsik",
+      "opened": "2026-07-03T12:04:19Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/CassandraTest.java",
+      "replies": [],
+      "reviewed": "015a710f549b3e2bd1b0f4a65fbd31e7afe193e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080#discussion_r3519704003"
+    }
+  ]
+}

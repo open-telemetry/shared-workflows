@@ -1,0 +1,40 @@
+{
+  "head": "59dcf252c942eaec674bf6e50986a0e47d16c856",
+  "merge": "9c99008c9f9c48aed1be731c02d0190c56b69d29",
+  "merged": "2026-08-30T18:06:16Z",
+  "missing_roots": 0,
+  "number": 122,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Groq only lists the namespaced model ID, while the mock accepts arbitrary model strings.\r\n\r\n```suggestion\r\n    model=\"meta-llama/llama-4-scout-17b-16e-instruct\",\r\n```\r\n",
+      "created": "2026-08-29T01:47:28Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a Groq chat completion carrying non-text content.\n+\n+One exchange, for the one non-text content kind the chat API takes: an image,\n+on the way in. Groq's chat route has no audio input or output; audio goes\n+through the separate transcription API, which is not a chat completion.\n+Coverage records attribute names only, so what this scenario is really\n+checking is the *shape* of the recorded content: whether the message parts an\n+instrumentation writes into ``gen_ai.input.messages`` validate against the\n+registry schemas.\n+\"\"\"\n+\n+from groq import Groq\n+\n+# A 1x1 transparent PNG; nothing under test decodes it.\n+IMAGE = (\n+    \"data:image/png;base64,\"\n+    \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk\"\n+    \"YPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\"\n+)\n+\n+Groq().chat.completions.create(\n+    model=\"llama-4-scout-17b-16e-instruct\",",
+      "id": "PRRT_kwDOTuzK5c6dWHm3",
+      "opened": "2026-08-29T01:49:44Z",
+      "path": "scenarios/gen-ai/python/groq/scenarios/multimodal.py",
+      "replies": [],
+      "reviewed": "4c57af90b9d374d018d17024c00a525c9136025f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/122#discussion_r3885099818"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Groq limits `strict: true` to GPT-OSS 20B/120B and Qwen 3.8 27B, but the mock does not enforce that restriction.\r\n\r\n```suggestion\r\n    model=\"openai/gpt-oss-20b\",\r\n```\r\n",
+      "created": "2026-08-29T01:47:28Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a Groq chat completion with a JSON schema answer.\n+\n+Asking for a schema is what ``gen_ai.output.type`` describes, so the request\n+names one rather than only asking for \"some JSON\".\n+\"\"\"\n+\n+from groq import Groq\n+\n+SCHEMA = {\n+    \"type\": \"object\",\n+    \"properties\": {\n+        \"location\": {\"type\": \"string\"},\n+        \"temperature\": {\"type\": \"integer\"},\n+        \"conditions\": {\"enum\": [\"sunny\", \"cloudy\", \"rainy\"]},\n+    },\n+    \"required\": [\"location\", \"temperature\", \"conditions\"],\n+    \"additionalProperties\": False,\n+}\n+\n+Groq().chat.completions.create(\n+    model=\"llama-3.3-70b-versatile\",",
+      "id": "PRRT_kwDOTuzK5c6dWHmu",
+      "opened": "2026-08-29T01:49:44Z",
+      "path": "scenarios/gen-ai/python/groq/scenarios/structured_output.py",
+      "replies": [],
+      "reviewed": "4c57af90b9d374d018d17024c00a525c9136025f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/122#discussion_r3885099802"
+    }
+  ]
+}

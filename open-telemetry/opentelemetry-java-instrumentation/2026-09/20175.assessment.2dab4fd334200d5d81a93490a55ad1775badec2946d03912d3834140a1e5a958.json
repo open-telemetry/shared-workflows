@@ -1,0 +1,31 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b49179fd5904c0264d807bc2b8b3fcb90eae60d61117d64c78d039c6a87c5082",
+  "input_digest": "2dab4fd334200d5d81a93490a55ad1775badec2946d03912d3834140a1e5a958",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/99d08354f3397d950b836ca23dee31c57ba6a706/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumerMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5334cc1654069cac1a40bf726bee3a93a1e56c41/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumerMetrics.java"
+      ],
+      "id": "PRRT_kwDODJKVX86kMJRW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/99d08354f3397d950b836ca23dee31c57ba6a706/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumedMessagesRecorder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5334cc1654069cac1a40bf726bee3a93a1e56c41/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumedMessagesRecorder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86kMJRq",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

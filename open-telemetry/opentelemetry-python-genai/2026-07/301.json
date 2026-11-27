@@ -1,0 +1,145 @@
+{
+  "head": "fd972477869bf0f93e1132abdb759f479a0c8e48",
+  "merge": "85fb8a6ce2c239a5009a94c71f39875cb84b7bee",
+  "merged": "2026-07-23T20:58:08Z",
+  "missing_roots": 0,
+  "number": 301,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`wrapt` is pinned as `>=2.2.2` here, but other instrumentation packages pin `wrapt==2.2.2` in their `tests/requirements.latest.txt` (e.g. openai, claude-agent-sdk). Using a loose lower-bound can introduce non-reproducible CI failures if a newer major/minor release breaks compatibility.",
+      "created": "2026-07-22T19:31:12Z",
+      "hunk": "@@ -0,0 +1,45 @@\n+# Copyright The OpenTelemetry Authors\n+#\n+# Licensed under the Apache License, Version 2.0 (the \"License\");\n+# you may not use this file except in compliance with the License.\n+# You may obtain a copy of the License at\n+#\n+#     http://www.apache.org/licenses/LICENSE-2.0\n+#\n+# Unless required by applicable law or agreed to in writing, software\n+# distributed under the License is distributed on an \"AS IS\" BASIS,\n+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n+# See the License for the specific language governing permissions and\n+# limitations under the License.\n+\n+\n+# ********************************\n+# WARNING: NOT HERMETIC !!!!!!!!!!\n+# ********************************\n+#\n+# This \"requirements.txt\" is installed in conjunction\n+# with multiple other dependencies in the top-level \"tox.ini\"\n+# file. In particular, please see:\n+#\n+#   agno-latest: {[testenv]test_deps}\n+#   agno-latest: -r {toxinidir}/instrumentation/opentelemetry-instrumentation-genai-agno/tests/requirements.latest.txt\n+#\n+# This provides additional dependencies, namely:\n+#\n+#   opentelemetry-api\n+#   opentelemetry-sdk\n+#   opentelemetry-semantic-conventions\n+#   opentelemetry-instrumentation\n+#\n+# ... with a \"dev\" version based on the latest distribution.\n+#\n+#\n+# This variant of the requirements aims to test the system using\n+# the newest supported version of external dependencies.\n+\n+agno\n+wrapt>=2.2.2",
+      "id": "PRRT_kwDOSbspP86TCqs6",
+      "opened": "2026-07-22T19:31:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/requirements.latest.txt",
+      "replies": [],
+      "reviewed": "7ce151ed68364ba4047bef44f2ff8c7b6aef2bf4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/301#discussion_r3633212988"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The module docstring documents `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true`, but this env var expects one of the content-capture modes (e.g. `NO_CONTENT`, `SPAN_ONLY`, `EVENT_ONLY`, `SPAN_AND_EVENT`). This is inconsistent with the package README and could mislead users.",
+      "created": "2026-07-22T19:31:12Z",
+      "hunk": "@@ -0,0 +1,70 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"\n+OpenTelemetry Agno Instrumentation\n+==================================\n+\n+Instrumentation for `Agno <https://github.com/agno-agi/agno>`_.\n+\n+Usage\n+-----\n+\n+.. code-block:: python\n+\n+    from opentelemetry.instrumentation.genai.agno import AgnoInstrumentor\n+\n+    # Enable instrumentation\n+    AgnoInstrumentor().instrument()\n+\n+Configuration\n+-------------\n+\n+Message content capture can be enabled by setting the environment variable:\n+``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true``",
+      "id": "PRRT_kwDOSbspP86TCqsN",
+      "opened": "2026-07-22T19:31:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/__init__.py",
+      "replies": [],
+      "reviewed": "7ce151ed68364ba4047bef44f2ff8c7b6aef2bf4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/301#discussion_r3633212922"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The sdist include list omits `/examples`. In this repo, instrumentation packages ship example code (manual/ and zero-code/) and include it in sdists (see other instrumentation pyproject.toml files). Without including examples, the published sdist won’t contain them once they’re added.",
+      "created": "2026-07-22T19:31:12Z",
+      "hunk": "@@ -0,0 +1,88 @@\n+[build-system]\n+requires = [\"hatchling\"]\n+build-backend = \"hatchling.build\"\n+\n+[project]\n+name = \"opentelemetry-instrumentation-genai-agno\"\n+dynamic = [\"version\"]\n+description = \"OpenTelemetry Agno instrumentation\"\n+readme = \"README.rst\"\n+license = \"Apache-2.0\"\n+requires-python = \">=3.10\"\n+authors = [\n+  { name = \"OpenTelemetry Authors\", email = \"cncf-opentelemetry-contributors@lists.cncf.io\" },\n+]\n+classifiers = [\n+  \"Development Status :: 4 - Beta\",\n+  \"Intended Audience :: Developers\",\n+  \"License :: OSI Approved :: Apache Software License\",\n+  \"Programming Language :: Python\",\n+  \"Programming Language :: Python :: 3\",\n+  \"Programming Language :: Python :: 3.10\",\n+  \"Programming Language :: Python :: 3.11\",\n+  \"Programming Language :: Python :: 3.12\",\n+  \"Programming Language :: Python :: 3.13\",\n+  \"Programming Language :: Python :: 3.14\",\n+]\n+dependencies = [\n+  \"opentelemetry-api ~= 1.43\",\n+  \"opentelemetry-instrumentation >= 0.64b0, <1\",\n+  \"opentelemetry-semantic-conventions >= 0.64b0, <1\",\n+  \"opentelemetry-util-genai >= 1.0b0, <2\",\n+]\n+\n+[project.optional-dependencies]\n+instruments = [\"agno >= 2.0.0\"]\n+\n+[project.entry-points.opentelemetry_instrumentor]\n+agno = \"opentelemetry.instrumentation.genai.agno:AgnoInstrumentor\"\n+\n+[project.urls]\n+Homepage = \"https://github.com/open-telemetry/opentelemetry-python-genai/tree/main/instrumentation/opentelemetry-instrumentation-genai-agno\"\n+Repository = \"https://github.com/open-telemetry/opentelemetry-python-genai\"\n+\n+[tool.hatch.version]\n+path = \"src/opentelemetry/instrumentation/genai/agno/version.py\"\n+\n+[tool.hatch.build.targets.sdist]\n+include = [\"/src\", \"/tests\"]",
+      "id": "PRRT_kwDOSbspP86TCqtW",
+      "opened": "2026-07-22T19:31:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/pyproject.toml",
+      "replies": [],
+      "reviewed": "7ce151ed68364ba4047bef44f2ff8c7b6aef2bf4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/301#discussion_r3633213027"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `instrument_agno` fixture calls `instrumentor.instrument()` directly. The repo’s shared `opentelemetry.test_util_genai.instrumentor.instrument(...)` context manager is the preferred way to drive instrumentation in tests because it sets/restores the GenAI content-capture env var *before* constructing telemetry handlers and reliably cleans up instrumentation.",
+      "created": "2026-07-22T19:31:13Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Test configuration and fixtures for Agno instrumentation tests.\"\"\"\n+# pylint: disable=redefined-outer-name\n+\n+from __future__ import annotations\n+\n+import pytest\n+\n+pytest_plugins = [\"opentelemetry.test_util_genai.fixtures\"]\n+\n+\n+@pytest.fixture\n+def instrument_agno(\n+    tracer_provider, logger_provider, meter_provider\n+):\n+    \"\"\"Fixture to instrument Agno with test providers.\"\"\"\n+    from opentelemetry.instrumentation.genai.agno import (  # noqa: PLC0415\n+        AgnoInstrumentor,\n+    )\n+\n+    instrumentor = AgnoInstrumentor()\n+    instrumentor.instrument(\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+    )\n+    yield instrumentor\n+    instrumentor.uninstrument()",
+      "id": "PRRT_kwDOSbspP86TCqt7",
+      "opened": "2026-07-22T19:31:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/conftest.py",
+      "replies": [],
+      "reviewed": "7ce151ed68364ba4047bef44f2ff8c7b6aef2bf4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/301#discussion_r3633213088"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This package is configured for towncrier, but there is no towncrier fragment in `instrumentation/opentelemetry-instrumentation-genai-agno/.changelog/` for this change. Adding a new instrumentation package is user-visible and should be captured via a fragment (e.g. `<PR_NUMBER>.added`) rather than editing `CHANGELOG.md` directly.",
+      "created": "2026-07-22T19:31:13Z",
+      "hunk": "@@ -0,0 +1,16 @@\n+# Changelog\n+\n+All notable changes to this project will be documented in this file.\n+\n+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\n+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n+\n+<!--\n+Do *NOT* add changelog entries here!\n+\n+This changelog is managed by towncrier and is compiled at release time.\n+\n+See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTRIBUTING.md#changelog for details.\n+-->\n+\n+<!-- changelog start -->",
+      "id": "PRRT_kwDOSbspP86TCqtp",
+      "opened": "2026-07-22T19:31:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "7ce151ed68364ba4047bef44f2ff8c7b6aef2bf4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/301#discussion_r3633213055"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "oops (true)",
+      "created": "2026-07-22T21:52:25Z",
+      "hunk": "@@ -0,0 +1,70 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"\n+OpenTelemetry Agno Instrumentation\n+==================================\n+\n+Instrumentation for `Agno <https://github.com/agno-agi/agno>`_.\n+\n+Usage\n+-----\n+\n+.. code-block:: python\n+\n+    from opentelemetry.instrumentation.genai.agno import AgnoInstrumentor\n+\n+    # Enable instrumentation\n+    AgnoInstrumentor().instrument()\n+\n+Configuration\n+-------------\n+\n+Message content capture can be enabled by setting the environment variable:\n+``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true``",
+      "id": "PRRT_kwDOSbspP86TE_Av",
+      "opened": "2026-07-22T21:55:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/__init__.py",
+      "replies": [],
+      "reviewed": "cf709c90cd29f8db0fcce0a96af01def5cf44151",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/301#discussion_r3634074072"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "we won't need those - only handler",
+      "created": "2026-07-22T21:52:51Z",
+      "hunk": "@@ -0,0 +1,70 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"\n+OpenTelemetry Agno Instrumentation\n+==================================\n+\n+Instrumentation for `Agno <https://github.com/agno-agi/agno>`_.\n+\n+Usage\n+-----\n+\n+.. code-block:: python\n+\n+    from opentelemetry.instrumentation.genai.agno import AgnoInstrumentor\n+\n+    # Enable instrumentation\n+    AgnoInstrumentor().instrument()\n+\n+Configuration\n+-------------\n+\n+Message content capture can be enabled by setting the environment variable:\n+``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true``\n+\n+API\n+---\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any, Collection\n+\n+from opentelemetry.instrumentation.genai.agno.package import (\n+    _instruments,\n+)\n+from opentelemetry.instrumentation.instrumentor import BaseInstrumentor\n+\n+__all__ = [\"AgnoInstrumentor\"]\n+\n+\n+class AgnoInstrumentor(BaseInstrumentor):\n+    \"\"\"An instrumentor for Agno.\"\"\"\n+\n+    def __init__(self) -> None:\n+        super().__init__()\n+        self._tracer = None\n+        self._logger = None\n+        self._meter = None",
+      "id": "PRRT_kwDOSbspP86TE_Xl",
+      "opened": "2026-07-22T21:55:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/__init__.py",
+      "replies": [],
+      "reviewed": "cf709c90cd29f8db0fcce0a96af01def5cf44151",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/301#discussion_r3634076163"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n__version__ = \"1.1b0.dev\"\n```\n\nto match the rest of the repo",
+      "created": "2026-07-22T21:53:13Z",
+      "hunk": "@@ -0,0 +1,4 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+__version__ = \"1.0b0.dev\"",
+      "id": "PRRT_kwDOSbspP86TE_zH",
+      "opened": "2026-07-22T21:55:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/version.py",
+      "replies": [],
+      "reviewed": "cf709c90cd29f8db0fcce0a96af01def5cf44151",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/301#discussion_r3634078369"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "completion hook too? https://github.com/open-telemetry/opentelemetry-python-genai/pull/302",
+      "created": "2026-07-22T21:55:37Z",
+      "hunk": "@@ -0,0 +1,70 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"\n+OpenTelemetry Agno Instrumentation\n+==================================\n+\n+Instrumentation for `Agno <https://github.com/agno-agi/agno>`_.\n+\n+Usage\n+-----\n+\n+.. code-block:: python\n+\n+    from opentelemetry.instrumentation.genai.agno import AgnoInstrumentor\n+\n+    # Enable instrumentation\n+    AgnoInstrumentor().instrument()\n+\n+Configuration\n+-------------\n+\n+Message content capture can be enabled by setting the environment variable:\n+``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true``\n+\n+API\n+---\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any, Collection\n+\n+from opentelemetry.instrumentation.genai.agno.package import (\n+    _instruments,\n+)\n+from opentelemetry.instrumentation.instrumentor import BaseInstrumentor\n+\n+__all__ = [\"AgnoInstrumentor\"]\n+\n+\n+class AgnoInstrumentor(BaseInstrumentor):\n+    \"\"\"An instrumentor for Agno.\"\"\"\n+\n+    def __init__(self) -> None:\n+        super().__init__()\n+        self._tracer = None\n+        self._logger = None\n+        self._meter = None\n+\n+    def instrumentation_dependencies(self) -> Collection[str]:\n+        return _instruments\n+\n+    def _instrument(self, **kwargs: Any) -> None:\n+        \"\"\"Enable Agno instrumentation.\n+\n+        Args:\n+            **kwargs: Optional arguments\n+                - tracer_provider: TracerProvider instance\n+                - meter_provider: MeterProvider instance\n+                - logger_provider: LoggerProvider instance",
+      "id": "PRRT_kwDOSbspP86TFCDE",
+      "opened": "2026-07-22T21:55:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/__init__.py",
+      "replies": [],
+      "reviewed": "cf709c90cd29f8db0fcce0a96af01def5cf44151",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/301#discussion_r3634090863"
+    }
+  ]
+}

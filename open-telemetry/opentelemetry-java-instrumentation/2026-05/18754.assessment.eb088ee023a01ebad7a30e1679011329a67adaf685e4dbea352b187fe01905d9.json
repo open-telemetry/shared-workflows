@@ -1,0 +1,214 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e273adf653fcbaebfdb8e28d98303ac24e549476b1cf12b0492665fbc2ac1788",
+  "input_digest": "eb088ee023a01ebad7a30e1679011329a67adaf685e4dbea352b187fe01905d9",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1aef1fc4cc22e8f25b1ac95db6e5d8bcb18c78d2/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1aef1fc4cc22e8f25b1ac95db6e5d8bcb18c78d2/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8"
+      ],
+      "id": "PRRT_kwDODJKVX86CNqYN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1aef1fc4cc22e8f25b1ac95db6e5d8bcb18c78d2/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8"
+      ],
+      "id": "PRRT_kwDODJKVX86CNqYp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9722f8921b66b35a7117f859d06df9f7f6b109f8"
+      ],
+      "id": "PRRT_kwDODJKVX86CQNmS",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9722f8921b66b35a7117f859d06df9f7f6b109f8"
+      ],
+      "id": "PRRT_kwDODJKVX86CQNmi",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c41bc83d635f6a9c477d8f9459c790fdf234ab5e"
+      ],
+      "id": "PRRT_kwDODJKVX86CQNmz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/f869f0b06470ccfdef2ec4fa2b1a4d0364806cc8...9974bec1dfe43d63852634d94ed61e1ba1bff9ab",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9722f8921b66b35a7117f859d06df9f7f6b109f8"
+      ],
+      "id": "PRRT_kwDODJKVX86CQNnC",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ae457dc700a37584a7900959f2e47158c4a557d8/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a54cf7382230716f391b5c62b1f340af119ecef5"
+      ],
+      "id": "PRRT_kwDODJKVX86CQjbB",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a54cf7382230716f391b5c62b1f340af119ecef5/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e6dcc1434ccc269a8a2716772d96535b8ac9f041"
+      ],
+      "id": "PRRT_kwDODJKVX86CQy6o",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86CV8UZ",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a54cf7382230716f391b5c62b1f340af119ecef5/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a54cf7382230716f391b5c62b1f340af119ecef5/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/afcca42728437e02d0a69931aa887661bd147173"
+      ],
+      "id": "PRRT_kwDODJKVX86CWIyU",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86CWNgB",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/43cb8c14cceda72c0fad5617e0fe3063d1fb9786/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/43cb8c14cceda72c0fad5617e0fe3063d1fb9786...9974bec1dfe43d63852634d94ed61e1ba1bff9ab",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5bb06570243f065244ad3d89b99ba78498fb1460"
+      ],
+      "id": "PRRT_kwDODJKVX86CZxow",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/43cb8c14cceda72c0fad5617e0fe3063d1fb9786/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e7f4c5215134e27d1f39f81a63a930f145baccbb"
+      ],
+      "id": "PRRT_kwDODJKVX86CZxpW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86CayV_",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86CQNnC",
+      "status": "duplicate"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86CayWh",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86CQNmi",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7f244ae36c6accba48c3afb810cd72d228dbf718/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3595c953c054208e5b771b5c3afef0cc38f442e2"
+      ],
+      "id": "PRRT_kwDODJKVX86CayW7",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72c9f2d18396939117847be0364284e7b99c729d/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bc0cb96fb575193e0099baa4ac58ce5f6a721ab4"
+      ],
+      "id": "PRRT_kwDODJKVX86Cbgbk",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bc0cb96fb575193e0099baa4ac58ce5f6a721ab4/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ac7fa6fda6c2e3b65bc5d3c6eba050311a49511/instrumentation-api-incubator/src/main/jflex/SqlSanitizer.jflex",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9974bec1dfe43d63852634d94ed61e1ba1bff9ab"
+      ],
+      "id": "PRRT_kwDODJKVX86Cb5NL",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

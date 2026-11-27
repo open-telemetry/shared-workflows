@@ -1,0 +1,25 @@
+{
+  "head": "734eed9dd5764531875005e3688633c898c29f3c",
+  "merge": "981bf78c8a111a643d93df95a69322df92d45855",
+  "merged": "2026-04-01T18:31:20Z",
+  "missing_roots": 0,
+  "number": 17368,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n  implementation(\"org.apache.iceberg:iceberg-core:1.8.1\")\n```",
+      "created": "2026-04-01T13:23:08Z",
+      "hunk": "@@ -3,7 +3,7 @@ plugins {\n }\n \n dependencies {\n-  implementation(\"org.apache.iceberg:iceberg-core:1.8.1\")\n+  api(\"org.apache.iceberg:iceberg-core:1.8.1\")",
+      "id": "PRRT_kwDODJKVX854PDE8",
+      "opened": "2026-04-01T13:23:08Z",
+      "path": "instrumentation/iceberg-1.8/testing/build.gradle.kts",
+      "replies": [],
+      "reviewed": "468710459f0265cf222cb17b33f856b2c637d6eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17368#discussion_r3022081484"
+    }
+  ]
+}

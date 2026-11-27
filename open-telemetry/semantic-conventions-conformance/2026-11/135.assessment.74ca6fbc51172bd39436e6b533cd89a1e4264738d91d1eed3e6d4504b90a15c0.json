@@ -1,0 +1,121 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "5f795fce8adeec47fded215c1fc0ed5079181dc5ee348b863269b535ae840fed",
+  "input_digest": "74ca6fbc51172bd39436e6b533cd89a1e4264738d91d1eed3e6d4504b90a15c0",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/66259d0d693a55697a283ad13e94dfa49317aa21/scenarios/database/java/cassandra/java-driver/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/java/cassandra/java-driver/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/contracts/cassandra.yaml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dcFN0",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/66259d0d693a55697a283ad13e94dfa49317aa21/scenarios/database/java/cassandra/cassandra-driver-4.19/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/java/cassandra/cassandra-driver-4.19/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/contracts/cassandra.yaml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dcFN7",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/66259d0d693a55697a283ad13e94dfa49317aa21/scenarios/database/java/cassandra/cassandra-driver-3/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/java/cassandra/cassandra-driver-3/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/contracts/cassandra.yaml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dcFNo",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/66259d0d693a55697a283ad13e94dfa49317aa21/scenarios/database/java/cassandra/java-driver/opentelemetry-library/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/java/cassandra/java-driver/opentelemetry-library/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/contracts/cassandra.yaml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dcFOE",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6f2812a704be6b8337e73aa8a5abc2382de0a7c5/scenarios/database/java/gradle/libs.versions.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6f2812a704be6b8337e73aa8a5abc2382de0a7c5/.github/renovate.json5",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/java/gradle/libs.versions.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/.github/renovate.json5"
+      ],
+      "id": "PRRT_kwDOTuzK5c6wG6-j",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/261c96b0146bbd71510013852bad8933c86c72b2/scenarios/database/contracts/cassandra.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/contracts/cassandra.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/java/cassandra/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zADhg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/261c96b0146bbd71510013852bad8933c86c72b2/scenarios/database/contracts/cassandra.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/java/shared/cassandra/java-driver/scenarios/src/main/java/io/opentelemetry/conformance/database/cassandra/CassandraScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/contracts/cassandra.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/a726f73b9a5cb158ce63a05bcfabd1df69a6ac53"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zADhr",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/261c96b0146bbd71510013852bad8933c86c72b2/tools/database/runner/tests/test_database_session.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/261c96b0146bbd71510013852bad8933c86c72b2/tools/database/runner/tests/test_java_project_discovery.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/tools/database/runner/tests/test_database_session.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/tools/database/runner/tests/test_java_project_discovery.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/a40dfe12f289d3094cdb2ade2a3802370f8f24bd"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zADht",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/261c96b0146bbd71510013852bad8933c86c72b2/scenarios/database/java/cassandra/java-driver/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2c1d81fe1cb09295fbb1fdf43ab44dae40626f4d/scenarios/database/java/cassandra/java-driver/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/783ad47933eeda305522201ccb41cfc0d465224c"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zADhv",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

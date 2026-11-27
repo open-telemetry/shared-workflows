@@ -1,0 +1,25 @@
+{
+  "head": "2240169d3e417cee2e0586461efda743b9908595",
+  "merge": "acd670156de535a73d9bb8daadfd48208852ed7d",
+  "merged": "2026-10-03T00:59:06Z",
+  "missing_roots": 0,
+  "number": 788,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This equality branch now permits local installs when the floor is finalized (`1.2b0`) as well as when it has a `.dev` suffix, but the fallback diagnostic at line 239 still says local/editable installs are allowed only for `.dev` floors. When the check rejects another local entry during a finalized cycle, that message contradicts the rule; update it to describe current-cycle floors instead.",
+      "created": "2026-09-24T14:03:16Z",
+      "hunk": "@@ -203,17 +203,20 @@ def check_workspace_dependencies(\n             )\n             continue\n \n+        floor_target = Version(floor_version.public.split(\".dev\")[0])\n+        current_target = Version(current_version.public.split(\".dev\")[0])\n+\n         # Floor is from a previous cycle, published on PyPI (e.g. 1.0b0, 1.1b0, 1.1b0.dev)\n-        if floor_version < current_version:\n+        if floor_target < current_target:\n             if canonical_name in local_pkgs:\n                 reported_locals.add(canonical_name)\n                 errors.append(\n                     f\"{pkg_dir.name}: '{req.name}' declared floor is '{lower_bound_str}' (released version on PyPI), \"\n                     f\"but tests/requirements.oldest.txt installs it locally with '{local_pkgs[canonical_name]}'. \"\n                     f\"Remove the local/editable install so tests run against the declared floor from PyPI.\"\n                 )\n-        # Floor is the current unreleased workspace dev version (e.g. 1.2b0.dev)\n-        elif floor_version == current_version:\n+        # Floor targets the current unreleased workspace cycle (e.g. 1.2b0.dev or 1.2b0)\n+        elif floor_target == current_target:",
+      "id": "PRRT_kwDOSbspP86lnaGR",
+      "opened": "2026-09-24T14:03:17Z",
+      "path": "scripts/check_deps.py",
+      "replies": [],
+      "reviewed": "84e0cb9778d9f7ae79254319d89384b629c170cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/788#discussion_r4094494167"
+    }
+  ]
+}

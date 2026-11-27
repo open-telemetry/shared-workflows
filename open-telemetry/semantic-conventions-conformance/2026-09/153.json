@@ -1,0 +1,55 @@
+{
+  "head": "0549ca1fcff322588bdf168113f3cdaebc2e0196",
+  "merge": "73ba9dbc5b8477e5a22596945e0f7538a8109381",
+  "merged": "2026-09-01T03:53:02Z",
+  "missing_roots": 0,
+  "number": 153,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Agno runtime used by both conformance scenarios changes here, but this implementation's generated `data.json` is not updated. Regenerate it with the repository's documented `otel-conformance scenarios/gen-ai/python/agno/opentelemetry-agno --report-only` command and commit any resulting output; otherwise the checked-in conformance record still represents Agno 2.9.0 and CI will reject a runtime/output diff.",
+      "created": "2026-08-31T01:09:29Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"agno-opentelemetry-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"agno==2.9.0\",\n+    \"agno==3.0.4\",",
+      "id": "PRRT_kwDOTuzK5c6dlf54",
+      "opened": "2026-08-31T01:09:30Z",
+      "path": "scenarios/gen-ai/python/agno/opentelemetry-agno/pyproject.toml",
+      "replies": [],
+      "reviewed": "0549ca1fcff322588bdf168113f3cdaebc2e0196",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/153#discussion_r3891095465"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Agno runtime used by both conformance scenarios changes here, but this implementation's generated `data.json` is not updated. Regenerate it with the repository's documented `otel-conformance scenarios/gen-ai/python/agno/openllmetry --report-only` command and commit any resulting output; otherwise the checked-in conformance record still represents Agno 2.9.0 and CI will reject a runtime/output diff.",
+      "created": "2026-08-31T01:09:29Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"agno-openllmetry-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"agno==2.9.0\",\n+    \"agno==3.0.4\",",
+      "id": "PRRT_kwDOTuzK5c6dlf6B",
+      "opened": "2026-08-31T01:09:30Z",
+      "path": "scenarios/gen-ai/python/agno/openllmetry/pyproject.toml",
+      "replies": [],
+      "reviewed": "0549ca1fcff322588bdf168113f3cdaebc2e0196",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/153#discussion_r3891095482"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Agno runtime used by both conformance scenarios changes here, but this implementation's generated `data.json` is not updated. Regenerate it with the repository's documented `otel-conformance scenarios/gen-ai/python/agno/openinference --report-only` command and commit any resulting output; otherwise the checked-in conformance record still represents Agno 2.9.0 and CI will reject a runtime/output diff.",
+      "created": "2026-08-31T01:09:30Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"agno-openinference-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"agno==2.9.0\",\n+    \"agno==3.0.4\",",
+      "id": "PRRT_kwDOTuzK5c6dlf6Q",
+      "opened": "2026-08-31T01:09:30Z",
+      "path": "scenarios/gen-ai/python/agno/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "0549ca1fcff322588bdf168113f3cdaebc2e0196",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/153#discussion_r3891095500"
+    }
+  ]
+}

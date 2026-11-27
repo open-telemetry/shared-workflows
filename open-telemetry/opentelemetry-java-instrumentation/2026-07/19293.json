@@ -1,0 +1,181 @@
+{
+  "head": "dac45d6ecb8b82c630f97055f8ddc21be3cc8291",
+  "merge": "c8141fee4189b9af108a02f1e6083ab80a5437dd",
+  "merged": "2026-07-29T21:48:12Z",
+  "missing_roots": 0,
+  "number": 19293,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Avoid logging the complete `ioreg` response here. `IOPlatformExpertDevice` output also includes `IOPlatformSerialNumber` and other hardware identifiers, so the missing-UUID path can disclose them when FINE logging is enabled; log only that the lookup failed.",
+      "created": "2026-07-22T14:43:52Z",
+      "hunk": "@@ -94,32 +141,57 @@ private static String getOsTypeSystemProperty() {\n   }\n \n   private Resource readLinuxMachineId() {\n-    Path path = FileSystems.getDefault().getPath(\"/etc/machine-id\");\n-    List<String> lines = machineIdReader.apply(path);\n-    if (lines.isEmpty()) {\n-      return Resource.empty();\n+    // /etc/machine-id is the primary source, /var/lib/dbus/machine-id is the fallback\n+    for (String path : LINUX_MACHINE_ID_PATHS) {\n+      String machineId =\n+          firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(path)));\n+      if (machineId != null) {\n+        return Resource.create(Attributes.of(HOST_ID, machineId));\n+      }\n     }\n-    return Resource.create(Attributes.of(HOST_ID, lines.get(0)));\n+    return Resource.empty();\n   }\n \n-  private static List<String> readMachineIdFile(Path path) {\n-    try {\n-      List<String> lines = Files.readAllLines(path);\n-      if (lines.isEmpty()) {\n-        logger.fine(\"Failed to read /etc/machine-id: empty file\");\n+  private Resource readBsdHostId() {\n+    // /etc/hostid is the primary source, kenv is the fallback\n+    String hostId =\n+        firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(BSD_HOSTID_PATH)));\n+    if (hostId == null) {\n+      hostId = firstNonBlankLine(commandExecutor.apply(BSD_KENV_COMMAND));\n+    }\n+    if (hostId != null) {\n+      return Resource.create(Attributes.of(HOST_ID, hostId));\n+    }\n+    logger.fine(\"Failed to read host id on BSD: no value found in /etc/hostid or kenv output\");\n+    return Resource.empty();\n+  }\n+\n+  private Resource readMacOsUuid() {\n+    List<String> lines = commandExecutor.apply(MACOS_IOREG_COMMAND);\n+\n+    for (String line : lines) {\n+      if (line.contains(\"IOPlatformUUID\")) {\n+        // line looks like: \"IOPlatformUUID\" = \"0123456789ABCDEF\"\n+        int equalsIndex = line.indexOf('=');\n+        if (equalsIndex >= 0) {\n+          String uuid = line.substring(equalsIndex + 1).trim().replace(\"\\\"\", \"\").trim();\n+          if (!uuid.isEmpty()) {\n+            return Resource.create(Attributes.of(HOST_ID, uuid));\n+          }\n+        }\n+        break;\n       }\n-      return lines;\n-    } catch (IOException e) {\n-      logger.log(FINE, \"Failed to read /etc/machine-id\", e);\n-      return emptyList();\n     }\n+    logger.fine(\"Failed to read macOS host id: no IOPlatformUUID found in ioreg output: \" + lines);",
+      "id": "PRRT_kwDODJKVX86S9QFx",
+      "opened": "2026-07-22T14:43:53Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "d83545b34dbcc58e5682d50d70fb82f4d40c783c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3631198401"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Any reason this is a `String[]` instead of a list like the constants above?\n\n```suggestion\n  private static final List<String> WINDOWS_ROOT_ENV_VARS = asList(\"SystemRoot\", \"windir\");\n```",
+      "created": "2026-07-29T17:03:53Z",
+      "hunk": "@@ -38,27 +50,46 @@ public final class HostIdResource {\n   // copied from HostIncubatingAttributes\n   static final AttributeKey<String> HOST_ID = AttributeKey.stringKey(\"host.id\");\n \n-  public static final String REGISTRY_QUERY =\n-      \"reg query HKEY_LOCAL_MACHINE\\\\SOFTWARE\\\\Microsoft\\\\Cryptography /v MachineGuid\";\n+  // Non-privileged machine-id sources per the semantic conventions. Commands are invoked with\n+  // absolute paths to avoid resolving them through a potentially attacker controlled PATH, see\n+  // https://github.com/open-telemetry/semantic-conventions/pull/3896\n+  private static final List<String> LINUX_MACHINE_ID_PATHS =\n+      asList(\"/etc/machine-id\", \"/var/lib/dbus/machine-id\");\n+  private static final String BSD_HOSTID_PATH = \"/etc/hostid\";\n+  private static final List<String> BSD_KENV_COMMAND =\n+      asList(\"/bin/kenv\", \"-q\", \"smbios.system.uuid\");\n+  private static final List<String> MACOS_IOREG_COMMAND =\n+      asList(\"/usr/sbin/ioreg\", \"-rd1\", \"-c\", \"IOPlatformExpertDevice\");\n+\n+  // Prefer the SystemRoot/windir environment variables to locate the Windows directory, falling\n+  // back to the conventional install path only if neither is set.\n+  private static final String[] WINDOWS_ROOT_ENV_VARS = {\"SystemRoot\", \"windir\"};",
+      "id": "PRRT_kwDODJKVX86U17YA",
+      "opened": "2026-07-29T17:08:58Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "76bb2279eb35f49b3025db39b4e0ecaafb8a18b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3676467562"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Now that there's a `commandExecutor`, can we drop the `queryWindowsRegistry` supplier and have `readWindowsGuid()` use `commandExecutor` like macOS and BSD do? That's one less constructor param, no more `null, null` in the tests, and it makes `windowsRegPath()` testable.",
+      "created": "2026-07-29T17:03:53Z",
+      "hunk": "@@ -94,53 +141,125 @@ private static String getOsTypeSystemProperty() {\n   }\n \n   private Resource readLinuxMachineId() {\n-    Path path = FileSystems.getDefault().getPath(\"/etc/machine-id\");\n-    List<String> lines = machineIdReader.apply(path);\n-    if (lines.isEmpty()) {\n-      return Resource.empty();\n+    // /etc/machine-id is the primary source, /var/lib/dbus/machine-id is the fallback\n+    for (String path : LINUX_MACHINE_ID_PATHS) {\n+      String machineId =\n+          firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(path)));\n+      if (machineId != null) {\n+        return Resource.create(Attributes.of(HOST_ID, machineId));\n+      }\n     }\n-    return Resource.create(Attributes.of(HOST_ID, lines.get(0)));\n+    return Resource.empty();\n   }\n \n-  private static List<String> readMachineIdFile(Path path) {\n-    try {\n-      List<String> lines = Files.readAllLines(path);\n-      if (lines.isEmpty()) {\n-        logger.fine(\"Failed to read /etc/machine-id: empty file\");\n+  private Resource readBsdHostId() {\n+    // /etc/hostid is the primary source, kenv is the fallback\n+    String hostId =\n+        firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(BSD_HOSTID_PATH)));\n+    if (hostId == null) {\n+      hostId = firstNonBlankLine(commandExecutor.apply(BSD_KENV_COMMAND));\n+    }\n+    if (hostId != null) {\n+      return Resource.create(Attributes.of(HOST_ID, hostId));\n+    }\n+    logger.fine(\"Failed to read host id on BSD: no value found in /etc/hostid or kenv output\");\n+    return Resource.empty();\n+  }\n+\n+  private Resource readMacOsUuid() {\n+    List<String> lines = commandExecutor.apply(MACOS_IOREG_COMMAND);\n+\n+    for (String line : lines) {\n+      if (line.contains(\"IOPlatformUUID\")) {\n+        // line looks like: \"IOPlatformUUID\" = \"0123456789ABCDEF\"\n+        int equalsIndex = line.indexOf('=');\n+        if (equalsIndex >= 0) {\n+          String uuid = line.substring(equalsIndex + 1).trim().replace(\"\\\"\", \"\").trim();\n+          if (!uuid.isEmpty()) {\n+            return Resource.create(Attributes.of(HOST_ID, uuid));\n+          }\n+        }\n+        break;\n       }\n-      return lines;\n-    } catch (IOException e) {\n-      logger.log(FINE, \"Failed to read /etc/machine-id\", e);\n-      return emptyList();\n     }\n+    logger.fine(\"Failed to read macOS host id: no IOPlatformUUID found in ioreg output\");\n+    return Resource.empty();\n   }\n \n   private Resource readWindowsGuid() {\n     List<String> lines = queryWindowsRegistry.get();\n \n     for (String line : lines) {\n       if (line.contains(\"MachineGuid\")) {\n+        // line looks like: MachineGuid    REG_SZ    0123456789ABCDEF\n         String[] parts = line.trim().split(\"\\\\s+\");\n         if (parts.length == 3) {\n           return Resource.create(Attributes.of(HOST_ID, parts[2]));\n         }\n       }\n     }\n-    logger.fine(\"Failed to read Windows registry: No MachineGuid found in output: \" + lines);\n+    logger.fine(\"Failed to read Windows registry: No MachineGuid found in output\");\n     return Resource.empty();\n   }\n \n   private static List<String> queryWindowsRegistry() {\n+    List<String> command = new ArrayList<>();\n+    command.add(windowsRegPath());\n+    command.addAll(WINDOWS_REGISTRY_QUERY_ARGS);\n+    return runCommand(command);",
+      "id": "PRRT_kwDODJKVX86U17YL",
+      "opened": "2026-07-29T17:08:58Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "76bb2279eb35f49b3025db39b4e0ecaafb8a18b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3676467580"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "semconv#3896 only added full paths for the BSD `kenv` and macOS `ioreg` rows -- the Windows row still just says \"MachineGuid from registry\", so this part is new behavior for all Windows users and has no test coverage (`createResourceWindows` injects `queryWindowsRegistry`, so `windowsRegPath()` never runs).\r\n\r\nCan we get a test for it?",
+      "created": "2026-07-29T17:03:53Z",
+      "hunk": "@@ -94,53 +141,125 @@ private static String getOsTypeSystemProperty() {\n   }\n \n   private Resource readLinuxMachineId() {\n-    Path path = FileSystems.getDefault().getPath(\"/etc/machine-id\");\n-    List<String> lines = machineIdReader.apply(path);\n-    if (lines.isEmpty()) {\n-      return Resource.empty();\n+    // /etc/machine-id is the primary source, /var/lib/dbus/machine-id is the fallback\n+    for (String path : LINUX_MACHINE_ID_PATHS) {\n+      String machineId =\n+          firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(path)));\n+      if (machineId != null) {\n+        return Resource.create(Attributes.of(HOST_ID, machineId));\n+      }\n     }\n-    return Resource.create(Attributes.of(HOST_ID, lines.get(0)));\n+    return Resource.empty();\n   }\n \n-  private static List<String> readMachineIdFile(Path path) {\n-    try {\n-      List<String> lines = Files.readAllLines(path);\n-      if (lines.isEmpty()) {\n-        logger.fine(\"Failed to read /etc/machine-id: empty file\");\n+  private Resource readBsdHostId() {\n+    // /etc/hostid is the primary source, kenv is the fallback\n+    String hostId =\n+        firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(BSD_HOSTID_PATH)));\n+    if (hostId == null) {\n+      hostId = firstNonBlankLine(commandExecutor.apply(BSD_KENV_COMMAND));\n+    }\n+    if (hostId != null) {\n+      return Resource.create(Attributes.of(HOST_ID, hostId));\n+    }\n+    logger.fine(\"Failed to read host id on BSD: no value found in /etc/hostid or kenv output\");\n+    return Resource.empty();\n+  }\n+\n+  private Resource readMacOsUuid() {\n+    List<String> lines = commandExecutor.apply(MACOS_IOREG_COMMAND);\n+\n+    for (String line : lines) {\n+      if (line.contains(\"IOPlatformUUID\")) {\n+        // line looks like: \"IOPlatformUUID\" = \"0123456789ABCDEF\"\n+        int equalsIndex = line.indexOf('=');\n+        if (equalsIndex >= 0) {\n+          String uuid = line.substring(equalsIndex + 1).trim().replace(\"\\\"\", \"\").trim();\n+          if (!uuid.isEmpty()) {\n+            return Resource.create(Attributes.of(HOST_ID, uuid));\n+          }\n+        }\n+        break;\n       }\n-      return lines;\n-    } catch (IOException e) {\n-      logger.log(FINE, \"Failed to read /etc/machine-id\", e);\n-      return emptyList();\n     }\n+    logger.fine(\"Failed to read macOS host id: no IOPlatformUUID found in ioreg output\");\n+    return Resource.empty();\n   }\n \n   private Resource readWindowsGuid() {\n     List<String> lines = queryWindowsRegistry.get();\n \n     for (String line : lines) {\n       if (line.contains(\"MachineGuid\")) {\n+        // line looks like: MachineGuid    REG_SZ    0123456789ABCDEF\n         String[] parts = line.trim().split(\"\\\\s+\");\n         if (parts.length == 3) {\n           return Resource.create(Attributes.of(HOST_ID, parts[2]));\n         }\n       }\n     }\n-    logger.fine(\"Failed to read Windows registry: No MachineGuid found in output: \" + lines);\n+    logger.fine(\"Failed to read Windows registry: No MachineGuid found in output\");\n     return Resource.empty();\n   }\n \n   private static List<String> queryWindowsRegistry() {\n+    List<String> command = new ArrayList<>();\n+    command.add(windowsRegPath());\n+    command.addAll(WINDOWS_REGISTRY_QUERY_ARGS);\n+    return runCommand(command);\n+  }\n+\n+  private static String windowsRegPath() {\n+    String root = null;\n+    for (String envVar : WINDOWS_ROOT_ENV_VARS) {\n+      root = System.getenv(envVar);\n+      if (root != null && !root.isEmpty()) {\n+        break;\n+      }\n+    }\n+    if (root == null || root.isEmpty()) {\n+      root = WINDOWS_ROOT_FALLBACK;\n+    }\n+    return root + \"\\\\System32\\\\reg.exe\";",
+      "id": "PRRT_kwDODJKVX86U17YQ",
+      "opened": "2026-07-29T17:08:58Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "76bb2279eb35f49b3025db39b4e0ecaafb8a18b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3676467586"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`runCommand` has no timeout. That was already true, but it mattered less when only Windows used it -- now macOS runs it on the default path, so a stuck `ioreg` would hang SDK startup.\n\nNote it isn't just adding `waitFor(timeout, unit)`: `getProcessOutput` blocks on EOF before we ever reach `waitFor`, so the read needs to be bounded too. Fine as a follow-up.",
+      "created": "2026-07-29T17:03:53Z",
+      "hunk": "@@ -94,53 +141,125 @@ private static String getOsTypeSystemProperty() {\n   }\n \n   private Resource readLinuxMachineId() {\n-    Path path = FileSystems.getDefault().getPath(\"/etc/machine-id\");\n-    List<String> lines = machineIdReader.apply(path);\n-    if (lines.isEmpty()) {\n-      return Resource.empty();\n+    // /etc/machine-id is the primary source, /var/lib/dbus/machine-id is the fallback\n+    for (String path : LINUX_MACHINE_ID_PATHS) {\n+      String machineId =\n+          firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(path)));\n+      if (machineId != null) {\n+        return Resource.create(Attributes.of(HOST_ID, machineId));\n+      }\n     }\n-    return Resource.create(Attributes.of(HOST_ID, lines.get(0)));\n+    return Resource.empty();\n   }\n \n-  private static List<String> readMachineIdFile(Path path) {\n-    try {\n-      List<String> lines = Files.readAllLines(path);\n-      if (lines.isEmpty()) {\n-        logger.fine(\"Failed to read /etc/machine-id: empty file\");\n+  private Resource readBsdHostId() {\n+    // /etc/hostid is the primary source, kenv is the fallback\n+    String hostId =\n+        firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(BSD_HOSTID_PATH)));\n+    if (hostId == null) {\n+      hostId = firstNonBlankLine(commandExecutor.apply(BSD_KENV_COMMAND));\n+    }\n+    if (hostId != null) {\n+      return Resource.create(Attributes.of(HOST_ID, hostId));\n+    }\n+    logger.fine(\"Failed to read host id on BSD: no value found in /etc/hostid or kenv output\");\n+    return Resource.empty();\n+  }\n+\n+  private Resource readMacOsUuid() {\n+    List<String> lines = commandExecutor.apply(MACOS_IOREG_COMMAND);\n+\n+    for (String line : lines) {\n+      if (line.contains(\"IOPlatformUUID\")) {\n+        // line looks like: \"IOPlatformUUID\" = \"0123456789ABCDEF\"\n+        int equalsIndex = line.indexOf('=');\n+        if (equalsIndex >= 0) {\n+          String uuid = line.substring(equalsIndex + 1).trim().replace(\"\\\"\", \"\").trim();\n+          if (!uuid.isEmpty()) {\n+            return Resource.create(Attributes.of(HOST_ID, uuid));\n+          }\n+        }\n+        break;\n       }\n-      return lines;\n-    } catch (IOException e) {\n-      logger.log(FINE, \"Failed to read /etc/machine-id\", e);\n-      return emptyList();\n     }\n+    logger.fine(\"Failed to read macOS host id: no IOPlatformUUID found in ioreg output\");\n+    return Resource.empty();\n   }\n \n   private Resource readWindowsGuid() {\n     List<String> lines = queryWindowsRegistry.get();\n \n     for (String line : lines) {\n       if (line.contains(\"MachineGuid\")) {\n+        // line looks like: MachineGuid    REG_SZ    0123456789ABCDEF\n         String[] parts = line.trim().split(\"\\\\s+\");\n         if (parts.length == 3) {\n           return Resource.create(Attributes.of(HOST_ID, parts[2]));\n         }\n       }\n     }\n-    logger.fine(\"Failed to read Windows registry: No MachineGuid found in output: \" + lines);\n+    logger.fine(\"Failed to read Windows registry: No MachineGuid found in output\");\n     return Resource.empty();\n   }\n \n   private static List<String> queryWindowsRegistry() {\n+    List<String> command = new ArrayList<>();\n+    command.add(windowsRegPath());\n+    command.addAll(WINDOWS_REGISTRY_QUERY_ARGS);\n+    return runCommand(command);\n+  }\n+\n+  private static String windowsRegPath() {\n+    String root = null;\n+    for (String envVar : WINDOWS_ROOT_ENV_VARS) {\n+      root = System.getenv(envVar);\n+      if (root != null && !root.isEmpty()) {\n+        break;\n+      }\n+    }\n+    if (root == null || root.isEmpty()) {\n+      root = WINDOWS_ROOT_FALLBACK;\n+    }\n+    return root + \"\\\\System32\\\\reg.exe\";\n+  }\n+\n+  @Nullable\n+  private static String firstNonBlankLine(List<String> lines) {\n+    for (String line : lines) {\n+      String trimmed = line.trim();\n+      if (!trimmed.isEmpty()) {\n+        return trimmed;\n+      }\n+    }\n+    return null;\n+  }\n+\n+  private static List<String> readFileLines(Path path) {\n+    try {\n+      List<String> lines = Files.readAllLines(path);\n+      if (lines.isEmpty()) {\n+        logger.log(FINE, \"Failed to read {0}: empty file\", path);\n+      }\n+      return lines;\n+    } catch (IOException e) {\n+      logger.log(FINE, \"Failed to read \" + path, e);\n+      return emptyList();\n+    }\n+  }\n+\n+  private static List<String> runCommand(List<String> command) {\n     try {\n-      ProcessBuilder processBuilder = new ProcessBuilder(\"cmd\", \"/c\", REGISTRY_QUERY);\n+      ProcessBuilder processBuilder = new ProcessBuilder(command);",
+      "id": "PRRT_kwDODJKVX86U17YV",
+      "opened": "2026-07-29T17:08:58Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [
+        {
+          "at": "2026-07-29T18:16:09Z",
+          "body": "created #19335 as a followup",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3676970723"
+        }
+      ],
+      "reviewed": "76bb2279eb35f49b3025db39b4e0ecaafb8a18b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3676467591"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This ignores `command`, so the test still passes if the `ioreg` path or arguments are wrong -- which is the main thing this PR changes.\n\n```suggestion\n            (Function<List<String>, List<String>>)\n                command -> {\n                  assertThat(command)\n                      .containsExactly(\"/usr/sbin/ioreg\", \"-rd1\", \"-c\", \"IOPlatformExpertDevice\");\n                  return asList(\n                      \"+-o IOPlatformExpertDevice  <class IOPlatformExpertDevice>\",\n                      \"    \\\"IOPlatformUUID\\\" = \\\"0123456789ABCDEF\\\"\");\n                }),\n```",
+      "created": "2026-07-29T17:03:53Z",
+      "hunk": "@@ -69,6 +77,61 @@ private static Stream<Arguments> createResourceWindowsCases() {\n         argumentSet(\"short output\", null, (Supplier<List<String>>) Collections::emptyList));\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"createResourceMacOsCases\")\n+  void createResourceMacOs(String expectedValue, Function<List<String>, List<String>> command) {\n+    HostIdResource hostIdResource = new HostIdResource(() -> \"Mac OS X\", null, null, command);\n+    assertHostId(expectedValue, hostIdResource);\n+  }\n+\n+  private static Stream<Arguments> createResourceMacOsCases() {\n+    return Stream.of(\n+        argumentSet(\n+            \"default\",\n+            \"0123456789ABCDEF\",\n+            (Function<List<String>, List<String>>)\n+                command ->\n+                    asList(\n+                        \"+-o IOPlatformExpertDevice  <class IOPlatformExpertDevice>\",\n+                        \"    \\\"IOPlatformUUID\\\" = \\\"0123456789ABCDEF\\\"\")),",
+      "id": "PRRT_kwDODJKVX86U17YX",
+      "opened": "2026-07-29T17:08:58Z",
+      "path": "instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/HostIdResourceTest.java",
+      "replies": [],
+      "reviewed": "76bb2279eb35f49b3025db39b4e0ecaafb8a18b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3676467596"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Same here:\n\n```suggestion\n            (Function<List<String>, List<String>>)\n                command -> {\n                  assertThat(command).containsExactly(\"/bin/kenv\", \"-q\", \"smbios.system.uuid\");\n                  return singletonList(\"kenv-uuid\");\n                }),\n```",
+      "created": "2026-07-29T17:03:53Z",
+      "hunk": "@@ -69,6 +77,61 @@ private static Stream<Arguments> createResourceWindowsCases() {\n         argumentSet(\"short output\", null, (Supplier<List<String>>) Collections::emptyList));\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"createResourceMacOsCases\")\n+  void createResourceMacOs(String expectedValue, Function<List<String>, List<String>> command) {\n+    HostIdResource hostIdResource = new HostIdResource(() -> \"Mac OS X\", null, null, command);\n+    assertHostId(expectedValue, hostIdResource);\n+  }\n+\n+  private static Stream<Arguments> createResourceMacOsCases() {\n+    return Stream.of(\n+        argumentSet(\n+            \"default\",\n+            \"0123456789ABCDEF\",\n+            (Function<List<String>, List<String>>)\n+                command ->\n+                    asList(\n+                        \"+-o IOPlatformExpertDevice  <class IOPlatformExpertDevice>\",\n+                        \"    \\\"IOPlatformUUID\\\" = \\\"0123456789ABCDEF\\\"\")),\n+        argumentSet(\n+            \"no uuid\",\n+            null,\n+            (Function<List<String>, List<String>>)\n+                command -> singletonList(\"+-o IOPlatformExpertDevice\")),\n+        argumentSet(\n+            \"empty output\", null, (Function<List<String>, List<String>>) command -> emptyList()));\n+  }\n+\n+  @ParameterizedTest\n+  @MethodSource(\"createResourceBsdCases\")\n+  void createResourceBsd(\n+      String expectedValue,\n+      Function<Path, List<String>> fileReader,\n+      Function<List<String>, List<String>> command) {\n+    HostIdResource hostIdResource = new HostIdResource(() -> \"FreeBSD\", fileReader, null, command);\n+    assertHostId(expectedValue, hostIdResource);\n+  }\n+\n+  private static Stream<Arguments> createResourceBsdCases() {\n+    return Stream.of(\n+        argumentSet(\n+            \"hostid file\",\n+            \"hostid-value\",\n+            (Function<Path, List<String>>) path -> singletonList(\"hostid-value\"),\n+            (Function<List<String>, List<String>>) command -> emptyList()),\n+        argumentSet(\n+            \"kenv fallback\",\n+            \"kenv-uuid\",\n+            (Function<Path, List<String>>) path -> emptyList(),\n+            (Function<List<String>, List<String>>) command -> singletonList(\"kenv-uuid\")),",
+      "id": "PRRT_kwDODJKVX86U17Yf",
+      "opened": "2026-07-29T17:08:58Z",
+      "path": "instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/HostIdResourceTest.java",
+      "replies": [],
+      "reviewed": "76bb2279eb35f49b3025db39b4e0ecaafb8a18b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3676467607"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`REGISTRY_QUERY` was `public static final` on a public class, so removing it outright is a source-breaking change for anyone referencing it. This module isn't `otel.stable=true`, so japicmp doesn't gate it and there's no apidiff file to update -- but per [CONTRIBUTING.md](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/CONTRIBUTING.md#deprecations) it should still go through a deprecation cycle rather than being deleted here.\r\n\r\n```suggestion\r\n  /**\r\n   * @deprecated This constant is no longer used and will be removed in a future release. The\r\n   *     Windows registry is now queried using an absolute path to {@code reg.exe}.\r\n   */\r\n  @Deprecated\r\n  public static final String REGISTRY_QUERY =\r\n      \"reg query HKEY_LOCAL_MACHINE\\\\SOFTWARE\\\\Microsoft\\\\Cryptography /v MachineGuid\";\r\n\r\n  // Non-privileged machine-id sources per the semantic conventions. Commands are invoked with\r\n  // absolute paths to avoid resolving them through a potentially attacker controlled PATH, see\r\n  // https://github.com/open-telemetry/semantic-conventions/pull/3896\r\n```",
+      "created": "2026-07-29T19:51:28Z",
+      "hunk": "@@ -38,27 +50,42 @@ public final class HostIdResource {\n   // copied from HostIncubatingAttributes\n   static final AttributeKey<String> HOST_ID = AttributeKey.stringKey(\"host.id\");\n \n-  public static final String REGISTRY_QUERY =\n-      \"reg query HKEY_LOCAL_MACHINE\\\\SOFTWARE\\\\Microsoft\\\\Cryptography /v MachineGuid\";\n+  // Non-privileged machine-id sources per the semantic conventions. Commands are invoked with\n+  // absolute paths to avoid resolving them through a potentially attacker controlled PATH, see\n+  // https://github.com/open-telemetry/semantic-conventions/pull/3896",
+      "id": "PRRT_kwDODJKVX86U48SH",
+      "opened": "2026-07-29T19:55:23Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "b98d5c91a1eaadb4a0e5b093fc2729aa30d26883",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3677623242"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`runningLinux()` and `runningMacOs()` both lowercase before matching, but this one is case-sensitive. It happens to work for every real `os.name` (`FreeBSD`, `OpenBSD`, `NetBSD`, `DragonFly BSD`), so this is just for consistency.\n\n```suggestion\n    return getOsType.get().toLowerCase(Locale.ROOT).endsWith(\"bsd\");\n```",
+      "created": "2026-07-29T19:51:28Z",
+      "hunk": "@@ -86,6 +119,16 @@ private boolean runningWindows() {\n     return getOsType.get().startsWith(\"Windows\");\n   }\n \n+  private boolean runningMacOs() {\n+    // os.name is \"Mac OS X\" on the JVM (not \"Darwin\" as reported by uname)\n+    String osType = getOsType.get().toLowerCase(Locale.ROOT);\n+    return osType.contains(\"mac\") || osType.contains(\"darwin\");\n+  }\n+\n+  private boolean runningBsd() {\n+    return getOsType.get().endsWith(\"BSD\");",
+      "id": "PRRT_kwDODJKVX86U48ST",
+      "opened": "2026-07-29T19:55:23Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "b98d5c91a1eaadb4a0e5b093fc2729aa30d26883",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3677623258"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Minor: this `break` also fires when the line contains `IOPlatformUUID` but fails to parse (no `=`, or an empty value after stripping quotes), so we give up instead of checking the remaining lines. `ioreg` only emits one such line in practice, but dropping the `break` is strictly more robust and the `return` already exits on success.\n\n```suggestion\n        }\n      }\n```",
+      "created": "2026-07-29T19:51:28Z",
+      "hunk": "@@ -94,53 +137,122 @@ private static String getOsTypeSystemProperty() {\n   }\n \n   private Resource readLinuxMachineId() {\n-    Path path = FileSystems.getDefault().getPath(\"/etc/machine-id\");\n-    List<String> lines = machineIdReader.apply(path);\n-    if (lines.isEmpty()) {\n-      return Resource.empty();\n+    // /etc/machine-id is the primary source, /var/lib/dbus/machine-id is the fallback\n+    for (String path : LINUX_MACHINE_ID_PATHS) {\n+      String machineId =\n+          firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(path)));\n+      if (machineId != null) {\n+        return Resource.create(Attributes.of(HOST_ID, machineId));\n+      }\n     }\n-    return Resource.create(Attributes.of(HOST_ID, lines.get(0)));\n+    return Resource.empty();\n   }\n \n-  private static List<String> readMachineIdFile(Path path) {\n-    try {\n-      List<String> lines = Files.readAllLines(path);\n-      if (lines.isEmpty()) {\n-        logger.fine(\"Failed to read /etc/machine-id: empty file\");\n+  private Resource readBsdHostId() {\n+    // /etc/hostid is the primary source, kenv is the fallback\n+    String hostId =\n+        firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(BSD_HOSTID_PATH)));\n+    if (hostId == null) {\n+      hostId = firstNonBlankLine(commandExecutor.apply(BSD_KENV_COMMAND));\n+    }\n+    if (hostId != null) {\n+      return Resource.create(Attributes.of(HOST_ID, hostId));\n+    }\n+    logger.fine(\"Failed to read host id on BSD: no value found in /etc/hostid or kenv output\");\n+    return Resource.empty();\n+  }\n+\n+  private Resource readMacOsUuid() {\n+    List<String> lines = commandExecutor.apply(MACOS_IOREG_COMMAND);\n+\n+    for (String line : lines) {\n+      if (line.contains(\"IOPlatformUUID\")) {\n+        // line looks like: \"IOPlatformUUID\" = \"0123456789ABCDEF\"\n+        int equalsIndex = line.indexOf('=');\n+        if (equalsIndex >= 0) {\n+          String uuid = line.substring(equalsIndex + 1).trim().replace(\"\\\"\", \"\").trim();\n+          if (!uuid.isEmpty()) {\n+            return Resource.create(Attributes.of(HOST_ID, uuid));\n+          }\n+        }\n+        break;\n       }",
+      "id": "PRRT_kwDODJKVX86U48SY",
+      "opened": "2026-07-29T19:55:23Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "b98d5c91a1eaadb4a0e5b093fc2729aa30d26883",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3677623264"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Nit: the lambda can just be a method reference (only the one-arg `System.getenv(String)` overload is applicable here).\n\n```suggestion\n    command.add(windowsRegPath(System::getenv));\n```",
+      "created": "2026-07-29T19:51:28Z",
+      "hunk": "@@ -94,53 +137,122 @@ private static String getOsTypeSystemProperty() {\n   }\n \n   private Resource readLinuxMachineId() {\n-    Path path = FileSystems.getDefault().getPath(\"/etc/machine-id\");\n-    List<String> lines = machineIdReader.apply(path);\n-    if (lines.isEmpty()) {\n-      return Resource.empty();\n+    // /etc/machine-id is the primary source, /var/lib/dbus/machine-id is the fallback\n+    for (String path : LINUX_MACHINE_ID_PATHS) {\n+      String machineId =\n+          firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(path)));\n+      if (machineId != null) {\n+        return Resource.create(Attributes.of(HOST_ID, machineId));\n+      }\n     }\n-    return Resource.create(Attributes.of(HOST_ID, lines.get(0)));\n+    return Resource.empty();\n   }\n \n-  private static List<String> readMachineIdFile(Path path) {\n-    try {\n-      List<String> lines = Files.readAllLines(path);\n-      if (lines.isEmpty()) {\n-        logger.fine(\"Failed to read /etc/machine-id: empty file\");\n+  private Resource readBsdHostId() {\n+    // /etc/hostid is the primary source, kenv is the fallback\n+    String hostId =\n+        firstNonBlankLine(fileReader.apply(FileSystems.getDefault().getPath(BSD_HOSTID_PATH)));\n+    if (hostId == null) {\n+      hostId = firstNonBlankLine(commandExecutor.apply(BSD_KENV_COMMAND));\n+    }\n+    if (hostId != null) {\n+      return Resource.create(Attributes.of(HOST_ID, hostId));\n+    }\n+    logger.fine(\"Failed to read host id on BSD: no value found in /etc/hostid or kenv output\");\n+    return Resource.empty();\n+  }\n+\n+  private Resource readMacOsUuid() {\n+    List<String> lines = commandExecutor.apply(MACOS_IOREG_COMMAND);\n+\n+    for (String line : lines) {\n+      if (line.contains(\"IOPlatformUUID\")) {\n+        // line looks like: \"IOPlatformUUID\" = \"0123456789ABCDEF\"\n+        int equalsIndex = line.indexOf('=');\n+        if (equalsIndex >= 0) {\n+          String uuid = line.substring(equalsIndex + 1).trim().replace(\"\\\"\", \"\").trim();\n+          if (!uuid.isEmpty()) {\n+            return Resource.create(Attributes.of(HOST_ID, uuid));\n+          }\n+        }\n+        break;\n       }\n-      return lines;\n-    } catch (IOException e) {\n-      logger.log(FINE, \"Failed to read /etc/machine-id\", e);\n-      return emptyList();\n     }\n+    logger.fine(\"Failed to read macOS host id: no IOPlatformUUID found in ioreg output\");\n+    return Resource.empty();\n   }\n \n   private Resource readWindowsGuid() {\n-    List<String> lines = queryWindowsRegistry.get();\n+    List<String> command = new ArrayList<>();\n+    command.add(windowsRegPath(name -> System.getenv(name)));",
+      "id": "PRRT_kwDODJKVX86U48Se",
+      "opened": "2026-07-29T19:55:23Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "b98d5c91a1eaadb4a0e5b093fc2729aa30d26883",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19293#discussion_r3677623271"
+    }
+  ]
+}

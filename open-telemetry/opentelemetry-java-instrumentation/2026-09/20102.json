@@ -1,0 +1,52 @@
+{
+  "head": "ceb5fc9364bb5f8503f7e353468160f3623ef2ed",
+  "merge": "30dff698e4b2ef38b339eaeabd2ec1e9b80bac2b",
+  "merged": "2026-09-12T15:16:33Z",
+  "missing_roots": 0,
+  "number": 20102,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `optional = true` does not broaden type compatibility; it only permits the indexed argument to be absent. When that argument exists, its type must still be assignable to the advice parameter, so grouping it with `Object` and dynamic typing can lead readers to omit a necessary compatibility matcher for optional, concretely typed arguments.",
+      "created": "2026-09-11T03:01:05Z",
+      "hunk": "@@ -470,6 +470,32 @@ sufficient for optimization.\n - The `typeMatcher()` uses `named(...)` or `namedOneOf(...)` — no override needed because\n   name-only matchers are already fast (they check only the class name, no bytecode).\n \n+### Method matchers and advice bindings\n+\n+The method matcher must prove compatibility for every non-optional, statically typed value that the\n+advice reads. For each `@Advice.Argument(n)`, normally include a compatible\n+`takesArgument(n, ...)` matcher or an equivalent matcher for the complete typed signature. Apply the\n+same rule to a concretely typed `@Advice.Return` with `returns(...)`.\n+\n+When supported signatures use different concrete subtypes accepted by the advice's common\n+supertype, match the hierarchy:\n+\n+```java\n+named(\"pool\")\n+    .and(takesArguments(3))\n+    .and(takesArgument(1, hasSuperType(named(\"io.vertx.sqlclient.SqlConnectOptions\"))))\n+    .and(returns(hasSuperType(named(\"io.vertx.sqlclient.Pool\"))))\n+```\n+\n+Match argument positions that the advice does not bind only when they distinguish an intended\n+overload or supported-version signature. Do not restate unrelated arguments, and do not bind unused\n+arguments merely to mirror the matcher. The matcher selects methods; the advice signature lists the\n+values it reads.\n+\n+Broad bindings such as `optional = true`, `Object`, or `typing = Assigner.Typing.DYNAMIC` can be\n+intentional. They do not require an exact type matcher, but the matcher as a whole must keep the\n+advice binding valid.",
+      "id": "PRRT_kwDODJKVX86hU1CE",
+      "opened": "2026-09-11T03:01:05Z",
+      "path": ".github/agents/knowledge/javaagent-module-patterns.md",
+      "replies": [
+        {
+          "at": "2026-09-11T14:19:35Z",
+          "body": "Addressed in 7ad18bc8e9feddc10e68d9216e3fdd6ea1142cd9.\n\nAnalysis: Byte Buddy uses `optional = true` only when the indexed argument is absent. It still requires compatible assignment when the argument exists, so the guidance now distinguishes optionality from broad typing.\n\nUpsides: Readers will add compatibility matchers for concretely typed optional arguments and avoid invalid advice bindings.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20102#discussion_r3990057086"
+        }
+      ],
+      "reviewed": "bc0c77c4cc69d08d72326d2982493bbb1487272b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20102#discussion_r3985562174"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Dynamic typing is not equivalent to binding as `Object`: it permits otherwise-incompatible assignments by inserting a runtime cast. If the advice parameter is narrower than the matched method type, omitting a type constraint without a separate runtime contract can cause `ClassCastException` in instrumented application code, so this guidance should state that requirement explicitly.",
+      "created": "2026-09-11T14:25:48Z",
+      "hunk": "@@ -470,6 +470,34 @@ sufficient for optimization.\n - The `typeMatcher()` uses `named(...)` or `namedOneOf(...)` — no override needed because\n   name-only matchers are already fast (they check only the class name, no bytecode).\n \n+### Method matchers and advice bindings\n+\n+The method matcher must prove compatibility for every non-optional, statically typed value that the\n+advice reads. For each `@Advice.Argument(n)`, normally include a compatible\n+`takesArgument(n, ...)` matcher or an equivalent matcher for the complete typed signature. Apply the\n+same rule to a concretely typed `@Advice.Return` with `returns(...)`.\n+\n+When supported signatures use different concrete subtypes accepted by the advice's common\n+supertype, match the hierarchy:\n+\n+```java\n+named(\"pool\")\n+    .and(takesArguments(3))\n+    .and(takesArgument(1, hasSuperType(named(\"io.vertx.sqlclient.SqlConnectOptions\"))))\n+    .and(returns(hasSuperType(named(\"io.vertx.sqlclient.Pool\"))))\n+```\n+\n+Match argument positions that the advice does not bind only when they distinguish an intended\n+overload or supported-version signature. Do not restate unrelated arguments, and do not bind unused\n+arguments merely to mirror the matcher. The matcher selects methods; the advice signature lists the\n+values it reads.\n+\n+`optional = true` permits the indexed argument to be absent; it does not relax type compatibility\n+when the argument is present. A concretely typed optional argument still needs a compatible matcher\n+for every signature that includes it. Bindings typed as `Object` or using\n+`typing = Assigner.Typing.DYNAMIC` can intentionally cover broader types and do not require an exact\n+type matcher, but the matcher as a whole must keep the advice binding valid.",
+      "id": "PRRT_kwDODJKVX86hgcQ6",
+      "opened": "2026-09-11T14:25:48Z",
+      "path": ".github/agents/knowledge/javaagent-module-patterns.md",
+      "replies": [
+        {
+          "at": "2026-09-11T14:28:21Z",
+          "body": "Addressed in ceb5fc9364bb5f8503f7e353468160f3623ef2ed.\n\nAnalysis: An `Object` binding accepts broad reference types through normal assignment. Dynamic typing instead inserts a runtime cast, so a narrower advice parameter now requires either a matching type constraint or a separate runtime guarantee.\n\nUpsides: The guidance prevents unsafe dynamic bindings that can throw `ClassCastException` for matched methods.\n\nDownsides: The compatibility guidance gains a longer caveat for dynamic typing.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20102#discussion_r3990148164"
+        }
+      ],
+      "reviewed": "7ad18bc8e9feddc10e68d9216e3fdd6ea1142cd9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20102#discussion_r3990125514"
+    }
+  ]
+}

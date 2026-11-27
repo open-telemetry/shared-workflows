@@ -1,0 +1,25 @@
+{
+  "head": "7175016d26f324ecbe322013390c93edd64ba13d",
+  "merge": "5326d6c51af89adcd2accee1f5cb8528c9c45ab8",
+  "merged": "2026-08-18T18:05:31Z",
+  "missing_roots": 0,
+  "number": 19685,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] These metrics are only registered when the JVM exposes `UnixOperatingSystemMXBean` (`FileDescriptor.java:51-52`), so they are absent on non-Unix systems. Please document that platform restriction to avoid implying that enabling experimental JMX metrics always produces them.",
+      "created": "2026-08-18T12:43:24Z",
+      "hunk": "@@ -159,13 +159,15 @@ These metrics are collected via JMX on all Java versions unless selected for JFR\n \n #### JMX-based (all Java versions)\n \n-| Metric                       | Description                                 |\n-| ---------------------------- | ------------------------------------------- |\n-| `jvm.buffer.count`           | Number of buffers in the pool               |\n-| `jvm.buffer.memory.limit`    | Measure of total memory capacity of buffers |\n-| `jvm.buffer.memory.used`     | Measure of memory used by buffers           |\n-| `jvm.memory.init`            | Measure of initial memory requested         |\n-| `jvm.system.cpu.utilization` | System-wide CPU utilization                 |\n+| Metric                             | Description                                 |\n+| ---------------------------------- | ------------------------------------------- |\n+| `jvm.buffer.count`                 | Number of buffers in the pool               |\n+| `jvm.buffer.memory.limit`          | Measure of total memory capacity of buffers |\n+| `jvm.buffer.memory.used`           | Measure of memory used by buffers           |\n+| `jvm.file_descriptor.count`        | Number of open file descriptors             |\n+| `jvm.file_descriptor.limit`        | Maximum number of file descriptors          |",
+      "id": "PRRT_kwDODJKVX86aG9w5",
+      "opened": "2026-08-18T12:43:24Z",
+      "path": "instrumentation/runtime-telemetry/library/README.md",
+      "replies": [],
+      "reviewed": "461ae0bbf6d4ef5de3fa07ba82183d6c2c308456",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19685#discussion_r3804129905"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "4a7a106ffd51e5b2713ea904e8d399eb4232c5b9",
+  "merge": "e5d8661897048e470c835b770ef7b3c1672f02b5",
+  "merged": "2026-11-03T06:46:08Z",
+  "missing_roots": 0,
+  "number": 388,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The shared `@opentelemetry/api` entry remains at 1.9.1, so upgraded instrumentation and exporter dependencies outside `scenario-sdk` resolve an API version below their required `>=1.10.0 <1.11.0` range. The 1.10.0 copy nested under `scenario-sdk` is not visible to those packages, leaving incompatible peers in the committed dependency tree. Update the shared API entry to 1.10.0 so those dependencies resolve a supported version.",
+      "created": "2026-10-26T02:11:46Z",
+      "hunk": "@@ -103,552 +103,1772 @@\n       \"resolved\": \"https://registry.npmjs.org/@opentelemetry/api/-/api-1.9.1.tgz\",\n       \"integrity\": \"sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==\",\n       \"license\": \"Apache-2.0\",\n+      \"peer\": true,",
+      "id": "PRRT_kwDOTuzK5c6wHb6J",
+      "opened": "2026-10-26T02:11:46Z",
+      "path": "scenarios/http/js/package-lock.json",
+      "replies": [
+        {
+          "at": "2026-11-02T04:26:43Z",
+          "body": "Fixed in 4a7a106f. The shared `@opentelemetry/api` entry is now `1.10.0`, and there is no separate API copy under `scenario-sdk`. The SDK and upgraded exporters resolve the shared, compatible version.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/388#discussion_r4438903932"
+        }
+      ],
+      "reviewed": "56d4d6458bc517e6f15369bd23c0992034c0c715",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/388#discussion_r4373436214"
+    }
+  ]
+}

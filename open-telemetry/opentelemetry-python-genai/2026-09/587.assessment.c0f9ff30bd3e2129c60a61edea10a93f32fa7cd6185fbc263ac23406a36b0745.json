@@ -1,0 +1,62 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e3f2638cab37084066500d834bcafdbbc24005596d4da3ac5fe0f470cb28cd94",
+  "input_digest": "c0f9ff30bd3e2129c60a61edea10a93f32fa7cd6185fbc263ac23406a36b0745",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4bc0572e8b36349094d6403a786ed66c1b74caab/.github/workflows/changelog.yml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4bc0572e8b36349094d6403a786ed66c1b74caab/instrumentation/opentelemetry-instrumentation-genai-agno/.changelog/%2Bagno-tool-failure.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1f99a1793bf6370d1a7358740c83fea0ec9974d9/instrumentation/opentelemetry-instrumentation-genai-agno/.changelog/587.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1f99a1793bf6370d1a7358740c83fea0ec9974d9/.github/workflows/changelog.yml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1f99a1793bf6370d1a7358740c83fea0ec9974d9/instrumentation/opentelemetry-instrumentation-genai-agno/.changelog/%2Bagno-tool-failure.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/10428f6f5433dad76cf7715a43f44ca250bfda9d"
+      ],
+      "id": "PRRT_kwDOSbspP86exZfY",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4bc0572e8b36349094d6403a786ed66c1b74caab/instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_agent.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1f99a1793bf6370d1a7358740c83fea0ec9974d9/instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_agent.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/compare/4bc0572e8b36349094d6403a786ed66c1b74caab...cf2c009da1897d809b1e67d94875451b832dafef",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/1f99a1793bf6370d1a7358740c83fea0ec9974d9",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/10428f6f5433dad76cf7715a43f44ca250bfda9d"
+      ],
+      "id": "PRRT_kwDOSbspP86exZfr",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/10428f6f5433dad76cf7715a43f44ca250bfda9d/instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1f99a1793bf6370d1a7358740c83fea0ec9974d9/instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/bd5ee55a703530dbf323c474c91b483cea230439"
+      ],
+      "id": "PRRT_kwDOSbspP86fBEC-",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/10428f6f5433dad76cf7715a43f44ca250bfda9d/instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_agent.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1f99a1793bf6370d1a7358740c83fea0ec9974d9/instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_agent.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/bd5ee55a703530dbf323c474c91b483cea230439"
+      ],
+      "id": "PRRT_kwDOSbspP86fBEDY",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

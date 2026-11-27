@@ -1,0 +1,25 @@
+{
+  "head": "9017df260952eb2e1da6502fd4aa41c35ea01431",
+  "merge": "25d6f5731c2a4b320eb32fd762d1f66b6a4e8f8f",
+  "merged": "2026-08-03T05:19:11Z",
+  "missing_roots": 0,
+  "number": 344,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The removed line appears to have been unnumbered/indented differently than the surrounding lines, while the new line is numbered. If this file is intended to be plain `pip` requirements, the line-number prefixes can be confusing and may break tooling that expects `package==version` lines only. Consider keeping formatting consistent (either remove all line numbers, or ensure the numbering is generated consistently across the whole file) to avoid brittle parsing in CI scripts.",
+      "created": "2026-08-03T04:46:41Z",
+      "hunk": "@@ -18,7 +18,7 @@ langchain==1.3.14\n langchain-openai==1.3.5\n langchain-aws==1.6.4\n langchain-google-genai==4.2.7\n-langchain-anthropic==1.4.8\n+langchain-anthropic==1.5.3\n boto3==1.43.62",
+      "id": "PRRT_kwDOSbspP86V3Q_V",
+      "opened": "2026-08-03T04:46:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.latest.txt",
+      "replies": [],
+      "reviewed": "7e65ec26215029bd07bbb02bcc80b93ec7b20531",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/344#discussion_r3701374030"
+    }
+  ]
+}

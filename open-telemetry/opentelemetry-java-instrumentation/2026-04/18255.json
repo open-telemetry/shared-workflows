@@ -1,0 +1,55 @@
+{
+  "head": "18f36466d2ce823abc9228b9283290afc0cc2a1e",
+  "merge": "fe4688bf84dd733ceeeaf728734482e606711d03",
+  "merged": "2026-04-24T15:30:39Z",
+  "missing_roots": 0,
+  "number": 18255,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-24T14:28:23Z",
+      "hunk": "@@ -19,13 +19,14 @@ public class RestletSingletons {\n   private static final Instrumenter<Request, Response> instrumenter =\n       JavaagentHttpServerInstrumenters.create(\n           RestletTelemetryBuilderFactory.create(GlobalOpenTelemetry.get()));\n+  private static final HttpServerRouteGetter<String> serverSpanName = ServletContextPath::prepend;",
+      "id": "PRRT_kwDODJKVX859bHSF",
+      "opened": "2026-04-24T14:40:49Z",
+      "path": "instrumentation/restlet/restlet-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/restlet/v2_0/RestletSingletons.java",
+      "replies": [],
+      "reviewed": "ba12f9a94062ca1237dcc14b7427f61ae47517dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18255#discussion_r3138353441"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    ServletContextPath::prepend;\n```",
+      "created": "2026-04-24T14:28:33Z",
+      "hunk": "@@ -19,13 +19,14 @@ public class RestletSingletons {\n   private static final Instrumenter<Request, Response> instrumenter =\n       JavaagentHttpServerInstrumenters.create(\n           RestletTelemetryBuilderFactory.create(GlobalOpenTelemetry.get()));\n+  private static final HttpServerRouteGetter<String> serverSpanName = ServletContextPath::prepend;\n \n   public static Instrumenter<Request, Response> instrumenter() {\n     return instrumenter;\n   }\n \n   public static HttpServerRouteGetter<String> serverSpanName() {\n-    return ServletContextPath::prepend;\n+    return serverSpanName;",
+      "id": "PRRT_kwDODJKVX859bHcx",
+      "opened": "2026-04-24T14:40:49Z",
+      "path": "instrumentation/restlet/restlet-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/restlet/v2_0/RestletSingletons.java",
+      "replies": [],
+      "reviewed": "ba12f9a94062ca1237dcc14b7427f61ae47517dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18255#discussion_r3138354360"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this was hidden previously be NPE in manifest.read(t.input) being caught by Exception handler",
+      "created": "2026-04-24T14:51:09Z",
+      "hunk": "@@ -54,11 +55,14 @@ Collection<DynamicTest> extractResource() {\n                                       prop -> null,\n                                       JarServiceNameResourceExtractorTest::failPath),\n                                   p -> {\n+                                    if (t.input == null) {\n+                                      return Optional.empty();\n+                                    }",
+      "id": "PRRT_kwDODJKVX859bfg-",
+      "opened": "2026-04-24T14:51:09Z",
+      "path": "instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/internal/ManifestResourceExtractorTest.java",
+      "replies": [],
+      "reviewed": "ea80a1670df3981a577132c148a159de8f066c7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18255#discussion_r3138484514"
+    }
+  ]
+}

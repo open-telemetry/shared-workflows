@@ -1,0 +1,25 @@
+{
+  "head": "18fe9c04faba1b52480100ed7bd3df7163701cb5",
+  "merge": "4ed735172c436e686867523f7749ef50a9e3490b",
+  "merged": "2026-11-23T06:17:21Z",
+  "missing_roots": 0,
+  "number": 445,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n          python-version: \"3.15\"\n\n      # uv normally prefers interpreters it downloaded, so a fallback for\n      # one scenario can take precedence over 3.15 for later scenarios.\n      # Remove this step once all Python scenarios can run on 3.15.\n      - name: Prefer system Python for uv\n        if: matrix.language == 'python'\n        run: echo \"UV_PYTHON_PREFERENCE=system\" >> \"$GITHUB_ENV\"\n```",
+      "created": "2026-11-21T23:35:45Z",
+      "hunk": "@@ -591,7 +591,7 @@ jobs:\n       - name: Set up Python\n         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0\n         with:\n-          python-version: \"3.14\"\n+          python-version: \"3.15\"",
+      "id": "PRRT_kwDOTuzK5c66dq6Y",
+      "opened": "2026-11-21T23:40:38Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "5e54fddb49aca9ac0de22b7654b6e39e8a99447a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/445#discussion_r4655553863"
+    }
+  ]
+}

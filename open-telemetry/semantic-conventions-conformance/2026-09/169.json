@@ -1,0 +1,25 @@
+{
+  "head": "c3234b46afd0340870cb5a495a88565989f1474b",
+  "merge": "3c882eaa1c44de0c9ffc673a6192075d614bcb9f",
+  "merged": "2026-09-01T22:18:54Z",
+  "missing_roots": 0,
+  "number": 169,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ubuntu-slim` is not a standard GitHub-hosted runner label (supported labels are typically `ubuntu-latest`, `ubuntu-24.04`, `ubuntu-22.04`, etc.). If this repo/org doesn’t have a self-hosted runner labeled `ubuntu-slim`, this job will remain queued and never start. If the intent is to use a GitHub-hosted runner, switch back to a supported Ubuntu runner label; if the intent is to target a self-hosted runner, consider using an explicit label set (e.g., `runs-on: [self-hosted, ubuntu-slim]`) and ensure that label exists.",
+      "created": "2026-09-01T19:15:41Z",
+      "hunk": "@@ -397,7 +397,7 @@ jobs:\n       - coverage-model\n       - discover-scenarios\n       - scenarios\n-    runs-on: ubuntu-latest\n+    runs-on: ubuntu-slim",
+      "id": "PRRT_kwDOTuzK5c6ePao_",
+      "opened": "2026-09-01T19:15:42Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "c3234b46afd0340870cb5a495a88565989f1474b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/169#discussion_r3907535640"
+    }
+  ]
+}

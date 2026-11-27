@@ -1,0 +1,94 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e9b4f181737718fc70a8571556ca12496a5045a6dbc1f6bb905cd23d58d36a0b",
+  "input_digest": "b801809d5cfbdac6f6acbae8ae04a236e24d6982cea7d42f88b876bf5787a912",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7306c1d4c3696f2c57b4b6590b720919a562645a/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ebbb23f031e7ff9d590436b19f4d772c9366fe78/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/10c51a9befc9690e788c44c400499d6fd23d0831"
+      ],
+      "id": "PRRT_kwDOSbspP86hM5gd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7306c1d4c3696f2c57b4b6590b720919a562645a/instrumentation/opentelemetry-instrumentation-genai-anthropic/.changelog/672.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7306c1d4c3696f2c57b4b6590b720919a562645a/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ebbb23f031e7ff9d590436b19f4d772c9366fe78/instrumentation/opentelemetry-instrumentation-genai-anthropic/.changelog/672.fixed",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ebbb23f031e7ff9d590436b19f4d772c9366fe78/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py"
+      ],
+      "id": "PRRT_kwDOSbspP86hM5hD",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7306c1d4c3696f2c57b4b6590b720919a562645a/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7306c1d4c3696f2c57b4b6590b720919a562645a/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ebbb23f031e7ff9d590436b19f4d772c9366fe78/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ebbb23f031e7ff9d590436b19f4d772c9366fe78/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/ebbb23f031e7ff9d590436b19f4d772c9366fe78"
+      ],
+      "id": "PRRT_kwDOSbspP86hM5h5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7306c1d4c3696f2c57b4b6590b720919a562645a/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ebbb23f031e7ff9d590436b19f4d772c9366fe78/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py"
+      ],
+      "id": "PRRT_kwDOSbspP86hM5hb",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7306c1d4c3696f2c57b4b6590b720919a562645a/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ebbb23f031e7ff9d590436b19f4d772c9366fe78/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/ebbb23f031e7ff9d590436b19f4d772c9366fe78",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/10c51a9befc9690e788c44c400499d6fd23d0831"
+      ],
+      "id": "PRRT_kwDOSbspP86hM5ii",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7306c1d4c3696f2c57b4b6590b720919a562645a/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ebbb23f031e7ff9d590436b19f4d772c9366fe78/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py"
+      ],
+      "id": "PRRT_kwDOSbspP86hPG6o",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7306c1d4c3696f2c57b4b6590b720919a562645a/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/ebbb23f031e7ff9d590436b19f4d772c9366fe78/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py"
+      ],
+      "id": "PRRT_kwDOSbspP86hPIgm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

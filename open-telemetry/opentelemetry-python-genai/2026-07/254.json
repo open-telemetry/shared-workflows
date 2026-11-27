@@ -1,0 +1,130 @@
+{
+  "head": "286cc2ee84fa8755c8cbc101f313f1ab66206db6",
+  "merge": "68f7ecd6675ae53fc1bd09f6c2e70228abf5f342",
+  "merged": "2026-07-13T18:41:01Z",
+  "missing_roots": 0,
+  "number": 254,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "util-genai is >= 1.43",
+      "created": "2026-07-10T23:53:35Z",
+      "hunk": "@@ -39,11 +39,11 @@ classifiers = [\n   \"Programming Language :: Python :: 3.14\",\n ]\n dependencies = [\n-  \"opentelemetry-api ~=1.40\",\n-  \"opentelemetry-instrumentation >=0.61b0, <2\",\n-  \"opentelemetry-semantic-conventions >=0.61b0, <2\",\n+  \"opentelemetry-api ~= 1.43\",",
+      "id": "PRRT_kwDOSbspP86QCfKY",
+      "opened": "2026-07-10T23:53:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/pyproject.toml",
+      "replies": [],
+      "reviewed": "11713c54e4c0a9041b9bc7c7ebefb2962ef24f36",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/254#discussion_r3562587376"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can't test with wrapt < 1.17 due to some issues and python version incompatibility",
+      "created": "2026-07-10T23:54:09Z",
+      "hunk": "@@ -39,11 +39,11 @@ classifiers = [\n   \"Programming Language :: Python :: 3.14\",\n ]\n dependencies = [\n-  \"opentelemetry-api ~=1.40\",\n-  \"opentelemetry-instrumentation >=0.61b0, <2\",\n-  \"opentelemetry-semantic-conventions >=0.61b0, <2\",\n+  \"opentelemetry-api ~= 1.43\",\n+  \"opentelemetry-instrumentation ~= 0.64b0\",\n+  \"opentelemetry-semantic-conventions ~= 0.64b0\",\n   \"opentelemetry-util-genai >= 1.0b0, <2\",\n-  \"wrapt >= 1.0.0, < 3.0.0\",\n+  \"wrapt >= 1.17.0, < 3.0.0\",",
+      "id": "PRRT_kwDOSbspP86QCfn9",
+      "opened": "2026-07-10T23:54:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/pyproject.toml",
+      "replies": [],
+      "reviewed": "11713c54e4c0a9041b9bc7c7ebefb2962ef24f36",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/254#discussion_r3562590060"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "TODO: is this needed?",
+      "created": "2026-07-10T23:54:25Z",
+      "hunk": "@@ -127,6 +184,7 @@ def fixture_vcr(vcr: Any) -> Any:\n     ``pytest-vcr``.\n     \"\"\"\n     vcr.register_serializer(\"yaml\", PrettyPrintJSONBody)\n+    vcr.register_matcher(\"json_body\", _json_body_matcher)",
+      "id": "PRRT_kwDOSbspP86QCfxT",
+      "opened": "2026-07-10T23:54:25Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/vcr.py",
+      "replies": [],
+      "reviewed": "11713c54e4c0a9041b9bc7c7ebefb2962ef24f36",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/254#discussion_r3562591051"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "TODO: is this needed?",
+      "created": "2026-07-10T23:54:52Z",
+      "hunk": "@@ -144,5 +146,6 @@ def vcr_config():\n                 \"Set-Cookie\": \"test_set_cookie\",\n             }\n         ),\n+        \"match_on\": [\"method\", \"scheme\", \"host\", \"port\", \"path\", \"json_body\"],",
+      "id": "PRRT_kwDOSbspP86QCf9m",
+      "opened": "2026-07-10T23:54:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/conftest.py",
+      "replies": [],
+      "reviewed": "11713c54e4c0a9041b9bc7c7ebefb2962ef24f36",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/254#discussion_r3562592308"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "TODO: use released versions for both",
+      "created": "2026-07-10T23:55:33Z",
+      "hunk": "@@ -0,0 +1,29 @@\n+# Copyright The OpenTelemetry Authors\n+#\n+# Licensed under the Apache License, Version 2.0 (the \"License\");\n+# you may not use this file except in compliance with the License.\n+# You may obtain a copy of the License at\n+#\n+#     http://www.apache.org/licenses/LICENSE-2.0\n+#\n+# Unless required by applicable law or agreed to in writing, software\n+# distributed under the License is distributed on an \"AS IS\" BASIS,\n+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n+# See the License for the specific language governing permissions and\n+# limitations under the License.\n+\n+# Oldest pinned version requirements for langchain unit tests.\n+\n+opentelemetry-api==1.43.0\n+opentelemetry-sdk==1.43.0\n+opentelemetry-semantic-conventions==0.64b0\n+opentelemetry-instrumentation==0.64b0\n+\n+langchain==0.3.21\n+langchain-openai==0.2.0\n+langchain-aws==0.2.2\n+langchain-google-genai==2.0.0\n+boto3==1.37.0\n+\n+-e util/opentelemetry-util-genai",
+      "id": "PRRT_kwDOSbspP86QCgPp",
+      "opened": "2026-07-10T23:55:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.oldest.txt",
+      "replies": [],
+      "reviewed": "11713c54e4c0a9041b9bc7c7ebefb2962ef24f36",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/254#discussion_r3562593964"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "get_lower_bound() parses spec.version via packaging.version.Version without handling invalid-but-present version strings like \"1.0b0.dev\" (used in multiple package pyprojects for opentelemetry-util-genai). packaging treats a dev release as \".devN\" (digits required), so this will raise and crash the oldest-deps-check workflow rather than reporting mismatches.",
+      "created": "2026-07-10T23:56:22Z",
+      "hunk": "@@ -0,0 +1,215 @@\n+#!/usr/bin/env python3\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+import os\n+import re\n+import sys\n+from pathlib import Path\n+\n+# We can import packaging as it is guaranteed to be in the environment\n+try:\n+    import tomllib\n+except ImportError:\n+    # Fallback to tomli if run on python < 3.11 outside tox (though tox-uv environment handles it)\n+    try:\n+        import tomli as tomllib\n+    except ImportError:\n+        print(\n+            \"Error: tomllib (Python 3.11+) or tomli is required to run this script.\"\n+        )\n+        sys.exit(1)\n+\n+from packaging.requirements import Requirement\n+from packaging.utils import canonicalize_name\n+from packaging.version import Version\n+\n+\n+def get_package_version(pyproject_path):\n+    with open(pyproject_path, \"rb\") as f:\n+        data = tomllib.load(f)\n+    project = data.get(\"project\", {})\n+    if \"version\" in project:\n+        return project[\"version\"]\n+\n+    # Dynamic version via hatch\n+    tool = data.get(\"tool\", {})\n+    hatch = tool.get(\"hatch\", {})\n+    hatch_version = hatch.get(\"version\", {})\n+    version_path_relative = hatch_version.get(\"path\")\n+    if not version_path_relative:\n+        raise ValueError(\n+            f\"Could not find static version or hatch version path in {pyproject_path}\"\n+        )\n+\n+    pyproject_dir = os.path.dirname(pyproject_path)\n+    version_path = os.path.join(pyproject_dir, version_path_relative)\n+    with open(version_path, \"r\", encoding=\"utf-8\") as vf:\n+        content = vf.read()\n+    match = re.search(r'__version__\\s*=\\s*[\"\\']([^\"\\']+)[\"\\']', content)\n+    if match:\n+        return match.group(1)\n+    raise ValueError(f\"Could not find __version__ in {version_path}\")\n+\n+\n+def get_lower_bound(requirement):\n+    lower_bound = None\n+    for spec in requirement.specifier:\n+        if spec.operator in (\">=\", \"==\", \"~=\"):\n+            version = Version(spec.version)\n+            if lower_bound is None or version > lower_bound:\n+                lower_bound = version\n+    return lower_bound",
+      "id": "PRRT_kwDOSbspP86QCgk9",
+      "opened": "2026-07-10T23:56:22Z",
+      "path": "scripts/check_oldest_deps.py",
+      "replies": [],
+      "reviewed": "11713c54e4c0a9041b9bc7c7ebefb2962ef24f36",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/254#discussion_r3562595841"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Editable requirements parsing treats the entire \"-e\" argument as a filesystem path. This breaks for editable installs with extras (e.g. \"-e instrumentation/... [instruments]\") because \"[instruments]\" becomes part of the path, so the script can't resolve the target pyproject.toml and loses the ability to match editable workspace deps by package name.",
+      "created": "2026-07-10T23:56:22Z",
+      "hunk": "@@ -0,0 +1,215 @@\n+#!/usr/bin/env python3\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+import os\n+import re\n+import sys\n+from pathlib import Path\n+\n+# We can import packaging as it is guaranteed to be in the environment\n+try:\n+    import tomllib\n+except ImportError:\n+    # Fallback to tomli if run on python < 3.11 outside tox (though tox-uv environment handles it)\n+    try:\n+        import tomli as tomllib\n+    except ImportError:\n+        print(\n+            \"Error: tomllib (Python 3.11+) or tomli is required to run this script.\"\n+        )\n+        sys.exit(1)\n+\n+from packaging.requirements import Requirement\n+from packaging.utils import canonicalize_name\n+from packaging.version import Version\n+\n+\n+def get_package_version(pyproject_path):\n+    with open(pyproject_path, \"rb\") as f:\n+        data = tomllib.load(f)\n+    project = data.get(\"project\", {})\n+    if \"version\" in project:\n+        return project[\"version\"]\n+\n+    # Dynamic version via hatch\n+    tool = data.get(\"tool\", {})\n+    hatch = tool.get(\"hatch\", {})\n+    hatch_version = hatch.get(\"version\", {})\n+    version_path_relative = hatch_version.get(\"path\")\n+    if not version_path_relative:\n+        raise ValueError(\n+            f\"Could not find static version or hatch version path in {pyproject_path}\"\n+        )\n+\n+    pyproject_dir = os.path.dirname(pyproject_path)\n+    version_path = os.path.join(pyproject_dir, version_path_relative)\n+    with open(version_path, \"r\", encoding=\"utf-8\") as vf:\n+        content = vf.read()\n+    match = re.search(r'__version__\\s*=\\s*[\"\\']([^\"\\']+)[\"\\']', content)\n+    if match:\n+        return match.group(1)\n+    raise ValueError(f\"Could not find __version__ in {version_path}\")\n+\n+\n+def get_lower_bound(requirement):\n+    lower_bound = None\n+    for spec in requirement.specifier:\n+        if spec.operator in (\">=\", \"==\", \"~=\"):\n+            version = Version(spec.version)\n+            if lower_bound is None or version > lower_bound:\n+                lower_bound = version\n+    return lower_bound\n+\n+\n+def normalize_dev_version(version_str):\n+    return re.sub(r\"\\.dev\\d*$\", \"\", version_str)\n+\n+\n+def main():\n+    repo_root = Path(__file__).resolve().parent.parent\n+    errors = 0\n+\n+    # Find all pyproject.toml files under instrumentation/ and util/\n+    pyprojects = []\n+    for pattern in [\n+        \"instrumentation/*/pyproject.toml\",\n+        \"util/*/pyproject.toml\",\n+    ]:\n+        pyprojects.extend(repo_root.glob(pattern))\n+\n+    for pyproject_path in pyprojects:\n+        pkg_dir = pyproject_path.parent\n+        oldest_req_path = pkg_dir / \"tests\" / \"requirements.oldest.txt\"\n+\n+        # Only check packages that have tests/requirements.oldest.txt\n+        if not oldest_req_path.exists():\n+            continue\n+\n+        print(f\"Checking consistency for: {pkg_dir.name}\")\n+\n+        # 1. Parse dependencies from pyproject.toml\n+        with open(pyproject_path, \"rb\") as f:\n+            data = tomllib.load(f)\n+\n+        project_data = data.get(\"project\", {})\n+        pyproject_deps = []\n+\n+        # Direct dependencies\n+        if \"dependencies\" in project_data:\n+            pyproject_deps.extend(project_data[\"dependencies\"])\n+\n+        # Optional dependencies (e.g. instruments)\n+        opt_deps = project_data.get(\"optional-dependencies\", {})\n+        for extra, deps in opt_deps.items():\n+            pyproject_deps.extend(deps)\n+\n+        # Map canonicalized package name to its requirement object and lower bound\n+        pyproject_bounds = {}\n+        for dep_str in pyproject_deps:\n+            req = Requirement(dep_str)\n+            name = canonicalize_name(req.name)\n+            lower_bound = get_lower_bound(req)\n+            if lower_bound:\n+                pyproject_bounds[name] = (req, lower_bound)\n+\n+        # 2. Parse requirements.oldest.txt\n+        pinned_versions = {}\n+        editable_installs = {}  # canonicalized name -> path string\n+\n+        with open(oldest_req_path, \"r\", encoding=\"utf-8\") as f:\n+            for line in f:\n+                # Strip inline comments\n+                line = line.split(\"#\")[0].strip()\n+                if not line:\n+                    continue\n+\n+                # Check for editable install\n+                if line.startswith(\"-e\"):\n+                    # e.g., \"-e util/opentelemetry-util-genai\"\n+                    path_str = line[2:].strip()\n+                    target_pyproject = repo_root / path_str / \"pyproject.toml\"\n+                    if target_pyproject.exists():",
+      "id": "PRRT_kwDOSbspP86QCglJ",
+      "opened": "2026-07-10T23:56:22Z",
+      "path": "scripts/check_oldest_deps.py",
+      "replies": [],
+      "reviewed": "11713c54e4c0a9041b9bc7c7ebefb2962ef24f36",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/254#discussion_r3562595858"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "todo: check if it's still needed",
+      "created": "2026-07-13T16:09:07Z",
+      "hunk": "@@ -118,6 +118,63 @@ def deserialize(cassette_string: str) -> dict[str, Any]:\n         return yaml.load(cassette_string, Loader=yaml.Loader)\n \n \n+def _normalize_dict(d: Any) -> Any:",
+      "id": "PRRT_kwDOSbspP86QdPjx",
+      "opened": "2026-07-13T16:09:07Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/vcr.py",
+      "replies": [],
+      "reviewed": "6c80a4d031a1930cc41aafdeb0a5e36e651622ca",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/254#discussion_r3572211660"
+    }
+  ]
+}

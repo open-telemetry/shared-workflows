@@ -1,0 +1,118 @@
+{
+  "head": "51b8a95a8613f4b37e04a61a260ec1fa2f63748e",
+  "merge": "7a576ee88621f939ab079044923a44d286a794b0",
+  "merged": "2026-10-11T20:25:05Z",
+  "missing_roots": 0,
+  "number": 821,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Sanitize before the first JSON dump. Values that `json.dumps` already accepts bypass `object_to_any_value`, so direct `ToolInvocation`/prompt-variable values such as `float(\"nan\")` are recorded as the invalid JSON token `NaN` (and integer-key mappings are silently coerced), even though the new converter explicitly rejects them. This makes behavior depend on whether an instrumentation pre-converted the same value.",
+      "created": "2026-10-01T01:53:41Z",
+      "hunk": "@@ -329,6 +330,20 @@ def __exit__(\n             self.stop()\n \n \n+def _json_dumps_unless_str(value: object) -> str | None:\n+    if value is None or isinstance(value, str):\n+        return value\n+    try:\n+        return gen_ai_json_dumps(value)\n+    except (TypeError, ValueError):\n+        pass\n+    # Callers may set objects (e.g. models) that weren't converted to AnyValue.\n+    converted = object_to_any_value(value)\n+    if converted is None or isinstance(converted, str):\n+        return converted\n+    return gen_ai_json_dumps(converted)",
+      "id": "PRRT_kwDOSbspP86nxmNK",
+      "opened": "2026-10-01T01:53:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-01T02:02:25Z",
+          "body": "Fixed NaN/Infinity in https://github.com/open-telemetry/opentelemetry-python-genai/pull/821/commits/99ec0140d. Non-finite floats now fail the first dump and go through `object_to_any_value`, which drops them.\n\nLeaving integer keys as is. Maps with non-string keys aren't meaningful tool arguments or results, so it's not worth an extra conversion pass for every value to make them behave the same.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4151108851"
+        }
+      ],
+      "reviewed": "65a24dca48a4a298e7505d34a8d564509788dda2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4151059283"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "can't we return None instead of _OMIT (here and everywhere)?",
+      "created": "2026-10-09T13:33:51Z",
+      "hunk": "@@ -143,6 +148,138 @@ def default(self, o: Any) -> Any:\n bytes, datetimes, etc. for GenAI observability.\"\"\"\n \n \n+_MAX_DEPTH = 32\n+_OMIT = object()\n+\n+\n+def object_to_any_value(value: object) -> AnyValue | None:\n+    \"\"\"Convert an object into an AnyValue, or None if it cannot be converted.\n+\n+    Models, dataclasses and objects with public ``__dict__`` attributes become\n+    dicts; datetimes, UUIDs and enums become their primitive form. Other\n+    objects with a custom ``__str__`` (e.g. ``Decimal``, ``Path``) become\n+    strings. Values that cannot be converted (callables, types, non-finite\n+    floats, cycles, too deep structures, objects raising on access) are\n+    dropped from collections. Generators and other iterables are not consumed.\n+    \"\"\"\n+    res = _sanitize_for_any_value(value, max_depth=_MAX_DEPTH)\n+    return None if res is _OMIT else cast(AnyValue | None, res)\n+\n+\n+def tool_arguments_to_any_value(arguments: object) -> AnyValue | None:\n+    \"\"\"Convert tool call arguments to AnyValue, parsing JSON strings.\n+\n+    Strings that are not valid JSON are returned as-is.\n+    \"\"\"\n+    if isinstance(arguments, str):\n+        try:\n+            return object_to_any_value(json.loads(arguments))\n+        except ValueError:\n+            return arguments\n+    return object_to_any_value(arguments)\n+\n+\n+def _sanitize_for_any_value(\n+    value: object,\n+    *,\n+    max_depth: int,\n+    seen: frozenset[int] = frozenset(),\n+) -> object:\n+    if max_depth <= 0:\n+        return _OMIT\n+\n+    if value is None or isinstance(value, (str, bool, int, bytes)):\n+        return value\n+    if isinstance(value, bytearray):\n+        return bytes(value)\n+    if isinstance(value, float):\n+        return value if math.isfinite(value) else _OMIT\n+    if isinstance(value, (datetime, date, time)):\n+        return value.isoformat()\n+    if isinstance(value, UUID):\n+        return str(value)\n+    if isinstance(value, Enum):\n+        return _sanitize_for_any_value(\n+            value.value, max_depth=max_depth - 1, seen=seen\n+        )\n+    if callable(value) or isinstance(value, type) or id(value) in seen:\n+        return _OMIT\n+\n+    # Arbitrary user objects can raise from model dumps, __getitem__, __dict__.\n+    try:\n+        return _sanitize_object(\n+            value, max_depth=max_depth - 1, seen=seen | {id(value)}\n+        )\n+    except Exception:\n+        return _OMIT",
+      "id": "PRRT_kwDOSbspP86qzL4I",
+      "opened": "2026-10-09T14:05:16Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-09T22:33:38Z",
+          "body": "need a way to differentiate `{\"a\": None}`  from `{}` - we omit things we can't convert, the object was there, but not representable with `AnyValue`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4235081683"
+        }
+      ],
+      "reviewed": "277b5c9204ad71d378b476e09b9cf6154cb0f950",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4230669830"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "one alternative way of converting objects is just to call it's `str` method.. most objects have it.. `__str__` fallsback to `__repr__`. If neither  are defined, pythons base class `object.__repr__` is called.. so it's pretty much guaranteed to return something.",
+      "created": "2026-10-09T13:41:23Z",
+      "hunk": "@@ -143,6 +148,138 @@ def default(self, o: Any) -> Any:\n bytes, datetimes, etc. for GenAI observability.\"\"\"\n \n \n+_MAX_DEPTH = 32\n+_OMIT = object()\n+\n+\n+def object_to_any_value(value: object) -> AnyValue | None:\n+    \"\"\"Convert an object into an AnyValue, or None if it cannot be converted.\n+\n+    Models, dataclasses and objects with public ``__dict__`` attributes become\n+    dicts; datetimes, UUIDs and enums become their primitive form. Other\n+    objects with a custom ``__str__`` (e.g. ``Decimal``, ``Path``) become\n+    strings. Values that cannot be converted (callables, types, non-finite\n+    floats, cycles, too deep structures, objects raising on access) are\n+    dropped from collections. Generators and other iterables are not consumed.\n+    \"\"\"\n+    res = _sanitize_for_any_value(value, max_depth=_MAX_DEPTH)\n+    return None if res is _OMIT else cast(AnyValue | None, res)\n+\n+\n+def tool_arguments_to_any_value(arguments: object) -> AnyValue | None:\n+    \"\"\"Convert tool call arguments to AnyValue, parsing JSON strings.\n+\n+    Strings that are not valid JSON are returned as-is.\n+    \"\"\"\n+    if isinstance(arguments, str):\n+        try:\n+            return object_to_any_value(json.loads(arguments))\n+        except ValueError:\n+            return arguments\n+    return object_to_any_value(arguments)\n+\n+\n+def _sanitize_for_any_value(\n+    value: object,\n+    *,\n+    max_depth: int,\n+    seen: frozenset[int] = frozenset(),\n+) -> object:\n+    if max_depth <= 0:\n+        return _OMIT\n+\n+    if value is None or isinstance(value, (str, bool, int, bytes)):\n+        return value\n+    if isinstance(value, bytearray):\n+        return bytes(value)\n+    if isinstance(value, float):",
+      "id": "PRRT_kwDOSbspP86qzXzB",
+      "opened": "2026-10-09T14:05:16Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-09T14:05:16Z",
+          "body": "that would make the code much simpler which is nice.. i dont think we'd have to recursively walk through everything.. maybe a few things it'd be nice to special case (like pydantic model, probably want to call model_dump on that first ?)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4230865311"
+        },
+        {
+          "at": "2026-10-09T22:31:06Z",
+          "body": "it's the point to produce valid de-serializeable object that would eventually go over otlp. We should keep the structure and `str` would produce opaque strings",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4235060796"
+        },
+        {
+          "at": "2026-10-09T23:19:37Z",
+          "body": "If that is the point should we then use `repr` instead? ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4235338955"
+        },
+        {
+          "at": "2026-10-09T23:26:04Z",
+          "body": "there is no goal to convert it to string, json serialization is temporary thing we have to do, the goal is proper AnyValue on OTLP:\r\n\r\n```python\r\nclass Airport:\r\n    def __init__(self, code, city):\r\n        self.code, self.city = code, city\r\n@dataclass\r\nclass Flight:\r\n    number: str\r\n    destination: Airport\r\n    departs_at: datetime\r\nresult = Flight(\"UA 123\", Airport(\"SFO\", \"San Francisco\"), datetime(2026, 10, 12, 8, 30))\r\n```\r\n`object_to_any_value` (serialized to JSON):\r\n```json\r\n{\"number\": \"UA 123\", \"destination\": {\"code\": \"SFO\", \"city\": \"San Francisco\"}, \"departs_at\": \"2026-10-12T08:30:00\"}\r\n```\r\n`str` / `repr` (identical here):\r\n```\r\nFlight(number='UA 123', destination=<__main__.Airport object at 0x10ab00590>, departs_at=datetime.datetime(2026, 10, 12, 8, 30))\r\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4235366671"
+        },
+        {
+          "at": "2026-10-09T23:32:56Z",
+          "body": "Theres many ways to achieve that goal though .. there is no canonical mapping from python object to AnyValue.. if we want something that the user could turn back into a puthon object we should use repr.. if we want something that gives a human readable representation we should use string",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4235395099"
+        },
+        {
+          "at": "2026-10-10T00:21:37Z",
+          "body": "we need AnyValue on OTLP following our schema, not a string, not a python object. \r\nWe can't get close without recursive walking and exploring types that can be serialized. We can limit or expand the types we support.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4235592514"
+        },
+        {
+          "at": "2026-10-11T20:18:34Z",
+          "body": "summarizing the discussion\r\n\r\nThe goal is to make tool arguments and results queryable on the backend, e.g. filter by `destination.city` or a numeric `count`. A JSON string can be enough if the backend parses it, but `str` / `repr` don't reliably preserve that structure.\r\n\r\nEventually we need to pass this data as structured AnyValue over OTLP so storage can decide how to record and index it. That requires recursively converting objects into supported values. We're not trying to recreate the original Python object.\r\n\r\nWhich objects we support and when we fall back to strings is a separate question. We can narrow that, but replacing the conversion with `str` / `repr` loses the fields and types we need.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4243067468"
+        }
+      ],
+      "reviewed": "277b5c9204ad71d378b476e09b9cf6154cb0f950",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4230745695"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "A self-referential dataclass used as a prompt variable raises `RecursionError` during the initial JSON serialization, before the safe `object_to_any_value()` fallback runs. We should either sanitize first or handle `RecursionError` so instrumentation can omit the unsupported value instead of propagating the error.",
+      "created": "2026-10-09T17:22:21Z",
+      "hunk": "@@ -329,6 +330,20 @@ def __exit__(\n             self.stop()\n \n \n+def _json_dumps_unless_str(value: object) -> str | None:\n+    if value is None or isinstance(value, str):\n+        return value\n+    try:",
+      "id": "PRRT_kwDOSbspP86q4OxY",
+      "opened": "2026-10-09T17:22:21Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "277b5c9204ad71d378b476e09b9cf6154cb0f950",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/821#discussion_r4232744551"
+    }
+  ]
+}

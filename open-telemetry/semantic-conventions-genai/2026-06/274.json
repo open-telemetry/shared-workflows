@@ -1,0 +1,40 @@
+{
+  "head": "e0a389a0f25551f607d62cbc5169361b6fd8cb9c",
+  "merge": "0a099f0549615dbb3c897562db2f2e225e0a77d7",
+  "merged": "2026-06-10T02:19:08Z",
+  "missing_roots": 0,
+  "number": 274,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using `try … catch empty` here will silently swallow jq/weaver errors (e.g., missing `semconv_grouped_attributes`) and can lead to generating an incomplete/empty attributes index without failing the generation step. It’s safer to let template generation fail loudly if the helper is unavailable or the filter is invalid.",
+      "created": "2026-06-09T23:54:13Z",
+      "hunk": "@@ -14,26 +14,14 @@\n # we ever need finer granularity.\n templates:\n   - pattern: attributes_readme.md.j2\n-    filter: >-\n-      .registry.attributes\n-      | group_by(.key | split(\".\") | .[0])\n-      | map({\n-          id: .[0].key | split(\".\") | .[0],\n-          attributes: .\n-        })\n+    filter: try semconv_grouped_attributes({\"v2\":true}) catch empty",
+      "id": "PRRT_kwDOSUeMrM6IUdil",
+      "opened": "2026-06-09T23:54:14Z",
+      "path": "templates/registry/markdown/weaver.yaml",
+      "replies": [],
+      "reviewed": "f7ebf8dda415f87485089d09e51ca09cd2c560c8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/274#discussion_r3384562558"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same as above: `try … catch empty` masks filter failures and can produce missing namespace pages without surfacing an error. Let the generation fail loudly so CI/local runs catch regressions immediately.",
+      "created": "2026-06-09T23:54:13Z",
+      "hunk": "@@ -14,26 +14,14 @@\n # we ever need finer granularity.\n templates:\n   - pattern: attributes_readme.md.j2\n-    filter: >-\n-      .registry.attributes\n-      | group_by(.key | split(\".\") | .[0])\n-      | map({\n-          id: .[0].key | split(\".\") | .[0],\n-          attributes: .\n-        })\n+    filter: try semconv_grouped_attributes({\"v2\":true}) catch empty\n     application_mode: single\n     file_name: attributes/README.md\n \n   - pattern: attribute_namespace.md.j2\n-    filter: >-\n-      .registry.attributes\n-      | group_by(.key | split(\".\") | .[0])\n-      | map({\n-          id: .[0].key | split(\".\") | .[0],\n-          attributes: .\n-        })\n+    filter: try semconv_grouped_attributes({\"v2\":true}) catch empty",
+      "id": "PRRT_kwDOSUeMrM6IUdiz",
+      "opened": "2026-06-09T23:54:14Z",
+      "path": "templates/registry/markdown/weaver.yaml",
+      "replies": [],
+      "reviewed": "f7ebf8dda415f87485089d09e51ca09cd2c560c8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/274#discussion_r3384562581"
+    }
+  ]
+}

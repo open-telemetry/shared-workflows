@@ -1,0 +1,25 @@
+{
+  "head": "a7d9b0aecc426e84e48fc1190858b437b4d9d856",
+  "merge": "f6ceb5513b2441f68fcde3e8d58dcba3b40199c6",
+  "merged": "2026-01-29T08:53:31Z",
+  "missing_roots": 0,
+  "number": 16052,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I initially thought that there should be `awaitUntilAsserted` like in metrics and trace assertions but it really isn't needed since we know how many log records are needed.",
+      "created": "2026-01-29T08:53:17Z",
+      "hunk": "@@ -263,6 +265,24 @@ public final List<LogRecordData> waitForLogRecords(int numberOfLogRecords) {\n     return getExportedLogRecords();\n   }\n \n+  @SafeVarargs\n+  @SuppressWarnings(\"varargs\")\n+  public final void waitAndAssertLogRecords(Consumer<LogRecordDataAssert>... assertions) {\n+    waitAndAssertLogRecords(Arrays.asList(assertions));\n+  }\n+\n+  public final void waitAndAssertLogRecords(\n+      Iterable<? extends Consumer<LogRecordDataAssert>> assertions) {\n+    List<Consumer<LogRecordDataAssert>> assertionsList = new ArrayList<>();\n+    assertions.forEach(assertionsList::add);\n+\n+    List<LogRecordData> logRecordDataList = waitForLogRecords(assertionsList.size());\n+    Iterator<Consumer<LogRecordDataAssert>> assertionIterator = assertionsList.iterator();",
+      "id": "PRRT_kwDODJKVX85rnPm6",
+      "opened": "2026-01-29T08:53:17Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/InstrumentationTestRunner.java",
+      "replies": [],
+      "reviewed": "a7d9b0aecc426e84e48fc1190858b437b4d9d856",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16052#discussion_r2740584333"
+    }
+  ]
+}

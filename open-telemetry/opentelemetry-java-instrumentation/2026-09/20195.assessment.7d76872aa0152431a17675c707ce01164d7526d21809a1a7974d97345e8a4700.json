@@ -1,0 +1,50 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c9633f023a47cb305e107b51d748a929dd6ac6dd4c5f012fb94b4fd1ee0c656b",
+  "input_digest": "7d76872aa0152431a17675c707ce01164d7526d21809a1a7974d97345e8a4700",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d19d7d7c712164d6843d36657129073bcaf3a558/instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9c2faf72adaf9fdc0d2ae2526a3f49f9370cff9/instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a26b7cc5aa87580bf468531fcf48dd63474490c2"
+      ],
+      "id": "PRRT_kwDODJKVX86kIKFN",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/06d3771602eb8a99348ba11f9a9229b8835b8fc5/instrumentation/aws-lambda/aws-lambda-events-2.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/awslambdaevents/v2_2/AwsLambdaSqsEventHandlerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9c2faf72adaf9fdc0d2ae2526a3f49f9370cff9/instrumentation/aws-lambda/aws-lambda-events-2.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/awslambdaevents/v2_2/AwsLambdaSqsEventHandlerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a9a6b33471fab84ce27d57fdf8b84c59dd8bff5d"
+      ],
+      "id": "PRRT_kwDODJKVX86k46bO",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9145c78887b2f89eeed8a637469d6437a2ec171e/instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsNestedEventHandlerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e9c2faf72adaf9fdc0d2ae2526a3f49f9370cff9/instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsNestedEventHandlerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/73924a1bbf008dc13b71ba46fa68660e0ddae7dc"
+      ],
+      "id": "PRRT_kwDODJKVX86l90R7",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86l-deL",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

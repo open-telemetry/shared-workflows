@@ -1,0 +1,21 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "693958af481b62c55e566796e305c9f2c0ec473c557f54c0e4f78b7ac0085011",
+  "input_digest": "6253ac467c4a88fdf7b314c8a441eb3390ee2a2d940a210c33e925e9f4bc97ab",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/8059b90c3c565855212f6858ed5b3f71ae629dcc/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/streaming_base.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/6ae66a922be75dccbfc4f489c8274f6ac1f985e5/instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/streaming_base.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/ff2516852861e160f9851400b8620837a90307fe"
+      ],
+      "id": "PRRT_kwDOSbspP86yTx6h",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

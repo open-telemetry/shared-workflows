@@ -1,0 +1,25 @@
+{
+  "head": "b9b23014750599f1860e3b9030b669e79c75ce63",
+  "merge": "8b5e254952f515967558c0b3bfcf42afdca4a111",
+  "merged": "2026-09-16T02:31:50Z",
+  "missing_roots": 0,
+  "number": 711,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test only exercises a one-event stream (`_create_mock_impl` returns one `interaction_completed` event), so it can prove TTFC but never the `time_per_output_chunk` path that these new sync/async wrappers are meant to enable. Add a multi-event interaction stream and assert the per-output-chunk metric as well.",
+      "created": "2026-09-13T21:34:16Z",
+      "hunk": "@@ -394,6 +394,9 @@ def test_streaming_generates_span(self) -> None:\n         span = self.otel.get_span_named(\"interactions.create gemini-2.5-flash\")\n         self.assertEqual(span.attributes[\"gen_ai.usage.input_tokens\"], 5)\n         self.assertEqual(span.attributes[\"gen_ai.usage.output_tokens\"], 8)\n+        self.otel.assert_has_metrics_data_named(\n+            \"gen_ai.client.operation.time_to_first_chunk\"\n+        )",
+      "id": "PRRT_kwDOSbspP86h8Nt9",
+      "opened": "2026-09-13T21:34:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/base.py",
+      "replies": [],
+      "reviewed": "31455794ec2535c47e3f3048ed5324af9c5f1f49",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/711#discussion_r4000968542"
+    }
+  ]
+}

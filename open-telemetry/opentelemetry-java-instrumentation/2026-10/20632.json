@@ -1,0 +1,56 @@
+{
+  "head": "76b6ee9b5d2df58a65eacdafbeceff07a237ab25",
+  "merge": "0940a742ca4ac139a4bea9b57eedd63160b51106",
+  "merged": "2026-10-21T16:57:51Z",
+  "missing_roots": 0,
+  "number": 20632,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Reuse the stable `ServiceAttributes.SERVICE_NAME` and `SERVICE_VERSION` constants instead of redefining their keys. Their names and types match, and `.github/instructions/instrumentation-library.instructions.md:13–15` requires importing matching stable constants. `ManifestResourceProvider` already follows this pattern. This is non-blocking.",
+      "created": "2026-10-15T21:31:25Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.resources.internal;\n+\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.sdk.resources.Resource;\n+import io.opentelemetry.sdk.resources.internal.Entity;\n+import io.opentelemetry.sdk.resources.internal.EntityUtil;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Creates service resources with entity associations.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class ServiceResource {\n+\n+  private static final AttributeKey<String> SERVICE_NAME = AttributeKey.stringKey(\"service.name\");\n+  private static final AttributeKey<String> SERVICE_VERSION =\n+      AttributeKey.stringKey(\"service.version\");",
+      "id": "PRRT_kwDODJKVX86s-Xx4",
+      "opened": "2026-10-15T21:31:26Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/internal/ServiceResource.java",
+      "replies": [],
+      "reviewed": "812cca7d0d982f82e12dd6ab17758a5628eaeb62",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20632#discussion_r4288490367"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Is it worth setting schema URL to `https://opentelemetry.io/schemas/1.40.0` to match the SDK's service detector? With declarative detectors ordered `manifest` then `service`, that would let their descriptions merge when the service names match, rather than dropping the manifest's `service.version` because the schema URLs differ.\n\nThough that's pretty fragile and not sure how we'd keep these in sync?",
+      "created": "2026-10-17T03:41:10Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.resources.internal;\n+\n+import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_NAME;\n+import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_VERSION;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.sdk.resources.Resource;\n+import io.opentelemetry.sdk.resources.internal.Entity;\n+import io.opentelemetry.sdk.resources.internal.EntityUtil;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Creates service resources with entity associations.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class ServiceResource {\n+\n+  public static Resource create(@Nullable String serviceName, @Nullable String serviceVersion) {\n+    Attributes description = Attributes.builder().put(SERVICE_VERSION, serviceVersion).build();\n+    if (serviceName == null) {\n+      return Resource.create(description);\n+    }\n+    return EntityUtil.createResource(\n+        singletonList(\n+            Entity.builder(\"service\", Attributes.of(SERVICE_NAME, serviceName))",
+      "id": "PRRT_kwDODJKVX86tcezf",
+      "opened": "2026-10-17T03:41:09Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/internal/ServiceResource.java",
+      "replies": [
+        {
+          "at": "2026-10-19T14:35:14Z",
+          "body": "What if opentelemetry-java was updated to always pin to the latest semconv schema url? If both opentelemetry-java and opentelemetry-java-instrumentation use a convention to always use the latest, then they always agree yeah? Although, while I think it will be straight forward for opentelemetry-java to stay at the latest, maybe there are reasons opentelemetry-java-instrumenation would want to delay? If so, that would create a conflict.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20632#discussion_r4315095705"
+        },
+        {
+          "at": "2026-10-20T00:46:51Z",
+          "body": "we emit different schema urls (versions) in different places, but in this particular place, we can pin to opentelemetry-java's version. i'm not sure I trust \"latest\" in case there's a semconv release in between the sdk and instrumentation releases, maybe can add a test here that loads the entity both ways and fail if we get the bad merge behavior?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20632#discussion_r4320351987"
+        },
+        {
+          "at": "2026-10-20T19:50:52Z",
+          "body": "> maybe can add a test here that loads the entity both ways and fail if we get the bad merge behavior?\r\n\r\nGood idea. Implemented in 76b6ee9b5d:\r\n\r\n- New test utility class for extracting the entity schema url from core and asserting that a given resource's schema url and entity schema urls match it\r\n- Updated ServiceResource to set the same schema url version as core\r\n- Update all tests to leverage the new assertion utility",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20632#discussion_r4329574511"
+        }
+      ],
+      "reviewed": "26bdc8c63747f14dc3c532c39b77992fb60cca73",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20632#discussion_r4301149181"
+    }
+  ]
+}

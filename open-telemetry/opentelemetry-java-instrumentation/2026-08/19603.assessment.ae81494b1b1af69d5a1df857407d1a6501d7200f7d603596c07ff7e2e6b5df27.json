@@ -1,0 +1,120 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "6a988022a3ea1358ac058ce1e8584585e650798551f67624bff326a14c26ce75",
+  "input_digest": "ae81494b1b1af69d5a1df857407d1a6501d7200f7d603596c07ff7e2e6b5df27",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d4c995cd197240ac70fbb9f7bb9d78b2d089fa5d/instrumentation/jetty-httpclient/jetty-httpclient-9.2/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v9_2/JettyClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/jetty-httpclient/jetty-httpclient-9.2/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v9_2/JettyClientTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcxW6",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d4c995cd197240ac70fbb9f7bb9d78b2d089fa5d/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/JettyClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/JettyClientTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcxXB",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d4c995cd197240ac70fbb9f7bb9d78b2d089fa5d/instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaServerTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaServerTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcxXJ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d4c995cd197240ac70fbb9f7bb9d78b2d089fa5d/instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaClientTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZcxXY",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1560d221ec2b3d45164573d1920b08eb6e0ecb05/instrumentation/jetty-httpclient/jetty-httpclient-9.2/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v9_2/JettyClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1560d221ec2b3d45164573d1920b08eb6e0ecb05/instrumentation/jetty-httpclient/jetty-httpclient-9.2/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v9_2/internal/JettyClientHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/jetty-httpclient/jetty-httpclient-9.2/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v9_2/JettyClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/jetty-httpclient/jetty-httpclient-9.2/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v9_2/internal/JettyClientHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/jetty-httpclient/jetty-httpclient-9.2/library/src/test/java/io/opentelemetry/instrumentation/jetty/httpclient/v9_2/JettyHttpClient9HeaderSelectorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Zd93K",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1560d221ec2b3d45164573d1920b08eb6e0ecb05/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/JettyClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1560d221ec2b3d45164573d1920b08eb6e0ecb05/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/JettyClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/test/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/JettyHttpClient12HeaderSelectorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Zd93X",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1560d221ec2b3d45164573d1920b08eb6e0ecb05/instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1560d221ec2b3d45164573d1920b08eb6e0ecb05/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractorBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Zd93d",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1560d221ec2b3d45164573d1920b08eb6e0ecb05/instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaServerTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/armeria/armeria-1.3/library/src/main/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaServerTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1560d221ec2b3d45164573d1920b08eb6e0ecb05/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpServerAttributesExtractorBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Zd93o",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/140d496d3507214a04cb919a94b10ea42ba01797/instrumentation/armeria/armeria-1.3/library/src/test/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaHeaderSelectorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1d2a72b638085ead3053a1c2a128405bf779d84/instrumentation/armeria/armeria-1.3/library/src/test/java/io/opentelemetry/instrumentation/armeria/v1_3/ArmeriaHeaderSelectorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZyChX",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

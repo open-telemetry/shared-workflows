@@ -1,0 +1,25 @@
+{
+  "head": "fd26c1ef9360d2909203350a035a7c87249850f8",
+  "merge": "cc28cb96aec28a338dc33cad0f2b5137d9a266e5",
+  "merged": "2026-09-15T08:36:35Z",
+  "missing_roots": 0,
+  "number": 210,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This update only changes the version comment; the pinned commit `95ef2b042f9d7a56d8268cba8559e2842e2ad01b` is identical to the pre-PR value. The workflow will therefore continue executing the old `ruby/setup-ruby` revision rather than v1.321.0. Replace the digest with the commit for v1.321.0 (while retaining the SHA pin).\n\nThis issue also appears on line 411 of the same file.",
+      "created": "2026-09-15T01:11:11Z",
+      "hunk": "@@ -95,9 +95,9 @@ jobs:\n           npm --prefix scenarios/http/js test\n \n       - name: Set up Ruby\n-        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1\n+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0",
+      "id": "PRRT_kwDOTuzK5c6iViy_",
+      "opened": "2026-09-15T01:11:11Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "a859acec6b53898c2a2f0193e4926b0ff51f31e1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/210#discussion_r4011019889"
+    }
+  ]
+}

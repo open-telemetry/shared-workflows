@@ -1,0 +1,32 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c43c4fc5a27e99f993fbd55a841be02ce030a3003d5fc8bd542485f7127800f4",
+  "input_digest": "7529a9dc46cd372f2717ec137c7397c4b9794cf8872464dcbd21944bfccd1227",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/56811d1df8c99e2808826109485230e0fc93f81d/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SystemProperty.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7246d76da83a1b9dde6708acd43cb9b3e469cb9a/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SystemProperty.java"
+      ],
+      "id": "PRRT_kwDODJKVX86P-boS",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/56811d1df8c99e2808826109485230e0fc93f81d/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/OpenTelemetryConnectionTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7246d76da83a1b9dde6708acd43cb9b3e469cb9a/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/OpenTelemetryConnectionTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/09c9c6af16e6a1ccd03e459a51520bd76d3b86ae"
+      ],
+      "id": "PRRT_kwDODJKVX86P-bor",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

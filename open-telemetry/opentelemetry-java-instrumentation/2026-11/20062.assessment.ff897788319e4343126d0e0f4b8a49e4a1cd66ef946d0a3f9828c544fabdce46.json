@@ -1,0 +1,454 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "6bcd8f03587f5e509afaf0f8a57a328eb7edd8460f4c86c2c016804d503da912",
+  "input_digest": "ff897788319e4343126d0e0f4b8a49e4a1cd66ef946d0a3f9828c544fabdce46",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2f42d34652e30bcbec6b0f14db877935b9fc485c/instrumentation/mcp-java-sdk-0.14/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2f42d34652e30bcbec6b0f14db877935b9fc485c/instrumentation/mcp-java-sdk-0.14/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallAttributesExtractorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86g45jy",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2f42d34652e30bcbec6b0f14db877935b9fc485c/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86g45kR",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2f42d34652e30bcbec6b0f14db877935b9fc485c/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpClientSessionInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpClientSessionInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpClientSessionInstrumentationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86g45kq",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/.github/scripts/instrumentations.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45"
+      ],
+      "id": "PRRT_kwDODJKVX86hQV6O",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpJavaSdkInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpJavaSdkInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hQV6R",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallState.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hQV6V",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp-java-sdk-0.14/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86hQV6Z",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp-java-sdk-0.14/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86hQV64",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallMono.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hQV67",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpClientSessionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpClientSessionInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpClientSessionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hQV6o",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45"
+      ],
+      "id": "PRRT_kwDODJKVX86hQV6r",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hQV6z",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hQV7A",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/80d6ca343b3c6a16b754c1ff10802b25bc89e821/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/TestMcpClientTransport.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/TestMcpClientTransport.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/TestMcpClientTransport.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hQV7F",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/db03f3a14cda56d366b67c3f46419648e016dc79/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallMono.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hSaNU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/db03f3a14cda56d366b67c3f46419648e016dc79/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java"
+      ],
+      "id": "PRRT_kwDODJKVX86hSaNn",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/932ec4746af9ca14175cd72d8b934f6f68c27a6a/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/932ec4746af9ca14175cd72d8b934f6f68c27a6a/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpClientMetrics.java"
+      ],
+      "id": "PRRT_kwDODJKVX86h7T2p",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/932ec4746af9ca14175cd72d8b934f6f68c27a6a/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86h7T2r",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb0868270cc5c9542b2772034508e5bd0d56685b/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb0868270cc5c9542b2772034508e5bd0d56685b/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpJavaSdkInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86kGRSI",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2adb03c4328e54cb7994d88bc0c125a97c6c0abc/instrumentation/mcp-java-sdk-0.14/javaagent-unit-tests/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent-unit-tests/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallAttributesExtractorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86kKVxl",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2adb03c4328e54cb7994d88bc0c125a97c6c0abc/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45"
+      ],
+      "id": "PRRT_kwDODJKVX86ktoSl",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86ktwrg",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2adb03c4328e54cb7994d88bc0c125a97c6c0abc/docs/supported-libraries.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2adb03c4328e54cb7994d88bc0c125a97c6c0abc/instrumentation/mcp-java-sdk-0.14/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/docs/supported-libraries.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/metadata.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86kuFSZ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86kuMWG",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86kvFfM",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86kwDbt",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86kwJVp",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86p8EQE",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8708d05376a4e2ed298b65bda7997ccb22ffb498/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpJavaSdkInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpJavaSdkInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX86p8Gwo",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8708d05376a4e2ed298b65bda7997ccb22ffb498/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/docs/instrumentation-list.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86tP-Hx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8708d05376a4e2ed298b65bda7997ccb22ffb498/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86tQTDo",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8708d05376a4e2ed298b65bda7997ccb22ffb498/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallState.java"
+      ],
+      "id": "PRRT_kwDODJKVX86tQVCC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8708d05376a4e2ed298b65bda7997ccb22ffb498/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8708d05376a4e2ed298b65bda7997ccb22ffb498/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpClientSessionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpClientSessionInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86tRcgJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86tTqCD",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61e06fdc1b229d9add57eded140bc0cc2d75a847/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0ba5711d48ebf73298c6c87fb566e1a733afb036"
+      ],
+      "id": "PRRT_kwDODJKVX86tae22",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61e06fdc1b229d9add57eded140bc0cc2d75a847/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61e06fdc1b229d9add57eded140bc0cc2d75a847/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpClientSessionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61e06fdc1b229d9add57eded140bc0cc2d75a847/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpClientSessionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcp/v0_14/McpToolCallState.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f6cf916b2813f49cdf4c3ed72a7b2b3c9ceec360"
+      ],
+      "id": "PRRT_kwDODJKVX86tae3N",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0ba5711d48ebf73298c6c87fb566e1a733afb036/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpContextMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpHttpRequestCustomizer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpHttpTransportBuilderInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f931d9031c8b47a3a4f570a81d718cb6c828d6dc"
+      ],
+      "id": "PRRT_kwDODJKVX86zZyr7",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0ba5711d48ebf73298c6c87fb566e1a733afb036/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpToolCallMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpContextMono.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpCallbackContextTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9c423e31f8dae65a66a91bea9ea68c3454dc6754"
+      ],
+      "id": "PRRT_kwDODJKVX86zZysc",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/940b79a3f6410da24204ff42304ab9a70e2a51b2/instrumentation/mcp-java-sdk-0.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpHttpTransportBuilderInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/940b79a3f6410da24204ff42304ab9a70e2a51b2/instrumentation/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpSseClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpSseClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8324d438a87722fb9206d28149cca24839c1176e"
+      ],
+      "id": "PRRT_kwDODJKVX86zbTdA",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/940b79a3f6410da24204ff42304ab9a70e2a51b2/instrumentation/mcp-java-sdk-0.14/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45/instrumentation/mcp-java-sdk-0.14/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/940b79a3f6410da24204ff42304ab9a70e2a51b2...abe37e021c374a8ec2aa557f27d88eefefef4a10",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d50bdc72824c43a9ffab5f4bb8eb8d412d6d0b45",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/abe37e021c374a8ec2aa557f27d88eefefef4a10"
+      ],
+      "id": "PRRT_kwDODJKVX86zbTdm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

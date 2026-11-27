@@ -1,0 +1,103 @@
+{
+  "head": "9988c3fff7ce327a9bef98c3698eeb419aeb3c82",
+  "merge": "77133433ad1443ec4b781d904d8ff3670b83b97e",
+  "merged": "2026-10-12T07:10:21Z",
+  "missing_roots": 0,
+  "number": 20514,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This case only verifies that a retired configuration key is ignored. Repository test guidance excludes tests for removed settings because they turn unsupported input into a maintained contract; the supported precedence/default matrices above already cover the remaining behavior. Please remove the deprecated-setting-only cases and the deprecated-key stubs from the supported precedence cases in this class.",
+      "created": "2026-10-11T22:48:00Z",
+      "hunk": "@@ -12,80 +12,108 @@\n \n import io.opentelemetry.api.incubator.ExtendedOpenTelemetry;\n import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n-import java.lang.reflect.Field;\n-import java.util.ArrayList;\n-import java.util.List;\n-import java.util.Set;\n-import java.util.logging.Handler;\n-import java.util.logging.LogRecord;\n-import java.util.logging.Logger;\n import org.junit.jupiter.api.Test;\n import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.CsvSource;\n import org.junit.jupiter.params.provider.ValueSource;\n \n class DbConfigTest {\n \n-  @Test\n-  void newCommonQuerySanitizationTakesPrecedenceOverDeprecatedConfig() {\n+  @ParameterizedTest\n+  @CsvSource(\n+      value = {\n+        \"unset, unset, true\",\n+        \"unset, false, false\",\n+        \"unset, true, true\",\n+        \"false, unset, false\",\n+        \"false, false, false\",\n+        \"false, true, false\",\n+        \"true, unset, true\",\n+        \"true, false, true\",\n+        \"true, true, true\"\n+      },\n+      nullValues = \"unset\")\n+  void querySanitizationUsesInstrumentationSettingThenCommonThenDefault(\n+      Boolean instrumentationEnabled, Boolean commonEnabled, boolean expected) {\n     ExtendedOpenTelemetry openTelemetry = mock(ExtendedOpenTelemetry.class);\n+    DeclarativeConfigProperties instrumentationConfig =\n+        mock(DeclarativeConfigProperties.class, RETURNS_DEEP_STUBS);\n     DeclarativeConfigProperties commonConfig =\n         mock(DeclarativeConfigProperties.class, RETURNS_DEEP_STUBS);\n+    when(openTelemetry.getInstrumentationConfig(\"jdbc\")).thenReturn(instrumentationConfig);\n     when(openTelemetry.getInstrumentationConfig(\"common\")).thenReturn(commonConfig);\n-    when(commonConfig.get(\"db\").get(\"query_sanitization\").getBoolean(\"enabled\")).thenReturn(true);\n-    when(commonConfig.get(\"database\").get(\"statement_sanitizer\").getBoolean(\"enabled\"))\n-        .thenReturn(false);\n+    when(instrumentationConfig.get(\"query_sanitization\").getBoolean(\"enabled\"))\n+        .thenReturn(instrumentationEnabled);\n+    when(commonConfig.get(\"db\").get(\"query_sanitization\").getBoolean(\"enabled\"))\n+        .thenReturn(commonEnabled);\n \n-    assertThat(DbConfig.isCommonQuerySanitizationEnabled(openTelemetry)).isTrue();\n+    assertThat(DbConfig.isQuerySanitizationEnabled(openTelemetry, \"jdbc\")).isEqualTo(expected);\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {true, false})\n+  void querySanitizationUsesSuppliedDefaultWhenSettingsAreUnset(boolean defaultValue) {\n+    ExtendedOpenTelemetry openTelemetry = mock(ExtendedOpenTelemetry.class);\n+    when(openTelemetry.getInstrumentationConfig(\"jdbc\"))\n+        .thenReturn(DeclarativeConfigProperties.empty());\n+    when(openTelemetry.getInstrumentationConfig(\"common\"))\n+        .thenReturn(DeclarativeConfigProperties.empty());\n+\n+    assertThat(DbConfig.isQuerySanitizationEnabled(openTelemetry, \"jdbc\", defaultValue))\n+        .isEqualTo(defaultValue);\n+    assertThat(DbConfig.isCommonQuerySanitizationEnabled(openTelemetry, defaultValue))\n+        .isEqualTo(defaultValue);\n+    assertThat(DbConfig.isSqlCommenterEnabled(openTelemetry, \"jdbc\", defaultValue))\n+        .isEqualTo(defaultValue);\n   }\n \n   @Test\n-  void deprecatedCommonStatementSanitizerConfigIsUsedAsFallback() {\n+  void newCommonQuerySanitizationTakesPrecedenceOverDeprecatedConfig() {\n     ExtendedOpenTelemetry openTelemetry = mock(ExtendedOpenTelemetry.class);\n     DeclarativeConfigProperties commonConfig =\n         mock(DeclarativeConfigProperties.class, RETURNS_DEEP_STUBS);\n     when(openTelemetry.getInstrumentationConfig(\"common\")).thenReturn(commonConfig);\n+    when(commonConfig.get(\"db\").get(\"query_sanitization\").getBoolean(\"enabled\")).thenReturn(true);\n     when(commonConfig.get(\"database\").get(\"statement_sanitizer\").getBoolean(\"enabled\"))\n         .thenReturn(false);\n \n-    assertThat(DbConfig.isCommonQuerySanitizationEnabled(openTelemetry)).isFalse();\n+    assertThat(DbConfig.isCommonQuerySanitizationEnabled(openTelemetry)).isTrue();\n   }\n \n   @Test\n-  void deprecatedCommonStatementSanitizerPropertyIsUsedAsFallback() {\n+  void deprecatedCommonStatementSanitizerConfigIsIgnored() {",
+      "id": "PRRT_kwDODJKVX86rSWZ6",
+      "opened": "2026-10-11T22:48:01Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-10-11T23:21:20Z",
+          "body": "Removed the deprecated-setting-only cases and retired-key stubs while retaining supported precedence/default coverage. Commit: `af99fff831`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20514#discussion_r4243673634"
+        }
+      ],
+      "reviewed": "39f47776181ae918ff18d8ea3d5182215234ee22",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20514#discussion_r4243576864"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Setting the retired property makes this supported system-property matrix also test that removed configuration is ignored, which repository guidance explicitly excludes. The JDBC/common/default matrix is complete without this setup, so delete this line.\n\nThis issue also appears on line 111 of the same file.",
+      "created": "2026-10-11T22:48:00Z",
+      "hunk": "@@ -55,6 +55,7 @@ void registerDriver() {\n   @MethodSource(\"sanitizationSettings\")\n   void systemProperties(Boolean jdbcEnabled, Boolean commonEnabled, boolean expected)\n       throws SQLException {\n+    System.setProperty(\"otel.instrumentation.common.db-statement-sanitizer.enabled\", \"false\");",
+      "id": "PRRT_kwDODJKVX86rSWaH",
+      "opened": "2026-10-11T22:48:01Z",
+      "path": "instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/OpenTelemetryDriverQuerySanitizationTest.java",
+      "replies": [
+        {
+          "at": "2026-10-11T23:21:20Z",
+          "body": "Removed the retired property setup, reset, and declarative stubs from the supported JDBC configuration test. Commit: `af99fff831`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20514#discussion_r4243673630"
+        }
+      ],
+      "reviewed": "39f47776181ae918ff18d8ea3d5182215234ee22",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20514#discussion_r4243576887"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  `otel.instrumentation.<module>.query-sanitization.enabled` instead.\n```",
+      "created": "2026-10-12T00:05:43Z",
+      "hunk": "@@ -4,6 +4,15 @@\n \n ### ⚠️ Breaking changes\n \n+- Remove the retired flat settings `otel.instrumentation.common.db-statement-sanitizer.enabled`\n+  and `otel.instrumentation.<module>.statement-sanitizer.enabled`; use\n+  `otel.instrumentation.common.db.query-sanitization.enabled` and\n+  `otel.instrumentation.<module>.query-sanitization.enabled` instead. In declarative configuration,\n+  replace `java.common.database.statement_sanitizer.enabled` with\n+  `java.common.db.query_sanitization.enabled`.",
+      "id": "PRRT_kwDODJKVX86rS5gS",
+      "opened": "2026-10-12T00:05:43Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "feeb51dfdf00bd830a7f048504edeb9651a02f61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20514#discussion_r4243802487"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This migration note only names the removed flat aliases, but the same change also removes the declarative `java.common.database.statement_sanitizer.enabled` and `java.<module>.statement_sanitizer.enabled` keys. As written, YAML users are not told that their settings will stop applying in 3.0 or which declarative replacements to use; please document both removed surfaces.",
+      "created": "2026-10-12T00:08:59Z",
+      "hunk": "@@ -4,6 +4,13 @@\n \n ### ⚠️ Breaking changes\n \n+- Remove the retired flat settings `otel.instrumentation.common.db-statement-sanitizer.enabled`\n+  and `otel.instrumentation.<module>.statement-sanitizer.enabled`; use\n+  `otel.instrumentation.common.db.query-sanitization.enabled` and\n+  `otel.instrumentation.<module>.query-sanitization.enabled` instead.\n+  Replace `java.common.database.sqlcommenter/development.enabled` with\n+  `java.common.db.sqlcommenter/development.enabled`; the flat setting\n+  `otel.instrumentation.common.db.experimental.sqlcommenter.enabled` remains supported.",
+      "id": "PRRT_kwDODJKVX86rS602",
+      "opened": "2026-10-12T00:08:59Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-12T04:44:03Z",
+          "body": "no, see https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20518",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20514#discussion_r4244739626"
+        }
+      ],
+      "reviewed": "aa42c617a931567334c10dcdfdbbf86dd8281f04",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20514#discussion_r4243811191"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The committed generated catalog still lists these retired settings and references them from every affected instrumentation (`docs/instrumentation-list.yaml`, e.g. lines 29-38 and 883-885). Please regenerate that file so the published configuration catalog no longer advertises options that 3.0 ignores.",
+      "created": "2026-10-12T06:18:21Z",
+      "hunk": "@@ -4,6 +4,13 @@\n \n ### ⚠️ Breaking changes\n \n+- Remove the retired flat settings `otel.instrumentation.common.db-statement-sanitizer.enabled`\n+  and `otel.instrumentation.<module>.statement-sanitizer.enabled`; use\n+  `otel.instrumentation.common.db.query-sanitization.enabled` and\n+  `otel.instrumentation.<module>.query-sanitization.enabled` instead.",
+      "id": "PRRT_kwDODJKVX86rWNyE",
+      "opened": "2026-10-12T06:18:22Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "9988c3fff7ce327a9bef98c3698eeb419aeb3c82",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20514#discussion_r4245152878"
+    }
+  ]
+}

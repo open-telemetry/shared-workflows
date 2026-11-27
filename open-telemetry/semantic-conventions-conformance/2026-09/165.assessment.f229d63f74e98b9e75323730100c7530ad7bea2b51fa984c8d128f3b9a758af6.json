@@ -1,0 +1,25 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "6aa6fc9a349a1bf98744ae0419542b1d8a54b682f2ed950ba12a15f52cee3b3e",
+  "input_digest": "f229d63f74e98b9e75323730100c7530ad7bea2b51fa984c8d128f3b9a758af6",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/801e3556cf03d69b646b8c810e0f95a5e9ef3640/tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b55a5b07509ce713c5d785ec0a5dc8e32829ff31/tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego"
+      ],
+      "id": "PRRT_kwDOTuzK5c6d45M9",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6d9yJN",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

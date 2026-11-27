@@ -1,0 +1,80 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "bdee1663efe954279ad4b9e00082d7e46dd975e95c9d394d726b07a8f8365c4d",
+  "input_digest": "f0b3325ee6334ff5790921e4f5788de982a923d4e14068e409265218209afff2",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9b24c1742fa9ad6613bee67490437688036b52c3/instrumentation/runtime-telemetry/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c77fb9840b4291508d968bb4c07791929411d601/instrumentation/runtime-telemetry/library/README.md"
+      ],
+      "id": "PRRT_kwDODJKVX86XrL17",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9b24c1742fa9ad6613bee67490437688036b52c3/instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/Experimental.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9b24c1742fa9ad6613bee67490437688036b52c3/instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/RuntimeTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c77fb9840b4291508d968bb4c07791929411d601/instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/Experimental.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c77fb9840b4291508d968bb4c07791929411d601/instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/RuntimeTelemetryBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XrL1t",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9b24c1742fa9ad6613bee67490437688036b52c3/instrumentation/runtime-telemetry/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c77fb9840b4291508d968bb4c07791929411d601/instrumentation/runtime-telemetry/metadata.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86XrL2A",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9b24c1742fa9ad6613bee67490437688036b52c3/instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/RuntimeTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c77fb9840b4291508d968bb4c07791929411d601/instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/RuntimeTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9b24c1742fa9ad6613bee67490437688036b52c3/instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/JfrConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c77fb9840b4291508d968bb4c07791929411d601/instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/JfrConfig.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XrL2H",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9b24c1742fa9ad6613bee67490437688036b52c3/instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c77fb9840b4291508d968bb4c07791929411d601/instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/9b24c1742fa9ad6613bee67490437688036b52c3...c77fb9840b4291508d968bb4c07791929411d601"
+      ],
+      "id": "PRRT_kwDODJKVX86XrL2Z",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c543e091354ca3ee9d18f4b4c31a398f2226f78c/instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/HandlerRegistry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c77fb9840b4291508d968bb4c07791929411d601/instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/HandlerRegistry.java"
+      ],
+      "id": "PRRT_kwDODJKVX86XryQy",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

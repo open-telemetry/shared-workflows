@@ -1,0 +1,22 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "27b26bab961be264dd0dded152dfff27b2babe43bec4c48e5731702bbaa43e29",
+  "input_digest": "eb609016adee91bd75503c5b1536c8f163510e6f0a4772870826536bf1da790f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/e722feb1a2ba2365595194a44db134bdee47031e/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_upload/completion_hook.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/e722feb1a2ba2365595194a44db134bdee47031e/util/opentelemetry-util-genai/tests/test_upload.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dabc1e7737bbaf5c80cdc3abd411a5e16911cd1e/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_upload/completion_hook.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dabc1e7737bbaf5c80cdc3abd411a5e16911cd1e/util/opentelemetry-util-genai/tests/test_upload.py"
+      ],
+      "id": "PRRT_kwDOSbspP862e6dZ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

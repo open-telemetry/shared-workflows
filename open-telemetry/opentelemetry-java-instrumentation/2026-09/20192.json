@@ -1,0 +1,52 @@
+{
+  "head": "8e1f28b3234e535aa06cbc9b6620f0230d816324",
+  "merge": "9acce60151499e6bba964dad89749dc44af98b61",
+  "merged": "2026-09-26T16:27:02Z",
+  "missing_roots": 0,
+  "number": 20192,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I don't get this. Why should we preserve the current span here? Isn't it just supposed to propagate the context that was current on subscribe whatever that may have been. As far as I understand the `Span.fromContext(traceContext).getSpanContext().isValid()` check was an optimization to avoid doing unnecessary work when context is empty, changing it to `traceContext != io.opentelemetry.context.Context.root()` should be enough.",
+      "created": "2026-09-25T14:27:17Z",
+      "hunk": "@@ -104,7 +112,14 @@ public Context currentContext() {\n \n   @Nullable\n   private Scope openScope() {\n-    return openScope(hasContextToPropagate ? traceContext : null);\n+    if (!hasContextToPropagate) {\n+      return null;\n+    }\n+    Span currentSpan = Span.current();\n+    if (!hasExplicitSpan && currentSpan.getSpanContext().isValid()) {\n+      return openScope(traceContext.with(currentSpan));\n+    }",
+      "id": "PRRT_kwDODJKVX86mCUc0",
+      "opened": "2026-09-25T14:27:17Z",
+      "path": "instrumentation/reactor/reactor-3.1/library/src/main/java/io/opentelemetry/instrumentation/reactor/v3_1/TracingSubscriber.java",
+      "replies": [
+        {
+          "at": "2026-09-25T17:06:12Z",
+          "body": "24e0b80fbd84c9ded567ae895f661e06b0d877cb",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20192#discussion_r4106839352"
+        }
+      ],
+      "reviewed": "e875eff1609ab0a4cf584e7c7859e3696db6d2e4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20192#discussion_r4105498892"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The surrounding `if` guarantees `hasContextToPropagate` is false, so this ternary's `traceContext` branch is unreachable. Keep the retry-clearing path unconditional so its behavior is explicit.",
+      "created": "2026-09-25T17:13:28Z",
+      "hunk": "@@ -81,7 +80,10 @@ public void onError(Throwable throwable) {\n             || fluxRetryWhenSubscriberClass == subscriber.getClass())) {\n       // clear context for retry to avoid having retried operations run with currently active\n       // context as parent context\n-      scopeSupplier = () -> openScope(io.opentelemetry.context.Context.root());\n+      scopeSupplier =\n+          () ->\n+              openScope(\n+                  hasContextToPropagate ? traceContext : io.opentelemetry.context.Context.root());",
+      "id": "PRRT_kwDODJKVX86mFwOt",
+      "opened": "2026-09-25T17:13:29Z",
+      "path": "instrumentation/reactor/reactor-3.1/library/src/main/java/io/opentelemetry/instrumentation/reactor/v3_1/TracingSubscriber.java",
+      "replies": [
+        {
+          "at": "2026-09-25T20:49:14Z",
+          "body": "Addressed in 8e1f28b3234e535aa06cbc9b6620f0230d816324.\n\nFixed in the verified source changes 8e1f28b3234e535aa06cbc9b6620f0230d816324.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20192#discussion_r4108511844"
+        }
+      ],
+      "reviewed": "24e0b80fbd84c9ded567ae895f661e06b0d877cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20192#discussion_r4106893599"
+    }
+  ]
+}

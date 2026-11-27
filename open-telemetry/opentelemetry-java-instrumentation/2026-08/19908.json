@@ -1,0 +1,73 @@
+{
+  "head": "f16bc06813d7feb7fb610c9457b75df050d5fcd7",
+  "merge": "91d8c7d2cb6aec64ab9f78eefac29bd853a9b053",
+  "merged": "2026-08-31T14:55:51Z",
+  "missing_roots": 0,
+  "number": 19908,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This fallback still may not collect the requested five scans. `collect_flaky_scans_by_time()` returns immediately when it finds any unseen scan (line 201), so if the initial response has one scan and the only flaky day exposes one different scan while its trend reports five failures, this path stops with two and never splits that day further. Continue subdividing a window when it contains more failed/flaky executions than the visible result rows, until the requested limit is reached.",
+      "created": "2026-08-29T02:25:07Z",
+      "hunk": "@@ -323,7 +323,7 @@ def main():\n         # narrowed to each day-bucket that had a flaky execution. Busy\n         # tests can still return only passed rows for an entire day, so\n         # recursively split those windows until the flaky rows are visible.\n-        if not sample_failure or not recent_scans:\n+        if not sample_failure or len(recent_scans) < 5:",
+      "id": "PRRT_kwDODJKVX86dWVZm",
+      "opened": "2026-08-29T02:25:08Z",
+      "path": ".github/scripts/flaky-test-remediation/1-select-flaky-test.py",
+      "replies": [
+        {
+          "at": "2026-08-29T16:49:01Z",
+          "body": "Addressed in 469f8ba0570f1b3af3456bbbf579aba0b0e8ded8.\n\nAnalysis: The capped history endpoint can return fewer flaky rows than its trend reports. Finding one new scan does not prove that all flaky executions in the window are visible. The collector now compares the trend count with the number of visible flaky rows and splits a window while hidden rows remain.\n\nUpsides: The remediation prompt can collect its requested five distinct scans from busy windows. The unit test covers the case where the first narrowed query finds one scan but still hides other flaky executions.\n\nDownsides: The collector may issue more Develocity requests for windows where the trend count exceeds the capped result rows.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19908#discussion_r3887126112"
+        }
+      ],
+      "reviewed": "1e6c4f441769026f799ac13ecf446c15fb24bb72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19908#discussion_r3885185471"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `fix` job's checkout does not set `fetch-depth`, so actions/checkout v7.0.1 uses its default depth of 1. Consequently the Copilot worktree does not contain the recent commits this new instruction requires it to inspect. Add `fetch-depth: 0` to the checkout in the `fix` job (as the `analyze` job already does) before invoking Copilot.",
+      "created": "2026-08-29T02:25:08Z",
+      "hunk": "@@ -43,24 +43,24 @@\n \n {recent_section}{per_day_section}\n Goals:\n-1. Diagnose the root cause of flakiness from the sample failure(s) and the\n-   test source. Common causes include unbounded waits, fixed-duration sleeps,\n-   shared mutable state across tests, executor/IO-reactor reuse, missing\n-   cleanup, and gRPC `Context` cancellation propagating into deferred work.\n-   Look at related helper files referenced from the test (such as\n-   `AbstractGrpcTest.java` for gRPC tests).\n+1. Diagnose the root cause of flakiness from the sample failure(s), the test\n+   source, related implementation and helper files, and recent commits. Do not",
+      "id": "PRRT_kwDODJKVX86dWVZ1",
+      "opened": "2026-08-29T02:25:08Z",
+      "path": ".github/scripts/flaky-test-remediation/2-fix-flaky-test.py",
+      "replies": [
+        {
+          "at": "2026-08-29T16:49:02Z",
+          "body": "Addressed in 888f1077f28d191c5e33a8d0ce95b137518b3bff.\n\nAnalysis: The fix prompt asks Copilot to inspect recent commits, but the fix job checked out only the current commit. Setting `fetch-depth: 0` gives the fix worktree the repository history that the prompt requires.\n\nUpsides: Copilot can inspect the commits that introduced or changed a flaky test and can fix an implementation regression instead of guessing from the current source alone.\n\nDownsides: The fix job downloads the full Git history, which adds network transfer and checkout time.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19908#discussion_r3887126186"
+        }
+      ],
+      "reviewed": "1e6c4f441769026f799ac13ecf446c15fb24bb72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19908#discussion_r3885185487"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`failure_scans()` can return six links even though this change promises at most five: if the first five recent results lack a failure message and `best_failure_sample()` selects a later build, the sample is prepended to all five recent scans. Cap the combined list after inserting the sample so generated PRs keep the five-scan limit.",
+      "created": "2026-08-29T17:55:56Z",
+      "hunk": "@@ -31,11 +31,40 @@ def pr_title_target(selected):\n     return f\"{class_name}.{method_name}\"\n \n \n+def failure_scans(selected):\n+    recent_scans = selected.get(\"recent_flaky_scans\", [])[:5]\n+    sample_url = selected.get(\"sample_scan_url\", \"\")\n+\n+    scans = []\n+    seen_urls = set()\n+    if sample_url:\n+        sample_scan = next(\n+            (scan for scan in recent_scans\n+             if scan.get(\"scan_url\") == sample_url),\n+            # selected.json records no outcome or work unit for the sample\n+            # scan, so leave both blank instead of guessing.\n+            {\n+                \"build_id\": selected.get(\"sample_build_id\", \"\"),\n+                \"scan_url\": sample_url,\n+                \"outcome\": \"\",\n+                \"work_unit\": \"\",\n+            },\n+        )\n+        scans.append(sample_scan)\n+        seen_urls.add(sample_url)\n+\n+    for scan in recent_scans:\n+        scan_url = scan.get(\"scan_url\", \"\")\n+        if scan_url and scan_url not in seen_urls:\n+            scans.append(scan)\n+            seen_urls.add(scan_url)\n+    return scans",
+      "id": "PRRT_kwDODJKVX86dbnnx",
+      "opened": "2026-08-29T17:55:56Z",
+      "path": ".github/scripts/flaky-test-remediation/3-open-pr.py",
+      "replies": [
+        {
+          "at": "2026-08-29T18:06:01Z",
+          "body": "Addressed in b4f674b47b8fa06550f3f2e9fae6ac4268e964a0.\n\nAnalysis: The helper limited recent scans before it inserted a sample that might fall outside that list. Limiting the final ordered list keeps the selected sample first without exceeding five links.\n\nUpsides: Generated pull requests now honor the five-scan limit in every case. The regression test covers a sample selected from after the five most recent scans.\n\nDownsides: When the selected sample is older, the helper omits the fifth recent scan to keep the total at five.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19908#discussion_r3887288841"
+        }
+      ],
+      "reviewed": "fc3c3ab86de75b362c9901ad3bcb3df4fff23863",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19908#discussion_r3887268163"
+    }
+  ]
+}

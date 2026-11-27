@@ -1,0 +1,94 @@
+{
+  "head": "bf917d0fe2a31b0ac62b602711108c72d73c4e32",
+  "merge": "5a8b63f30efdc08be62f12fa6f3672de8207b983",
+  "merged": "2026-06-08T18:39:13Z",
+  "missing_roots": 0,
+  "number": 260,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`notification_time_zone()` will raise a `ZoneInfoNotFoundError` with a fairly opaque message if `SLACK_NOTIFICATION_TIME_ZONE` is set to an invalid value. Since this is a new config surface, it’s better to fail with a clear `RuntimeError` that points to the env var name and value.",
+      "created": "2026-06-08T03:44:35Z",
+      "hunk": "@@ -47,6 +49,14 @@ def should_retry_slack_http_error(e: urllib.error.HTTPError) -> bool:\n     return e.code == 429 or 500 <= e.code < 600\n \n \n+def notification_time_zone() -> ZoneInfo:\n+    return ZoneInfo(os.environ.get(\"SLACK_NOTIFICATION_TIME_ZONE\") or DEFAULT_NOTIFICATION_TIME_ZONE)",
+      "id": "PRRT_kwDOSUeMrM6Ht0ih",
+      "opened": "2026-06-08T03:44:36Z",
+      "path": ".github/scripts/pull-request-dashboard/notifications.py",
+      "replies": [
+        {
+          "at": "2026-06-08T03:53:19Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/5c14f76.\n\nSimplified this by removing the SLACK_NOTIFICATION_TIME_ZONE config surface entirely and using a fixed America/Los_Angeles ZoneInfo value.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/260#discussion_r3370727068"
+        }
+      ],
+      "reviewed": "251d274a45de8bb1923d5e9bf431940bbf4700bb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/260#discussion_r3370704718"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This file now relies on `ZoneInfoNotFoundError` (to provide a clear configuration error when the timezone is invalid), but it isn’t imported yet.",
+      "created": "2026-06-08T03:44:36Z",
+      "hunk": "@@ -10,10 +10,12 @@\n from typing import Any\n import urllib.error\n import urllib.request\n+from zoneinfo import ZoneInfo",
+      "id": "PRRT_kwDOSUeMrM6Ht0iv",
+      "opened": "2026-06-08T03:44:36Z",
+      "path": ".github/scripts/pull-request-dashboard/notifications.py",
+      "replies": [
+        {
+          "at": "2026-06-08T03:53:20Z",
+          "body": "No code change needed. The implementation no longer uses ZoneInfoNotFoundError after simplifying the timezone handling, so there is no missing import to add.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/260#discussion_r3370727133"
+        }
+      ],
+      "reviewed": "251d274a45de8bb1923d5e9bf431940bbf4700bb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/260#discussion_r3370704736"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Weekday suppression is now based on the configured notification timezone, but the follow-up interval check later in this function still uses `now.weekday() < 5` (UTC), which can reintroduce timezone-dependent behavior. Since this early return already enforces weekday-in-notification-timezone, the follow-up check should drop the extra `now.weekday()` condition (or switch it to `is_notification_weekday(now)`).",
+      "created": "2026-06-08T03:44:36Z",
+      "hunk": "@@ -94,6 +104,8 @@ def pending_notification_kind(\n ) -> str | None:\n     if not previous_state_exists:\n         return None\n+    if not is_notification_weekday(now):\n+        return None",
+      "id": "PRRT_kwDOSUeMrM6Ht0iz",
+      "opened": "2026-06-08T03:44:36Z",
+      "path": ".github/scripts/pull-request-dashboard/notifications.py",
+      "replies": [
+        {
+          "at": "2026-06-08T03:53:22Z",
+          "body": "No code change needed. The current branch already uses is_notification_weekday(now) for the follow-up condition.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/260#discussion_r3370727190"
+        }
+      ],
+      "reviewed": "251d274a45de8bb1923d5e9bf431940bbf4700bb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/260#discussion_r3370704741"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says follow-up scheduling uses a *configured* notification timezone (defaulting to America/Los_Angeles), but the code currently hard-codes the timezone to America/Los_Angeles with no configuration surface. Either the description should be updated, or the code should allow overriding the timezone (e.g., via an env var) while keeping America/Los_Angeles as the default.",
+      "created": "2026-06-08T03:58:25Z",
+      "hunk": "@@ -10,10 +10,12 @@\n from typing import Any\n import urllib.error\n import urllib.request\n+from zoneinfo import ZoneInfo\n \n from utils import activity_age, format_ts, parse_ts\n \n \n+NOTIFICATION_TIME_ZONE = ZoneInfo(\"America/Los_Angeles\")\n REVIEWER_FOLLOW_UP_SECONDS = 24 * 60 * 60",
+      "id": "PRRT_kwDOSUeMrM6Ht60l",
+      "opened": "2026-06-08T03:58:25Z",
+      "path": ".github/scripts/pull-request-dashboard/notifications.py",
+      "replies": [
+        {
+          "at": "2026-06-08T04:07:54Z",
+          "body": "Updated the PR description to match the implementation: the follow-up weekday check uses the fixed Slack-facing America/Los_Angeles timezone, not a configurable timezone.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/260#discussion_r3370766454"
+        }
+      ],
+      "reviewed": "5c14f76f59adb8044d101507759c20f4eba43de7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/260#discussion_r3370739634"
+    }
+  ]
+}

@@ -1,0 +1,306 @@
+{
+  "head": "138be4a8c0a553d57db623574121e0baecb32ae9",
+  "merge": "6f5615c9b552011f80e7a909a0ec5a7d8f681f8e",
+  "merged": "2026-04-25T22:22:17Z",
+  "missing_roots": 0,
+  "number": 16344,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "could this fallback silently mask issues? e.g.\n\nlatestDepTestLibrary(\"com.example:lib:2.+\") to stay on major version 2, but the range key \"com.example:lib#2.+\" is missing from the JSON (e.g. resolver failed for that module), this falls back to the base key which might be version 4.x",
+      "created": "2026-03-05T16:10:25Z",
+      "hunk": "@@ -21,15 +21,45 @@ plugins {\n  *     described above.\n  *\n  * - latestDepTestLibrary: A dependency on a library for testing when testing of latest dependency\n- *   version is enabled. This dependency will be added as-is to testImplementation, but only if\n- *   -PtestLatestDeps=true. The version will not be modified but it will be given highest\n- *   precedence. Use this to restrict the latest version dependency from the default `+`, for\n- *   example to restrict to just a major version by specifying `2.+`.\n+ *   version is enabled. This dependency will be added to testImplementation only if\n+ *   -PtestLatestDeps=true. Its version overrides the `latest.release` from library/testLibrary\n+ *   via resolutionStrategy.eachDependency (which takes highest precedence in Gradle). Use this\n+ *   to restrict the latest version to a specific range, e.g. `2.+` to stay on major version 2.\n  */\n \n val testLatestDeps = gradle.startParameter.projectProperties[\"testLatestDeps\"] == \"true\"\n+val resolveLatestDeps = gradle.startParameter.projectProperties[\"resolveLatestDeps\"] == \"true\"\n+val pinLatestDeps = testLatestDeps && !resolveLatestDeps\n extra[\"testLatestDeps\"] = testLatestDeps\n \n+fun getPinnedVersions(): Map<String, String> {\n+  if (!pinLatestDeps) return emptyMap()\n+  val key = \"latestDepPinnedVersions\"\n+  if (!rootProject.extra.has(key)) {\n+    val file = rootProject.file(\".github/config/latest-dep-versions.json\")\n+    @Suppress(\"UNCHECKED_CAST\")\n+    rootProject.extra[key] = if (file.exists()) {\n+      groovy.json.JsonSlurper().parse(file) as Map<String, String>\n+    } else {\n+      emptyMap<String, String>()\n+    }\n+  }\n+  @Suppress(\"UNCHECKED_CAST\")\n+  return rootProject.extra[key] as Map<String, String>\n+}\n+\n+fun lookupPinnedVersion(group: String?, name: String, version: String?): String? {\n+  if (!pinLatestDeps || group == null) return null\n+  val pinned = getPinnedVersions()\n+  return if (version == \"latest.release\") {\n+    pinned[\"$group:$name\"]\n+  } else if (version != null && version.contains(\"+\")) {\n+    pinned[\"$group:$name#$version\"] ?: pinned[\"$group:$name\"]",
+      "id": "PRRT_kwDODJKVX85yYMGu",
+      "opened": "2026-03-05T16:25:11Z",
+      "path": "conventions/src/main/kotlin/io.opentelemetry.instrumentation.base.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-03-07T09:18:14Z",
+          "body": "Replaced with a fail-fast `GradleException` when the range-specific key is missing — thanks for catching this.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2899381867"
+        },
+        {
+          "at": "2026-03-10T17:36:58Z",
+          "body": "Already addressed — `lookupPinnedVersion` throws a GradleException when the range key is missing instead of falling back.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913390109"
+        }
+      ],
+      "reviewed": "5cbbc538f59eb50813f1c0a705f7af581f5b3442",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2890984231"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is missing a couple of patterns from TestLatestDepsRule, not sure if that's intentional",
+      "created": "2026-03-05T16:16:26Z",
+      "hunk": "@@ -0,0 +1,118 @@\n+tasks {\n+  val resolveLatestDepVersions by registering {\n+    group = \"Help\"\n+    description = \"Resolve latest dependency versions and write to .github/config/latest-dep-versions.json\"\n+\n+    doLast {\n+      if (gradle.startParameter.projectProperties[\"testLatestDeps\"] != \"true\" ||\n+        gradle.startParameter.projectProperties[\"resolveLatestDeps\"] != \"true\") {\n+        throw GradleException(\"Must run with -PtestLatestDeps=true -PresolveLatestDeps=true\")\n+      }\n+\n+      val versions = sortedMapOf<String, String>()\n+\n+      fun isHigherVersion(v1: String, v2: String): Boolean {\n+        val parts1 = v1.split(Regex(\"[.\\\\-]\"))\n+        val parts2 = v2.split(Regex(\"[.\\\\-]\"))\n+        for (i in 0 until maxOf(parts1.size, parts2.size)) {\n+          val n1 = parts1.getOrElse(i) { \"0\" }.toIntOrNull() ?: 0\n+          val n2 = parts2.getOrElse(i) { \"0\" }.toIntOrNull() ?: 0\n+          if (n1 != n2) return n1 > n2\n+        }\n+        return false\n+      }\n+\n+      fun isPreRelease(version: String): Boolean {\n+        return version.contains(\"-alpha\", true)\n+          || version.contains(\"-beta\", true)\n+          || version.contains(\"-rc\", true)\n+          || version.contains(\".rc\", true)\n+          || version.contains(\"-m\", true)\n+          || version.contains(\".m\", true)\n+          || version.contains(\".alpha\", true)\n+          || version.contains(\".beta\", true)\n+          || version.contains(\".cr\", true)\n+      }",
+      "id": "PRRT_kwDODJKVX85yYSLI",
+      "opened": "2026-03-05T16:25:11Z",
+      "path": "conventions/src/main/kotlin/otel.resolve-latest-dep-versions.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-03-05T16:25:11Z",
+          "body": "sent https://github.com/zeitlinger/opentelemetry-java-instrumentation/pull/9",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2891067184"
+        },
+        {
+          "at": "2026-03-07T09:18:16Z",
+          "body": "Covered by the shared `VersionFilters.isUnstable()` from your PR #9 — merged, thanks\\!",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2899381895"
+        },
+        {
+          "at": "2026-03-10T17:37:10Z",
+          "body": "Resolved by switching to `AcceptableVersions` which has all the patterns plus more. Added `-nf-execution` for the graphql case.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913391318"
+        },
+        {
+          "at": "2026-03-10T17:37:11Z",
+          "body": "Merged, thanks\\! Superseded by the `AcceptableVersions` switch.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913391506"
+        }
+      ],
+      "reviewed": "5cbbc538f59eb50813f1c0a705f7af581f5b3442",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2891017487"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this isn't needed, we only have a single required check: `required-status-check` (this job, which you've now made dependent on `test-latest-deps` passing",
+      "created": "2026-03-06T17:04:59Z",
+      "hunk": "@@ -51,17 +51,21 @@ jobs:\n     uses: ./.github/workflows/reusable-markdown-lint-check.yml\n \n   required-status-check:\n-    # test-latest-deps is not included in the required status checks\n-    # because any time a new library version is released to maven central\n-    # it can fail due to test code incompatibility with the new library version,\n-    # or due to slight changes in emitted telemetry\n+    # test-latest-deps is now included in the required status checks because\n+    # latest dependency versions are pinned (see .github/config/latest-dep-versions.json),\n+    # so test-latest-deps should no longer fail due to newly released library versions.\n+    #\n     # (muzzle can also fail when a new library version is released to maven central\n     # but that happens much less often)\n     #\n     # only the \"common\" checks are required for release branch PRs in order to avoid any unnecessary\n     # release branch maintenance (especially for patches)\n+    #\n+    # TODO also add test-latest-deps as a required status check in the GitHub branch protection\n+    # settings (requires repo admin)",
+      "id": "PRRT_kwDODJKVX85yo7hJ",
+      "opened": "2026-03-06T17:06:02Z",
+      "path": ".github/workflows/build-pull-request.yml",
+      "replies": [
+        {
+          "at": "2026-03-07T09:18:17Z",
+          "body": "Removed the TODO. You're right — `required-status-check` already gates on `test-latest-deps.result`, so a separate branch protection check isn't needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2899381924"
+        },
+        {
+          "at": "2026-03-10T17:37:13Z",
+          "body": "Removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913391674"
+        }
+      ],
+      "reviewed": "eb008201c6882081f909f3cbe341f70d01f13191",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2896876260"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "could we make the muzzle upper bound limit use the test latest deps pinned version to avoid these failures also?",
+      "created": "2026-03-06T17:05:58Z",
+      "hunk": "@@ -51,17 +51,21 @@ jobs:\n     uses: ./.github/workflows/reusable-markdown-lint-check.yml\n \n   required-status-check:\n-    # test-latest-deps is not included in the required status checks\n-    # because any time a new library version is released to maven central\n-    # it can fail due to test code incompatibility with the new library version,\n-    # or due to slight changes in emitted telemetry\n+    # test-latest-deps is now included in the required status checks because\n+    # latest dependency versions are pinned (see .github/config/latest-dep-versions.json),\n+    # so test-latest-deps should no longer fail due to newly released library versions.\n+    #\n     # (muzzle can also fail when a new library version is released to maven central\n     # but that happens much less often)",
+      "id": "PRRT_kwDODJKVX85yo8Yg",
+      "opened": "2026-03-06T17:06:02Z",
+      "path": ".github/workflows/build-pull-request.yml",
+      "replies": [
+        {
+          "at": "2026-03-07T09:18:18Z",
+          "body": "Done — `muzzle-check.gradle.kts` now reads `latest-dep-versions.json` and caps open-ended version ranges (e.g. `[4.1,)` → `[4.1,<pinned>]`). Falls back to the original unbounded range if no pinned version exists for the artifact. Also updated `docs/safety-mechanisms.md` to document both the test-latest-deps pinning and the muzzle capping.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2899381962"
+        },
+        {
+          "at": "2026-03-07T17:10:05Z",
+          "body": "Update: the initial string-based range capping had issues with pre-release versions (`6.0-rc2` < `6.0` in Maven ordering) and cross-major pinned versions (e.g. pinned `7.17.19` but range `[8.10,)`). Switched to post-resolution filtering — Aether resolves the full range, then `filterVersions()` excludes versions above the pinned upper bound using `Version.compareTo()`. All 4 muzzle jobs pass now.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2900085191"
+        },
+        {
+          "at": "2026-03-10T17:37:14Z",
+          "body": "Already implemented — updated lookup key to use `#+` suffix.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913391802"
+        }
+      ],
+      "reviewed": "eb008201c6882081f909f3cbe341f70d01f13191",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2896880825"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I wouldn't mind adding `#` for all versions just to be extra explicit\n```suggestion\n  \"com.datastax.oss:java-driver-core#+\": \"4.3.1\",\n  \"com.datastax.oss:java-driver-core#4.3.+\": \"4.3.1\",\n```",
+      "created": "2026-03-09T20:02:04Z",
+      "hunk": "@@ -0,0 +1,477 @@\n+{\n+  \"biz.paluch.redis:lettuce\": \"4.5.0.Final\",\n+  \"biz.paluch.redis:lettuce#4.+\": \"4.5.0.Final\",\n+  \"ch.qos.logback:logback-classic\": \"1.5.32\",\n+  \"co.elastic.clients:elasticsearch-java\": \"7.17.19\",\n+  \"co.elastic.clients:elasticsearch-java#8.9.+\": \"8.9.2\",\n+  \"com.alibaba:druid\": \"1.2.27\",\n+  \"com.amazonaws:aws-java-sdk-core\": \"1.12.797\",\n+  \"com.amazonaws:aws-java-sdk-dynamodb\": \"1.12.797\",\n+  \"com.amazonaws:aws-java-sdk-ec2\": \"1.12.797\",\n+  \"com.amazonaws:aws-java-sdk-kinesis\": \"1.12.797\",\n+  \"com.amazonaws:aws-java-sdk-lambda\": \"1.12.797\",\n+  \"com.amazonaws:aws-java-sdk-rds\": \"1.12.797\",\n+  \"com.amazonaws:aws-java-sdk-s3\": \"1.12.797\",\n+  \"com.amazonaws:aws-java-sdk-secretsmanager\": \"1.12.797\",\n+  \"com.amazonaws:aws-java-sdk-sns\": \"1.12.797\",\n+  \"com.amazonaws:aws-java-sdk-sqs\": \"1.12.583\",\n+  \"com.amazonaws:aws-java-sdk-stepfunctions\": \"1.12.797\",\n+  \"com.amazonaws:aws-lambda-java-core\": \"1.4.0\",\n+  \"com.amazonaws:aws-lambda-java-events\": \"3.16.1\",\n+  \"com.amazonaws:aws-lambda-java-serialization\": \"1.2.0\",\n+  \"com.azure:azure-core\": \"1.57.1\",\n+  \"com.azure:azure-core-test\": \"1.26.2\",\n+  \"com.clickhouse:clickhouse-client\": \"0.9.6\",\n+  \"com.clickhouse:clickhouse-http-client\": \"0.9.6\",\n+  \"com.clickhouse:client-v2\": \"0.9.6\",\n+  \"com.couchbase.client:encryption\": \"2.0.1\",\n+  \"com.couchbase.client:java-client\": \"3.11.1\",\n+  \"com.couchbase.client:java-client#2.+\": \"2.7.23\",\n+  \"com.couchbase.client:java-client#2.5.+\": \"2.5.9\",\n+  \"com.couchbase.client:java-client#3.1.+\": \"3.1.8\",\n+  \"com.couchbase.client:java-client#3.3.+\": \"3.3.4\",\n+  \"com.datastax.cassandra:cassandra-driver-core\": \"3.11.5\",\n+  \"com.datastax.cassandra:cassandra-driver-core#3.+\": \"3.11.5\",\n+  \"com.datastax.oss:java-driver-core\": \"4.3.1\",\n+  \"com.datastax.oss:java-driver-core#4.3.+\": \"4.3.1\",",
+      "id": "PRRT_kwDODJKVX85zHqJ9",
+      "opened": "2026-03-09T20:29:39Z",
+      "path": ".github/config/latest-dep-versions.json",
+      "replies": [
+        {
+          "at": "2026-03-10T17:37:16Z",
+          "body": "Applied to all 300 entries.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913391938"
+        }
+      ],
+      "reviewed": "d53d245f2d5fd61de83897fa06a0f3dae74a9881",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2907647977"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "with the pinning, I think we can enable these on branches now, which is really nice\n```suggestion\n          needs.common.result != 'success' ||\n          needs.test-latest-deps.result != 'success' ||\n          needs.muzzle.result != 'success' ||\n```",
+      "created": "2026-03-09T20:04:01Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX85zHrvm",
+      "opened": "2026-03-09T20:29:39Z",
+      "path": ".github/workflows/build-pull-request.yml",
+      "replies": [
+        {
+          "at": "2026-03-10T17:37:17Z",
+          "body": "Applied — all checks now required on all branches including release.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913392072"
+        }
+      ],
+      "reviewed": "d53d245f2d5fd61de83897fa06a0f3dae74a9881",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2907656769"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-03-09T20:04:11Z",
+      "hunk": "@@ -72,6 +70,7 @@ jobs:\n           (\n             !startsWith(github.base_ref, 'release/') &&\n             (\n+              needs.test-latest-deps.result != 'success' ||\n               needs.muzzle.result != 'success' ||",
+      "id": "PRRT_kwDODJKVX85zHr3H",
+      "opened": "2026-03-09T20:29:39Z",
+      "path": ".github/workflows/build-pull-request.yml",
+      "replies": [
+        {
+          "at": "2026-03-10T17:37:18Z",
+          "body": "Applied.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913392245"
+        }
+      ],
+      "reviewed": "d53d245f2d5fd61de83897fa06a0f3dae74a9881",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2907657444"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this comment was more important before when only common wasn't checked on release branches, I think ok to remove it now\n```suggestion\n```",
+      "created": "2026-03-09T20:04:51Z",
+      "hunk": "@@ -51,17 +51,15 @@ jobs:\n     uses: ./.github/workflows/reusable-markdown-lint-check.yml\n \n   required-status-check:\n-    # test-latest-deps is not included in the required status checks\n-    # because any time a new library version is released to maven central\n-    # it can fail due to test code incompatibility with the new library version,\n-    # or due to slight changes in emitted telemetry\n-    # (muzzle can also fail when a new library version is released to maven central\n-    # but that happens much less often)\n+    # test-latest-deps and muzzle are included in the required status checks because\n+    # latest dependency versions are pinned (see .github/config/latest-dep-versions.json),\n+    # so they should no longer fail due to newly released library versions.\n     #\n     # only the \"common\" checks are required for release branch PRs in order to avoid any unnecessary\n     # release branch maintenance (especially for patches)",
+      "id": "PRRT_kwDODJKVX85zHsbI",
+      "opened": "2026-03-09T20:29:39Z",
+      "path": ".github/workflows/build-pull-request.yml",
+      "replies": [
+        {
+          "at": "2026-03-10T17:37:20Z",
+          "body": "Removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913392397"
+        }
+      ],
+      "reviewed": "d53d245f2d5fd61de83897fa06a0f3dae74a9881",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2907660504"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "instead of closing the PR, how about letting the push go through below (to update the existing PR), and then skipping the PR creation? I think that's what we're doing for instrumentation yaml updates and seems to work well",
+      "created": "2026-03-09T20:14:36Z",
+      "hunk": "@@ -0,0 +1,80 @@\n+name: Update latest dep versions\n+\n+on:\n+  schedule:\n+    # daily at 4:12 UTC\n+    - cron: \"12 4 * * *\"\n+  workflow_dispatch:\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  update-latest-dep-versions:\n+    permissions:\n+      contents: write  # for git push to PR branch\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2\n+\n+      - name: Free disk space\n+        run: .github/scripts/gha-free-disk-space.sh\n+\n+      - name: Set up JDK for running Gradle\n+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0\n+        with:\n+          distribution: temurin\n+          java-version-file: .java-version\n+\n+      - name: Setup Gradle\n+        uses: gradle/actions/setup-gradle@f29f5a9d7b09a7c6b29859002d29d24e1674c884 # v5.0.1\n+\n+      - name: Resolve latest dep versions\n+        run: >\n+          ./gradlew resolveLatestDepVersions\n+          -PtestLatestDeps=true\n+          -PresolveLatestDeps=true\n+\n+      - name: Check for changes\n+        id: check-changes\n+        run: |\n+          if git diff --quiet .github/config/latest-dep-versions.json; then\n+            echo \"changed=false\" >> $GITHUB_OUTPUT\n+          else\n+            echo \"changed=true\" >> $GITHUB_OUTPUT\n+          fi\n+\n+      - name: Use CLA approved bot\n+        if: steps.check-changes.outputs.changed == 'true'\n+        run: .github/scripts/use-cla-approved-bot.sh\n+\n+      - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1\n+        if: steps.check-changes.outputs.changed == 'true'\n+        id: otelbot-token\n+        with:\n+          app-id: ${{ vars.OTELBOT_APP_ID }}\n+          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}\n+\n+      - name: Create pull request\n+        if: steps.check-changes.outputs.changed == 'true'\n+        env:\n+          # not using secrets.GITHUB_TOKEN since pull requests from that token do not run workflows\n+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}\n+        run: |\n+          message=\"Update pinned latest dep versions\"\n+          body=\"Auto-generated update of pinned latest dependency versions used by \\`testLatestDeps\\` builds.\"\n+          branch=\"otelbot/update-latest-dep-versions\"\n+\n+          # close any existing PR on the same branch\n+          existing_pr=$(gh pr list --head \"$branch\" --state open --json number --jq '.[0].number')\n+          if [ -n \"$existing_pr\" ]; then\n+            gh pr close \"$existing_pr\"\n+          fi",
+      "id": "PRRT_kwDODJKVX85zH0nv",
+      "opened": "2026-03-09T20:29:39Z",
+      "path": ".github/workflows/update-latest-dep-versions.yml",
+      "replies": [
+        {
+          "at": "2026-03-10T17:37:21Z",
+          "body": "Refactored — pushes to branch first, only creates PR if none exists.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913392503"
+        }
+      ],
+      "reviewed": "d53d245f2d5fd61de83897fa06a0f3dae74a9881",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2907705622"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I'm not sure this section is needed. I figure it's going to be the core folks fixing the daily CI job failures.\n\nmaybe instead add some doc to \"writing instrumentations\" since people will need to update the mapping when building new instrumentation?",
+      "created": "2026-03-09T20:22:33Z",
+      "hunk": "@@ -35,6 +35,38 @@ released that breaks our instrumentation tests.\n \n To run these tests locally, add `-PtestLatestDeps=true` to your existing `gradlew` command line.\n \n+#### Pinned latest dep versions",
+      "id": "PRRT_kwDODJKVX85zH7XE",
+      "opened": "2026-03-09T20:29:39Z",
+      "path": "docs/contributing/running-tests.md",
+      "replies": [
+        {
+          "at": "2026-03-10T17:37:22Z",
+          "body": "Moved to writing-instrumentation.md, tailored for instrumentation authors.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913392621"
+        }
+      ],
+      "reviewed": "d53d245f2d5fd61de83897fa06a0f3dae74a9881",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2907742517"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "do we need this file? can we use `AcceptableVersions` instead?",
+      "created": "2026-03-09T20:29:33Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.gradle\n+\n+object VersionFilters {\n+  private val GIT_SHA_PATTERN = Regex(\"^.*-[0-9a-f]{7,}$\")\n+  private val DATETIME_PATTERN = Regex(\"^\\\\d{4}-\\\\d{2}-\\\\d{2}T\\\\d{2}-\\\\d{2}-\\\\d{2}.*$\")\n+\n+  fun isUnstable(version: String): Boolean {\n+    return version.contains(\"-alpha\", true)\n+      || version.contains(\"-beta\", true)\n+      || version.contains(\"-rc\", true)\n+      || version.contains(\".rc\", true)\n+      || version.contains(\"-m\", true) // e.g. spring milestones are published to grails repo\n+      || version.contains(\".m\", true) // e.g. lettuce\n+      || version.contains(\".alpha\", true) // e.g. netty\n+      || version.contains(\".beta\", true) // e.g. hibernate\n+      || version.contains(\".cr\", true) // e.g. hibernate\n+      || version.endsWith(\"-nf-execution\") // graphql\n+      || GIT_SHA_PATTERN.matches(version) // graphql\n+      || DATETIME_PATTERN.matches(version) // graphql\n+  }",
+      "id": "PRRT_kwDODJKVX85zIBLF",
+      "opened": "2026-03-09T20:29:39Z",
+      "path": "conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/VersionFilters.kt",
+      "replies": [
+        {
+          "at": "2026-03-10T17:37:24Z",
+          "body": "Done — deleted VersionFilters, using AcceptableVersions directly. Added `-nf-execution` pattern to preserve graphql filtering.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2913392751"
+        }
+      ],
+      "reviewed": "d53d245f2d5fd61de83897fa06a0f3dae74a9881",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r2907774039"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] The new import is placed above the file kdoc, leaving imports split on either side of the comment. Group it with the existing import below the kdoc so the import block is contiguous.\n\n```suggestion\n/** Common setup for manual instrumentation of libraries and javaagent instrumentation. */\n\nimport io.opentelemetry.instrumentation.gradle.OtelPropsExtension\nimport io.opentelemetry.javaagent.muzzle.AcceptableVersions\n```",
+      "created": "2026-04-20T00:04:47Z",
+      "hunk": "@@ -1,3 +1,5 @@\n+import io.opentelemetry.javaagent.muzzle.AcceptableVersions\n+\n /** Common setup for manual instrumentation of libraries and javaagent instrumentation. */\n \n import io.opentelemetry.instrumentation.gradle.OtelPropsExtension",
+      "id": "PRRT_kwDODJKVX858D48K",
+      "opened": "2026-04-20T00:07:53Z",
+      "path": "conventions/src/main/kotlin/io.opentelemetry.instrumentation.base.gradle.kts",
+      "replies": [],
+      "reviewed": "3fce9ba3b1ac315d2f241a61ff6f5f4a04dfa58c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r3107727677"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `system`, `session`, and `repos` are not used inside `resolveUpperBound` — the body only consults the pinned-versions map. Drop the unused parameters (and the corresponding arguments at the two call sites in `inverseOf` and `muzzleDirectiveToArtifacts`) to keep the signature honest:\n\n```suggestion\nfun resolveUpperBound(group: String, module: String): Version {\n```",
+      "created": "2026-04-20T00:04:47Z",
+      "hunk": "@@ -34,6 +36,40 @@ plugins {\n // Select a random set of versions to test\n val RANGE_COUNT_LIMIT = Integer.getInteger(\"otel.javaagent.muzzle.versions.limit\", 10)\n \n+// Read pinned latest-dep versions to cap muzzle's open-ended version ranges,\n+// preventing failures when new library versions are released to Maven Central.\n+val muzzlePinnedVersions: Map<String, String> by lazy {\n+  val file = rootProject.file(\".github/config/latest-dep-versions.json\")\n+  @Suppress(\"UNCHECKED_CAST\")\n+  groovy.json.JsonSlurper().parse(file) as Map<String, String>\n+}\n+\n+/**\n+ * Resolve the pinned upper bound as an Aether Version for a muzzle-checked artifact.\n+ *\n+ * <p>The pinned version limits which library versions muzzle will test against, preventing CI\n+ * failures when new (potentially incompatible) versions are published to Maven Central.\n+ *\n+ * <p>Special value \"0.0\": used as a sentinel for artifacts that either don't exist on any\n+ * accessible Maven repository, or whose muzzle directive is intentionally a no-op (e.g. a\n+ * {@code fail} directive for a never-published artifact, or a {@code pass} directive where\n+ * the agent uses shaded/in-repo classes rather than the external library). With \"0.0\" as the\n+ * upper bound, {@code filterVersions} rejects all real versions (none are <= 0.0), so no\n+ * muzzle tasks are created and the directive is silently skipped. To add a sentinel entry,\n+ * manually add {@code \"group:module#+\": \"0.0\"} to\n+ * {@code .github/config/latest-dep-versions.json}.\n+ */\n+fun resolveUpperBound(group: String, module: String, system: RepositorySystem, session: RepositorySystemSession, repos: List<RemoteRepository>): Version {",
+      "id": "PRRT_kwDODJKVX858D48P",
+      "opened": "2026-04-20T00:07:53Z",
+      "path": "gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+      "replies": [],
+      "reviewed": "3fce9ba3b1ac315d2f241a61ff6f5f4a04dfa58c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16344#discussion_r3107727684"
+    }
+  ]
+}

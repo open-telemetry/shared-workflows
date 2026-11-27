@@ -1,0 +1,25 @@
+{
+  "head": "64b875a2818648f6d685e7bce9c3f277b3fdf0db",
+  "merge": "94f432d7126f5884d30a2cdde6f4e89908ebb6fd",
+  "merged": "2026-09-03T23:32:19Z",
+  "missing_roots": 0,
+  "number": 479,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The GenAI metric definition recommends explicit boundaries for token usage (`docs/gen-ai/gen-ai-metrics.md:49`). Without the advisory this reference instrument uses the SDK defaults, so it does not demonstrate the convention's intended token distribution.\n\nThis issue also appears in the following locations of the same file:\n- line 25\n- line 33\n- line 47",
+      "created": "2026-08-29T19:57:24Z",
+      "hunk": "@@ -2,12 +2,52 @@\n \n import json\n import os\n+import time\n \n-from reference_shared import flush_and_shutdown, reference_event_logger, reference_tracer, setup_otel\n+from reference_shared import (\n+    flush_and_shutdown,\n+    mock_server_host_port,\n+    reference_event_logger,\n+    reference_meter,\n+    reference_tracer,\n+    setup_otel,\n+)\n \n MOCK_BASE_URL = os.environ[\"MOCK_LLM_URL\"]\n \n _reference_tracer = reference_tracer()\n+_meter = reference_meter()\n+_token_usage = _meter.create_histogram(\n+    \"gen_ai.client.token.usage\",\n+    unit=\"{token}\",\n+    description=\"Number of input and output tokens used.\",\n+)",
+      "id": "PRRT_kwDOSUeMrM6dcUCh",
+      "opened": "2026-08-29T19:57:25Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [],
+      "reviewed": "75f64a325dda665dc4a7e40f9b5c2baa60b0d7dd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/479#discussion_r3887535770"
+    }
+  ]
+}

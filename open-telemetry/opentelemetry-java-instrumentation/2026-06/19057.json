@@ -1,0 +1,223 @@
+{
+  "head": "1bf66587d604fab567beb180706f8d49da20f4cb",
+  "merge": "f6223ec464e2b84c5a43178774c38d35e45be486",
+  "merged": "2026-06-25T18:15:37Z",
+  "missing_roots": 0,
+  "number": 19057,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The aggregated batch query text concatenates the sanitized text of every request with no upper bound on length. The analogous redisson Redis-batch implementation caps the joined query text at 32 KB (`LIMIT = 32 * 1024`, see `RedissonRequest.java:44,160`) specifically to avoid emitting an enormous `db.query.text`/`db.statement` attribute for large pipelines. Since this PR is a slice of the same Redis batch work, consider applying a similar length cap here so a very large batch does not produce an unbounded span attribute.",
+      "created": "2026-06-19T23:47:05Z",
+      "hunk": "@@ -68,4 +106,29 @@ Integer getPeerPort() {\n     int port = netSocket.remoteAddress().port();\n     return port != -1 ? port : null;\n   }\n+\n+  private static String batchOperationName(List<Request> requests) {\n+    String operationName = VertxRedisClientSingletons.getCommandName(requests.get(0).command());\n+    if (requests.size() == 1) {\n+      return operationName;\n+    }\n+    for (int i = 1; i < requests.size(); i++) {\n+      if (!operationName.equals(\n+          VertxRedisClientSingletons.getCommandName(requests.get(i).command()))) {\n+        return \"PIPELINE\";\n+      }\n+    }\n+    return \"PIPELINE \" + operationName;\n+  }\n+\n+  private static String batchQueryText(List<Request> requests) {\n+    StringJoiner joiner = new StringJoiner(\";\");\n+    for (Request request : requests) {\n+      String commandName =\n+          VertxRedisClientSingletons.getCommandName(request.command()).toUpperCase(Locale.ROOT);\n+      joiner.add(\n+          VertxRedisClientAttributesGetter.sanitize(commandName, RequestUtil.getArgs(request)));\n+    }\n+    return joiner.toString();\n+  }",
+      "id": "PRRT_kwDODJKVX86K8TPo",
+      "opened": "2026-06-19T23:47:05Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-20T00:14:31Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bfd70427cfbb0ba84c72f89afcd6006e7fbec8c4.\n\nCapped Vert.x Redis batch query text at 32 KB to align with the Redis sanitizer limit and added coverage for oversized batches.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3445012385"
+        }
+      ],
+      "reviewed": "f68b2a2b792c5bb4c6f1145e0cb826ba8ddfc8f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3444955663"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The \"empty\" batch scenario asserts `db.operation.batch.size = 0`, but this attribute is never emitted for an empty batch. `createBatch` computes `batchSize = 0` for an empty list (`requests.size() != 1`), and `DbClientAttributesExtractor.onStartCommon` only sets `DB_OPERATION_BATCH_SIZE` when `batchSize != null && batchSize > 1`. So under stable semconv the attribute is absent, and `equalTo(DB_OPERATION_BATCH_SIZE, 0)` evaluates to `assertThat((Long) null).isEqualTo(0L)`, which fails. The plain `:javaagent:test` run passes because the old-semconv branch has no batch-size assertion, but the `testStableSemconv` task (wired into `check`) exercises this and will fail. Drop `.batchSize(0)` so the empty scenario expects no batch-size attribute (matching the single-command scenario).",
+      "created": "2026-06-20T00:34:25Z",
+      "hunk": "@@ -201,14 +223,84 @@ void commandWithNoArguments() throws Exception {\n                             redisSpanAttributes(\"RANDOMKEY\", \"RANDOMKEY\"))));\n   }\n \n-  private static AttributeAssertion[] redisSpanAttributes(String operation, String queryText) {\n+  @ParameterizedTest(name = \"{0}\")\n+  @MethodSource(\"batchScenarios\")\n+  void batchCommand(BatchScenario scenario) throws Exception {\n+    testing.clearData();\n+\n+    client.batch(scenario.requests).toCompletionStage().toCompletableFuture().get(30, SECONDS);\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\n+                            emitStableDatabaseSemconv()\n+                                ? scenario.operationName + \" \" + host + \":\" + port\n+                                : scenario.operationName)\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            redisSpanAttributes(\n+                                scenario.operationName, scenario.queryText, scenario.batchSize))));\n+  }\n+\n+  private static Stream<Arguments> batchScenarios() {\n+    return Stream.of(\n+        Arguments.argumentSet(\n+            \"empty\",\n+            BatchScenario.builder().operationName(\"PIPELINE\").queryText(\"\").batchSize(0).build()),",
+      "id": "PRRT_kwDODJKVX86K8lWw",
+      "opened": "2026-06-20T00:34:25Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-20T02:31:09Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3729e555605694f91dce9bc65b08193d550e04c7.\n\nRemoved the empty batch scenario batch-size expectation so stable semconv expects the attribute to be absent.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3445308592"
+        }
+      ],
+      "reviewed": "4e0ce1ef9a987a0976e057ddd1d0edc7c638c7cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3445054392"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "change to new BatchScenario(this)",
+      "created": "2026-06-20T01:47:59Z",
+      "hunk": "@@ -229,4 +321,59 @@ private static AttributeAssertion[] redisSpanAttributes(String operation, String\n       };\n     }\n   }\n+\n+  private static class BatchScenario {\n+    private final List<Request> requests;\n+    private final String operationName;\n+    private final String queryText;\n+    private final Long batchSize;\n+\n+    private BatchScenario(\n+        List<Request> requests, String operationName, String queryText, Long batchSize) {\n+      this.requests = requests;\n+      this.operationName = operationName;\n+      this.queryText = queryText;\n+      this.batchSize = batchSize;\n+    }\n+\n+    private static Builder builder() {\n+      return new Builder();\n+    }\n+\n+    private static class Builder {\n+      private List<Request> requests = new ArrayList<>();\n+      private String operationName;\n+      private String queryText;\n+      private Long batchSize;\n+\n+      private Builder addRequest(Request request) {\n+        requests.add(request);\n+        return this;\n+      }\n+\n+      private Builder requests(List<Request> requests) {\n+        this.requests = requests;\n+        return this;\n+      }\n+\n+      private Builder operationName(String operationName) {\n+        this.operationName = operationName;\n+        return this;\n+      }\n+\n+      private Builder queryText(String queryText) {\n+        this.queryText = queryText;\n+        return this;\n+      }\n+\n+      private Builder batchSize(long batchSize) {\n+        this.batchSize = batchSize;\n+        return this;\n+      }\n+\n+      private BatchScenario build() {\n+        return new BatchScenario(requests, operationName, queryText, batchSize);",
+      "id": "PRRT_kwDODJKVX86K9EGv",
+      "opened": "2026-06-20T01:52:59Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-20T02:28:08Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6bd57573ff5901638eae5ee02ebbeb0d14a088da.\n\nUpdated BatchScenario so the builder passes itself to the scenario constructor, avoiding duplicated constructor arguments.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3445304125"
+        }
+      ],
+      "reviewed": "6fb64f81c6f6c77471398f93de05bac35e9b6771",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3445229058"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "remove this?",
+      "created": "2026-06-20T01:48:12Z",
+      "hunk": "@@ -76,6 +90,14 @@ static void setup() throws Exception {\n         client.connect().toCompletionStage().toCompletableFuture().get(30, SECONDS);\n     redis = RedisAPI.api(connection);\n     cleanup.deferAfterAll(redis::close);\n+\n+    client\n+        .batch(singletonList(Request.cmd(Command.PING)))\n+        .toCompletionStage()\n+        .toCompletableFuture()\n+        .get(30, SECONDS);\n+    testing.waitForTraces(1);\n+    testing.clearData();",
+      "id": "PRRT_kwDODJKVX86K9EMP",
+      "opened": "2026-06-20T01:52:59Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-20T02:28:09Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7b445e1df3dc7c89140e48a77dec3771d3b50d4d.\n\nRemoved the setup-time Redis batch warm-up and the now-unused singletonList import.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3445304169"
+        }
+      ],
+      "reviewed": "6fb64f81c6f6c77471398f93de05bac35e9b6771",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3445229486"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is confusing, what if we store List<Request> in here, and have getRequests(), and then caller can do calculations as needed",
+      "created": "2026-06-20T01:50:00Z",
+      "hunk": "@@ -5,24 +5,56 @@\n \n package io.opentelemetry.javaagent.instrumentation.vertx.redisclient.v4_0;\n \n+import static java.util.Collections.emptyList;\n+\n import io.vertx.core.net.NetSocket;\n+import io.vertx.redis.client.Request;\n import io.vertx.redis.client.impl.RedisURI;\n+import io.vertx.redis.client.impl.RequestUtil;\n import java.util.List;\n import java.util.Locale;\n import javax.annotation.Nullable;\n \n class VertxRedisClientRequest {\n+  // Match RedisCommandSanitizer's per-command limit when joining batch query text.\n+  private static final int BATCH_QUERY_TEXT_LIMIT = 32 * 1024;\n+\n   private final String command;\n   private final List<byte[]> args;\n   private final RedisURI redisUri;\n   private final NetSocket netSocket;\n+  @Nullable private final String queryTextOverride;",
+      "id": "PRRT_kwDODJKVX86K9FYJ",
+      "opened": "2026-06-20T01:52:59Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-20T02:28:11Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f77a2e21cfa5cf1f00eaf09b2fce4aaea540b226.\n\nSimplified VertxRedisClientRequest to precompute normalized operation, query text, and batch-size values, and made the attributes getter delegate to it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3445304246"
+        }
+      ],
+      "reviewed": "6fb64f81c6f6c77471398f93de05bac35e9b6771",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3445236218"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "move this to local var",
+      "created": "2026-06-22T20:04:38Z",
+      "hunk": "@@ -50,13 +61,16 @@ class VertxRedisClientTest {\n   @RegisterExtension\n   private static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n \n+  private static final String LONG_BATCH_KEY = String.join(\"\", nCopies(1020, \"x\"));",
+      "id": "PRRT_kwDODJKVX86LYhfT",
+      "opened": "2026-06-22T20:07:55Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T21:19:10Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3e41441456496cf5b29968e82a46f8cf9e7202b2.\n\nMoved LONG_BATCH_KEY to a local var in batchScenarios().",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3455505664"
+        }
+      ],
+      "reviewed": "00cff5857255ecdd5e58b9fa13544337f98e92f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3455105211"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is VertxRedisClientSingletons.getCommandName(request.command()) == null necessary?\n\nadd comment why one request == null bailing out of entire instr",
+      "created": "2026-06-22T20:07:45Z",
+      "hunk": "@@ -116,6 +118,90 @@ public static Future<Response> onExit(\n     }\n   }\n \n+  @SuppressWarnings(\"unused\")\n+  public static class BatchAdvice {\n+    public static class BatchAdviceScope {\n+      private final VertxRedisClientRequest otelRequest;\n+      private final Context context;\n+      private final Scope scope;\n+\n+      private BatchAdviceScope(VertxRedisClientRequest otelRequest, Context context, Scope scope) {\n+        this.otelRequest = otelRequest;\n+        this.context = context;\n+        this.scope = scope;\n+      }\n+\n+      @Nullable\n+      public static BatchAdviceScope start(\n+          RedisStandaloneConnection connection,\n+          @Nullable List<Request> requests,\n+          NetSocket netSocket) {\n+\n+        if (requests == null) {\n+          return null;\n+        }\n+        for (Request request : requests) {\n+          if (request == null\n+              || VertxRedisClientSingletons.getCommandName(request.command()) == null) {",
+      "id": "PRRT_kwDODJKVX86LYk2R",
+      "opened": "2026-06-22T20:07:55Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/RedisStandaloneConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T21:19:12Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9bfb511c8794a4c1d60c77c2322ab01199c8e5fd.\n\nRather than skip the whole batch when a command name can't be resolved, the batch path now degrades to a generic PIPELINE span: batchOperationName falls back to PIPELINE and batchQueryText skips unresolved commands.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3455505790"
+        }
+      ],
+      "reviewed": "00cff5857255ecdd5e58b9fa13544337f98e92f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3455124113"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    String longBatchKey = String.join(\"\", nCopies(1020, \"x\"));\n    // No empty scenario: Vert.x Redis never completes client.batch(emptyList()),\n    // and times out before asserting instrumentation.\n```",
+      "created": "2026-06-22T21:33:29Z",
+      "hunk": "@@ -201,14 +212,84 @@ void commandWithNoArguments() throws Exception {\n                             redisSpanAttributes(\"RANDOMKEY\", \"RANDOMKEY\"))));\n   }\n \n-  private static AttributeAssertion[] redisSpanAttributes(String operation, String queryText) {\n+  @ParameterizedTest\n+  @MethodSource(\"batchScenarios\")\n+  void batchCommand(BatchScenario scenario) throws Exception {\n+    testing.clearData();\n+\n+    connection.batch(scenario.requests).toCompletionStage().toCompletableFuture().get(30, SECONDS);\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\n+                            emitStableDatabaseSemconv()\n+                                ? scenario.operationName + \" \" + host + \":\" + port\n+                                : scenario.operationName)\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            redisSpanAttributes(\n+                                scenario.operationName, scenario.queryText, scenario.batchSize))));\n+  }\n+\n+  private static Stream<Arguments> batchScenarios() {\n+    // No empty scenario: Vert.x Redis never completes client.batch(emptyList()),\n+    // and times out before asserting instrumentation.\n+    String longBatchKey = String.join(\"\", nCopies(1020, \"x\"));",
+      "id": "PRRT_kwDODJKVX86LZ0EW",
+      "opened": "2026-06-22T21:33:29Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+      "replies": [],
+      "reviewed": "9bfb511c8794a4c1d60c77c2322ab01199c8e5fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3455569982"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we still capture span when redisUri is null, (just with less data)?",
+      "created": "2026-06-22T21:36:42Z",
+      "hunk": "@@ -116,6 +118,84 @@ public static Future<Response> onExit(\n     }\n   }\n \n+  @SuppressWarnings(\"unused\")\n+  public static class BatchAdvice {\n+    public static class BatchAdviceScope {\n+      private final VertxRedisClientRequest otelRequest;\n+      private final Context context;\n+      private final Scope scope;\n+\n+      private BatchAdviceScope(VertxRedisClientRequest otelRequest, Context context, Scope scope) {\n+        this.otelRequest = otelRequest;\n+        this.context = context;\n+        this.scope = scope;\n+      }\n+\n+      @Nullable\n+      public static BatchAdviceScope start(\n+          RedisStandaloneConnection connection,\n+          @Nullable List<Request> requests,\n+          NetSocket netSocket) {\n+\n+        if (requests == null) {\n+          return null;\n+        }\n+\n+        RedisURI redisUri = VertxRedisClientSingletons.getRedisUri(connection);\n+        if (redisUri == null) {\n+          return null;\n+        }",
+      "id": "PRRT_kwDODJKVX86LZ2r7",
+      "opened": "2026-06-22T21:36:53Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/RedisStandaloneConnectionInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-06-22T21:49:15Z",
+          "body": "Done — we now start the span even when `redisUri` is null (and similarly when the command name or query text can't be resolved), just with less data.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3455640244"
+        }
+      ],
+      "reviewed": "b6616b18d46623e6badcf48a7cd9910b2ef12a09",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3455584315"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    String operationName = commandName(requests.get(0));\n    if (operationName == null) {\n      // Fall back to a generic span name when a command name can't be resolved.\n      return \"PIPELINE\";\n```",
+      "created": "2026-06-22T21:51:17Z",
+      "hunk": "@@ -68,4 +123,58 @@ Integer getPeerPort() {\n     int port = netSocket.remoteAddress().port();\n     return port != -1 ? port : null;\n   }\n+\n+  private static String batchOperationName(List<Request> requests) {\n+    if (requests.isEmpty()) {\n+      return \"PIPELINE\";\n+    }\n+    // Fall back to a generic span name when a command name can't be resolved.\n+    String operationName = commandName(requests.get(0));\n+    if (operationName == null) {\n+      return \"PIPELINE\";",
+      "id": "PRRT_kwDODJKVX86LaCLA",
+      "opened": "2026-06-22T21:51:28Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientRequest.java",
+      "replies": [],
+      "reviewed": "0229f138d924c659d65883b50e42e70cc0aeca1e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3455648824"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "changed behavior to capture span in this failure mode (e.g. with fallback span name `redis`)",
+      "created": "2026-06-22T22:13:55Z",
+      "hunk": "@@ -61,9 +63,6 @@ public static AdviceScope start(\n \n         String commandName = VertxRedisClientSingletons.getCommandName(request.command());\n         RedisURI redisUri = VertxRedisClientSingletons.getRedisUri(connection);\n-        if (commandName == null || redisUri == null) {\n-          return null;\n-        }",
+      "id": "PRRT_kwDODJKVX86LaU1C",
+      "opened": "2026-06-22T22:13:55Z",
+      "path": "instrumentation/vertx/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/RedisStandaloneConnectionInstrumentation.java",
+      "replies": [],
+      "reviewed": "0b2fdd52b094023334611ab576b107ac568748dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19057#discussion_r3455755489"
+    }
+  ]
+}

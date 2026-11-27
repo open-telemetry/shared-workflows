@@ -1,0 +1,49 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "5a9cdddc5cf024ca17959bd6b62ed6e47ba4e9751546767ba77ef34be87998fc",
+  "input_digest": "5d2a7795d76a13d81e4882b4cbc4e011c4c4f0c734ec4e755637c568b6061544",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5506935f9a8bcbd55ed94da52441fe825428bbcf/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientRequestResendCount.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/913c0c383d034913596dfe2cf4722529487dfb83/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientRequestResendCount.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6ebc6612a7d294b6998bcd8d9d7ecd5336d0664f"
+      ],
+      "id": "PRRT_kwDODJKVX866LSVx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5506935f9a8bcbd55ed94da52441fe825428bbcf/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5506935f9a8bcbd55ed94da52441fe825428bbcf/instrumentation/armeria/armeria-grpc-1.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/armeria/grpc/v1_14/ArmeriaGrpcClientBuilderInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/913c0c383d034913596dfe2cf4722529487dfb83/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/913c0c383d034913596dfe2cf4722529487dfb83/instrumentation/armeria/armeria-grpc-1.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/armeria/grpc/v1_14/ArmeriaGrpcClientBuilderInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6ebc6612a7d294b6998bcd8d9d7ecd5336d0664f"
+      ],
+      "id": "PRRT_kwDODJKVX866LSWe",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0747247b9ca209f66dfcd2e4c0f1ed18bf80b7c/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientRequestResendCount.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0747247b9ca209f66dfcd2e4c0f1ed18bf80b7c/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/913c0c383d034913596dfe2cf4722529487dfb83/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientRequestResendCount.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/913c0c383d034913596dfe2cf4722529487dfb83/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6ebc6612a7d294b6998bcd8d9d7ecd5336d0664f"
+      ],
+      "id": "PRRT_kwDODJKVX866N02B",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

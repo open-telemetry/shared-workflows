@@ -1,0 +1,31 @@
+{
+  "head": "733f53645f302aa031661694665a8b93e360d6c1",
+  "merge": "c4902ae728d2ae9d5e75dac6a3f4f128b24910a8",
+  "merged": "2026-04-18T18:07:24Z",
+  "missing_roots": 0,
+  "number": 17911,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@jaydeluca looks like it got this one wrong",
+      "created": "2026-04-18T16:37:46Z",
+      "hunk": "@@ -13,18 +13,21 @@ semantic_conventions:\n   - GENAI_CLIENT_METRICS\n configurations:\n   - name: otel.instrumentation.aws-sdk.experimental-span-attributes\n+    declarative_name: java.aws_sdk.span_attributes/development",
+      "id": "PRRT_kwDODJKVX8579E8-",
+      "opened": "2026-04-18T16:37:46Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-04-18T17:08:31Z",
+          "body": "```suggestion\n    declarative_name: java.aws_sdk.experimental_span_attributes/development\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17911#discussion_r3105526436"
+        }
+      ],
+      "reviewed": "bff3d1957e17aa1e3feada30bca77d3e99576933",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17911#discussion_r3105488683"
+    }
+  ]
+}

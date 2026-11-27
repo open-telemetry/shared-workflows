@@ -1,0 +1,42 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ec840cb577c40d36730de4170b09b9cdf57ee8b8764bd0c0044b381524511531",
+  "input_digest": "9dbdd52cc00990cbb46b05ce46996fa0152b2b7db31f545d192c9602efeec220",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e2f00ba77070ad9ed2435f30f97d294bc2682619/.github/workflows/flaky-test-remediation.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec849981aaa5adff2cefa0c7bea12b50a647a83a/.github/workflows/flaky-test-remediation.yml"
+      ],
+      "id": "PRRT_kwDODJKVX86d4v88",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e2f00ba77070ad9ed2435f30f97d294bc2682619/.github/scripts/flaky-test-remediation/1-select-flaky-test.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec849981aaa5adff2cefa0c7bea12b50a647a83a/.github/scripts/flaky-test-remediation/1-select-flaky-test.py"
+      ],
+      "id": "PRRT_kwDODJKVX86d4v9T",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e2f00ba77070ad9ed2435f30f97d294bc2682619/.github/scripts/flaky-test-remediation/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ec849981aaa5adff2cefa0c7bea12b50a647a83a/.github/scripts/flaky-test-remediation/README.md"
+      ],
+      "id": "PRRT_kwDODJKVX86d4v9o",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "ace06acfb854ed0aa38e44024579fd30a6697294",
+  "merge": "f20817d07ebc6045a89896ccc2ec1f360298c52c",
+  "merged": "2026-07-08T21:07:29Z",
+  "missing_roots": 0,
+  "number": 205,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In streaming/async streaming paths, `_apply_response_attributes` is called for every chunk. Since `GenerateContentResponse.model_version` is optional, assigning it unconditionally can overwrite a previously captured response model with `None` on later chunks that omit `model_version`, causing `gen_ai.response.model` to be missing on the finished span/event.",
+      "created": "2026-07-08T19:35:01Z",
+      "hunk": "@@ -396,11 +396,12 @@ def _get_extra_generate_content_attributes() -> dict[str, AttributeValue]:\n     return dict(attrs or {})\n \n \n-def _maybe_update_token_counts_and_finish_reasons(\n+def _apply_response_attributes(\n     response: GenerateContentResponse,\n     finish_reasons: list[str],\n     invocation: InferenceInvocation,\n ):\n+    invocation.response_model_name = response.model_version\n     for candidate in response.candidates or []:",
+      "id": "PRRT_kwDOSbspP86PW53q",
+      "opened": "2026-07-08T19:35:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "68b675d5edb631aa0eb8265f115350e0bc07d9dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/205#discussion_r3546759308"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new test only asserts `gen_ai.response.model` on the span, but the PR description says the response model should be recorded on the span/event. Adding an event assertion here would cover the event/log signal too and prevent regressions.",
+      "created": "2026-07-08T19:35:01Z",
+      "hunk": "@@ -310,6 +310,14 @@ def test_generated_span_counts_tokens(self):\n             span.attributes[\"gen_ai.usage.reasoning.output_tokens\"], 17\n         )\n \n+    def test_generated_span_records_response_model(self):\n+        self.configure_valid_response(model_version=\"gemini-2.0-flash-001\")\n+        self.generate_content(model=\"gemini-2.0-flash\", contents=\"Some input\")\n+        span = self.otel.get_span_named(\"generate_content gemini-2.0-flash\")\n+        self.assertEqual(\n+            span.attributes[\"gen_ai.response.model\"], \"gemini-2.0-flash-001\"\n+        )",
+      "id": "PRRT_kwDOSbspP86PW54G",
+      "opened": "2026-07-08T19:35:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/nonstreaming_base.py",
+      "replies": [],
+      "reviewed": "68b675d5edb631aa0eb8265f115350e0bc07d9dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/205#discussion_r3546759344"
+    }
+  ]
+}

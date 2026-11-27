@@ -1,0 +1,283 @@
+{
+  "head": "53bc4be86309fbeca3c4883fb7abf4010ae11e0a",
+  "merge": "223bce4a8f2c441f7bffbc01d2be1072b2d9e399",
+  "merged": "2026-09-22T18:55:04Z",
+  "missing_roots": 0,
+  "number": 20060,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The deprecation warning emitted here is always phrased as a deprecated *system property*, but `enabled` may have come from deprecated declarative config (`java.messaging.receive_telemetry/...`) via `config.getBoolean(...)` (even when `systemPropertyFallback` is false). This can mislead users who aren’t using system properties. Consider splitting the read path so you can detect the source (declarative vs system property) and emit an accurate warning message (e.g., ‘setting and equivalent declarative property are deprecated’ when the declarative value is present, and ‘system property is deprecated’ only when the value comes from `SystemProperty`).",
+      "created": "2026-09-09T17:20:36Z",
+      "hunk": "@@ -43,20 +56,67 @@ public static IncludeExclude getHeaders(OpenTelemetry openTelemetry) {\n    */\n   public static IncludeExclude getHeaders(\n       OpenTelemetry openTelemetry, boolean systemPropertyFallback) {\n-    return getHeaders(\n-        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"messaging\"),\n-        systemPropertyFallback);\n+    DeclarativeConfigProperties messagingConfig =\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"messaging\");\n+    boolean configured = hasHeadersConfig(messagingConfig, systemPropertyFallback);\n+    IncludeExclude selector = getHeaders(messagingConfig, systemPropertyFallback);\n+    if (!selector.isEmpty() || configured || SemconvStability.v3Preview(openTelemetry)) {\n+      return selector;\n+    }\n+\n+    // TODO: remove the deprecated flat messaging names in 3.0.\n+    return getDeprecatedHeaders(openTelemetry, systemPropertyFallback);\n   }\n \n   // visible for testing\n   static IncludeExclude getHeaders(\n       DeclarativeConfigProperties messagingConfig, boolean systemPropertyFallback) {\n     IncludeExclude selector =\n         SelectorConfig.resolve(\n-            messagingConfig, \"messaging\", \"headers\", EXPERIMENTAL, systemPropertyFallback);\n+            messagingConfig, \"common.messaging\", \"headers\", EXPERIMENTAL, systemPropertyFallback);\n     return selector == null ? NONE : selector;\n   }\n \n+  /**\n+   * Returns whether messaging receive telemetry is enabled.\n+   *\n+   * @param systemPropertyFallback whether to fall back to flat system properties when declarative\n+   *     configuration does not contain a value. This is needed by library instrumentation entry\n+   *     points that have no programmatic configuration surface.\n+   */\n+  public static boolean isReceiveTelemetryEnabled(\n+      OpenTelemetry openTelemetry, boolean systemPropertyFallback) {\n+    DeclarativeConfigProperties messagingConfig =\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"messaging\");\n+    Boolean enabled =\n+        getBoolean(\n+            messagingConfig.get(\"receive_telemetry/development\"),\n+            \"enabled\",\n+            COMMON_MESSAGING_PROPERTY_PREFIX + \".experimental.receive-telemetry.enabled\",\n+            systemPropertyFallback);\n+    if (enabled != null || SemconvStability.v3Preview(openTelemetry)) {\n+      return enabled != null && enabled;\n+    }\n+\n+    // TODO: remove the deprecated flat messaging name in 3.0.\n+    String deprecatedProperty =\n+        DEPRECATED_MESSAGING_PROPERTY_PREFIX + \".experimental.receive-telemetry.enabled\";\n+    enabled =\n+        getBoolean(\n+            DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"messaging\")\n+                .get(\"receive_telemetry/development\"),\n+            \"enabled\",\n+            deprecatedProperty,\n+            systemPropertyFallback);\n+    if (enabled != null) {\n+      warnDeprecatedFlatProperty(\n+          deprecatedProperty,\n+          COMMON_MESSAGING_PROPERTY_PREFIX + \".experimental.receive-telemetry.enabled\");\n+      return enabled;\n+    }",
+      "id": "PRRT_kwDODJKVX86gwwFD",
+      "opened": "2026-09-09T17:20:37Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-09T18:05:43Z",
+          "body": "Addressed in 4b35a2af9241dca444416aebc3d261a95a6a2a88.\n\nAnalysis: The declarative bridge can supply YAML or flat properties through the same read, so the code cannot reliably identify the source. The warning now follows the repository's source-neutral wording and names both the flat setting and its equivalent declarative property.\n\nUpsides: Users receive accurate deprecation guidance regardless of how they supplied the deprecated value. The change avoids duplicate source-specific read paths.\n\nDownsides: The warning is slightly longer for users who supplied only a flat property.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3971550426"
+        }
+      ],
+      "reviewed": "9dd8630dd277c9b0cc1a64ed3d68ad5094326f2a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3971184135"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as receive telemetry: these warnings are emitted as ‘system property is deprecated’ even when the deprecated value is supplied via declarative config (`java.messaging.headers/...`). Since this method explicitly reads the deprecated declarative tree, the warning text should cover both forms (or be conditional based on whether `SystemProperty.getList(...)` was used). This will make deprecation guidance accurate and easier to act on.",
+      "created": "2026-09-09T17:20:36Z",
+      "hunk": "@@ -72,36 +132,181 @@ public static boolean isBatchSendMessageCreationSpansEnabled(\n    */\n   public static boolean isBatchSendMessageCreationSpansEnabled(\n       OpenTelemetry openTelemetry, String instrumentationName, boolean systemPropertyFallback) {\n+    String instrumentationPropertyPrefix =\n+        \"otel.instrumentation.\" + instrumentationName.replace('_', '-');\n     Boolean enabled =\n-        getBatchSendMessageCreationSpansEnabled(\n-            DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, instrumentationName));\n-    if (enabled == null && systemPropertyFallback) {\n-      enabled =\n-          SystemProperty.getBoolean(\n-              \"otel.instrumentation.\"\n-                  + instrumentationName.replace('_', '-')\n-                  + \".batch-send.message-creation-spans.enabled\");\n-    }\n+        getMessageCreateSpansEnabled(\n+            openTelemetry,\n+            DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, instrumentationName),\n+            instrumentationPropertyPrefix + \".message-create-spans.enabled\",\n+            instrumentationPropertyPrefix + \".batch-send.message-creation-spans.enabled\",\n+            systemPropertyFallback);\n     if (enabled != null) {\n       return enabled;\n     }\n \n     enabled =\n-        getBatchSendMessageCreationSpansEnabled(\n+        getMessageCreateSpansEnabled(\n+            openTelemetry,\n             DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\")\n-                .get(\"messaging\"));\n-    if (enabled == null && systemPropertyFallback) {\n-      enabled =\n-          SystemProperty.getBoolean(\n-              \"otel.instrumentation.messaging.batch-send.message-creation-spans.enabled\");\n-    }\n+                .get(\"messaging\"),\n+            COMMON_MESSAGING_PROPERTY_PREFIX + \".message-create-spans.enabled\",\n+            DEPRECATED_MESSAGING_PROPERTY_PREFIX + \".batch-send.message-creation-spans.enabled\",\n+            systemPropertyFallback);\n     return enabled != null ? enabled : true;\n   }\n \n   @Nullable\n-  private static Boolean getBatchSendMessageCreationSpansEnabled(\n-      DeclarativeConfigProperties config) {\n-    return config.get(\"batch_send\").get(\"message_creation_spans\").getBoolean(\"enabled\");\n+  private static Boolean getMessageCreateSpansEnabled(\n+      OpenTelemetry openTelemetry,\n+      DeclarativeConfigProperties config,\n+      String replacementProperty,\n+      String deprecatedProperty,\n+      boolean systemPropertyFallback) {\n+    Boolean enabled =\n+        getBoolean(\n+            config.get(\"message_create_spans\"),\n+            \"enabled\",\n+            replacementProperty,\n+            systemPropertyFallback);\n+    if (enabled != null || SemconvStability.v3Preview(openTelemetry)) {\n+      return enabled;\n+    }\n+\n+    // TODO: remove the deprecated stable names in 3.0.\n+    enabled =\n+        getBoolean(\n+            config.get(\"batch_send\").get(\"message_creation_spans\"),\n+            \"enabled\",\n+            deprecatedProperty,\n+            systemPropertyFallback);\n+    if (enabled != null) {\n+      warnDeprecatedSetting(deprecatedProperty, replacementProperty);\n+    }\n+    return enabled;\n+  }\n+\n+  private static IncludeExclude getDeprecatedHeaders(\n+      OpenTelemetry openTelemetry, boolean systemPropertyFallback) {\n+    DeclarativeConfigProperties deprecatedConfig =\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"messaging\");\n+    DeclarativeConfigProperties headers = deprecatedConfig.get(\"headers/development\");\n+    String deprecatedHeadersPrefix =\n+        DEPRECATED_MESSAGING_PROPERTY_PREFIX + \".experimental.headers.\";\n+    List<String> included =\n+        getList(headers, \"included\", deprecatedHeadersPrefix + \"included\", systemPropertyFallback);\n+    List<String> excluded =\n+        getList(headers, \"excluded\", deprecatedHeadersPrefix + \"excluded\", systemPropertyFallback);\n+    IncludeExclude selector =\n+        IncludeExclude.builder()\n+            .setIncluded(included == null ? emptyList() : included)\n+            .setExcluded(excluded == null ? emptyList() : excluded)\n+            .build();\n+    if (included != null || excluded != null) {\n+      if (included != null) {\n+        warnDeprecatedFlatProperty(\n+            deprecatedHeadersPrefix + \"included\",\n+            COMMON_MESSAGING_PROPERTY_PREFIX + \".experimental.headers.included\");\n+      }\n+      if (excluded != null) {\n+        warnDeprecatedFlatProperty(\n+            deprecatedHeadersPrefix + \"excluded\",\n+            COMMON_MESSAGING_PROPERTY_PREFIX + \".experimental.headers.excluded\");\n+      }\n+      return selector;\n+    }",
+      "id": "PRRT_kwDODJKVX86gwwFt",
+      "opened": "2026-09-09T17:20:37Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-09T18:05:45Z",
+          "body": "Addressed in 4b35a2af9241dca444416aebc3d261a95a6a2a88.\n\nAnalysis: The declarative bridge can supply YAML or flat properties through the same read, so the code cannot reliably identify the source. The warning now follows the repository's source-neutral wording and names both the flat setting and its equivalent declarative property.\n\nUpsides: Users receive accurate deprecation guidance regardless of how they supplied the deprecated value. The change avoids duplicate source-specific read paths.\n\nDownsides: The warning is slightly longer for users who supplied only a flat property.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3971550679"
+        }
+      ],
+      "reviewed": "9dd8630dd277c9b0cc1a64ed3d68ad5094326f2a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3971184195"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These tests attach a `java.util.logging.Handler` to a global logger. If the test suite runs in parallel, other tests executing `MessagingConfig` can emit warnings during this window, causing `handler.records` assertions to become flaky. To harden this, consider filtering captured log records to only those matching the specific deprecated key under test (e.g., implement a `Filter` or only add records when the message contains `warning-test`), or otherwise isolating logging so unrelated warnings don’t affect the record count.",
+      "created": "2026-09-09T17:20:37Z",
+      "hunk": "@@ -157,4 +385,34 @@ private static DeclarativeConfigProperties instrumentationConfig(\n   private static DeclarativeConfigProperties messagingConfig(ExtendedOpenTelemetry openTelemetry) {\n     return openTelemetry.getInstrumentationConfig(\"common\").get(\"messaging\");\n   }\n+\n+  private static DeclarativeConfigProperties deprecatedMessagingConfig(\n+      ExtendedOpenTelemetry openTelemetry) {\n+    return openTelemetry.getInstrumentationConfig(\"messaging\");\n+  }\n+\n+  private static TestHandler attachWarningHandler() {\n+    TestHandler handler = new TestHandler();\n+    Logger.getLogger(MessagingConfig.class.getName()).addHandler(handler);\n+    return handler;\n+  }\n+\n+  private static void detachWarningHandler(TestHandler handler) {\n+    Logger.getLogger(MessagingConfig.class.getName()).removeHandler(handler);\n+  }",
+      "id": "PRRT_kwDODJKVX86gwwGY",
+      "opened": "2026-09-09T17:20:37Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-09-09T18:05:46Z",
+          "body": "No code change.\n\nAnalysis: The handler-based warning test was removed from the current head. `MessagingConfigTest` no longer installs a logger handler, so unrelated warnings cannot affect its assertions.\n\nUpsides: No global logging state remains in this test class, and the stale thread can be closed without reintroducing it.\n\nDownsides: The current tests do not assert the exact warning text.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3971550921"
+        }
+      ],
+      "reviewed": "9dd8630dd277c9b0cc1a64ed3d68ad5094326f2a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3971184254"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The old included-headers key remains a supported deprecated alias, so removing it from Spring Boot's metadata hides its deprecation and replacement from existing users. Keep a deprecated alias entry next to the new canonical property.",
+      "created": "2026-09-09T18:23:28Z",
+      "hunk": "@@ -345,27 +345,27 @@\n       \"defaultValue\": false\n     },\n     {\n-      \"name\": \"otel.instrumentation.messaging.experimental.receive-telemetry.enabled\",\n+      \"name\": \"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\",\n       \"type\": \"java.lang.Boolean\",\n       \"description\": \"Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.\",\n       \"defaultValue\": false\n     },\n     {\n-      \"name\": \"otel.instrumentation.messaging.experimental.headers.included\",\n+      \"name\": \"otel.instrumentation.common.messaging.experimental.headers.included\",",
+      "id": "PRRT_kwDODJKVX86gyBCP",
+      "opened": "2026-09-09T18:23:29Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+      "replies": [
+        {
+          "at": "2026-09-09T18:28:09Z",
+          "body": "Addressed in 62e652c044d5000521c0712c606df6c53933a703.\n\nAnalysis: The Spring metadata replaced the old entries even though runtime configuration still accepts them until 3.0. The deprecated receive-telemetry alias has the same lifecycle, so the metadata now retains all three old messaging keys with replacements that point to their canonical common-messaging keys.\n\nUpsides: Existing Spring Boot users keep completion and receive migration guidance for every supported messaging alias.\n\nDownsides: The metadata contains duplicate old and new entries until the aliases are removed in 3.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3971724164"
+        }
+      ],
+      "reviewed": "4b35a2af9241dca444416aebc3d261a95a6a2a88",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3971688111"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The old excluded-headers key is still accepted until 3.0, but this replacement drops its Spring Boot metadata. Retain it as a deprecated entry with the canonical key as its replacement so users of the alias receive migration guidance.",
+      "created": "2026-09-09T18:23:29Z",
+      "hunk": "@@ -345,27 +345,27 @@\n       \"defaultValue\": false\n     },\n     {\n-      \"name\": \"otel.instrumentation.messaging.experimental.receive-telemetry.enabled\",\n+      \"name\": \"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\",\n       \"type\": \"java.lang.Boolean\",\n       \"description\": \"Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.\",\n       \"defaultValue\": false\n     },\n     {\n-      \"name\": \"otel.instrumentation.messaging.experimental.headers.included\",\n+      \"name\": \"otel.instrumentation.common.messaging.experimental.headers.included\",\n       \"type\": \"java.util.List<java.lang.String>\",\n       \"description\": \"A comma-separated list of message header name patterns to capture as span attributes. Matching is case-sensitive. `?` matches one character and `*` matches zero or more characters.\"\n     },\n     {\n-      \"name\": \"otel.instrumentation.messaging.experimental.headers.excluded\",\n+      \"name\": \"otel.instrumentation.common.messaging.experimental.headers.excluded\",",
+      "id": "PRRT_kwDODJKVX86gyBC4",
+      "opened": "2026-09-09T18:23:29Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+      "replies": [
+        {
+          "at": "2026-09-09T18:28:11Z",
+          "body": "Addressed in 62e652c044d5000521c0712c606df6c53933a703.\n\nAnalysis: The Spring metadata replaced the old entries even though runtime configuration still accepts them until 3.0. The deprecated receive-telemetry alias has the same lifecycle, so the metadata now retains all three old messaging keys with replacements that point to their canonical common-messaging keys.\n\nUpsides: Existing Spring Boot users keep completion and receive migration guidance for every supported messaging alias.\n\nDownsides: The metadata contains duplicate old and new entries until the aliases are removed in 3.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3971724404"
+        }
+      ],
+      "reviewed": "4b35a2af9241dca444416aebc3d261a95a6a2a88",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3971688170"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In this overload, `replacementFlatProperties` is currently passed as the same single `.included` property. That makes the deprecation warning text less informative than it could be (it no longer references the full selector property set when applicable). Consider passing the full selector property string for the replacement (e.g., `selectorFlatProperties(replacementInstrumentationName, selectorName, replacementStability)`), while still using `replacementIncludedProperty` for the specific replacement target in the message.",
+      "created": "2026-09-09T20:29:14Z",
+      "hunk": "@@ -128,8 +128,55 @@ public static IncludeExclude resolve(\n     if (selector != null) {\n       return selector;\n     }\n-    String replacementFlatProperties =\n-        selectorFlatProperties(instrumentationName, selectorName, stability);\n+    String replacementIncludedProperty =\n+        flatProperty(instrumentationName, selectorName, \".included\", stability);\n+    return resolveDeprecatedCapture(\n+        config,\n+        instrumentationName,\n+        selectorName,\n+        selectorFlatProperties(instrumentationName, selectorName, stability),\n+        replacementIncludedProperty,\n+        systemPropertyFallback);\n+  }\n+\n+  /**\n+   * Resolves the deprecated include-only predecessor of a selector.\n+   *\n+   * @param instrumentationName the instrumentation namespace of the deprecated setting\n+   * @param replacementInstrumentationName the instrumentation namespace of the replacement\n+   * @param replacementStability whether the replacement selector is stable or experimental\n+   * @param systemPropertyFallback whether to fall back to the flat system property when the\n+   *     declarative configuration does not contain a value\n+   */\n+  @Nullable\n+  public static IncludeExclude resolveDeprecatedCapture(\n+      DeclarativeConfigProperties config,\n+      String instrumentationName,\n+      String selectorName,\n+      String replacementInstrumentationName,\n+      Stability replacementStability,\n+      boolean systemPropertyFallback) {\n+    requireNonNull(replacementStability, \"replacementStability\");\n+    String replacementIncludedProperty =\n+        flatProperty(\n+            replacementInstrumentationName, selectorName, \".included\", replacementStability);\n+    return resolveDeprecatedCapture(\n+        config,\n+        instrumentationName,\n+        selectorName,\n+        replacementIncludedProperty,\n+        replacementIncludedProperty,",
+      "id": "PRRT_kwDODJKVX86g0ori",
+      "opened": "2026-09-09T20:29:15Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/SelectorConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-09T20:35:58Z",
+          "body": "Addressed in 3ac18d3bf20b92c1a0f95463c177e4e389157eb9.\n\nAnalysis: The renamed-selector overload passed the replacement `.included` property to both consumers. The deprecation warning therefore omitted the valid `.excluded` replacement, while wildcard guidance correctly needs the narrower `.included` target. The messaging caller also represented the replacement namespace once as a literal and again inside the flat-property prefix. The overload now derives the full selector property pair for deprecation warnings, and MessagingConfig derives its flat-property prefix from one namespace constant.\n\nUpsides: Deprecation warnings list both supported replacement properties. Wildcard warnings still point to `.included`. The messaging namespace now has one source of truth, and a focused test protects the warning text.\n\nDownsides: The new constant and test add a small amount of code. No material runtime downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3972779376"
+        }
+      ],
+      "reviewed": "bab05ca2e381879cb5d78536a2140ef4496df033",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3972723209"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The method name `isBatchSendMessageCreationSpansEnabled` no longer matches the configuration it now resolves (`message_create_spans` / `message-create-spans.enabled`). This mismatch makes the API easy to misuse when scanning/grepping. Consider renaming the method (and keeping the old name as a deprecated delegating wrapper if needed for compatibility), or at minimum updating its Javadoc to clearly state it now controls the message-create-spans setting rather than the old batch-send.message-creation-spans naming.",
+      "created": "2026-09-09T20:29:15Z",
+      "hunk": "@@ -72,36 +163,94 @@ public static boolean isBatchSendMessageCreationSpansEnabled(\n    */\n   public static boolean isBatchSendMessageCreationSpansEnabled(\n       OpenTelemetry openTelemetry, String instrumentationName, boolean systemPropertyFallback) {\n+    String instrumentationPropertyPrefix =\n+        \"otel.instrumentation.\" + instrumentationName.replace('_', '-');\n     Boolean enabled =\n-        getBatchSendMessageCreationSpansEnabled(\n-            DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, instrumentationName));\n-    if (enabled == null && systemPropertyFallback) {\n-      enabled =\n-          SystemProperty.getBoolean(\n-              \"otel.instrumentation.\"\n-                  + instrumentationName.replace('_', '-')\n-                  + \".batch-send.message-creation-spans.enabled\");\n-    }\n+        getBoolean(\n+            DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, instrumentationName)\n+                .get(\"message_create_spans\"),\n+            \"enabled\",\n+            instrumentationPropertyPrefix + \".message-create-spans.enabled\",\n+            systemPropertyFallback);",
+      "id": "PRRT_kwDODJKVX86g0osH",
+      "opened": "2026-09-09T20:29:15Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-09T20:36:00Z",
+          "body": "Addressed in 89bd0ed6a43ecff26da9c0efd430940f5adb0b29.\n\nAnalysis: The method still controls creation spans only for messages in batch sends, so its behavior-based name remains accurate. Renaming this published incubating API would require a deprecation cycle, and a broader name could imply behavior that the method does not control. Both overloads now state that they resolve the `message_create_spans` declarative setting and `message-create-spans.enabled` flat property before falling back to common messaging configuration.\n\nUpsides: IDE documentation and source searches now connect the method to the renamed configuration without adding a duplicate API or forcing callers to migrate.\n\nDownsides: The method name still differs from the configuration spelling. The Javadoc carries that mapping explicitly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3972779738"
+        }
+      ],
+      "reviewed": "bab05ca2e381879cb5d78536a2140ef4496df033",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3972723266"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This introduces a hardcoded `\\\"common.messaging\\\"` identifier that is tightly coupled to how `SelectorConfig.flatProperty(...)` builds property names. To reduce the risk of drift across future renames, consider centralizing the replacement instrumentation namespace (e.g., a constant like `COMMON_MESSAGING_INSTRUMENTATION_NAME`) and deriving related pieces from it, instead of repeating string literals at call sites.",
+      "created": "2026-09-09T20:29:15Z",
+      "hunk": "@@ -43,18 +55,97 @@ public static IncludeExclude getHeaders(OpenTelemetry openTelemetry) {\n    */\n   public static IncludeExclude getHeaders(\n       OpenTelemetry openTelemetry, boolean systemPropertyFallback) {\n-    return getHeaders(\n-        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"messaging\"),\n-        systemPropertyFallback);\n+    DeclarativeConfigProperties messagingConfig =\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"messaging\");\n+    IncludeExclude selector =\n+        getHeaders(\n+            messagingConfig.get(\"headers/development\"),\n+            COMMON_MESSAGING_PROPERTY_PREFIX + \".experimental.headers.\",\n+            systemPropertyFallback);\n+    if (selector != null) {\n+      return selector;\n+    }\n+\n+    if (!SemconvStability.v3Preview(openTelemetry)) {\n+      // TODO: remove the deprecated flat messaging names in 3.0.\n+      selector = getDeprecatedHeaderAliases(openTelemetry, systemPropertyFallback);\n+      if (selector != null) {\n+        return selector;\n+      }\n+    }\n+\n+    selector =\n+        SelectorConfig.resolveDeprecatedCapture(\n+            messagingConfig,\n+            \"messaging\",\n+            \"headers\",\n+            \"common.messaging\",\n+            EXPERIMENTAL,\n+            systemPropertyFallback);",
+      "id": "PRRT_kwDODJKVX86g0ose",
+      "opened": "2026-09-09T20:29:15Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-09T20:36:01Z",
+          "body": "Addressed in 3ac18d3bf20b92c1a0f95463c177e4e389157eb9.\n\nAnalysis: The renamed-selector overload passed the replacement `.included` property to both consumers. The deprecation warning therefore omitted the valid `.excluded` replacement, while wildcard guidance correctly needs the narrower `.included` target. The messaging caller also represented the replacement namespace once as a literal and again inside the flat-property prefix. The overload now derives the full selector property pair for deprecation warnings, and MessagingConfig derives its flat-property prefix from one namespace constant.\n\nUpsides: Deprecation warnings list both supported replacement properties. Wildcard warnings still point to `.included`. The messaging namespace now has one source of truth, and a focused test protects the warning text.\n\nDownsides: The new constant and test add a small amount of code. No material runtime downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3972780080"
+        }
+      ],
+      "reviewed": "bab05ca2e381879cb5d78536a2140ef4496df033",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3972723305"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The selector-level early return breaks replacement-first aliasing for mixed migrations. For example, if the new `included=*` property is set while the deprecated `excluded=authorization` property remains, the non-empty new selector returns here and silently drops the exclusion, potentially capturing a sensitive header. Resolve `included` and `excluded` independently—use each canonical leaf when present, otherwise fall back to its matching deprecated leaf—and build the selector only after both leaves are resolved.",
+      "created": "2026-09-10T05:28:10Z",
+      "hunk": "@@ -43,20 +54,105 @@ public static IncludeExclude getHeaders(OpenTelemetry openTelemetry) {\n    */\n   public static IncludeExclude getHeaders(\n       OpenTelemetry openTelemetry, boolean systemPropertyFallback) {\n-    return getHeaders(\n-        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"messaging\"),\n-        systemPropertyFallback);\n+    DeclarativeConfigProperties messagingConfig =\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\").get(\"messaging\");\n+    IncludeExclude selector =\n+        getHeaders(\n+            messagingConfig.get(\"headers/development\"),\n+            COMMON_MESSAGING_PROPERTY_PREFIX + \".experimental.headers.\",\n+            systemPropertyFallback);\n+    if (selector != null) {\n+      return selector;",
+      "id": "PRRT_kwDODJKVX86g8WKZ",
+      "opened": "2026-09-10T05:28:10Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingConfig.java",
+      "replies": [
+        {
+          "at": "2026-09-10T18:47:17Z",
+          "body": "Addressed in 7991add0c20376a12ce8c11322d66e8a2689fc9a.\n\nAnalysis: MessagingConfig returned as soon as either canonical header leaf made a non-empty selector. This skipped the deprecated selector node, so a canonical included list could discard a deprecated excluded list. Resolving each leaf before building IncludeExclude preserves replacement-first precedence for each property.\n\nUpsides: Mixed migrations retain exclusions and avoid capturing headers that the deprecated excluded list still protects.\n\nDownsides: The resolver now reads both header nodes before it builds the selector. No material runtime cost is expected.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3982405191"
+        }
+      ],
+      "reviewed": "8f7f635bfa0169506dbbe8ecf867d906bc4f5c05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r3975842337"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] The previous receive-telemetry key is still accepted as a deprecated alias, but replacing the only row with the canonical key removes the old setting and its migration guidance from Spring's settings table. Keep a deprecated row for the old key with the canonical replacement and removal timeline.",
+      "created": "2026-09-18T00:20:53Z",
+      "hunk": "@@ -7,15 +7,15 @@ This package streamlines the manual instrumentation process of OpenTelemetry for\n \n ## Settings\n \n-| System property                                                               | Type    | Default | Description                                                                                                                                                                                                                                                                                                                                             |\n-| ----------------------------------------------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.spring-batch.item.enabled`                              | Boolean | `false` | Enable creating a span for each batch item.                                                                                                                                                                                                                                                                                                             |\n-| `otel.instrumentation.spring-batch.experimental.chunk.new-trace`              | Boolean | `false` | Enable staring a new trace for each batch chunk.                                                                                                                                                                                                                                                                                                        |\n-| `otel.instrumentation.spring-batch.experimental-span-attributes`              | Boolean | `false` | Enable the capture of experimental span attributes for Spring Batch version 3.0.                                                                                                                                                                                                                                                                        |\n-| `otel.instrumentation.spring-integration.global-channel-interceptor-patterns` | List    | `*`     | An array of Spring channel name patterns that will be intercepted. See [Spring Integration docs](https://docs.spring.io/spring-integration/reference/channel/configuration.html#global-channel-configuration-interceptors) for more details.                                                                                                            |\n-| `otel.instrumentation.spring-integration.producer.enabled`                    | Boolean | `false` | Create producer spans when messages are sent to an output channel. Enable when you're using a messaging library that doesn't have its own instrumentation for generating producer spans. Note that the detection of output channels only works for [Spring Cloud Stream](https://spring.io/projects/spring-cloud-stream) `DirectWithAttributesChannel`. |\n-| `otel.instrumentation.spring-scheduling.experimental-span-attributes`         | Boolean | `false` | Enable the capture of experimental span attributes for Spring Scheduling version 3.1.                                                                                                                                                                                                                                                                   |\n-| `otel.instrumentation.spring-webflux.experimental-span-attributes`            | Boolean | `false` | Enable the capture of experimental span attributes for Spring WebFlux version 5.0.                                                                                                                                                                                                                                                                      |\n-| `otel.instrumentation.spring-webmvc.experimental-span-attributes`             | Boolean | `false` | Enable the capture of experimental span attributes for Spring Web MVC version 3.1.                                                                                                                                                                                                                                                                      |\n-| `otel.instrumentation.messaging.experimental.receive-telemetry.enabled`       | Boolean | `false` | Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.                                                                                                                                                                                                     |\n-| `otel.instrumentation.kafka.experimental-span-attributes`                     | Boolean | `false` | Enable the capture of experimental span attributes for Spring Kafka version 2.7.                                                                                                                                                                                                                                                                        |\n+| System property                                                                | Type    | Default | Description                                                                                                                                                                                                                                                                                                                                             |\n+| ------------------------------------------------------------------------------ | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n+| `otel.instrumentation.spring-batch.item.enabled`                               | Boolean | `false` | Enable creating a span for each batch item.                                                                                                                                                                                                                                                                                                             |\n+| `otel.instrumentation.spring-batch.experimental.chunk.new-trace`               | Boolean | `false` | Enable staring a new trace for each batch chunk.                                                                                                                                                                                                                                                                                                        |\n+| `otel.instrumentation.spring-batch.experimental-span-attributes`               | Boolean | `false` | Enable the capture of experimental span attributes for Spring Batch version 3.0.                                                                                                                                                                                                                                                                        |\n+| `otel.instrumentation.spring-integration.global-channel-interceptor-patterns`  | List    | `*`     | An array of Spring channel name patterns that will be intercepted. See [Spring Integration docs](https://docs.spring.io/spring-integration/reference/channel/configuration.html#global-channel-configuration-interceptors) for more details.                                                                                                            |\n+| `otel.instrumentation.spring-integration.producer.enabled`                     | Boolean | `false` | Create producer spans when messages are sent to an output channel. Enable when you're using a messaging library that doesn't have its own instrumentation for generating producer spans. Note that the detection of output channels only works for [Spring Cloud Stream](https://spring.io/projects/spring-cloud-stream) `DirectWithAttributesChannel`. |\n+| `otel.instrumentation.spring-scheduling.experimental-span-attributes`          | Boolean | `false` | Enable the capture of experimental span attributes for Spring Scheduling version 3.1.                                                                                                                                                                                                                                                                   |\n+| `otel.instrumentation.spring-webflux.experimental-span-attributes`             | Boolean | `false` | Enable the capture of experimental span attributes for Spring WebFlux version 5.0.                                                                                                                                                                                                                                                                      |\n+| `otel.instrumentation.spring-webmvc.experimental-span-attributes`              | Boolean | `false` | Enable the capture of experimental span attributes for Spring Web MVC version 3.1.                                                                                                                                                                                                                                                                      |\n+| `otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled` | Boolean | `false` | Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.                                                                                                                                                                                                     |",
+      "id": "PRRT_kwDODJKVX86jk1w7",
+      "opened": "2026-09-18T00:20:54Z",
+      "path": "instrumentation/spring/README.md",
+      "replies": [
+        {
+          "at": "2026-09-18T15:49:56Z",
+          "body": "Addressed in 8f5532b711336bb48b538e9d55ac37f334af8652.\n\nAnalysis: The deprecated flat properties remain active during their migration window. Their user-facing documentation must retain the old keys, name the replacements, state the next-minor removal timeline, and describe RabbitMQ's specialized `basicGet` behavior instead of the shared receive-telemetry behavior.\n\nUpsides: Users can find each accepted legacy key, migrate to the canonical property, understand the removal window, and see accurate RabbitMQ behavior.\n\nDownsides: The RabbitMQ alias description duplicates its canonical behavior text and must stay in sync until the alias is removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r4048324183"
+        }
+      ],
+      "reviewed": "6c33e57c8294feae85817afbc1eea57bb8aa4e25",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r4042549782"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] This shared alias description is inaccurate for RabbitMQ: the old property controls `basicGet` consumer spans, as documented by the canonical entry above, rather than generic receive telemetry linked to a producer. Keep a RabbitMQ-specific deprecated alias entry so users of the old key receive the correct behavior description and replacement.",
+      "created": "2026-09-18T00:20:53Z",
+      "hunk": "@@ -11,14 +11,17 @@ configurations:\n       `rabbitmq.queue`, and `rabbitmq.record.queue_time_ms`.\n     type: boolean\n     default: false\n-  - name: otel.instrumentation.messaging.experimental.receive-telemetry.enabled\n+  - name: otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\n     declarative_name: java.common.messaging.receive_telemetry/development.enabled\n     description: >\n       Enables consumer spans for RabbitMQ `basicGet` receive operations when legacy messaging\n       semantic conventions are emitted. Stable messaging semantic conventions emit these spans\n       regardless of this setting.\n     type: boolean\n     default: false\n+  - ref: messaging.deprecated-receive-telemetry.enabled",
+      "id": "PRRT_kwDODJKVX86jk1wj",
+      "opened": "2026-09-18T00:20:54Z",
+      "path": "instrumentation/rabbitmq-2.7/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-09-18T15:49:54Z",
+          "body": "Addressed in 8f5532b711336bb48b538e9d55ac37f334af8652.\n\nAnalysis: The deprecated flat properties remain active during their migration window. Their user-facing documentation must retain the old keys, name the replacements, state the next-minor removal timeline, and describe RabbitMQ's specialized `basicGet` behavior instead of the shared receive-telemetry behavior.\n\nUpsides: Users can find each accepted legacy key, migrate to the canonical property, understand the removal window, and see accurate RabbitMQ behavior.\n\nDownsides: The RabbitMQ alias description duplicates its canonical behavior text and must stay in sync until the alias is removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r4048323985"
+        }
+      ],
+      "reviewed": "6c33e57c8294feae85817afbc1eea57bb8aa4e25",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r4042549734"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Documentation] This deprecated alias now expands to a description that omits the removal timeline, unlike the shared definition and runtime warning. Spring Boot users need to know this experimental alias may be removed in the next minor release; include that sentence in the metadata description.\n\nThis issue also appears in the following locations of the same file:\n- line 370\n- line 383",
+      "created": "2026-09-18T00:20:54Z",
+      "hunk": "@@ -345,27 +345,52 @@\n       \"defaultValue\": false\n     },\n     {\n-      \"name\": \"otel.instrumentation.messaging.experimental.receive-telemetry.enabled\",\n+      \"name\": \"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\",\n       \"type\": \"java.lang.Boolean\",\n       \"description\": \"Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.\",\n       \"defaultValue\": false\n     },\n     {\n-      \"name\": \"otel.instrumentation.messaging.experimental.headers.included\",\n+      \"name\": \"otel.instrumentation.messaging.experimental.receive-telemetry.enabled\",\n+      \"type\": \"java.lang.Boolean\",\n+      \"description\": \"Deprecated: use otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled instead. Enables experimental receive telemetry, which will cause consumers to start a new trace, with only a span link connecting it to the producer trace.\",",
+      "id": "PRRT_kwDODJKVX86jk1xN",
+      "opened": "2026-09-18T00:20:54Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+      "replies": [
+        {
+          "at": "2026-09-18T15:49:58Z",
+          "body": "Addressed in 8f5532b711336bb48b538e9d55ac37f334af8652.\n\nAnalysis: The deprecated flat properties remain active during their migration window. Their user-facing documentation must retain the old keys, name the replacements, state the next-minor removal timeline, and describe RabbitMQ's specialized `basicGet` behavior instead of the shared receive-telemetry behavior.\n\nUpsides: Users can find each accepted legacy key, migrate to the canonical property, understand the removal window, and see accurate RabbitMQ behavior.\n\nDownsides: The RabbitMQ alias description duplicates its canonical behavior text and must stay in sync until the alias is removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r4048324392"
+        }
+      ],
+      "reviewed": "6c33e57c8294feae85817afbc1eea57bb8aa4e25",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r4042549815"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Renaming this shared-definition ID also renames its key in the generated `docs/instrumentation-list.yaml` catalog. The registry explicitly requires IDs to remain stable (`instrumentation-docs/src/main/resources/shared-config-definitions.yaml:12-14`), independently of changes to the underlying property name. Keep the existing `messaging.batch-send.message-creation-spans.enabled` ID and update the AWS metadata refs to continue using that ID.",
+      "created": "2026-09-18T15:56:34Z",
+      "hunk": "@@ -122,13 +122,33 @@ configurations:\n   messaging.capture-headers:\n     name: otel.instrumentation.messaging.experimental.capture-headers\n     declarative_name: java.common.messaging.capture_headers/development\n-    description: \"Deprecated: use `otel.instrumentation.messaging.experimental.headers.included` instead. A comma-separated list of header names to capture as span attributes. It does not support glob patterns: an entry containing `*` or `?` is ignored with a warning, and every other entry is matched as a literal header name.\"\n+    description: \"Deprecated: use `otel.instrumentation.common.messaging.experimental.headers.included` instead. A comma-separated list of header names to capture as span attributes. It does not support glob patterns: an entry containing `*` or `?` is ignored with a warning, and every other entry is matched as a literal header name.\"\n     type: list\n     default: \"\"\n \n-  messaging.batch-send.message-creation-spans.enabled:\n-    name: otel.instrumentation.messaging.batch-send.message-creation-spans.enabled\n-    declarative_name: java.common.messaging.batch_send.message_creation_spans.enabled\n+  # The deprecated names below are flat properties only: the declarative configuration schema keeps\n+  # them under `java.common.messaging`, so they declare no declarative_name.\n+  messaging.deprecated-headers.included:\n+    name: otel.instrumentation.messaging.experimental.headers.included\n+    description: \"Deprecated: use `otel.instrumentation.common.messaging.experimental.headers.included` instead. It may be removed in the next minor release.\"\n+    type: list\n+    default: \"\"\n+\n+  messaging.deprecated-headers.excluded:\n+    name: otel.instrumentation.messaging.experimental.headers.excluded\n+    description: \"Deprecated: use `otel.instrumentation.common.messaging.experimental.headers.excluded` instead. It may be removed in the next minor release.\"\n+    type: list\n+    default: \"\"\n+\n+  messaging.deprecated-receive-telemetry.enabled:\n+    name: otel.instrumentation.messaging.experimental.receive-telemetry.enabled\n+    description: \"Deprecated: use `otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled` instead. It may be removed in the next minor release.\"\n+    type: boolean\n+    default: false\n+\n+  common.messaging.message-create-spans.enabled:",
+      "id": "PRRT_kwDODJKVX86jzeGi",
+      "opened": "2026-09-18T15:56:35Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [
+        {
+          "at": "2026-09-18T16:00:08Z",
+          "body": "Addressed in e0ef76605a9da31de7cbfec96f7eda17ca1ae972.\n\nAnalysis: Shared configuration definition IDs are persistent catalog keys, not property-name mirrors. The property can use its new canonical name while the existing definition ID and all AWS metadata references remain unchanged.\n\nUpsides: The generated instrumentation catalog keeps its established key, and both AWS metadata files continue to resolve the shared definition.\n\nDownsides: The stable definition ID retains the old property terminology and no longer matches the canonical property name.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r4048405242"
+        }
+      ],
+      "reviewed": "8f5532b711336bb48b538e9d55ac37f334af8652",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20060#discussion_r4048376717"
+    }
+  ]
+}

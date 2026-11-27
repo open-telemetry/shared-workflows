@@ -1,0 +1,25 @@
+{
+  "head": "7e43e9f5b6a1ff0ecebf806d62044ca486a0e284",
+  "merge": "30a6e9869e37729f7a0182968cfdeef32f64225d",
+  "merged": "2026-08-25T03:32:39Z",
+  "missing_roots": 0,
+  "number": 19790,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Quarkus Gradle plugin now remains on 3.38.3 while the enforced Quarkus BOM is 3.39.0. This splits the build tooling (`quarkusBuild` and generated-source tasks) from the runtime/platform being exercised, so the smoke image does not consistently validate one Quarkus release and may hit unsupported model/augmentation differences. Align the plugin with the 3.39.0 platform (or keep both on 3.38.3).",
+      "created": "2026-08-25T01:11:19Z",
+      "hunk": "@@ -17,11 +17,11 @@ plugins {\n   id(\"java\")\n \n   id(\"com.google.cloud.tools.jib\")\n-  id(\"io.quarkus\") version \"3.38.2\"\n+  id(\"io.quarkus\") version \"3.38.3\"",
+      "id": "PRRT_kwDODJKVX86b54y_",
+      "opened": "2026-08-25T01:11:19Z",
+      "path": "smoke-tests/images/quarkus/build.gradle.kts",
+      "replies": [],
+      "reviewed": "4d4589c1fe57863e37363d0f72ffc14de34f3128",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19790#discussion_r3848760746"
+    }
+  ]
+}

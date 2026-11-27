@@ -1,0 +1,40 @@
+{
+  "head": "440b07f9112cc3e39b0cf50a0dcb8f144d9b60b8",
+  "merge": "029f598b18c0a485550e0b8e1b0e1dc043186111",
+  "merged": "2026-09-10T05:57:08Z",
+  "missing_roots": 0,
+  "number": 615,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This now calls `Meter.create_histogram` for every output chunk after the first, whereas the removed recorder created the instrument once per handler. Long streams therefore repeat instrument registry work in the hottest loop; cache this histogram once at handler initialization (or in a shared private instrument bundle) and record through the cached handle.",
+      "created": "2026-09-04T04:45:03Z",
+      "hunk": "@@ -150,18 +183,65 @@ def _on_stream_chunk(self, chunk_at: float) -> None:\n         attributes = self._get_metric_attributes()\n         if self._ttfc_seconds is None:\n             self._ttfc_seconds = delta\n-            self._metrics_recorder.record_time_to_first_chunk(\n+            ttfc_histogram = self._meter.create_histogram(\n+                name=gen_ai_metrics.GEN_AI_CLIENT_OPERATION_TIME_TO_FIRST_CHUNK,\n+                description=\"Time to receive the first chunk, measured from when the client issues the generation request to when the first chunk is received in the response stream.\",\n+                unit=\"s\",\n+                explicit_bucket_boundaries_advisory=_GEN_AI_CLIENT_OPERATION_DURATION_BUCKETS,\n+            )\n+            ttfc_histogram.record(\n                 delta,\n                 attributes=attributes,\n                 context=self._span_context,\n             )\n         else:\n-            self._metrics_recorder.record_time_per_chunk(\n+            tpc_histogram = self._meter.create_histogram(\n+                name=gen_ai_metrics.GEN_AI_CLIENT_OPERATION_TIME_PER_OUTPUT_CHUNK,\n+                description=\"Time per output chunk, recorded for each chunk received after the first one, measured as the time elapsed from the end of the previous chunk to the end of the current chunk.\",\n+                unit=\"s\",\n+                explicit_bucket_boundaries_advisory=_GEN_AI_CLIENT_OPERATION_DURATION_BUCKETS,\n+            )",
+      "id": "PRRT_kwDOSbspP86fKr0h",
+      "opened": "2026-09-04T04:45:04Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "866d4d479fc3637a1e652fe35d9f48996d473b43",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/615#discussion_r3930938017"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This release note says workflow duration recording is newly added, but `.changelog/350.fixed` shows that `gen_ai.invoke_workflow.duration` was already emitted. Describe that part as alignment of its attributes and bucket boundaries so the generated changelog accurately distinguishes it from the newly added tool metric.",
+      "created": "2026-09-04T04:45:04Z",
+      "hunk": "@@ -0,0 +1 @@\n+Record `gen_ai.execute_tool.duration` on tool invocations and `gen_ai.invoke_workflow.duration` on workflow invocations.",
+      "id": "PRRT_kwDOSbspP86fKr0s",
+      "opened": "2026-09-04T04:45:04Z",
+      "path": "util/opentelemetry-util-genai/.changelog/615.added",
+      "replies": [],
+      "reviewed": "866d4d479fc3637a1e652fe35d9f48996d473b43",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/615#discussion_r3930938033"
+    }
+  ]
+}

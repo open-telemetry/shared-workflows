@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "5c10c5a4b86d78f8a41cd2cc9b9371ffbc535c1abad7127a20fcb99bec44597d",
+  "input_digest": "68b77f2fe82b0b5dd02bb8fd932ced5c4de1d130cc205759759338ae9e0a484e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b265637ec077b8c73079e37343f13aac7b9cd3d1/sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/exporter/internal/ZipkinExporterRemovalDeclarativeCustomizerProvider.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cd817d7b912b49291c0f78435d59421489dcfe2/sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/exporter/internal/ZipkinExporterRemovalDeclarativeCustomizerProvider.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/26c3f880b754c77d843aa8799454ef9093ebb3cb"
+      ],
+      "id": "PRRT_kwDODJKVX86Wa94U",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26c3f880b754c77d843aa8799454ef9093ebb3cb/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cd817d7b912b49291c0f78435d59421489dcfe2/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/aebb678e1d490b220491b2b13291d5c8abfd5ba6"
+      ],
+      "id": "PRRT_kwDODJKVX86WblYd",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+{
+  "head": "619146b29b3ca69a507a50e8d24759ffc9cfd396",
+  "merge": "e305181975fcc708dbb55202bbe95ccc1b8f2756",
+  "merged": "2026-09-02T21:19:58Z",
+  "missing_roots": 0,
+  "number": 19625,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The accessor here is `Throwable::getCause`, which is exactly what `unwrapCause` already passes, and the chain is acyclic - so this test still passes if `unwrap` ignores `nextCause` entirely. Give the wrapper a null cause so the underlying error is reachable only through the accessor.\n\n```suggestion\n  @Test\n  void supportsCustomAccessor() {\n    IllegalStateException underlying = new IllegalStateException(\"underlying\");\n    // getCause() is null, so reaching the underlying error is only possible via the accessor\n    ExecutionException wrapper = new ExecutionException(\"wrapper\", null);\n\n    Throwable result =\n        CauseUnwrapper.unwrap(\n            wrapper, error -> error instanceof ExecutionException, unused -> underlying);\n\n    assertThat(result).isSameAs(underlying);\n  }\n```",
+      "created": "2026-08-20T18:24:23Z",
+      "hunk": "@@ -0,0 +1,86 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.internal;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import java.util.concurrent.ExecutionException;\n+import org.junit.jupiter.api.Test;\n+\n+class CauseUnwrapperTest {\n+\n+  @Test\n+  void unwrapsUntilPredicateIsFalse() {\n+    IllegalArgumentException root = new IllegalArgumentException(\"root\");\n+    ExecutionException wrapper = new ExecutionException(root);\n+\n+    assertThat(CauseUnwrapper.unwrapCause(wrapper, error -> error instanceof ExecutionException))\n+        .isSameAs(root);\n+  }\n+\n+  @Test\n+  void stopsAtNullCause() {\n+    IllegalArgumentException error = new IllegalArgumentException(\"no cause\");\n+\n+    assertThat(CauseUnwrapper.unwrapCause(error, unused -> true)).isSameAs(error);\n+  }\n+\n+  @Test\n+  void haltsOnCyclicCauseChain() {\n+    ExecutionException exception1 = new ExecutionException() {};\n+    ExecutionException exception2 = new ExecutionException() {};\n+    exception1.initCause(exception2);\n+    exception2.initCause(exception1);\n+\n+    assertThat(CauseUnwrapper.unwrapCause(exception1, error -> error instanceof ExecutionException))\n+        .isSameAs(exception1);\n+  }\n+\n+  @Test\n+  void supportsCustomAccessor() {\n+    ExecutionException exception1 = new ExecutionException() {};\n+    ExecutionException exception2 = new ExecutionException() {};\n+    IllegalStateException root = new IllegalStateException(\"root\");\n+    exception1.initCause(exception2);\n+    exception2.initCause(root);\n+\n+    // a custom \"next\" function that always follows getCause(), regardless of type, still stops\n+    // safely if the chain (hypothetically) cycled back to an already-visited throwable\n+    Throwable result =\n+        CauseUnwrapper.unwrap(\n+            exception1, error -> error instanceof ExecutionException, Throwable::getCause);\n+\n+    assertThat(result).isSameAs(root);\n+  }",
+      "id": "PRRT_kwDODJKVX86a6m35",
+      "opened": "2026-08-20T18:28:30Z",
+      "path": "instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapperTest.java",
+      "replies": [
+        {
+          "at": "2026-08-28T06:32:46Z",
+          "body": "Addressed in `supportsCustomAccessor` — the wrapper uses `new ExecutionException(\"wrapper\", null)` so `getCause()` is null and the underlying error is reachable only via the custom accessor. See `CauseUnwrapperTest.supportsCustomAccessor`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3878422615"
+        }
+      ],
+      "reviewed": "654cf90a5cf2f18149a7d22f35c0835c47a097bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3824258634"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This allocates on every call, including the common case where the predicate immediately returns false and nothing is unwrapped. `DefaultErrorCauseExtractor.extract` runs for every recorded error across all instrumentations and previously allocated nothing, and `new IdentityHashMap<>()` eagerly creates a 64-element table in its constructor. Create the set on the first unwrap instead.\n\n```suggestion\n    Set<Throwable> visited = null;\n    Throwable current = error;\n    while (shouldUnwrap.test(current)) {\n      Throwable next = nextCause.apply(current);\n      if (next == null) {\n        break;\n      }\n      if (visited == null) {\n        visited = Collections.newSetFromMap(new IdentityHashMap<>());\n      }\n      if (!visited.add(current)) {\n        break;\n      }\n      current = next;\n    }\n```",
+      "created": "2026-08-20T18:24:23Z",
+      "hunk": "@@ -0,0 +1,72 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.internal;\n+\n+import java.util.Collections;\n+import java.util.IdentityHashMap;\n+import java.util.Set;\n+import java.util.function.Function;\n+import java.util.function.Predicate;\n+\n+/**\n+ * A helper for safely walking a chain of {@link Throwable} causes.\n+ *\n+ * <p>Instrumentation frequently needs to unwrap wrapper exceptions (e.g. {@link\n+ * java.util.concurrent.ExecutionException}, framework-specific wrapper types) to find the\n+ * underlying error. A naive loop or recursive method that follows {@link Throwable#getCause()} (or\n+ * a similar library-specific accessor) until some stop condition is met can loop forever, or\n+ * overflow the stack if written recursively, when a cause chain contains a cycle - which can happen\n+ * with adversarial or buggy exceptions since nothing prevents {@link\n+ * Throwable#initCause(Throwable)} from being used to create one. The helpers in this class detect\n+ * such cycles using identity comparisons and stop unwrapping instead of looping.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class CauseUnwrapper {\n+\n+  private CauseUnwrapper() {}\n+\n+  /**\n+   * Repeatedly replaces {@code error} with {@code nextCause.apply(error)} while {@code\n+   * shouldUnwrap.test(error)} returns {@code true}, and returns the last value reached.\n+   *\n+   * <p>Unwrapping halts, whichever happens first: when {@code shouldUnwrap} returns {@code false},\n+   * when {@code nextCause} returns {@code null}, or when a throwable that has already been visited\n+   * (compared by identity) would be visited again.\n+   */\n+  public static Throwable unwrap(\n+      Throwable error,\n+      Predicate<Throwable> shouldUnwrap,\n+      Function<Throwable, Throwable> nextCause) {\n+    Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());\n+    Throwable current = error;\n+    while (shouldUnwrap.test(current)) {\n+      Throwable next = nextCause.apply(current);\n+      if (next == null || !visited.add(current)) {\n+        break;\n+      }\n+      current = next;\n+    }",
+      "id": "PRRT_kwDODJKVX86a6m3y",
+      "opened": "2026-08-20T18:28:30Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+      "replies": [],
+      "reviewed": "654cf90a5cf2f18149a7d22f35c0835c47a097bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3824258624"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "maybe rename to `rootCause`?",
+      "created": "2026-08-26T13:54:36Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.internal;\n+\n+import java.util.Collections;\n+import java.util.IdentityHashMap;\n+import java.util.Set;\n+import java.util.function.Function;\n+import java.util.function.Predicate;\n+\n+/**\n+ * A helper for safely walking a chain of {@link Throwable} causes.\n+ *\n+ * <p>Instrumentation frequently needs to unwrap wrapper exceptions (e.g. {@link\n+ * java.util.concurrent.ExecutionException}, framework-specific wrapper types) to find the\n+ * underlying error. A naive loop or recursive method that follows {@link Throwable#getCause()} (or\n+ * a similar library-specific accessor) until some stop condition is met can loop forever, or\n+ * overflow the stack if written recursively, when a cause chain contains a cycle - which can happen\n+ * with adversarial or buggy exceptions since nothing prevents {@link\n+ * Throwable#initCause(Throwable)} from being used to create one. The helpers in this class detect\n+ * such cycles using identity comparisons and stop unwrapping instead of looping.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class CauseUnwrapper {\n+\n+  private CauseUnwrapper() {}\n+\n+  /**\n+   * Repeatedly replaces {@code error} with {@code nextCause.apply(error)} while {@code\n+   * shouldUnwrap.test(error)} returns {@code true}, and returns the last value reached.\n+   *\n+   * <p>Unwrapping halts, whichever happens first: when {@code shouldUnwrap} returns {@code false},\n+   * when {@code nextCause} returns {@code null}, or when a throwable that has already been visited\n+   * (compared by identity) would be visited again.\n+   */\n+  public static Throwable unwrap(\n+      Throwable error,\n+      Predicate<Throwable> shouldUnwrap,\n+      Function<Throwable, Throwable> nextCause) {\n+    Set<Throwable> visited = null;\n+    Throwable current = error;\n+    while (shouldUnwrap.test(current)) {\n+      Throwable next = nextCause.apply(current);\n+      if (next == null) {\n+        break;\n+      }\n+      if (visited == null) {\n+        visited = Collections.newSetFromMap(new IdentityHashMap<>());\n+      }\n+      if (!visited.add(current)) {\n+        break;\n+      }\n+      current = next;\n+    }\n+    return current;\n+  }\n+\n+  /**\n+   * Equivalent to {@link #unwrap(Throwable, Predicate, Function)}, using {@link\n+   * Throwable#getCause()} to advance to the next cause.\n+   */\n+  public static Throwable unwrapCause(Throwable error, Predicate<Throwable> shouldUnwrap) {\n+    return unwrap(error, shouldUnwrap, Throwable::getCause);\n+  }\n+\n+  /**\n+   * Follows {@link Throwable#getCause()} to the deepest cause in the chain, halting safely if the\n+   * chain contains a cycle.\n+   */\n+  public static Throwable deepestCause(Throwable error) {",
+      "id": "PRRT_kwDODJKVX86cfD_x",
+      "opened": "2026-08-26T13:54:36Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+      "replies": [
+        {
+          "at": "2026-08-28T06:32:46Z",
+          "body": "Renamed to `rootCause` in 604814f2c2 and updated the RuleParser call site + tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3878422619"
+        }
+      ],
+      "reviewed": "5375a4a374c75df280ecdf9ecae8dc15bbed564b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3863429704"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "maybe call this `unwrap` too?",
+      "created": "2026-08-26T13:55:31Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.internal;\n+\n+import java.util.Collections;\n+import java.util.IdentityHashMap;\n+import java.util.Set;\n+import java.util.function.Function;\n+import java.util.function.Predicate;\n+\n+/**\n+ * A helper for safely walking a chain of {@link Throwable} causes.\n+ *\n+ * <p>Instrumentation frequently needs to unwrap wrapper exceptions (e.g. {@link\n+ * java.util.concurrent.ExecutionException}, framework-specific wrapper types) to find the\n+ * underlying error. A naive loop or recursive method that follows {@link Throwable#getCause()} (or\n+ * a similar library-specific accessor) until some stop condition is met can loop forever, or\n+ * overflow the stack if written recursively, when a cause chain contains a cycle - which can happen\n+ * with adversarial or buggy exceptions since nothing prevents {@link\n+ * Throwable#initCause(Throwable)} from being used to create one. The helpers in this class detect\n+ * such cycles using identity comparisons and stop unwrapping instead of looping.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class CauseUnwrapper {\n+\n+  private CauseUnwrapper() {}\n+\n+  /**\n+   * Repeatedly replaces {@code error} with {@code nextCause.apply(error)} while {@code\n+   * shouldUnwrap.test(error)} returns {@code true}, and returns the last value reached.\n+   *\n+   * <p>Unwrapping halts, whichever happens first: when {@code shouldUnwrap} returns {@code false},\n+   * when {@code nextCause} returns {@code null}, or when a throwable that has already been visited\n+   * (compared by identity) would be visited again.\n+   */\n+  public static Throwable unwrap(\n+      Throwable error,\n+      Predicate<Throwable> shouldUnwrap,\n+      Function<Throwable, Throwable> nextCause) {\n+    Set<Throwable> visited = null;\n+    Throwable current = error;\n+    while (shouldUnwrap.test(current)) {\n+      Throwable next = nextCause.apply(current);\n+      if (next == null) {\n+        break;\n+      }\n+      if (visited == null) {\n+        visited = Collections.newSetFromMap(new IdentityHashMap<>());\n+      }\n+      if (!visited.add(current)) {\n+        break;\n+      }\n+      current = next;\n+    }\n+    return current;\n+  }\n+\n+  /**\n+   * Equivalent to {@link #unwrap(Throwable, Predicate, Function)}, using {@link\n+   * Throwable#getCause()} to advance to the next cause.\n+   */\n+  public static Throwable unwrapCause(Throwable error, Predicate<Throwable> shouldUnwrap) {",
+      "id": "PRRT_kwDODJKVX86cfFZD",
+      "opened": "2026-08-26T13:55:31Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+      "replies": [
+        {
+          "at": "2026-08-28T06:32:46Z",
+          "body": "Renamed the 2-arg helper to `unwrap(error, predicate)` (delegates to the 3-arg overload) in 604814f2c2; updated all CauseUnwrapper call sites.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3878422627"
+        }
+      ],
+      "reviewed": "5375a4a374c75df280ecdf9ecae8dc15bbed564b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3863438127"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] Move this constructor below the utility methods, as required for static utility classes by the repository Java style guide.",
+      "created": "2026-08-28T19:26:13Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.internal;\n+\n+import java.util.Collections;\n+import java.util.IdentityHashMap;\n+import java.util.Set;\n+import java.util.function.Function;\n+import java.util.function.Predicate;\n+\n+/**\n+ * A helper for safely walking a chain of {@link Throwable} causes.\n+ *\n+ * <p>Instrumentation frequently needs to unwrap wrapper exceptions (e.g. {@link\n+ * java.util.concurrent.ExecutionException}, framework-specific wrapper types) to find the\n+ * underlying error. A naive loop or recursive method that follows {@link Throwable#getCause()} (or\n+ * a similar library-specific accessor) until some stop condition is met can loop forever, or\n+ * overflow the stack if written recursively, when a cause chain contains a cycle - which can happen\n+ * with adversarial or buggy exceptions since nothing prevents {@link\n+ * Throwable#initCause(Throwable)} from being used to create one. The helpers in this class detect\n+ * such cycles using identity comparisons and stop unwrapping instead of looping.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class CauseUnwrapper {\n+\n+  private CauseUnwrapper() {}",
+      "id": "PRRT_kwDODJKVX86dR7me",
+      "opened": "2026-08-28T22:16:47Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+      "replies": [],
+      "reviewed": "604814f2c20ba633ccb26f0cd00004cdd7d93b75",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3883438631"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This class is in a `.internal` package, where the project style guide explicitly says not to add `final` to classes (`docs/contributing/style-guide.md:99-105`). Please remove `final`.",
+      "created": "2026-09-02T14:13:24Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.internal;\n+\n+import java.util.Collections;\n+import java.util.IdentityHashMap;\n+import java.util.Set;\n+import java.util.function.Function;\n+import java.util.function.Predicate;\n+\n+/**\n+ * A helper for safely walking a chain of {@link Throwable} causes.\n+ *\n+ * <p>Instrumentation frequently needs to unwrap wrapper exceptions (e.g. {@link\n+ * java.util.concurrent.ExecutionException}, framework-specific wrapper types) to find the\n+ * underlying error. A naive loop or recursive method that follows {@link Throwable#getCause()} (or\n+ * a similar library-specific accessor) until some stop condition is met can loop forever, or\n+ * overflow the stack if written recursively, when a cause chain contains a cycle - which can happen\n+ * with adversarial or buggy exceptions since nothing prevents {@link\n+ * Throwable#initCause(Throwable)} from being used to create one. The helpers in this class detect\n+ * such cycles using identity comparisons and stop unwrapping instead of looping.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class CauseUnwrapper {",
+      "id": "PRRT_kwDODJKVX86eibrL",
+      "opened": "2026-09-02T14:13:24Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/CauseUnwrapper.java",
+      "replies": [
+        {
+          "at": "2026-09-02T14:22:23Z",
+          "body": "I'll leave it as final for now since most of the other internal classes are also final. cc @trask ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3915122139"
+        },
+        {
+          "at": "2026-09-02T14:24:14Z",
+          "body": "hehe, removing it is fine too",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3915140107"
+        },
+        {
+          "at": "2026-09-02T14:41:24Z",
+          "body": "yeah, I agree, this rule is kind of annoying, I don't really care if they're `final` or not (or even if it's consistent one way or the other). I'll send a PR to remove that rule.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3915314147"
+        }
+      ],
+      "reviewed": "7b2ab4bf9353ff040e789004d22ff31de0efb16f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3915032813"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Classes under `javaagent/src/main` are internal implementation details, and the project style guide explicitly says not to add `final` there (`docs/contributing/style-guide.md:99-104`). Please remove `final`.",
+      "created": "2026-09-02T14:13:24Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.wicket.v8_0;\n+\n+import io.opentelemetry.instrumentation.api.internal.CauseUnwrapper;\n+import java.lang.reflect.InvocationTargetException;\n+import org.apache.wicket.WicketRuntimeException;\n+\n+public final class WicketErrorUnwrapper {",
+      "id": "PRRT_kwDODJKVX86eibsY",
+      "opened": "2026-09-02T14:13:24Z",
+      "path": "instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/WicketErrorUnwrapper.java",
+      "replies": [
+        {
+          "at": "2026-09-02T14:23:10Z",
+          "body": "```suggestion\npublic class WicketErrorUnwrapper {\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3915128600"
+        }
+      ],
+      "reviewed": "7b2ab4bf9353ff040e789004d22ff31de0efb16f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3915032910"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This explanation contradicts `@Advice.OnMethodEnter(..., inline = false)` above: Byte Buddy delegates this advice instead of inlining it. Please remove the comment or document the actual reason this helper is required, otherwise future changes may rely on an incorrect assumption about the transformed bytecode.",
+      "created": "2026-09-02T16:34:06Z",
+      "hunk": "@@ -41,12 +39,9 @@ public static void onEnter(@Advice.Argument(0) Exception exception) {\n       Span serverSpan = LocalRootSpan.fromContextOrNull(Java8BytecodeBridge.currentContext());\n       if (serverSpan != null) {\n         // unwrap exception\n-        Throwable throwable = exception;\n-        while (throwable.getCause() != null\n-            && (throwable instanceof WicketRuntimeException\n-                || throwable instanceof InvocationTargetException)) {\n-          throwable = throwable.getCause();\n-        }\n+        // this must be delegated to a helper class: advice is inlined into the instrumented class,\n+        // where the synthetic lambda methods of this class would not be accessible\n+        Throwable throwable = WicketErrorUnwrapper.unwrap(exception);",
+      "id": "PRRT_kwDODJKVX86el1fe",
+      "opened": "2026-09-02T16:34:07Z",
+      "path": "instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/DefaultExceptionMapperInstrumentation.java",
+      "replies": [],
+      "reviewed": "6684b24311864496a4a8c1b276a34438ff109cf7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3916367881"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This rationale is inaccurate because the calling advice is explicitly annotated with `inline = false`; its body is delegated rather than inlined into the instrumented method. Please remove this paragraph or replace it with the actual reason for keeping a separate helper.",
+      "created": "2026-09-02T16:34:07Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.wicket.v8_0;\n+\n+import io.opentelemetry.instrumentation.api.internal.CauseUnwrapper;\n+import java.lang.reflect.InvocationTargetException;\n+import org.apache.wicket.WicketRuntimeException;\n+\n+public class WicketErrorUnwrapper {\n+\n+  /**\n+   * Unwraps the wicket-specific wrapper exceptions from {@code error} to find the error that\n+   * actually caused the failure.\n+   *\n+   * <p>This lives in a helper class rather than in the advice itself because advice bodies are\n+   * inlined into the instrumented class, and inlined code cannot reference the synthetic lambda\n+   * methods that the compiler would generate for the predicate below.\n+   */",
+      "id": "PRRT_kwDODJKVX86el1gi",
+      "opened": "2026-09-02T16:34:07Z",
+      "path": "instrumentation/wicket-8.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/wicket/v8_0/WicketErrorUnwrapper.java",
+      "replies": [],
+      "reviewed": "6684b24311864496a4a8c1b276a34438ff109cf7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19625#discussion_r3916367982"
+    }
+  ]
+}

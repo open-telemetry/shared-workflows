@@ -1,0 +1,25 @@
+{
+  "head": "28b3b7c223caaf375b51aaa873520e686adba33b",
+  "merge": "03c8ed9a74917914ce219b272dd61ecd90157879",
+  "merged": "2026-01-12T16:52:16Z",
+  "missing_roots": 0,
+  "number": 15832,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "\"Tracing\" seems redundant and isn't added elsewhere",
+      "created": "2026-01-10T22:54:37Z",
+      "hunk": "@@ -46,15 +46,37 @@ public static RocketMqTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n    * Returns a new {@link ConsumeMessageHook} for use with methods like {@link\n    * org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl#registerConsumeMessageHook(ConsumeMessageHook)}.\n    */\n-  public ConsumeMessageHook newTracingConsumeMessageHook() {\n+  public ConsumeMessageHook createConsumeMessageHook() {\n     return new TracingConsumeMessageHookImpl(rocketMqConsumerInstrumenter);\n   }\n \n+  /**\n+   * Returns a new {@link ConsumeMessageHook} for use with methods like {@link\n+   * org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl#registerConsumeMessageHook(ConsumeMessageHook)}.\n+   *\n+   * @deprecated Use {@link #createConsumeMessageHook()} instead.\n+   */\n+  @Deprecated\n+  public ConsumeMessageHook newTracingConsumeMessageHook() {\n+    return createConsumeMessageHook();\n+  }\n+\n   /**\n    * Returns a new {@link SendMessageHook} for use with methods like {@link\n    * org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl#registerSendMessageHook(SendMessageHook)}.\n    */\n-  public SendMessageHook newTracingSendMessageHook() {\n+  public SendMessageHook createSendMessageHook() {",
+      "id": "PRRT_kwDODJKVX85o1au2",
+      "opened": "2026-01-10T22:59:14Z",
+      "path": "instrumentation/rocketmq/rocketmq-client/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqTelemetry.java",
+      "replies": [],
+      "reviewed": "28b3b7c223caaf375b51aaa873520e686adba33b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15832#discussion_r2679049513"
+    }
+  ]
+}

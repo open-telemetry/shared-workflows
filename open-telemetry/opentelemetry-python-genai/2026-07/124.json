@@ -1,0 +1,137 @@
+{
+  "head": "858fa67680258146459e834536bd868d967493f4",
+  "merge": "a8bc91778789a716f30fe5b3691df89c09d4ed3e",
+  "merged": "2026-07-28T20:55:01Z",
+  "missing_roots": 0,
+  "number": 124,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Metadata keys can overwrite reserved schema keys like `\"content\"` and `\"id\"` because the metadata dict is merged last. This can corrupt the document payload and semconv mapping (e.g., a metadata field named `\"content\"` replaces `doc.page_content`). Filter out reserved keys from metadata before merging (or nest metadata under a dedicated key like `\"metadata\"`), ensuring `\"content\"`/`\"id\"` remain authoritative.",
+      "created": "2026-06-15T07:41:33Z",
+      "hunk": "@@ -402,6 +405,78 @@ def on_llm_error(\n         if not llm_invocation.span.is_recording():\n             self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n+    def on_retriever_start(\n+        self,\n+        serialized: dict[str, Any],\n+        query: str,\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        meta = metadata or {}\n+        provider = meta.get(\"ls_vector_store_provider\") or None\n+        request_model = meta.get(\"ls_embedding_model\") or None\n+        retrieval = self._telemetry_handler.retrieval(\n+            provider=provider, request_model=request_model\n+        )\n+        retrieval.query_text = query\n+        self._invocation_manager.add_invocation_state(\n+            run_id, parent_run_id, retrieval\n+        )\n+\n+    def on_retriever_end(\n+        self,\n+        documents: Sequence[Document],\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        invocation = self._invocation_manager.get_invocation(run_id=run_id)\n+        if invocation is None or not isinstance(\n+            invocation, RetrievalInvocation\n+        ):\n+            self._invocation_manager.delete_invocation_state(run_id)\n+            return\n+\n+        invocation.documents = [\n+            {\n+                \"content\": doc.page_content,\n+                **({\"id\": doc.id} if doc.id is not None else {}),\n+                **{\n+                    k: v\n+                    for k, v in cast(dict[str, Any], doc.metadata).items()\n+                    if v is not None\n+                },\n+            }",
+      "id": "PRRT_kwDOSbspP86Jf2uU",
+      "opened": "2026-06-15T07:41:34Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "caa313d8422d9fb8fc03ebcee89f33c93e58111b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3411757112"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This PR’s code imports and relies on `RetrievalInvocation` (and `telemetry_handler.retrieval(...)` behavior). The declared lower bound should be the first `opentelemetry-util-genai` release that actually provides those APIs; otherwise, users installing the minimum version can hit import/runtime errors. Please bump the minimum version accordingly (to the exact version where retrieval support was introduced).",
+      "created": "2026-06-15T07:41:33Z",
+      "hunk": "@@ -26,7 +26,7 @@ classifiers = [\n ]\n dependencies = [\n   \"opentelemetry-instrumentation >= 0.62b0\",\n-  \"opentelemetry-util-genai >= 1.0b0.dev\",\n+  \"opentelemetry-util-genai >= 0.1b0\",",
+      "id": "PRRT_kwDOSbspP86Jf2vL",
+      "opened": "2026-06-15T07:41:34Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/pyproject.toml",
+      "replies": [],
+      "reviewed": "caa313d8422d9fb8fc03ebcee89f33c93e58111b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3411757179"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This is a mutable default on the class/model field and can lead to shared state across test instances depending on how `BaseRetriever` (pydantic/model) handles defaults. Prefer a per-instance default (e.g., a default factory) to prevent cross-test coupling if the list is ever mutated.",
+      "created": "2026-06-15T07:41:34Z",
+      "hunk": "@@ -0,0 +1,365 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Integration tests for retriever instrumentation.\n+\n+These tests exercise the full on_retriever_start / on_retriever_end /\n+on_retriever_error path end-to-end by driving LangChain's retriever\n+interface against an in-memory fake retriever and verifying the emitted\n+spans, attributes, and metrics against the semconv spec.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+import pytest\n+from langchain_core.callbacks import CallbackManagerForRetrieverRun\n+from langchain_core.documents import Document\n+from langchain_core.retrievers import BaseRetriever\n+\n+from opentelemetry.semconv._incubating.attributes import gen_ai_attributes\n+from opentelemetry.semconv._incubating.metrics import gen_ai_metrics\n+from opentelemetry.semconv.attributes import error_attributes\n+\n+# ---------------------------------------------------------------------------\n+# Fake retriever helpers\n+# ---------------------------------------------------------------------------\n+\n+\n+class _FakeRetriever(BaseRetriever):\n+    \"\"\"In-memory retriever — no network calls, no embeddings.\"\"\"\n+\n+    documents: list[Document] = []",
+      "id": "PRRT_kwDOSbspP86Jf2vs",
+      "opened": "2026-06-15T07:41:34Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_retriever.py",
+      "replies": [],
+      "reviewed": "caa313d8422d9fb8fc03ebcee89f33c93e58111b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3411757217"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why doc_id falls back to an empty object? it should be a string.\n\nIt seems it's [required in semconv](https://github.com/trask/semantic-conventions-genai/blob/243e57bb0718f1ae2515c2814203613f2e5524cb/docs/gen-ai/gen-ai-retrieval-documents.json#L19), but given it's optional in langchain, we should mark it optional in semconv. Could you please send an issue (or PR) to update it?\n\nAnd then just don't fallback to anything, leave it None",
+      "created": "2026-06-20T00:10:19Z",
+      "hunk": "@@ -402,6 +405,78 @@ def on_llm_error(\n         if not llm_invocation.span.is_recording():\n             self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n+    def on_retriever_start(\n+        self,\n+        serialized: dict[str, Any],\n+        query: str,\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        meta = metadata or {}\n+        provider = meta.get(\"ls_vector_store_provider\") or None\n+        request_model = meta.get(\"ls_embedding_model\") or None\n+        retrieval = self._telemetry_handler.retrieval(\n+            provider=provider, request_model=request_model\n+        )\n+        retrieval.query_text = query\n+        self._invocation_manager.add_invocation_state(\n+            run_id, parent_run_id, retrieval\n+        )\n+\n+    def on_retriever_end(\n+        self,\n+        documents: Sequence[Document],\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        invocation = self._invocation_manager.get_invocation(run_id=run_id)\n+        if invocation is None or not isinstance(\n+            invocation, RetrievalInvocation\n+        ):\n+            self._invocation_manager.delete_invocation_state(run_id)\n+            return\n+\n+        invocation.documents = [\n+            {\n+                \"content\": doc.page_content,\n+                **({\"id\": doc.id} if doc.id is not None else {}),",
+      "id": "PRRT_kwDOSbspP86K8cGO",
+      "opened": "2026-06-20T00:14:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-06-24T16:01:45Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/issues/344",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3468512428"
+        }
+      ],
+      "reviewed": "15f621e5bfcc92c7bc60040b26d9fd7291fd3016",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3445004603"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this seems to add all metadata properties to the document, it's not documented in semantic conventions.",
+      "created": "2026-06-20T00:11:21Z",
+      "hunk": "@@ -402,6 +405,78 @@ def on_llm_error(\n         if not llm_invocation.span.is_recording():\n             self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n+    def on_retriever_start(\n+        self,\n+        serialized: dict[str, Any],\n+        query: str,\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        meta = metadata or {}\n+        provider = meta.get(\"ls_vector_store_provider\") or None\n+        request_model = meta.get(\"ls_embedding_model\") or None\n+        retrieval = self._telemetry_handler.retrieval(\n+            provider=provider, request_model=request_model\n+        )\n+        retrieval.query_text = query\n+        self._invocation_manager.add_invocation_state(\n+            run_id, parent_run_id, retrieval\n+        )\n+\n+    def on_retriever_end(\n+        self,\n+        documents: Sequence[Document],\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        invocation = self._invocation_manager.get_invocation(run_id=run_id)\n+        if invocation is None or not isinstance(\n+            invocation, RetrievalInvocation\n+        ):\n+            self._invocation_manager.delete_invocation_state(run_id)\n+            return\n+\n+        invocation.documents = [\n+            {\n+                \"content\": doc.page_content,\n+                **({\"id\": doc.id} if doc.id is not None else {}),\n+                **{\n+                    k: v\n+                    for k, v in cast(dict[str, Any], doc.metadata).items()\n+                    if v is not None\n+                },",
+      "id": "PRRT_kwDOSbspP86K8cch",
+      "opened": "2026-06-20T00:14:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "15f621e5bfcc92c7bc60040b26d9fd7291fd3016",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3445006635"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "we don't ever populate score, but it should be available at least in some cases, e.g. https://reference.langchain.com/python/langchain-core/vectorstores/base/VectorStore/similarity_search_with_relevance_scores\n\nIs there a way to get it somehow?\n\nIf it's not always available, we should also update semantic conventions to make it not required. Please create an issue (or PR) to make it optional. \n\ncc @JWinermaSplunk who added retrival span in semconv in case he has thoughts",
+      "created": "2026-06-20T00:14:08Z",
+      "hunk": "@@ -402,6 +405,78 @@ def on_llm_error(\n         if not llm_invocation.span.is_recording():\n             self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n+    def on_retriever_start(\n+        self,\n+        serialized: dict[str, Any],\n+        query: str,\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        meta = metadata or {}\n+        provider = meta.get(\"ls_vector_store_provider\") or None\n+        request_model = meta.get(\"ls_embedding_model\") or None\n+        retrieval = self._telemetry_handler.retrieval(\n+            provider=provider, request_model=request_model\n+        )\n+        retrieval.query_text = query\n+        self._invocation_manager.add_invocation_state(\n+            run_id, parent_run_id, retrieval\n+        )\n+\n+    def on_retriever_end(\n+        self,\n+        documents: Sequence[Document],\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        invocation = self._invocation_manager.get_invocation(run_id=run_id)\n+        if invocation is None or not isinstance(\n+            invocation, RetrievalInvocation\n+        ):\n+            self._invocation_manager.delete_invocation_state(run_id)\n+            return\n+\n+        invocation.documents = [\n+            {\n+                \"content\": doc.page_content,\n+                **({\"id\": doc.id} if doc.id is not None else {}),\n+                **{\n+                    k: v\n+                    for k, v in cast(dict[str, Any], doc.metadata).items()\n+                    if v is not None\n+                },\n+            }\n+            for doc in documents",
+      "id": "PRRT_kwDOSbspP86K8dTl",
+      "opened": "2026-06-20T00:14:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-06-24T16:01:31Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/issues/344",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3468511149"
+        },
+        {
+          "at": "2026-07-20T23:40:53Z",
+          "body": "could you please send a PR to address it in semantic conventions? thanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3618270072"
+        },
+        {
+          "at": "2026-07-21T14:10:18Z",
+          "body": "@JWinermaSplunk will be addressing it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3622853950"
+        }
+      ],
+      "reviewed": "15f621e5bfcc92c7bc60040b26d9fd7291fd3016",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3445011647"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can we guard this based on whether content is enabled (there should be a method on TelemetryHandler for this)?\n\nThe code in telemetry handler shouldn't set the attribute when content is disabled anyway, but users who didn't enable content won't waste perf on collecting the data they don't need",
+      "created": "2026-07-28T17:53:16Z",
+      "hunk": "@@ -490,6 +493,73 @@ def on_tool_error(\n         if not tool_invocation.span.is_recording():\n             self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n+    def on_retriever_start(\n+        self,\n+        serialized: dict[str, Any],\n+        query: str,\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        meta = metadata or {}\n+        provider = meta.get(\"ls_vector_store_provider\") or None\n+        request_model = meta.get(\"ls_embedding_model\") or None\n+        retrieval = self._telemetry_handler.retrieval(\n+            provider=provider, request_model=request_model\n+        )\n+        retrieval.query_text = query\n+        self._invocation_manager.add_invocation_state(\n+            run_id, parent_run_id, retrieval\n+        )\n+\n+    def on_retriever_end(\n+        self,\n+        documents: Sequence[Document],\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        **kwargs: Any,\n+    ) -> Any:\n+        invocation = self._invocation_manager.get_invocation(run_id=run_id)\n+        if invocation is None or not isinstance(\n+            invocation, RetrievalInvocation\n+        ):\n+            self._invocation_manager.delete_invocation_state(run_id)\n+            return\n+\n+        invocation.documents = [",
+      "id": "PRRT_kwDOSbspP86Uf6Yh",
+      "opened": "2026-07-28T17:53:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "c7bf692fd481d9f90bdf9ecf3fa09260a95162ea",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3667965913"
+    }
+  ]
+}

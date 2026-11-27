@@ -1,0 +1,25 @@
+{
+  "head": "34eeed1f915ed327056e081415cdaf30bd907b46",
+  "merge": "e61c528b38b8d7740a6888c19d05bbcd28a22083",
+  "merged": "2026-03-20T06:46:01Z",
+  "missing_roots": 0,
+  "number": 16803,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think using `lenient` will allow us to remove skip versions in most(?) other places, but just want to unblock CI to begin with in this PR",
+      "created": "2026-03-20T03:56:25Z",
+      "hunk": "@@ -6,9 +6,7 @@ muzzle {\n   pass {\n     group.set(\"com.sun.xml.ws\")\n     module.set(\"jaxws-rt\")\n-    versions.set(\"[2.2.0.1,)\")\n-    // version 2.3.4 depends on org.glassfish.gmbal:gmbal-api-only:4.0.3 which does not exist\n-    skip(\"2.3.4\")\n+    versions.set(\"[2.2,)\")",
+      "id": "PRRT_kwDODJKVX851oFro",
+      "opened": "2026-03-20T03:56:24Z",
+      "path": "instrumentation/jaxws/jaxws-metro-2.2/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "34eeed1f915ed327056e081415cdaf30bd907b46",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16803#discussion_r2963819710"
+    }
+  ]
+}

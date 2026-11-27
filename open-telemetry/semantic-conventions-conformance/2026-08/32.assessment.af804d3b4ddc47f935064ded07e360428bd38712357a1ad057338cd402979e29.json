@@ -1,0 +1,72 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "564c0d295a27b58b96cd47131c6836694f5514bfe39e359a3afac9454fa7b901",
+  "input_digest": "af804d3b4ddc47f935064ded07e360428bd38712357a1ad057338cd402979e29",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/9e5eba023c5ea8e4e5513e67accf99609e99091c/tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a31794c97dd824ec6d2cb128f910c2ff748b6069/tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/23b2078283d5dba9c7fa6d011bd75eef375ca309"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YxCnL",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/9e5eba023c5ea8e4e5513e67accf99609e99091c/tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/9e5eba023c5ea8e4e5513e67accf99609e99091c/tools/gen-ai/mock-server/tests/test_mock_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a31794c97dd824ec6d2cb128f910c2ff748b6069/tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a31794c97dd824ec6d2cb128f910c2ff748b6069/tools/gen-ai/mock-server/tests/test_mock_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/23b2078283d5dba9c7fa6d011bd75eef375ca309"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YxCnb",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/9e5eba023c5ea8e4e5513e67accf99609e99091c/tools/gen-ai/mock-server/tests/test_mock_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a31794c97dd824ec6d2cb128f910c2ff748b6069/tools/gen-ai/mock-server/tests/test_mock_server.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YxCnn",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/9e5eba023c5ea8e4e5513e67accf99609e99091c/tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a31794c97dd824ec6d2cb128f910c2ff748b6069/tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/23b2078283d5dba9c7fa6d011bd75eef375ca309"
+      ],
+      "id": "PRRT_kwDOTuzK5c6YxCnu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/23b2078283d5dba9c7fa6d011bd75eef375ca309/tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/23b2078283d5dba9c7fa6d011bd75eef375ca309/tools/gen-ai/mock-server/tests/test_mock_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a31794c97dd824ec6d2cb128f910c2ff748b6069/tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a31794c97dd824ec6d2cb128f910c2ff748b6069/tools/gen-ai/mock-server/tests/test_mock_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/830a243b64a40c33e20d8987f14fac7aa9bbe5f3"
+      ],
+      "id": "PRRT_kwDOTuzK5c6Y9uTg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

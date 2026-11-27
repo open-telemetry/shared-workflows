@@ -1,0 +1,148 @@
+{
+  "head": "d3b6ac8fb3417270b60a57bd45448786f5baf9e3",
+  "merge": "f62d178f7e95c46be50cbb2e8678407ccb6dfa5a",
+  "merged": "2026-11-02T15:11:59Z",
+  "missing_roots": 0,
+  "number": 21071,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Skip caching wrappers on the invalid span singleton**\n\nWhen a bridged no-op or shut-down tracer returns `Span.getInvalid()`, this is the shared `PropagatedSpan` singleton, so this write attaches the application wrapper to a JVM-lifetime object. Constructing another invalid `ApplicationSpan` overwrites the same slot, which makes a context containing the first wrapper round-trip through `Bridging.toApplication` as the later wrapper; the last wrapper (and its application class loader) is also retained indefinitely. Check span-context validity before associating or consulting the holder so invalid spans continue to use the canonical invalid-span path.\n\nAGENTS.md reference: [AGENTS.md:L24-L26](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e893f209393f33c3269ba54f9e1e776153b08dd/AGENTS.md#L24-L26)\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-10-29T16:40:46Z",
+      "hunk": "@@ -20,6 +21,12 @@ public class ApplicationSpan implements application.io.opentelemetry.api.trace.S\n \n   public ApplicationSpan(Span agentSpan) {\n     this.agentSpan = agentSpan;\n+    // we add FieldHolder interface to span implementations used in agent via instrumentation\n+    // this lets us associate the original application span with the agent span so we can convert\n+    // the agent span back to exactly the same application span that the agent span was created for\n+    if (agentSpan instanceof FieldHolder) {\n+      ((FieldHolder) agentSpan).setFieldValue(this);",
+      "id": "PRRT_kwDODJKVX86xp5r8",
+      "opened": "2026-10-29T16:40:46Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/ApplicationSpan.java",
+      "replies": [
+        {
+          "at": "2026-10-30T07:35:19Z",
+          "body": "I suspect that `Span.getInvalid()` doesn't reach here. Added `agentSpan != Span.getInvalid()` just in case",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21071#discussion_r4421416957"
+        }
+      ],
+      "reviewed": "1e893f209393f33c3269ba54f9e1e776153b08dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21071#discussion_r4415171538"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] When two isolated application API classloaders read the same agent span, each rejects the other's cached wrapper in `Bridging.toApplication()` and overwrites this shared slot. Returning to the original loader then loses the original span identity even though its context is unchanged, and alternating reads repeatedly discard the cached `SpanContext`. Retain associations per application API classloader or in the bridged context, and cover an A → B → A classloader round trip.",
+      "created": "2026-10-29T16:44:41Z",
+      "hunk": "@@ -20,6 +21,12 @@ public class ApplicationSpan implements application.io.opentelemetry.api.trace.S\n \n   public ApplicationSpan(Span agentSpan) {\n     this.agentSpan = agentSpan;\n+    // we add FieldHolder interface to span implementations used in agent via instrumentation\n+    // this lets us associate the original application span with the agent span so we can convert\n+    // the agent span back to exactly the same application span that the agent span was created for\n+    if (agentSpan instanceof FieldHolder) {\n+      ((FieldHolder) agentSpan).setFieldValue(this);",
+      "id": "PRRT_kwDODJKVX86xqARC",
+      "opened": "2026-10-29T16:44:42Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/ApplicationSpan.java",
+      "replies": [
+        {
+          "at": "2026-10-30T07:40:52Z",
+          "body": "The intent of this PR isn't really to preserve the identity but to reduce the cost of bridging. Preserving the identity just was the easiest way to test that the application span instance is cached in the agent span. I'd expect agent span being bridged to multiple class loaders to be very uncommon. If that were to happen then `if (applicationSpan instanceof application.io.opentelemetry.api.trace.Span)` check while reading the value ensures that we ignore the cached value from another class loader and fall back to conversion.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21071#discussion_r4421450986"
+        }
+      ],
+      "reviewed": "1e893f209393f33c3269ba54f9e1e776153b08dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21071#discussion_r4415215540"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could also consider something like `InstrumentedAgentSpan` so it would be easier to see what it is used for.",
+      "created": "2026-10-30T07:51:35Z",
+      "hunk": "@@ -0,0 +1,27 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.bootstrap;\n+\n+/**\n+ * Object with an extra volatile field that instrumentation can use to associate state with given\n+ * object.\n+ */\n+public interface FieldHolder {",
+      "id": "PRRT_kwDODJKVX86x4r-v",
+      "opened": "2026-10-30T07:51:35Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/FieldHolder.java",
+      "replies": [
+        {
+          "at": "2026-10-30T16:02:51Z",
+          "body": "`ApplicationSpanHolder`?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21071#discussion_r4425674402"
+        }
+      ],
+      "reviewed": "28a093376fb4924f36c4fd51126914e47d3e0ff5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21071#discussion_r4421516826"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // extra field that can be used to store\n```",
+      "created": "2026-10-30T15:50:22Z",
+      "hunk": "@@ -128,6 +129,9 @@ private void installTransformers() {\n     // io.opentelemetry.sdk.metrics.internal.state.CallbackRegistration to use doPrivileged so that\n     // security manager wouldn't deny these calls\n     instrumentation.addTransformer(new CallbackRegistrationClassFileTransformer(), true);\n+    // transforms SdkSpan in agent class loader and PropagatedSpan in boot loader by adding them an\n+    // extra filed that can be used to store",
+      "id": "PRRT_kwDODJKVX86yCTma",
+      "opened": "2026-10-30T16:02:51Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentStarterImpl.java",
+      "replies": [],
+      "reviewed": "0d29da243724e5f458f6cbee076162edd25d2302",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21071#discussion_r4425564590"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "maybe get/setApplicationSpan",
+      "created": "2026-10-30T16:02:00Z",
+      "hunk": "@@ -0,0 +1,27 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.bootstrap;\n+\n+/**\n+ * Object with an extra volatile field that instrumentation can use to associate state with given\n+ * object.\n+ */\n+public interface FieldHolder {\n+\n+  /**\n+   * Read the field value.\n+   *\n+   * @return field value\n+   */\n+  Object getFieldValue();",
+      "id": "PRRT_kwDODJKVX86yCk4N",
+      "opened": "2026-10-30T16:02:51Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/FieldHolder.java",
+      "replies": [],
+      "reviewed": "0d29da243724e5f458f6cbee076162edd25d2302",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21071#discussion_r4425679189"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(or if renamed)\n```suggestion\n              // add FieldHolder interface\n```",
+      "created": "2026-10-30T16:02:38Z",
+      "hunk": "@@ -359,4 +363,97 @@ public void visitMethodInsn(\n       return cw.toByteArray();\n     }\n   }\n+\n+  private static class SdkSpanClassFileTransformer implements ClassFileTransformer {\n+\n+    @Nullable\n+    @Override\n+    public byte[] transform(\n+        ClassLoader loader,\n+        String className,\n+        Class<?> classBeingRedefined,\n+        ProtectionDomain protectionDomain,\n+        byte[] classfileBuffer) {\n+      // applies to SdkSpan in agent class loader and PropagatedSpan in boot loader\n+      if (!((loader == getClass().getClassLoader()\n+              && \"io/opentelemetry/sdk/trace/SdkSpan\".equals(className))\n+          || (loader == null && \"io/opentelemetry/api/trace/PropagatedSpan\".equals(className)))) {\n+        return null;\n+      }\n+      ClassReader cr = new ClassReader(classfileBuffer);\n+      ClassWriter cw = new ClassWriter(cr, 0);\n+      ClassVisitor cv =\n+          new ClassVisitor(AsmApi.VERSION, cw) {\n+\n+            @Override\n+            public void visit(\n+                int version,\n+                int access,\n+                String name,\n+                String signature,\n+                String superName,\n+                String[] interfaces) {\n+              // add CacheFieldHolder interface",
+      "id": "PRRT_kwDODJKVX86yCl0M",
+      "opened": "2026-10-30T16:02:51Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentStarterImpl.java",
+      "replies": [],
+      "reviewed": "0d29da243724e5f458f6cbee076162edd25d2302",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21071#discussion_r4425685412"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // we add ApplicationSpanHolder interface to span implementations used in agent via instrumentation\n```",
+      "created": "2026-10-30T21:10:02Z",
+      "hunk": "@@ -20,6 +21,12 @@ public class ApplicationSpan implements application.io.opentelemetry.api.trace.S\n \n   public ApplicationSpan(Span agentSpan) {\n     this.agentSpan = agentSpan;\n+    // we add FieldHolder interface to span implementations used in agent via instrumentation",
+      "id": "PRRT_kwDODJKVX86yJOe0",
+      "opened": "2026-10-30T21:10:19Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/ApplicationSpan.java",
+      "replies": [],
+      "reviewed": "0b6a1b64e39695ecec097516685718a91ceefacb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21071#discussion_r4428500207"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // we add ApplicationSpanHolder interface to span implementations used in agent via instrumentation\n```",
+      "created": "2026-10-30T21:10:10Z",
+      "hunk": "@@ -40,6 +41,15 @@ public class Bridging {\n   private static final Logger logger = Logger.getLogger(Bridging.class.getName());\n \n   public static application.io.opentelemetry.api.trace.Span toApplication(Span agentSpan) {\n+    // we add FieldHolder interface to span implementations used in agent via instrumentation",
+      "id": "PRRT_kwDODJKVX86yJOpd",
+      "opened": "2026-10-30T21:10:19Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/Bridging.java",
+      "replies": [],
+      "reviewed": "0b6a1b64e39695ecec097516685718a91ceefacb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21071#discussion_r4428501306"
+    }
+  ]
+}

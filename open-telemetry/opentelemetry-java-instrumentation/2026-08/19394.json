@@ -1,0 +1,40 @@
+{
+  "head": "c3aa505edb2278f650d46f634e4888e6ba912c23",
+  "merge": "5578bc36da89e03c15609e164985a572d69cc641",
+  "merged": "2026-08-07T03:55:48Z",
+  "missing_roots": 0,
+  "number": 19394,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This still leaves the other no-database case from the referenced discussion broken: for `jdbc:mysql:host`, `portLoc == -1` and `dbLoc == -1`, so the `else` branch assigns `hostEndLoc = -1` and `substring(...)` throws. The outer parser swallows that failure and returns the default host instead of `host`. Use the effective end position in both branches (and cover this host-only form in the regression data).",
+      "created": "2026-08-04T13:28:48Z",
+      "hunk": "@@ -91,22 +91,21 @@ private static void parseNonStandardUrl(String jdbcUrl, ParseContext ctx) {\n     int typeEndLoc = jdbcUrl.indexOf(':');\n     int portLoc = jdbcUrl.indexOf(\":\", typeEndLoc + 1);\n     int dbLoc = jdbcUrl.indexOf(\"/\", typeEndLoc);\n-    int paramLoc = jdbcUrl.indexOf(\"?\", dbLoc);\n+    int paramLoc = dbLoc > 0 ? jdbcUrl.indexOf(\"?\", dbLoc) : -1;\n \n     // Extract database name\n-    String databaseName;\n     if (paramLoc > 0) {\n-      databaseName = jdbcUrl.substring(dbLoc + 1, paramLoc);\n-    } else {\n-      databaseName = jdbcUrl.substring(dbLoc + 1);\n+      ctx.databaseName(jdbcUrl.substring(dbLoc + 1, paramLoc));\n+    } else if (dbLoc != -1) {\n+      ctx.databaseName(jdbcUrl.substring(dbLoc + 1));\n     }\n-    ctx.databaseName(databaseName);\n \n     // Host and port from URL\n     int hostEndLoc;\n+    int effectiveDbLoc = dbLoc != -1 ? dbLoc : jdbcUrl.length();",
+      "id": "PRRT_kwDODJKVX86WVr24",
+      "opened": "2026-08-04T13:28:48Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MysqlUrlParser.java",
+      "replies": [],
+      "reviewed": "c4e99eea73ad02b5de30233b167ac715764a0a79",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19394#discussion_r3712965177"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] When the url has no database but does have query parameters, using `jdbcUrl.length()` here leaves the query string inside the host/port segment:\n\n* `mysql:host:1234?user=u` -> `parsePort(\"1234?user=u\")` returns null, so the port silently stays at the default 3306\n* `mysql:host?user=u` -> host becomes `host?user=u`\n\nFalling back to the `?` position when `/` is absent fixes both.\n\n```suggestion\n    // without a database the host/port segment ends at the query string, if any\n    int urlEndLoc = dbLoc != -1 ? dbLoc : jdbcUrl.indexOf('?');\n    int effectiveDbLoc = urlEndLoc != -1 ? urlEndLoc : jdbcUrl.length();\n```\n",
+      "created": "2026-08-04T15:56:14Z",
+      "hunk": "@@ -91,27 +91,26 @@ private static void parseNonStandardUrl(String jdbcUrl, ParseContext ctx) {\n     int typeEndLoc = jdbcUrl.indexOf(':');\n     int portLoc = jdbcUrl.indexOf(\":\", typeEndLoc + 1);\n     int dbLoc = jdbcUrl.indexOf(\"/\", typeEndLoc);\n-    int paramLoc = jdbcUrl.indexOf(\"?\", dbLoc);\n+    int paramLoc = dbLoc > 0 ? jdbcUrl.indexOf(\"?\", dbLoc) : -1;\n \n     // Extract database name\n-    String databaseName;\n     if (paramLoc > 0) {\n-      databaseName = jdbcUrl.substring(dbLoc + 1, paramLoc);\n-    } else {\n-      databaseName = jdbcUrl.substring(dbLoc + 1);\n+      ctx.databaseName(jdbcUrl.substring(dbLoc + 1, paramLoc));\n+    } else if (dbLoc != -1) {\n+      ctx.databaseName(jdbcUrl.substring(dbLoc + 1));\n     }\n-    ctx.databaseName(databaseName);\n \n     // Host and port from URL\n     int hostEndLoc;\n+    int effectiveDbLoc = dbLoc != -1 ? dbLoc : jdbcUrl.length();",
+      "id": "PRRT_kwDODJKVX86WYvXQ",
+      "opened": "2026-08-04T15:58:34Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MysqlUrlParser.java",
+      "replies": [],
+      "reviewed": "12517f915a79fd18d89bd1c5cd800472c3fd3d40",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19394#discussion_r3714126274"
+    }
+  ]
+}

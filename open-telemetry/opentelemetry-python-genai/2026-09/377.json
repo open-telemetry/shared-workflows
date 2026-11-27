@@ -1,0 +1,281 @@
+{
+  "head": "642a6ebf8ee2c6de6a52306299d27e5e6ffb339c",
+  "merge": "2d14b30674ef4697707dfa1a332dcaf58bf44bb3",
+  "merged": "2026-09-19T03:22:26Z",
+  "missing_roots": 0,
+  "number": 377,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment says only tool definitions are gated, but the early return actually gates *all* content attributes (messages, system instructions, and tool definitions) based on the capturing mode. This is a doc mismatch that could confuse future maintainers.",
+      "created": "2026-08-12T22:13:16Z",
+      "hunk": "@@ -261,14 +261,10 @@ def serialize(items: Sequence[Any]) -> Any:\n         dicts = [asdict(item) for item in items]\n         return gen_ai_json_dumps(dicts) if for_span else dicts\n \n-    # Tool definitions are always captured, the sem conv recommends adding params / description only\n-    # when the content capture mode is set..\n+    # Tool definitions carry sensitive content (parameters / description) and\n+    # are only recorded when the content capture mode is set.",
+      "id": "PRRT_kwDOSbspP86Yvj51",
+      "opened": "2026-08-12T22:13:18Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "4ee140f81f54454c8d03f93530e6c8395b6f654b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3770729595"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This towncrier fragment is categorized as `.added`, but the PR description marks the change as breaking and it changes existing telemetry behavior. This should likely be a `.changed` fragment (rename the file accordingly). Also, add a space before the reference and format attribute names as inline literals for consistent rendering.",
+      "created": "2026-08-12T22:13:16Z",
+      "hunk": "@@ -0,0 +1 @@\n+Mark gen_ai.tool.definitions and gen_ai.tool.description as sensitive attributes per semconv (spec update)[open-telemetry/semantic-conventions-genai#431]",
+      "id": "PRRT_kwDOSbspP86Yvj6N",
+      "opened": "2026-08-12T22:13:18Z",
+      "path": "util/opentelemetry-util-genai/.changelog/377.added",
+      "replies": [],
+      "reviewed": "4ee140f81f54454c8d03f93530e6c8395b6f654b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3770729630"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This towncrier fragment is categorized as `.added`, but the change is a breaking behavior change (attributes are omitted when content capture is disabled). This should likely be a `.changed` fragment (rename the file accordingly). Also, add a space before the reference and format attribute names as inline literals for consistent rendering.",
+      "created": "2026-08-12T22:13:16Z",
+      "hunk": "@@ -0,0 +1 @@\n+Mark gen_ai.tool.definitions and gen_ai.tool.description as sensitive attributes per semconv (spec update)[open-telemetry/semantic-conventions-genai#431]",
+      "id": "PRRT_kwDOSbspP86Yvj6f",
+      "opened": "2026-08-12T22:13:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/.changelog/377.added",
+      "replies": [],
+      "reviewed": "4ee140f81f54454c8d03f93530e6c8395b6f654b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3770729655"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This towncrier fragment is categorized as `.added`, but the change is a breaking behavior change (attributes are omitted when content capture is disabled). This should likely be a `.changed` fragment (rename the file accordingly). Also, add a space before the reference and format attribute names as inline literals for consistent rendering.",
+      "created": "2026-08-12T22:13:17Z",
+      "hunk": "@@ -0,0 +1 @@\n+Mark gen_ai.tool.definitions and gen_ai.tool.description as sensitive attributes per semconv (spec update)[open-telemetry/semantic-conventions-genai#431]",
+      "id": "PRRT_kwDOSbspP86Yvj68",
+      "opened": "2026-08-12T22:13:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/.changelog/377.changed",
+      "replies": [],
+      "reviewed": "4ee140f81f54454c8d03f93530e6c8395b6f654b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3770729701"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This towncrier fragment is categorized as `.added`, but the change is a breaking behavior change (attributes are omitted when content capture is disabled). This should likely be a `.changed` fragment (rename the file accordingly). Also, add a space before the reference and format attribute names as inline literals for consistent rendering.",
+      "created": "2026-08-12T22:13:17Z",
+      "hunk": "@@ -0,0 +1 @@\n+Mark gen_ai.tool.definitions and gen_ai.tool.description as sensitive attributes per semconv (spec update)[open-telemetry/semantic-conventions-genai#431]",
+      "id": "PRRT_kwDOSbspP86Yvj6s",
+      "opened": "2026-08-12T22:13:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/.changelog/377.added",
+      "replies": [],
+      "reviewed": "4ee140f81f54454c8d03f93530e6c8395b6f654b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3770729677"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This towncrier fragment is categorized as `.added`, but the change is a breaking behavior change (attributes are omitted when content capture is disabled). This should likely be a `.changed` fragment (rename the file accordingly). Also, add a space before the reference and format attribute names as inline literals for consistent rendering.",
+      "created": "2026-08-12T22:13:17Z",
+      "hunk": "@@ -0,0 +1 @@\n+Mark gen_ai.tool.definitions and gen_ai.tool.description as sensitive attributes per semconv (spec update)[open-telemetry/semantic-conventions-genai#431]",
+      "id": "PRRT_kwDOSbspP86Yvj7L",
+      "opened": "2026-08-12T22:13:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/.changelog/377.added",
+      "replies": [],
+      "reviewed": "4ee140f81f54454c8d03f93530e6c8395b6f654b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3770729724"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This towncrier fragment is categorized as `.added`, but the change is a breaking behavior change (attributes are omitted when content capture is disabled). This should likely be a `.changed` fragment (rename the file accordingly). Also, add a space before the reference and format attribute names as inline literals for consistent rendering.",
+      "created": "2026-08-12T22:13:17Z",
+      "hunk": "@@ -0,0 +1 @@\n+Mark gen_ai.tool.definitions and gen_ai.tool.description as sensitive attributes per semconv (spec update)[open-telemetry/semantic-conventions-genai#431]",
+      "id": "PRRT_kwDOSbspP86Yvj7i",
+      "opened": "2026-08-12T22:13:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/377.changed",
+      "replies": [],
+      "reviewed": "4ee140f81f54454c8d03f93530e6c8395b6f654b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3770729752"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "tool description may be sensitive, but it's still recommended -https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/registry/attributes/gen-ai.md.\n\nOnly opt-in attributes should be behind the flag",
+      "created": "2026-08-14T01:31:17Z",
+      "hunk": "@@ -99,11 +99,16 @@ def tool_call_id(self, value: str | None) -> None:\n \n     def _get_start_attributes(self) -> dict[str, AttributeValue]:\n         \"\"\"Return sampling-relevant attributes available at span creation time.\"\"\"\n+        tool_description = (",
+      "id": "PRRT_kwDOSbspP86ZInbJ",
+      "opened": "2026-08-14T01:37:57Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [
+        {
+          "at": "2026-08-17T17:46:57Z",
+          "body": "Further down in that doc we state: \"Since this attribute could be large, it's NOT RECOMMENDED to populate non-required properties by default. Instrumentations MAY provide a way to enable populating optional properties.\" -- not sure which properties are \"non-required\" but I think its tool description and tool parameters \n\nAs an aside why do we have a sem conv for tool description at all ? That seems like it's already in tool defintion and can/should be removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3797633176"
+        },
+        {
+          "at": "2026-08-21T20:22:22Z",
+          "body": "@lmolkova, @DylanRussell So does that mean the tool description should be emitted, but be gated inside tool definitions? That does not tally well. Also, for sensitive attributes that are not opt in, we should provide a way to the users to hide them behind some sort of config, if they want to, right? Otherwise, it might end up leaking sensitive information. What do you think? Please ignore the updated code. I will refactor the code after the direction is decided.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3833431315"
+        },
+        {
+          "at": "2026-09-01T17:30:20Z",
+          "body": "@lmolkova, @DylanRussell Gentle ping on this.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3906681818"
+        },
+        {
+          "at": "2026-09-13T21:37:40Z",
+          "body": "`gen_ai.tool.description` is `Recommended` so it should be emitted without any additional checks",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r4000976434"
+        }
+      ],
+      "reviewed": "b1b690fe2edfe0b46181f27de36f0f750e4af049",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3780355394"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Patching the private `opentelemetry.util.genai._invocation.get_content_capturing_mode` reaches into util-genai internals and only flips half the state: `TelemetryHandler` snapshots content capture at construction (the `instrument_agno` fixture already built it), so the test runs a combination that can't occur in production and wouldn't catch a regression in the instrumentation-side gating.\n\nThe shared `instrument` helper already covers this — it sets `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` *before* instrumenting:\n\n```python\n# conftest.py\n@pytest.fixture\ndef instrument_agno_with_content(tracer_provider, logger_provider, meter_provider):\n    with instrument(\n        AgnoInstrumentor(),\n        tracer_provider=tracer_provider,\n        logger_provider=logger_provider,\n        meter_provider=meter_provider,\n        content_capture=\"SPAN_ONLY\",\n    ) as instrumentor:\n        yield instrumentor\n```\n\n```python\n# test_tools.py\ndef test_agent_run_with_tools(instrument_agno_with_content, span_exporter) -> None:\n    ...\n    with (\n        patch.object(Agent, \"run\", wraps=agent.run),\n        patch(\"agno.models.base.Model.response\", return_value=mock_output),\n    ):\n```\n\nSame for the `arun` test, and for the no-capture test below — that one can use the plain `instrument_agno` fixture (or `content_capture=\"NO_CONTENT\"`) with no patch at all.",
+      "created": "2026-08-14T01:37:25Z",
+      "hunk": "@@ -154,6 +158,10 @@ def sample_tool(location: str) -> str:\n     mock_output = ModelResponse(content=\"The weather is sunny.\")\n \n     with (\n+        patch(\n+            \"opentelemetry.util.genai._invocation.get_content_capturing_mode\",\n+            return_value=ContentCapturingMode.SPAN_ONLY,\n+        ),",
+      "id": "PRRT_kwDOSbspP86ZIrEC",
+      "opened": "2026-08-14T01:37:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_tools.py",
+      "replies": [
+        {
+          "at": "2026-08-20T21:20:32Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3825440716"
+        }
+      ],
+      "reviewed": "b1b690fe2edfe0b46181f27de36f0f750e4af049",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3780377687"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(blocking): Is this needed and what's the use of this?",
+      "created": "2026-08-14T01:29:23Z",
+      "hunk": "@@ -20,6 +20,8 @@\n # factor, so they are NOT pinned here — pyproject.toml is the single source of truth. The\n # OpenTelemetry SDK and test utilities come transitively from opentelemetry-test-util-genai, which\n # every oldest env installs. Pin here only test-only deps that nothing else already provides.\n-#\n+\n+-e ./util/opentelemetry-util-genai",
+      "id": "PRRT_kwDOSbspP86ZImeM",
+      "opened": "2026-08-14T01:39:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/requirements.oldest.txt",
+      "replies": [
+        {
+          "at": "2026-08-21T20:22:00Z",
+          "body": "I will remove it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3833428554"
+        }
+      ],
+      "reviewed": "b1b690fe2edfe0b46181f27de36f0f750e4af049",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3780349725"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "I dont think this is right, that isn't my reading of the sem conv,, i think tool definitions should ways be present but some parts of them should be omitted if content capture flag isn't set..",
+      "created": "2026-08-17T17:46:21Z",
+      "hunk": "@@ -261,14 +261,10 @@ def serialize(items: Sequence[Any]) -> Any:\n         dicts = [asdict(item) for item in items]\n         return gen_ai_json_dumps(dicts) if for_span else dicts\n \n-    # Tool definitions are always captured, the sem conv recommends adding params / description only\n-    # when the content capture mode is set..\n+    # Tool definitions carry sensitive content (parameters / description) and",
+      "id": "PRRT_kwDOSbspP86Z2Ms5",
+      "opened": "2026-08-17T17:46:21Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "b1b690fe2edfe0b46181f27de36f0f750e4af049",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r3797630508"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`gen_ai.tool.definitions` has requirement level `Opt-In` in semconv. It must not be emitted at all when content capture is disabled. The semconv note regarding non-required properties applies when the attribute is opted into, not as a reason to emit it unconditionally.\n\n```suggestion\n    if mode not in allowed_modes:\n        return {}\n```",
+      "created": "2026-09-13T21:41:58Z",
+      "hunk": "@@ -261,11 +262,26 @@ def serialize(items: Sequence[Any]) -> Any:\n         dicts = [asdict(item) for item in items]\n         return gen_ai_json_dumps(dicts) if for_span else dicts\n \n-    # Tool definitions are always captured, the sem conv recommends adding params / description only\n-    # when the content capture mode is set..\n+    def serialize_required_tool_definitions(\n+        items: Sequence[ToolDefinition],\n+    ) -> Any:\n+        required = {field.name for field in fields(GenericToolDefinition)}\n+        dicts = [\n+            {k: v for k, v in asdict(item).items() if k in required}\n+            for item in items\n+        ]\n+        return gen_ai_json_dumps(dicts) if for_span else dicts\n+\n+    # Tool definitions are always captured, the sem conv recommends adding the\n+    # non-required properties (description / parameters) only when the content\n+    # capture mode is set.\n     if mode not in allowed_modes:\n         return (\n-            {GenAI.GEN_AI_TOOL_DEFINITIONS: serialize(tool_definitions)}\n+            {\n+                GenAI.GEN_AI_TOOL_DEFINITIONS: serialize_required_tool_definitions(\n+                    tool_definitions\n+                )\n+            }\n             if tool_definitions\n             else {}\n         )",
+      "id": "PRRT_kwDOSbspP86h8QwO",
+      "opened": "2026-09-13T21:41:58Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-17T20:53:09Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r4041348760"
+        }
+      ],
+      "reviewed": "eb3277a87d13becb8e0f371270b76ba33d7af1df",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r4000986978"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this does not seem related to the PR, also it's already populated in finish\n\nhttps://github.com/open-telemetry/opentelemetry-python-genai/blob/60c59fa6147b8828be4cd03b8b4a584165408667/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py#L141\n\n\n```suggestion\n```\n\nnote: it also should not be a start-time param since it's not sampling-relevant https://github.com/open-telemetry/semantic-conventions-genai/blob/c88d504ab3d9879f8e50d3cc87e69775e11db234/model/gen-ai/spans.yaml#L604, I'll fix it separately ",
+      "created": "2026-09-16T17:43:40Z",
+      "hunk": "@@ -115,6 +115,7 @@ def _get_start_attributes(self) -> dict[str, AttributeValue]:\n         optional_attrs = (\n             (GenAI.GEN_AI_TOOL_NAME, self._name),\n             (GenAI.GEN_AI_TOOL_TYPE, self._tool_type),\n+            (GenAI.GEN_AI_TOOL_DESCRIPTION, self.tool_description),",
+      "id": "PRRT_kwDOSbspP86jDAWS",
+      "opened": "2026-09-16T17:45:25Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-17T20:53:24Z",
+          "body": "Removed this leftover reference.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r4041350723"
+        }
+      ],
+      "reviewed": "1e19cdb9954ff4ddb109b65270ac64a40e956d55",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r4029012448"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "the PR seems to be about definition, not description, right? description is a recommended attribute and should not be guarded by content flag",
+      "created": "2026-09-16T17:45:08Z",
+      "hunk": "@@ -467,6 +467,114 @@ def test_on_tool_start_omits_conversation_id():\n     assert gen_ai_attributes.GEN_AI_CONVERSATION_ID not in spans[0].attributes\n \n \n+def test_on_tool_start_omits_description_without_content_capture(monkeypatch):",
+      "id": "PRRT_kwDOSbspP86jDCZB",
+      "opened": "2026-09-16T17:45:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_tools.py",
+      "replies": [
+        {
+          "at": "2026-09-16T17:51:22Z",
+          "body": "Yes, sorry about that I was still in the middle of cleaning up this PR. I will update the comments once it is ready for review. Thanks a lot for taking a look though :)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r4029080873"
+        },
+        {
+          "at": "2026-09-17T20:55:20Z",
+          "body": "Removed the description reference and test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r4041364857"
+        },
+        {
+          "at": "2026-09-17T21:18:09Z",
+          "body": "The PR is ready for another look when you have a moment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r4041519433"
+        }
+      ],
+      "reviewed": "1e19cdb9954ff4ddb109b65270ac64a40e956d55",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/377#discussion_r4029024928"
+    }
+  ]
+}

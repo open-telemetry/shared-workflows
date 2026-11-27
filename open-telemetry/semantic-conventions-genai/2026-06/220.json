@@ -1,0 +1,61 @@
+{
+  "head": "76481251361ec00acd75911d52782643028973bd",
+  "merge": "c4503710d3383d8d9539145d2d990598aff37202",
+  "merged": "2026-06-04T15:48:12Z",
+  "missing_roots": 0,
+  "number": 220,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "alexmojaki"
+      },
+      "body": "instrumentation doesn't typically think about specific keys like traceparent, it just calls `inject` as in e.g. https://opentelemetry.io/docs/languages/js/propagation/#generic-example\n\nshould other keys be prefixed?",
+      "created": "2026-06-01T09:39:12Z",
+      "hunk": "@@ -42,24 +42,23 @@ HTTP request in the corresponding request and response streams.\n \n ### Context propagation\n \n-Model Context Protocol works on top of JSON-RPC and does not define a standard\n-Trace Context propagation mechanism. MCP is transport independent and works across different transports. The specification expects clients to implement at least stdio or Streamable HTTP.\n+Model Context Protocol works on top of JSON-RPC. MCP is transport independent\n+and works across different transports. The specification expects clients to\n+implement at least stdio or Streamable HTTP.\n \n HTTP trace context propagation only covers the HTTP request, but not the individual\n messages client and server exchange within the request/response streams.\n \n-Instrumentations SHOULD propagate trace context inside MCP request [`params._meta`](https://modelcontextprotocol.io/specification/2025-11-25/basic#_meta)\n-property bag.\n+Instrumentations SHOULD propagate trace context inside the MCP request\n+[`params._meta`](https://modelcontextprotocol.io/specification/2025-11-25/basic#_meta)\n+property bag as described by\n+[SEP-414](https://modelcontextprotocol.io/community/seps/414-request-meta).\n \n > [!NOTE]\n-> The propagation format defined here is likely to change. Please check out\n-> context propagation discussions in MCP repository:\n-> [modelcontextprotocol#246](https://github.com/modelcontextprotocol/modelcontextprotocol/issues/246)\n-> and\n-> [modelcontextprotocol#414](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/414).\n->\n-> If the MCP or JSON-RPC specifications provide official guidance, instrumentations\n-> SHOULD prioritize that over the recommendation provided in this section.\n+> MCP defines an exception to the `params._meta` DNS-prefixing convention for\n+> the W3C Trace Context and Baggage keys. Instrumentations SHOULD use the\n+> unprefixed `traceparent`, `tracestate`, and `baggage` keys when propagating",
+      "id": "PRRT_kwDOSUeMrM6GEcAk",
+      "opened": "2026-06-01T09:39:12Z",
+      "path": "docs/gen-ai/mcp.md",
+      "replies": [
+        {
+          "at": "2026-06-01T20:59:05Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/220/commits/82370e20086b918bed526f85e3df45e201dae1cd",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/220#discussion_r3337139110"
+        },
+        {
+          "at": "2026-06-01T21:34:10Z",
+          "body": "i feel like that implies that more needs to be said, like an example of this DNS prefixing from an instrumentor's perspective. if all other keys are prefixed with e.g. `opentelemetry.io.` then i can see how that would work. if the prefix is supposed to vary per key...",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/220#discussion_r3337310870"
+        },
+        {
+          "at": "2026-06-01T22:10:12Z",
+          "body": "I'm not sure that other keys should be prefixed with `io.opentelemetry`, since I think that implies ownership of the definition of those keys by OpenTelemetry, which isn't really true as we're just passing them along.\r\n\r\nThe only other (non-deprecated) propagator in the OpenTelemetry Specification is B3 (Zipkin). Ideally any prefixing for those keys would be defined by the Zipkin project (https://github.com/openzipkin/b3-propagation).\r\n\r\nSince MCP is baking W3C context propagation into their protocol, maybe we should say something like \"MCP instrumentation SHOULD use W3C propagator and ignore any propagators configured by the user\". I think something like this was done previously for AWS Lambda instrumentation since AWS propagated context to Lambdas using their own special \"aws xray\" headers.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/220#discussion_r3337457728"
+        },
+        {
+          "at": "2026-06-01T22:31:16Z",
+          "body": "> Since MCP is baking W3C context propagation into their protocol, maybe we should say something like \"MCP instrumentation SHOULD use W3C propagator and ignore any propagators configured by the user\".\r\n\r\n@alexmojaki @lmolkova let me know what you think: ce8e852592921ea40ff716d5e66c97ba0ef37149\r\n\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/220#discussion_r3337536308"
+        },
+        {
+          "at": "2026-06-02T00:00:49Z",
+          "body": "I like the spirit of using W3C propagator to force more apps to use W3C.\r\n\r\nAt the same time I think the goal is to have client and the server it calls use the same correlation protocol. \r\nIf MCP server uses something custom (e.g. composite thing that propagates w3c along with some custom x-correlation-id), client should be able to configure the same protocol. I don't see any harm in using current propagator configured in the OTel SDK - if different propagators are configured by client and server it would break, but it takes a deliberate effort to configure each of them.\r\n\r\nI.e. we enforce w3c (good) but ask instrumentation to do something unusual (not great) and make things less flexible (not great). I can live with this, but don't think it's necessary. I'd prefer user-configured propagator",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/220#discussion_r3337825201"
+        },
+        {
+          "at": "2026-06-02T10:55:19Z",
+          "body": "I think the MCP people just failed to realise that there are other possible keys. I think not using the configured propagator as-is is weird.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/220#discussion_r3340633707"
+        },
+        {
+          "at": "2026-06-03T20:08:38Z",
+          "body": "makes sense. I've updated it to be generic:\r\n\r\n> Instrumentations SHOULD propagate context using the configured [OpenTelemetry propagators](https://opentelemetry.io/docs/specs/otel/context/api-propagators/) by injecting it into the MCP request [`params._meta`](https://modelcontextprotocol.io/specification/2025-11-25/basic#_meta) property bag when creating a request or notification. The receiver extracts the context from `params._meta` and uses it as the remote parent.\r\n>\r\n> Although the MCP convention expects keys in `params._meta` to be DNS-prefixed, the context propagation keys SHOULD be written unprefixed. [SEP-414](https://modelcontextprotocol.io/community/seps/414-request-meta) defines this explicit handling for the W3C Trace Context and Baggage keys (`traceparent`, `tracestate`, and `baggage`).\r\n\r\n\r\nhttps://github.com/open-telemetry/semantic-conventions-genai/pull/220/commits/0393513c908bf895e7b3ec480a2c1eb073c584af",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/220#discussion_r3351552734"
+        }
+      ],
+      "reviewed": "4fbf2bcfbb0cd2dc9528277d4d39d4fe5c486511",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/220#discussion_r3333118954"
+    }
+  ]
+}

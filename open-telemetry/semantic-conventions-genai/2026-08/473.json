@@ -1,0 +1,31 @@
+{
+  "head": "73c7f59e101fd62a93dfba5b338aac798147121a",
+  "merge": "814aa0a659e7e5a1b9d40bd58894ba5926ff3c0c",
+  "merged": "2026-08-27T01:45:39Z",
+  "missing_roots": 0,
+  "number": 473,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`resolve_coverage_model` launches Weaver, but this in-process call no longer receives `_environment()`, which is the only path that downloads the pinned Weaver binary and prepends it to `PATH`. In a clean `make generate-all` run, the earlier Make targets may use Docker and the reference virtualenv has no Weaver dependency, so report generation will fail when the resolver tries to execute `weaver`. Ensure `ensure_weaver().parent` is on `PATH` while invoking the resolver, as `run()` already does for the conformance CLI.",
+      "created": "2026-08-25T04:13:41Z",
+      "hunk": "@@ -127,12 +128,16 @@ def coverage_model(output: Path = COVERAGE_MODEL) -> Path:\n     \"\"\"\n     if not _is_stale(output):\n         return output\n-    script = checkout() / \"tools\" / \"runner\" / \"src\" / \"opentelemetry\" / \"conformance\" / \"collect-coverage-model.sh\"\n-    if not script.is_file():\n-        raise RuntimeError(f\"The pinned conformance checkout has no coverage model script at {script}\")\n-    output.parent.mkdir(parents=True, exist_ok=True)\n+    # Clear the stale model so the runner's resolver re-runs Weaver rather\n+    # than returning the existing file early.\n+    output.unlink(missing_ok=True)\n+    runner_src = str(checkout() / \"tools\" / \"runner\" / \"src\")\n+    if runner_src not in sys.path:\n+        sys.path.insert(0, runner_src)\n+    from opentelemetry.conformance import resolve_coverage_model\n+\n     logger.info(\"Resolving %s into %s\", MODEL_ROOT, output)\n-    subprocess.run([str(script), str(MODEL_ROOT), str(output)], cwd=SEMCONV_ROOT, env=_environment(), check=True)\n+    resolve_coverage_model(MODEL_ROOT, output)",
+      "id": "PRRT_kwDOSUeMrM6b7ve7",
+      "opened": "2026-08-25T04:13:41Z",
+      "path": "reference/src/semconv_genai/conformance.py",
+      "replies": [
+        {
+          "at": "2026-08-25T15:48:37Z",
+          "body": "Fixed in the latest commit — `coverage_model()` now runs the resolver via `uv run` with `_environment()` passed in so the pinned weaver binary is on `PATH`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/473#discussion_r3854734619"
+        }
+      ],
+      "reviewed": "fca48cebf2e968a889c5ec6dea3bada6575e5b17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/473#discussion_r3849505542"
+    }
+  ]
+}

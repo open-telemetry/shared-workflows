@@ -1,0 +1,31 @@
+{
+  "head": "a1cc0b35164d8e121ccba77e8d2931e89dca2ffd",
+  "merge": "2ed56b2d7b8a86e78b63efb231beab6d3ab681e6",
+  "merged": "2026-06-17T17:58:28Z",
+  "missing_roots": 0,
+  "number": 317,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`human_author_for_copilot_pr` currently treats any assignee that is not in `_COPILOT_PR_AUTHORS` and does not end with `[bot]` as a human delegator. This can incorrectly pick GitHub App identities (logins starting with `app/`) as the “human author”, even though `role_for()` classifies `app/<slug>` as a bot. That would reintroduce synthetic delegators in the dashboard in some cases.",
+      "created": "2026-06-16T23:24:23Z",
+      "hunk": "@@ -207,6 +207,12 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:\n \n \n def human_author_for_copilot_pr(raw: dict[str, Any]) -> str:\n+    assignees = [actor_login(a) for a in (raw[\"pr\"].get(\"assignees\") or [])]\n+    for login in assignees:\n+        low = login.lower()\n+        if login and low not in _COPILOT_PR_AUTHORS and not low.endswith(\"[bot]\"):\n+            return login",
+      "id": "PRRT_kwDOSUeMrM6KDvwK",
+      "opened": "2026-06-16T23:24:23Z",
+      "path": ".github/scripts/pull-request-dashboard/dashboard.py",
+      "replies": [
+        {
+          "at": "2026-06-16T23:27:52Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/a1cc0b35164d8e121ccba77e8d2931e89dca2ffd.\n\nUpdated the Copilot delegator predicate to skip GitHub App logins as bot-like identities.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/317#discussion_r3424610826"
+        }
+      ],
+      "reviewed": "07d8907bb7c98ed7fb89b22c80d9b56dea6de574",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/317#discussion_r3424597199"
+    }
+  ]
+}

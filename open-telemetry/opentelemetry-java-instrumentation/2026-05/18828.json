@@ -1,0 +1,25 @@
+{
+  "head": "497229523efd3db96f3718ec020284ec61191640",
+  "merge": "0f6b98d19009fba1c6b3df2ae6d4ab7584f2e80f",
+  "merged": "2026-05-26T18:23:50Z",
+  "missing_roots": 0,
+  "number": 18828,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`defaultEnabled()` currently ignores the agent-wide default instrumentation enablement (`otel.instrumentation.common.default-enabled` via `super.defaultEnabled()`). As written, this module will be enabled whenever v3 preview is off, even if a distribution/user has globally disabled instrumentations by default. Consider composing with the superclass behavior (e.g., `super.defaultEnabled() && !AgentCommonConfig.get().isV3Preview()`) so global defaults are respected while still disabling in v3 preview.\n",
+      "created": "2026-05-22T06:52:24Z",
+      "hunk": "@@ -37,4 +39,9 @@ public List<TypeInstrumentation> typeInstrumentations() {\n     return asList(\n         new KafkaMetricsProducerInstrumentation(), new KafkaMetricsConsumerInstrumentation());\n   }\n+\n+  @Override\n+  public boolean defaultEnabled() {\n+    return !AgentCommonConfig.get().isV3Preview();",
+      "id": "PRRT_kwDODJKVX86EBm0W",
+      "opened": "2026-05-22T06:52:24Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kafkaclients/v0_11/metrics/KafkaMetricsInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "d796b8bc533530ee57661fffeadc40811ed73918",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18828#discussion_r3286440461"
+    }
+  ]
+}

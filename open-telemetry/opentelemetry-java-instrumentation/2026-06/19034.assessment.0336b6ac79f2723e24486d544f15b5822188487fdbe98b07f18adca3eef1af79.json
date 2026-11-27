@@ -1,0 +1,76 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f48c09b5ab070d976f097865153b90f6c9e94481eb7ee4a2f9766d1104206483",
+  "input_digest": "0336b6ac79f2723e24486d544f15b5822188487fdbe98b07f18adca3eef1af79",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8aa4fb8a2ece9442611b737d1678e1b53e01a4b7/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d84fb211418045cd0d3a2d9c59c6803120c34b2d/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1a594d342bf07f1b86b76a30ea433d8485fc908a"
+      ],
+      "id": "PRRT_kwDODJKVX86Kov6U",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8aa4fb8a2ece9442611b737d1678e1b53e01a4b7/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d84fb211418045cd0d3a2d9c59c6803120c34b2d/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fc2192604c22f1c5bf4277a52f8f3cb8d4cc3351"
+      ],
+      "id": "PRRT_kwDODJKVX86Kov6x",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8aa4fb8a2ece9442611b737d1678e1b53e01a4b7/instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractDynamoDbClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d84fb211418045cd0d3a2d9c59c6803120c34b2d/instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractDynamoDbClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/18d76b95e0c0422af119f2c2c527f3241489a542"
+      ],
+      "id": "PRRT_kwDODJKVX86Kov7L",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86KpFfI",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86Kov6x",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18d76b95e0c0422af119f2c2c527f3241489a542/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d84fb211418045cd0d3a2d9c59c6803120c34b2d/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a7835edeb8248c8677629ea4420d394b7fa8afb4"
+      ],
+      "id": "PRRT_kwDODJKVX86Kzg8w",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7835edeb8248c8677629ea4420d394b7fa8afb4/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/DynamoDbAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a7835edeb8248c8677629ea4420d394b7fa8afb4/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/RequestAccess.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d84fb211418045cd0d3a2d9c59c6803120c34b2d/instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/RequestAccess.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/794ee6fff955295a8aeba811c0aba0a09b3fb832"
+      ],
+      "id": "PRRT_kwDODJKVX86K8Yrh",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

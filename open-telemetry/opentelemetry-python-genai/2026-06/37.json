@@ -1,0 +1,384 @@
+{
+  "head": "897d8ce5bd9a2b27fb462d1670d7c72c2393f968",
+  "merge": "e8855ff6c905b8db5d37fe2a9114183e28ab24a5",
+  "merged": "2026-06-25T21:47:05Z",
+  "missing_roots": 0,
+  "number": 37,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is this necessary? let's update langchain to use new API instead of legacy LLMInvocation",
+      "created": "2026-05-18T22:49:08Z",
+      "hunk": "@@ -252,6 +252,7 @@ class LLMInvocation:\n     seed: int | None = None\n     server_address: str | None = None\n     server_port: int | None = None\n+    tool_definitions: list[ToolDefinition] | None = None",
+      "id": "PRRT_kwDOSbspP86C_jDV",
+      "opened": "2026-05-18T22:52:08Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "7d32fddf441773188c913c80413adee357a3e973",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3262641277"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "could you please add a conformance test for tool calling in https://github.com/open-telemetry/opentelemetry-python-genai/tree/main/instrumentation/opentelemetry-instrumentation-langchain/tests/conformance ? \n\nIt's testing tool calling along with multi-turn conversations and can be almost copied over from https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/opentelemetry-instrumentation-openai-v2/tests/conformance/tool_calling.py",
+      "created": "2026-05-18T22:51:22Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86C_kUW",
+      "opened": "2026-05-18T22:52:08Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_tools.py",
+      "replies": [],
+      "reviewed": "7d32fddf441773188c913c80413adee357a3e973",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3262648227"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`Any` and `cast` are used but are not imported in this file (in the shown diff). This will raise `NameError` at runtime. Add the missing typing imports (and ensure any other newly referenced typing symbols are imported consistently).",
+      "created": "2026-06-08T15:03:07Z",
+      "hunk": "@@ -7,12 +7,45 @@\n from langchain_core.messages import AIMessage\n \n from opentelemetry.util.genai.types import (\n+    FunctionToolDefinition,\n     InputMessage,\n     OutputMessage,\n     Text,\n+    ToolDefinition,\n )\n \n \n+def _get_property_value(obj: Any, property_name: str) -> Any:\n+    if isinstance(obj, dict):\n+        return cast(dict[str, Any], obj).get(property_name)",
+      "id": "PRRT_kwDOSbspP86H3z1T",
+      "opened": "2026-06-08T15:03:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3374249592"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tool extraction ignores the already-normalized `params` object used earlier in `on_chat_model_start` (where `invocation_params` may wrap actual params in a nested `params` key). This can cause tool definitions to be missed depending on how LangChain provides invocation parameters. Prefer reading `tools`/`functions` from the same normalized `params` dict used for model/temperature/etc.",
+      "created": "2026-06-08T15:03:07Z",
+      "hunk": "@@ -286,6 +290,13 @@ def on_chat_model_start(\n         llm_invocation.seed = seed\n         llm_invocation.temperature = temperature\n         llm_invocation.max_tokens = max_tokens\n+        if \"invocation_params\" in kwargs:\n+            tools = kwargs[\"invocation_params\"].get(\"tools\") or kwargs[\n+                \"invocation_params\"\n+            ].get(\"functions\")\n+            if tools:\n+                tool_definitions = prepare_tool_definitions(tools)\n+                llm_invocation.tool_definitions = tool_definitions",
+      "id": "PRRT_kwDOSbspP86H3z2P",
+      "opened": "2026-06-08T15:03:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3374249676"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`prepare_tool_definitions()` can return an empty list (e.g., when `tools` contains no function-type entries). In that case, this code still sets `llm_invocation.tool_definitions` which can result in emitting an empty `gen_ai.tool.definitions` attribute instead of omitting it. Consider only setting `tool_definitions` when the prepared list is non-empty (or adjust `prepare_tool_definitions` to return `None` when no supported tools are found).",
+      "created": "2026-06-08T15:03:08Z",
+      "hunk": "@@ -286,6 +290,13 @@ def on_chat_model_start(\n         llm_invocation.seed = seed\n         llm_invocation.temperature = temperature\n         llm_invocation.max_tokens = max_tokens\n+        if \"invocation_params\" in kwargs:\n+            tools = kwargs[\"invocation_params\"].get(\"tools\") or kwargs[\n+                \"invocation_params\"\n+            ].get(\"functions\")\n+            if tools:\n+                tool_definitions = prepare_tool_definitions(tools)\n+                llm_invocation.tool_definitions = tool_definitions",
+      "id": "PRRT_kwDOSbspP86H3z2v",
+      "opened": "2026-06-08T15:03:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3374249714"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This scenario performs two chat completions and `validate()` asserts two `gen_ai.operation.name == chat` spans, but `expected_spans` only lists a single `chat`. If the conformance harness uses `expected_spans` to validate count/coverage, this may fail or under-specify expectations. Update `expected_spans` to reflect the two expected chat spans (or align `validate()` to the harness semantics used by other scenarios).",
+      "created": "2026-06-08T15:03:08Z",
+      "hunk": "@@ -0,0 +1,136 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: langchain chat with tool calling via ChatOpenAI.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+import os\n+from typing import Any\n+from unittest import mock\n+\n+from langchain_core.messages import (\n+    AIMessage,\n+    HumanMessage,\n+    SystemMessage,\n+    ToolMessage,\n+)\n+from langchain_openai import ChatOpenAI\n+\n+from opentelemetry.instrumentation.genai.langchain import LangChainInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test.weaver_live_check import LiveCheckReport\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+DEFAULT_MODEL = \"gpt-4o-mini\"\n+WEATHER_TOOL_PROMPT = [\n+    SystemMessage(content=\"You're a helpful assistant.\"),\n+    HumanMessage(\n+        content=\"What's the weather in Seattle and San Francisco today?\"\n+    ),\n+]\n+# Tool outputs are pinned to the recorded cassette's second request body.\n+WEATHER_BY_LOCATION: dict[str, str] = {\n+    \"Seattle, WA\": \"50 degrees and raining\",\n+    \"San Francisco, CA\": \"70 degrees and sunny\",\n+}\n+\n+\n+def _get_current_weather_tool_definition() -> dict[str, Any]:\n+    return {\n+        \"type\": \"function\",\n+        \"function\": {\n+            \"name\": \"get_current_weather\",\n+            \"description\": \"Get the current weather in a given location\",\n+            \"parameters\": {\n+                \"type\": \"object\",\n+                \"properties\": {\n+                    \"location\": {\n+                        \"type\": \"string\",\n+                        \"description\": \"The city and state, e.g. Boston, MA\",\n+                    },\n+                },\n+                \"required\": [\"location\"],\n+                \"additionalProperties\": False,\n+            },\n+        },\n+    }\n+\n+\n+def _execute_weather_tool(arguments: str) -> str:\n+    location = json.loads(arguments)[\"location\"]\n+    return WEATHER_BY_LOCATION[location]\n+\n+\n+class ToolCallingScenario(Scenario):\n+    expected_spans = (\"chat\",)",
+      "id": "PRRT_kwDOSbspP86H3z3o",
+      "opened": "2026-06-08T15:03:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/conformance/tool_calling.py",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3374249784"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example lives under `opentelemetry-instrumentation-genai-langchain` but imports `LangChainInstrumentor` from `opentelemetry.instrumentation.langchain` (different package/module). This will either fail at runtime (if that dependency isn't present) or instrument the wrong integration. Import the instrumentor from `opentelemetry.instrumentation.genai.langchain` to match the rest of this repo.",
+      "created": "2026-06-08T15:03:08Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"\n+Tool-calling example without agents, built with LangChain.\n+\n+Uses ChatOpenAI with bind_tools to let the model call calculator tools directly,\n+then manually dispatches tool calls and feeds results back to the model.\n+OpenTelemetry LangChain instrumentation traces the LLM calls.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+\n+from langchain_core.messages import HumanMessage, ToolMessage\n+from langchain_core.tools import tool\n+from langchain_openai import ChatOpenAI\n+\n+from opentelemetry import _logs, metrics, trace\n+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (\n+    OTLPLogExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (\n+    OTLPMetricExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (\n+    OTLPSpanExporter,\n+)\n+from opentelemetry.instrumentation.langchain import LangChainInstrumentor",
+      "id": "PRRT_kwDOSbspP86H3z4M",
+      "opened": "2026-06-08T15:03:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/tools/main.py",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3374249829"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`instrument()` and `uninstrument()` are called on different instrumentor instances. If the instrumentor tracks state on the instance (common pattern), `uninstrument()` may not correctly undo patching. Instantiate once (e.g., `instrumentor = LangChainInstrumentor()`) and call `instrumentor.instrument()` / `instrumentor.uninstrument()` on the same instance.",
+      "created": "2026-06-08T15:03:09Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"\n+Tool-calling example without agents, built with LangChain.\n+\n+Uses ChatOpenAI with bind_tools to let the model call calculator tools directly,\n+then manually dispatches tool calls and feeds results back to the model.\n+OpenTelemetry LangChain instrumentation traces the LLM calls.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+\n+from langchain_core.messages import HumanMessage, ToolMessage\n+from langchain_core.tools import tool\n+from langchain_openai import ChatOpenAI\n+\n+from opentelemetry import _logs, metrics, trace\n+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (\n+    OTLPLogExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (\n+    OTLPMetricExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (\n+    OTLPSpanExporter,\n+)\n+from opentelemetry.instrumentation.langchain import LangChainInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import BatchSpanProcessor\n+\n+# Configure tracing\n+trace.set_tracer_provider(TracerProvider())\n+span_processor = BatchSpanProcessor(OTLPSpanExporter())\n+trace.get_tracer_provider().add_span_processor(span_processor)\n+\n+# Configure logging\n+_logs.set_logger_provider(LoggerProvider())\n+_logs.get_logger_provider().add_log_record_processor(\n+    BatchLogRecordProcessor(OTLPLogExporter())\n+)\n+\n+# Configure metrics\n+metrics.set_meter_provider(\n+    MeterProvider(\n+        metric_readers=[\n+            PeriodicExportingMetricReader(\n+                OTLPMetricExporter(),\n+            ),\n+        ]\n+    )\n+)\n+\n+\n+@tool\n+def multiply(a: float, b: float) -> float:\n+    \"\"\"Multiply two numbers together.\"\"\"\n+    return a * b\n+\n+\n+@tool\n+def add(a: float, b: float) -> float:\n+    \"\"\"Add two numbers together.\"\"\"\n+    return a + b\n+\n+\n+TOOLS = [multiply, add]\n+TOOLS_BY_NAME = {t.name: t for t in TOOLS}\n+\n+\n+def main() -> None:\n+    LangChainInstrumentor().instrument()",
+      "id": "PRRT_kwDOSbspP86H3z4m",
+      "opened": "2026-06-08T15:03:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/tools/main.py",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3374249865"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`instrument()` and `uninstrument()` are called on different instrumentor instances. If the instrumentor tracks state on the instance (common pattern), `uninstrument()` may not correctly undo patching. Instantiate once (e.g., `instrumentor = LangChainInstrumentor()`) and call `instrumentor.instrument()` / `instrumentor.uninstrument()` on the same instance.",
+      "created": "2026-06-08T15:03:09Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"\n+Tool-calling example without agents, built with LangChain.\n+\n+Uses ChatOpenAI with bind_tools to let the model call calculator tools directly,\n+then manually dispatches tool calls and feeds results back to the model.\n+OpenTelemetry LangChain instrumentation traces the LLM calls.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+\n+from langchain_core.messages import HumanMessage, ToolMessage\n+from langchain_core.tools import tool\n+from langchain_openai import ChatOpenAI\n+\n+from opentelemetry import _logs, metrics, trace\n+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (\n+    OTLPLogExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (\n+    OTLPMetricExporter,\n+)\n+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (\n+    OTLPSpanExporter,\n+)\n+from opentelemetry.instrumentation.langchain import LangChainInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import BatchSpanProcessor\n+\n+# Configure tracing\n+trace.set_tracer_provider(TracerProvider())\n+span_processor = BatchSpanProcessor(OTLPSpanExporter())\n+trace.get_tracer_provider().add_span_processor(span_processor)\n+\n+# Configure logging\n+_logs.set_logger_provider(LoggerProvider())\n+_logs.get_logger_provider().add_log_record_processor(\n+    BatchLogRecordProcessor(OTLPLogExporter())\n+)\n+\n+# Configure metrics\n+metrics.set_meter_provider(\n+    MeterProvider(\n+        metric_readers=[\n+            PeriodicExportingMetricReader(\n+                OTLPMetricExporter(),\n+            ),\n+        ]\n+    )\n+)\n+\n+\n+@tool\n+def multiply(a: float, b: float) -> float:\n+    \"\"\"Multiply two numbers together.\"\"\"\n+    return a * b\n+\n+\n+@tool\n+def add(a: float, b: float) -> float:\n+    \"\"\"Add two numbers together.\"\"\"\n+    return a + b\n+\n+\n+TOOLS = [multiply, add]\n+TOOLS_BY_NAME = {t.name: t for t in TOOLS}\n+\n+\n+def main() -> None:\n+    LangChainInstrumentor().instrument()\n+\n+    llm = ChatOpenAI(\n+        model=\"gpt-3.5-turbo\",\n+        temperature=0.1,\n+        max_tokens=100,\n+        top_p=0.9,\n+        seed=100,\n+    )\n+    llm_with_tools = llm.bind_tools(TOOLS)\n+\n+    messages = [HumanMessage(content=\"What is (3 * 4) + 7?\")]\n+\n+    # First LLM call — model may request tool calls\n+    response = llm_with_tools.invoke(messages)\n+    messages.append(response)\n+\n+    # Dispatch tool calls until the model stops requesting them\n+    while response.tool_calls:\n+        for tool_call in response.tool_calls:\n+            selected_tool = TOOLS_BY_NAME[tool_call[\"name\"]]\n+            tool_output = selected_tool.invoke(tool_call[\"args\"])\n+            messages.append(\n+                ToolMessage(\n+                    content=json.dumps(tool_output),\n+                    tool_call_id=tool_call[\"id\"],\n+                )\n+            )\n+\n+        response = llm_with_tools.invoke(messages)\n+        messages.append(response)\n+\n+    print(\"Final answer:\", response.content)\n+\n+    LangChainInstrumentor().uninstrument()",
+      "id": "PRRT_kwDOSbspP86H3z5I",
+      "opened": "2026-06-08T15:03:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/examples/tools/main.py",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3374249910"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test sets `OTEL_SEMCONV_STABILITY_OPT_IN` but does not call `_enable_experimental_mode()`, while many other tests do. To avoid relying on implicit/lazy initialization behavior (and to keep tests consistent and less brittle), call `_enable_experimental_mode()` after setting the env var in tests that assert experimental semantic convention attributes.",
+      "created": "2026-06-08T15:03:09Z",
+      "hunk": "@@ -0,0 +1,938 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for tool-related support in the LangChain callback handler.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+from typing import Any\n+from unittest.mock import MagicMock\n+from uuid import uuid4\n+\n+import pytest\n+from langchain_core.messages import AIMessage, HumanMessage\n+from langchain_core.outputs import ChatGeneration, LLMResult\n+from langchain_core.tools import tool\n+\n+from opentelemetry.instrumentation._semconv import (\n+    _OpenTelemetrySemanticConventionStability,\n+)\n+from opentelemetry.instrumentation.genai.langchain import LangChainInstrumentor\n+from opentelemetry.instrumentation.genai.langchain.callback_handler import (\n+    OpenTelemetryLangChainCallbackHandler,\n+)\n+from opentelemetry.instrumentation.genai.langchain.utils import (\n+    _get_property_value,\n+    prepare_tool_definitions,\n+)\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk._logs.export import (\n+    InMemoryLogRecordExporter,\n+    SimpleLogRecordProcessor,\n+)\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.metrics.export import InMemoryMetricReader\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.sdk.trace.export import SimpleSpanProcessor\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.semconv._incubating.attributes import gen_ai_attributes\n+from opentelemetry.semconv.attributes import error_attributes\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+from opentelemetry.util.genai.types import FunctionToolDefinition\n+\n+\n+@pytest.fixture(autouse=True)\n+def reset_semconv_stability():\n+    \"\"\"Reset the semconv stability cache before and after each test.\"\"\"\n+    _OpenTelemetrySemanticConventionStability._initialized = False\n+    _OpenTelemetrySemanticConventionStability._OTEL_SEMCONV_STABILITY_SIGNAL_MAPPING = {}\n+    yield\n+    _OpenTelemetrySemanticConventionStability._initialized = False\n+    _OpenTelemetrySemanticConventionStability._OTEL_SEMCONV_STABILITY_SIGNAL_MAPPING = {}\n+\n+\n+def _enable_experimental_mode():\n+    \"\"\"Call after setting OTEL_SEMCONV_STABILITY_OPT_IN env var to activate it.\"\"\"\n+    _OpenTelemetrySemanticConventionStability._initialized = False\n+    _OpenTelemetrySemanticConventionStability._OTEL_SEMCONV_STABILITY_SIGNAL_MAPPING = {}\n+    _OpenTelemetrySemanticConventionStability._initialize()\n+\n+\n+# ---------------------------------------------------------------------------\n+# Unit tests for _get_property_value\n+# ---------------------------------------------------------------------------\n+\n+\n+def test_get_property_value_from_dict():\n+    assert _get_property_value({\"name\": \"my_tool\"}, \"name\") == \"my_tool\"\n+\n+\n+def test_get_property_value_from_dict_missing_key():\n+    assert _get_property_value({}, \"name\") is None\n+\n+\n+def test_get_property_value_from_object():\n+    obj = MagicMock()\n+    obj.name = \"obj_tool\"\n+    assert _get_property_value(obj, \"name\") == \"obj_tool\"\n+\n+\n+def test_get_property_value_from_object_missing_attr():\n+    class Plain:\n+        pass\n+\n+    assert _get_property_value(Plain(), \"missing\") is None\n+\n+\n+# ---------------------------------------------------------------------------\n+# Unit tests for prepare_tool_definitions\n+# ---------------------------------------------------------------------------\n+\n+\n+def test_prepare_tool_definitions_returns_none_for_empty():\n+    assert prepare_tool_definitions([]) is None\n+\n+\n+def test_prepare_tool_definitions_dict_tools():\n+    tools = [\n+        {\n+            \"type\": \"function\",\n+            \"function\": {\n+                \"name\": \"multiply\",\n+                \"description\": \"Multiply two numbers\",\n+                \"parameters\": {\n+                    \"type\": \"object\",\n+                    \"properties\": {\n+                        \"a\": {\"type\": \"integer\"},\n+                        \"b\": {\"type\": \"integer\"},\n+                    },\n+                },\n+            },\n+        }\n+    ]\n+    result = prepare_tool_definitions(tools)\n+    assert result is not None\n+    assert len(result) == 1\n+    defn = result[0]\n+    assert isinstance(defn, FunctionToolDefinition)\n+    assert defn.name == \"multiply\"\n+    assert defn.description == \"Multiply two numbers\"\n+    assert defn.parameters is not None\n+\n+\n+def test_prepare_tool_definitions_skips_non_function_type():\n+    tools = [{\"type\": \"retrieval\", \"retrieval\": {}}]\n+    result = prepare_tool_definitions(tools)\n+    # No function-type tools → empty list returned (not None, but falsy)\n+    assert not result\n+\n+\n+def test_prepare_tool_definitions_multiple_tools():\n+    tools = [\n+        {\n+            \"type\": \"function\",\n+            \"function\": {\"name\": \"add\", \"description\": \"Add numbers\"},\n+        },\n+        {\n+            \"type\": \"function\",\n+            \"function\": {\n+                \"name\": \"subtract\",\n+                \"description\": \"Subtract numbers\",\n+            },\n+        },\n+    ]\n+    result = prepare_tool_definitions(tools)\n+    assert result is not None\n+    assert len(result) == 2\n+    assert result[0].name == \"add\"\n+    assert result[1].name == \"subtract\"\n+\n+\n+def test_prepare_tool_definitions_missing_name_defaults_to_empty_string():\n+    tools = [\n+        {\n+            \"type\": \"function\",\n+            \"function\": {\"description\": \"No name tool\"},\n+        }\n+    ]\n+    result = prepare_tool_definitions(tools)\n+    assert result is not None\n+    assert len(result) == 1\n+    assert result[0].name == \"\"\n+\n+\n+def test_prepare_tool_definitions_none_description_stays_none():\n+    tools = [\n+        {\n+            \"type\": \"function\",\n+            \"function\": {\"name\": \"no_desc\"},\n+        }\n+    ]\n+    result = prepare_tool_definitions(tools)\n+    assert result is not None\n+    assert result[0].description is None\n+\n+\n+def test_prepare_tool_definitions_object_tools():\n+    \"\"\"Tools may be objects (e.g. pydantic models) rather than dicts.\"\"\"\n+\n+    class FuncDef:\n+        name = \"get_weather\"\n+        description = \"Get current weather\"\n+        parameters = {\"type\": \"object\"}\n+\n+    class ToolDef:\n+        type = \"function\"\n+        function = FuncDef()\n+\n+    result = prepare_tool_definitions([ToolDef()])\n+    assert result is not None\n+    assert len(result) == 1\n+    assert result[0].name == \"get_weather\"\n+    assert result[0].description == \"Get current weather\"\n+\n+\n+# ---------------------------------------------------------------------------\n+# Helpers shared by callback-handler integration tests\n+# ---------------------------------------------------------------------------\n+\n+\n+def _make_providers():\n+    span_exporter = InMemorySpanExporter()\n+    tracer_provider = TracerProvider()\n+    tracer_provider.add_span_processor(SimpleSpanProcessor(span_exporter))\n+\n+    log_exporter = InMemoryLogRecordExporter()\n+    logger_provider = LoggerProvider()\n+    logger_provider.add_log_record_processor(\n+        SimpleLogRecordProcessor(log_exporter)\n+    )\n+\n+    metric_reader = InMemoryMetricReader()\n+    meter_provider = MeterProvider(metric_readers=[metric_reader])\n+\n+    return tracer_provider, span_exporter, logger_provider, meter_provider\n+\n+\n+def _make_handler(tracer_provider, logger_provider, meter_provider):\n+    return TelemetryHandler(\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+    )\n+\n+\n+def _make_callback_handler(tracer_provider, logger_provider, meter_provider):\n+    telemetry_handler = _make_handler(\n+        tracer_provider, logger_provider, meter_provider\n+    )\n+    return OpenTelemetryLangChainCallbackHandler(telemetry_handler)\n+\n+\n+_OPENAI_SERIALIZED: dict[str, Any] = {\"name\": \"ChatOpenAI\"}\n+_OPENAI_INVOCATION_PARAMS: dict[str, Any] = {\n+    \"model_name\": \"gpt-4\",\n+    \"temperature\": 0.0,\n+}\n+_OPENAI_METADATA: dict[str, Any] = {\"ls_provider\": \"openai\"}\n+\n+\n+# ---------------------------------------------------------------------------\n+# on_tool_start / on_tool_end\n+# ---------------------------------------------------------------------------\n+\n+\n+def test_on_tool_start_and_end_creates_span(monkeypatch):\n+    monkeypatch.setenv(\n+        \"OTEL_SEMCONV_STABILITY_OPT_IN\", \"gen_ai_latest_experimental\"\n+    )\n+    monkeypatch.setenv(\n+        \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\", \"SPAN_ONLY\"\n+    )\n+    _enable_experimental_mode()\n+    tracer_provider, span_exporter, logger_provider, meter_provider = (\n+        _make_providers()\n+    )\n+    handler = _make_callback_handler(\n+        tracer_provider, logger_provider, meter_provider\n+    )\n+\n+    run_id = uuid4()\n+    handler.on_tool_start(\n+        serialized={\"name\": \"multiply\", \"description\": \"Multiply two numbers\"},\n+        input_str=\"\",\n+        run_id=run_id,\n+        inputs={\"a\": 3, \"b\": 4},\n+    )\n+\n+    output = MagicMock()\n+    output.content = \"12\"\n+    output.tool_call_id = \"call_abc\"\n+    handler.on_tool_end(output=output, run_id=run_id)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"execute_tool multiply\"\n+    attrs = span.attributes\n+    assert attrs[gen_ai_attributes.GEN_AI_OPERATION_NAME] == \"execute_tool\"\n+    assert attrs[gen_ai_attributes.GEN_AI_TOOL_NAME] == \"multiply\"\n+    assert (\n+        attrs[gen_ai_attributes.GEN_AI_TOOL_DESCRIPTION]\n+        == \"Multiply two numbers\"\n+    )\n+    assert attrs[gen_ai_attributes.GEN_AI_TOOL_CALL_ARGUMENTS] == json.dumps(\n+        {\"a\": 3, \"b\": 4}\n+    )\n+\n+\n+def test_on_tool_start_with_string_input(monkeypatch):\n+    monkeypatch.setenv(\n+        \"OTEL_SEMCONV_STABILITY_OPT_IN\", \"gen_ai_latest_experimental\"\n+    )\n+    monkeypatch.setenv(\n+        \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\", \"SPAN_ONLY\"\n+    )\n+    _enable_experimental_mode()\n+    tracer_provider, span_exporter, logger_provider, meter_provider = (\n+        _make_providers()\n+    )\n+    handler = _make_callback_handler(\n+        tracer_provider, logger_provider, meter_provider\n+    )\n+\n+    run_id = uuid4()\n+    handler.on_tool_start(\n+        serialized={\"name\": \"search\"},\n+        input_str=\"Paris weather\",\n+        run_id=run_id,\n+    )\n+    output = MagicMock()\n+    output.content = \"Sunny\"\n+    output.tool_call_id = None\n+    handler.on_tool_end(output=output, run_id=run_id)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    attrs = spans[0].attributes\n+    assert attrs[gen_ai_attributes.GEN_AI_TOOL_NAME] == \"search\"\n+    assert (\n+        attrs[gen_ai_attributes.GEN_AI_TOOL_CALL_ARGUMENTS] == \"Paris weather\"\n+    )\n+\n+\n+def test_on_tool_start_with_no_serialized(monkeypatch):\n+    \"\"\"on_tool_start with serialized=None falls back to name='unknown'.\"\"\"\n+    monkeypatch.setenv(\n+        \"OTEL_SEMCONV_STABILITY_OPT_IN\", \"gen_ai_latest_experimental\"\n+    )",
+      "id": "PRRT_kwDOSbspP86H3z5w",
+      "opened": "2026-06-08T15:03:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_tools.py",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3374249955"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Changelog entry wording is ambiguous/grammatically off (e.g., 'tools span' / 'tools definitions'). Consider rephrasing to clearly state what's added, such as 'Added tool spans and captured tool definitions on inference spans.'",
+      "created": "2026-06-08T15:03:10Z",
+      "hunk": "@@ -0,0 +1 @@\n+Added tools span and tools definitions in inference span.",
+      "id": "PRRT_kwDOSbspP86H3z6U",
+      "opened": "2026-06-08T15:03:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/37.added",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3374249993"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "where's the tool call in expected spans?",
+      "created": "2026-06-10T05:03:02Z",
+      "hunk": "@@ -0,0 +1,136 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: langchain chat with tool calling via ChatOpenAI.\"\"\"\n+\n+from __future__ import annotations\n+\n+import json\n+import os\n+from typing import Any\n+from unittest import mock\n+\n+from langchain_core.messages import (\n+    AIMessage,\n+    HumanMessage,\n+    SystemMessage,\n+    ToolMessage,\n+)\n+from langchain_openai import ChatOpenAI\n+\n+from opentelemetry.instrumentation.genai.langchain import LangChainInstrumentor\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test.weaver_live_check import LiveCheckReport\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+DEFAULT_MODEL = \"gpt-4o-mini\"\n+WEATHER_TOOL_PROMPT = [\n+    SystemMessage(content=\"You're a helpful assistant.\"),\n+    HumanMessage(\n+        content=\"What's the weather in Seattle and San Francisco today?\"\n+    ),\n+]\n+# Tool outputs are pinned to the recorded cassette's second request body.\n+WEATHER_BY_LOCATION: dict[str, str] = {\n+    \"Seattle, WA\": \"50 degrees and raining\",\n+    \"San Francisco, CA\": \"70 degrees and sunny\",\n+}\n+\n+\n+def _get_current_weather_tool_definition() -> dict[str, Any]:\n+    return {\n+        \"type\": \"function\",\n+        \"function\": {\n+            \"name\": \"get_current_weather\",\n+            \"description\": \"Get the current weather in a given location\",\n+            \"parameters\": {\n+                \"type\": \"object\",\n+                \"properties\": {\n+                    \"location\": {\n+                        \"type\": \"string\",\n+                        \"description\": \"The city and state, e.g. Boston, MA\",\n+                    },\n+                },\n+                \"required\": [\"location\"],\n+                \"additionalProperties\": False,\n+            },\n+        },\n+    }\n+\n+\n+def _execute_weather_tool(arguments: str) -> str:\n+    location = json.loads(arguments)[\"location\"]\n+    return WEATHER_BY_LOCATION[location]\n+\n+\n+class ToolCallingScenario(Scenario):\n+    expected_spans = (\"chat\",)",
+      "id": "PRRT_kwDOSbspP86IXVbo",
+      "opened": "2026-06-10T05:12:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/conformance/tool_calling.py",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3385629093"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "there is a better helper now, we should stop using start_ helpers - they will be removed at some point soon\n```suggestion\n        tool_invocation = self._telemetry_handler.tool(\n```",
+      "created": "2026-06-10T05:04:17Z",
+      "hunk": "@@ -402,6 +427,72 @@ def on_llm_error(\n         if not llm_invocation.span.is_recording():\n             self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n+    def on_tool_start(\n+        self,\n+        serialized: Optional[dict[str, Any]],\n+        input_str: str,\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        inputs: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> None:\n+        name = \"unknown\"\n+        description = None\n+        if serialized is not None:\n+            name = serialized.get(\"name\") or \"unknown\"\n+            description = serialized.get(\"description\")\n+\n+        raw_arguments: Any = inputs if inputs is not None else input_str\n+        arguments: str | None\n+        if isinstance(raw_arguments, dict):\n+            arguments = json.dumps(raw_arguments)\n+        elif isinstance(raw_arguments, str):\n+            arguments = raw_arguments\n+        else:\n+            arguments = None\n+        tool_invocation = self._telemetry_handler.start_tool(",
+      "id": "PRRT_kwDOSbspP86IXWUs",
+      "opened": "2026-06-10T05:12:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3385634013"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is this necessary? can we pass Any ?",
+      "created": "2026-06-10T05:06:36Z",
+      "hunk": "@@ -402,6 +427,72 @@ def on_llm_error(\n         if not llm_invocation.span.is_recording():\n             self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n+    def on_tool_start(\n+        self,\n+        serialized: Optional[dict[str, Any]],\n+        input_str: str,\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        inputs: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> None:\n+        name = \"unknown\"\n+        description = None\n+        if serialized is not None:\n+            name = serialized.get(\"name\") or \"unknown\"\n+            description = serialized.get(\"description\")\n+\n+        raw_arguments: Any = inputs if inputs is not None else input_str\n+        arguments: str | None\n+        if isinstance(raw_arguments, dict):\n+            arguments = json.dumps(raw_arguments)",
+      "id": "PRRT_kwDOSbspP86IXXzW",
+      "opened": "2026-06-10T05:12:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-06-10T14:57:48Z",
+          "body": " Yes, it's necessary. `invocation.arguments` is typed `AttributeValue | None`, which doesn't accept dict. The block converts the structured inputs: dict to a JSON string, falling back to the\r\n  plain input_str: str. Passing Any directly would be a type violation and would break span attribute setting at runtime when inputs is a dict.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3389353827"
+        },
+        {
+          "at": "2026-06-19T23:51:23Z",
+          "body": "serializing to string is not right either.`AttributeValue` is not the right type for tool.arguments, it should be `opentelemetry.util.types.AnyValue` that accepts `Mapping[str, \"AnyValue\"]` and could be either cast or transformed from`inputs`. Note - input_str should be deserialized if `inputs` are not provided \n\nhttps://github.com/open-telemetry/semantic-conventions-genai/blob/6967795c5ceeb77357ca4f3dfc9a512496fb9a11/docs/gen-ai/gen-ai-spans.md?plain=1#L858-L860\n\n> It's expected to be an object - in case a serialized string is available\nto the instrumentation, the instrumentation SHOULD do the best effort to\ndeserialize it to an object",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3444953183"
+        }
+      ],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3385642388"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is getattr necessary ? ",
+      "created": "2026-06-10T05:07:13Z",
+      "hunk": "@@ -402,6 +427,72 @@ def on_llm_error(\n         if not llm_invocation.span.is_recording():\n             self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n+    def on_tool_start(\n+        self,\n+        serialized: Optional[dict[str, Any]],\n+        input_str: str,\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        inputs: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> None:\n+        name = \"unknown\"\n+        description = None\n+        if serialized is not None:\n+            name = serialized.get(\"name\") or \"unknown\"\n+            description = serialized.get(\"description\")\n+\n+        raw_arguments: Any = inputs if inputs is not None else input_str\n+        arguments: str | None\n+        if isinstance(raw_arguments, dict):\n+            arguments = json.dumps(raw_arguments)\n+        elif isinstance(raw_arguments, str):\n+            arguments = raw_arguments\n+        else:\n+            arguments = None\n+        tool_invocation = self._telemetry_handler.start_tool(\n+            name=name, tool_description=description, tool_type=\"function\"\n+        )\n+        tool_invocation.arguments = arguments\n+        self._invocation_manager.add_invocation_state(\n+            run_id, parent_run_id, tool_invocation\n+        )\n+\n+    def on_tool_end(\n+        self,\n+        output: Any,\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        **_kwargs: Any,\n+    ) -> None:\n+        tool_invocation = self._invocation_manager.get_invocation(run_id)\n+        if not isinstance(tool_invocation, ToolInvocation):\n+            return\n+        tool_invocation.tool_call_id = getattr(output, \"tool_call_id\", None)",
+      "id": "PRRT_kwDOSbspP86IXYL8",
+      "opened": "2026-06-10T05:12:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-06-10T15:04:55Z",
+          "body": "It is defensive pattern here given the output:Any - typed parameter",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3389404476"
+        }
+      ],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3385644599"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "does it have to be hardcoded ? ",
+      "created": "2026-06-10T05:09:55Z",
+      "hunk": "@@ -333,19 +344,33 @@ def on_llm_end(\n                             )\n                         )\n \n-                    # Get message content\n-                    parts = [\n-                        Text(\n-                            content=chat_generation.message.content,\n-                            type=\"text\",\n+                    if finish_reason == \"tool_calls\":\n+                        tool_calls: list[ToolCallRequest] = []\n+                        for tool_call in chat_generation.message.tool_calls:\n+                            tool_call_request = ToolCallRequest(\n+                                name=tool_call[\"name\"],\n+                                id=tool_call[\"id\"],\n+                                arguments=tool_call[\"args\"],\n+                            )\n+                            tool_calls.append(tool_call_request)\n+                        output_message = OutputMessage(\n+                            role=\"assistant\",",
+      "id": "PRRT_kwDOSbspP86IXaDQ",
+      "opened": "2026-06-10T05:12:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "e8194a92d1dccc6031a993b4e9f08e14eaf9fd5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3385655305"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): Are we covering only OpenAI in this pr? Should we add tool_use also here?",
+      "created": "2026-06-19T02:25:41Z",
+      "hunk": "@@ -333,19 +342,33 @@ def on_llm_end(\n                             )\n                         )\n \n-                    # Get message content\n-                    parts = [\n-                        Text(\n-                            content=chat_generation.message.content,\n-                            type=\"text\",\n+                    if finish_reason == \"tool_calls\":",
+      "id": "PRRT_kwDOSbspP86KuL8Q",
+      "opened": "2026-06-25T11:26:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "3193db5d86af02ac4d107c952305282d00c87711",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3439943821"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "nit(non-blocker): can we use type here for the method parameter?",
+      "created": "2026-06-24T15:50:10Z",
+      "hunk": "@@ -7,12 +7,45 @@\n from langchain_core.messages import AIMessage\n \n from opentelemetry.util.genai.types import (\n+    FunctionToolDefinition,\n     InputMessage,\n     OutputMessage,\n     Text,\n+    ToolDefinition,\n )\n \n \n+def _get_property_value(obj: Any, property_name: str) -> Any:\n+    if isinstance(obj, dict):\n+        return cast(dict[str, Any], obj).get(property_name)\n+\n+    return getattr(obj, property_name, None)\n+\n+\n+def prepare_tool_definitions(tools: list[Any]) -> list[ToolDefinition] | None:",
+      "id": "PRRT_kwDOSbspP86L9YDQ",
+      "opened": "2026-06-25T11:26:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/utils.py",
+      "replies": [
+        {
+          "at": "2026-06-25T17:50:10Z",
+          "body": "The body already handles correctly via `_get_property_value`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3476471503"
+        }
+      ],
+      "reviewed": "daab80a80b22d67b703bf96164030e1115f695c4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3468438661"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): can we refine this piece of code as something like \n\n```suggestion\n\ndef _any_value_to_attribute_value(value: Any) -> AttributeValue | None:\n    \"\"\"Serialize an AnyValue to an AttributeValue for OTel span attributes.\"\"\"\n    if value is None:\n        return None\n    if isinstance(value, (bool, str, bytes, int, float)):\n        return value  # type: ignore[return-value]\n    try:\n        return json.dumps(value, default=str)\n    except (TypeError, ValueError):\n        return str(value)\n\n```\n",
+      "created": "2026-06-25T11:24:34Z",
+      "hunk": "@@ -14,7 +16,18 @@\n from opentelemetry.util.genai.utils import (\n     should_capture_content_on_spans,\n )\n-from opentelemetry.util.types import AttributeValue\n+from opentelemetry.util.types import AnyValue, AttributeValue\n+\n+\n+def _any_value_to_attribute_value(value: AnyValue) -> AttributeValue:",
+      "id": "PRRT_kwDOSbspP86MMvaz",
+      "opened": "2026-06-25T11:26:12Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [
+        {
+          "at": "2026-06-25T11:26:12Z",
+          "body": "Additionally do we need some tests around this? Little paranoid as I am unsure if this is going to raise or not.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3473990741"
+        }
+      ],
+      "reviewed": "daab80a80b22d67b703bf96164030e1115f695c4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3473983991"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n        return gen_ai_json_dumps(value)\n```",
+      "created": "2026-06-25T20:38:16Z",
+      "hunk": "@@ -14,7 +16,19 @@\n from opentelemetry.util.genai.utils import (\n     should_capture_content_on_spans,\n )\n-from opentelemetry.util.types import AttributeValue\n+from opentelemetry.util.types import AnyValue, AttributeValue\n+\n+\n+def _any_value_to_attribute_value(value: AnyValue) -> AttributeValue | None:\n+    \"\"\"Serialize an AnyValue to an AttributeValue for OTel span attributes.\"\"\"\n+    if value is None:\n+        return None\n+    if isinstance(value, (bool, str, bytes, int, float)):\n+        return value\n+    try:\n+        return json.dumps(value, default=str)",
+      "id": "PRRT_kwDOSbspP86MWZOf",
+      "opened": "2026-06-25T20:38:16Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [],
+      "reviewed": "2d835c9e3bd0057ea22cb5e2c88349f7c2545a12",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3477500536"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-06-25T20:39:32Z",
+      "hunk": "@@ -3,6 +3,8 @@\n \n from __future__ import annotations\n \n+import json\n+",
+      "id": "PRRT_kwDOSbspP86MWaXB",
+      "opened": "2026-06-25T20:39:32Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [],
+      "reviewed": "2d835c9e3bd0057ea22cb5e2c88349f7c2545a12",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3477507012"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    gen_ai_json_dumps,\n    should_capture_content_on_spans,\n```",
+      "created": "2026-06-25T20:39:50Z",
+      "hunk": "@@ -14,7 +16,19 @@\n from opentelemetry.util.genai.utils import (\n     should_capture_content_on_spans,",
+      "id": "PRRT_kwDOSbspP86MWasD",
+      "opened": "2026-06-25T20:39:50Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [],
+      "reviewed": "2d835c9e3bd0057ea22cb5e2c88349f7c2545a12",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3477508722"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it should also be AnyValue and needs to be serialized to json (inside tool invocation code).\nCan you please add/update tests to cover complex value in tools arguments and result? Thanks!",
+      "created": "2026-06-25T20:55:28Z",
+      "hunk": "@@ -399,6 +422,72 @@ def on_llm_error(\n         if not llm_invocation.span.is_recording():\n             self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n+    def on_tool_start(\n+        self,\n+        serialized: Optional[dict[str, Any]],\n+        input_str: str,\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        tags: Optional[list[str]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n+        inputs: Optional[dict[str, Any]] = None,\n+        **kwargs: Any,\n+    ) -> None:\n+        name = \"unknown\"\n+        description = None\n+        if serialized is not None:\n+            name = serialized.get(\"name\") or \"unknown\"\n+            description = serialized.get(\"description\")\n+\n+        arguments: Any\n+        if inputs is not None:\n+            arguments = inputs\n+        else:\n+            try:\n+                arguments = json.loads(input_str)\n+            except (json.JSONDecodeError, ValueError):\n+                arguments = input_str\n+        tool_invocation = self._telemetry_handler.tool(\n+            name=name, tool_description=description, tool_type=\"function\"\n+        )\n+        tool_invocation.arguments = arguments\n+        self._invocation_manager.add_invocation_state(\n+            run_id, parent_run_id, tool_invocation\n+        )\n+\n+    def on_tool_end(\n+        self,\n+        output: Any,\n+        *,\n+        run_id: UUID,\n+        parent_run_id: Optional[UUID] = None,\n+        **_kwargs: Any,\n+    ) -> None:\n+        tool_invocation = self._invocation_manager.get_invocation(run_id)\n+        if not isinstance(tool_invocation, ToolInvocation):\n+            return\n+        tool_invocation.tool_call_id = getattr(output, \"tool_call_id\", None)\n+        tool_invocation.tool_result = getattr(output, \"content\", None)",
+      "id": "PRRT_kwDOSbspP86MWr5N",
+      "opened": "2026-06-25T20:55:28Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "25c3b62a053620f35659ace0a5133783f96c57da",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/37#discussion_r3477610180"
+    }
+  ]
+}

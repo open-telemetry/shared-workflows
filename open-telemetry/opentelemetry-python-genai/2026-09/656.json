@@ -1,0 +1,70 @@
+{
+  "head": "5c75dca651a3252ff628bb9c7e7b3e77b4e2df5b",
+  "merge": "c2c5ad5dbc4f6001a59a37f6763ff6215d1e4ccb",
+  "merged": "2026-09-10T21:59:32Z",
+  "missing_roots": 0,
+  "number": 656,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same concern as in the shared stream wrapper: catching `BaseException` here will record `KeyboardInterrupt`/`SystemExit` as failures. If the intent is specifically to capture cancellation (`asyncio.CancelledError`), consider excluding process-terminating exceptions from the `fail()` path (and apply the same pattern to the other instrumentation wrappers changed in this PR).",
+      "created": "2026-09-08T19:47:55Z",
+      "hunk": "@@ -82,7 +82,7 @@ def traced_method(wrapped, instance, args, kwargs):\n             _set_response_properties(chat_invocation, result, capture_content)\n             chat_invocation.stop()\n             return result\n-        except Exception as error:\n+        except BaseException as error:\n             chat_invocation.fail(error)\n             raise",
+      "id": "PRRT_kwDOSbspP86gYwrW",
+      "opened": "2026-09-08T19:47:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch.py",
+      "replies": [],
+      "reviewed": "c312f3e75b404bbdddce9c7a160ec0222d21b1a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/656#discussion_r3961645091"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Catching `BaseException` will also intercept `KeyboardInterrupt`, `SystemExit`, and `GeneratorExit`, which are typically not desirable to treat as invocation failures (even if re-raised). Consider either (a) explicitly excluding those types (re-raise without calling `_finalize_failure`) or (b) switching to a two-branch approach that handles cancellation explicitly while keeping `Exception` for the rest.",
+      "created": "2026-09-08T19:47:55Z",
+      "hunk": "@@ -170,7 +170,7 @@ def __exit__(\n     def close(self) -> None:\n         try:\n             self._self_stream.close()\n-        except Exception as error:\n+        except BaseException as error:\n             self._finalize_failure(error)\n             raise",
+      "id": "PRRT_kwDOSbspP86gYwrw",
+      "opened": "2026-09-08T19:47:56Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "c312f3e75b404bbdddce9c7a160ec0222d21b1a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/656#discussion_r3961645134"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assertion hard-codes the fully-qualified exception name, which can be somewhat version-sensitive. To make the test more robust, consider asserting a suffix/contains match (e.g., endswith `\\\"CancelledError\\\"`) while still verifying that cancellation is recorded distinctly.",
+      "created": "2026-09-08T19:47:55Z",
+      "hunk": "@@ -278,3 +280,38 @@ def wrapped(*_args, **_kwargs):\n     assert len(spans) == 1\n     span = spans[0]\n     assert span.attributes[\"error.type\"] == \"ValueError\"\n+\n+\n+def test_wrapped_call_base_exception_is_recorded_and_reraised(\n+    handler, span_exporter\n+):\n+    def wrapped(*_args, **_kwargs):\n+        raise asyncio.CancelledError()\n+\n+    traced = embeddings_create(handler)\n+    with pytest.raises(asyncio.CancelledError):\n+        traced(wrapped, _make_client(), (), {\"model\": \"m\"})\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.attributes[\"error.type\"] == \"asyncio.exceptions.CancelledError\"",
+      "id": "PRRT_kwDOSbspP86gYwsJ",
+      "opened": "2026-09-08T19:47:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_embedding_invocation_unit.py",
+      "replies": [],
+      "reviewed": "c312f3e75b404bbdddce9c7a160ec0222d21b1a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/656#discussion_r3961645171"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n- Flag telemetry-finalizing handlers that catch `Exception` instead of `BaseException` to catch  `asyncio.CancelledError` and such.\n```",
+      "created": "2026-09-09T22:40:46Z",
+      "hunk": "@@ -93,6 +93,8 @@ Flag, with a link to the rule:\n \n - When catching exceptions from the underlying library to record telemetry, always re-raise the\n   original exception unmodified.\n+- Flag telemetry-finalizing handlers that catch `Exception` instead of `BaseException`; cancellation\n+  raises `asyncio.CancelledError`, which would otherwise leave spans open.",
+      "id": "PRRT_kwDOSbspP86g28s6",
+      "opened": "2026-09-09T22:40:46Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [],
+      "reviewed": "379ffcac1bf975b625e7d3641a1fa45919a8e223",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/656#discussion_r3973637508"
+    }
+  ]
+}

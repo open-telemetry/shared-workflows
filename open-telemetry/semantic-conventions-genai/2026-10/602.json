@@ -1,0 +1,36 @@
+{
+  "head": "563b50c85c6636e095f964a2904824feeac59301",
+  "merge": "9ffc7e00c639be7712e544e3e54331e885dccf84",
+  "merged": "2026-10-21T19:08:09Z",
+  "missing_roots": 0,
+  "number": 602,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we have `error.type` on these metrics BTW, apparently we don't",
+      "created": "2026-10-19T19:12:46Z",
+      "hunk": "@@ -861,7 +863,8 @@ Reports the usage of cached input tokens following the common [gen_ai.client.inf\n | `gen_ai.client.inference.usage.cache_read.input_tokens` | Counter | `{token}` | OpenAI-specific extension to `gen_ai.client.inference.usage.cache_read.input_tokens`. Adds `openai.response.service_tier` and `openai.response.system_fingerprint` when the provider is `openai`. [1] | ![Development](https://img.shields.io/badge/-development-blue) | |\n \n **[1]:** This value is a subset of `gen_ai.client.inference.usage.input_tokens`.\n-Instrumentations SHOULD record this metric for each inference operation, including failed ones. The recorded value SHOULD match the token count returned by the provider, or `0` if the response was not received or did not contain token usage.\n+Instrumentation SHOULD record contributions from successful and failed inference operations. Each measurement MUST be a known, strictly positive modality contribution.",
+      "id": "PRRT_kwDOSUeMrM6uEKTn",
+      "opened": "2026-10-19T19:12:46Z",
+      "path": "docs/gen-ai/openai.md",
+      "replies": [
+        {
+          "at": "2026-10-20T20:47:01Z",
+          "body": "Agreed on `error.type`. I also checked some providers and they bill for tokens when a stream errors or cancel/deadline exceeded\r\n\r\n<details><summary>AI Table for checking providers</summary>\r\n<p>\r\n\r\n| Scenario (`error.type` set) | Anthropic | OpenAI | Google Gemini |\r\n| :--- | :--- | :--- | :--- |\r\n| Upfront 4xx/5xx | Unbilled, no `usage` | Unbilled, no `usage` | Unbilled, no `usage` |\r\n| Mid-stream error / timeout / abort (e.g. `overloaded_error`, `APITimeoutError`, `APIUserAbortError`) | Billed (input + partial output); client gets `input_tokens`, `cache_read_input_tokens`, `cache_write_input_tokens` in `message_start` (misses final `output_tokens` in `message_delta`) | Billed on timeout/abort (input + partial output); `usage` is only sent in the final chunk, so usually missing on client | Billed on timeout/abort; early chunks include `promptTokenCount` / `cachedContentTokenCount`, while final `candidatesTokenCount` arrives in the last chunk |\r\n\r\n</p>\r\n</details> \r\n\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/602#discussion_r4328889423"
+        },
+        {
+          "at": "2026-10-21T19:06:41Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/issues/620",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/602#discussion_r4340833930"
+        }
+      ],
+      "reviewed": "563b50c85c6636e095f964a2904824feeac59301",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/602#discussion_r4317783077"
+    }
+  ]
+}

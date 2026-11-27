@@ -1,0 +1,31 @@
+{
+  "head": "85f1bfe2cb2b78a9ba3b4fe6f3226ac470a84dfa",
+  "merge": "ce2b428356f6cff8d8a6e80a418a35e4db7dd033",
+  "merged": "2026-08-13T17:02:52Z",
+  "missing_roots": 0,
+  "number": 19475,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `GraphqlSingletons` is not fully canonical for the ordering above: its constructor reads `add_operation_name_to_span_name` before `operation_name_in_span_name` and warns even when the replacement is set (lines 72–90). Scope this reference to the helper that actually follows steps 1 and 3 so agents do not copy the conflicting path.",
+      "created": "2026-08-10T19:56:04Z",
+      "hunk": "@@ -78,6 +78,90 @@ must be communicated through:\n    Note: the code reads via the declarative config API (YAML key), but the warning cites the\n    flat property name for user clarity.\n \n+### Deprecated Properties Under Common v3 Preview\n+\n+Configuration names are user-facing API; also see\n+[Breaking Changes and Deprecation Policy](api-deprecation-policy.md). When a deprecated property\n+will be removed in 3.0, use this order:\n+\n+1. Read the replacement first.\n+2. Only if the replacement is absent and v3 preview is disabled, read the deprecated value.\n+3. Warn only when returning/applying that deprecated value.\n+4. Under `otel.instrumentation.common.v3-preview=true`, silently ignore the deprecated value. The\n+   user explicitly opted into 3.0 behavior, so warning about a value that is not applied is noise.\n+\n+Keep the deprecated read itself inside the `!v3Preview` branch, rather than reading it eagerly and\n+discarding it later:\n+\n+```java\n+Boolean value = config.getBoolean(\"new_key\");\n+if (value != null) {\n+  return value;\n+}\n+if (!v3Preview) {\n+  Boolean deprecatedValue = config.getBoolean(\"old_key\");\n+  if (deprecatedValue != null) {\n+    warnOnce();\n+    return deprecatedValue;\n+  }\n+}\n+return defaultValue;\n+```\n+\n+Canonical implementations:\n+\n+- `instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfig.java`\n+- `instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java`\n+- `instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java`\n+- `instrumentation/graphql-java/graphql-java-20.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/graphql/v20_0/GraphqlSingletons.java`",
+      "id": "PRRT_kwDODJKVX86YA6mn",
+      "opened": "2026-08-10T19:56:04Z",
+      "path": ".github/agents/knowledge/config-property-stability.md",
+      "replies": [
+        {
+          "at": "2026-08-10T20:01:38Z",
+          "body": "Addressed in e162e0e22db5570e8c2ed41cc497be7526331b8e.\n\nAnalysis: The canonical list referred to the entire `GraphqlSingletons` class even though only `Configuration.getQuerySanitizationEnabled` reads the replacement first and warns only when applying the deprecated value. Narrowing the reference identifies the compliant implementation without endorsing the constructor's conflicting path.\n\nUpsides: Agents are directed to an implementation that follows the documented v3-preview deprecation sequence and will not copy the constructor's eager deprecated-property handling.\n\nDownsides: The reference is slightly more verbose; no material behavioral downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19475#discussion_r3752930412"
+        }
+      ],
+      "reviewed": "a8042e84832aec566a425988fb9c0308ba1412aa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19475#discussion_r3752891528"
+    }
+  ]
+}

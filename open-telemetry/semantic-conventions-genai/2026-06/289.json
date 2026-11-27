@@ -1,0 +1,46 @@
+{
+  "head": "4c32c8ea7d3ef43d230a7530b1ce757f912ce560",
+  "merge": "126e72f670b2c4e7aef0af4bcbc735f791154665",
+  "merged": "2026-06-17T17:58:28Z",
+  "missing_roots": 0,
+  "number": 289,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should not appear on internal span",
+      "created": "2026-06-14T03:10:52Z",
+      "hunk": "@@ -58,14 +58,9 @@ def get_weather(ctx: ToolContext[None], location: str) -> str:\n     print(\"  [agent_run] agent with tool calling (reference implementation)\")\n     agent_span_attributes = {\n         \"gen_ai.operation.name\": \"invoke_agent\",\n-        \"gen_ai.provider.name\": \"openai\",\n         \"gen_ai.request.model\": request_model,\n         \"gen_ai.agent.name\": agent.name,\n     }\n-    if host:\n-        agent_span_attributes[\"server.address\"] = host",
+      "id": "PRRT_kwDOSUeMrM6JXu8q",
+      "opened": "2026-06-14T03:10:52Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [],
+      "reviewed": "a458dd41797d426c098f823a6f3f736a78ff750d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/289#discussion_r3408942233"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "was confused why this switched, sent https://github.com/open-telemetry/semantic-conventions-genai/pull/296 to encode this better going forwards",
+      "created": "2026-06-16T15:28:00Z",
+      "hunk": "@@ -1,19 +1,16 @@\n {\n   \"spans\": {\n-    \"invoke_agent_client\": [\n+    \"invoke_agent_internal\": [",
+      "id": "PRRT_kwDOSUeMrM6J8jta",
+      "opened": "2026-06-16T15:28:05Z",
+      "path": "reference/scenarios/openai-agents/data.json",
+      "replies": [
+        {
+          "at": "2026-06-16T15:55:56Z",
+          "body": "thanks! ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/289#discussion_r3422193039"
+        }
+      ],
+      "reviewed": "c0d3bd6ffe631dfdab32d8e3cc28c901b59fb3e2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/289#discussion_r3422001572"
+    }
+  ]
+}

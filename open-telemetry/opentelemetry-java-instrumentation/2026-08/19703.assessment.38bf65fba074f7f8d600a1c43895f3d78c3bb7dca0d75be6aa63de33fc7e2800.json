@@ -1,0 +1,21 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f40cb670a4615f6a53dfd7af72060df8d366ad926b6445fddc525e7b0729180d",
+  "input_digest": "38bf65fba074f7f8d600a1c43895f3d78c3bb7dca0d75be6aa63de33fc7e2800",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c1fc58783c1016e3fca3cfeba22fc408da36f2c1/instrumentation/influxdb-2.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b0b18576a981389dd690f30e8eca0a940cb1c083/instrumentation/influxdb-2.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1e4184a93367bccea2bde4de848615b7a438a570"
+      ],
+      "id": "PRRT_kwDODJKVX86aWMIW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

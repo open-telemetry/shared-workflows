@@ -1,0 +1,25 @@
+{
+  "head": "2d691fe445fe361a6ef30b3f8110af79ba5786ba",
+  "merge": "a9b0260bab15f1b633bcb5355674f5c7edd1fa0f",
+  "merged": "2026-04-03T18:16:55Z",
+  "missing_roots": 0,
+  "number": 17484,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-03T17:38:36Z",
+      "hunk": "@@ -20,12 +20,20 @@ public static boolean setEnabled(boolean enabled) {\n     return previous;\n   }\n \n-  public static boolean wrappingEnabled() {\n+  public static boolean isWrappingEnabled() {\n     return wrappingEnabled.get();\n   }\n \n+  /**\n+   * @deprecated Use {@link #isWrappingEnabled()} instead. Will be removed in a future release.\n+   */\n+  @Deprecated\n+  public static boolean wrappingEnabled() {\n+    return isWrappingEnabled();\n+  }\n+",
+      "id": "PRRT_kwDODJKVX854wiHV",
+      "opened": "2026-04-03T17:38:36Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/kafka/KafkaClientsConsumerProcessTracing.java",
+      "replies": [],
+      "reviewed": "923737c7357b5df460b6088760bba73064faccf7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17484#discussion_r3033714310"
+    }
+  ]
+}

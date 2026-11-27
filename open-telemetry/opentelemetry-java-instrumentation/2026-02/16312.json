@@ -1,0 +1,31 @@
+{
+  "head": "eaec06f0cb9e5dc5e719cd6c96ad6341c98184e8",
+  "merge": "411fa57141fb08ceafce910b15fc5c56b31cdc57",
+  "merged": "2026-02-27T15:43:42Z",
+  "missing_roots": 0,
+  "number": 16312,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "if you are feeling adventurous, you could also update this module so that it runs separate test suites for experimental attributes vs non-experimental. I have some notes/tips documented [here](https://sensorsandsignals.io/pages/notes/opentelemetry-java-instrumentation-tests/#experimental-attribute-assertions). \r\n\r\nBasically you would update this gradle file to separate out the configs, and then go into the tests and update any assertions for the experimental attributes to validate if the experimental var is set or `null` if not.\r\n\r\nWe can handle it in a followup too, just a suggestion :) ",
+      "created": "2026-02-27T12:01:17Z",
+      "hunk": "@@ -22,6 +22,8 @@ dependencies {\n }\n \n tasks.withType<Test>().configureEach {\n+  systemProperty(\"collectMetadata\", findProperty(\"collectMetadata\")?.toString() ?: \"false\")\n   // TODO run tests both with and without experimental span attributes\n   jvmArgs(\"-Dotel.instrumentation.twilio.experimental-span-attributes=true\")",
+      "id": "PRRT_kwDODJKVX85xKpiS",
+      "opened": "2026-02-27T12:01:17Z",
+      "path": "instrumentation/twilio-6.6/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-02-27T12:14:17Z",
+          "body": "Thanks for the suggestion! Will update this PR with the split :)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16312#discussion_r2864054877"
+        }
+      ],
+      "reviewed": "4b1dba16eaddfad35a3d4f835fcd8cd592b3c477",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16312#discussion_r2864005276"
+    }
+  ]
+}

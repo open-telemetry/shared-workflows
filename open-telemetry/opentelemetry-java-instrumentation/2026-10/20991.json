@@ -1,0 +1,136 @@
+{
+  "head": "5efb30f3e04333cf407e77625972685e01fdd32c",
+  "merge": "db1ef1e17f249871c30e68a48675a219ad52c1df",
+  "merged": "2026-10-27T06:54:38Z",
+  "missing_roots": 0,
+  "number": 20991,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with one metadata-only completion of its new duration-metric support. Preserve the main base, draft state, all current runtime code and tests, RPC preview gating, legacy-only absence, and existing description explaining that metrics require preview. Do not create another PR or edit its title or description.\n\ninstrumentation/spring/spring-rmi-4.0/metadata.yaml now describes duration metrics but its semantic_conventions list still declares only RPC_CLIENT_SPANS and RPC_SERVER_SPANS. Add RPC_CLIENT_METRICS and RPC_SERVER_METRICS alongside their corresponding span entries, following instrumentation/rmi/metadata.yaml in PR #20992 and other RPC metric instrumentations. Copilot review 5659804489 has no findings; the code and coverage have been verified, but the supported-signal inventory still needs this directly related update.\n\nMake only the missing metadata declarations. Do not refactor production code, rewrite metric assertions, change unknown-method handling, or touch native Java RMI. Use any existing narrow metadata formatting/validation command if applicable; do not introduce tooling, run broad builds, disable caches, or edit unrelated files.",
+      "created": "2026-10-26T22:16:52Z",
+      "hunk": "@@ -1,5 +1,5 @@\n display_name: Spring RMI\n-description: This instrumentation enables RPC client and RPC server spans for Spring RMI applications.\n+description: This instrumentation enables RPC client and RPC server spans for Spring RMI applications, and duration metrics when RPC preview semantic conventions are enabled.",
+      "id": "PRRT_kwDODJKVX86wehjy",
+      "opened": "2026-10-26T22:16:51Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-10-26T22:22:54Z",
+          "body": "Added `RPC_CLIENT_METRICS` and `RPC_SERVER_METRICS` to Spring RMI metadata in `dec6a7be`. The targeted metadata validation passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4383167514"
+        }
+      ],
+      "reviewed": "4c4e2e9285712ec4138c03dacc792688c1b44d4d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4383121969"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to remove redundant default histogram bucket-boundary assertions from instrumentation/spring/spring-rmi-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/SpringRmiTest.java. Remove the .hasBucketBoundaries(...) check from the duration metric point assertions. The shared RpcClientMetricsTest and RpcServerMetricsTest already cover these default boundaries, and this instrumentation registers the shared metrics without customizing them. Preserve all remaining assertions and coverage, including preview gating, default-mode absence, metric names, units, counts, attributes, successful/failed calls, interface/method identity, and existing dual-mode coverage. Do not replace these checks with another form of boundary assertion. Leave production code, metadata, and shared metrics tests unchanged. Run the narrowest relevant spotlessApply directly before the relevant existing module tests, and report any validation blockers. Do not create another PR, change this PR's base or draft/ready state, or edit its title or description.",
+      "created": "2026-10-27T00:14:43Z",
+      "hunk": "@@ -385,5 +394,79 @@ RPC_SYSTEM, emitOldRpcSemconv() ? testSource.serverSystem : null),\n \n           trace.hasSpansSatisfyingExactly(assertions);\n         });\n+    assertMetrics(\n+        testSource == TestSource.RMI,\n+        error.getClass().getName(),\n+        \"springrmi.app.SpringRmiGreeter/exceptional\");\n+  }\n+\n+  private static void assertMetrics(boolean hasServer, String errorType, String... methods) {\n+    if (!emitPreviewRpcSemconv()) {\n+      assertThat(testing.metrics())\n+          .noneMatch(\n+              metric ->\n+                  metric\n+                      .getInstrumentationScopeInfo()\n+                      .getName()\n+                      .equals(\"io.opentelemetry.spring-rmi-4.0\"));\n+      return;\n+    }\n+\n+    assertDurationMetrics(\"client\", errorType, methods);\n+    if (hasServer) {\n+      assertDurationMetrics(\"server\", errorType, methods);\n+    }\n+  }\n+\n+  private static void assertDurationMetrics(String role, String errorType, String... methods) {\n+    List<Consumer<HistogramPointAssert>> points = new ArrayList<>();\n+    for (String method : methods) {\n+      points.add(\n+          point ->\n+              point\n+                  .hasCount(1)\n+                  .hasSumGreaterThan(0)\n+                  .hasBucketBoundaries(",
+      "id": "PRRT_kwDODJKVX86wgQBb",
+      "opened": "2026-10-27T00:14:43Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/SpringRmiTest.java",
+      "replies": [
+        {
+          "at": "2026-10-27T00:22:33Z",
+          "body": "Removed the redundant bucket-boundary assertion and preserved all remaining checks in `be586ec1`. Spotless and the default, preview, and dual-mode Spring RMI test tasks passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4383909726"
+        }
+      ],
+      "reviewed": "dec6a7be885ef127123b1dc0717f707291caeaf3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4383868208"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to simplify the Spring RMI metric test assertions in instrumentation/spring/spring-rmi-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/SpringRmiTest.java, following the explicit RPC metric assertion style in instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboTest.java. This is a test-only refactor, not a telemetry behavior change.\n\nReplace the generic assertMetrics and assertDurationMetrics machinery with explicit waitAndAssertMetrics assertions beside the operations in the success, exception, and inherited/overloaded tests. Use explicit client/server metric names and hasPointsSatisfying point lambdas. Write expected attributes directly with hasAttributesSatisfyingExactly and equalTo. Remove the dynamic lists of histogram point assertion consumers, method-string splitting, Attributes.builder, and Map<Attributes, Long> count calculation. Prefer a little repetition over helpers that calculate expected telemetry. Existing unrelated trace assertion code is outside this refactor.\n\nIn the inherited/overloaded test, explicitly expect three preview points for each role. In rpc/dup mode, explicitly expect three legacy client points, but two legacy server points: service springrmi.app.SpringRmiGreeterImpl with method inherited and count 1, and the same service with method overloaded and count 2. Both overloaded calls aggregate into that legacy server point. Keep the concrete service/method values and counts visible in the assertions.\n\nPreserve every existing metric assertion and scenario other than its structural refactoring: legacy-only mode remains metric-free; preview metrics use seconds; dual-mode legacy metrics use milliseconds; retain counts, existing positive-duration assertions, exact attributes, success and failure coverage, inherited and overloaded interface identities. Continue asserting server metrics only for the RMI test source. Gate legacy metric assertions inside preview-enabled dual mode, not merely on emitOldRpcSemconv, since default legacy-only mode emits no metrics. Do not reintroduce bucket-boundary assertions or weaken expected telemetry to simplify the test.\n\nLeave production code, preview gating, metadata, shared metrics code/tests, and other modules unchanged. Remove unused imports. Run the module's narrowest spotlessApply directly before its existing default, preview, and dual-mode tests, and report actual validation blockers. Check the final diff changes assertion structure only. Preserve the PR's base and draft/ready state. Do not create another PR or edit its title or description.",
+      "created": "2026-10-27T00:37:45Z",
+      "hunk": "@@ -385,5 +394,77 @@ RPC_SYSTEM, emitOldRpcSemconv() ? testSource.serverSystem : null),\n \n           trace.hasSpansSatisfyingExactly(assertions);\n         });\n+    assertMetrics(\n+        testSource == TestSource.RMI,\n+        error.getClass().getName(),\n+        \"springrmi.app.SpringRmiGreeter/exceptional\");\n+  }\n+\n+  private static void assertMetrics(boolean hasServer, String errorType, String... methods) {\n+    if (!emitPreviewRpcSemconv()) {\n+      assertThat(testing.metrics())\n+          .noneMatch(\n+              metric ->\n+                  metric\n+                      .getInstrumentationScopeInfo()\n+                      .getName()\n+                      .equals(\"io.opentelemetry.spring-rmi-4.0\"));\n+      return;\n+    }\n+\n+    assertDurationMetrics(\"client\", errorType, methods);\n+    if (hasServer) {\n+      assertDurationMetrics(\"server\", errorType, methods);\n+    }\n+  }\n+\n+  private static void assertDurationMetrics(String role, String errorType, String... methods) {\n+    List<Consumer<HistogramPointAssert>> points = new ArrayList<>();\n+    for (String method : methods) {\n+      points.add(\n+          point ->\n+              point\n+                  .hasCount(1)\n+                  .hasSumGreaterThan(0)\n+                  .hasAttributesSatisfyingExactly(\n+                      equalTo(RPC_SYSTEM_NAME, \"spring_rmi\"),\n+                      equalTo(RPC_METHOD, method),\n+                      equalTo(ERROR_TYPE, errorType)));\n+    }\n+    testing.waitAndAssertMetrics(\n+        \"io.opentelemetry.spring-rmi-4.0\",\n+        metric ->\n+            metric\n+                .hasName(\"rpc.\" + role + \".call.duration\")\n+                .hasUnit(\"s\")\n+                .hasHistogramSatisfying(histogram -> histogram.hasPointsSatisfying(points)));\n+\n+    if (emitOldRpcSemconv()) {\n+      Map<Attributes, Long> counts = new HashMap<>();",
+      "id": "PRRT_kwDODJKVX86wghzT",
+      "opened": "2026-10-27T00:37:45Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/SpringRmiTest.java",
+      "replies": [
+        {
+          "at": "2026-10-27T00:47:09Z",
+          "body": "Replaced the generic metric helpers with explicit per-test client/server metric assertions and preserved default-mode absence and `/dup` legacy coverage. Commit: `06d851a9`. Spotless and all three Spring RMI test modes passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4384037080"
+        }
+      ],
+      "reviewed": "be586ec1c139bfcf2f333ca2e232e593ecb0c964",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4383988863"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Both no-argument metric factories select generic buckets that omit boundaries recommended by the selected [v1.44.0 RPC metric conventions](https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/docs/rpc/rpc-metrics.md), reducing latency resolution—for example, combining the recommended 100–250 ms and 250–500 ms buckets. Pass the recommended boundaries through `get(List<Double>)` for both client and server metrics, or document a concrete reason for departing from that recommendation. The same issue occurs in `RpcServerMetrics.get()` at line 72.",
+      "created": "2026-10-27T00:53:20Z",
+      "hunk": "@@ -40,10 +44,17 @@ private static Instrumenter<Method, Void> buildClientInstrumenter() {\n                 RpcSemconvSelection.Selection.forOpenTelemetry(GlobalOpenTelemetry.get())\n                     .schemaUrl())\n             .addAttributesExtractor(RpcClientAttributesExtractor.create(rpcAttributesGetter));\n+    if (RpcSemconvSelection.Selection.forOpenTelemetry(GlobalOpenTelemetry.get()).emitPreview()) {\n+      builder\n+          .addOperationMetrics(RpcClientMetrics.get())",
+      "id": "PRRT_kwDODJKVX86wgtlL",
+      "opened": "2026-10-27T00:53:21Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/SpringRmiSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-27T00:54:18Z",
+          "body": "These defaults deliberately follow the revised general RPC bucket recommendation in [open-telemetry/semantic-conventions#4185](https://github.com/open-telemetry/semantic-conventions/pull/4185), merged October 21 and adopted by the shared factories in [#20883](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20883). The existing 13 boundaries match that recommendation exactly. Switching Spring RMI back to the older v1.44.0 list would undo that adoption, so no change is needed here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4384073501"
+        }
+      ],
+      "reviewed": "06d851a954d21aa658bfb2a43a09670e3fbfdbb1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4384068522"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly so Spring RMI adds only the new RPC duration metrics, never legacy metrics. Spring RMI had no legacy RPC metrics before this PR, so there is no legacy metric behavior to preserve in rpc/dup. This user-directed change supersedes the earlier requests in this PR to retain legacy metric emission and assertions.\n\nRequired behavior: with RPC preview disabled, emit no Spring RMI metrics; with preview rpc or rpc/dup, emit rpc.client.call.duration and, for the RMI server path, rpc.server.call.duration in seconds. Neither mode should emit rpc.client.duration or rpc.server.duration, or other newly introduced legacy RPC metrics, for scope io.opentelemetry.spring-rmi-4.0. Preserve existing span semantics, including dual-mode legacy span attributes, errors, propagation, interface/method identity, preview gating, default enablement, and histogram advice.\n\nThe no-argument RpcClientMetrics.get() and RpcServerMetrics.get() factories currently honor emitOld in dual mode. Correct production registration/metric construction as well as the tests; merely deleting old assertions is not sufficient. Reuse shared metric machinery rather than duplicating listeners. If explicit per-registration support in the shared factories is needed, make the smallest compatible change and keep existing callers' defaults and dual-emission behavior unchanged. Do not override global or instance semconv configuration to force preview-only, add a user-facing configuration setting, or filter metrics at export. Remove Spring RMI's now-unnecessary metrics dual-emission context customizers and their associated imports/deprecation suppressions where no longer needed.\n\nKeep the newly explicit per-test assertions in SpringRmiTest. Remove the old millisecond metric assertion blocks, keep default metric absence and new metric checks for success/failure, inherited methods, overloads, exact attributes, existing positive sums, counts, and client/server distinctions. Verify legacy Spring RMI metric absence in both preview and dual test modes after the operations complete. Keep three preview points per role in the overload test. Add focused shared-helper coverage if its behavior is extended, including preservation of existing dual-emission callers. Do not reintroduce bucket checks into instrumentation tests. The shared bucket defaults intentionally implement the revised recommendation adopted in #20883 from open-telemetry/semantic-conventions#4185; leave them unchanged.\n\nKeep this change scoped to Spring RMI and any necessary compatible shared metric support/tests, not native Java RMI, GWT, or unrelated instrumentations. Run the narrowest relevant spotlessApply directly before focused shared tests if changed and the existing Spring RMI default/preview/dual tests; report actual blockers. Preserve this PR's base and draft/ready state. Do not create another PR or edit its title or description.",
+      "created": "2026-10-27T01:00:40Z",
+      "hunk": "@@ -40,10 +44,17 @@ private static Instrumenter<Method, Void> buildClientInstrumenter() {\n                 RpcSemconvSelection.Selection.forOpenTelemetry(GlobalOpenTelemetry.get())\n                     .schemaUrl())\n             .addAttributesExtractor(RpcClientAttributesExtractor.create(rpcAttributesGetter));\n+    if (RpcSemconvSelection.Selection.forOpenTelemetry(GlobalOpenTelemetry.get()).emitPreview()) {\n+      builder\n+          .addOperationMetrics(RpcClientMetrics.get())",
+      "id": "PRRT_kwDODJKVX86wgzIK",
+      "opened": "2026-10-27T01:00:39Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/SpringRmiSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-27T01:12:31Z",
+          "body": "Implemented and pushed as `95c34367`. Spring RMI now emits only preview RPC duration metrics in both `rpc` and `rpc/dup`; existing shared factory defaults remain unchanged. Shared RPC tests and all three Spring RMI test modes pass. CodeQL reported no alerts, but analysis was skipped because the database exceeded its size limit.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4384162911"
+        }
+      ],
+      "reviewed": "06d851a954d21aa658bfb2a43a09670e3fbfdbb1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4384105262"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to undo the unnecessary shared-infrastructure change from commit 95c34367c48da8ff10dc6a120c565df1f20014f3. The user explicitly changed the requirement: legacy Spring RMI metrics may be emitted in rpc/dup; simply do not add dedicated assertions for them. This supersedes the earlier requirement to suppress legacy metrics.\n\nRemove the get(boolean emitOldMetrics) overloads, factory flag/plumbing, and corresponding shared-test extension introduced in that commit. Restore RpcClientMetrics.java, RpcServerMetrics.java, and RpcInstanceSemconvTest.java to their pre-95c34367 state, as at 06d851a954d21aa658bfb2a43a09670e3fbfdbb1, preserving any unrelated concurrent changes if present. The final PR diff should contain no shared-infrastructure changes for this feature.\n\nIn SpringRmiSingletons, restore the existing no-argument shared RpcClientMetrics.get() and RpcServerMetrics.get() calls and associated RpcMetricsContextCustomizers.dualEmitContextCustomizer registrations so any legacy metrics emitted in dual mode retain correct method dimensions. Restore only the imports and narrow deprecation suppressions needed for those registrations. Keep registration gated by preview selection, so default legacy-only mode remains metric-free.\n\nIn SpringRmiTest, retain the explicit per-test new-duration-metric assertions for success/failure, inherited methods, and overloads in both rpc and rpc/dup. Preserve metric names, seconds units, counts, positive sums, exact attributes, and client/server distinctions. Keep default-mode metric absence. Remove assertNoLegacyRpcMetrics and its calls. Do not restore old metric presence assertions, introduce old metric absence assertions, or reintroduce bucket checks. Existing span assertions remain unchanged, including old and dual span semantic-convention coverage.\n\nDo not change histogram advice, configuration, metadata, native Java RMI, GWT, or unrelated code. Run the narrowest relevant spotlessApply directly before existing Spring RMI default/preview/dual tests and focused shared RPC tests as appropriate; report actual blockers. Preserve the PR's base and draft/ready state. Do not create another PR or edit its title or description.",
+      "created": "2026-10-27T01:28:37Z",
+      "hunk": "@@ -40,6 +42,9 @@ private static Instrumenter<Method, Void> buildClientInstrumenter() {\n                 RpcSemconvSelection.Selection.forOpenTelemetry(GlobalOpenTelemetry.get())\n                     .schemaUrl())\n             .addAttributesExtractor(RpcClientAttributesExtractor.create(rpcAttributesGetter));\n+    if (RpcSemconvSelection.Selection.forOpenTelemetry(GlobalOpenTelemetry.get()).emitPreview()) {\n+      builder.addOperationMetrics(RpcClientMetrics.get(false));",
+      "id": "PRRT_kwDODJKVX86whHKg",
+      "opened": "2026-10-27T01:28:37Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/SpringRmiSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-27T01:37:48Z",
+          "body": "Addressed in `4a99296a`. Restored the shared files and Spring RMI context customizers, and removed legacy-metric absence checks without adding presence assertions. No shared-infrastructure changes remain in the PR diff. Spotless, shared RPC tests, and all three Spring RMI modes passed. CodeQL analysis was skipped due to database size.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4384285985"
+        }
+      ],
+      "reviewed": "95c34367c48da8ff10dc6a120c565df1f20014f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20991#discussion_r4384241131"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b4046797bb6660d1305fee766177ea68925773f239b37fa86bb5de9b4bac046f",
+  "input_digest": "645ee57fd67e05d2c0b2e5942880232a4109dbed5d80d365df169f6188e8eae4",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f24944ec17f717b3f7398f107080ebd25a569502/reference/scenarios/pydantic-ai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/05c6ae71d9d2e1989945090d895e0bd30e524276/reference/scenarios/pydantic-ai/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f24944ec17f717b3f7398f107080ebd25a569502/model/gen-ai/registry.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/05c6ae71d9d2e1989945090d895e0bd30e524276/model/gen-ai/registry.yaml"
+      ],
+      "id": "PRRT_kwDOSUeMrM6OMoh_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f24944ec17f717b3f7398f107080ebd25a569502/changelog.d/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/f24944ec17f717b3f7398f107080ebd25a569502/changelog.d/%2B.clarification.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/05c6ae71d9d2e1989945090d895e0bd30e524276/changelog.d/361.clarification.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/05c6ae71d9d2e1989945090d895e0bd30e524276/changelog.d/%2B.clarification.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/5a27c6ae0fcfb5314a7297722252e816e57e8c6a"
+      ],
+      "id": "PRRT_kwDOSUeMrM6OMoia",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

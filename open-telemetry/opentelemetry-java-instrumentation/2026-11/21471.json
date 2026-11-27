@@ -1,0 +1,31 @@
+{
+  "head": "8a8e04b2cc88bece836e3cd6c32c89f531384ceb",
+  "merge": "41fb36f425d78aa6988afac3f6d63c31bb402766",
+  "merged": "2026-11-25T18:16:49Z",
+  "missing_roots": 0,
+  "number": 21471,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing `schema_url` makes this catalog entry disagree with Servlet 5 HTTP server telemetry: its shared `DefaultHttpServerInstrumenterBuilder` still sets `HttpSchemaUrls.SCHEMA_URL` (`https://opentelemetry.io/schemas/1.41.0`). The scope parser prefers a schema-bearing scope over a schema-less scope with the same name. Check that metadata collection includes the Servlet HTTP server scope, then regenerate the catalog rather than editing this generated entry manually.",
+      "created": "2026-11-25T02:21:56Z",
+      "hunk": "@@ -16984,7 +16984,6 @@ libraries:\n   source_path: instrumentation/servlet/servlet-5.0\n   scope:\n     name: io.opentelemetry.servlet-5.0",
+      "id": "PRRT_kwDODJKVX867sh06",
+      "opened": "2026-11-25T02:21:56Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-11-25T18:16:33Z",
+          "body": "Servlet 5's own HTTP server instrumenter still uses `1.41.0`. The `1.37.0` URL removed here came from the internal `sendError` and `sendRedirect` spans, which intentionally stopped declaring a schema in #21466. The nightly Servlet 5 tests collect Jetty 12's HTTP server telemetry, so this generated update correctly drops the old URL. Collecting the Servlet-owned HTTP scope with a standalone Servlet 5 test is a separate follow-up; this PR should not hand-edit the catalog.\n\n<sub>🤖 AI-authored reply via <a href=\"https://eng.ms/docs/agency/cli/agency-finish-pr\">Agency Finish PR</a>.</sub>",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21471#discussion_r4699036102"
+        }
+      ],
+      "reviewed": "8a8e04b2cc88bece836e3cd6c32c89f531384ceb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21471#discussion_r4689454479"
+    }
+  ]
+}

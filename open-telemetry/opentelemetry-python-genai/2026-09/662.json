@@ -1,0 +1,87 @@
+{
+  "head": "608dea35078212115f271251ad3b9e5928180f9f",
+  "merge": "add999df5ef53b3ed2036fb97dfaf4e2fd9fb07a",
+  "merged": "2026-09-10T22:16:33Z",
+  "missing_roots": 0,
+  "number": 662,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These assertions make the tests brittle across `openai` SDK versions: `prompt_tokens_details` may not be a plain `dict` even if `PromptTokensDetails` can't be imported from this path (e.g., type moved/renamed), and the import check is not a reliable proxy for runtime type. Consider relaxing this to capability-based checks (e.g., accepts `Mapping` or any object/dict from which `cached_tokens` can be read), or remove the type assertion entirely since the tests already validate behavior via the exported span attributes.",
+      "created": "2026-09-09T21:41:59Z",
+      "hunk": "@@ -561,7 +567,18 @@ def assert_cache_attributes(span, usage):\n     details = _get_usage_details(usage)\n     assert details is not None\n \n-    cached_tokens = getattr(details, \"cached_tokens\", None)\n+    prompt_tokens_details = getattr(usage, \"prompt_tokens_details\", None)\n+    if prompt_tokens_details is not None:\n+        if PromptTokensDetails is None:\n+            assert isinstance(prompt_tokens_details, dict)\n+        else:\n+            assert isinstance(prompt_tokens_details, PromptTokensDetails)",
+      "id": "PRRT_kwDOSbspP86g2B_r",
+      "opened": "2026-09-09T21:41:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_utils.py",
+      "replies": [],
+      "reviewed": "d28219944da5b24b3b8c695eb6ccdac1fc6737f4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/662#discussion_r3973273706"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new assertions never exercise the behavior this PR adds: all four referenced chat-completion cassettes contain `cached_tokens: 0`, so this helper only takes the “attribute absent” branch. A regression that drops or misnames a non-zero cache-read count would still pass. Please add sync/async and streaming/non-streaming fixtures (or focused unit tests) with a non-zero cached-token value and assert the emitted value and integer type.",
+      "created": "2026-09-10T16:37:45Z",
+      "hunk": "@@ -561,7 +562,11 @@ def assert_cache_attributes(span, usage):\n     details = _get_usage_details(usage)\n     assert details is not None\n \n-    cached_tokens = getattr(details, \"cached_tokens\", None)\n+    cached_tokens = (\n+        details.get(\"cached_tokens\")\n+        if isinstance(details, Mapping)\n+        else getattr(details, \"cached_tokens\", None)\n+    )",
+      "id": "PRRT_kwDOSbspP86hKZVX",
+      "opened": "2026-09-10T16:37:45Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_utils.py",
+      "replies": [],
+      "reviewed": "78e2e7f3445abdac0479c00c1677756f4bf86237",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/662#discussion_r3981357880"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The test cassettes have `cached_tokens: 0`, so this only exercises attribute absence. Add tests with non-zero `cached_tokens` (sync, async, streaming) to verify `gen_ai.usage.cache_read.input_tokens` is emitted.",
+      "created": "2026-09-10T18:03:22Z",
+      "hunk": "@@ -80,6 +81,7 @@ def test_chat_completion_with_content(\n         response.usage.prompt_tokens,\n         response.usage.completion_tokens,\n     )\n+    assert_cache_attributes(spans[0], response.usage)",
+      "id": "PRRT_kwDOSbspP86hMKRG",
+      "opened": "2026-09-10T20:38:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_completions.py",
+      "replies": [
+        {
+          "at": "2026-09-10T21:02:25Z",
+          "body": "We do capture the non-zero cached_tokens in the cassettes to verify the attribute is emitted -\r\n\r\n<img width=\"220\" height=\"142\" alt=\"image\" src=\"https://github.com/user-attachments/assets/2f1b3a01-abec-447e-81cd-717143ddef47\" />\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/662#discussion_r3983466211"
+        },
+        {
+          "at": "2026-09-10T21:17:25Z",
+          "body": "thanks, sorry I missed it!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/662#discussion_r3983578629"
+        }
+      ],
+      "reviewed": "78e2e7f3445abdac0479c00c1677756f4bf86237",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/662#discussion_r3982061067"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: Use `get_property_value(details, \"cached_tokens\")` from `.utils` here as well.",
+      "created": "2026-09-10T18:03:22Z",
+      "hunk": "@@ -561,7 +562,11 @@ def assert_cache_attributes(span, usage):\n     details = _get_usage_details(usage)\n     assert details is not None\n \n-    cached_tokens = getattr(details, \"cached_tokens\", None)\n+    cached_tokens = (",
+      "id": "PRRT_kwDOSbspP86hMKRJ",
+      "opened": "2026-09-10T20:38:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_utils.py",
+      "replies": [
+        {
+          "at": "2026-09-10T21:04:56Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/662#discussion_r3983484392"
+        }
+      ],
+      "reviewed": "78e2e7f3445abdac0479c00c1677756f4bf86237",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/662#discussion_r3982061072"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "head": "0cbf65dda2601d42ff5f2f8bacfa95b46412d9f9",
+  "merge": "7fb68ffa96144f6159f3bffb65e9cb087e77325e",
+  "merged": "2026-03-16T21:43:57Z",
+  "missing_roots": 0,
+  "number": 16611,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "maybe worth an exception not to add these for unit-test modules?",
+      "created": "2026-03-16T21:27:53Z",
+      "hunk": "@@ -2,6 +2,18 @@ plugins {\n   id(\"otel.java-conventions\")\n }\n \n+tasks {\n+  val testStableSemconv by registering(Test::class) {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+    jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+  }\n+\n+  check {\n+    dependsOn(testStableSemconv)\n+  }\n+}",
+      "id": "PRRT_kwDODJKVX850swbn",
+      "opened": "2026-03-16T21:27:53Z",
+      "path": "instrumentation/camel-2.20/javaagent-unit-tests/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-03-16T21:29:07Z",
+          "body": "nevermind, i didn't see that there was usage, ignore me",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16611#discussion_r2943072121"
+        },
+        {
+          "at": "2026-03-16T21:30:15Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/camel-2.20/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/apachecamel/decorators/SanitizationTest.java#L121-L127",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16611#discussion_r2943076529"
+        },
+        {
+          "at": "2026-03-16T21:43:52Z",
+          "body": "oh, thanks for finding that, I missed it too",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16611#discussion_r2943133827"
+        }
+      ],
+      "reviewed": "0cbf65dda2601d42ff5f2f8bacfa95b46412d9f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16611#discussion_r2943067475"
+    }
+  ]
+}

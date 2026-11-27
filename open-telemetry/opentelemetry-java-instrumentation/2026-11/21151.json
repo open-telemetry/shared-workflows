@@ -1,0 +1,46 @@
+{
+  "head": "e9387cd5544eb5cbf0a6bfc71f372029e22003d8",
+  "merge": "c7a028a100a0952777c417db6aab0f961bda921a",
+  "merged": "2026-11-03T18:12:26Z",
+  "missing_roots": 0,
+  "number": 21151,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Please revert the changes to this generated file. `.github/instructions/instrumentation-list.instructions.md:7-8` explicitly reserves it for the nightly metadata update workflow, which regenerates the catalog from collected telemetry. Keep the implementation and test updates here and let `.github/workflows/metadata-update.yml` publish the corresponding catalog changes.",
+      "created": "2026-11-02T19:15:23Z",
+      "hunk": "@@ -5321,7 +5321,7 @@ definitions:\n         type: STRING\n       - name: rpc.system.name\n         type: STRING\n-    system.disk.io-7a80ac09:\n+    system.disk.io-8f464505:",
+      "id": "PRRT_kwDODJKVX86y0uGt",
+      "opened": "2026-11-02T19:15:23Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T19:27:20Z",
+          "body": "Fixed in 6fa4f9e642dd8f00c1d902dddd6984710dfbd1c4. The generated catalog is restored to the base-branch version and no longer appears in this PR's diff. The OSHI implementation, assertions, README, and breaking-change entry remain.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21151#discussion_r4446775292"
+        }
+      ],
+      "reviewed": "629522edaab960e292c5df0bc0535162c43e5a1c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21151#discussion_r4446652659"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with one scoped correction from its Copilot review. The OSHI implementation and tests are correct; preserve them, the README, and the concise Unreleased breaking-change entry.\n\nRestore docs/instrumentation-list.yaml to this PR's base-branch version so this PR has no changes to that file. My earlier task incorrectly requested regenerating and committing the catalog. The applicable .github/instructions/instrumentation-list.instructions.md explicitly says not to edit it; .github/workflows/metadata-update.yml owns its updates. Copilot review https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21151#discussion_r4446652659 correctly identified this issue.\n\nKeep system.device.name on disk and packet-count metrics, system.memory.state=\"available\" for both memory metrics, the 1.45.0 schema URL, updated descriptions and assertions, and the removed deprecation suppression. Acceptance is that the full PR diff retains all of those changes but excludes docs/instrumentation-list.yaml. Do not remove inherited catalog changes already present in the base branch, regenerate the catalog, change other behavior, create another PR, or change PR titles/descriptions. Do not post a reply to the review; the coordinator will verify the correction, handle the Copilot thread, and request a new review. This is a generated-file-only correction, so avoid unrelated builds or formatting churn.",
+      "created": "2026-11-02T19:20:08Z",
+      "hunk": "@@ -5321,7 +5321,7 @@ definitions:\n         type: STRING\n       - name: rpc.system.name\n         type: STRING\n-    system.disk.io-7a80ac09:\n+    system.disk.io-8f464505:",
+      "id": "PRRT_kwDODJKVX86y009R",
+      "opened": "2026-11-02T19:20:07Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "629522edaab960e292c5df0bc0535162c43e5a1c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21151#discussion_r4446699602"
+    }
+  ]
+}

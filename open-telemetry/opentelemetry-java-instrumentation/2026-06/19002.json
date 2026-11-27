@@ -1,0 +1,31 @@
+{
+  "head": "77cbd9e84e00782000f856c9ca2f3e4c7c9ee2d1",
+  "merge": "65a62d0f99fdd57cd1750aa28859b49e53105acd",
+  "merged": "2026-06-15T17:25:08Z",
+  "missing_roots": 0,
+  "number": 19002,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "PR description says the workflow passes `--repo \"\"` to `gh pr comment`, but the workflow now passes `--repo \"$GITHUB_REPOSITORY\"`. Please align the PR description with the actual behavior (or update the workflow if the empty-string behavior was intended).",
+      "created": "2026-06-15T16:45:38Z",
+      "hunk": "@@ -31,4 +32,4 @@ jobs:\n           PR_NUMBER: ${{ github.event.pull_request.number }}\n           LABEL: ${{ github.event.label.name }}\n         run: |\n-          gh pr comment \"$PR_NUMBER\" --body \"The \\`$LABEL\\` label has been added, but the build only consults test-* labels at the moments it naturally runs (PR opened / synchronize / reopened). To pick up this label, push another commit or close-and-reopen the PR.\"\n+          gh pr comment \"$PR_NUMBER\" --repo \"$GITHUB_REPOSITORY\" --body \"The \\`$LABEL\\` label is present on this PR. If it was added after the PR's current build started, that build will not pick it up because test-* labels are only read when the build naturally runs (PR opened / synchronize / reopened). Push another commit or close and reopen the PR to run with this label.\"",
+      "id": "PRRT_kwDODJKVX86JpURX",
+      "opened": "2026-06-15T16:45:39Z",
+      "path": ".github/workflows/comment-on-test-label.yml",
+      "replies": [
+        {
+          "at": "2026-06-15T16:50:03Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19002#discussion_r3415127849"
+        }
+      ],
+      "reviewed": "77cbd9e84e00782000f856c9ca2f3e4c7c9ee2d1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19002#discussion_r3415105339"
+    }
+  ]
+}

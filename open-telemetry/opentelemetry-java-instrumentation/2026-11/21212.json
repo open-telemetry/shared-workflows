@@ -1,0 +1,25 @@
+{
+  "head": "235816e08c98a90c221915abea00c97bcf8a895c",
+  "merge": "58205b4302dee604ee37094ceb1c6a56af896e72",
+  "merged": "2026-11-05T16:18:21Z",
+  "missing_roots": 0,
+  "number": 21212,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  [Javaagent] Return false for wrappers that already propagate context**\n\nWhen a lambda wrapper created by an outer/delegating executor reaches an inner instrumented executor, this `true` sends it through `JavaExecutorInstrumentation.ExecuteRunnableAdviceScope.start` or `CallableAdviceScope.start`, which calls `attachContextToTask`; because these bootstrap wrapper types are excluded from transformation, `TaskAdviceHelper` never consumes the fallback-map state. Under the default ignored-task configuration, `canInstrumentTaskClass` already returns true for both types, so this branch skips nothing and leaves the duplicate attachment that the commit is meant to eliminate; return false here so only the wrapper's captured-field propagation runs.\n\nAGENTS.md reference: [AGENTS.md:L20-L24](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fc76894f617b56c4884b1c0bf728fcb2ccf2bad1/AGENTS.md#L20-L24)\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-11-05T13:48:16Z",
+      "hunk": "@@ -56,6 +56,10 @@ public static boolean shouldPropagateContext(Context context, @Nullable Object t\n       return false;\n     }\n \n+    if (task instanceof ContextPropagatingRunnable || task instanceof ContextPropagatingCallable) {\n+      return true;",
+      "id": "PRRT_kwDODJKVX860F_NE",
+      "opened": "2026-11-05T13:48:16Z",
+      "path": "instrumentation/executors/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/executors/ExecutorAdviceHelper.java",
+      "replies": [],
+      "reviewed": "fc76894f617b56c4884b1c0bf728fcb2ccf2bad1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21212#discussion_r4481215926"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "aa288d883de587a9fa3c49d1bbbc79d4685ed528",
+  "merge": "d643dd92d53ea17bf09da6a49ae93179d5f3e0d2",
+  "merged": "2026-11-20T19:47:15Z",
+  "missing_roots": 0,
+  "number": 738,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `mcp`, `autogen`, `groq`, and `azure-ai-inference` scenario lockfiles still resolve all three packages to 1.45.1, and none overrides the shared pins. Their `conformance.yaml` commands use `uv run --frozen`, so scenario runs continue exercising 1.45.1 despite these new requirements. Please regenerate those four lockfiles so the shared upgrade applies to every scenario that uses the defaults.",
+      "created": "2026-11-20T19:13:04Z",
+      "hunk": "@@ -7,9 +7,9 @@ requires-python = \">=3.12\"\n # requires a different OTel version override this via [tool.uv] override-dependencies\n # in their own pyproject.toml.\n dependencies = [\n-    \"opentelemetry-api==1.45.1\",\n-    \"opentelemetry-sdk==1.45.1\",\n-    \"opentelemetry-exporter-otlp-proto-grpc==1.45.1\",\n+    \"opentelemetry-api==1.45.2\",\n+    \"opentelemetry-sdk==1.45.2\",\n+    \"opentelemetry-exporter-otlp-proto-grpc==1.45.2\",",
+      "id": "PRRT_kwDOSUeMrM66Im7J",
+      "opened": "2026-11-20T19:13:05Z",
+      "path": "reference/shared/pyproject.toml",
+      "replies": [],
+      "reviewed": "757d9bf96e79a4a31e54a0d31cbc972d26785287",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/738#discussion_r4646623463"
+    }
+  ]
+}

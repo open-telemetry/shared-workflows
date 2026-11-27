@@ -1,0 +1,25 @@
+{
+  "head": "4757fcaa33d72ab3b2435add49b19ed1ea2a9524",
+  "merge": "a088a00f4e8367e1fb512fe31f8813bb2a77793a",
+  "merged": "2026-03-04T17:05:10Z",
+  "missing_roots": 0,
+  "number": 16380,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "oh, this is a good rule to add to\n- #16348",
+      "created": "2026-03-04T15:58:17Z",
+      "hunk": "@@ -17,6 +17,10 @@ dependencies {\n }\n \n tasks {\n+  withType<Test>().configureEach {\n+    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n+  }",
+      "id": "PRRT_kwDODJKVX85yGNj_",
+      "opened": "2026-03-04T15:58:21Z",
+      "path": "instrumentation/jmx-metrics/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "4757fcaa33d72ab3b2435add49b19ed1ea2a9524",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16380#discussion_r2884619884"
+    }
+  ]
+}

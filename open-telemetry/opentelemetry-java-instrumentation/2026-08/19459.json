@@ -1,0 +1,100 @@
+{
+  "head": "c77fb9840b4291508d968bb4c07791929411d601",
+  "merge": "c77fb9840b4291508d968bb4c07791929411d601",
+  "merged": "2026-08-11T01:22:00Z",
+  "missing_roots": 0,
+  "number": 19459,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This statement is not true for system-property/javaagent configuration: `ConfigPropertiesBackedDeclarativeConfigProperties#getScalarList` deliberately converts an empty list to `null`, so `included=` is indistinguishable from an absent selector and JFR remains disabled. Either support presence detection in the bridge or document that property users must use `included=*` to select all metrics.",
+      "created": "2026-08-09T20:27:09Z",
+      "hunk": "@@ -89,19 +89,47 @@ meter_provider:\n \n ### Configuration\n \n-The set of emitted metrics depends on three independent knobs. In autoconfigured\n-environments, these map to system properties; programmatically, use the corresponding\n-builder methods.\n-\n-- `otel.instrumentation.runtime-telemetry.emit-experimental-metrics=true`\n-  (`emitExperimentalMetrics()`): enables additional JMX-based metrics that are not yet\n-  stable in the semantic conventions.\n-- `otel.instrumentation.runtime-telemetry.emit-experimental-jfr-metrics=true` (Java 17+):\n-  enables additional JFR-based metrics that are not yet stable in the semantic conventions.\n-- `otel.instrumentation.runtime-telemetry.experimental.prefer-jfr=true` (Java 17+): sources\n-  metrics from JFR instead of JMX wherever a JFR equivalent exists (see\n-  [JFR-based (Overlap with JMX)](#jfr-based-overlap-with-jmx) below). The corresponding\n-  JMX metrics are suppressed.\n+JFR is disabled by default. On Java 17+, select metrics to source from JFR by metric name:\n+\n+```properties\n+otel.instrumentation.runtime-telemetry.experimental.jfr-metrics.included=jvm.memory.*,jvm.cpu.longloc?\n+otel.instrumentation.runtime-telemetry.experimental.jfr-metrics.excluded=jvm.memory.allocation\n+```\n+\n+Matching is case-sensitive. `*` matches any number of characters and `?` matches one character. Configuring either selector property activates JFR. If `included` is omitted or empty, all metrics are included, so an exclude-only selector means all metrics minus the excluded metrics. Exclusions always take precedence, including over shorthand and legacy selections.",
+      "id": "PRRT_kwDODJKVX86XrL17",
+      "opened": "2026-08-09T20:27:10Z",
+      "path": "instrumentation/runtime-telemetry/library/README.md",
+      "replies": [],
+      "reviewed": "9b24c1742fa9ad6613bee67490437688036b52c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19459#discussion_r3745132677"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `false` no longer behaves as a setter value. After `setPreferJfrMetrics(builder, true)`, a later call with `false` leaves the overlapping selector installed, whereas the previous implementation reset the builder's preference flag. Preserve reversibility for callers that apply or override configuration in stages.",
+      "created": "2026-08-09T20:27:09Z",
+      "hunk": "@@ -68,26 +98,43 @@ public static void internalSetEmitExperimentalJfrMetrics(\n     Experimental.setEmitExperimentalJfrMetrics = setEmitExperimentalJfrMetrics;\n   }\n \n+  /**\n+   * Selects the metrics to source from JFR on Java 17+.\n+   *\n+   * <p>Metrics that JFR actually registers are suppressed from JMX to avoid duplicates. This method\n+   * is a no-op on Java versions prior to 17.\n+   *\n+   * @param builder the runtime telemetry builder\n+   * @param selector metric names to source from JFR\n+   */\n+  public static void setJfrMetrics(RuntimeTelemetryBuilder builder, IncludeExclude selector) {\n+    if (setJfrMetrics != null) {\n+      setJfrMetrics.accept(builder, selector);\n+    }\n+  }\n+\n+  public static void internalSetJfrMetrics(\n+      BiConsumer<RuntimeTelemetryBuilder, IncludeExclude> setJfrMetrics) {\n+    Experimental.setJfrMetrics = setJfrMetrics;\n+  }\n+\n   /**\n    * Sets whether to prefer JFR over JMX for metrics where both collection methods are available.\n-   * When set to {@code true}, metrics available from both sources will be collected using JFR. When\n-   * set to {@code false} (default), metrics available from both sources will be collected using\n-   * JMX. Metrics available from only one source are unaffected by this setting.\n    *\n    * @param builder the runtime telemetry builder\n    * @param preferJfrMetrics {@code true} to prefer JFR over JMX where both are available\n+   * @deprecated Use {@link #setJfrMetrics(RuntimeTelemetryBuilder, IncludeExclude)} instead,\n+   *     passing the metric names to source from JFR. Will be removed in the next release.\n    */\n+  @Deprecated // will be removed in the next release\n   public static void setPreferJfrMetrics(\n       RuntimeTelemetryBuilder builder, boolean preferJfrMetrics) {\n-    if (setPreferJfrMetrics != null) {\n-      setPreferJfrMetrics.accept(builder, preferJfrMetrics);\n+    // passing false was the default and selected no JFR metrics, so there is nothing to apply\n+    if (preferJfrMetrics) {\n+      setJfrMetrics(\n+          builder, IncludeExclude.builder().setIncluded(JMX_OVERLAPPING_JFR_METRICS).build());",
+      "id": "PRRT_kwDODJKVX86XrL1t",
+      "opened": "2026-08-09T20:27:10Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/Experimental.java",
+      "replies": [],
+      "reviewed": "9b24c1742fa9ad6613bee67490437688036b52c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19459#discussion_r3745132659"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The deprecated `prefer-jfr` property is still read and supported until the next release, but removing it from the source metadata makes the generated instrumentation catalog present it as already removed. Keep the old configuration entry alongside these selectors and mark its description as deprecated with the replacement, as done for deprecated gRPC metadata properties.",
+      "created": "2026-08-09T20:27:09Z",
+      "hunk": "@@ -17,13 +17,26 @@ configurations:\n       Enables the capture of experimental JFR-based JVM runtime metrics on Java 17+.\n     type: boolean\n     default: false\n-  - name: otel.instrumentation.runtime-telemetry.experimental.prefer-jfr\n-    declarative_name: java.runtime_telemetry.prefer_jfr/development\n+  - name: otel.instrumentation.runtime-telemetry.experimental.jfr-metrics.included",
+      "id": "PRRT_kwDODJKVX86XrL2A",
+      "opened": "2026-08-09T20:27:10Z",
+      "path": "instrumentation/runtime-telemetry/metadata.yaml",
+      "replies": [],
+      "reviewed": "9b24c1742fa9ad6613bee67490437688036b52c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19459#discussion_r3745132683"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This does not provide the advertised fallback for unsupported or incomplete JFR handlers. `jfrMetricNames` contains every metric whose handler was constructed, even if the JVM does not expose that event; it also treats a partially covered metric as fully covered. For example, selecting `jvm.memory.used` suppresses the JMX callback for every pool, while `G1HeapSummaryHandler` explicitly cannot report G1 Old Gen and unsupported collectors still create `MetaspaceSummaryHandler`, so heap series are lost. Track actual/full JFR support before suppressing a JMX metric (or filter JMX at a finer granularity).",
+      "created": "2026-08-09T20:27:09Z",
+      "hunk": "@@ -103,17 +90,45 @@ public RuntimeTelemetry build() {\n     String jfrName =\n         jfrInstrumentationName != null ? jfrInstrumentationName : DEFAULT_INSTRUMENTATION_NAME;\n \n-    Meter jmxMeter = getMeter(openTelemetry, jmxName);\n-    Meter jfrMeter = getMeter(openTelemetry, jfrName);\n-    boolean effectivePreferJfrMetrics = preferJfrMetrics && jfrConfig.isJfrAvailable();\n+    IncludeExclude effectiveJfrMetrics = getEffectiveJfrMetrics();\n+    JfrConfig.JfrTelemetry jfrTelemetry =\n+        effectiveJfrMetrics == null\n+            ? new JfrConfig.JfrTelemetry(null, emptySet())\n+            : jfrConfig.buildJfrTelemetry(\n+                effectiveJfrMetrics::matches, getMeter(openTelemetry, jfrName));\n+    Set<String> jfrMetricNames = jfrTelemetry.getMetricNames();\n \n+    Meter jmxMeter = getMeter(openTelemetry, jmxName);\n     List<AutoCloseable> observables =\n         disableJmx\n             ? emptyList()\n             : JmxRuntimeMetricsFactory.buildObservables(\n-                emitExperimentalMetrics, captureGcCause, effectivePreferJfrMetrics, jmxMeter);\n-    AutoCloseable jfrTelemetry = jfrConfig.buildJfrTelemetry(effectivePreferJfrMetrics, jfrMeter);\n-    return new RuntimeTelemetry(observables, jfrTelemetry);\n+                emitExperimentalMetrics,\n+                captureGcCause,\n+                metricName ->\n+                    !suppressOverlappingJmxMetrics || !jfrMetricNames.contains(metricName),",
+      "id": "PRRT_kwDODJKVX86XrL2H",
+      "opened": "2026-08-09T20:27:10Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/RuntimeTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "9b24c1742fa9ad6613bee67490437688036b52c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19459#discussion_r3745132692"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Spring still accepts `otel.instrumentation.runtime-telemetry.experimental.prefer-jfr`, so deleting its metadata makes IDE completion treat a deprecated-but-supported property as unknown. Retain the old Boolean entry with a Spring `deprecation` block pointing to the new included selector.",
+      "created": "2026-08-09T20:27:10Z",
+      "hunk": "@@ -563,10 +563,14 @@\n       \"defaultValue\": false\n     },\n     {\n-      \"name\": \"otel.instrumentation.runtime-telemetry.experimental.prefer-jfr\",\n-      \"type\": \"java.lang.Boolean\",\n-      \"description\": \"Prefer JFR over JMX for metrics available from both sources, on Java 17+.\",\n-      \"defaultValue\": false\n+      \"name\": \"otel.instrumentation.runtime-telemetry.experimental.jfr-metrics.included\",",
+      "id": "PRRT_kwDODJKVX86XrL2Z",
+      "opened": "2026-08-09T20:27:10Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+      "replies": [],
+      "reviewed": "9b24c1742fa9ad6613bee67490437688036b52c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19459#discussion_r3745132714"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`jvm.memory.init` is also an incomplete JMX replacement, but it is omitted here. `CodeCacheConfigurationHandler` emits only the `CodeCache` series, while `MemoryInit` emits one series for every memory pool. When experimental JMX metrics are enabled and this metric is selected for JFR, `jfrMetricNames` suppresses the full JMX instrument and drops all non-CodeCache series. Keep this metric on JMX when that JMX metric is enabled, while still allowing JFR collection when experimental JMX metrics are disabled.",
+      "created": "2026-08-09T21:30:01Z",
+      "hunk": "@@ -29,69 +29,171 @@\n import java.lang.management.GarbageCollectorMXBean;\n import java.lang.management.ManagementFactory;\n import java.util.ArrayList;\n-import java.util.Iterator;\n+import java.util.HashSet;\n import java.util.List;\n+import java.util.Set;\n import java.util.function.Predicate;\n+import javax.annotation.Nullable;\n+import jdk.jfr.EventType;\n+import jdk.jfr.FlightRecorder;\n \n final class HandlerRegistry {\n \n-  private HandlerRegistry() {}\n+  // These handlers cover only a subset of memory pools, so JMX must remain the source of the\n+  // metric.\n+  private static final Set<String> INCOMPLETE_JMX_REPLACEMENTS =\n+      Set.of(\n+          \"jvm.memory.committed\",\n+          \"jvm.memory.limit\",\n+          \"jvm.memory.used\",\n+          \"jvm.memory.used_after_last_gc\");",
+      "id": "PRRT_kwDODJKVX86XryQy",
+      "opened": "2026-08-09T21:30:01Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/HandlerRegistry.java",
+      "replies": [],
+      "reviewed": "c543e091354ca3ee9d18f4b4c31a398f2226f78c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19459#discussion_r3745345050"
+    }
+  ]
+}

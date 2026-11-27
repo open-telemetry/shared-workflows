@@ -1,0 +1,127 @@
+{
+  "head": "9f1b0bb4320aba1797371a60f19ab07bad938932",
+  "merge": "debdd770b8c0da9c814a495d55a1f678b5d34e4c",
+  "merged": "2026-05-11T18:07:23Z",
+  "missing_roots": 0,
+  "number": 126,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n      - ref_group: attributes.gen_ai.error\n```",
+      "created": "2026-05-08T20:54:20Z",
+      "hunk": "@@ -97,6 +97,28 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n+  - name: gen_ai.workflow.duration\n+    annotations:\n+      code_generation:\n+        metric_value_type: double\n+    brief: 'GenAI workflow duration.'\n+    note: >\n+      This metric instruments describe an operation that executes a coordinated process\n+      composed of multiple agents or other operations involving generative AI.\n+    instrument: histogram\n+    unit: \"s\"\n+    stability: development\n+    attributes:\n+      - ref: error.type\n+        requirement_level:\n+          conditionally_required: \"if the workflow ended in an error\"\n+        note: |\n+          The `error.type` SHOULD match the error code returned by the Generative AI provider or the client library,\n+          the canonical name of exception that occurred, or another low-cardinality error identifier.\n+          Instrumentations SHOULD document the list of errors they report.",
+      "id": "PRRT_kwDOSUeMrM6AvIrQ",
+      "opened": "2026-05-08T20:54:40Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "a171932b06bbf6eeda602fea1294b87f8f3cf84b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/126#discussion_r3211287884"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Metric note has a grammatical error: “This metric instruments describe …” reads incorrectly and should be rephrased (e.g., singular “instrument describes” / “instruments describe” depending on intent). Since this text is propagated into generated docs/snapshots, fix it here and regenerate outputs.\n",
+      "created": "2026-05-08T22:45:44Z",
+      "hunk": "@@ -97,6 +97,28 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n+  - name: gen_ai.workflow.duration\n+    annotations:\n+      code_generation:\n+        metric_value_type: double\n+    brief: 'GenAI workflow duration.'\n+    note: >\n+      This metric instruments describe an operation that executes a coordinated process",
+      "id": "PRRT_kwDOSUeMrM6AwZYy",
+      "opened": "2026-05-08T22:45:45Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "a171932b06bbf6eeda602fea1294b87f8f3cf84b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/126#discussion_r3211744593"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new prose has grammatical issues (“provided by user application”, missing articles) and reads awkwardly. Suggest rewording to include the appropriate articles (e.g., “provided by the user/application”, “specific to the generative AI framework or library …”) for clarity; this text is also emitted into generated docs/snapshots.\n",
+      "created": "2026-05-08T22:45:45Z",
+      "hunk": "@@ -677,5 +677,11 @@ attributes:\n     brief: Human-readable name of the GenAI workflow provided by the application.\n     note: |\n       This attribute can be populated in different frameworks eg: name of the first chain in LangChain OR name of the crew in CrewAI.\n+      Workflow name is usually provided by user application in a way specific to generative AI framework or library orchestrating the workflow.\n+      It's usually a static name that's expected to be unique within one application.",
+      "id": "PRRT_kwDOSUeMrM6AwZZC",
+      "opened": "2026-05-08T22:45:45Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "a171932b06bbf6eeda602fea1294b87f8f3cf84b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/126#discussion_r3211744613"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`error.type` is inlined here with duplicated note/requirement-level text that already exists in the shared `attributes.gen_ai.error` ref_group used by other GenAI metrics in this file. Consider reusing that ref_group for consistency/maintainability, or introducing a workflow-specific error attribute group to avoid copy/paste while keeping workflow-specific wording.",
+      "created": "2026-05-08T22:45:45Z",
+      "hunk": "@@ -97,6 +97,28 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n+  - name: gen_ai.workflow.duration\n+    annotations:\n+      code_generation:\n+        metric_value_type: double\n+    brief: 'GenAI workflow duration.'\n+    note: >\n+      This metric instruments describe an operation that executes a coordinated process\n+      composed of multiple agents or other operations involving generative AI.\n+    instrument: histogram\n+    unit: \"s\"\n+    stability: development\n+    attributes:\n+      - ref: error.type\n+        requirement_level:\n+          conditionally_required: \"if the workflow ended in an error\"\n+        note: |",
+      "id": "PRRT_kwDOSUeMrM6AwZZK",
+      "opened": "2026-05-08T22:45:45Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "a171932b06bbf6eeda602fea1294b87f8f3cf84b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/126#discussion_r3211744623"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(similar to http duration metric language)\n\n```suggestion\n\nWhen this metric is reported alongside a `gen_ai.invoke_workflow.internal` span, the metric value SHOULD be the same as the span duration.\n\n```",
+      "created": "2026-05-08T23:00:29Z",
+      "hunk": "@@ -830,6 +832,66 @@ applicable `aws.bedrock.*` attributes and are not expected to include\n <!-- END AUTOGENERATED TEXT -->\n <!-- endweaver -->\n \n+## Generative AI workflow metrics\n+\n+Individual systems may include additional system-specific attributes.\n+It is recommended to check system-specific documentation, if available.\n+\n+`gen_ai.workflow.duration` represents the end-to-end duration of a workflow execution,\n+measured from the point where application code initiates the workflow to the point where the workflow completes,\n+independent of workflow complexity.\n+If instrumentation measures only a single provider-facing client operation\n+(for example, one model API call), `gen_ai.client.operation.duration` SHOULD be used instead.\n+Instrumentation MAY emit both metrics for the same request path when both boundaries are available.\n+\n+### Metric: `gen_ai.workflow.duration`\n+\n+This metric is [required][MetricRequired] when instrumented component implements workflow operations.\n+",
+      "id": "PRRT_kwDOSUeMrM6Awhjl",
+      "opened": "2026-05-08T23:03:08Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [],
+      "reviewed": "a171932b06bbf6eeda602fea1294b87f8f3cf84b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/126#discussion_r3211787512"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    attributes:\n      - ref: gen_ai.operation.name\n      - requirement_level: required\n```",
+      "created": "2026-05-08T23:03:04Z",
+      "hunk": "@@ -97,6 +97,28 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n+  - name: gen_ai.workflow.duration\n+    annotations:\n+      code_generation:\n+        metric_value_type: double\n+    brief: 'GenAI workflow duration.'\n+    note: >\n+      This metric instruments describe an operation that executes a coordinated process\n+      composed of multiple agents or other operations involving generative AI.\n+    instrument: histogram\n+    unit: \"s\"\n+    stability: development\n+    attributes:",
+      "id": "PRRT_kwDOSUeMrM6AwjOY",
+      "opened": "2026-05-08T23:03:08Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-05-11T17:16:22Z",
+          "body": "Do not intend to add`gen_ai .operation.name` as this metric is with only `invoke_workflow`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/126#discussion_r3220797026"
+        }
+      ],
+      "reviewed": "a171932b06bbf6eeda602fea1294b87f8f3cf84b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/126#discussion_r3211796295"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.workflow.duration` is the only metric in this file that does not include the shared `metric_attributes.gen_ai` (or at least `attributes.gen_ai.common`). As a result, `gen_ai.operation.name` is not required on this metric, unlike the other GenAI metrics, which makes it harder to consistently filter/join GenAI metrics across instruments. Consider adding `gen_ai.operation.name` (ideally via `attributes.gen_ai.common`/`metric_attributes.gen_ai`) and documenting the expected value (likely `invoke_workflow`).",
+      "created": "2026-05-11T17:55:25Z",
+      "hunk": "@@ -97,6 +97,22 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n+  - name: gen_ai.workflow.duration\n+    annotations:\n+      code_generation:\n+        metric_value_type: double\n+    brief: 'GenAI workflow duration.'\n+    note: >\n+      This metric instrument describes an operation that executes a coordinated process\n+      composed of multiple agents or other operations involving generative AI.\n+    instrument: histogram\n+    unit: \"s\"\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.workflow.name\n+        requirement_level:\n+          conditionally_required: If available.",
+      "id": "PRRT_kwDOSUeMrM6BLLWa",
+      "opened": "2026-05-11T17:55:26Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-05-11T17:59:16Z",
+          "body": "See https://github.com/open-telemetry/semantic-conventions-genai/pull/126#discussion_r3220797026",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/126#discussion_r3221058747"
+        }
+      ],
+      "reviewed": "9f1b0bb4320aba1797371a60f19ab07bad938932",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/126#discussion_r3221037753"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "7e93ebe49b89aee2f4e970f8db7f98e2653069a953503808a95907cfd90b3db6",
+  "input_digest": "8dd19d5014ea85cb96781dc0c8702fb9e30c1d930d0ecbef09df6cf16099f25e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/270757cf7dbfba340c18055e0652383d8f503e4c/instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburDbcpDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39667f4dc75942d29fa7df5043fd059529bad9a8/instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburDbcpDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/270757cf7dbfba340c18055e0652383d8f503e4c/instrumentation/hikaricp-3.0/library/src/main/java/io/opentelemetry/instrumentation/hikaricp/v3_0/OpenTelemetryMetricsTracker.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39667f4dc75942d29fa7df5043fd059529bad9a8/instrumentation/hikaricp-3.0/library/src/main/java/io/opentelemetry/instrumentation/hikaricp/v3_0/OpenTelemetryMetricsTracker.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/270757cf7dbfba340c18055e0652383d8f503e4c/instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/RuntimeTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39667f4dc75942d29fa7df5043fd059529bad9a8/instrumentation/runtime-telemetry/library/src/main/java/io/opentelemetry/instrumentation/runtimetelemetry/RuntimeTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/270757cf7dbfba340c18055e0652383d8f503e4c/instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/RecordedEventHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39667f4dc75942d29fa7df5043fd059529bad9a8/instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/RecordedEventHandler.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4dec3c22c1c432f3d8d9b404a7d1a83e0eb12165"
+      ],
+      "id": "PRRT_kwDODJKVX8652CHc",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

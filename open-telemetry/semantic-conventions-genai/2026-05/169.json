@@ -1,0 +1,40 @@
+{
+  "head": "1d21fd5b8fa801e2006c9053ee81e69be47603c6",
+  "merge": "7efdc2a900f183b49520f8ce4e389d450a50cf53",
+  "merged": "2026-05-19T02:48:50Z",
+  "missing_roots": 0,
+  "number": 169,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing the fetch from `reset_state` leaves the retry path resetting to whatever `origin/<state_branch>` was at initial checkout. After a `--force-with-lease` rejection caused by a concurrent update, the next attempts still use the stale remote-tracking ref and will keep failing; when the branch did not exist initially, this reset still targets a missing ref and raises instead of stopping cleanly.",
+      "created": "2026-05-19T00:53:13Z",
+      "hunk": "@@ -83,15 +84,15 @@ def checkout_state(state_dir: Path, state_branch: str, require_existing: bool) -\n \n \n def reset_state(state_dir: Path, state_branch: str) -> None:\n-    fetch_state_branch(state_branch, required=True)\n     run([\"git\", \"reset\", \"--hard\", f\"origin/{state_branch}\"], cwd=state_dir)",
+      "id": "PRRT_kwDOSUeMrM6DAoVC",
+      "opened": "2026-05-19T00:53:14Z",
+      "path": ".github/scripts/pull-request-dashboard/state_branch.py",
+      "replies": [],
+      "reviewed": "3412f29e0f5209b23a7aa8671abffdab969d8e2c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/169#discussion_r3263042630"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`reset_state` now signals a missing remote state branch by returning `False`, but `push_state_changes` still ignores that return value on retry. On a first-run push failure where the branch does not exist, the next loop can continue from the unpushed local commit and report success because there are no staged changes, leaving the state branch uncreated. The caller should treat this `False` result as a terminal push failure instead of retrying.",
+      "created": "2026-05-19T01:15:42Z",
+      "hunk": "@@ -82,16 +83,19 @@ def checkout_state(state_dir: Path, state_branch: str, require_existing: bool) -\n     run([\"git\", \"rm\", \"-rf\", \".\"], cwd=state_dir, check=False)\n \n \n-def reset_state(state_dir: Path, state_branch: str) -> None:\n-    fetch_state_branch(state_branch, required=True)\n+def reset_state(state_dir: Path, state_branch: str) -> bool:\n+    if not fetch_state_branch(state_branch, required=False):\n+        return False",
+      "id": "PRRT_kwDOSUeMrM6DAyQT",
+      "opened": "2026-05-19T01:15:42Z",
+      "path": ".github/scripts/pull-request-dashboard/state_branch.py",
+      "replies": [],
+      "reviewed": "7b8c9ec95bde180ca02d348545a01ee0c01d7e2f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/169#discussion_r3263098385"
+    }
+  ]
+}

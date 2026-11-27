@@ -1,0 +1,233 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "894578e82e9dd060789ab625fd2921120f4f43da45b62a504ebe5c88a803590e",
+  "input_digest": "7d7e622883d8a7614dc0797b095f4cfc0549016a9d7722491d1df61fa9f2531e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/36395c2cc7a9f301a503275540be7af18e509206/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/__init__.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/__init__.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/699d7786d917131d97169a7fc6d2172319723ac6"
+      ],
+      "id": "PRRT_kwDOSbspP86T3G1i",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/36395c2cc7a9f301a503275540be7af18e509206/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/36395c2cc7a9f301a503275540be7af18e509206/util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/699d7786d917131d97169a7fc6d2172319723ac6"
+      ],
+      "id": "PRRT_kwDOSbspP86T3G1k",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/36395c2cc7a9f301a503275540be7af18e509206/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/tests/conftest.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/tests/conftest.py"
+      ],
+      "id": "PRRT_kwDOSbspP86T3G1l",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/36395c2cc7a9f301a503275540be7af18e509206/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/pyproject.toml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/pyproject.toml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/699d7786d917131d97169a7fc6d2172319723ac6"
+      ],
+      "id": "PRRT_kwDOSbspP86T3G1o",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/36395c2cc7a9f301a503275540be7af18e509206/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/README.rst",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/README.rst",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/36395c2cc7a9f301a503275540be7af18e509206/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/examples/manual/custom_hook.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/examples/manual/custom_hook.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/36395c2cc7a9f301a503275540be7af18e509206/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/__init__.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/__init__.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/699d7786d917131d97169a7fc6d2172319723ac6"
+      ],
+      "id": "PRRT_kwDOSbspP86T3G1x",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOSbspP86Wh0MR",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/e13c8b735801549c09a62a90e7e0ce77e2c9262c/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/6ba8d5ac8ca44a15869aaff7bc70effc1c0ef3cf"
+      ],
+      "id": "PRRT_kwDOSbspP86Wh20x",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/6ba8d5ac8ca44a15869aaff7bc70effc1c0ef3cf/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/tests/conformance/invoke_agent.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/tests/conformance/invoke_agent.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/tests/test_query_handler.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/c955f42cfc11ad78ede3ba200613899d2e1240c3"
+      ],
+      "id": "PRRT_kwDOSbspP86YE7TD",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/6ba8d5ac8ca44a15869aaff7bc70effc1c0ef3cf/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/796cac16199fd50879b7a4a9185d49bdd52d03ba"
+      ],
+      "id": "PRRT_kwDOSbspP86YE8z2",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOSbspP86YE_yc",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a4b3e5583aead8ff44b03147da28795ef632d3cc/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/README.rst",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/pyproject.toml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/41a243c119eeedc8446170504af62c6edf2df7f2"
+      ],
+      "id": "PRRT_kwDOSbspP86ZKXGF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a4b3e5583aead8ff44b03147da28795ef632d3cc/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a4b3e5583aead8ff44b03147da28795ef632d3cc/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/tests/conformance/invoke_agent.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/tests/conformance/invoke_agent.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/c955f42cfc11ad78ede3ba200613899d2e1240c3"
+      ],
+      "id": "PRRT_kwDOSbspP86ZKXGH",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a4b3e5583aead8ff44b03147da28795ef632d3cc/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/tests/test_query_handler.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/c955f42cfc11ad78ede3ba200613899d2e1240c3"
+      ],
+      "id": "PRRT_kwDOSbspP86ZKXGJ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a4b3e5583aead8ff44b03147da28795ef632d3cc/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/pyproject.toml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/a4b3e5583aead8ff44b03147da28795ef632d3cc/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/pyproject.toml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/README.rst",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py"
+      ],
+      "id": "PRRT_kwDOSbspP86ZKXGQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/c955f42cfc11ad78ede3ba200613899d2e1240c3/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/__init__.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/__init__.py"
+      ],
+      "id": "PRRT_kwDOSbspP86kYctI",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/c955f42cfc11ad78ede3ba200613899d2e1240c3/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py"
+      ],
+      "id": "PRRT_kwDOSbspP86kYctU",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/c955f42cfc11ad78ede3ba200613899d2e1240c3/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py"
+      ],
+      "id": "PRRT_kwDOSbspP86kYctd",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/c955f42cfc11ad78ede3ba200613899d2e1240c3/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/utils.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/utils.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/c955f42cfc11ad78ede3ba200613899d2e1240c3/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py"
+      ],
+      "id": "PRRT_kwDOSbspP86kYctp",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/41a243c119eeedc8446170504af62c6edf2df7f2/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/62790603d6be2617b552bf5b62f4ab37352f8383/instrumentation/opentelemetry-instrumentation-genai-qwenpaw/src/opentelemetry/instrumentation/genai/qwenpaw/patch.py"
+      ],
+      "id": "PRRT_kwDOSbspP86rKXJc",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

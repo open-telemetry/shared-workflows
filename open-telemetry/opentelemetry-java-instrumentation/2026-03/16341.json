@@ -1,0 +1,31 @@
+{
+  "head": "a8b44db4775c97f810b28b163e8a3bb10cf25111",
+  "merge": "559882adec2dc27a4780c4a5c9cd54480eadb487",
+  "merged": "2026-03-03T15:47:13Z",
+  "missing_roots": 0,
+  "number": 16341,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "is this still needed?",
+      "created": "2026-03-02T08:13:39Z",
+      "hunk": "@@ -22,7 +22,7 @@ for dir in $(find instrumentation -name \"*.java\" | grep library/src/main/java |\n   if [[ \"$module_name\" == \"servlet-common\" ]]; then\n     continue\n   fi\n-  if [[ \"$module_name\" == \"graphql-java-common\" ]]; then\n+  if [[ \"$module_name\" == \"graphql-java-common-12.0\" ]]; then",
+      "id": "PRRT_kwDODJKVX85xfL3X",
+      "opened": "2026-03-02T08:13:39Z",
+      "path": ".github/scripts/check-package-names.sh",
+      "replies": [
+        {
+          "at": "2026-03-02T23:20:37Z",
+          "body": "Yes. \r\n\r\nThe script, in its current state, expects the packages inside `graphql-java-common-12.0` module to be of the format `.../graphql/java/common/v12_0/...`, but the packages are actually named `.../graphql/common/v12_0/...`. \r\n\r\nIt only removes `-java` when it appears right before the version number at the end of the module name. If `java` appears anywhere else in the name (which it does in the case of this module), the script does not remove it. Because of that, it still expects the full `...graphql/java/common/v12_0/...` sequence in the package path.\r\n\r\nWe could fix this generically by stripping `-java-` when it appears as a middle segment (after removing the version), instead of only stripping `-java` at the end. That would handle `graphql-java-common` correctly while still preserving modules like `java-http-client`, where java is the first segment.\r\n\r\nPlease let me know the approach you’d like me to take. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16341#discussion_r2875193499"
+        }
+      ],
+      "reviewed": "1884c1e13da7e0e243e7e32686b39a9ddf80e7b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16341#discussion_r2871074982"
+    }
+  ]
+}

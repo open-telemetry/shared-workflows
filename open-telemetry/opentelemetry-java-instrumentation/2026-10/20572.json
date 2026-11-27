@@ -1,0 +1,25 @@
+{
+  "head": "e8d1a6621c41027e1d55b23be605f83f5339863c",
+  "merge": "89e6d4307186a630a4ddb4613cd1233f1c8b7576",
+  "merged": "2026-10-13T16:07:17Z",
+  "missing_roots": 0,
+  "number": 20572,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] These cases only exercise the module-prefixed commands, while the new exclusion explicitly supports both prefixed and unprefixed forms. Add the two unprefixed launcher commands so both parsing branches are protected and the coverage matches the PR description.",
+      "created": "2026-10-13T13:23:43Z",
+      "hunk": "@@ -125,7 +125,10 @@ void isJdkToolMainClass_true(String sunJavaCommand) {\n         // glassfish/payara application server\n         \"com.sun.enterprise.glassfish.bootstrap.ASMain\",\n         // openmq broker (imqbrokerd), shipped with glassfish/payara\n-        \"com.sun.messaging.jmq.jmsserver.Broker\"\n+        \"com.sun.messaging.jmq.jmsserver.Broker\",\n+        // source launcher, java HelloWorld.java (jdk 11-21 and jdk 22+)\n+        \"jdk.compiler/com.sun.tools.javac.launcher.Main HelloWorld.java arg1\",\n+        \"jdk.compiler/com.sun.tools.javac.launcher.SourceLauncher HelloWorld.java arg1\"",
+      "id": "PRRT_kwDODJKVX86r4QkP",
+      "opened": "2026-10-13T13:23:44Z",
+      "path": "javaagent-bootstrap/src/test/java/io/opentelemetry/javaagent/bootstrap/AgentInitializerTest.java",
+      "replies": [],
+      "reviewed": "f19b8205f36a4d055ec0739382185d6b3ac48b3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20572#discussion_r4259178729"
+    }
+  ]
+}

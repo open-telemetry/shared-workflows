@@ -1,0 +1,31 @@
+{
+  "head": "046ae37ab1453e4277a640a0cddca18a8a475bb3",
+  "merge": "14c76fee1a5270d194bfada07f711352a2d3aa4d",
+  "merged": "2026-09-24T16:27:55Z",
+  "missing_roots": 0,
+  "number": 784,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This finalizes `opentelemetry-util-genai` while every released instrumentation still declares `opentelemetry-util-genai >= 1.2b0.dev` and its oldest requirements still installs the util editable. Once the workspace version is `1.2b0`, `check_deps.py` treats that floor as a prior released version and rejects those editable installs, so the `deps-check` gate will fail. Update the consumers' floors to `>= 1.2b0` and remove the obsolete editable-install workarounds (and their comments) before finalizing the release.",
+      "created": "2026-09-24T01:55:46Z",
+      "hunk": "@@ -1,4 +1,4 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n-__version__ = \"1.2b0.dev\"\n+__version__ = \"1.2b0\"",
+      "id": "PRRT_kwDOSbspP86lZ1_0",
+      "opened": "2026-09-24T01:55:46Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/version.py",
+      "replies": [
+        {
+          "at": "2026-09-24T02:10:41Z",
+          "body": "Fixed in 046ae37ab1453e4277a640a0cddca18a8a475bb3",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/784#discussion_r4089114651"
+        }
+      ],
+      "reviewed": "5baa71e1af419a9a698cc6b232a4d44939527d57",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/784#discussion_r4089052172"
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "head": "00baea2d1cb371508d6ddc4238ef945f818e2c70",
+  "merge": "64a8915669ee552c818c51a106a7110ceddb3cb1",
+  "merged": "2026-08-24T19:22:50Z",
+  "missing_roots": 0,
+  "number": 19748,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `URI.getHost()` preserves square brackets for IPv6 literals (for example, `[2001:db8::1]`), so this emits the URI syntax rather than the address itself in `server.address`. Strip the brackets before creating the server value; `server.port` already carries the port separately.",
+      "created": "2026-08-21T16:06:32Z",
+      "hunk": "@@ -0,0 +1,68 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.opensearch.v3_0.OpenSearchSingletons.serverAddress;\n+\n+import java.net.URI;\n+import javax.annotation.Nullable;\n+import org.opensearch.client.transport.OpenSearchTransport;\n+\n+public final class OpenSearchServerAddress {\n+\n+  private final String address;\n+  @Nullable private final Integer port;\n+\n+  private OpenSearchServerAddress(String address, @Nullable Integer port) {\n+    this.address = address;\n+    this.port = port;\n+  }\n+\n+  @Nullable\n+  static OpenSearchServerAddress get(OpenSearchTransport transport) {\n+    Class<?> transportClass = transport.getClass();\n+    while (transportClass != null) {\n+      if (transportClass\n+          .getName()\n+          .equals(\"org.opensearch.client.transport.rest_client.RestClientTransport\")) {\n+        return OpenSearchRestClientServerAddress.get(transport);\n+      }\n+      transportClass = transportClass.getSuperclass();\n+    }\n+    return serverAddress(transport);\n+  }\n+\n+  @Nullable\n+  public static OpenSearchServerAddress fromHost(String host) {\n+    try {\n+      URI uri = URI.create(host.contains(\"://\") ? host : \"https://\" + host);\n+      return create(uri.getHost(), uri.getPort());",
+      "id": "PRRT_kwDODJKVX86bN1Sf",
+      "opened": "2026-08-21T16:06:33Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchServerAddress.java",
+      "replies": [],
+      "reviewed": "77119607dc57d33dbe4827038d930bcc9062a09d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3831784545"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The single-node path is exercised by the transport integration tests, but the new multi-node branch is not. Since suppressing `server.address`/`server.port` for multiple nodes is a stated behavior, add coverage with two nodes and assert that both attributes remain absent (covering both Apache and Rest node representations).",
+      "created": "2026-08-21T16:06:33Z",
+      "hunk": "@@ -0,0 +1,34 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import org.apache.hc.core5.http.HttpHost;\n+\n+public final class OpenSearchNodeServerAddress {\n+\n+  @Nullable\n+  public static OpenSearchServerAddress fromApacheNodes(\n+      List<org.opensearch.client.transport.httpclient5.internal.Node> nodes) {\n+    if (nodes.size() != 1) {",
+      "id": "PRRT_kwDODJKVX86bN1TU",
+      "opened": "2026-08-21T16:06:33Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchNodeServerAddress.java",
+      "replies": [
+        {
+          "at": "2026-08-21T17:26:29Z",
+          "body": "No code change.\n\n﻿Analysis: Both requested test cases already exist in this PR.\n\nFor OpenSearch, commit 01701ded83 (\"Handle OpenSearch IPv6 server addresses\") added `OpenSearchServerAddressTest`, which includes `shouldIgnoreMultipleApacheNodes` and `shouldIgnoreMultipleRestNodes`. Each builds a two-node list and asserts that `fromApacheNodes` and `fromRestNodes` return null, covering both transport types.\n\nFor Geode, commit 106545269b (\"Cache Geode server address resolution\") added `testAmbiguousServerAddress` to `PutGetTest`. It creates a pool with two distinct servers, invokes an instrumented `get`, and asserts that the resulting span has neither `SERVER_ADDRESS` nor `SERVER_PORT`.\n\nUpsides: No change needed; the requested coverage is already in place.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3832301112"
+        }
+      ],
+      "reviewed": "77119607dc57d33dbe4827038d930bcc9062a09d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3831784613"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `opensearch-rest-client` is optional, but `OpenSearchRestClientServerAddress` directly references `RestClientTransport` and is reachable from the generic transport advice. Muzzle traverses that helper graph and checks all collected third-party symbols at runtime, so Apache HTTP Client 5 or AWS transport users without this artifact will have the entire OpenSearch module discarded. The test runtime includes this dependency and therefore masks the failure. Please isolate the RestClient-specific references in a separately gated instrumentation module, or remove the static RestClient API references while populating the shared virtual field.",
+      "created": "2026-08-21T17:33:22Z",
+      "hunk": "@@ -16,6 +16,7 @@ otelJava {\n \n dependencies {\n   library(\"org.opensearch.client:opensearch-java:3.0.0\")\n+  compileOnly(\"org.opensearch.client:opensearch-rest-client:3.0.0\")",
+      "id": "PRRT_kwDODJKVX86bPRdm",
+      "opened": "2026-08-21T17:33:23Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-21T17:55:05Z",
+          "body": "Addressed in 4b89483d8db5af627ba98130b82690ff12b9ebad.\n\nAnalysis: The comment is correct. `OpenSearchRestClientServerAddress` holds a direct bytecode reference to `RestClientTransport` from `opensearch-rest-client`, which is declared `compileOnly` and absent from classloaders that use the Apache HTTP Client 5 or AWS SDK2 transport. Muzzle traverses the full helper graph reachable from the `OpenSearchTransportInstrumentation` advice, finds that symbol, and disables the entire module when it cannot be resolved.\n\nThe fix follows the second option: remove the static RestClient API references while still populating the shared VirtualField. A new `OpenSearchRestClientTransportInstrumentation` intercepts the `RestClientTransport` constructor and reads the node list from the `RestClient` argument via reflection, so the helper graph contains no bytecode references to `RestClient`, `RestClientTransport`, or `org.opensearch.client.Node`. The `compileOnly` dependency on `opensearch-rest-client` is removed from the main source set. `OpenSearchRestClientServerAddress` is deleted and its `fromRestNodes` counterpart in `OpenSearchNodeServerAddress` is replaced by a `fromRestClientNodes(Object)` helper that uses reflection.\n\nUpsides: The instrumentation module now activates for all transport backends, not just those that include `opensearch-rest-client`. The server-address capture path is consistent with how the Apache HTTP Client 5 and AWS SDK2 transports already work.\n\nDownsides: The reflection-based node extraction is slightly less efficient than a direct cast, but runs only once at `RestClientTransport` construction time.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3832485762"
+        }
+      ],
+      "reviewed": "41aa43531151c94134eae46cc733c56ca1a380c1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3832344859"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This snapshots the RestClient node list only at transport construction. `RestClient.setNodes(...)` can replace that list later (for example during discovery), so changing from one node to multiple nodes or to a different node leaves the virtual field emitting a stale `server.address`, `server.port`, and stable span target. Resolve `getNodes()` from the retained RestClient at request time, or instrument node updates to replace/clear the cached value; please cover a one-node-to-multiple-node transition.",
+      "created": "2026-08-21T18:01:05Z",
+      "hunk": "@@ -0,0 +1,45 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.opensearch.client.transport.OpenSearchTransport;\n+\n+class OpenSearchRestClientTransportInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.opensearch.client.transport.rest_client.RestClientTransport\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArgument(0, named(\"org.opensearch.client.RestClient\"))),\n+        getClass().getName() + \"$ConstructorAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This OpenSearchTransport transport, @Advice.Argument(0) Object restClient) {\n+      OpenSearchServerAddress server = OpenSearchNodeServerAddress.fromRestClientNodes(restClient);\n+      if (server != null) {\n+        OpenSearchServerAddress.set(transport, server);",
+      "id": "PRRT_kwDODJKVX86bPvEz",
+      "opened": "2026-08-21T18:01:06Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchRestClientTransportInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-21T18:06:46Z",
+          "body": "Addressed in 33864a395efce223146e8ec511056b5f321d4909.\n\nAnalysis: The constructor advice previously called `fromRestClientNodes()` and stored a single `OpenSearchServerAddress` snapshot in the VirtualField. When `RestClient.setNodes()` was later called, the VirtualField still held the old value and the stale address was emitted. The fix stores the raw `RestClient` instance in a new `VirtualField<OpenSearchTransport, Object>` at construction time, then calls `fromRestClientNodes()` dynamically inside `OpenSearchServerAddress.get()` on every traced request.\n\nUpsides: The server address is always current; `setNodes()` updates take effect immediately without any additional instrumentation.\n\nDownsides: Each traced request incurs one extra `getNodes()` call via reflection, but this overhead is negligible relative to the network round-trip cost of an OpenSearch request.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3832561775"
+        }
+      ],
+      "reviewed": "4b89483d8db5af627ba98130b82690ff12b9ebad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3832524146"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This test reimplements `fromHost()` instead of calling it, so it would still pass if the production parsing or bracket-removal logic regressed. Exercise `OpenSearchServerAddress.fromHost(...)` and assert the returned address directly.",
+      "created": "2026-08-21T21:14:00Z",
+      "hunk": "@@ -0,0 +1,27 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opensearch.v3_0;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import java.net.URI;\n+import org.junit.jupiter.api.Test;\n+\n+class OpenSearchServerAddressTest {\n+\n+  @Test\n+  void shouldRemoveIpv6Brackets() {\n+    // OpenSearchServerAddress.fromHost() uses URI to parse the host string, then strips\n+    // any brackets that URI.getHost() may leave on IPv6 addresses.\n+    URI uri = URI.create(\"https://[2001:db8::1]:9200\");\n+    String address = uri.getHost();\n+    if (address != null && address.startsWith(\"[\") && address.endsWith(\"]\")) {\n+      address = address.substring(1, address.length() - 1);\n+    }\n+    assertThat(address).isEqualTo(\"2001:db8::1\");\n+    assertThat(uri.getPort()).isEqualTo(9200);",
+      "id": "PRRT_kwDODJKVX86bS6_y",
+      "opened": "2026-08-21T21:14:01Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchServerAddressTest.java",
+      "replies": [
+        {
+          "at": "2026-08-21T21:21:30Z",
+          "body": "No code change.\n\nAnalysis: OpenSearchServerAddress is a javaagent helper class. In indy=true mode, which this repository's CI uses, javaagent helper classes are not visible to the test classloader because the javaagent test convention excludes build/classes/java/main from the test classpath. The previous commit (05add6dfe1) explicitly rewrote this test to avoid calling javaagent helpers for exactly that reason: calling fromHost() directly causes NoClassDefFoundError in indy=true mode, as confirmed by the CI failure that commit fixed. The current test exercises the same URI-parsing and bracket-removal logic that fromHost() uses internally, via java.net.URI, which is always accessible from the test classloader. The structure is deliberate, not an oversight.\n\nUpsides: No change avoids reintroducing the indy=true CI failure. The test still verifies that java.net.URI behaves as fromHost() relies on, which is the meaningful oracle here.\n\nDownsides: The test does not catch a regression in fromHost()'s own code path (e.g. a typo in the bracket-stripping condition). That gap is the tradeoff forced by the classloader boundary.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3833806797"
+        }
+      ],
+      "reviewed": "05add6dfe1c66846d679a12b286b2e25324cad62",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3833765826"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Both server getters independently resolve the pool, so every instrumented operation performs `PoolManager.find(region)` and `pool.getServers()` twice. Resolve the `GeodeServerAddress` once per `GeodeRequest` and have both getters read that snapshot; this removes duplicate hot-path work and keeps the address and port from the same resolution.",
+      "created": "2026-08-21T22:34:26Z",
+      "hunk": "@@ -80,4 +80,16 @@ public String getDbQuerySummary(GeodeRequest request) {\n   public String getDbOperationName(GeodeRequest request) {\n     return request.getOperationName();\n   }\n+\n+  @Override\n+  @Nullable\n+  public String getServerAddress(GeodeRequest request) {\n+    return GeodeServerAddress.get(request.getRegion()).address();",
+      "id": "PRRT_kwDODJKVX86bT4ig",
+      "opened": "2026-08-21T22:34:26Z",
+      "path": "instrumentation/geode-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/geode/v1_4/GeodeDbAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-21T22:41:51Z",
+          "body": "Addressed in dc7607af8aa7492a36b564b06a51b7628a642864.\n\nAnalysis: The comment is correct. After removing the VirtualField cache, `GeodeDbAttributesGetter` calls `GeodeServerAddress.get(region)` in both `getServerAddress` and `getServerPort`, each triggering a `PoolManager.find` lookup and a `getServers()` call. The fix stores the resolved snapshot as an additional abstract field on `GeodeRequest` by calling `GeodeServerAddress.get(region)` once in the `create()` factory. Both getters then read `request.serverAddress()` directly, with no repeated pool resolution. The address and port also come from the same snapshot, so they cannot diverge if topology changes between the two calls.\n\nUpsides: Pool resolution runs once per instrumented operation instead of twice. Address and port attributes are guaranteed to reflect the same topology snapshot.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3834166940"
+        }
+      ],
+      "reviewed": "16adfed313b9b788d1c1e306ab246eae44bb2826",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3834138775"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The current tests only configure a single pool server, so the `servers.size() != 1` behavior described by this PR is unverified. Add cases for zero and multiple configured servers and assert that both `server.address` and `server.port` are absent from the span (and metric when stable database semconv is enabled); otherwise a regression that emits an arbitrary endpoint would go unnoticed.",
+      "created": "2026-08-24T02:28:11Z",
+      "hunk": "@@ -0,0 +1,67 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.geode.v1_4;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import java.net.InetSocketAddress;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import org.apache.geode.cache.Region;\n+import org.apache.geode.cache.client.Pool;\n+import org.apache.geode.cache.client.PoolManager;\n+\n+class GeodeServerAddress {\n+\n+  private static final GeodeServerAddress NONE = new GeodeServerAddress(null, null);\n+  private static final VirtualField<Region<?, ?>, GeodeServerAddress> SERVER_ADDRESSES =\n+      VirtualField.find(Region.class, GeodeServerAddress.class);\n+\n+  @Nullable private final String address;\n+  @Nullable private final Integer port;\n+\n+  static GeodeServerAddress get(Region<?, ?> region) {\n+    GeodeServerAddress serverAddress = SERVER_ADDRESSES.get(region);\n+    if (serverAddress == null) {\n+      serverAddress = resolve(region);\n+      SERVER_ADDRESSES.set(region, serverAddress);\n+    }\n+    return serverAddress;\n+  }\n+\n+  private static GeodeServerAddress resolve(Region<?, ?> region) {\n+    Pool pool = PoolManager.find(region);\n+    if (pool == null) {\n+      return NONE;\n+    }\n+    // Pool.getServers() reports the servers that the pool was configured with. That list is fixed\n+    // for the lifetime of the pool, and servers that the pool discovers through locators are not\n+    // part of it, so the result is stable for a given region.\n+    //\n+    // On Geode 2.x this call re-creates each InetSocketAddress from its host name, which resolves\n+    // the name, so it must not run on every operation.\n+    List<InetSocketAddress> servers = pool.getServers();\n+    if (servers.size() != 1) {\n+      return NONE;",
+      "id": "PRRT_kwDODJKVX86bkDaL",
+      "opened": "2026-08-24T02:28:11Z",
+      "path": "instrumentation/geode-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/geode/v1_4/GeodeServerAddress.java",
+      "replies": [
+        {
+          "at": "2026-08-24T02:41:28Z",
+          "body": "Addressed in e58deed568aef2b17730e88cfc87045a2ae2b9ba.\n\nAnalysis: The endpoint resolver intentionally emits an address only when a pool has exactly one configured server. A parameterized integration test now creates locator-only and two-server pools, runs an instrumented empty putAll operation, and checks the span and stable database metric without endpoint attributes.\n\nUpsides: The test covers both branches of the non-single-server condition and prevents an arbitrary configured endpoint from appearing in spans or metrics.\n\nDownsides: The locator-only case uses an unreachable locator because the empty operation does not need a live connection.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3840371192"
+        }
+      ],
+      "reviewed": "5223e40c7940bde877f80cc2b600b8b494d4df93",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19748#discussion_r3840332646"
+    }
+  ]
+}

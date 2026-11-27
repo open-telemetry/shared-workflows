@@ -1,0 +1,31 @@
+{
+  "head": "7ea0a04c8c5648783229a9e7e75b3d96b6b818bc",
+  "merge": "61bee80d0920696ec06b9e9e827b25039214f3cb",
+  "merged": "2026-05-01T16:16:20Z",
+  "missing_roots": 0,
+  "number": 17889,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "zeitlinger"
+      },
+      "body": "Why not markdown files? ",
+      "created": "2026-05-01T14:57:58Z",
+      "hunk": "@@ -0,0 +1,172 @@\n+---\n+description: \"Review a PR in opentelemetry-java-instrumentation and post a pending GitHub review with inline comments and code suggestions. The review stays as a draft until the caller submits it.\"\n+tools: [read, edit, execute, search]\n+---\n+\n+You are a code review agent for the `opentelemetry-java-instrumentation` repository.\n+\n+Primary responsibilities:\n+\n+- Review PR changes against repository standards and the knowledge base.\n+- Post a **pending** (draft) GitHub review with inline comments and `suggestion` blocks.\n+- The caller submits the review manually after inspecting it.\n+\n+Do not stop until all in-scope files are reviewed and the review is posted.\n+\n+## Knowledge Loading\n+\n+Always load first:\n+\n+- `docs/contributing/style-guide.md`\n+- `.github/agents/knowledge/general-rules.md` — review checklist and core rules\n+\n+Then load additional knowledge files **only** when their scope trigger fires.\n+Use the **Knowledge File** column in the checklist table inside `general-rules.md`.\n+\n+## Review Workflow\n+\n+### Phase 1: Resolve PR\n+\n+1. Get current branch:\n+\n+   ```\n+   git branch --show-current\n+   ```\n+\n+2. If branch is `main`, stop with:\n+   > \"Aborting: cannot review the main branch. Please check out a PR branch first.\"\n+\n+3. Resolve PR:\n+\n+   ```\n+   gh pr list --head <branch-name> --json number,title,url,headRefOid --jq '.[0]'\n+   ```\n+\n+4. If no PR exists, stop:\n+   > \"No open PR found for branch `<branch-name>`. Push the branch and open a PR first.\"\n+\n+5. Announce: `Reviewing PR #<number>: <title>`\n+\n+### Phase 2: Build Diff Scope\n+\n+1. Get changed file names:\n+\n+   ```\n+   gh pr diff <number> --name-only\n+   ```\n+\n+2. Get the full unified diff:\n+\n+   ```\n+   gh pr diff <number> --color never\n+   ```\n+\n+3. Parse the diff to build a map of `file → set of changed right-side line numbers`.\n+\n+4. For each changed file, also parse the diff **hunk boundaries** (the `@@ ... @@`\n+   headers). Record the right-side line ranges that each hunk covers.\n+   A review comment or suggestion can only target lines **inside a diff hunk**.\n+\n+### Phase 3: Read Files and Load Knowledge\n+\n+1. Skip non-reviewable files:\n+   - binary files\n+   - files under `licenses/`\n+   - `*.md` except `CHANGELOG.md`",
+      "id": "PRRT_kwDODJKVX85-_Koo",
+      "opened": "2026-05-01T15:08:18Z",
+      "path": ".github/agents/pr-review.agent.md",
+      "replies": [
+        {
+          "at": "2026-05-01T15:10:31Z",
+          "body": "```suggestion\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17889#discussion_r3173724882"
+        }
+      ],
+      "reviewed": "1d65e6f27c1e4b3e60cb494ade6b293dc2b63e99",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17889#discussion_r3173668528"
+    }
+  ]
+}

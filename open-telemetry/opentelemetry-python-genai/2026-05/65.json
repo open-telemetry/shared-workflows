@@ -1,0 +1,25 @@
+{
+  "head": "4cd80587317bb196d85640ecd027ef7359902941",
+  "merge": "59fd76c0af33a7120bcd1f6d30ab2454cfdb293c",
+  "merged": "2026-05-23T00:34:19Z",
+  "missing_roots": 0,
+  "number": 65,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`merge_group` currently runs for all activity types. GitHub sends `merge_group` events for both `checks_requested` and `destroyed`; running full CI on `destroyed` is unnecessary and can create extra runs/noisy failures. Restrict the trigger to `types: [checks_requested]` (and optionally add `branches: [main]` if you only intend this for the main merge queue).\n",
+      "created": "2026-05-22T20:24:39Z",
+      "hunk": "@@ -5,6 +5,7 @@ on:\n     branches:\n     - 'main'\n   pull_request:\n+  merge_group:",
+      "id": "PRRT_kwDOSbspP86EOYtA",
+      "opened": "2026-05-22T20:24:40Z",
+      "path": ".github/workflows/ci.yml",
+      "replies": [],
+      "reviewed": "bde672112e53ff188b3997ec7245dd4dcc55fce0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/65#discussion_r3291048750"
+    }
+  ]
+}

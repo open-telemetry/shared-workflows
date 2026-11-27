@@ -1,0 +1,94 @@
+{
+  "head": "c2bbfe582e029510531ffd5387ad8302242598aa",
+  "merge": "69c244515a1a7a9d43db4948f49042d3322d8fb9",
+  "merged": "2026-06-05T18:01:14Z",
+  "missing_roots": 0,
+  "number": 255,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new maintenance-bot routing depends on `facts[\"is_maintenance_bot\"]`, but single-PR refresh runs (`--pr-number`) reuse cached `stored_result` entries for all other PRs and those cached entries never get re-classified/re-routed (only `route`+`facts` are stored, not thread classifications). That means existing open Renovate/otelbot PRs can remain on the old routing/approval policy until they happen to be rebuilt in a full run, which undermines the intent of this change.\n\nConsider adding an explicit cache/schema invalidation step (e.g., bump dashboard-state version and force a full rebuild when an older cache is loaded) so the new maintenance-bot behavior applies immediately across all open PRs.",
+      "created": "2026-06-05T16:44:20Z",
+      "hunk": "@@ -624,10 +617,10 @@ def action_counts(classifications: list[dict[str, Any]]) -> dict[str, int]:\n \n def route_pr(facts: dict[str, Any], classifications: list[dict[str, Any]]) -> str:\n     counts = action_counts(classifications)\n-    # otelbot PRs have no human author, so an author-owed thread points at\n-    # nobody who can act; skip that check for them. They also reach merge-ready\n-    # on a single approval (these are low-risk dependency-bump PRs).\n-    is_otelbot = facts.get(\"is_otelbot_author\")\n+    # Copilot PRs are mapped back to a human author when possible. Maintenance\n+    # bot PRs have no useful author route and need only one approval.\n+    is_maintenance_bot = facts.get(\"is_maintenance_bot\")\n+    required_approvals = 1 if is_maintenance_bot else 2",
+      "id": "PRRT_kwDOSUeMrM6HbHPw",
+      "opened": "2026-06-05T16:44:20Z",
+      "path": ".github/scripts/pull-request-dashboard/dashboard.py",
+      "replies": [
+        {
+          "at": "2026-06-05T16:54:37Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/a8d81ce55b1c67b332c14a1c88ce71e9b8bdbb6f.\n\nBumped the shared dashboard state version so old cached PR routes are discarded on the first post-merge run instead of being reused during single-PR refreshes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/255#discussion_r3364117021"
+        }
+      ],
+      "reviewed": "b71b1013333a8ac5efa1e1c810ff26af75f8e938",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/255#discussion_r3364057903"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`detect_human_delegator()` now only filters out the `copilot` committer slug, so it can incorrectly treat other bot committers (e.g., `app/...` or `... [bot]`) as the “human delegator” and set the effective author to a bot login. This can break the intended routing (author buckets pointing at a non-human).",
+      "created": "2026-06-05T16:58:29Z",
+      "hunk": "@@ -195,32 +196,24 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:\n     return \"outsider\"\n \n \n-# Bot logins appear in two shapes depending on the API:\n-#   - `gh pr view`'s `author` field uses the `app/<slug>` form (e.g.\n-#     `app/copilot-swe-agent`), which is what `_DELEGATING_BOT_AUTHORS`\n-#     matches against in `effective_author`.\n-#   - The Pulls/commits endpoint's `committer.login` field returns the bare\n-#     slug (e.g. `copilot`), which is what `_BOT_COMMITTER_LOGINS` matches\n-#     against in `detect_human_delegator`.\n-# Both sets contain `copilot` because the slug shows up in both contexts.\n-_BOT_COMMITTER_LOGINS = {\"copilot\"}\n-_DELEGATING_BOT_AUTHORS = {\"app/copilot-swe-agent\", \"copilot\"}\n+# Copilot appears in two API shapes: `gh pr view`'s `author` field uses the\n+# `app/<slug>` form, while the Pulls/commits endpoint's `committer.login`\n+# field can return the bare `copilot` slug. Do not treat either form as the\n+# human author behind a Copilot-authored PR.\n+_COPILOT_COMMITTER_LOGINS = {\"copilot\"}\n+_COPILOT_PR_AUTHORS = {\"app/copilot-swe-agent\", \"copilot\"}\n+_MAINTENANCE_BOT_PR_AUTHORS = {\"app/otelbot\", \"app/renovate\"}\n \n \n-def is_bot_login(login: str) -> bool:\n-    if not login:\n-        return True\n-    low = login.lower()\n-    if low in _BOT_COMMITTER_LOGINS:\n-        return True\n-    return low.startswith(\"app/\") or low.endswith(\"[bot]\")\n+def is_copilot_committer_login(login: str) -> bool:\n+    return login.lower() in _COPILOT_COMMITTER_LOGINS\n \n \n def detect_human_delegator(commits: list[dict[str, Any]]) -> str:\n     if not commits:\n         return \"\"\n     login = actor_login(commits[0].get(\"committer\") or {})\n-    return \"\" if is_bot_login(login) else login\n+    return \"\" if is_copilot_committer_login(login) else login",
+      "id": "PRRT_kwDOSUeMrM6HbVn_",
+      "opened": "2026-06-05T16:58:30Z",
+      "path": ".github/scripts/pull-request-dashboard/dashboard.py",
+      "replies": [
+        {
+          "at": "2026-06-05T17:23:21Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/875aa74e335bf3687a69601ef9cd164577a87bdc.\n\nRenamed the helper to `first_human_committer_login` and only return a committer login when it is a human-shaped login, excluding empty, `copilot`, `app/...`, and `[bot]` values.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/255#discussion_r3364260750"
+        }
+      ],
+      "reviewed": "a8d81ce55b1c67b332c14a1c88ce71e9b8bdbb6f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/255#discussion_r3364139843"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`STATE_VERSION` is used for both `dashboard-state.json` and `notification-state.json` via the shared `load_state_file()` helper. With the new strict version check, bumping `STATE_VERSION` will also discard the existing Slack notification cadence state, which can lead to a wave of “initial” notifications once the next valid notification state is written/read.\n\nIf the goal is only to invalidate cached PR routing, consider versioning the dashboard cache separately (or exempting `notification-state.json` from this version gate / adding a migration path).",
+      "created": "2026-06-05T16:58:30Z",
+      "hunk": "@@ -50,17 +51,19 @@ def load_state_file(path: Path) -> dict[str, Any]:\n         return empty_state()\n     if not isinstance(data, dict):\n         return empty_state()\n+    if data.get(\"version\") != STATE_VERSION:\n+        return empty_state()\n     if not isinstance(data.get(\"prs\"), dict):\n         data[\"prs\"] = {}\n-    data[\"version\"] = 1\n+    data[\"version\"] = STATE_VERSION",
+      "id": "PRRT_kwDOSUeMrM6HbVog",
+      "opened": "2026-06-05T16:58:30Z",
+      "path": ".github/scripts/pull-request-dashboard/state.py",
+      "replies": [
+        {
+          "at": "2026-06-05T17:23:23Z",
+          "body": "No code change needed. The notification-state reset is intentional here: we chose the simpler shared state-version bump so the first post-merge run starts from fresh state instead of adding separate dashboard/notification migration paths.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/255#discussion_r3364260957"
+        }
+      ],
+      "reviewed": "a8d81ce55b1c67b332c14a1c88ce71e9b8bdbb6f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/255#discussion_r3364139894"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`first_human_committer_login` only checks `commits[0]`, so it can miss a human delegator when the first commit is authored/committed by Copilot (or another bot) but a later commit has a human committer. This also makes the implementation inconsistent with the function name (it doesn’t actually find the *first* human committer in the list).",
+      "created": "2026-06-05T17:36:50Z",
+      "hunk": "@@ -195,32 +196,27 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:\n     return \"outsider\"\n \n \n-# Bot logins appear in two shapes depending on the API:\n-#   - `gh pr view`'s `author` field uses the `app/<slug>` form (e.g.\n-#     `app/copilot-swe-agent`), which is what `_DELEGATING_BOT_AUTHORS`\n-#     matches against in `effective_author`.\n-#   - The Pulls/commits endpoint's `committer.login` field returns the bare\n-#     slug (e.g. `copilot`), which is what `_BOT_COMMITTER_LOGINS` matches\n-#     against in `detect_human_delegator`.\n-# Both sets contain `copilot` because the slug shows up in both contexts.\n-_BOT_COMMITTER_LOGINS = {\"copilot\"}\n-_DELEGATING_BOT_AUTHORS = {\"app/copilot-swe-agent\", \"copilot\"}\n+# Copilot appears in two API shapes: `gh pr view`'s `author` field uses the\n+# `app/<slug>` form, while the Pulls/commits endpoint's `committer.login`\n+# field can return the bare `copilot` slug. Do not treat either form as the\n+# human author behind a Copilot-authored PR.\n+_COPILOT_COMMITTER_LOGINS = {\"copilot\"}\n+_COPILOT_PR_AUTHORS = {\"app/copilot-swe-agent\", \"copilot\"}\n+_MAINTENANCE_BOT_PR_AUTHORS = {\"app/otelbot\", \"app/renovate\"}\n \n \n-def is_bot_login(login: str) -> bool:\n+def is_human_login(login: str) -> bool:\n     if not login:\n-        return True\n+        return False\n     low = login.lower()\n-    if low in _BOT_COMMITTER_LOGINS:\n-        return True\n-    return low.startswith(\"app/\") or low.endswith(\"[bot]\")\n+    return low not in _COPILOT_COMMITTER_LOGINS and not low.startswith(\"app/\") and not low.endswith(\"[bot]\")\n \n \n-def detect_human_delegator(commits: list[dict[str, Any]]) -> str:\n+def first_human_committer_login(commits: list[dict[str, Any]]) -> str:\n     if not commits:\n         return \"\"\n     login = actor_login(commits[0].get(\"committer\") or {})\n-    return \"\" if is_bot_login(login) else login\n+    return login if is_human_login(login) else \"\"",
+      "id": "PRRT_kwDOSUeMrM6Hb4SI",
+      "opened": "2026-06-05T17:36:51Z",
+      "path": ".github/scripts/pull-request-dashboard/dashboard.py",
+      "replies": [
+        {
+          "at": "2026-06-05T17:49:01Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/c2bbfe5324640d375d8af5d278a45351f239ca49.\n\nKept the first-commit-only heuristic intentionally, because the first commit is the Copilot PR initiation signal and later commits should not silently change the dashboard effective author. The misleading `first_human_committer_login` name was replaced with `human_author_for_copilot_pr`, and the helper now only rejects empty or known Copilot committer logins.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/255#discussion_r3364403361"
+        }
+      ],
+      "reviewed": "1b3445ca6582ef988558d60ae9c9ae7eef1593fd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/255#discussion_r3364340410"
+    }
+  ]
+}

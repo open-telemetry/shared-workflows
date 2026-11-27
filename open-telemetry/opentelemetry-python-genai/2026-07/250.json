@@ -1,0 +1,31 @@
+{
+  "head": "199ec750014c89f3b8b411e2c5cf3dddfde9e66e",
+  "merge": "8bbcd989da857f4a25936188a50f58ee2205e515",
+  "merged": "2026-07-11T00:31:24Z",
+  "missing_roots": 0,
+  "number": 250,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The version guard comment is now inaccurate: it says the package should stay below \"1.0\", but the new version is 1.1b0.dev (>1.0). This can confuse future maintainers about the intended versioning policy. Consider updating the comment to reflect that the package should remain a *beta pre-release* (keep the `b` suffix / avoid a stable `1.x` release) until `TODOS.md` is addressed.",
+      "created": "2026-07-10T19:21:48Z",
+      "hunk": "@@ -6,4 +6,4 @@\n #   This version should stay below \"1.0\" until the fundamentals\n #   in \"TODOS.md\" have been addressed. Please revisit the TODOs\n #   listed there before bumping to a stable version.\n-__version__ = \"1.0b0\"\n+__version__ = \"1.1b0.dev\"",
+      "id": "PRRT_kwDOSbspP86P_XzE",
+      "opened": "2026-07-10T19:21:49Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/version.py",
+      "replies": [
+        {
+          "at": "2026-07-10T19:22:46Z",
+          "body": "the comment should just be removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/250#discussion_r3561448772"
+        }
+      ],
+      "reviewed": "36ad8326570d65ee510540420148cfe26798e25c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/250#discussion_r3561442207"
+    }
+  ]
+}

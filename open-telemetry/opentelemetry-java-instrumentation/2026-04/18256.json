@@ -1,0 +1,25 @@
+{
+  "head": "f28eab217249c43148a05162ba72fce2d9451005",
+  "merge": "a17708a6fe9d4c3f185442d652497a2fe32fccb0",
+  "merged": "2026-04-24T15:24:35Z",
+  "missing_roots": 0,
+  "number": 18256,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-24T14:46:17Z",
+      "hunk": "@@ -85,7 +83,8 @@ public static NamesrvController createAndStartNamesrv() {\n       logger.info(\"Name Server Start:{}\", nameServerNettyServerConfig.getListenPort());\n       namesrvController.start();\n     } catch (Exception e) {\n-      logger.info(\"Name Server start failed\", e);\n+      logger.error(\"Name Server start failed\", e);",
+      "id": "PRRT_kwDODJKVX859baXs",
+      "opened": "2026-04-24T14:46:17Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/testing/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/base/IntegrationTestBase.java",
+      "replies": [],
+      "reviewed": "948513f558576aecb83dfd02faed584985d108e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18256#discussion_r3138456768"
+    }
+  ]
+}

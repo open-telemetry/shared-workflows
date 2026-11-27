@@ -1,0 +1,52 @@
+{
+  "head": "ba00262566402c9328d9343c87aa50718cbc53a5",
+  "merge": "53ba04f3361fcf3603cf2956fbe96a8a58598994",
+  "merged": "2026-09-27T22:55:47Z",
+  "missing_roots": 0,
+  "number": 20254,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] This new mode task is not listed in `.github/scripts/instrumentations.sh` next to `gwt-2.0:javaagent:test`. Since `.github/scripts/metadata-ci-collect.sh` invokes only tasks from that list, the logs-mode run—and its `metadataConfig`—is omitted from telemetry metadata collection. Add `gwt-2.0:javaagent:testExceptionSignalLogs`, as is done for the other javaagent exception-signal tasks.",
+      "created": "2026-09-25T23:20:22Z",
+      "hunk": "@@ -115,4 +115,15 @@ tasks {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n     usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n   }\n+\n+  val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {",
+      "id": "PRRT_kwDODJKVX86mLqGn",
+      "opened": "2026-09-25T23:20:22Z",
+      "path": "instrumentation/gwt-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-26T00:41:54Z",
+          "body": "i know i added the metadataConfig option, but I wasn't planning on collecting this data",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20254#discussion_r4109590997"
+        }
+      ],
+      "reviewed": "533ab47fb3c48d578b289d28e9751463149cb5ad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20254#discussion_r4109330637"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Neither the default test nor `testExceptionSignalLogs` enables stable RPC semconv, so the advertised `error.type` behavior is never exercised. Add the RPC `testStableSemconv` and `testBothSemconv` tasks and make the span attributes mode-aware, asserting `error.type = java.io.IOException` for this failure in stable mode.",
+      "created": "2026-09-25T23:20:22Z",
+      "hunk": "@@ -181,10 +186,26 @@ void testGwt() {\n                     span.hasName(\"test.gwt.shared.MessageService/sendMessage\")\n                         .hasKind(SpanKind.SERVER)\n                         .hasParent(trace.getSpan(0))\n-                        .hasException(new IOException())\n+                        .hasStatus(StatusData.error())",
+      "id": "PRRT_kwDODJKVX86mLqGx",
+      "opened": "2026-09-25T23:20:22Z",
+      "path": "instrumentation/gwt-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/gwt/v2_0/GwtTest.java",
+      "replies": [
+        {
+          "at": "2026-09-26T00:42:22Z",
+          "body": "i think migrating this whole module to handle stable semconv could be a followup",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20254#discussion_r4109592371"
+        }
+      ],
+      "reviewed": "533ab47fb3c48d578b289d28e9751463149cb5ad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20254#discussion_r4109330650"
+    }
+  ]
+}

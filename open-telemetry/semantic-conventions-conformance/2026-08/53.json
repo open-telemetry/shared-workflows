@@ -1,0 +1,40 @@
+{
+  "head": "6090787fab12bfc3a87a2fdbcd76b0135dd3a6d3",
+  "merge": "8f811da0c2cd36f0f2fee3481af349204141cb63",
+  "merged": "2026-08-18T00:23:56Z",
+  "missing_roots": 0,
+  "number": 53,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`coverage-model` is a job id containing a hyphen, so it can't be accessed via dot notation (`needs.coverage-model.result`) in GitHub Actions expressions. This will be parsed as `needs.coverage - model` and break the gate logic; use bracket notation for that key.",
+      "created": "2026-08-17T02:43:33Z",
+      "hunk": "@@ -250,3 +251,21 @@ jobs:\n           name: weaver-reports\n           path: scenarios/**/output/weaver-reports/*.json\n           if-no-files-found: warn\n+\n+  required-status-check:\n+    needs:\n+      - test\n+      - lint\n+      - types\n+      - coverage-model\n+      - scenarios\n+    runs-on: ubuntu-latest\n+    if: ${{ always() }}\n+    steps:\n+      - if: |\n+          needs.test.result != 'success' ||\n+          needs.lint.result != 'success' ||\n+          needs.types.result != 'success' ||\n+          needs.coverage-model.result != 'success' ||",
+      "id": "PRRT_kwDOTuzK5c6ZrbLm",
+      "opened": "2026-08-17T02:43:33Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "6090787fab12bfc3a87a2fdbcd76b0135dd3a6d3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/53#discussion_r3793517618"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "so I can set up merge queue on the repo later",
+      "created": "2026-08-17T03:20:41Z",
+      "hunk": "@@ -5,27 +5,23 @@ on:\n     branches:\n       - main\n   pull_request:\n+  merge_group:",
+      "id": "PRRT_kwDOTuzK5c6Zrryh",
+      "opened": "2026-08-17T03:20:41Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "6090787fab12bfc3a87a2fdbcd76b0135dd3a6d3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/53#discussion_r3793615315"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1c826cb6c94324d6db0e43e85bc466e74926f6d7db5796dc523bf0080d6bb2de",
+  "input_digest": "5f67d7e2c1c75d1ec672d0fa7c7ae2f9f11d03ad9692fd3a0a9c7971a41d8585",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1158d57488b380ebca813bb6a717079c6e05613a/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbServerEndpointUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1158d57488b380ebca813bb6a717079c6e05613a/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbServerTargetBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5d8624a1f70acad5de7dac451cd59700195bf15b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbServerEndpointUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5d8624a1f70acad5de7dac451cd59700195bf15b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbServerTargetBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0ff2713f322aa182adb7a2abf9ef529a5d398f0b"
+      ],
+      "id": "PRRT_kwDODJKVX86gBB3Z",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ddea64a5eac09ba17946448b03446b794d868d26/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbServerEndpointUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5d8624a1f70acad5de7dac451cd59700195bf15b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbServerEndpointUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a6f8aa730f4c47c75d1678eaf0d8522dc4a17dea"
+      ],
+      "id": "PRRT_kwDODJKVX86gCITz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

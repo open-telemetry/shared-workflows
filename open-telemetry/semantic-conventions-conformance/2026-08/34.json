@@ -1,0 +1,61 @@
+{
+  "head": "37b6b78c04f11f87819c2a62757de63491e2a756",
+  "merge": "ded9a0f82b7cee1b9de4d9c2cd1fc449a512787b",
+  "merged": "2026-08-16T20:02:41Z",
+  "missing_roots": 0,
+  "number": 34,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "botocore sets `rpc.system` and `rpc.service` on the same spans as `rpc.method`, so the bedrock data file still records them as GenAI violations while the README says an RPC attribute on a GenAI span is not a GenAI finding. Deprecation does not explain the split: `http.status_code` is deprecated too and is filtered.",
+      "created": "2026-08-16T15:21:20Z",
+      "hunk": "@@ -0,0 +1,14 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+#\n+# Findings filtered out for GenAI runs, appended to the runner's defaults.\n+\n+# Bedrock should document its flavour of GenAI spans\n+# and by doing this make core seconv attributes visible.\n+[[live-check.finding_filters]]\n+signal_type = \"span\"\n+exclude_samples = [\n+  \"cloud.region\",\n+  \"http.status_code\",\n+  \"rpc.method\",\n+]",
+      "id": "PRRT_kwDOTuzK5c6Znpzr",
+      "opened": "2026-08-16T18:21:09Z",
+      "path": "tools/gen-ai/runner/src/genai_conformance/weaver.toml",
+      "replies": [
+        {
+          "at": "2026-08-16T19:52:29Z",
+          "body": "added a comment and some guidance: let's keep legit suppressions here - e.g. rpc.method is valid, it's a minor issue that we don't recognize it here (and that we don't document what botocore reports). http.status_code was here by mistake - it's deprecated and we should not suppress it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/34#discussion_r3792682599"
+        }
+      ],
+      "reviewed": "6650b87340939ff43dc87e202e292a34cdb68e35",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/34#discussion_r3792083965"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`tools/gen-ai/runner/README.md` still lists this package as a `Domain` and three files, and says the pin, the policies and `_coverage.py` are the whole of what it adds. This file changes what a GenAI run reports, so it needs a row there.",
+      "created": "2026-08-16T15:21:20Z",
+      "hunk": "@@ -0,0 +1,14 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+#\n+# Findings filtered out for GenAI runs, appended to the runner's defaults.",
+      "id": "PRRT_kwDOTuzK5c6Znpzx",
+      "opened": "2026-08-16T18:21:09Z",
+      "path": "tools/gen-ai/runner/src/genai_conformance/weaver.toml",
+      "replies": [],
+      "reviewed": "6650b87340939ff43dc87e202e292a34cdb68e35",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/34#discussion_r3792083971"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I struggled to understand what \"advices\" were. What do you think about the term \"violations\" or \"findings\" here?",
+      "created": "2026-08-16T18:21:06Z",
+      "hunk": "@@ -47,5 +47,31 @@\n       \"gen_ai.response.model\",\n       \"gen_ai.token.type\"\n     ]\n-  }\n+  },\n+  \"advices\": [",
+      "id": "PRRT_kwDOTuzK5c6ZovX1",
+      "opened": "2026-08-16T18:21:09Z",
+      "path": "scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/data.json",
+      "replies": [],
+      "reviewed": "6650b87340939ff43dc87e202e292a34cdb68e35",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/34#discussion_r3792503216"
+    }
+  ]
+}

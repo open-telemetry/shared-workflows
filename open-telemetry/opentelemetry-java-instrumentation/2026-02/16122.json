@@ -1,0 +1,46 @@
+{
+  "head": "3f8d39bd6b224e122a70ccd9ca18e221df065c36",
+  "merge": "a2135e2af47bd8b4006f155307e2730c653f2328",
+  "merged": "2026-02-10T17:15:02Z",
+  "missing_roots": 0,
+  "number": 16122,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "it's slightly stricter than `javac` here, but this does align with Intellij's warnings, so seems good",
+      "created": "2026-02-10T01:28:46Z",
+      "hunk": "@@ -18,6 +18,7 @@\n  * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n  * any time.\n  */\n+@SuppressWarnings(\"OtelDeprecatedApiUsage\") // SPDY_3 is deprecated but still used in okhttp 3.x",
+      "id": "PRRT_kwDODJKVX85tnieV",
+      "opened": "2026-02-10T01:28:45Z",
+      "path": "instrumentation/okhttp/okhttp-3.0/library/src/main/java/io/opentelemetry/instrumentation/okhttp/v3_0/internal/OkHttpAttributesGetter.java",
+      "replies": [],
+      "reviewed": "435f613d20e53c31fd353e841c83e6e89cbe8b35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16122#discussion_r2785333586"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think that in bridging instrumentation the convention is that agent versions of the classes use fqn and application classes are imported. I guess it is fine to import the agent class when application class is not used.",
+      "created": "2026-02-10T11:50:24Z",
+      "hunk": "@@ -51,9 +52,7 @@ public static void onEnter(\n       io.opentelemetry.context.Context agentContext =\n           AgentContextStorage.getAgentContext(applicationContext);\n \n-      io.opentelemetry.instrumentation.api.internal.HttpRouteState agentRouteState =\n-          io.opentelemetry.instrumentation.api.internal.HttpRouteState.fromContextOrNull(\n-              agentContext);\n+      HttpRouteState agentRouteState = HttpRouteState.fromContextOrNull(agentContext);",
+      "id": "PRRT_kwDODJKVX85tt5X-",
+      "opened": "2026-02-10T11:50:24Z",
+      "path": "instrumentation/opentelemetry-instrumentation-api/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/instrumentationapi/HttpRouteStateInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-02-10T16:28:20Z",
+          "body": "oh yeah, I thought I reverted all of these, but missed this\r\n\r\nI'm considering following up and flipping the convention to use fqcn for the `application.*` classes which would allow us to set up a custom errorprone check to enforce it",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16122#discussion_r2788999003"
+        }
+      ],
+      "reviewed": "3f8d39bd6b224e122a70ccd9ca18e221df065c36",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16122#discussion_r2787504494"
+    }
+  ]
+}

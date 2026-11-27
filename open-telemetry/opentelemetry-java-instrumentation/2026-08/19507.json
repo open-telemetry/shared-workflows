@@ -1,0 +1,31 @@
+{
+  "head": "eef3e8d7545e9c25b8345e44f2d7cff32991ec9d",
+  "merge": "521ae0b4112106db2109226c38593e00b44322c2",
+  "merged": "2026-08-13T20:25:51Z",
+  "missing_roots": 0,
+  "number": 19507,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changes the non-preview path too. For a batch spanning unrelated topics, the old implementation returned the first message's partitioned topic, while this now returns `null`; because `PulsarBatchRequest` is also used by the legacy messaging name/attribute extractors, the default span changes from `<topic> receive` to `unknown receive` and loses `messaging.destination.name`. That contradicts the stated “Default-path impact: None.” Please keep the legacy destination unchanged and expose the common-or-null destination separately for stable batch attributes/links.",
+      "created": "2026-08-12T02:11:49Z",
+      "hunk": "@@ -25,27 +26,31 @@ public static PulsarBatchRequest create(\n \n   private PulsarBatchRequest(\n       Messages<?> messages,\n-      String destination,\n+      @Nullable String destination,\n       @Nullable UrlData urlData,\n       @Nullable String subscription) {\n     super(destination, urlData, subscription);\n     this.messages = messages;\n   }\n \n+  @Nullable\n   private static String getTopicName(Messages<?> messages) {\n     String topicName = null;\n+    String partitionedTopicName = null;\n+    boolean hasVaryingTopicNames = false;\n     for (Message<?> message : messages) {\n       String name = message.getTopicName();\n       if (topicName == null) {\n         topicName = name;\n+        partitionedTopicName = TopicName.get(name).getPartitionedTopicName();\n       } else if (!topicName.equals(name)) {\n-        // this is a partitioned topic\n-        // persistent://public/default/test-partition-0 persistent://public/default/test-partition-1\n-        // return persistent://public/default/test\n-        return TopicName.get(topicName).getPartitionedTopicName();\n+        hasVaryingTopicNames = true;\n+        if (!Objects.equals(partitionedTopicName, TopicName.get(name).getPartitionedTopicName())) {\n+          return null;",
+      "id": "PRRT_kwDODJKVX86YbtEm",
+      "opened": "2026-08-12T02:11:49Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/PulsarBatchRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-12T02:16:57Z",
+          "body": "Addressed in c5de4274ae7a926e3516c4e0ea58b1779d6bf172.\n\nAnalysis: The first fix stored the stable common-or-null destination in the request's existing destination field, unintentionally changing legacy span naming and attributes. PulsarBatchRequest now retains the original legacy destination and stores a separate common destination; PulsarBatchMessagingAttributesGetter selects the common value only when stable messaging semantic conventions are enabled.\n\nUpsides: Default-mode span names and destination attributes remain backward compatible, while preview mode still omits misleading multi-topic batch destinations and preserves per-message link destinations.\n\nDownsides: PulsarBatchRequest stores one additional nullable string and traverses the received batch a second time during request creation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19507#discussion_r3763127841"
+        }
+      ],
+      "reviewed": "886ad13e789051b1493f34d7c59f5ff4c55d2f2f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19507#discussion_r3763109107"
+    }
+  ]
+}

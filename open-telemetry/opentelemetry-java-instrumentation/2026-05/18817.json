@@ -1,0 +1,25 @@
+{
+  "head": "90505fea403cbd67a6599b71bc988505f20c9957",
+  "merge": "0dd9e22468765ecb2b5ce0e8268c9151570fc6c3",
+  "merged": "2026-05-21T04:35:43Z",
+  "missing_roots": 0,
+  "number": 18817,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test comment indicates it relies on GC clearing many entries so there will be stale elements to expunge. Reducing the inserted entries from 1,000,000 to 100,000 can make the test less reliable across JVMs/heap sizes (fewer objects may not create enough GC pressure, so fewer stale entries are collected, and the expunge path may not be exercised). Consider making the test assert that a minimum amount of stale data exists before running the expunge verification (or loop until the expected condition is observed with a bounded timeout), or introduce a named constant with a short comment explaining why 100_000 is sufficient to reliably trigger the intended GC behavior.",
+      "created": "2026-05-20T18:05:24Z",
+      "hunk": "@@ -102,7 +102,7 @@ class State {\n       // add a bunch of entries to cache1, later we'll let GC clear them so that there would be\n       // stale elements to expunge from the cache\n       List<State> state = new ArrayList<>();\n-      for (int i = 0; i < 1000000; i++) {\n+      for (int i = 0; i < 100_000; i++) {",
+      "id": "PRRT_kwDODJKVX86DkywC",
+      "opened": "2026-05-20T18:05:25Z",
+      "path": "instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/internal/cache/CacheTest.java",
+      "replies": [],
+      "reviewed": "90505fea403cbd67a6599b71bc988505f20c9957",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18817#discussion_r3276099027"
+    }
+  ]
+}

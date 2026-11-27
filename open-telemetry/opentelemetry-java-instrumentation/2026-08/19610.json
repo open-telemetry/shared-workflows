@@ -1,0 +1,31 @@
+{
+  "head": "a7b260045ac1171df38c2500d2b85a92701efd7c",
+  "merge": "54230cc58d24b5c18a1e998b14a8296563ce47bb",
+  "merged": "2026-08-18T13:35:53Z",
+  "missing_roots": 0,
+  "number": 19610,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This guard drops `otel.event.name` structured arguments whenever no attribute selector is configured (including the default and deprecated `false` cases). Previously, structured arguments were still processed with a null attribute predicate, and `captureLogstashMarker` extracted `otel.event.name` before applying that predicate; the README also documents event-name support independently of attribute capture. Keep processing structured arguments with a null predicate so attributes remain disabled while event names continue to work.",
+      "created": "2026-08-15T01:05:13Z",
+      "hunk": "@@ -212,6 +212,7 @@ private void mapLoggingEvent(\n     }\n \n     if (supportsLogstashStructuredArguments\n+        && logstashStructuredArgumentAttributes != null\n         && loggingEvent.getArgumentArray() != null\n         && loggingEvent.getArgumentArray().length > 0) {",
+      "id": "PRRT_kwDODJKVX86Zc9Tg",
+      "opened": "2026-08-15T01:05:13Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/internal/LoggingEventMapper.java",
+      "replies": [
+        {
+          "at": "2026-08-15T05:05:23Z",
+          "body": "You're right, and this was a real regression — `main` has no predicate guard here, and `captureLogstashMarker` extracts `otel.event.name` before consulting the (nullable) predicate, so my guard silently disabled event names from structured arguments in the default and deprecated-`false` cases. It was also inconsistent with the Logstash marker path a few lines above, which passes the nullable predicate straight through.\n\nRemoved the guard and left a comment explaining why the arguments are processed unconditionally. Added `eventNameIsCapturedWithoutSelector` to `LogstashStructuredArgsSelectorTest`, and confirmed it actually catches this: with the guard reinstated it fails, and passes once removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19610#discussion_r3788555465"
+        }
+      ],
+      "reviewed": "1a21fa074f473ad599e148b70ca5d531b8ed5205",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19610#discussion_r3788069406"
+    }
+  ]
+}

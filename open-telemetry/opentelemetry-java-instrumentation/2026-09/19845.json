@@ -1,0 +1,334 @@
+{
+  "head": "82ec4753b42aa64ac2270358659ec1cb81311afc",
+  "merge": "26786bd2f0645f6f92121206a484e49646ccaf07",
+  "merged": "2026-09-10T15:55:54Z",
+  "missing_roots": 0,
+  "number": 19845,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This exact matcher misses real Unix-domain connections. Current MongoDB 5.x uses `UnixSocketChannelStream`, which extends `SocketStream` but overrides `initializeSocket()`, so this advice never runs and the advertised Unix socket path is omitted. Include the Unix stream type (or advise the inherited `open()` after its socket field is assigned).",
+      "created": "2026-08-30T00:25:38Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v4_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isProtected;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.Socket;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+final class SocketStreamInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.mongodb.internal.connection.SocketStream\");",
+      "id": "PRRT_kwDODJKVX86ddqq3",
+      "opened": "2026-08-30T00:25:39Z",
+      "path": "instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/SocketStreamInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-30T01:00:26Z",
+          "body": "Addressed in e72148c01db7dd428920b5e28a042f4f1ca20a60.\n\nAnalysis: Both supported driver lines declare an `initializeSocket()` override on `UnixSocketChannelStream`. The exact `SocketStream` type matcher therefore never applies the existing return-value advice to Unix-domain connections. Matching both concrete stream types lets the same advice capture the connected socket from either implementation, including later signatures that add an operation-context argument.\n\nUpsides: Unix-domain connections now record their observed socket path. The change reuses the existing capture and correlation logic in both MongoDB modules.\n\nDownsides: The transformer now evaluates one additional exact type name in each module. No material runtime downside was identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3888119895"
+        }
+      ],
+      "reviewed": "a54aef73677fc8e66745959ba9b61f0891036724",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3888059982"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This exact matcher misses real Unix-domain connections. In MongoDB 3.11, `UnixSocketChannelStream` extends `SocketStream` but overrides `initializeSocket()`, so the advised base implementation is never entered; consequently `capture()` is not called and the advertised Unix socket path is omitted. Include the Unix stream type (or advise the inherited `open()` after its socket field is assigned).",
+      "created": "2026-08-30T00:25:39Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v3_7;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isProtected;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.Socket;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+final class SocketStreamInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.mongodb.internal.connection.SocketStream\");",
+      "id": "PRRT_kwDODJKVX86ddqq_",
+      "opened": "2026-08-30T00:25:39Z",
+      "path": "instrumentation/mongo/mongo-3.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/SocketStreamInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-30T01:00:27Z",
+          "body": "Addressed in e72148c01db7dd428920b5e28a042f4f1ca20a60.\n\nAnalysis: Both supported driver lines declare an `initializeSocket()` override on `UnixSocketChannelStream`. The exact `SocketStream` type matcher therefore never applies the existing return-value advice to Unix-domain connections. Matching both concrete stream types lets the same advice capture the connected socket from either implementation, including later signatures that add an operation-context argument.\n\nUpsides: Unix-domain connections now record their observed socket path. The change reuses the existing capture and correlation logic in both MongoDB modules.\n\nDownsides: The transformer now evaluates one additional exact type name in each module. No material runtime downside was identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3888119923"
+        }
+      ],
+      "reviewed": "a54aef73677fc8e66745959ba9b61f0891036724",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3888059992"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This only covers the JDK `SocketStream`, but current 5.x synchronous clients may use `NettyTransportSettings`; `StreamFactoryHelper.getSyncStreamFactoryFactory()` then creates a `NettyStream`, so no socket advice runs and those synchronous command spans omit `network.peer.*` even though the channel has a remote address. Instrument the synchronous Netty path as well, or narrow the stated support to the default socket transport.",
+      "created": "2026-08-30T00:25:39Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v4_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isProtected;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.Socket;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+final class SocketStreamInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.mongodb.internal.connection.SocketStream\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // Async and reactive clients use separate channel implementations and are intentionally not\n+    // covered.\n+    transformer.applyAdviceToMethod(\n+        named(\"initializeSocket\").and(isProtected()).and(returns(named(\"java.net.Socket\"))),",
+      "id": "PRRT_kwDODJKVX86ddqrG",
+      "opened": "2026-08-30T00:25:39Z",
+      "path": "instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/SocketStreamInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-30T01:00:29Z",
+          "body": "Addressed in ad0159e08fb3ad9ab8bd8e8ff2de65fa0479577e.\n\nAnalysis: MongoDB 5.x can route synchronous opens through `com.mongodb.internal.connection.netty.NettyStream`. Its blocking `open` method returns only after the Netty channel field holds the successful connection. A dedicated type instrumentation now reads that field on normal method exit and passes the channel's remote address into the same thread-local connection correlation used by `SocketStream`. The advice keeps Netty types out of its signature so the optional Netty dependency cannot disable default socket instrumentation.\n\nUpsides: Synchronous clients configured with `NettyTransportSettings` now emit the observed `network.peer.*` attributes. The latest-dependency test suite uses the Netty transport, so it covers the alternate connection path.\n\nDownsides: Each synchronous Netty connection performs one reflective `remoteAddress` call. This avoids adding an optional Netty type to the instrumentation helper linkage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3888119955"
+        }
+      ],
+      "reviewed": "a54aef73677fc8e66745959ba9b61f0891036724",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3888060004"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Repository Java guidance forbids adding `final` to classes under `javaagent/src/main`. Remove it from this instrumentation class.",
+      "created": "2026-08-31T03:52:38Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v4_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isProtected;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.Socket;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+final class SocketStreamInstrumentation implements TypeInstrumentation {",
+      "id": "PRRT_kwDODJKVX86dmvCs",
+      "opened": "2026-08-31T03:52:40Z",
+      "path": "instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/SocketStreamInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:09:34Z",
+          "body": "Addressed in d31462d2596ab4f6ded1c16193f529d77a5f9e1d.\n\nAnalysis: The repository style guide reserves final class declarations for public API code. These declarations are in javaagent implementation code, an internal package, or test code, so removing final follows the required scope rules without changing behavior.\n\nUpsides: Every new MongoDB declaration now follows the repository class-modifier rules, and the related modules stay consistent.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891639376"
+        }
+      ],
+      "reviewed": "85195b47b33fefce8c16ef79955c8b5fbe63600c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891585989"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Repository Java guidance forbids adding `final` to classes under `javaagent/src/main`. Remove it from this instrumentation class.",
+      "created": "2026-08-31T03:52:38Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v4_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.SocketAddress;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+final class NettyStreamInstrumentation implements TypeInstrumentation {",
+      "id": "PRRT_kwDODJKVX86dmvDB",
+      "opened": "2026-08-31T03:52:40Z",
+      "path": "instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/NettyStreamInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:09:35Z",
+          "body": "Addressed in d31462d2596ab4f6ded1c16193f529d77a5f9e1d.\n\nAnalysis: The repository style guide reserves final class declarations for public API code. These declarations are in javaagent implementation code, an internal package, or test code, so removing final follows the required scope rules without changing behavior.\n\nUpsides: Every new MongoDB declaration now follows the repository class-modifier rules, and the related modules stay consistent.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891639471"
+        }
+      ],
+      "reviewed": "85195b47b33fefce8c16ef79955c8b5fbe63600c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891586019"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Repository Java guidance forbids adding `final` to classes under `javaagent/src/main`. Remove it here.\n\nThis issue also appears on line 73 of the same file.",
+      "created": "2026-08-31T03:52:38Z",
+      "hunk": "@@ -0,0 +1,83 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v4_0;\n+\n+import com.mongodb.connection.ConnectionDescription;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.instrumentation.mongo.v3_1.internal.MongoNetworkPeer;\n+import java.net.Socket;\n+import java.net.SocketAddress;\n+import javax.annotation.Nullable;\n+\n+public final class MongoConnectionPeer {",
+      "id": "PRRT_kwDODJKVX86dmvDL",
+      "opened": "2026-08-31T03:52:40Z",
+      "path": "instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/MongoConnectionPeer.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:09:37Z",
+          "body": "Addressed in d31462d2596ab4f6ded1c16193f529d77a5f9e1d.\n\nAnalysis: The repository style guide reserves final class declarations for public API code. These declarations are in javaagent implementation code, an internal package, or test code, so removing final follows the required scope rules without changing behavior.\n\nUpsides: Every new MongoDB declaration now follows the repository class-modifier rules, and the related modules stay consistent.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891639535"
+        }
+      ],
+      "reviewed": "85195b47b33fefce8c16ef79955c8b5fbe63600c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891586032"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Repository Java guidance forbids adding `final` to classes under `javaagent/src/main`. Remove it from this instrumentation class.",
+      "created": "2026-08-31T03:52:39Z",
+      "hunk": "@@ -0,0 +1,45 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v3_7;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isProtected;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.Socket;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+final class SocketStreamInstrumentation implements TypeInstrumentation {",
+      "id": "PRRT_kwDODJKVX86dmvDX",
+      "opened": "2026-08-31T03:52:40Z",
+      "path": "instrumentation/mongo/mongo-3.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/SocketStreamInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:09:39Z",
+          "body": "Addressed in d31462d2596ab4f6ded1c16193f529d77a5f9e1d.\n\nAnalysis: The repository style guide reserves final class declarations for public API code. These declarations are in javaagent implementation code, an internal package, or test code, so removing final follows the required scope rules without changing behavior.\n\nUpsides: Every new MongoDB declaration now follows the repository class-modifier rules, and the related modules stay consistent.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891639604"
+        }
+      ],
+      "reviewed": "85195b47b33fefce8c16ef79955c8b5fbe63600c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891586052"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Repository Java guidance forbids adding `final` to classes under `javaagent/src/main`. Remove it here.\n\nThis issue also appears on line 63 of the same file.",
+      "created": "2026-08-31T03:52:39Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v3_7;\n+\n+import com.mongodb.connection.ConnectionDescription;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.instrumentation.mongo.v3_1.internal.MongoNetworkPeer;\n+import java.net.Socket;\n+import java.net.SocketAddress;\n+import javax.annotation.Nullable;\n+\n+public final class MongoConnectionPeer {",
+      "id": "PRRT_kwDODJKVX86dmvDu",
+      "opened": "2026-08-31T03:52:40Z",
+      "path": "instrumentation/mongo/mongo-3.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/MongoConnectionPeer.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:09:41Z",
+          "body": "Addressed in d31462d2596ab4f6ded1c16193f529d77a5f9e1d.\n\nAnalysis: The repository style guide reserves final class declarations for public API code. These declarations are in javaagent implementation code, an internal package, or test code, so removing final follows the required scope rules without changing behavior.\n\nUpsides: Every new MongoDB declaration now follows the repository class-modifier rules, and the related modules stay consistent.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891639680"
+        }
+      ],
+      "reviewed": "85195b47b33fefce8c16ef79955c8b5fbe63600c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891586079"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Repository Java guidance forbids adding `final` to classes in `.internal` packages. Remove it here.",
+      "created": "2026-08-31T03:52:39Z",
+      "hunk": "@@ -0,0 +1,84 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.mongo.v3_1.internal;\n+\n+import java.lang.reflect.InvocationTargetException;\n+import java.lang.reflect.Method;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class MongoNetworkPeer {",
+      "id": "PRRT_kwDODJKVX86dmvEC",
+      "opened": "2026-08-31T03:52:40Z",
+      "path": "instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoNetworkPeer.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:09:43Z",
+          "body": "Addressed in d31462d2596ab4f6ded1c16193f529d77a5f9e1d.\n\nAnalysis: The repository style guide reserves final class declarations for public API code. These declarations are in javaagent implementation code, an internal package, or test code, so removing final follows the required scope rules without changing behavior.\n\nUpsides: Every new MongoDB declaration now follows the repository class-modifier rules, and the related modules stay consistent.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891639794"
+        }
+      ],
+      "reviewed": "85195b47b33fefce8c16ef79955c8b5fbe63600c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891586103"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Repository Java guidance forbids adding `final` to classes in test modules. Remove it from this helper class.",
+      "created": "2026-08-31T03:52:40Z",
+      "hunk": "@@ -0,0 +1,136 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v4_0;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.mongodb.ServerAddress;\n+import com.mongodb.connection.ClusterId;\n+import com.mongodb.connection.ConnectionDescription;\n+import com.mongodb.connection.ServerId;\n+import io.opentelemetry.instrumentation.mongo.v3_1.internal.MongoNetworkPeer;\n+import java.io.IOException;\n+import java.net.InetAddress;\n+import java.net.InetSocketAddress;\n+import java.net.ServerSocket;\n+import java.net.Socket;\n+import java.net.SocketAddress;\n+import java.nio.file.Paths;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.condition.EnabledForJreRange;\n+import org.junit.jupiter.api.condition.JRE;\n+\n+class MongoConnectionPeerTest {\n+\n+  @Test\n+  void correlatesEachConnectedSocketWithItsConnectionDescription() throws IOException {\n+    ConnectionDescription firstDescription = connectionDescription(1);\n+    ConnectionDescription secondDescription = connectionDescription(2);\n+\n+    InetSocketAddress firstPeer = captureConnectedPeer(firstDescription);\n+    InetSocketAddress secondPeer = captureConnectedPeer(secondDescription);\n+\n+    assertThat(MongoConnectionPeer.resolve(firstDescription).getInetSocketAddress())\n+        .isEqualTo(firstPeer);\n+    assertThat(MongoConnectionPeer.resolve(secondDescription).getInetSocketAddress())\n+        .isEqualTo(secondPeer);\n+    assertThat(firstPeer).isNotEqualTo(secondPeer);\n+  }\n+\n+  @Test\n+  void failedAndMissingSocketCapturesDoNotLeakToTheNextConnection() throws IOException {\n+    ConnectionDescription failedDescription = connectionDescription(1);\n+    MongoConnectionPeer.OpenState failedState = MongoConnectionPeer.startOpen();\n+    try (ConnectedSocket connectedSocket = ConnectedSocket.open()) {\n+      MongoConnectionPeer.capture(connectedSocket.client);\n+      MongoConnectionPeer.endOpen(\n+          failedState, failedDescription, new IOException(\"handshake failed\"));\n+    }\n+\n+    ConnectionDescription nextDescription = connectionDescription(2);\n+    MongoConnectionPeer.OpenState nextState = MongoConnectionPeer.startOpen();\n+    MongoConnectionPeer.endOpen(nextState, nextDescription, null);\n+\n+    assertThat(MongoConnectionPeer.resolve(failedDescription)).isNull();\n+    assertThat(MongoConnectionPeer.resolve(nextDescription)).isNull();\n+  }\n+\n+  @Test\n+  @EnabledForJreRange(min = JRE.JAVA_16)\n+  void capturesUnixSocketWithoutAPort() throws ReflectiveOperationException {\n+    String socketPath = Paths.get(\"/tmp/mongodb-27017.sock\").toString();\n+    SocketAddress unixSocketAddress =\n+        (SocketAddress)\n+            Class.forName(\"java.net.UnixDomainSocketAddress\")\n+                .getMethod(\"of\", String.class)\n+                .invoke(null, socketPath);\n+    Socket socket = socketConnectedTo(unixSocketAddress);\n+    ConnectionDescription connectionDescription = connectionDescription(1);\n+    MongoConnectionPeer.OpenState state = MongoConnectionPeer.startOpen();\n+\n+    MongoConnectionPeer.capture(socket);\n+    MongoConnectionPeer.endOpen(state, connectionDescription, null);\n+\n+    MongoNetworkPeer peer = MongoConnectionPeer.resolve(connectionDescription);\n+    assertThat(peer.getAddress()).isEqualTo(socketPath);\n+    assertThat(peer.getPort()).isNull();\n+  }\n+\n+  private static InetSocketAddress captureConnectedPeer(ConnectionDescription connectionDescription)\n+      throws IOException {\n+    MongoConnectionPeer.OpenState state = MongoConnectionPeer.startOpen();\n+    try (ConnectedSocket connectedSocket = ConnectedSocket.open()) {\n+      InetSocketAddress peer = (InetSocketAddress) connectedSocket.client.getRemoteSocketAddress();\n+      MongoConnectionPeer.capture(connectedSocket.client);\n+      MongoConnectionPeer.endOpen(state, connectionDescription, null);\n+      return peer;\n+    }\n+  }\n+\n+  private static ConnectionDescription connectionDescription(int port) {\n+    return new ConnectionDescription(\n+        new ServerId(new ClusterId(), new ServerAddress(\"configured.example\", port)));\n+  }\n+\n+  private static Socket socketConnectedTo(SocketAddress remoteAddress) {\n+    return new Socket() {\n+      @Override\n+      public boolean isConnected() {\n+        return true;\n+      }\n+\n+      @Override\n+      public SocketAddress getRemoteSocketAddress() {\n+        return remoteAddress;\n+      }\n+    };\n+  }\n+\n+  private static final class ConnectedSocket implements AutoCloseable {",
+      "id": "PRRT_kwDODJKVX86dmvEU",
+      "opened": "2026-08-31T03:52:40Z",
+      "path": "instrumentation/mongo/mongo-4.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/MongoConnectionPeerTest.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:09:44Z",
+          "body": "Addressed in d31462d2596ab4f6ded1c16193f529d77a5f9e1d.\n\nAnalysis: The repository style guide reserves final class declarations for public API code. These declarations are in javaagent implementation code, an internal package, or test code, so removing final follows the required scope rules without changing behavior.\n\nUpsides: Every new MongoDB declaration now follows the repository class-modifier rules, and the related modules stay consistent.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891639858"
+        }
+      ],
+      "reviewed": "85195b47b33fefce8c16ef79955c8b5fbe63600c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891586124"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Repository Java guidance forbids adding `final` to classes in test modules. Remove it from this helper class.",
+      "created": "2026-08-31T03:52:40Z",
+      "hunk": "@@ -0,0 +1,136 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v3_7;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import com.mongodb.ServerAddress;\n+import com.mongodb.connection.ClusterId;\n+import com.mongodb.connection.ConnectionDescription;\n+import com.mongodb.connection.ServerId;\n+import io.opentelemetry.instrumentation.mongo.v3_1.internal.MongoNetworkPeer;\n+import java.io.IOException;\n+import java.net.InetAddress;\n+import java.net.InetSocketAddress;\n+import java.net.ServerSocket;\n+import java.net.Socket;\n+import java.net.SocketAddress;\n+import java.nio.file.Paths;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.condition.EnabledForJreRange;\n+import org.junit.jupiter.api.condition.JRE;\n+\n+class MongoConnectionPeerTest {\n+\n+  @Test\n+  void correlatesEachConnectedSocketWithItsConnectionDescription() throws IOException {\n+    ConnectionDescription firstDescription = connectionDescription(1);\n+    ConnectionDescription secondDescription = connectionDescription(2);\n+\n+    InetSocketAddress firstPeer = captureConnectedPeer(firstDescription);\n+    InetSocketAddress secondPeer = captureConnectedPeer(secondDescription);\n+\n+    assertThat(MongoConnectionPeer.resolve(firstDescription).getInetSocketAddress())\n+        .isEqualTo(firstPeer);\n+    assertThat(MongoConnectionPeer.resolve(secondDescription).getInetSocketAddress())\n+        .isEqualTo(secondPeer);\n+    assertThat(firstPeer).isNotEqualTo(secondPeer);\n+  }\n+\n+  @Test\n+  void failedAndMissingSocketCapturesDoNotLeakToTheNextConnection() throws IOException {\n+    ConnectionDescription failedDescription = connectionDescription(1);\n+    MongoConnectionPeer.OpenState failedState = MongoConnectionPeer.startOpen();\n+    try (ConnectedSocket connectedSocket = ConnectedSocket.open()) {\n+      MongoConnectionPeer.capture(connectedSocket.client);\n+      MongoConnectionPeer.endOpen(\n+          failedState, failedDescription, new IOException(\"handshake failed\"));\n+    }\n+\n+    ConnectionDescription nextDescription = connectionDescription(2);\n+    MongoConnectionPeer.OpenState nextState = MongoConnectionPeer.startOpen();\n+    MongoConnectionPeer.endOpen(nextState, nextDescription, null);\n+\n+    assertThat(MongoConnectionPeer.resolve(failedDescription)).isNull();\n+    assertThat(MongoConnectionPeer.resolve(nextDescription)).isNull();\n+  }\n+\n+  @Test\n+  @EnabledForJreRange(min = JRE.JAVA_16)\n+  void capturesUnixSocketWithoutAPort() throws ReflectiveOperationException {\n+    String socketPath = Paths.get(\"/tmp/mongodb-27017.sock\").toString();\n+    SocketAddress unixSocketAddress =\n+        (SocketAddress)\n+            Class.forName(\"java.net.UnixDomainSocketAddress\")\n+                .getMethod(\"of\", String.class)\n+                .invoke(null, socketPath);\n+    Socket socket = socketConnectedTo(unixSocketAddress);\n+    ConnectionDescription connectionDescription = connectionDescription(1);\n+    MongoConnectionPeer.OpenState state = MongoConnectionPeer.startOpen();\n+\n+    MongoConnectionPeer.capture(socket);\n+    MongoConnectionPeer.endOpen(state, connectionDescription, null);\n+\n+    MongoNetworkPeer peer = MongoConnectionPeer.resolve(connectionDescription);\n+    assertThat(peer.getAddress()).isEqualTo(socketPath);\n+    assertThat(peer.getPort()).isNull();\n+  }\n+\n+  private static InetSocketAddress captureConnectedPeer(ConnectionDescription connectionDescription)\n+      throws IOException {\n+    MongoConnectionPeer.OpenState state = MongoConnectionPeer.startOpen();\n+    try (ConnectedSocket connectedSocket = ConnectedSocket.open()) {\n+      InetSocketAddress peer = (InetSocketAddress) connectedSocket.client.getRemoteSocketAddress();\n+      MongoConnectionPeer.capture(connectedSocket.client);\n+      MongoConnectionPeer.endOpen(state, connectionDescription, null);\n+      return peer;\n+    }\n+  }\n+\n+  private static ConnectionDescription connectionDescription(int port) {\n+    return new ConnectionDescription(\n+        new ServerId(new ClusterId(), new ServerAddress(\"configured.example\", port)));\n+  }\n+\n+  private static Socket socketConnectedTo(SocketAddress remoteAddress) {\n+    return new Socket() {\n+      @Override\n+      public boolean isConnected() {\n+        return true;\n+      }\n+\n+      @Override\n+      public SocketAddress getRemoteSocketAddress() {\n+        return remoteAddress;\n+      }\n+    };\n+  }\n+\n+  private static final class ConnectedSocket implements AutoCloseable {",
+      "id": "PRRT_kwDODJKVX86dmvEb",
+      "opened": "2026-08-31T03:52:40Z",
+      "path": "instrumentation/mongo/mongo-3.7/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/MongoConnectionPeerTest.java",
+      "replies": [
+        {
+          "at": "2026-08-31T04:09:46Z",
+          "body": "Addressed in d31462d2596ab4f6ded1c16193f529d77a5f9e1d.\n\nAnalysis: The repository style guide reserves final class declarations for public API code. These declarations are in javaagent implementation code, an internal package, or test code, so removing final follows the required scope rules without changing behavior.\n\nUpsides: Every new MongoDB declaration now follows the repository class-modifier rules, and the related modules stay consistent.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891639899"
+        }
+      ],
+      "reviewed": "85195b47b33fefce8c16ef79955c8b5fbe63600c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3891586135"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This wires the peer resolver only into the v3.7 listener, leaving the synchronous legacy `MongoClient`/`MongoClientOptions` API unsupported. On MongoDB 3.11 that API receives the mongo-3.1 listener directly; on current legacy drivers its options are converted to `MongoClientSettings`, where the newer instrumentation sees the existing `TracingCommandListener` class and does not replace it. The socket is therefore captured, but that listener still has a null resolver, so stable spans and metrics omit `network.peer.*` despite the stated 3.11-through-5.x synchronous support. Please wire the resolver into the shared/mongo-3.1 listener path and cover a latest legacy-client invocation, or narrow the documented scope.",
+      "created": "2026-08-31T17:19:01Z",
+      "hunk": "@@ -19,7 +19,8 @@ public class MongoInstrumentationSingletons {\n       MongoInstrumenterFactory.createInstrumenter(\n           GlobalOpenTelemetry.get(),\n           \"io.opentelemetry.mongo-3.7\",\n-          DbConfig.isQuerySanitizationEnabled(GlobalOpenTelemetry.get(), \"mongo\"));\n+          DbConfig.isQuerySanitizationEnabled(GlobalOpenTelemetry.get(), \"mongo\"),\n+          MongoConnectionPeer::resolve);",
+      "id": "PRRT_kwDODJKVX86dz6Q-",
+      "opened": "2026-08-31T17:19:01Z",
+      "path": "instrumentation/mongo/mongo-3.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_7/MongoInstrumentationSingletons.java",
+      "replies": [
+        {
+          "at": "2026-08-31T17:30:17Z",
+          "body": "Addressed in 595761bafafab538418fc34750fe4755c5f82a6b.\n\nAnalysis: The transport instrumentation stores the actual peer in a VirtualField keyed by ConnectionDescription and MongoNetworkPeer. The mongo-3.1 listener can resolve the same VirtualField key, so both direct legacy listeners and listeners retained during MongoClientOptions conversion receive the captured peer. A mongo-3.7 test now runs the shared legacy client suite against the latest supported 3.x driver.\n\nUpsides: Stable spans and metrics from synchronous legacy clients report the actual network peer. The latest legacy API path now has regression coverage.\n\nDownsides: The mongo-3.7 tests add a dependency on the shared mongo-3.1 test fixture and run another legacy client suite.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3896812610"
+        }
+      ],
+      "reviewed": "90b66978d65062ce8ad3cc4276c16e43041e990e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3896733928"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Usually we don't implement `getNetworkPeerAddress` and `getNetworkPeerPort` when this method is implemented (also the other way around). Extractors don't use `getNetworkPeerInetSocketAddress` but `getNetworkPeerAddress` and `getNetworkPeerPort`, and the default implementation of `getNetworkPeerAddress` and `getNetworkPeerPort` delegates to `getNetworkPeerInetSocketAddress`.",
+      "created": "2026-09-10T06:37:35Z",
+      "hunk": "@@ -156,12 +166,46 @@ public Integer getServerPort(CommandStartedEvent event) {\n     return serverAddress == null ? null : serverAddress.getPort();\n   }\n \n+  @Nullable\n+  @Override\n+  public String getNetworkPeerAddress(CommandStartedEvent event, @Nullable Void response) {\n+    MongoNetworkPeer peer = getNetworkPeer(event);\n+    return peer == null ? null : peer.getAddress();\n+  }\n+\n+  @Nullable\n+  @Override\n+  public Integer getNetworkPeerPort(CommandStartedEvent event, @Nullable Void response) {\n+    MongoNetworkPeer peer = getNetworkPeer(event);\n+    return peer == null ? null : peer.getPort();\n+  }\n+\n   @Nullable\n   private static ServerAddress selectedServerAddress(CommandStartedEvent event) {\n     ConnectionDescription connectionDescription = event.getConnectionDescription();\n     return connectionDescription == null ? null : connectionDescription.getServerAddress();\n   }\n \n+  @Nullable\n+  @Override\n+  public InetSocketAddress getNetworkPeerInetSocketAddress(",
+      "id": "PRRT_kwDODJKVX86g9Sqd",
+      "opened": "2026-09-10T06:37:35Z",
+      "path": "instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+      "replies": [],
+      "reviewed": "82ec4753b42aa64ac2270358659ec1cb81311afc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3976215558"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "imo we use `withType<Test>().configureEach {` everywhere for this instead of adding it to individual test tasks",
+      "created": "2026-09-10T06:39:34Z",
+      "hunk": "@@ -12,14 +12,16 @@ dependencies {\n   annotationProcessor(\"com.google.auto.value:auto-value\")\n \n   testImplementation(project(\":instrumentation:mongo:mongo-3.1:testing\"))\n+  testImplementation(\"com.github.jnr:jnr-unixsocket:0.18\")\n }\n \n tasks {\n-  withType<Test>().configureEach {\n+  test {",
+      "id": "PRRT_kwDODJKVX86g9UxK",
+      "opened": "2026-09-10T06:39:34Z",
+      "path": "instrumentation/mongo/mongo-3.1/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "82ec4753b42aa64ac2270358659ec1cb81311afc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3976228107"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we do the method lookup once and cache the result",
+      "created": "2026-09-10T06:57:52Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.mongo.v4_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.SocketAddress;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class NettyStreamInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.mongodb.internal.connection.netty.NettyStream\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(named(\"open\"), getClass().getName() + \"$OpenAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class OpenAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(@Advice.FieldValue(\"channel\") Object channel)\n+        throws ReflectiveOperationException {\n+      if (channel == null) {\n+        return;\n+      }\n+      SocketAddress remoteAddress =\n+          (SocketAddress) channel.getClass().getMethod(\"remoteAddress\").invoke(channel);",
+      "id": "PRRT_kwDODJKVX86g9pqA",
+      "opened": "2026-09-10T06:57:52Z",
+      "path": "instrumentation/mongo/mongo-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/NettyStreamInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-10T15:55:46Z",
+          "body": "Will follow up \r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20096\r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20094",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3980980598"
+        }
+      ],
+      "reviewed": "82ec4753b42aa64ac2270358659ec1cb81311afc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3976354940"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "now we could put the unit tests into a suite, but this is fine too",
+      "created": "2026-09-10T07:05:10Z",
+      "hunk": "@@ -508,7 +508,9 @@ include(\":instrumentation:mongo:mongo-3.1:javaagent\")\n include(\":instrumentation:mongo:mongo-3.1:library\")\n include(\":instrumentation:mongo:mongo-3.1:testing\")\n include(\":instrumentation:mongo:mongo-3.7:javaagent\")\n+include(\":instrumentation:mongo:mongo-3.7:javaagent-unit-tests\")",
+      "id": "PRRT_kwDODJKVX86g9y_Q",
+      "opened": "2026-09-10T07:05:10Z",
+      "path": "settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-10T15:36:26Z",
+          "body": "I'll follow-up: https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20095",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3980798146"
+        }
+      ],
+      "reviewed": "82ec4753b42aa64ac2270358659ec1cb81311afc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19845#discussion_r3976412521"
+    }
+  ]
+}

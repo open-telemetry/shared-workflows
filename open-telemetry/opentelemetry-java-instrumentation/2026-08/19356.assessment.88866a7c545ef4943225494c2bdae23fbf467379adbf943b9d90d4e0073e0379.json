@@ -1,0 +1,43 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "16fe43c9172fe670b2e641e4fab30eb17babc939b0a1eac09fec7d4a6a8678be",
+  "input_digest": "88866a7c545ef4943225494c2bdae23fbf467379adbf943b9d90d4e0073e0379",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/350da8a01fa23fcf0aef02179a9ee8fda2770e60/instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/ReceiveSpanFinishingCallback.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1391544ede9a270fd168f3d0004f183a78b62a6b/instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/ReceiveSpanFinishingCallback.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Wz6w3",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/350da8a01fa23fcf0aef02179a9ee8fda2770e60/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqConsumerAttributeGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1391544ede9a270fd168f3d0004f183a78b62a6b/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqConsumerAttributeGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Wz6wc",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/350da8a01fa23fcf0aef02179a9ee8fda2770e60/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1391544ede9a270fd168f3d0004f183a78b62a6b/instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1391544ede9a270fd168f3d0004f183a78b62a6b/instrumentation/rocketmq/rocketmq-client-4.8/library/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactoryTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Wz6wt",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

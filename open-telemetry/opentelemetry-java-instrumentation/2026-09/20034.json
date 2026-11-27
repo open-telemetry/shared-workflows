@@ -1,0 +1,52 @@
+{
+  "head": "95559b157f4edec1edec14e58a9977b8bc2b934e",
+  "merge": "d3cd9eac02a1d99fd06fe8dc723f6e19d147435d",
+  "merged": "2026-09-24T16:37:31Z",
+  "missing_roots": 0,
+  "number": 20034,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The comment above this test is written in the present tense (“so this fails while … reads …”), but after this PR the test is expected to pass because `isEnabled()` now reads via the coercing `SpringConfigProvider`. Updating the wording would prevent future confusion when the test passes.",
+      "created": "2026-09-08T23:24:21Z",
+      "hunk": "@@ -0,0 +1,79 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.autoconfigure.internal.instrumentation.logging;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.instrumentation.spring.autoconfigure.OpenTelemetryAutoConfiguration;\n+import org.junit.jupiter.api.Test;\n+import org.springframework.boot.autoconfigure.AutoConfiguration;\n+import org.springframework.boot.autoconfigure.AutoConfigurations;\n+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;\n+import org.springframework.boot.context.annotation.ImportCandidates;\n+import org.springframework.boot.test.context.runner.ApplicationContextRunner;\n+import org.springframework.core.io.support.SpringFactoriesLoader;\n+\n+class DeclarativeConfigLoggingExporterAutoConfigurationTest {\n+\n+  private final ApplicationContextRunner runner =\n+      new ApplicationContextRunner()\n+          .withConfiguration(\n+              AutoConfigurations.of(\n+                  DeclarativeConfigLoggingExporterAutoConfiguration.class,\n+                  OpenTelemetryAutoConfiguration.class));\n+\n+  // Spring supplies every scalar as a String, so this fails while isEnabled() reads the flag\n+  // through a config provider that does not coerce",
+      "id": "PRRT_kwDODJKVX86gcgz_",
+      "opened": "2026-09-08T23:24:21Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/DeclarativeConfigLoggingExporterAutoConfigurationTest.java",
+      "replies": [
+        {
+          "at": "2026-09-08T23:27:27Z",
+          "body": "Reworded in 55f1631 — the comment now states what the test guards (\"passes only while `isEnabled()` reads the flag through a config provider that coerces\") instead of describing the failure it was written against.\n\n_🤖 Addressed by [Claude Code](https://claude.com/claude-code)_",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20034#discussion_r3963164989"
+        }
+      ],
+      "reviewed": "085bb70a6c9a589e95dad13d283062eec0d4fa06",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20034#discussion_r3963149395"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description still says this auto-configuration is added to both registration files and that `SpringConfigProvider`, `SpringDeclarativeConfigProperties`, and `EmbeddedConfigFile` move to `.internal`. This revision instead discovers the nested configuration through `OpenTelemetryAutoConfiguration` and leaves those helpers in their original package. Please update the description (including its commit/test-name details) so it accurately describes the implementation being reviewed.",
+      "created": "2026-09-21T23:17:36Z",
+      "hunk": "@@ -246,6 +251,38 @@ DeclarativeConfigurationCustomizerProvider threadDetailsCustomizerProvider() {\n       ComponentProvider distroComponentProvider() {\n         return new DistroComponentProvider();\n       }\n+\n+      // The SDK calls this DeclarativeConfigurationCustomizerProvider before Spring's\n+      // ConfigProvider bean is available. It therefore reads the model directly through\n+      // SpringConfigProvider, using the same type conversion as runtime consumers.\n+      // Keeping it here lets the configuration helpers remain package-private.\n+      // Spring discovers this nested configuration through OpenTelemetryAutoConfiguration, so no\n+      // separate entry in AutoConfiguration.imports or spring.factories is needed. Keeping the\n+      // classpath condition here allows SDK configuration without the logging exporter present.",
+      "id": "PRRT_kwDODJKVX86kjOPe",
+      "opened": "2026-09-21T23:17:36Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-09-21T23:20:27Z",
+          "body": "Rewrote the description against the current code — the nested `SpanLoggingConfig` discovered through `OpenTelemetryAutoConfiguration`, no registration-file entries, helpers left package-private, and the test table updated to the tests that now exist.\n\n_🤖 Addressed by [Claude Code](https://claude.com/claude-code)_",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20034#discussion_r4067213379"
+        }
+      ],
+      "reviewed": "464869ecb4c0310b0a72ea9767889035cd091a61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20034#discussion_r4067196228"
+    }
+  ]
+}

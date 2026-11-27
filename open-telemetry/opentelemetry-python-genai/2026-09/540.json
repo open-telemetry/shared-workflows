@@ -1,0 +1,144 @@
+{
+  "head": "6119896e4100c66804f991cda2e8a202b2480a32",
+  "merge": "ed7b44c1d0fa53ee15df8259ef75023c153d2643",
+  "merged": "2026-09-09T18:42:59Z",
+  "missing_roots": 0,
+  "number": 540,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "_content_to_parts only extracts nested image URLs when `image_url` is a Mapping (dict). If `image_url` is an object with a `url` attribute (common with SDK models / SimpleNamespace-style inputs), the code falls through and silently drops the image part.",
+      "created": "2026-09-02T23:01:29Z",
+      "hunk": "@@ -191,6 +194,50 @@ def _is_text_part(content: Any) -> bool:\n     )\n \n \n+def _content_to_parts(content: Any) -> list[MessagePart]:\n+    if isinstance(content, str):\n+        return [TextPart(content=content)]\n+    if not isinstance(content, Iterable) or isinstance(content, Mapping):\n+        return []\n+\n+    parts: list[MessagePart] = []\n+    for item in content:\n+        if isinstance(item, str):\n+            parts.append(TextPart(content=item))\n+            continue\n+\n+        part_type = get_property_value(item, \"type\")\n+        text = get_property_value(item, \"text\")\n+        if part_type in (\"text\", \"input_text\") or (\n+            part_type is None and isinstance(text, str)\n+        ):\n+            if isinstance(text, str):\n+                parts.append(TextPart(content=text))\n+            continue\n+        if part_type not in (\"image_url\", \"input_image\"):\n+            continue\n+\n+        image_url = get_property_value(item, \"image_url\")\n+        if isinstance(image_url, Mapping):\n+            image_url = get_property_value(image_url, \"url\")\n+        if isinstance(image_url, str) and image_url:\n+            image_part = image_from_url(image_url)\n+            if image_part is not None:\n+                parts.append(image_part)\n+            continue",
+      "id": "PRRT_kwDOSbspP86etoaM",
+      "opened": "2026-09-02T23:01:30Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [],
+      "reviewed": "8564fb8b4fddda07f21aa180a8203844e39f4306",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3919459011"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tests cover dict-form `image_url`, but there’s no coverage for the object-form variant where `image_url` is an object with a `url` attribute (which `_content_to_parts` is intended to support via `get_property_value`). Adding this guards against regressions in the new nested-URL handling.",
+      "created": "2026-09-02T23:01:29Z",
+      "hunk": "@@ -71,6 +84,120 @@\n ]\n \n \n+def test_chat_content_parts_capture_text_and_image_url():\n+    parts = _content_to_parts(\n+        [\n+            {\"type\": \"text\", \"text\": \"Describe the image\"},\n+            {\n+                \"type\": \"image_url\",\n+                \"image_url\": {\"url\": \"https://example.com/image.png\"},\n+            },\n+        ]\n+    )\n+\n+    assert parts == [\n+        TextPart(content=\"Describe the image\"),\n+        UriPart(\n+            mime_type=None,\n+            modality=\"image\",\n+            uri=\"https://example.com/image.png\",\n+        ),\n+    ]",
+      "id": "PRRT_kwDOSbspP86etoav",
+      "opened": "2026-09-02T23:01:30Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_utils.py",
+      "replies": [],
+      "reviewed": "8564fb8b4fddda07f21aa180a8203844e39f4306",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3919459053"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "In `response_extractors.py`, messages with empty `parts` are dropped (`if parts: messages.append(...)`). Should `_prepare_input_messages` also avoid appending messages when `parts` is empty?",
+      "created": "2026-09-03T19:44:09Z",
+      "hunk": "@@ -205,8 +252,7 @@ def _prepare_input_messages(messages) -> list[InputMessage]:\n             tool_calls = get_property_value(message, \"tool_calls\")\n             if tool_calls:\n                 chat_message.parts += extract_tool_calls_new(tool_calls)",
+      "id": "PRRT_kwDOSbspP86fDh4r",
+      "opened": "2026-09-03T19:46:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-03T21:10:07Z",
+          "body": "Yes, that makes sense. I will add changes for it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3928742754"
+        },
+        {
+          "at": "2026-09-04T19:18:52Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3937236674"
+        }
+      ],
+      "reviewed": "e9af0ca599406325c73097dc878d4916ffff6b3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3928092373"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "byte array would also match iterable. \n\nIs there a known type(s) of content we can use instead of `Any`?",
+      "created": "2026-09-03T19:45:45Z",
+      "hunk": "@@ -192,6 +195,50 @@ def _is_text_part(content: Any) -> bool:\n     )\n \n \n+def _content_to_parts(content: Any) -> list[MessagePart]:\n+    if isinstance(content, str):\n+        return [TextPart(content=content)]\n+    if not isinstance(content, Iterable) or isinstance(content, Mapping):",
+      "id": "PRRT_kwDOSbspP86fDj5J",
+      "opened": "2026-09-03T19:46:47Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-03T21:14:46Z",
+          "body": "It looks like we could use the `object` type although that does not directly prevent byte array to be rejected but makes the type check stricter than Any. With it we would still add a run time guard - \r\n\r\n```\r\nif not isinstance(content, Iterable) or isinstance(\r\n    content, (Mapping, bytes, bytearray)\r\n):\r\n    return []\r\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3928775244"
+        },
+        {
+          "at": "2026-09-03T21:32:05Z",
+          "body": "Can we look at the types that are actually passed from the OpenAI code being instrumented and narrow it down to those?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3928898824"
+        },
+        {
+          "at": "2026-09-04T17:03:10Z",
+          "body": "@aabmass, @lmolkova `_content_to_parts` receives raw caller-supplied values before OpenAI SDK validation, including request dictionaries, reusable Pydantic response objects, attribute-shaped objects, and invalid values it defensively ignores. Therefore, there isn't a conclusive list of types we can narrow it down to. Should we move ahead with the object approach and then defensively discard certain types such as bytes?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3936261885"
+        },
+        {
+          "at": "2026-09-04T20:25:26Z",
+          "body": "with `not isinstance(content, Iterable)` I think it's fine - we won't create anything meaningful in the code below, but would handle it gracefully. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3937661055"
+        }
+      ],
+      "reviewed": "e9af0ca599406325c73097dc878d4916ffff6b3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3928104532"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Regression: the type allowlist drops Responses API `output_text` parts, so a prior assistant turn fed back into `input` disappears from `gen_ai.input.messages`. The old code took any part with a `text` field.\n\nFails on this branch, passes on main:\n\n```python\ndef test_extract_input_messages_keeps_assistant_output_text(loaded_module):\n    messages = loaded_module.get_input_messages(\n        [\n            {\"role\": \"user\", \"content\": [{\"type\": \"input_text\", \"text\": \"Hi\"}]},\n            {\n                \"role\": \"assistant\",\n                \"content\": [\n                    {\n                        \"type\": \"output_text\",\n                        \"text\": \"Hello!\",\n                        \"annotations\": [],\n                    }\n                ],\n            },\n        ]\n    )\n\n    assert [(msg.role, msg.parts) for msg in messages] == [\n        (\"user\", [TextPart(content=\"Hi\")]),\n        (\"assistant\", [TextPart(content=\"Hello!\")]),\n    ]\n```\n\n`ResponsesConversationScenario` uses `previous_response_id`, so nothing else covers multi-turn Responses input.",
+      "created": "2026-09-04T20:21:10Z",
+      "hunk": "@@ -193,32 +196,75 @@ def _is_text_part(content: Any) -> bool:\n     )\n \n \n+def _content_to_parts(content: Any) -> list[MessagePart]:\n+    if isinstance(content, str):\n+        return [TextPart(content=content)]\n+    if not isinstance(content, Iterable) or isinstance(content, Mapping):\n+        return []\n+\n+    parts: list[MessagePart] = []\n+    for item in content:\n+        if isinstance(item, str):\n+            parts.append(TextPart(content=item))\n+            continue\n+\n+        part_type = get_property_value(item, \"type\")\n+        text = get_property_value(item, \"text\")\n+        if part_type in (\"text\", \"input_text\") or (",
+      "id": "PRRT_kwDOSbspP86fbtep",
+      "opened": "2026-09-04T20:25:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-09T15:56:07Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3970456599"
+        }
+      ],
+      "reviewed": "35db21354acf9b03c81ebf4a8fbc1be06757a8af",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3937641347"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Sync non-streaming multimodal is uncovered - async has `test_async_chat_completion_captures_multimodal_input`, sync only gets the streaming variant.",
+      "created": "2026-09-04T20:21:11Z",
+      "hunk": "@@ -1152,6 +1154,28 @@ def test_chat_completion_streaming(\n         )\n \n \n+def test_chat_completion_streaming_captures_multimodal_input(",
+      "id": "PRRT_kwDOSbspP86fbtes",
+      "opened": "2026-09-04T20:25:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_completions.py",
+      "replies": [
+        {
+          "at": "2026-09-09T15:56:18Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3970458141"
+        }
+      ],
+      "reviewed": "35db21354acf9b03c81ebf4a8fbc1be06757a8af",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/540#discussion_r3937641352"
+    }
+  ]
+}

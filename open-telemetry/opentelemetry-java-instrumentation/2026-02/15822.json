@@ -1,0 +1,837 @@
+{
+  "head": "604004cb3801a9856e63576d17856a7ea9521584",
+  "merge": "3c573ea4492a5f25e0f482eb523f829d318d0027",
+  "merged": "2026-02-23T22:06:41Z",
+  "missing_roots": 0,
+  "number": 15822,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "instead of converting distribution to YamlDeclarativeConfigProperties, what would it look like to expose / access DistributionModel directly? not sure how it's intended to be used, but seems odd to me if all users of it have to import jackson and convert it themselves",
+      "created": "2026-01-19T20:49:04Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.config;\n+\n+import com.fasterxml.jackson.annotation.JsonSetter;\n+import com.fasterxml.jackson.annotation.Nulls;\n+import com.fasterxml.jackson.core.type.TypeReference;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.common.ComponentLoader;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.YamlDeclarativeConfigProperties;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionModel;\n+import java.util.Collections;\n+import java.util.Map;\n+import org.jetbrains.annotations.NotNull;\n+\n+/**\n+ * Allows access to the Javaagent distribution node, which cannot be accessed using the {@link\n+ * ConfigProvider} API (yet).\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+@AutoService(DeclarativeConfigurationCustomizerProvider.class)\n+public final class JavaagentDistributionAccessCustomizerProvider\n+    implements DeclarativeConfigurationCustomizerProvider {\n+\n+  // the entire configuration is copied from\n+  // https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/incubator/src/main/java/io/opentelemetry/sdk/extension/incubator/fileconfig/DeclarativeConfiguration.java#L66-L79\n+  // which is not public\n+  private static final com.fasterxml.jackson.databind.ObjectMapper MAPPER;\n+\n+  static {\n+    MAPPER =\n+        new ObjectMapper()\n+            // Create empty object instances for keys which are present but have null values\n+            .setDefaultSetterInfo(JsonSetter.Value.forValueNulls(Nulls.AS_EMPTY));\n+    // Boxed primitives which are present but have null values should be set to null, rather than\n+    // empty instances\n+    MAPPER.configOverride(String.class).setSetterInfo(JsonSetter.Value.forValueNulls(Nulls.SET));\n+    MAPPER.configOverride(Integer.class).setSetterInfo(JsonSetter.Value.forValueNulls(Nulls.SET));\n+    MAPPER.configOverride(Double.class).setSetterInfo(JsonSetter.Value.forValueNulls(Nulls.SET));\n+    MAPPER.configOverride(Boolean.class).setSetterInfo(JsonSetter.Value.forValueNulls(Nulls.SET));\n+  }\n+\n+  @Override\n+  public void customize(DeclarativeConfigurationCustomizer customizer) {\n+    customizer.addModelCustomizer(\n+        model -> {\n+          DistributionModel distribution = model.getDistribution();\n+          if (distribution != null) {\n+            AgentDistributionConfig.set(\n+                toProperties(distribution.getAdditionalProperties()).get(\"javaagent\"));",
+      "id": "PRRT_kwDODJKVX85qDhXq",
+      "opened": "2026-01-19T20:49:04Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-01-20T09:34:04Z",
+          "body": "I think this is the intended way from the SDK side of things - it's an object without a defined schema.\r\n\r\nThis is how it looks in memory:\r\n\r\n<img width=\"959\" height=\"359\" alt=\"image\" src=\"https://github.com/user-attachments/assets/f47897a8-c59b-4a04-b1fa-8134a6e1274d\" />\r\n\r\n1. Exposing the structure directly would be a map - that's worse than what we have now.\r\n2. We can use Jackson to marshal into a custom structure with just the fields we need.\r\n3. .. but then we'd need to read all required fields from ConfigProperties explicitly - maybe that's not a bad idea.\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2707521766"
+        },
+        {
+          "at": "2026-01-20T15:55:43Z",
+          "body": "I don't think we need to expose the structure directly, since we have a fixed set of properties we need in the javaagent distro",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2708991799"
+        },
+        {
+          "at": "2026-01-20T15:56:51Z",
+          "body": "oh, I think that's what you did in 0948fce3ece7914853f0c8503ecb51b5d169f914, thanks, will review",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2708997628"
+        }
+      ],
+      "reviewed": "4ffc8d564591ccfac583a5f5c4a051ad92b3cd9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2706040773"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I don't think we necessarily need generic access to distribution node, since it's dedicated to the Java agent, we could just extract / hardcode the fields we need",
+      "created": "2026-01-19T20:50:21Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import static io.opentelemetry.api.incubator.config.DeclarativeConfigProperties.empty;\n+\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentDistributionConfig {\n+  static DeclarativeConfigProperties distributionConfig = empty();\n+\n+  public static DeclarativeConfigProperties get() {",
+      "id": "PRRT_kwDODJKVX85qDhx7",
+      "opened": "2026-01-19T20:50:21Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-01-20T09:34:31Z",
+          "body": "I'll try that out - see https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2707521766",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2707523403"
+        }
+      ],
+      "reviewed": "4ffc8d564591ccfac583a5f5c4a051ad92b3cd9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2706042900"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we avoid this being in instrumentation-api-incubator since it's only applicable to distros?",
+      "created": "2026-01-22T18:38:40Z",
+      "hunk": "@@ -0,0 +1,54 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.config;",
+      "id": "PRRT_kwDODJKVX85qmv4z",
+      "opened": "2026-01-22T18:44:55Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/EnabledInstrumentations.java",
+      "replies": [
+        {
+          "at": "2026-01-22T19:25:47Z",
+          "body": "we need some place where it can be used by spring starter and javaagent-extension-api (InstrumentationModule).\r\n\r\nWe could copy the interface.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2718306296"
+        },
+        {
+          "at": "2026-01-23T09:04:20Z",
+          "body": "I made 2 separate copies to avoid that",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2720326482"
+        }
+      ],
+      "reviewed": "d0aff0e8452580c386fd79d0c35f57f98d2cd66c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2718131765"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "instead of passing `EnabledInstrumentations` here, we could pass 2 boolean values",
+      "created": "2026-01-22T18:40:31Z",
+      "hunk": "@@ -20,25 +21,26 @@ private RuntimeMetricsConfigUtil() {}\n \n   @Nullable\n   public static RuntimeMetrics configure(\n-      RuntimeMetricsBuilder builder, OpenTelemetry openTelemetry, String instrumentationMode) {\n+      RuntimeMetricsBuilder builder,\n+      OpenTelemetry openTelemetry,\n+      EnabledInstrumentations enabledInstrumentations) {",
+      "id": "PRRT_kwDODJKVX85qmw-_",
+      "opened": "2026-01-22T18:44:55Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java17/library/src/main/java/io/opentelemetry/instrumentation/runtimemetrics/java17/internal/RuntimeMetricsConfigUtil.java",
+      "replies": [
+        {
+          "at": "2026-01-22T18:49:50Z",
+          "body": "That makes the thing a little useless on it's own. I think we can move it to a different module (it's already internal).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2718165863"
+        },
+        {
+          "at": "2026-01-22T18:53:05Z",
+          "body": "Maybe we don't need it",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2718175911"
+        },
+        {
+          "at": "2026-01-22T18:54:56Z",
+          "body": "I'll try moving it to sdk-autoconfigure-support - it's logic shared by agent and starter",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2718182056"
+        },
+        {
+          "at": "2026-01-23T01:58:58Z",
+          "body": "I'd still suggest not passing it in here, since it doesn't seem like something instrumentation should need to be aware of since it's a distro thing",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2719297595"
+        },
+        {
+          "at": "2026-01-23T09:03:55Z",
+          "body": "I stripped it down to the unproblematic part that can also be re-used by library instrumentation",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2720325168"
+        },
+        {
+          "at": "2026-02-23T20:36:51Z",
+          "body": "You're right - the `defaultEnabled` parameter couples the library layer to distribution-level concerns. I'll refactor this so the library can determine the default internally, and the javaagent can control enablement through the config structure rather than passing distribution state down to the library layer. This will make the library more reusable across different distributions.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2842973983"
+        },
+        {
+          "at": "2026-02-23T20:36:52Z",
+          "body": "Agreed - this is a separation of concerns issue. The library shouldn't need to know about distribution-level defaults. I'll update the approach.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2842974069"
+        }
+      ],
+      "reviewed": "d0aff0e8452580c386fd79d0c35f57f98d2cd66c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2718137482"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can this be done after this PR since not yet under distribution node?",
+      "created": "2026-01-22T18:43:12Z",
+      "hunk": "@@ -28,4 +37,16 @@ public AutoConfigurationCustomizerProvider threadDetailOtelCustomizer() {\n               return builder;\n             });\n   }\n+\n+  static class ThreadDetailsEnabled implements Condition {\n+    @Override\n+    public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {\n+      Environment environment = context.getEnvironment();\n+      String key =\n+          EarlyConfig.isDeclarativeConfig(environment)\n+              ? \"otel.instrumentation/development.java.common.thread_details.enabled\"\n+              : \"otel.instrumentation.common.thread-details.enabled\";\n+      return environment.getProperty(key, Boolean.class, false);\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX85qmykj",
+      "opened": "2026-01-22T18:44:55Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/thread/ThreadDetailsAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-01-22T18:52:19Z",
+          "body": "no, this would leave a broken state - we were kind of abusing the enabled mechanism here",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2718173443"
+        },
+        {
+          "at": "2026-01-23T12:49:24Z",
+          "body": "well - actually it only breaks declarative config - so I can revert this part for now",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2721071282"
+        }
+      ],
+      "reviewed": "d0aff0e8452580c386fd79d0c35f57f98d2cd66c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2718145774"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "do we need this class, or could this be part of `AgentDistributionConfig`?",
+      "created": "2026-01-22T18:44:39Z",
+      "hunk": "@@ -0,0 +1,36 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.bootstrap.internal;\n+\n+import io.opentelemetry.instrumentation.api.incubator.config.EnabledInstrumentations;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+\n+/**\n+ * Access to enabled instrumentations configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentEnabledInstrumentations {",
+      "id": "PRRT_kwDODJKVX85qmza2",
+      "opened": "2026-01-22T18:44:55Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/bootstrap/internal/AgentEnabledInstrumentations.java",
+      "replies": [
+        {
+          "at": "2026-01-22T18:54:04Z",
+          "body": "good idea",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2718179330"
+        },
+        {
+          "at": "2026-01-23T09:02:33Z",
+          "body": "good idea - done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2720319426"
+        }
+      ],
+      "reviewed": "d0aff0e8452580c386fd79d0c35f57f98d2cd66c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2718150266"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n  private static final ObjectMapper MAPPER = new ObjectMapper();\r\n```",
+      "created": "2026-01-23T18:05:25Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.config;\n+\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionModel;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionPropertyModel;\n+\n+/**\n+ * Allows access to the Javaagent distribution node, which cannot be accessed using the {@link\n+ * ConfigProvider} API (yet).\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+@AutoService(DeclarativeConfigurationCustomizerProvider.class)\n+public final class JavaagentDistributionAccessCustomizerProvider\n+    implements DeclarativeConfigurationCustomizerProvider {\n+\n+  private static final com.fasterxml.jackson.databind.ObjectMapper MAPPER = new ObjectMapper();",
+      "id": "PRRT_kwDODJKVX85qyvhq",
+      "opened": "2026-01-23T18:17:25Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProvider.java",
+      "replies": [],
+      "reviewed": "d8a7d62c5a4ee6e23405d5089d445623cb1f0680",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2722289216"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n * ConfigProvider} API.\r\n```",
+      "created": "2026-01-23T18:05:42Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.config;\n+\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionModel;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionPropertyModel;\n+\n+/**\n+ * Allows access to the Javaagent distribution node, which cannot be accessed using the {@link\n+ * ConfigProvider} API (yet).",
+      "id": "PRRT_kwDODJKVX85qyvsK",
+      "opened": "2026-01-23T18:17:25Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProvider.java",
+      "replies": [],
+      "reviewed": "d8a7d62c5a4ee6e23405d5089d445623cb1f0680",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2722290126"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n```",
+      "created": "2026-01-23T18:06:05Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.config;\n+\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionModel;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionPropertyModel;\n+\n+/**\n+ * Allows access to the Javaagent distribution node, which cannot be accessed using the {@link\n+ * ConfigProvider} API (yet).\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.",
+      "id": "PRRT_kwDODJKVX85qyv70",
+      "opened": "2026-01-23T18:17:25Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProvider.java",
+      "replies": [],
+      "reviewed": "d8a7d62c5a4ee6e23405d5089d445623cb1f0680",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2722291539"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "do we need to model `Test` properties? or only support them via sys props",
+      "created": "2026-01-23T18:10:26Z",
+      "hunk": "@@ -0,0 +1,189 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import com.fasterxml.jackson.annotation.JsonIgnore;\n+import com.fasterxml.jackson.annotation.JsonProperty;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+import io.opentelemetry.javaagent.bootstrap.internal.EnabledInstrumentations;\n+import java.util.ArrayList;\n+import java.util.List;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class AgentDistributionConfig {\n+  @SuppressWarnings(\"ConstantField\") // needs to be mutable for @Initializer\n+  private static AgentDistributionConfig INSTANCE = new AgentDistributionConfig();\n+\n+  @JsonProperty(\"indy/development\")\n+  private boolean indyEnabled = false;\n+\n+  // This property may be set to force synchronous AgentListener#afterAgent() execution: the\n+  // condition for delaying the AgentListener initialization is pretty broad and in case it covers\n+  // too much javaagent users can file a bug, force sync execution by setting this property to true\n+  // and continue using the javaagent\n+  @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+  private boolean forceSynchronousAgentListeners = false;\n+\n+  @JsonProperty(\"exclude_classes\")\n+  private List<String> excludeClasses = new ArrayList<>();\n+\n+  @JsonProperty(\"exclude_class_loaders\")\n+  private List<String> excludeClassLoaders = new ArrayList<>();\n+\n+  @JsonProperty(\"testing\")\n+  private final Test test = new Test();\n+\n+  @JsonProperty(\"instrumentation\")\n+  private final Instrumentation instrumentation = new Instrumentation();\n+\n+  /**\n+   * Enabled instrumentations are set later via {@link\n+   * #setEnabledInstrumentations(EnabledInstrumentations)}.\n+   */\n+  @JsonIgnore private EnabledInstrumentations enabledInstrumentations;\n+\n+  public static AgentDistributionConfig get() {\n+    return INSTANCE;\n+  }\n+\n+  // Visible for testing\n+  public static void resetForTest() {\n+    INSTANCE = new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance for testing or fallback configuration scenarios.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig create() {\n+    return new AgentDistributionConfig();\n+  }\n+\n+  @Initializer\n+  public static void set(AgentDistributionConfig distributionConfig) {\n+    INSTANCE = distributionConfig;\n+  }\n+\n+  public EnabledInstrumentations getEnabledInstrumentations() {\n+    return enabledInstrumentations;\n+  }\n+\n+  @Initializer\n+  public void setEnabledInstrumentations(EnabledInstrumentations enabledInstrumentations) {\n+    this.enabledInstrumentations = enabledInstrumentations;\n+  }\n+\n+  public Instrumentation getInstrumentation() {\n+    return instrumentation;\n+  }\n+\n+  public boolean isIndyEnabled() {\n+    return indyEnabled;\n+  }\n+\n+  public void setIndyEnabled(boolean indyEnabled) {\n+    this.indyEnabled = indyEnabled;\n+  }\n+\n+  public boolean isForceSynchronousAgentListeners() {\n+    return forceSynchronousAgentListeners;\n+  }\n+\n+  public void setForceSynchronousAgentListeners(boolean forceSynchronousAgentListeners) {\n+    this.forceSynchronousAgentListeners = forceSynchronousAgentListeners;\n+  }\n+\n+  public List<String> getExcludeClasses() {\n+    return excludeClasses;\n+  }\n+\n+  public void setExcludeClasses(List<String> excludeClasses) {\n+    this.excludeClasses = excludeClasses;\n+  }\n+\n+  public List<String> getExcludeClassLoaders() {\n+    return excludeClassLoaders;\n+  }\n+\n+  public void setExcludeClassLoaders(List<String> excludeClassLoaders) {\n+    this.excludeClassLoaders = excludeClassLoaders;\n+  }\n+\n+  public Test getTest() {\n+    return test;\n+  }\n+\n+  /**\n+   * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+   * any time.\n+   */\n+  public static class Test {\n+    @JsonProperty(\"additional_library_ignores\")\n+    private final AdditionalLibraryIgnores additionalLibraryIgnores =\n+        new AdditionalLibraryIgnores();\n+\n+    public AdditionalLibraryIgnores getAdditionalLibraryIgnoresConfig() {\n+      return additionalLibraryIgnores;\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX85qyynM",
+      "opened": "2026-01-23T18:17:25Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-01-24T09:17:11Z",
+          "body": "sys props is probably better for testing :+1: ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2723905300"
+        }
+      ],
+      "reviewed": "d8a7d62c5a4ee6e23405d5089d445623cb1f0680",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2722307149"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this seems odd to need to update the AgentDistributionConfig. it should ideally be constructed once (by jackson or via ConfigProperties, and then be immutable after that). not sure if we can get rid of all the setters?\r\n\r\nalso maybe we don't need `EnabledInstrumentation` abstraction, and can just expose helpers isInstrumentationEnabled() directly on AgentDistributionConfig?",
+      "created": "2026-01-23T18:17:22Z",
+      "hunk": "@@ -34,21 +40,85 @@ public static AutoConfiguredOpenTelemetrySdk installOpenTelemetrySdk(\n             .build();\n     OpenTelemetrySdk sdk = autoConfiguredSdk.getOpenTelemetrySdk();\n     ConfigProperties configProperties = AutoConfigureUtil.getConfig(autoConfiguredSdk);\n-    if (configProperties != null) {\n+    boolean declarativeConfigUsed = configProperties == null;\n+\n+    if (!declarativeConfigUsed) {\n       // Provide a fake declarative configuration based on config properties\n       // so that declarative configuration API can be used everywhere\n       sdk =\n           new ExtendedOpenTelemetrySdkWrapper(\n               sdk, ConfigPropertiesBackedConfigProvider.create(configProperties));\n+      AgentDistributionConfig.set(distributionFromConfigProperties(configProperties));\n     }\n \n+    // AgentDistributionConfig is set by the JavaagentDistributionAccessCustomizerProvider\n+    AgentDistributionConfig distributionConfig = AgentDistributionConfig.get();\n+    distributionConfig.setEnabledInstrumentations(\n+        declarativeConfigUsed\n+            ? new DistributionEnabledInstrumentations(distributionConfig.getInstrumentation())\n+            : enabledInstrumentationsFromConfigProperties(configProperties));",
+      "id": "PRRT_kwDODJKVX85qy2VG",
+      "opened": "2026-01-23T18:17:25Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/OpenTelemetryInstaller.java",
+      "replies": [
+        {
+          "at": "2026-01-24T10:05:27Z",
+          "body": "great idea! done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2723987072"
+        }
+      ],
+      "reviewed": "d8a7d62c5a4ee6e23405d5089d445623cb1f0680",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2722327534"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    Boolean enabled = EarlyConfig.isInstrumentationEnabled((ConfigurableEnvironment) context.getEnvironment())\n```",
+      "created": "2026-02-12T17:54:57Z",
+      "hunk": "@@ -25,9 +26,15 @@ public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata)\n         Objects.requireNonNull(\n             metadata.getAnnotationAttributes(ConditionalOnEnabledInstrumentation.class.getName()));\n \n-    return EarlyConfig.isInstrumentationEnabled(\n-        context.getEnvironment(),\n-        requireNonNull(attributes.get(\"module\")).toString(),\n-        (boolean) requireNonNull(attributes.get(\"enabledByDefault\")));\n+    String name = requireNonNull(attributes.get(\"module\")).toString();\n+    boolean enabledByDefault = (boolean) requireNonNull(attributes.get(\"enabledByDefault\"));\n+    EnabledInstrumentations enabledInstrumentations =\n+        EarlyConfig.getEnabledInstrumentations((ConfigurableEnvironment) context.getEnvironment());\n+\n+    Boolean enabled = enabledInstrumentations.getEnabled(name);",
+      "id": "PRRT_kwDODJKVX85uTPHR",
+      "opened": "2026-02-12T17:54:57Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/InstrumentationPropertyEnabled.java",
+      "replies": [
+        {
+          "at": "2026-02-17T11:29:17Z",
+          "body": "This code was already simplified in b49ce3611f (removed `EnabledInstrumentations`). The current code calls `EarlyConfig.isInstrumentationEnabled()` directly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2816543099"
+        }
+      ],
+      "reviewed": "aea6159fc8ba9987b829e4f1c3e24b31f4e01e52",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2800278065"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  private static volatile AgentDistributionConfig INSTANCE = new AgentDistributionConfig();\n```",
+      "created": "2026-02-13T21:32:06Z",
+      "hunk": "@@ -0,0 +1,252 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import com.fasterxml.jackson.annotation.JsonCreator;\n+import com.fasterxml.jackson.annotation.JsonProperty;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentDistributionConfig {\n+  @SuppressWarnings(\"ConstantField\") // needs to be mutable for @Initializer\n+  private static AgentDistributionConfig INSTANCE = new AgentDistributionConfig();",
+      "id": "PRRT_kwDODJKVX85ukZVb",
+      "opened": "2026-02-13T22:14:55Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-17T11:29:15Z",
+          "body": "Done - also simplified the API by replacing `getInstrumentationEnabled(String)` / `isInstrumentationEnabled(String)` with a single `isInstrumentationEnabled(Iterable<String>, boolean)` method and moved the logic from `InstrumentationModuleInstaller` into `AgentDistributionConfig`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2816542953"
+        },
+        {
+          "at": "2026-02-20T13:27:18Z",
+          "body": "Instead of always returning defaults (which would silently hide bootstrap ordering bugs at runtime), I went with a two-phase approach:\n\n- Added `AgentDistributionConfig.expectInitialization()` which is called early in `AgentInstaller` bootstrap\n- `get()` behavior depends on context:\n  - **Agent running** (`expectInitialization()` was called): throws if `set()` hasn't been called yet — catches ordering bugs\n  - **Agent not running** (Gradle `byteBuddyJava` build, tests): returns a default instance — no crash\n\nThis way we stay strict at runtime (as you intended in e6e9e27) but are lenient during builds where no agent is present.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2833199287"
+        }
+      ],
+      "reviewed": "14f8679b00b53ba38a0514f294a11e2ea305361f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2806190048"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "could use Set<String> for faster lookup",
+      "created": "2026-02-13T21:34:40Z",
+      "hunk": "@@ -0,0 +1,252 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import com.fasterxml.jackson.annotation.JsonCreator;\n+import com.fasterxml.jackson.annotation.JsonProperty;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentDistributionConfig {\n+  @SuppressWarnings(\"ConstantField\") // needs to be mutable for @Initializer\n+  private static AgentDistributionConfig INSTANCE = new AgentDistributionConfig();\n+\n+  @JsonProperty(\"indy/development\")\n+  private final boolean indyEnabled;\n+\n+  // This property may be set to force synchronous AgentListener#afterAgent() execution: the\n+  // condition for delaying the AgentListener initialization is pretty broad and in case it covers\n+  // too much javaagent users can file a bug, force sync execution by setting this property to true\n+  // and continue using the javaagent\n+  @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+  private final boolean forceSynchronousAgentListeners;\n+\n+  @JsonProperty(\"exclude_classes\")\n+  private final List<String> excludeClasses;\n+\n+  @JsonProperty(\"exclude_class_loaders\")\n+  private final List<String> excludeClassLoaders;\n+\n+  @JsonProperty(\"instrumentation\")\n+  private final InstrumentationConfig instrumentation;\n+\n+  public static AgentDistributionConfig get() {\n+    return INSTANCE;\n+  }\n+\n+  // Visible for testing\n+  public static void resetForTest() {\n+    INSTANCE = new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance for testing or fallback configuration scenarios.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig create() {\n+    return new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance from ConfigProperties.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig fromConfigProperties(\n+      ConfigProperties configProperties,\n+      boolean indyEnabled,\n+      boolean forceSynchronousAgentListeners,\n+      List<String> excludeClasses,\n+      List<String> excludeClassLoaders) {\n+    return new ConfigPropertiesAgentDistributionConfig(\n+        configProperties,\n+        indyEnabled,\n+        forceSynchronousAgentListeners,\n+        excludeClasses,\n+        excludeClassLoaders);\n+  }\n+\n+  @Initializer\n+  public static void set(AgentDistributionConfig distributionConfig) {\n+    INSTANCE = distributionConfig;\n+  }\n+\n+  @JsonCreator\n+  AgentDistributionConfig(\n+      @JsonProperty(\"indy/development\") Boolean indyEnabled,\n+      @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+          Boolean forceSynchronousAgentListeners,\n+      @JsonProperty(\"exclude_classes\") List<String> excludeClasses,\n+      @JsonProperty(\"exclude_class_loaders\") List<String> excludeClassLoaders,\n+      @JsonProperty(\"instrumentation\") InstrumentationConfig instrumentation) {\n+    this.indyEnabled = indyEnabled != null ? indyEnabled : false;\n+    this.forceSynchronousAgentListeners =\n+        forceSynchronousAgentListeners != null ? forceSynchronousAgentListeners : false;\n+    this.excludeClasses =\n+        excludeClasses != null ? new ArrayList<>(excludeClasses) : new ArrayList<>();\n+    this.excludeClassLoaders =\n+        excludeClassLoaders != null ? new ArrayList<>(excludeClassLoaders) : new ArrayList<>();\n+    this.instrumentation = instrumentation != null ? instrumentation : new InstrumentationConfig();\n+  }\n+\n+  // Default constructor for testing\n+  AgentDistributionConfig() {\n+    this(null, null, null, null, null);\n+  }\n+\n+  /**\n+   * Returns whether the given instrumentation is enabled.\n+   *\n+   * @param instrumentationName the name of the instrumentation\n+   * @return {@code Boolean.TRUE} if the instrumentation is enabled, {@code Boolean.FALSE} if it is\n+   *     disabled, or {@code null} if the default setting should be used\n+   */\n+  @Nullable\n+  public Boolean getInstrumentationEnabled(String instrumentationName) {\n+    String normalizedName = instrumentationName.replace('-', '_');\n+\n+    List<String> disabled = instrumentation.getDisabled();\n+    if (disabled != null && disabled.contains(normalizedName)) {",
+      "id": "PRRT_kwDODJKVX85ukay6",
+      "opened": "2026-02-13T22:14:55Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-17T11:34:35Z",
+          "body": "Done - changed to `Set<String>` (LinkedHashSet) for both enabled and disabled lists.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2816571918"
+        }
+      ],
+      "reviewed": "14f8679b00b53ba38a0514f294a11e2ea305361f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2806198145"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "and test using above `isInstrumentationEnabled`\n\n```suggestion\n  static class InstrumentationConfig {\n```",
+      "created": "2026-02-13T21:49:51Z",
+      "hunk": "@@ -0,0 +1,252 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import com.fasterxml.jackson.annotation.JsonCreator;\n+import com.fasterxml.jackson.annotation.JsonProperty;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentDistributionConfig {\n+  @SuppressWarnings(\"ConstantField\") // needs to be mutable for @Initializer\n+  private static AgentDistributionConfig INSTANCE = new AgentDistributionConfig();\n+\n+  @JsonProperty(\"indy/development\")\n+  private final boolean indyEnabled;\n+\n+  // This property may be set to force synchronous AgentListener#afterAgent() execution: the\n+  // condition for delaying the AgentListener initialization is pretty broad and in case it covers\n+  // too much javaagent users can file a bug, force sync execution by setting this property to true\n+  // and continue using the javaagent\n+  @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+  private final boolean forceSynchronousAgentListeners;\n+\n+  @JsonProperty(\"exclude_classes\")\n+  private final List<String> excludeClasses;\n+\n+  @JsonProperty(\"exclude_class_loaders\")\n+  private final List<String> excludeClassLoaders;\n+\n+  @JsonProperty(\"instrumentation\")\n+  private final InstrumentationConfig instrumentation;\n+\n+  public static AgentDistributionConfig get() {\n+    return INSTANCE;\n+  }\n+\n+  // Visible for testing\n+  public static void resetForTest() {\n+    INSTANCE = new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance for testing or fallback configuration scenarios.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig create() {\n+    return new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance from ConfigProperties.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig fromConfigProperties(\n+      ConfigProperties configProperties,\n+      boolean indyEnabled,\n+      boolean forceSynchronousAgentListeners,\n+      List<String> excludeClasses,\n+      List<String> excludeClassLoaders) {\n+    return new ConfigPropertiesAgentDistributionConfig(\n+        configProperties,\n+        indyEnabled,\n+        forceSynchronousAgentListeners,\n+        excludeClasses,\n+        excludeClassLoaders);\n+  }\n+\n+  @Initializer\n+  public static void set(AgentDistributionConfig distributionConfig) {\n+    INSTANCE = distributionConfig;\n+  }\n+\n+  @JsonCreator\n+  AgentDistributionConfig(\n+      @JsonProperty(\"indy/development\") Boolean indyEnabled,\n+      @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+          Boolean forceSynchronousAgentListeners,\n+      @JsonProperty(\"exclude_classes\") List<String> excludeClasses,\n+      @JsonProperty(\"exclude_class_loaders\") List<String> excludeClassLoaders,\n+      @JsonProperty(\"instrumentation\") InstrumentationConfig instrumentation) {\n+    this.indyEnabled = indyEnabled != null ? indyEnabled : false;\n+    this.forceSynchronousAgentListeners =\n+        forceSynchronousAgentListeners != null ? forceSynchronousAgentListeners : false;\n+    this.excludeClasses =\n+        excludeClasses != null ? new ArrayList<>(excludeClasses) : new ArrayList<>();\n+    this.excludeClassLoaders =\n+        excludeClassLoaders != null ? new ArrayList<>(excludeClassLoaders) : new ArrayList<>();\n+    this.instrumentation = instrumentation != null ? instrumentation : new InstrumentationConfig();\n+  }\n+\n+  // Default constructor for testing\n+  AgentDistributionConfig() {\n+    this(null, null, null, null, null);\n+  }\n+\n+  /**\n+   * Returns whether the given instrumentation is enabled.\n+   *\n+   * @param instrumentationName the name of the instrumentation\n+   * @return {@code Boolean.TRUE} if the instrumentation is enabled, {@code Boolean.FALSE} if it is\n+   *     disabled, or {@code null} if the default setting should be used\n+   */\n+  @Nullable\n+  public Boolean getInstrumentationEnabled(String instrumentationName) {\n+    String normalizedName = instrumentationName.replace('-', '_');\n+\n+    List<String> disabled = instrumentation.getDisabled();\n+    if (disabled != null && disabled.contains(normalizedName)) {\n+      return false;\n+    }\n+\n+    List<String> enabled = instrumentation.getEnabled();\n+    if (enabled != null && enabled.contains(normalizedName)) {\n+      return true;\n+    }\n+    return null;\n+  }\n+\n+  /**\n+   * Returns whether instrumentations are enabled by default.\n+   *\n+   * @return {@code true} if instrumentations are enabled by default, {@code false} otherwise\n+   */\n+  public boolean isInstrumentationDefaultEnabled() {\n+    return instrumentation.isDefaultEnabled();\n+  }\n+\n+  /**\n+   * Returns whether the given instrumentation is enabled, falling back to the default setting if\n+   * not explicitly configured.\n+   *\n+   * @param instrumentationName the name of the instrumentation\n+   * @return {@code true} if the instrumentation is enabled, {@code false} otherwise\n+   */\n+  public boolean isInstrumentationEnabled(String instrumentationName) {\n+    Boolean enabled = getInstrumentationEnabled(instrumentationName);\n+    if (enabled != null) {\n+      return enabled;\n+    }\n+    return isInstrumentationDefaultEnabled();\n+  }\n+\n+  // Visible for testing\n+  InstrumentationConfig getInstrumentation() {\n+    return instrumentation;\n+  }\n+\n+  public boolean isIndyEnabled() {\n+    return indyEnabled;\n+  }\n+\n+  public boolean isForceSynchronousAgentListeners() {\n+    return forceSynchronousAgentListeners;\n+  }\n+\n+  public List<String> getExcludeClasses() {\n+    return excludeClasses;\n+  }\n+\n+  public List<String> getExcludeClassLoaders() {\n+    return excludeClassLoaders;\n+  }\n+\n+  /**\n+   * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+   * any time.\n+   */\n+  public static class InstrumentationConfig {",
+      "id": "PRRT_kwDODJKVX85ukkIo",
+      "opened": "2026-02-13T22:14:55Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-17T11:34:37Z",
+          "body": "Done - made `InstrumentationConfig` package-private and updated tests to use `isInstrumentationEnabled` instead of accessing the config directly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2816572034"
+        }
+      ],
+      "reviewed": "14f8679b00b53ba38a0514f294a11e2ea305361f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2806250268"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think we only want to support `spring_webmvc` in yaml",
+      "created": "2026-02-13T21:55:45Z",
+      "hunk": "@@ -0,0 +1,15 @@\n+file_format: \"1.0-rc.1\"\n+\n+distribution:\n+  javaagent:\n+    indy/development: true\n+    force_synchronous_agent_listeners/development: false\n+    exclude_classes:\n+      - com.example.excluded.Class1\n+      - com.example.excluded.Class2\n+    exclude_class_loaders:\n+      - com.example.ExcludedClassLoader\n+    instrumentation:\n+      enabled:\n+        - tomcat\n+        - spring-webmvc",
+      "id": "PRRT_kwDODJKVX85uknu0",
+      "opened": "2026-02-13T22:14:55Z",
+      "path": "javaagent-tooling/src/testDistributionConfig/resources/distribution-config.yaml",
+      "replies": [
+        {
+          "at": "2026-02-17T11:34:38Z",
+          "body": "Done - changed to `spring_webmvc` (underscore) in the yaml config.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2816572114"
+        }
+      ],
+      "reviewed": "14f8679b00b53ba38a0514f294a11e2ea305361f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2806270016"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think `getInstrumentationEnabled`/`isInstrumentationDefaultEnabled`/`isInstrumentationEnabled`\n\ncould be combined into a single:\n\nboolean isInstrumentationEnabled(Iterable<String> names, boolean defaultEnabled)\n\nwhich I think would be simpler from API contract perspective",
+      "created": "2026-02-13T22:14:37Z",
+      "hunk": "@@ -0,0 +1,252 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import com.fasterxml.jackson.annotation.JsonCreator;\n+import com.fasterxml.jackson.annotation.JsonProperty;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentDistributionConfig {\n+  @SuppressWarnings(\"ConstantField\") // needs to be mutable for @Initializer\n+  private static AgentDistributionConfig INSTANCE = new AgentDistributionConfig();\n+\n+  @JsonProperty(\"indy/development\")\n+  private final boolean indyEnabled;\n+\n+  // This property may be set to force synchronous AgentListener#afterAgent() execution: the\n+  // condition for delaying the AgentListener initialization is pretty broad and in case it covers\n+  // too much javaagent users can file a bug, force sync execution by setting this property to true\n+  // and continue using the javaagent\n+  @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+  private final boolean forceSynchronousAgentListeners;\n+\n+  @JsonProperty(\"exclude_classes\")\n+  private final List<String> excludeClasses;\n+\n+  @JsonProperty(\"exclude_class_loaders\")\n+  private final List<String> excludeClassLoaders;\n+\n+  @JsonProperty(\"instrumentation\")\n+  private final InstrumentationConfig instrumentation;\n+\n+  public static AgentDistributionConfig get() {\n+    return INSTANCE;\n+  }\n+\n+  // Visible for testing\n+  public static void resetForTest() {\n+    INSTANCE = new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance for testing or fallback configuration scenarios.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig create() {\n+    return new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance from ConfigProperties.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig fromConfigProperties(\n+      ConfigProperties configProperties,\n+      boolean indyEnabled,\n+      boolean forceSynchronousAgentListeners,\n+      List<String> excludeClasses,\n+      List<String> excludeClassLoaders) {\n+    return new ConfigPropertiesAgentDistributionConfig(\n+        configProperties,\n+        indyEnabled,\n+        forceSynchronousAgentListeners,\n+        excludeClasses,\n+        excludeClassLoaders);\n+  }\n+\n+  @Initializer\n+  public static void set(AgentDistributionConfig distributionConfig) {\n+    INSTANCE = distributionConfig;\n+  }\n+\n+  @JsonCreator\n+  AgentDistributionConfig(\n+      @JsonProperty(\"indy/development\") Boolean indyEnabled,\n+      @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+          Boolean forceSynchronousAgentListeners,\n+      @JsonProperty(\"exclude_classes\") List<String> excludeClasses,\n+      @JsonProperty(\"exclude_class_loaders\") List<String> excludeClassLoaders,\n+      @JsonProperty(\"instrumentation\") InstrumentationConfig instrumentation) {\n+    this.indyEnabled = indyEnabled != null ? indyEnabled : false;\n+    this.forceSynchronousAgentListeners =\n+        forceSynchronousAgentListeners != null ? forceSynchronousAgentListeners : false;\n+    this.excludeClasses =\n+        excludeClasses != null ? new ArrayList<>(excludeClasses) : new ArrayList<>();\n+    this.excludeClassLoaders =\n+        excludeClassLoaders != null ? new ArrayList<>(excludeClassLoaders) : new ArrayList<>();\n+    this.instrumentation = instrumentation != null ? instrumentation : new InstrumentationConfig();\n+  }\n+\n+  // Default constructor for testing\n+  AgentDistributionConfig() {\n+    this(null, null, null, null, null);\n+  }\n+\n+  /**\n+   * Returns whether the given instrumentation is enabled.\n+   *\n+   * @param instrumentationName the name of the instrumentation\n+   * @return {@code Boolean.TRUE} if the instrumentation is enabled, {@code Boolean.FALSE} if it is\n+   *     disabled, or {@code null} if the default setting should be used\n+   */\n+  @Nullable\n+  public Boolean getInstrumentationEnabled(String instrumentationName) {\n+    String normalizedName = instrumentationName.replace('-', '_');\n+\n+    List<String> disabled = instrumentation.getDisabled();\n+    if (disabled != null && disabled.contains(normalizedName)) {\n+      return false;\n+    }\n+\n+    List<String> enabled = instrumentation.getEnabled();\n+    if (enabled != null && enabled.contains(normalizedName)) {\n+      return true;\n+    }\n+    return null;\n+  }\n+\n+  /**\n+   * Returns whether instrumentations are enabled by default.\n+   *\n+   * @return {@code true} if instrumentations are enabled by default, {@code false} otherwise\n+   */\n+  public boolean isInstrumentationDefaultEnabled() {\n+    return instrumentation.isDefaultEnabled();\n+  }\n+\n+  /**\n+   * Returns whether the given instrumentation is enabled, falling back to the default setting if\n+   * not explicitly configured.\n+   *\n+   * @param instrumentationName the name of the instrumentation\n+   * @return {@code true} if the instrumentation is enabled, {@code false} otherwise\n+   */\n+  public boolean isInstrumentationEnabled(String instrumentationName) {",
+      "id": "PRRT_kwDODJKVX85ukxRN",
+      "opened": "2026-02-13T22:14:55Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-17T11:34:39Z",
+          "body": "Done in earlier commit - replaced all three methods with a single `isInstrumentationEnabled(Iterable<String>, boolean)`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2816572201"
+        }
+      ],
+      "reviewed": "14f8679b00b53ba38a0514f294a11e2ea305361f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2806321052"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "what happens if yaml doesn't match AgentDistributionConfig?",
+      "created": "2026-02-17T21:53:55Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.config;\n+\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionModel;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionPropertyModel;\n+\n+/**\n+ * Allows access to the Javaagent distribution node, which cannot be accessed using the {@link\n+ * ConfigProvider} API.\n+ */\n+@AutoService(DeclarativeConfigurationCustomizerProvider.class)\n+public final class JavaagentDistributionAccessCustomizerProvider\n+    implements DeclarativeConfigurationCustomizerProvider {\n+\n+  private static final ObjectMapper MAPPER = new ObjectMapper();\n+\n+  @Override\n+  public void customize(DeclarativeConfigurationCustomizer customizer) {\n+    customizer.addModelCustomizer(\n+        model -> {\n+          DistributionModel distribution = model.getDistribution();\n+          if (distribution != null) {\n+            DistributionPropertyModel javaagent =\n+                distribution.getAdditionalProperties().get(\"javaagent\");\n+            if (javaagent != null) {\n+              AgentDistributionConfig.set(\n+                  MAPPER.convertValue(javaagent, AgentDistributionConfig.class));",
+      "id": "PRRT_kwDODJKVX85vKEuw",
+      "opened": "2026-02-17T22:34:57Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-02-18T18:30:49Z",
+          "body": "Added `FAIL_ON_UNKNOWN_PROPERTIES = false` so unknown yaml fields are silently ignored.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2823830655"
+        },
+        {
+          "at": "2026-02-18T20:08:06Z",
+          "body": "Can we warn on unknown properties?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2824231942"
+        },
+        {
+          "at": "2026-02-20T11:06:16Z",
+          "body": "Done in previous commit — replaced `FAIL_ON_UNKNOWN_PROPERTIES = false` with a `DeserializationProblemHandler` that logs warnings for unknown distribution.javaagent properties.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2832666638"
+        }
+      ],
+      "reviewed": "fbd9c62442b0bb5977bee5967533e112ed9c7870",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2819261690"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "do we need any of the upstream's ObjectMapper settings?",
+      "created": "2026-02-17T21:54:35Z",
+      "hunk": "@@ -0,0 +1,43 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.config;\n+\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionModel;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionPropertyModel;\n+\n+/**\n+ * Allows access to the Javaagent distribution node, which cannot be accessed using the {@link\n+ * ConfigProvider} API.\n+ */\n+@AutoService(DeclarativeConfigurationCustomizerProvider.class)\n+public final class JavaagentDistributionAccessCustomizerProvider\n+    implements DeclarativeConfigurationCustomizerProvider {\n+\n+  private static final ObjectMapper MAPPER = new ObjectMapper();",
+      "id": "PRRT_kwDODJKVX85vKFLf",
+      "opened": "2026-02-17T22:34:57Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-02-18T18:30:55Z",
+          "body": "The upstream settings (JsonSetter for null handling) apply to the full model parsing. Here we're using `convertValue` on an already-parsed `DistributionPropertyModel`, so those settings aren't needed. Added `FAIL_ON_UNKNOWN_PROPERTIES = false` to handle unknown fields gracefully.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2823830937"
+        },
+        {
+          "at": "2026-02-18T20:07:26Z",
+          "body": "~can we warn on unknown properties?~ moving comment to above discussion instead",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2824229001"
+        },
+        {
+          "at": "2026-02-20T18:48:18Z",
+          "body": "Already addressed — DeserializationProblemHandler with warning logging was added.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2834628246"
+        }
+      ],
+      "reviewed": "fbd9c62442b0bb5977bee5967533e112ed9c7870",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2819264113"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is hardcoded `true` correct here?",
+      "created": "2026-02-17T21:57:56Z",
+      "hunk": "@@ -54,18 +52,6 @@ public void handleApplicationReadyEvent(ApplicationReadyEvent event) {\n     logger.debug(\"Use runtime metrics instrumentation for Java 17+\");\n     this.closeable =\n         RuntimeMetricsConfigUtil.configure(\n-            RuntimeMetrics.builder(openTelemetry),\n-            openTelemetry,\n-            instrumentationMode(openTelemetry));\n-  }\n-\n-  private static String instrumentationMode(OpenTelemetry openTelemetry) {\n-    String mode =\n-        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"spring_starter\")\n-            .getString(\"instrumentation_mode\", \"default\");\n-    if (!mode.equals(\"default\") && !mode.equals(\"none\")) {\n-      throw new ConfigurationException(\"Unknown instrumentation mode: \" + mode);\n-    }\n-    return mode;\n+            RuntimeMetrics.builder(openTelemetry), openTelemetry, true);",
+      "id": "PRRT_kwDODJKVX85vKHUP",
+      "opened": "2026-02-17T22:34:57Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/runtimemetrics/Java17RuntimeMetricsAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-02-18T18:30:57Z",
+          "body": "Yes — `@ConditionalOnEnabledInstrumentation(module = \"runtime-telemetry\")` already gates whether this bean is created. The `defaultEnabled=true` here is just the fallback for the nested `runtime_telemetry.enabled` key in declarative config.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2823831028"
+        }
+      ],
+      "reviewed": "fbd9c62442b0bb5977bee5967533e112ed9c7870",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2819275333"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "and here?",
+      "created": "2026-02-17T21:58:03Z",
+      "hunk": "@@ -54,18 +52,6 @@ public void handleApplicationReadyEvent(ApplicationReadyEvent event) {\n     logger.debug(\"Use runtime metrics instrumentation for Java 8\");\n     this.closeable =\n         RuntimeMetricsConfigUtil.configure(\n-            RuntimeMetrics.builder(openTelemetry),\n-            openTelemetry,\n-            instrumentationMode(openTelemetry));\n-  }\n-\n-  private static String instrumentationMode(OpenTelemetry openTelemetry) {\n-    String mode =\n-        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"spring_starter\")\n-            .getString(\"instrumentation_mode\", \"default\");\n-    if (!mode.equals(\"default\") && !mode.equals(\"none\")) {\n-      throw new ConfigurationException(\"Unknown instrumentation mode: \" + mode);\n-    }\n-    return mode;\n+            RuntimeMetrics.builder(openTelemetry), openTelemetry, true);",
+      "id": "PRRT_kwDODJKVX85vKHZR",
+      "opened": "2026-02-17T22:34:57Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/runtimemetrics/Java8RuntimeMetricsAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-02-18T18:30:58Z",
+          "body": "Same as above — the annotation already handles the enable/disable check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2823831099"
+        }
+      ],
+      "reviewed": "fbd9c62442b0bb5977bee5967533e112ed9c7870",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2819275735"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "currently behavior depends on ordering of `names` which seems fragile, e.g. for\n\n```yaml\ndistribution:\n  javaagent:\n    instrumentation:\n      enabled:\n        - armeria          # user wants all armeria enabled\n      disabled:\n        - armeria_grpc     # but wants gRPC part off\n```\n\nand\n\n```\n// names = [\"armeria-grpc\", \"armeria-grpc-1.14\", \"armeria\", \"armeria-1.14\"]\nconfig.isInstrumentationEnabled(names, true);\n```\n",
+      "created": "2026-02-17T22:05:09Z",
+      "hunk": "@@ -0,0 +1,238 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import com.fasterxml.jackson.annotation.JsonCreator;\n+import com.fasterxml.jackson.annotation.JsonProperty;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.util.ArrayList;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Set;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentDistributionConfig {\n+  @SuppressWarnings(\"ConstantField\") // needs to be mutable for @Initializer\n+  private static volatile AgentDistributionConfig INSTANCE = new AgentDistributionConfig();\n+\n+  @JsonProperty(\"indy/development\")\n+  private final boolean indyEnabled;\n+\n+  // This property may be set to force synchronous AgentListener#afterAgent() execution: the\n+  // condition for delaying the AgentListener initialization is pretty broad and in case it covers\n+  // too much javaagent users can file a bug, force sync execution by setting this property to true\n+  // and continue using the javaagent\n+  @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+  private final boolean forceSynchronousAgentListeners;\n+\n+  @JsonProperty(\"exclude_classes\")\n+  private final List<String> excludeClasses;\n+\n+  @JsonProperty(\"exclude_class_loaders\")\n+  private final List<String> excludeClassLoaders;\n+\n+  @JsonProperty(\"instrumentation\")\n+  private final InstrumentationConfig instrumentation;\n+\n+  public static AgentDistributionConfig get() {\n+    return INSTANCE;\n+  }\n+\n+  // Visible for testing\n+  public static void resetForTest() {\n+    INSTANCE = new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance for testing or fallback configuration scenarios.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig create() {\n+    return new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance from ConfigProperties.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig fromConfigProperties(\n+      ConfigProperties configProperties,\n+      boolean indyEnabled,\n+      boolean forceSynchronousAgentListeners,\n+      List<String> excludeClasses,\n+      List<String> excludeClassLoaders) {\n+    return new ConfigPropertiesAgentDistributionConfig(\n+        configProperties,\n+        indyEnabled,\n+        forceSynchronousAgentListeners,\n+        excludeClasses,\n+        excludeClassLoaders);\n+  }\n+\n+  @Initializer\n+  public static void set(AgentDistributionConfig distributionConfig) {\n+    INSTANCE = distributionConfig;\n+  }\n+\n+  @JsonCreator\n+  AgentDistributionConfig(\n+      @JsonProperty(\"indy/development\") Boolean indyEnabled,\n+      @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+          Boolean forceSynchronousAgentListeners,\n+      @JsonProperty(\"exclude_classes\") List<String> excludeClasses,\n+      @JsonProperty(\"exclude_class_loaders\") List<String> excludeClassLoaders,\n+      @JsonProperty(\"instrumentation\") InstrumentationConfig instrumentation) {\n+    this.indyEnabled = indyEnabled != null ? indyEnabled : false;\n+    this.forceSynchronousAgentListeners =\n+        forceSynchronousAgentListeners != null ? forceSynchronousAgentListeners : false;\n+    this.excludeClasses =\n+        excludeClasses != null ? new ArrayList<>(excludeClasses) : new ArrayList<>();\n+    this.excludeClassLoaders =\n+        excludeClassLoaders != null ? new ArrayList<>(excludeClassLoaders) : new ArrayList<>();\n+    this.instrumentation = instrumentation != null ? instrumentation : new InstrumentationConfig();\n+  }\n+\n+  // Default constructor for testing\n+  AgentDistributionConfig() {\n+    this(null, null, null, null, null);\n+  }\n+\n+  /**\n+   * Returns whether instrumentations are enabled by default.\n+   *\n+   * @return {@code true} if instrumentations are enabled by default, {@code false} otherwise\n+   */\n+  public boolean isInstrumentationDefaultEnabled() {\n+    return instrumentation.isDefaultEnabled();\n+  }\n+\n+  /**\n+   * Returns whether any of the given instrumentations is enabled, falling back to {@code\n+   * defaultEnabled} if none of the names are explicitly configured.\n+   *\n+   * @param names the instrumentation names to check (first match wins)\n+   * @param defaultEnabled the default to use if no name is explicitly configured\n+   * @return {@code true} if the instrumentation is enabled, {@code false} otherwise\n+   */\n+  public boolean isInstrumentationEnabled(Iterable<String> names, boolean defaultEnabled) {\n+    for (String name : names) {\n+      String normalizedName = name.replace('-', '_');\n+\n+      if (instrumentation.getDisabled().contains(normalizedName)) {\n+        return false;\n+      }\n+\n+      if (instrumentation.getEnabled().contains(normalizedName)) {\n+        return true;\n+      }\n+    }\n+    return defaultEnabled;\n+  }",
+      "id": "PRRT_kwDODJKVX85vKL5z",
+      "opened": "2026-02-17T22:34:57Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-18T18:30:59Z",
+          "body": "Changed to check all names against disabled first, then all names against enabled — so disabled always takes priority regardless of name ordering. Added a test for the armeria/armeria_grpc scenario.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2823831188"
+        }
+      ],
+      "reviewed": "fbd9c62442b0bb5977bee5967533e112ed9c7870",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2819299481"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // from the distribution.javaagent YAML node\n```",
+      "created": "2026-02-17T22:16:42Z",
+      "hunk": "@@ -34,13 +37,25 @@ public static AutoConfiguredOpenTelemetrySdk installOpenTelemetrySdk(\n             .build();\n     OpenTelemetrySdk sdk = autoConfiguredSdk.getOpenTelemetrySdk();\n     ConfigProperties configProperties = AutoConfigureUtil.getConfig(autoConfiguredSdk);\n-    if (configProperties != null) {\n+    boolean declarativeConfigUsed = configProperties == null;\n+\n+    if (!declarativeConfigUsed) {\n       // Provide a fake declarative configuration based on config properties\n       // so that declarative configuration API can be used everywhere\n       sdk =\n           new ExtendedOpenTelemetrySdkWrapper(\n               sdk, ConfigPropertiesBackedConfigProvider.create(configProperties));\n+      AgentDistributionConfig.set(\n+          AgentDistributionConfig.fromConfigProperties(\n+              configProperties,\n+              configProperties.getBoolean(\"otel.javaagent.experimental.indy\", false),\n+              configProperties.getBoolean(\n+                  \"otel.javaagent.experimental.force-synchronous-agent-listeners\", false),\n+              configProperties.getList(\"otel.javaagent.exclude-classes\", emptyList()),\n+              configProperties.getList(\"otel.javaagent.exclude-class-loaders\", emptyList())));\n     }\n+    // else: AgentDistributionConfig is set by JavaagentDistributionAccessCustomizerProvider\n+    // and instrumentation enabled checks are computed from the InstrumentationConfig",
+      "id": "PRRT_kwDODJKVX85vKTJC",
+      "opened": "2026-02-17T22:34:57Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/OpenTelemetryInstaller.java",
+      "replies": [
+        {
+          "at": "2026-02-18T18:31:01Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2823831307"
+        }
+      ],
+      "reviewed": "fbd9c62442b0bb5977bee5967533e112ed9c7870",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2819338612"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "maybe pass only `configProperties` and read the fields inside?",
+      "created": "2026-02-17T22:21:42Z",
+      "hunk": "@@ -34,13 +37,25 @@ public static AutoConfiguredOpenTelemetrySdk installOpenTelemetrySdk(\n             .build();\n     OpenTelemetrySdk sdk = autoConfiguredSdk.getOpenTelemetrySdk();\n     ConfigProperties configProperties = AutoConfigureUtil.getConfig(autoConfiguredSdk);\n-    if (configProperties != null) {\n+    boolean declarativeConfigUsed = configProperties == null;\n+\n+    if (!declarativeConfigUsed) {\n       // Provide a fake declarative configuration based on config properties\n       // so that declarative configuration API can be used everywhere\n       sdk =\n           new ExtendedOpenTelemetrySdkWrapper(\n               sdk, ConfigPropertiesBackedConfigProvider.create(configProperties));\n+      AgentDistributionConfig.set(\n+          AgentDistributionConfig.fromConfigProperties(\n+              configProperties,\n+              configProperties.getBoolean(\"otel.javaagent.experimental.indy\", false),\n+              configProperties.getBoolean(\n+                  \"otel.javaagent.experimental.force-synchronous-agent-listeners\", false),\n+              configProperties.getList(\"otel.javaagent.exclude-classes\", emptyList()),\n+              configProperties.getList(\"otel.javaagent.exclude-class-loaders\", emptyList())));",
+      "id": "PRRT_kwDODJKVX85vKWCp",
+      "opened": "2026-02-17T22:34:57Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/OpenTelemetryInstaller.java",
+      "replies": [
+        {
+          "at": "2026-02-18T18:31:03Z",
+          "body": "Done — `fromConfigProperties` now takes only `ConfigProperties` and reads the fields inside.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2823831411"
+        }
+      ],
+      "reviewed": "fbd9c62442b0bb5977bee5967533e112ed9c7870",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2819354225"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "maybe worth an overload\n```suggestion\n    if (!config.isInstrumentationEnabled(Collections.singletonList(\"oshi\"))) {\n```",
+      "created": "2026-02-17T22:33:27Z",
+      "hunk": "@@ -21,11 +21,9 @@ public class OshiMetricsInstaller implements AgentListener {\n \n   @Override\n   public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredSdk) {\n-    boolean enabled =\n-        DeclarativeConfigUtil.getInstrumentationConfig(\n-                autoConfiguredSdk.getOpenTelemetrySdk(), \"oshi\")\n-            .getBoolean(\"enabled\", AgentConfig.instrumentationMode().equals(\"default\"));\n-    if (!enabled) {\n+    AgentDistributionConfig config = AgentDistributionConfig.get();\n+    if (!config.isInstrumentationEnabled(\n+        Collections.singletonList(\"oshi\"), config.isInstrumentationDefaultEnabled())) {",
+      "id": "PRRT_kwDODJKVX85vKc9X",
+      "opened": "2026-02-17T22:34:57Z",
+      "path": "instrumentation/oshi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oshi/OshiMetricsInstaller.java",
+      "replies": [
+        {
+          "at": "2026-02-18T18:31:04Z",
+          "body": "Added `isInstrumentationEnabled(String, boolean)` overload. Updated `OshiMetricsInstaller` to use it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2823831505"
+        },
+        {
+          "at": "2026-02-18T19:47:35Z",
+          "body": "oh, what I meant was overload to not pass in the `boolean`, since that's already available in the caller",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2824147431"
+        },
+        {
+          "at": "2026-02-20T11:06:15Z",
+          "body": "Done — added `isInstrumentationEnabled(String)` overload that uses `isInstrumentationDefaultEnabled()` internally. Updated `OshiMetricsInstaller` to use it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2832666564"
+        }
+      ],
+      "reviewed": "fbd9c62442b0bb5977bee5967533e112ed9c7870",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2819391173"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "worth a test case for https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822/changes#r2819299481\n\nso whatever we decide we won't break later by accident",
+      "created": "2026-02-17T22:34:46Z",
+      "hunk": "@@ -0,0 +1,70 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.javaagent.tooling.OpenTelemetryInstaller;\n+import java.util.Collections;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+\n+class AgentDistributionConfigTest {\n+\n+  @BeforeAll\n+  static void setUp() {\n+    // Initialize OpenTelemetry SDK to load declarative configuration\n+    OpenTelemetryInstaller.installOpenTelemetrySdk(\n+        AgentDistributionConfigTest.class.getClassLoader());\n+  }\n+\n+  @Test\n+  void testIndyDevelopmentProperty() {\n+    assertThat(AgentDistributionConfig.get().isIndyEnabled()).isTrue();\n+  }\n+\n+  @Test\n+  void testForceSynchronousAgentListeners() {\n+    assertThat(AgentDistributionConfig.get().isForceSynchronousAgentListeners()).isFalse();\n+  }\n+\n+  @Test\n+  void testExcludeClasses() {\n+    assertThat(AgentDistributionConfig.get().getExcludeClasses())\n+        .containsExactly(\"com.example.excluded.Class1\", \"com.example.excluded.Class2\");\n+  }\n+\n+  @Test\n+  void testExcludeClassLoaders() {\n+    assertThat(AgentDistributionConfig.get().getExcludeClassLoaders())\n+        .containsExactly(\"com.example.ExcludedClassLoader\");\n+  }\n+\n+  @Test\n+  void testInstrumentationDefaultEnabledByDefault() {\n+    assertThat(AgentDistributionConfig.get().isInstrumentationDefaultEnabled()).isTrue();\n+  }\n+\n+  @Test\n+  void testInstrumentationEnabled() {\n+    AgentDistributionConfig config = AgentDistributionConfig.get();\n+    assertThat(config.isInstrumentationEnabled(Collections.singletonList(\"tomcat\"), false))\n+        .isTrue();\n+    assertThat(config.isInstrumentationEnabled(Collections.singletonList(\"spring_webmvc\"), false))\n+        .isTrue();\n+    assertThat(config.isInstrumentationEnabled(Collections.singletonList(\"unknown\"), false))\n+        .isFalse();\n+  }",
+      "id": "PRRT_kwDODJKVX85vKdw-",
+      "opened": "2026-02-17T22:34:57Z",
+      "path": "javaagent-tooling/src/testDistributionConfig/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-02-18T18:31:05Z",
+          "body": "Added `testDisabledTakesPriorityOverEnabled` — tests both name orderings to verify disabled always wins.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2823831591"
+        }
+      ],
+      "reviewed": "fbd9c62442b0bb5977bee5967533e112ed9c7870",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2819395336"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "maybe worth initializing INSTANCE to `null` and throwing exception here if accessed too early (so we don't miss if we're doing that)?",
+      "created": "2026-02-18T19:53:39Z",
+      "hunk": "@@ -0,0 +1,242 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import com.fasterxml.jackson.annotation.JsonCreator;\n+import com.fasterxml.jackson.annotation.JsonProperty;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Set;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentDistributionConfig {\n+  @SuppressWarnings(\"ConstantField\") // needs to be mutable for @Initializer\n+  private static volatile AgentDistributionConfig INSTANCE = new AgentDistributionConfig();\n+\n+  @JsonProperty(\"indy/development\")\n+  private final boolean indyEnabled;\n+\n+  // This property may be set to force synchronous AgentListener#afterAgent() execution: the\n+  // condition for delaying the AgentListener initialization is pretty broad and in case it covers\n+  // too much javaagent users can file a bug, force sync execution by setting this property to true\n+  // and continue using the javaagent\n+  @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+  private final boolean forceSynchronousAgentListeners;\n+\n+  @JsonProperty(\"exclude_classes\")\n+  private final List<String> excludeClasses;\n+\n+  @JsonProperty(\"exclude_class_loaders\")\n+  private final List<String> excludeClassLoaders;\n+\n+  @JsonProperty(\"instrumentation\")\n+  private final InstrumentationConfig instrumentation;\n+\n+  public static AgentDistributionConfig get() {\n+    return INSTANCE;",
+      "id": "PRRT_kwDODJKVX85vYL4n",
+      "opened": "2026-02-18T20:06:25Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-20T11:06:10Z",
+          "body": "Done — INSTANCE is now initialized to `null` and `get()` throws `IllegalStateException` if accessed before `set()`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2832666332"
+        }
+      ],
+      "reviewed": "7d25aa262874de53b55e3e6e3b70eac117bd3844",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2824172308"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "and maybe worth throwing exception if INSTANCE is not null, to make sure we're not accidentally doing it twice?",
+      "created": "2026-02-18T19:54:02Z",
+      "hunk": "@@ -0,0 +1,242 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import com.fasterxml.jackson.annotation.JsonCreator;\n+import com.fasterxml.jackson.annotation.JsonProperty;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Set;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentDistributionConfig {\n+  @SuppressWarnings(\"ConstantField\") // needs to be mutable for @Initializer\n+  private static volatile AgentDistributionConfig INSTANCE = new AgentDistributionConfig();\n+\n+  @JsonProperty(\"indy/development\")\n+  private final boolean indyEnabled;\n+\n+  // This property may be set to force synchronous AgentListener#afterAgent() execution: the\n+  // condition for delaying the AgentListener initialization is pretty broad and in case it covers\n+  // too much javaagent users can file a bug, force sync execution by setting this property to true\n+  // and continue using the javaagent\n+  @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+  private final boolean forceSynchronousAgentListeners;\n+\n+  @JsonProperty(\"exclude_classes\")\n+  private final List<String> excludeClasses;\n+\n+  @JsonProperty(\"exclude_class_loaders\")\n+  private final List<String> excludeClassLoaders;\n+\n+  @JsonProperty(\"instrumentation\")\n+  private final InstrumentationConfig instrumentation;\n+\n+  public static AgentDistributionConfig get() {\n+    return INSTANCE;\n+  }\n+\n+  // Visible for testing\n+  public static void resetForTest() {\n+    INSTANCE = new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance for testing or fallback configuration scenarios.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig create() {\n+    return new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance from ConfigProperties.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig fromConfigProperties(ConfigProperties configProperties) {\n+    return new ConfigPropertiesAgentDistributionConfig(configProperties);\n+  }\n+\n+  @Initializer\n+  public static void set(AgentDistributionConfig distributionConfig) {\n+    INSTANCE = distributionConfig;",
+      "id": "PRRT_kwDODJKVX85vYMLB",
+      "opened": "2026-02-18T20:06:25Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-20T11:06:11Z",
+          "body": "Done — `set()` now throws `IllegalStateException` if INSTANCE is already set.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2832666415"
+        }
+      ],
+      "reviewed": "7d25aa262874de53b55e3e6e3b70eac117bd3844",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2824173848"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  // Only used by tests\n```",
+      "created": "2026-02-18T19:54:52Z",
+      "hunk": "@@ -0,0 +1,242 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import com.fasterxml.jackson.annotation.JsonCreator;\n+import com.fasterxml.jackson.annotation.JsonProperty;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Set;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentDistributionConfig {\n+  @SuppressWarnings(\"ConstantField\") // needs to be mutable for @Initializer\n+  private static volatile AgentDistributionConfig INSTANCE = new AgentDistributionConfig();\n+\n+  @JsonProperty(\"indy/development\")\n+  private final boolean indyEnabled;\n+\n+  // This property may be set to force synchronous AgentListener#afterAgent() execution: the\n+  // condition for delaying the AgentListener initialization is pretty broad and in case it covers\n+  // too much javaagent users can file a bug, force sync execution by setting this property to true\n+  // and continue using the javaagent\n+  @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+  private final boolean forceSynchronousAgentListeners;\n+\n+  @JsonProperty(\"exclude_classes\")\n+  private final List<String> excludeClasses;\n+\n+  @JsonProperty(\"exclude_class_loaders\")\n+  private final List<String> excludeClassLoaders;\n+\n+  @JsonProperty(\"instrumentation\")\n+  private final InstrumentationConfig instrumentation;\n+\n+  public static AgentDistributionConfig get() {\n+    return INSTANCE;\n+  }\n+\n+  // Visible for testing",
+      "id": "PRRT_kwDODJKVX85vYMvR",
+      "opened": "2026-02-18T20:06:25Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-20T11:06:12Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2832666472"
+        }
+      ],
+      "reviewed": "7d25aa262874de53b55e3e6e3b70eac117bd3844",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2824176900"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  // Only used by tests\n```",
+      "created": "2026-02-18T19:55:16Z",
+      "hunk": "@@ -0,0 +1,242 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import com.fasterxml.jackson.annotation.JsonCreator;\n+import com.fasterxml.jackson.annotation.JsonProperty;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Set;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentDistributionConfig {\n+  @SuppressWarnings(\"ConstantField\") // needs to be mutable for @Initializer\n+  private static volatile AgentDistributionConfig INSTANCE = new AgentDistributionConfig();\n+\n+  @JsonProperty(\"indy/development\")\n+  private final boolean indyEnabled;\n+\n+  // This property may be set to force synchronous AgentListener#afterAgent() execution: the\n+  // condition for delaying the AgentListener initialization is pretty broad and in case it covers\n+  // too much javaagent users can file a bug, force sync execution by setting this property to true\n+  // and continue using the javaagent\n+  @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+  private final boolean forceSynchronousAgentListeners;\n+\n+  @JsonProperty(\"exclude_classes\")\n+  private final List<String> excludeClasses;\n+\n+  @JsonProperty(\"exclude_class_loaders\")\n+  private final List<String> excludeClassLoaders;\n+\n+  @JsonProperty(\"instrumentation\")\n+  private final InstrumentationConfig instrumentation;\n+\n+  public static AgentDistributionConfig get() {\n+    return INSTANCE;\n+  }\n+\n+  // Visible for testing\n+  public static void resetForTest() {\n+    INSTANCE = new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance for testing or fallback configuration scenarios.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig create() {\n+    return new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance from ConfigProperties.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig fromConfigProperties(ConfigProperties configProperties) {\n+    return new ConfigPropertiesAgentDistributionConfig(configProperties);\n+  }\n+\n+  @Initializer\n+  public static void set(AgentDistributionConfig distributionConfig) {\n+    INSTANCE = distributionConfig;\n+  }\n+\n+  @JsonCreator\n+  AgentDistributionConfig(\n+      @JsonProperty(\"indy/development\") Boolean indyEnabled,\n+      @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+          Boolean forceSynchronousAgentListeners,\n+      @JsonProperty(\"exclude_classes\") List<String> excludeClasses,\n+      @JsonProperty(\"exclude_class_loaders\") List<String> excludeClassLoaders,\n+      @JsonProperty(\"instrumentation\") InstrumentationConfig instrumentation) {\n+    this.indyEnabled = indyEnabled != null ? indyEnabled : false;\n+    this.forceSynchronousAgentListeners =\n+        forceSynchronousAgentListeners != null ? forceSynchronousAgentListeners : false;\n+    this.excludeClasses =\n+        excludeClasses != null ? new ArrayList<>(excludeClasses) : new ArrayList<>();\n+    this.excludeClassLoaders =\n+        excludeClassLoaders != null ? new ArrayList<>(excludeClassLoaders) : new ArrayList<>();\n+    this.instrumentation = instrumentation != null ? instrumentation : new InstrumentationConfig();\n+  }\n+\n+  // Default constructor for testing\n+  AgentDistributionConfig() {\n+    this(null, null, null, null, null);\n+  }\n+\n+  /**\n+   * Returns whether instrumentations are enabled by default.\n+   *\n+   * @return {@code true} if instrumentations are enabled by default, {@code false} otherwise\n+   */\n+  public boolean isInstrumentationDefaultEnabled() {\n+    return instrumentation.isDefaultEnabled();\n+  }\n+\n+  /**\n+   * Returns whether any of the given instrumentations is enabled, falling back to {@code\n+   * defaultEnabled} if none of the names are explicitly configured.\n+   *\n+   * <p>Disabled takes priority over enabled: if any name matches the disabled list, the\n+   * instrumentation is disabled regardless of the enabled list.\n+   *\n+   * @param names the instrumentation names to check\n+   * @param defaultEnabled the default to use if no name is explicitly configured\n+   * @return {@code true} if the instrumentation is enabled, {@code false} otherwise\n+   */\n+  public boolean isInstrumentationEnabled(Iterable<String> names, boolean defaultEnabled) {\n+    for (String name : names) {\n+      String normalizedName = name.replace('-', '_');\n+      if (instrumentation.getDisabled().contains(normalizedName)) {\n+        return false;\n+      }\n+    }\n+    for (String name : names) {\n+      String normalizedName = name.replace('-', '_');\n+      if (instrumentation.getEnabled().contains(normalizedName)) {\n+        return true;\n+      }\n+    }\n+    return defaultEnabled;\n+  }\n+\n+  /**\n+   * Returns whether the given instrumentation is enabled, falling back to {@code defaultEnabled} if\n+   * not explicitly configured.\n+   */\n+  public boolean isInstrumentationEnabled(String name, boolean defaultEnabled) {\n+    return isInstrumentationEnabled(Collections.singletonList(name), defaultEnabled);\n+  }\n+\n+  // Visible for testing",
+      "id": "PRRT_kwDODJKVX85vYND2",
+      "opened": "2026-02-18T20:06:25Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-20T11:06:14Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2832666519"
+        }
+      ],
+      "reviewed": "7d25aa262874de53b55e3e6e3b70eac117bd3844",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2824178564"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this seems incorrect?\n```suggestion\n```",
+      "created": "2026-02-18T20:01:36Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.javaagent.tooling.OpenTelemetryInstaller;\n+import java.util.Arrays;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+\n+class AgentDistributionConfigTest {\n+\n+  @BeforeAll\n+  static void setUp() {\n+    // Initialize OpenTelemetry SDK to load declarative configuration\n+    OpenTelemetryInstaller.installOpenTelemetrySdk(\n+        AgentDistributionConfigTest.class.getClassLoader());\n+  }\n+\n+  @Test\n+  void testIndyDevelopmentProperty() {\n+    assertThat(AgentDistributionConfig.get().isIndyEnabled()).isTrue();\n+  }\n+\n+  @Test\n+  void testForceSynchronousAgentListeners() {\n+    assertThat(AgentDistributionConfig.get().isForceSynchronousAgentListeners()).isFalse();\n+  }\n+\n+  @Test\n+  void testExcludeClasses() {\n+    assertThat(AgentDistributionConfig.get().getExcludeClasses())\n+        .containsExactly(\"com.example.excluded.Class1\", \"com.example.excluded.Class2\");\n+  }\n+\n+  @Test\n+  void testExcludeClassLoaders() {\n+    assertThat(AgentDistributionConfig.get().getExcludeClassLoaders())\n+        .containsExactly(\"com.example.ExcludedClassLoader\");\n+  }\n+\n+  @Test\n+  void testInstrumentationDefaultEnabledByDefault() {\n+    assertThat(AgentDistributionConfig.get().isInstrumentationDefaultEnabled()).isTrue();\n+  }\n+\n+  @Test\n+  void testInstrumentationEnabled() {\n+    AgentDistributionConfig config = AgentDistributionConfig.get();\n+    assertThat(config.isInstrumentationEnabled(\"tomcat\", false)).isTrue();\n+    assertThat(config.isInstrumentationEnabled(\"spring_webmvc\", false)).isTrue();\n+    assertThat(config.isInstrumentationEnabled(\"unknown\", false)).isFalse();\n+  }\n+\n+  @Test\n+  void testInstrumentationDisabled() {\n+    // An unknown instrumentation with defaultEnabled=true should be enabled\n+    AgentDistributionConfig config = AgentDistributionConfig.get();\n+    assertThat(config.isInstrumentationEnabled(\"unknown\", true)).isTrue();\n+  }\n+\n+  @Test\n+  void testDisabledTakesPriorityOverEnabled() {\n+    // armeria is enabled, armeria_grpc is disabled\n+    // most specific name (longest) should win regardless of iteration order",
+      "id": "PRRT_kwDODJKVX85vYR7X",
+      "opened": "2026-02-18T20:06:25Z",
+      "path": "javaagent-tooling/src/testDistributionConfig/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-02-20T18:48:15Z",
+          "body": "Already addressed — the test was renamed to testInstrumentationEnabledOrderMatters with corrected comment (first matching name wins, not longest).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2834628118"
+        }
+      ],
+      "reviewed": "7d25aa262874de53b55e3e6e3b70eac117bd3844",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2824205023"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "oh, sorry, I missed that order was already important, maybe it is better to go back to your original impl above",
+      "created": "2026-02-18T20:05:38Z",
+      "hunk": "@@ -0,0 +1,242 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.extension.instrumentation.internal;\n+\n+import com.fasterxml.jackson.annotation.JsonCreator;\n+import com.fasterxml.jackson.annotation.JsonProperty;\n+import io.opentelemetry.instrumentation.api.internal.Initializer;\n+import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;\n+import java.util.ArrayList;\n+import java.util.Collections;\n+import java.util.LinkedHashSet;\n+import java.util.List;\n+import java.util.Set;\n+\n+/**\n+ * Javaagent distribution-specific configuration.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class AgentDistributionConfig {\n+  @SuppressWarnings(\"ConstantField\") // needs to be mutable for @Initializer\n+  private static volatile AgentDistributionConfig INSTANCE = new AgentDistributionConfig();\n+\n+  @JsonProperty(\"indy/development\")\n+  private final boolean indyEnabled;\n+\n+  // This property may be set to force synchronous AgentListener#afterAgent() execution: the\n+  // condition for delaying the AgentListener initialization is pretty broad and in case it covers\n+  // too much javaagent users can file a bug, force sync execution by setting this property to true\n+  // and continue using the javaagent\n+  @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+  private final boolean forceSynchronousAgentListeners;\n+\n+  @JsonProperty(\"exclude_classes\")\n+  private final List<String> excludeClasses;\n+\n+  @JsonProperty(\"exclude_class_loaders\")\n+  private final List<String> excludeClassLoaders;\n+\n+  @JsonProperty(\"instrumentation\")\n+  private final InstrumentationConfig instrumentation;\n+\n+  public static AgentDistributionConfig get() {\n+    return INSTANCE;\n+  }\n+\n+  // Visible for testing\n+  public static void resetForTest() {\n+    INSTANCE = new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance for testing or fallback configuration scenarios.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig create() {\n+    return new AgentDistributionConfig();\n+  }\n+\n+  /**\n+   * Creates a new instance from ConfigProperties.\n+   *\n+   * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+   * at any time.\n+   */\n+  public static AgentDistributionConfig fromConfigProperties(ConfigProperties configProperties) {\n+    return new ConfigPropertiesAgentDistributionConfig(configProperties);\n+  }\n+\n+  @Initializer\n+  public static void set(AgentDistributionConfig distributionConfig) {\n+    INSTANCE = distributionConfig;\n+  }\n+\n+  @JsonCreator\n+  AgentDistributionConfig(\n+      @JsonProperty(\"indy/development\") Boolean indyEnabled,\n+      @JsonProperty(\"force_synchronous_agent_listeners/development\")\n+          Boolean forceSynchronousAgentListeners,\n+      @JsonProperty(\"exclude_classes\") List<String> excludeClasses,\n+      @JsonProperty(\"exclude_class_loaders\") List<String> excludeClassLoaders,\n+      @JsonProperty(\"instrumentation\") InstrumentationConfig instrumentation) {\n+    this.indyEnabled = indyEnabled != null ? indyEnabled : false;\n+    this.forceSynchronousAgentListeners =\n+        forceSynchronousAgentListeners != null ? forceSynchronousAgentListeners : false;\n+    this.excludeClasses =\n+        excludeClasses != null ? new ArrayList<>(excludeClasses) : new ArrayList<>();\n+    this.excludeClassLoaders =\n+        excludeClassLoaders != null ? new ArrayList<>(excludeClassLoaders) : new ArrayList<>();\n+    this.instrumentation = instrumentation != null ? instrumentation : new InstrumentationConfig();\n+  }\n+\n+  // Default constructor for testing\n+  AgentDistributionConfig() {\n+    this(null, null, null, null, null);\n+  }\n+\n+  /**\n+   * Returns whether instrumentations are enabled by default.\n+   *\n+   * @return {@code true} if instrumentations are enabled by default, {@code false} otherwise\n+   */\n+  public boolean isInstrumentationDefaultEnabled() {\n+    return instrumentation.isDefaultEnabled();\n+  }\n+\n+  /**\n+   * Returns whether any of the given instrumentations is enabled, falling back to {@code\n+   * defaultEnabled} if none of the names are explicitly configured.\n+   *\n+   * <p>Disabled takes priority over enabled: if any name matches the disabled list, the\n+   * instrumentation is disabled regardless of the enabled list.\n+   *\n+   * @param names the instrumentation names to check\n+   * @param defaultEnabled the default to use if no name is explicitly configured\n+   * @return {@code true} if the instrumentation is enabled, {@code false} otherwise\n+   */\n+  public boolean isInstrumentationEnabled(Iterable<String> names, boolean defaultEnabled) {\n+    for (String name : names) {\n+      String normalizedName = name.replace('-', '_');\n+      if (instrumentation.getDisabled().contains(normalizedName)) {\n+        return false;\n+      }\n+    }\n+    for (String name : names) {\n+      String normalizedName = name.replace('-', '_');\n+      if (instrumentation.getEnabled().contains(normalizedName)) {\n+        return true;\n+      }\n+    }\n+    return defaultEnabled;\n+  }\n+\n+  /**\n+   * Returns whether the given instrumentation is enabled, falling back to {@code defaultEnabled} if\n+   * not explicitly configured.\n+   */\n+  public boolean isInstrumentationEnabled(String name, boolean defaultEnabled) {\n+    return isInstrumentationEnabled(Collections.singletonList(name), defaultEnabled);\n+  }\n+\n+  // Visible for testing\n+  InstrumentationConfig getInstrumentation() {\n+    return instrumentation;\n+  }\n+\n+  public boolean isIndyEnabled() {\n+    return indyEnabled;\n+  }\n+\n+  public boolean isForceSynchronousAgentListeners() {\n+    return forceSynchronousAgentListeners;\n+  }\n+\n+  public List<String> getExcludeClasses() {\n+    return excludeClasses;\n+  }\n+\n+  public List<String> getExcludeClassLoaders() {\n+    return excludeClassLoaders;\n+  }\n+\n+  static class InstrumentationConfig {\n+    @JsonProperty(\"default_enabled\")\n+    private final boolean defaultEnabled;\n+\n+    @JsonProperty(\"disabled\")\n+    private final Set<String> disabled;\n+\n+    @JsonProperty(\"enabled\")\n+    private final Set<String> enabled;\n+\n+    @JsonCreator\n+    InstrumentationConfig(\n+        @JsonProperty(\"default_enabled\") Boolean defaultEnabled,\n+        @JsonProperty(\"disabled\") List<String> disabled,\n+        @JsonProperty(\"enabled\") List<String> enabled) {\n+      this.defaultEnabled = defaultEnabled != null ? defaultEnabled : true;\n+      this.disabled = disabled != null ? new LinkedHashSet<>(disabled) : new LinkedHashSet<>();\n+      this.enabled = enabled != null ? new LinkedHashSet<>(enabled) : new LinkedHashSet<>();\n+    }\n+\n+    // Default constructor\n+    InstrumentationConfig() {\n+      this(null, null, null);\n+    }\n+\n+    Set<String> getDisabled() {\n+      return disabled;\n+    }\n+\n+    Set<String> getEnabled() {\n+      return enabled;\n+    }\n+\n+    boolean isDefaultEnabled() {\n+      return defaultEnabled;\n+    }\n+  }\n+\n+  /**\n+   * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+   * any time.\n+   */\n+  private static final class ConfigPropertiesAgentDistributionConfig\n+      extends AgentDistributionConfig {\n+    private final ConfigProperties configProperties;\n+\n+    ConfigPropertiesAgentDistributionConfig(ConfigProperties configProperties) {\n+      super(\n+          configProperties.getBoolean(\"otel.javaagent.experimental.indy\", false),\n+          configProperties.getBoolean(\n+              \"otel.javaagent.experimental.force-synchronous-agent-listeners\", false),\n+          configProperties.getList(\"otel.javaagent.exclude-classes\"),\n+          configProperties.getList(\"otel.javaagent.exclude-class-loaders\"),\n+          null);\n+      this.configProperties = configProperties;\n+    }\n+\n+    @Override\n+    public boolean isInstrumentationDefaultEnabled() {\n+      return configProperties.getBoolean(\"otel.instrumentation.common.default-enabled\", true);\n+    }\n+\n+    @Override\n+    public boolean isInstrumentationEnabled(Iterable<String> names, boolean defaultEnabled) {\n+      for (String name : names) {\n+        Boolean enabled = configProperties.getBoolean(\"otel.instrumentation.\" + name + \".enabled\");\n+        if (enabled != null) {\n+          return enabled;\n+        }\n+      }\n+      return defaultEnabled;\n+    }",
+      "id": "PRRT_kwDODJKVX85vYVCw",
+      "opened": "2026-02-18T20:06:25Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/instrumentation/internal/AgentDistributionConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-19T12:35:20Z",
+          "body": "good point - this is a challenge when PRs stay open for so long",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2827612667"
+        }
+      ],
+      "reviewed": "7d25aa262874de53b55e3e6e3b70eac117bd3844",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2824221659"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think this can throw IllegalArgumentException on type mismatch\n\n",
+      "created": "2026-02-20T17:21:18Z",
+      "hunk": "@@ -0,0 +1,68 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.tooling.config;\n+\n+import com.fasterxml.jackson.core.JsonParser;\n+import com.fasterxml.jackson.databind.DeserializationContext;\n+import com.fasterxml.jackson.databind.JsonDeserializer;\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler;\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.api.incubator.config.ConfigProvider;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizer;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.DeclarativeConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionModel;\n+import io.opentelemetry.sdk.extension.incubator.fileconfig.internal.model.DistributionPropertyModel;\n+import java.io.IOException;\n+import java.util.logging.Logger;\n+\n+/**\n+ * Allows access to the Javaagent distribution node, which cannot be accessed using the {@link\n+ * ConfigProvider} API.\n+ */\n+@AutoService(DeclarativeConfigurationCustomizerProvider.class)\n+public final class JavaagentDistributionAccessCustomizerProvider\n+    implements DeclarativeConfigurationCustomizerProvider {\n+\n+  private static final Logger logger =\n+      Logger.getLogger(JavaagentDistributionAccessCustomizerProvider.class.getName());\n+\n+  private static final ObjectMapper MAPPER =\n+      new ObjectMapper()\n+          .addHandler(\n+              new DeserializationProblemHandler() {\n+                @Override\n+                public boolean handleUnknownProperty(\n+                    DeserializationContext ctxt,\n+                    JsonParser p,\n+                    JsonDeserializer<?> deserializer,\n+                    Object beanOrClass,\n+                    String propertyName)\n+                    throws IOException {\n+                  logger.warning(\"Unknown distribution.javaagent property: \" + propertyName);\n+                  p.skipChildren();\n+                  return true;\n+                }\n+              });\n+\n+  @Override\n+  public void customize(DeclarativeConfigurationCustomizer customizer) {\n+    customizer.addModelCustomizer(\n+        model -> {\n+          DistributionModel distribution = model.getDistribution();\n+          if (distribution != null) {\n+            DistributionPropertyModel javaagent =\n+                distribution.getAdditionalProperties().get(\"javaagent\");\n+            if (javaagent != null) {\n+              AgentDistributionConfig.set(\n+                  MAPPER.convertValue(javaagent, AgentDistributionConfig.class));",
+      "id": "PRRT_kwDODJKVX85v1G_k",
+      "opened": "2026-02-20T17:37:36Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/JavaagentDistributionAccessCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-02-20T18:48:10Z",
+          "body": "Done — added try-catch for IllegalArgumentException around convertValue. Logs a warning on type mismatch.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2834627861"
+        }
+      ],
+      "reviewed": "37ccaab322bd291752fb0bf42be96a538748dde6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2834276989"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "AI thinks this might be a bug, can you check and/or add a test to confirm?\n\n`Environment.getProperty(key, List.class)` doesn't reassemble indexed YAML list properties.\n\nWhen a user writes:\n\n```yaml\ndistribution:\n  spring_starter:\n    instrumentation:\n      enabled:\n        - spring_web\n        - tomcat\n```\n\nSpring flattens this to `enabled[0]=spring_web`, `enabled[1]=tomcat` — but `getProperty(\"...enabled\", List.class)` looks for an exact key match, finds nothing, and returns `emptyList()`. Only flat comma-separated values work (e.g. `enabled=spring_web,tomcat`).\n\nThe existing tests all use `withPropertyValues()` (flat strings), so they don't catch this. Use Spring Boot's `Binder` API instead, which properly handles indexed properties.\n",
+      "created": "2026-02-20T17:31:29Z",
+      "hunk": "@@ -28,48 +30,43 @@ public static boolean isDeclarativeConfig(Environment environment) {\n     return environment.getProperty(\"otel.file_format\", String.class) != null;\n   }\n \n-  public static boolean isDefaultEnabled(Environment environment) {\n+  @SuppressWarnings(\"unchecked\") // Spring's Environment.getProperty with List.class returns raw\n+  public static boolean isInstrumentationEnabled(\n+      Environment environment, String name, boolean enabledByDefault) {\n     if (isDeclarativeConfig(environment)) {\n-      String mode =\n+      String snakeCase = name.replace('-', '_');\n+\n+      List<String> disabled =\n+          environment.getProperty(\n+              \"otel.distribution.spring_starter.instrumentation.disabled\", List.class, emptyList());",
+      "id": "PRRT_kwDODJKVX85v1PGL",
+      "opened": "2026-02-20T17:37:36Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/EarlyConfig.java",
+      "replies": [
+        {
+          "at": "2026-02-20T18:40:10Z",
+          "body": "Good point - I guess my AI will add a test for it - once it processes your (AIs?) comment :smile: ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2834601239"
+        },
+        {
+          "at": "2026-02-20T19:19:46Z",
+          "body": "Fixed — switched to Spring Boot's `Binder` API in `EarlyConfig.bindList()` which handles both indexed (`enabled[0]=spring_web`) and comma-separated formats. Added two new tests with indexed properties to confirm.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2834741294"
+        }
+      ],
+      "reviewed": "37ccaab322bd291752fb0bf42be96a538748dde6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2834320484"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we set this default instance in JavaagentDistributionAccessCustomizerProvider, and then don't need `setIfAbsent`?",
+      "created": "2026-02-20T17:36:58Z",
+      "hunk": "@@ -34,12 +35,20 @@ public static AutoConfiguredOpenTelemetrySdk installOpenTelemetrySdk(\n             .build();\n     OpenTelemetrySdk sdk = autoConfiguredSdk.getOpenTelemetrySdk();\n     ConfigProperties configProperties = AutoConfigureUtil.getConfig(autoConfiguredSdk);\n-    if (configProperties != null) {\n+    boolean declarativeConfigUsed = configProperties == null;\n+\n+    if (!declarativeConfigUsed) {\n       // Provide a fake declarative configuration based on config properties\n       // so that declarative configuration API can be used everywhere\n       sdk =\n           new ExtendedOpenTelemetrySdkWrapper(\n               sdk, ConfigPropertiesBackedConfigProvider.create(configProperties));\n+      AgentDistributionConfig.set(AgentDistributionConfig.fromConfigProperties(configProperties));\n+    } else {\n+      // Declarative config path: AgentDistributionConfig may have been set by\n+      // JavaagentDistributionAccessCustomizerProvider from the distribution.javaagent YAML node.\n+      // If the YAML has no distribution.javaagent node, initialize with defaults.\n+      AgentDistributionConfig.setIfAbsent(AgentDistributionConfig.create());",
+      "id": "PRRT_kwDODJKVX85v1Tz9",
+      "opened": "2026-02-20T17:37:36Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/OpenTelemetryInstaller.java",
+      "replies": [
+        {
+          "at": "2026-02-20T18:48:13Z",
+          "body": "Done — moved default instance initialization into JavaagentDistributionAccessCustomizerProvider. Removed setIfAbsent and the fallback from OpenTelemetryInstaller.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2834627994"
+        }
+      ],
+      "reviewed": "37ccaab322bd291752fb0bf42be96a538748dde6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2834344932"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "System property parsing here is case-sensitive and treats any value other than the exact string \"false\" as enabled (e.g., \"FALSE\" or \"0\" won’t disable). Consider using a boolean parse with a default of true (e.g., parseBoolean on System.getProperty(key, \"true\") or equalsIgnoreCase(\"false\")) so the flag behaves consistently with other boolean config properties.\n```suggestion\n    boolean additionalLibraryIgnoresEnabled =\n        Boolean.parseBoolean(\n            System.getProperty(ADDITIONAL_LIBRARY_IGNORES_ENABLED, \"true\"));\n    if (additionalLibraryIgnoresEnabled) {\n```",
+      "created": "2026-02-23T19:29:30Z",
+      "hunk": "@@ -22,17 +20,15 @@\n @AutoService(IgnoredTypesConfigurer.class)\n public class AdditionalLibraryIgnoredTypesConfigurer implements IgnoredTypesConfigurer {\n \n+  // We set this system property when running the agent with unit tests to allow verifying that we\n+  // don't ignore libraries that we actually attempt to instrument. It means either the list is\n+  // wrong or a type matcher is.\n+  private static final String ADDITIONAL_LIBRARY_IGNORES_ENABLED =\n+      \"otel.javaagent.testing.additional-library-ignores.enabled\";\n+\n   @Override\n   public void configure(IgnoredTypesBuilder builder) {\n-    // We set this system property when running the agent with unit tests to allow verifying that we\n-    // don't ignore libraries that we actually attempt to instrument. It means either the list is\n-    // wrong or a type matcher is.\n-    boolean enabled =\n-        DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"agent\")\n-            .get(\"testing\")\n-            .get(\"additional_library_ignores\")\n-            .getBoolean(\"enabled\", true);\n-    if (enabled) {\n+    if (!\"false\".equals(System.getProperty(ADDITIONAL_LIBRARY_IGNORES_ENABLED))) {",
+      "id": "PRRT_kwDODJKVX85wNshc",
+      "opened": "2026-02-23T19:29:30Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/ignore/AdditionalLibraryIgnoredTypesConfigurer.java",
+      "replies": [],
+      "reviewed": "af0a6c420f1c3c0938f267978ae3b2932e363caf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15822#discussion_r2842676929"
+    }
+  ]
+}

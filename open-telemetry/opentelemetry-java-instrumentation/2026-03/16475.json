@@ -1,0 +1,25 @@
+{
+  "head": "f99a865c282d5dea5488442dd6d3f3e5066d5d55",
+  "merge": "17486456a434c84a265d46809d67bac68cafdefe",
+  "merged": "2026-03-13T17:11:35Z",
+  "missing_roots": 0,
+  "number": 16475,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "i think this one might be in the wrong section?",
+      "created": "2026-03-13T16:11:01Z",
+      "hunk": "@@ -2,6 +2,127 @@\n \n ## Unreleased\n \n+### ⚠️ Breaking changes to non-stable APIs\n+\n+- Remove deprecated AWS Lambda v2.2 wrappers and `forceFlush(int, TimeUnit)` overload\n+  ([#16170](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16170))\n+- Remove deprecated HTTP client/server methods\n+  ([#16167](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16167))\n+- Remove deprecated database instrumentation methods and classes\n+  ([#16164](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16164))\n+- Remove deprecated peer-service mapping APIs\n+  ([#16165](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16165))\n+- Make runtime-telemetry deprecated classes now internal\n+  ([#16173](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16173))\n+- Remove `AttributesExtractorUtil`\n+  ([#16152](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16152))\n+- Remove marker interface from `SqlClientAttributesGetter`\n+  ([#16205](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16205))\n+- Merge network/server getter methods into DB attribute getters\n+  ([#16264](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16264),\n+   [#16268](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16268))\n+- Rename SQL sanitizer classes to SQL analyzer\n+  ([#16269](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16269))\n+- Rename internal common module packages to follow new naming convention\n+  ([#16284](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16284),\n+   [#16308](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16308),\n+   [#16327](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16327),\n+   [#16341](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16341),\n+   [#16373](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16373))\n+\n+### 🚫 Deprecations\n+\n+- SQL sanitizer now treats double-quoted fragments as string literals by default\n+  ([#15582](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15582))",
+      "id": "PRRT_kwDODJKVX850Ncjw",
+      "opened": "2026-03-13T16:11:01Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "4afdd0f66e07b2b625cb84f783e0a0f6c3626451",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16475#discussion_r2932262206"
+    }
+  ]
+}

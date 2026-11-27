@@ -1,0 +1,99 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "7b1904c698ef55e3386ce0056e9f7c0705cfcb1ccf1766decbc70eb04cfad844",
+  "input_digest": "dd99a30e63dc327a00ee82b82d138e486e30d3735bae9a010744746f3a6e31f2",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4abf0a8fe19f66e4ca998be2ecaf52cf7919a28f/instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageConsumerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageConsumerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageListenerInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86YE0IH",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4abf0a8fe19f66e4ca998be2ecaf52cf7919a28f/instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsMessageConsumerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4abf0a8fe19f66e4ca998be2ecaf52cf7919a28f/instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsMessageListenerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsMessageConsumerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsMessageListenerInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86YE0IW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e22ed7c40ec3bbc18f77f3c52086d5eb790cc0b5/instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsSubscriptionNames.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e22ed7c40ec3bbc18f77f3c52086d5eb790cc0b5/instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageConsumerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsSubscriptionNames.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageConsumerInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZEW88",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e22ed7c40ec3bbc18f77f3c52086d5eb790cc0b5/instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsSubscriptionNames.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e22ed7c40ec3bbc18f77f3c52086d5eb790cc0b5/instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsMessageConsumerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsSubscriptionNames.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsMessageConsumerInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZEW9i",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/164cbf0a299b3530158112b581bd9944c8efc0e1/instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/JmsInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZKO-d",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/164cbf0a299b3530158112b581bd9944c8efc0e1/instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZKO-v",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eaeae102347324ea31ca46361fef06722b0287b7/instrumentation/spring/spring-jms/spring-jms-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v6_0/SpringJmsListenerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/spring/spring-jms/spring-jms-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v6_0/SpringJmsListenerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/spring/spring-jms/spring-jms-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v6_0/DefaultSubscriptionNameConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3323d36ff67aa2feb7b72b09a750145d0d27a5ab/instrumentation/spring/spring-jms/spring-jms-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v6_0/DefaultSubscriptionNameListener.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3323d36ff67aa2feb7b72b09a750145d0d27a5ab",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f6e323cc96ef6b9b10dc9b1b20519ca16edfa360"
+      ],
+      "id": "PRRT_kwDODJKVX86ZQhY_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

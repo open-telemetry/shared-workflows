@@ -1,0 +1,85 @@
+{
+  "head": "23516fa227d9e9ad0e3fa0de1a5c560258834390",
+  "merge": "a6993715bff195d543cab22c4da16fb68b8f68f2",
+  "merged": "2026-09-04T19:10:21Z",
+  "missing_roots": 0,
+  "number": 593,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This change broadens the condition for attaching retrieval query/doc content to spans from 'SPAN capture modes' to the new `should_capture_content` flag. If `should_capture_content` is true in `EVENT_ONLY` (or due to a completion hook), `_get_content_attributes_for_span()` will now emit content on spans, which contradicts the intent of `EVENT_ONLY` and the previous behavior. **Fix (mandatory):** gate span content on a span-specific flag derived from the capture mode (cached once on the handler/invocation), not on the general `should_capture_content`.",
+      "created": "2026-09-03T19:28:09Z",
+      "hunk": "@@ -108,10 +107,7 @@ def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n         return attrs\n \n     def _get_content_attributes_for_span(self) -> dict[str, AttributeValue]:\n-        if (\n-            not self.span.is_recording()\n-            or not should_capture_content_on_spans()\n-        ):\n+        if not self.span.is_recording() or not self.should_capture_content:\n             return {}\n         optional_attrs: tuple[tuple[str, AttributeValue | None], ...] = (\n             (GenAI.GEN_AI_RETRIEVAL_QUERY_TEXT, self.query_text),",
+      "id": "PRRT_kwDOSbspP86fDNbr",
+      "opened": "2026-09-03T19:28:11Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_retrieval_invocation.py",
+      "replies": [],
+      "reviewed": "b5d8391871c3d254037a1680f53232430fe7fb6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/593#discussion_r3927965108"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`should_capture_content` is being supplied as a single boolean to all invocations, but the codebase uses that flag both to (a) decide whether instrumentation should bother populating expensive content fields and (b) decide whether to *record content on spans*. Those are not equivalent once you support `EVENT_ONLY` and 'completion hook requires capture'. **Fix (mandatory):** pass either (1) the full cached `ContentCapturingMode` into invocations, or (2) two cached booleans (e.g., `should_capture_content` and `should_capture_content_on_spans`) so span emission remains faithful to the configured mode while still avoiding envvar reads on hot paths.",
+      "created": "2026-09-03T19:28:10Z",
+      "hunk": "@@ -158,6 +158,7 @@ def start_inference(\n             server_address=server_address,\n             server_port=server_port,\n             operation_name=operation_name,\n+            should_capture_content=self._capture_content,\n         )",
+      "id": "PRRT_kwDOSbspP86fDNc8",
+      "opened": "2026-09-03T19:28:11Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "b5d8391871c3d254037a1680f53232430fe7fb6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/593#discussion_r3927965228"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`should_capture_content` is now being used to decide whether to write potentially sensitive content onto *span attributes*. However, `TelemetryHandler._capture_content` (as described in the PR) is intended to mean 'capture content somewhere' (e.g., for events and/or completion hooks), not necessarily 'record on spans'. This can cause content to be recorded on spans even when the configured mode is `EVENT_ONLY`, or when content is only needed for a non-noop completion hook—both of which are privacy/behavior regressions relative to the prior `should_capture_content_on_spans()` gating. **Fix (mandatory):** keep a separate cached flag for 'record content on spans' (e.g., `should_capture_content_on_spans: bool` derived from the capturing mode including SPAN), pass that into invocations, and gate span attribute setting on that flag instead of `should_capture_content`.",
+      "created": "2026-09-03T19:28:10Z",
+      "hunk": "@@ -124,15 +131,13 @@ def _apply_finish(self, error: Error | None = None) -> None:\n             (\n                 GenAI.GEN_AI_TOOL_CALL_ARGUMENTS,\n                 _any_value_to_attribute_value(self.arguments)\n-                if self.should_capture_content_on_span\n-                and self.arguments is not None\n+                if self.should_capture_content and self.arguments is not None\n                 else None,\n             ),\n             (\n                 GenAI.GEN_AI_TOOL_CALL_RESULT,\n                 _any_value_to_attribute_value(self.tool_result)\n-                if self.should_capture_content_on_span\n-                and self.tool_result is not None\n+                if self.should_capture_content and self.tool_result is not None\n                 else None,\n             ),\n         )",
+      "id": "PRRT_kwDOSbspP86fDNcX",
+      "opened": "2026-09-03T19:28:11Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [],
+      "reviewed": "b5d8391871c3d254037a1680f53232430fe7fb6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/593#discussion_r3927965162"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same privacy/behavior concern as tool/retrieval: `EVENT_ONLY` (or 'capture for completion hook') should not imply 'record on spans'. With this gating, workflow input/output messages can be attached to spans whenever `should_capture_content` is true, even if the selected mode is meant to avoid span content. **Fix (mandatory):** use a span-specific cached flag (or cached capturing mode enum) when deciding whether to add message attributes to spans.",
+      "created": "2026-09-03T19:28:10Z",
+      "hunk": "@@ -69,7 +69,7 @@ def _get_start_attributes(self) -> dict[str, AttributeValue]:\n         return attrs\n \n     def _get_messages_for_span(self) -> dict[str, AttributeValue]:\n-        if not should_capture_content_on_spans():\n+        if not self.should_capture_content:\n             return {}",
+      "id": "PRRT_kwDOSbspP86fDNcr",
+      "opened": "2026-09-03T19:28:11Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_workflow_invocation.py",
+      "replies": [],
+      "reviewed": "b5d8391871c3d254037a1680f53232430fe7fb6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/593#discussion_r3927965190"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new semantics need regression tests for `EVENT_ONLY` (and for the 'completion hook forces capture' case) to ensure sensitive content is **not** recorded on spans when the mode does not include SPAN. Consider adding tests that (1) set `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=EVENT_ONLY`, set `invocation.arguments/tool_result`, stop the invocation, and assert the finished span has no tool arg/result attributes; and (2) configure a non-noop completion hook with `NO_CONTENT` and assert spans still do not receive content attributes.",
+      "created": "2026-09-03T19:28:11Z",
+      "hunk": "@@ -398,3 +398,23 @@ def get_description(self):\n     assert GenAI.GEN_AI_AGENT_NAME not in captured_attributes\n     finalized = span_exporter.get_finished_spans()[0].attributes\n     assert finalized[GenAI.GEN_AI_AGENT_NAME] == \"weather_agent\"\n+\n+\n+def test_tool_should_capture_content_defaults_to_false():\n+    handler = _make_handler()\n+    invocation = handler.tool(\"get_weather\")\n+    assert invocation.should_capture_content is False\n+    assert invocation.should_capture_content_on_span is False\n+    invocation.stop()\n+\n+\n+@patch.dict(\n+    os.environ,\n+    {OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: \"SPAN_ONLY\"},\n+)\n+def test_tool_should_capture_content_enabled():\n+    handler = _make_handler()\n+    invocation = handler.tool(\"get_weather\")\n+    assert invocation.should_capture_content is True\n+    assert invocation.should_capture_content_on_span is True\n+    invocation.stop()",
+      "id": "PRRT_kwDOSbspP86fDNdP",
+      "opened": "2026-09-03T19:28:11Z",
+      "path": "util/opentelemetry-util-genai/tests/test_toolcall.py",
+      "replies": [],
+      "reviewed": "b5d8391871c3d254037a1680f53232430fe7fb6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/593#discussion_r3927965258"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "75af08279ab7071a76046a214158c312644b06358860b1fd024a657abb391c01",
+  "input_digest": "9fd6276f8d4570d632bcbdbeced33fa34445c3fbc5bfe9fa0c79b6fe6e09425e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/library/src/main/java/io/opentelemetry/instrumentation/spring/webmvc/v6_0/SpringWebMvcTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/library/src/main/java/io/opentelemetry/instrumentation/spring/webmvc/v6_0/SpringWebMvcHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/library/src/main/java/io/opentelemetry/instrumentation/spring/webmvc/v6_0/SpringWebMvcTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpServerAttributesExtractorBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/library/src/test/java/io/opentelemetry/instrumentation/spring/webmvc/v6_0/SpringWebMvcHeaderSelectorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZeAMg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation/spring/spring-webmvc/spring-webmvc-5.3/library/src/main/java/io/opentelemetry/instrumentation/spring/webmvc/v5_3/SpringWebMvcTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation/spring/spring-webmvc/spring-webmvc-5.3/library/src/main/java/io/opentelemetry/instrumentation/spring/webmvc/v5_3/SpringWebMvcHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation/spring/spring-webmvc/spring-webmvc-5.3/library/src/main/java/io/opentelemetry/instrumentation/spring/webmvc/v5_3/SpringWebMvcTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpServerAttributesExtractorBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation/spring/spring-webmvc/spring-webmvc-5.3/library/src/test/java/io/opentelemetry/instrumentation/spring/webmvc/v5_3/SpringWebMvcHeaderSelectorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZeAMr",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation/spring/spring-webflux/spring-webflux-5.3/library/src/main/java/io/opentelemetry/instrumentation/spring/webflux/v5_3/SpringWebfluxClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation/spring/spring-webflux/spring-webflux-5.3/library/src/main/java/io/opentelemetry/instrumentation/spring/webflux/v5_3/SpringWebfluxClientTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation/spring/spring-webflux/spring-webflux-5.3/library/src/main/java/io/opentelemetry/instrumentation/spring/webflux/v5_3/internal/WebClientHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation/spring/spring-webflux/spring-webflux-5.3/library/src/main/java/io/opentelemetry/instrumentation/spring/webflux/v5_3/internal/WebClientHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractorBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZeAM1",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation/spring/spring-web/spring-web-3.1/library/src/main/java/io/opentelemetry/instrumentation/spring/web/v3_1/SpringWebTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation/spring/spring-web/spring-web-3.1/library/src/main/java/io/opentelemetry/instrumentation/spring/web/v3_1/SpringWebHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation/spring/spring-web/spring-web-3.1/library/src/main/java/io/opentelemetry/instrumentation/spring/web/v3_1/SpringWebTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractorBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZeAM5",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation/spring/spring-webflux/spring-webflux-5.3/library/src/main/java/io/opentelemetry/instrumentation/spring/webflux/v5_3/SpringWebfluxServerTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9cb07b68973179a4988d4de20cc7217b3ff7fe52/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation/spring/spring-webflux/spring-webflux-5.3/library/src/main/java/io/opentelemetry/instrumentation/spring/webflux/v5_3/SpringWebfluxServerTelemetryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bff7f08dabc8bdd909be6e091c490518d0664ba/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ZeAMw",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

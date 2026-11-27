@@ -1,0 +1,336 @@
+{
+  "head": "f7f849bf33933c23f8eaf0bf19890857c01a808a",
+  "merge": "7a89a18d3230fadb744b5907317a3ca2326e4aa2",
+  "merged": "2026-09-02T14:15:29Z",
+  "missing_roots": 0,
+  "number": 19396,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "We try to follow the rules prescribed in semantic conventions for naming spans. Check our https://github.com/open-telemetry/semantic-conventions/blob/v1.24.0/docs/messaging/messaging-spans.md#span-name perhaps it would make sense to treat this destination as temporary? or maybe anonymous (I think the `MessagingSpanNameExtractor` doesn't implement a special case for it, but shouldn't be hard to add). There is currently ongoing work for implementing the latest messaging semantic conventions (will initially be behind a flag) so also check out https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/#span-name there is dedicated settle operation there (I think we have not implemented this yet) and also `messaging.destination.template` that might be useful here (this should be implemented).\ncc @trask ",
+      "created": "2026-08-05T10:14:30Z",
+      "hunk": "@@ -0,0 +1,34 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.nats.v2_17.internal;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessageOperation;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingSpanNameExtractor;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanNameExtractor;\n+\n+final class NatsSpanNameExtractor implements SpanNameExtractor<NatsRequest> {\n+  private static final String JETSTREAM_SETTLE_SPAN_NAME = \"nats.settle\";",
+      "id": "PRRT_kwDODJKVX86WnYMY",
+      "opened": "2026-08-05T10:14:30Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/NatsSpanNameExtractor.java",
+      "replies": [
+        {
+          "at": "2026-08-05T11:35:19Z",
+          "body": "Addressed in 068f231bc5: JetStream ACK subjects now use a dedicated settle client instrumenter, standard messaging span naming, and messaging.destination.template=$JS.ACK. Normal publishes remain unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3720202451"
+        }
+      ],
+      "reviewed": "9d710fce3daebc7ae97b2d7a28e01f7f0910be5b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3719747727"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Both call sites pass `false`, so this parameter is dead.\n\n```suggestion\n      OpenTelemetry openTelemetry, IncludeExclude headers, String operationName) {\n    NatsRequestMessagingAttributesGetter getter = new NatsRequestMessagingAttributesGetter(false);\n```\n\n(the two call sites above also need the trailing `false` removed)",
+      "created": "2026-08-26T15:08:44Z",
+      "hunk": "@@ -35,44 +36,62 @@ public final class NatsInstrumenterFactory {\n \n   public static Instrumenter<NatsRequest, NatsRequest> createPublishInstrumenter(\n       OpenTelemetry openTelemetry, IncludeExclude headers) {\n-    return createProducerInstrumenter(openTelemetry, headers, PUBLISH_OPERATION_NAME);\n+    return createProducerInstrumenter(openTelemetry, headers, PUBLISH_OPERATION_NAME, false);\n   }\n \n   public static Instrumenter<NatsRequest, NatsRequest> createRequestInstrumenter(\n       OpenTelemetry openTelemetry, IncludeExclude headers) {\n-    return createProducerInstrumenter(openTelemetry, headers, REQUEST_OPERATION_NAME);\n+    return createProducerInstrumenter(openTelemetry, headers, REQUEST_OPERATION_NAME, false);\n   }\n \n   private static Instrumenter<NatsRequest, NatsRequest> createProducerInstrumenter(\n-      OpenTelemetry openTelemetry, IncludeExclude headers, String operationName) {\n+      OpenTelemetry openTelemetry,\n+      IncludeExclude headers,\n+      String operationName,\n+      boolean boundJetStreamAckDestination) {\n+    NatsRequestMessagingAttributesGetter getter =\n+        new NatsRequestMessagingAttributesGetter(boundJetStreamAckDestination);",
+      "id": "PRRT_kwDODJKVX86cg62B",
+      "opened": "2026-08-26T15:13:41Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/NatsInstrumenterFactory.java",
+      "replies": [],
+      "reviewed": "4cd3d12da6863da5aefbef812e9383506bd0ae45",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3864153841"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This instrumenter is also selected under the old messaging conventions, which have no settle operation, so ACK spans get `messaging.operation=settle`, the name `$JS.ACK settle`, and kind `CLIENT`. RabbitMQ and the AWS SDK gate settle routing on `emitStableMessagingSemconv()`; normalizing the ACK destination under the old publish shape would bound the cardinality without inventing an operation.",
+      "created": "2026-08-26T15:08:44Z",
+      "hunk": "@@ -35,44 +36,62 @@ public final class NatsInstrumenterFactory {\n \n   public static Instrumenter<NatsRequest, NatsRequest> createPublishInstrumenter(\n       OpenTelemetry openTelemetry, IncludeExclude headers) {\n-    return createProducerInstrumenter(openTelemetry, headers, PUBLISH_OPERATION_NAME);\n+    return createProducerInstrumenter(openTelemetry, headers, PUBLISH_OPERATION_NAME, false);\n   }\n \n   public static Instrumenter<NatsRequest, NatsRequest> createRequestInstrumenter(\n       OpenTelemetry openTelemetry, IncludeExclude headers) {\n-    return createProducerInstrumenter(openTelemetry, headers, REQUEST_OPERATION_NAME);\n+    return createProducerInstrumenter(openTelemetry, headers, REQUEST_OPERATION_NAME, false);\n   }\n \n   private static Instrumenter<NatsRequest, NatsRequest> createProducerInstrumenter(\n-      OpenTelemetry openTelemetry, IncludeExclude headers, String operationName) {\n+      OpenTelemetry openTelemetry,\n+      IncludeExclude headers,\n+      String operationName,\n+      boolean boundJetStreamAckDestination) {\n+    NatsRequestMessagingAttributesGetter getter =\n+        new NatsRequestMessagingAttributesGetter(boundJetStreamAckDestination);\n     InstrumenterBuilder<NatsRequest, NatsRequest> builder =\n         Instrumenter.<NatsRequest, NatsRequest>builder(\n                 openTelemetry,\n                 INSTRUMENTATION_NAME,\n                 MessagingSpanNameExtractor.create(\n-                    new NatsRequestMessagingAttributesGetter(),\n-                    MessagingOperationType.SEND,\n-                    operationName))\n+                    getter, MessagingOperationType.SEND, operationName))\n             .addAttributesExtractor(\n-                messagingAttributesExtractor(MessagingOperationType.SEND, operationName, headers))\n+                messagingAttributesExtractor(\n+                    getter, MessagingOperationType.SEND, operationName, headers))\n             .addOperationMetrics(MessagingProducerMetrics.getForOperationType());\n     setMessagingSendExceptionEventExtractor(builder);\n     return builder.buildProducerInstrumenter(new NatsRequestTextMapSetter());\n   }\n \n+  public static Instrumenter<NatsRequest, NatsRequest> createSettleInstrumenter(",
+      "id": "PRRT_kwDODJKVX86cg62J",
+      "opened": "2026-08-26T15:13:41Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/NatsInstrumenterFactory.java",
+      "replies": [],
+      "reviewed": "4cd3d12da6863da5aefbef812e9383506bd0ae45",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3864153856"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`messaging.operation.name` is meant to be the NATS API operation, matching the comment above the other operation-name constants in this file and the settle instrumenters for RabbitMQ (`ack`, `nack`, `reject`) and SQS (`delete`). The published body identifies which one: `+ACK`, `-NAK`, `+WPI`, `+TERM`.",
+      "created": "2026-08-26T15:08:44Z",
+      "hunk": "@@ -35,44 +36,62 @@ public final class NatsInstrumenterFactory {\n \n   public static Instrumenter<NatsRequest, NatsRequest> createPublishInstrumenter(\n       OpenTelemetry openTelemetry, IncludeExclude headers) {\n-    return createProducerInstrumenter(openTelemetry, headers, PUBLISH_OPERATION_NAME);\n+    return createProducerInstrumenter(openTelemetry, headers, PUBLISH_OPERATION_NAME, false);\n   }\n \n   public static Instrumenter<NatsRequest, NatsRequest> createRequestInstrumenter(\n       OpenTelemetry openTelemetry, IncludeExclude headers) {\n-    return createProducerInstrumenter(openTelemetry, headers, REQUEST_OPERATION_NAME);\n+    return createProducerInstrumenter(openTelemetry, headers, REQUEST_OPERATION_NAME, false);\n   }\n \n   private static Instrumenter<NatsRequest, NatsRequest> createProducerInstrumenter(\n-      OpenTelemetry openTelemetry, IncludeExclude headers, String operationName) {\n+      OpenTelemetry openTelemetry,\n+      IncludeExclude headers,\n+      String operationName,\n+      boolean boundJetStreamAckDestination) {\n+    NatsRequestMessagingAttributesGetter getter =\n+        new NatsRequestMessagingAttributesGetter(boundJetStreamAckDestination);\n     InstrumenterBuilder<NatsRequest, NatsRequest> builder =\n         Instrumenter.<NatsRequest, NatsRequest>builder(\n                 openTelemetry,\n                 INSTRUMENTATION_NAME,\n                 MessagingSpanNameExtractor.create(\n-                    new NatsRequestMessagingAttributesGetter(),\n-                    MessagingOperationType.SEND,\n-                    operationName))\n+                    getter, MessagingOperationType.SEND, operationName))\n             .addAttributesExtractor(\n-                messagingAttributesExtractor(MessagingOperationType.SEND, operationName, headers))\n+                messagingAttributesExtractor(\n+                    getter, MessagingOperationType.SEND, operationName, headers))\n             .addOperationMetrics(MessagingProducerMetrics.getForOperationType());\n     setMessagingSendExceptionEventExtractor(builder);\n     return builder.buildProducerInstrumenter(new NatsRequestTextMapSetter());\n   }\n \n+  public static Instrumenter<NatsRequest, NatsRequest> createSettleInstrumenter(\n+      OpenTelemetry openTelemetry, IncludeExclude headers) {\n+    NatsRequestMessagingAttributesGetter getter = new NatsRequestMessagingAttributesGetter(true);\n+    InstrumenterBuilder<NatsRequest, NatsRequest> builder =\n+        Instrumenter.<NatsRequest, NatsRequest>builder(\n+                openTelemetry,\n+                INSTRUMENTATION_NAME,\n+                MessagingSpanNameExtractor.create(getter, MessagingOperationType.SETTLE, \"settle\"))",
+      "id": "PRRT_kwDODJKVX86cg62Q",
+      "opened": "2026-08-26T15:13:41Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/NatsInstrumenterFactory.java",
+      "replies": [],
+      "reviewed": "4cd3d12da6863da5aefbef812e9383506bd0ae45",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3864153866"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "JetStream settlements recorded `messaging.client.operation.duration` while they went through the publish instrumenter, and this one registers no operation metrics.\n\n```suggestion\n            .addAttributesExtractor(\n                messagingAttributesExtractor(\n                    getter, MessagingOperationType.SETTLE, \"settle\", headers))\n            .addOperationMetrics(MessagingConsumerMetrics.getForOperationType());\n```",
+      "created": "2026-08-26T15:08:44Z",
+      "hunk": "@@ -35,44 +36,62 @@ public final class NatsInstrumenterFactory {\n \n   public static Instrumenter<NatsRequest, NatsRequest> createPublishInstrumenter(\n       OpenTelemetry openTelemetry, IncludeExclude headers) {\n-    return createProducerInstrumenter(openTelemetry, headers, PUBLISH_OPERATION_NAME);\n+    return createProducerInstrumenter(openTelemetry, headers, PUBLISH_OPERATION_NAME, false);\n   }\n \n   public static Instrumenter<NatsRequest, NatsRequest> createRequestInstrumenter(\n       OpenTelemetry openTelemetry, IncludeExclude headers) {\n-    return createProducerInstrumenter(openTelemetry, headers, REQUEST_OPERATION_NAME);\n+    return createProducerInstrumenter(openTelemetry, headers, REQUEST_OPERATION_NAME, false);\n   }\n \n   private static Instrumenter<NatsRequest, NatsRequest> createProducerInstrumenter(\n-      OpenTelemetry openTelemetry, IncludeExclude headers, String operationName) {\n+      OpenTelemetry openTelemetry,\n+      IncludeExclude headers,\n+      String operationName,\n+      boolean boundJetStreamAckDestination) {\n+    NatsRequestMessagingAttributesGetter getter =\n+        new NatsRequestMessagingAttributesGetter(boundJetStreamAckDestination);\n     InstrumenterBuilder<NatsRequest, NatsRequest> builder =\n         Instrumenter.<NatsRequest, NatsRequest>builder(\n                 openTelemetry,\n                 INSTRUMENTATION_NAME,\n                 MessagingSpanNameExtractor.create(\n-                    new NatsRequestMessagingAttributesGetter(),\n-                    MessagingOperationType.SEND,\n-                    operationName))\n+                    getter, MessagingOperationType.SEND, operationName))\n             .addAttributesExtractor(\n-                messagingAttributesExtractor(MessagingOperationType.SEND, operationName, headers))\n+                messagingAttributesExtractor(\n+                    getter, MessagingOperationType.SEND, operationName, headers))\n             .addOperationMetrics(MessagingProducerMetrics.getForOperationType());\n     setMessagingSendExceptionEventExtractor(builder);\n     return builder.buildProducerInstrumenter(new NatsRequestTextMapSetter());\n   }\n \n+  public static Instrumenter<NatsRequest, NatsRequest> createSettleInstrumenter(\n+      OpenTelemetry openTelemetry, IncludeExclude headers) {\n+    NatsRequestMessagingAttributesGetter getter = new NatsRequestMessagingAttributesGetter(true);\n+    InstrumenterBuilder<NatsRequest, NatsRequest> builder =\n+        Instrumenter.<NatsRequest, NatsRequest>builder(\n+                openTelemetry,\n+                INSTRUMENTATION_NAME,\n+                MessagingSpanNameExtractor.create(getter, MessagingOperationType.SETTLE, \"settle\"))\n+            .addAttributesExtractor(\n+                messagingAttributesExtractor(\n+                    getter, MessagingOperationType.SETTLE, \"settle\", headers));",
+      "id": "PRRT_kwDODJKVX86cg62Y",
+      "opened": "2026-08-26T15:13:41Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/NatsInstrumenterFactory.java",
+      "replies": [],
+      "reviewed": "4cd3d12da6863da5aefbef812e9383506bd0ae45",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3864153875"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`Message.ackSync()` sends its `$JS.ACK.` settlement through `Connection.request()`, which still picks `requestInstrumenter`, so it keeps the generated subject as the span name and as `messaging.destination.name`. (also in the javaagent `ConnectionRequestInstrumentation`)",
+      "created": "2026-08-26T15:08:44Z",
+      "hunk": "@@ -146,20 +154,24 @@ private void publish(Method method, Object[] args) throws Throwable {\n       natsRequest = NatsRequest.create(delegate, subject, replyTo, headers, body);\n     }\n \n-    if (natsRequest == null || !publishInstrumenter.shouldStart(parentContext, natsRequest)) {\n+    Instrumenter<NatsRequest, NatsRequest> instrumenter =\n+        natsRequest != null && natsRequest.isJetStreamAck()",
+      "id": "PRRT_kwDODJKVX86cg62g",
+      "opened": "2026-08-26T15:13:41Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/OpenTelemetryConnection.java",
+      "replies": [],
+      "reviewed": "4cd3d12da6863da5aefbef812e9383506bd0ae45",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3864153888"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`getDestination` feeds `messaging.destination.name`, so this replaces the concrete subject with its template and the span carries the same value under both keys. The stable span name already comes from `getDestinationTemplate`, so the real subject can stay here and the legacy name can be bounded on its own.",
+      "created": "2026-08-26T15:08:44Z",
+      "hunk": "@@ -16,19 +16,31 @@\n final class NatsRequestMessagingAttributesGetter\n     implements MessagingAttributesGetter<NatsRequest, Object> {\n \n+  private final boolean boundJetStreamAckDestination;\n+\n+  NatsRequestMessagingAttributesGetter(boolean boundJetStreamAckDestination) {\n+    this.boundJetStreamAckDestination = boundJetStreamAckDestination;\n+  }\n+\n   @Override\n   public String getSystem(NatsRequest request) {\n     return \"nats\";\n   }\n \n   @Override\n   public String getDestination(NatsRequest request) {\n+    if (boundJetStreamAckDestination && NatsSubject.isJetStreamAck(request.getSubject())) {\n+      return NatsSubject.JETSTREAM_ACK_SUBJECT;",
+      "id": "PRRT_kwDODJKVX86cg62l",
+      "opened": "2026-08-26T15:13:41Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/NatsRequestMessagingAttributesGetter.java",
+      "replies": [],
+      "reviewed": "4cd3d12da6863da5aefbef812e9383506bd0ae45",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3864153895"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Tests import the matching semconv constant instead of building the key by hand.\n\n```suggestion\n                                    equalTo(MESSAGING_DESTINATION_TEMPLATE, \"$JS.ACK\"))),\n```\n\n(same at lines 146-147; the `stringKey` import is then unused)",
+      "created": "2026-08-26T15:08:45Z",
+      "hunk": "@@ -97,6 +99,54 @@ void testPublishMessageWithHeaders() throws InterruptedException {\n     assertTraceparentHeader(subscription);\n   }\n \n+  @Test\n+  void testSettleJetStreamAckSubjects() {\n+    String firstAckSubject =\n+        \"$JS.ACK.ingestion-stream.partition-a.1.18822351.18675175.1785834929935121483.14757\";\n+    String secondAckSubject =\n+        \"$JS.ACK.ingestion-stream.partition-a.2.18822352.18675176.1785834929935121484.14756\";\n+\n+    // ACK and NACK operations use generated subjects with per-message values in them.\n+    testing()\n+        .runWithSpan(\n+            \"parent\",\n+            () -> {\n+              connection.publish(firstAckSubject, new byte[] {0});\n+              connection.publish(secondAckSubject, new byte[] {0});\n+            });\n+\n+    int clientId = connection.getServerInfo().getClientId();\n+    testing()\n+        .waitAndAssertTraces(\n+            trace ->\n+                trace.hasSpansSatisfyingExactly(\n+                    span -> span.hasName(\"parent\").hasNoParent(),\n+                    span ->\n+                        span.hasName(\n+                                emitStableMessagingSemconv() ? \"settle $JS.ACK\" : \"$JS.ACK settle\")\n+                            .hasKind(SpanKind.CLIENT)\n+                            .hasParent(trace.getSpan(0))\n+                            .hasAttributesSatisfyingExactly(\n+                                messagingAttributes(\n+                                    \"settle\",\n+                                    \"$JS.ACK\",\n+                                    clientId,\n+                                    equalTo(\n+                                        stringKey(\"messaging.destination.template\"), \"$JS.ACK\"))),",
+      "id": "PRRT_kwDODJKVX86cg62n",
+      "opened": "2026-08-26T15:13:41Z",
+      "path": "instrumentation/nats/nats-2.17/testing/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/AbstractNatsPublishTest.java",
+      "replies": [],
+      "reviewed": "4cd3d12da6863da5aefbef812e9383506bd0ae45",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3864153899"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The stable-only gate leaves the default V0 messaging mode on the publish/request instrumenter, so its span name still contains the generated `$JS.ACK...` subject. This means the cardinality fix does not apply for users with the default configuration. Route settlement requests to `settleInstrumenter` in both modes and update the old-semconv assertions accordingly.",
+      "created": "2026-08-27T10:30:48Z",
+      "hunk": "@@ -309,31 +331,39 @@ private CompletableFuture<Message> requestAsync(Method method, Object[] args) th\n         future = delegate.request(subject, headers, body);\n       }\n     } catch (Throwable t) {\n-      requestInstrumenter.end(context, notNullNatsRequest, null, t);\n+      instrumenter.end(context, notNullNatsRequest, null, t);\n       throw t;\n     }\n \n     return future.whenComplete(\n         (result, exception) -> {\n           if (result != null) {\n             NatsRequest response = NatsRequest.create(delegate, result);\n-            requestInstrumenter.end(context, notNullNatsRequest, response, exception);\n+            instrumenter.end(context, notNullNatsRequest, response, exception);\n           } else {\n-            requestInstrumenter.end(context, notNullNatsRequest, null, exception);\n+            instrumenter.end(context, notNullNatsRequest, null, exception);\n           }\n         });\n   }\n \n+  private Instrumenter<NatsRequest, NatsRequest> instrumenterFor(\n+      NatsRequest request, Instrumenter<NatsRequest, NatsRequest> defaultInstrumenter) {\n+    return emitStableMessagingSemconv() && request.isJetStreamSettlement()\n+        ? settleInstrumenter\n+        : defaultInstrumenter;",
+      "id": "PRRT_kwDODJKVX86cyA5I",
+      "opened": "2026-08-27T10:30:50Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/OpenTelemetryConnection.java",
+      "replies": [],
+      "reviewed": "f72d515a41727bfd5244f4d4c5c3193cb5ce415d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3870892045"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Settlement wrapping is disabled in the default V0 messaging mode, so `message.ack()`/`nak()` continues without a normalized settlement span for default-configured library users. Enable the wrapper for JetStream messages independently of semconv mode; the settle instrumenter already contains a legacy normalized span-name path.",
+      "created": "2026-08-27T10:30:49Z",
+      "hunk": "@@ -0,0 +1,152 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.nats.v2_17.internal;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static java.nio.charset.StandardCharsets.US_ASCII;\n+\n+import io.nats.client.Connection;\n+import io.nats.client.Message;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import java.lang.reflect.InvocationHandler;\n+import java.lang.reflect.InvocationTargetException;\n+import java.lang.reflect.Method;\n+import java.lang.reflect.Proxy;\n+import java.time.Duration;\n+import javax.annotation.Nullable;\n+\n+final class OpenTelemetryMessage implements InvocationHandler {\n+  private static final byte[] ACK_BODY = body(\"+ACK\");\n+  private static final byte[] NAK_BODY = body(\"-NAK\");\n+  private static final byte[] IN_PROGRESS_BODY = body(\"+WPI\");\n+  private static final byte[] TERM_BODY = body(\"+TERM\");\n+\n+  private final Message delegate;\n+  private final Instrumenter<NatsRequest, NatsRequest> settleInstrumenter;\n+\n+  static Message wrap(Message message, Instrumenter<NatsRequest, NatsRequest> settleInstrumenter) {\n+    if (Proxy.isProxyClass(message.getClass())\n+        && Proxy.getInvocationHandler(message) instanceof OpenTelemetryMessage) {\n+      return message;\n+    }\n+    if (!emitStableMessagingSemconv() || !message.isJetStream()) {\n+      return message;",
+      "id": "PRRT_kwDODJKVX86cyA58",
+      "opened": "2026-08-27T10:30:50Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/OpenTelemetryMessage.java",
+      "replies": [],
+      "reviewed": "f72d515a41727bfd5244f4d4c5c3193cb5ce415d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3870892115"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] In the default V0 messaging mode this still chooses `publishInstrumenter`, whose span name includes the complete generated ACK subject. Consequently the reported high-cardinality behavior remains for default javaagent users. Route settlement publishes through `settleInstrumenter` regardless of semconv mode.",
+      "created": "2026-08-27T10:30:49Z",
+      "hunk": "@@ -132,28 +135,38 @@ public static class PublishReplyToHeadersBodyAdvice {\n \n     public static class AdviceScope {\n       private final NatsRequest request;\n+      private final Instrumenter<NatsRequest, NatsRequest> instrumenter;\n       private final Context context;\n       private final Scope scope;\n \n-      private AdviceScope(NatsRequest request, Context context, Scope scope) {\n+      private AdviceScope(\n+          NatsRequest request,\n+          Instrumenter<NatsRequest, NatsRequest> instrumenter,\n+          Context context,\n+          Scope scope) {\n         this.request = request;\n+        this.instrumenter = instrumenter;\n         this.context = context;\n         this.scope = scope;\n       }\n \n       @Nullable\n       public static AdviceScope start(NatsRequest natsRequest) {\n         Context parentContext = Context.current();\n-        if (!publishInstrumenter().shouldStart(parentContext, natsRequest)) {\n+        Instrumenter<NatsRequest, NatsRequest> instrumenter =\n+            emitStableMessagingSemconv() && natsRequest.isJetStreamSettlement()\n+                ? settleInstrumenter()\n+                : publishInstrumenter();",
+      "id": "PRRT_kwDODJKVX86cyA61",
+      "opened": "2026-08-27T10:30:50Z",
+      "path": "instrumentation/nats/nats-2.17/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/nats/v2_17/ConnectionPublishInstrumentation.java",
+      "replies": [],
+      "reviewed": "f72d515a41727bfd5244f4d4c5c3193cb5ce415d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3870892207"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This stable-only condition keeps request-based acknowledgements on `requestInstrumenter` under the default V0 messaging configuration, retaining the generated subject in the span name. Select `settleInstrumenter` for JetStream settlement subjects in both semconv modes.",
+      "created": "2026-08-27T10:30:49Z",
+      "hunk": "@@ -36,6 +41,16 @@ static Instrumenter<NatsRequest, NatsRequest> requestInstrumenter() {\n     return requestInstrumenter;\n   }\n \n+  static Instrumenter<NatsRequest, NatsRequest> settleInstrumenter() {\n+    return settleInstrumenter;\n+  }\n+\n+  static Instrumenter<NatsRequest, NatsRequest> instrumenterFor(NatsRequest request) {\n+    return emitStableMessagingSemconv() && request.isJetStreamSettlement()\n+        ? settleInstrumenter\n+        : requestInstrumenter;",
+      "id": "PRRT_kwDODJKVX86cyA6b",
+      "opened": "2026-08-27T10:30:50Z",
+      "path": "instrumentation/nats/nats-2.17/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/nats/v2_17/NatsSingletons.java",
+      "replies": [],
+      "reviewed": "f72d515a41727bfd5244f4d4c5c3193cb5ce415d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3870892165"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This instruments settlement only for callback-delivered messages. Pull/synchronous consumers receive messages from `Subscription.nextMessage()` (or JetStream pull APIs), and those messages never pass through this handler; because the library wrapper delegates those subscription APIs unchanged, their `ack`/`nak` calls still produce no settlement span. Wrap messages returned by pull subscriptions (or instrument a common message-return path) and add an integration test for that consumption style.",
+      "created": "2026-08-27T10:30:50Z",
+      "hunk": "@@ -32,15 +36,15 @@ public void onMessage(Message message) throws InterruptedException {\n     NatsRequest natsRequest = NatsRequest.create(message.getConnection(), message);\n \n     if (!consumerProcessInstrumenter.shouldStart(parentContext, natsRequest)) {\n-      delegate.onMessage(message);\n+      delegate.onMessage(OpenTelemetryMessage.wrap(message, settleInstrumenter));\n       return;\n     }\n \n     Context processContext = consumerProcessInstrumenter.start(parentContext, natsRequest);\n     Throwable error = null;\n \n     try (Scope ignored = processContext.makeCurrent()) {\n-      delegate.onMessage(message);\n+      delegate.onMessage(OpenTelemetryMessage.wrap(message, settleInstrumenter));",
+      "id": "PRRT_kwDODJKVX86cyA7O",
+      "opened": "2026-08-27T10:30:50Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/OpenTelemetryMessageHandler.java",
+      "replies": [],
+      "reviewed": "f72d515a41727bfd5244f4d4c5c3193cb5ce415d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3870892238"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] `AttributesBuilder.put` already ignores a null value, so this guard and forwarding local are redundant. Pass the operation name directly to `put`.",
+      "created": "2026-08-27T10:30:50Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.nats.v2_17.internal;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;\n+import javax.annotation.Nullable;\n+\n+final class NatsSettlementOperationNameExtractor\n+    implements AttributesExtractor<NatsRequest, NatsRequest> {\n+  // copied from MessagingIncubatingAttributes\n+  private static final AttributeKey<String> MESSAGING_OPERATION_NAME =\n+      AttributeKey.stringKey(\"messaging.operation.name\");\n+\n+  @Override\n+  public void onStart(AttributesBuilder attributes, Context parentContext, NatsRequest request) {\n+    String operationName = request.getJetStreamSettlementOperationName();\n+    if (operationName != null) {\n+      attributes.put(MESSAGING_OPERATION_NAME, operationName);\n+    }",
+      "id": "PRRT_kwDODJKVX86cyA7o",
+      "opened": "2026-08-27T10:30:50Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/NatsSettlementOperationNameExtractor.java",
+      "replies": [],
+      "reviewed": "f72d515a41727bfd5244f4d4c5c3193cb5ce415d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3870892274"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This regression only calls `publish`, so it does not exercise the newly added settlement selection in the synchronous and asynchronous request paths (`OpenTelemetryConnection.request*` and `ConnectionRequestInstrumentation`). Those branches can regress independently while this test remains green. Add shared request tests for a `$JS.ACK...` subject (sync and future variants) that assert the normalized legacy span and the stable CLIENT/settle span.",
+      "created": "2026-08-30T12:44:44Z",
+      "hunk": "@@ -97,6 +104,63 @@ void testPublishMessageWithHeaders() throws InterruptedException {\n     assertTraceparentHeader(subscription);\n   }\n \n+  @Test\n+  void testSettleJetStreamAckSubjects() {\n+    String firstAckSubject =\n+        \"$JS.ACK.ingestion-stream.partition-a.1.18822351.18675175.1785834929935121483.14757\";\n+    String secondAckSubject =\n+        \"$JS.ACK.ingestion-stream.partition-a.2.18822352.18675176.1785834929935121484.14756\";\n+    String thirdAckSubject =\n+        \"$JS.ACK.ingestion-stream.partition-a.3.18822353.18675177.1785834929935121485.14755\";\n+    String fourthAckSubject =\n+        \"$JS.ACK.ingestion-stream.partition-a.4.18822354.18675178.1785834929935121486.14754\";\n+\n+    // Settlement operations use generated subjects with per-message values in them.\n+    testing()\n+        .runWithSpan(\n+            \"parent\",\n+            () -> {\n+              connection.publish(firstAckSubject, body(\"+ACK\"));\n+              connection.publish(secondAckSubject, body(\"-NAK\"));\n+              connection.publish(thirdAckSubject, body(\"+WPI\"));\n+              connection.publish(fourthAckSubject, body(\"+TERM\"));",
+      "id": "PRRT_kwDODJKVX86dhHpb",
+      "opened": "2026-08-30T12:44:44Z",
+      "path": "instrumentation/nats/nats-2.17/testing/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/AbstractNatsPublishTest.java",
+      "replies": [
+        {
+          "at": "2026-08-30T12:55:45Z",
+          "body": "This PR is long overdue and will likely bloat even more if addressing a minor AI review comment. Marking as resolved as I believe it is currently in a good state to merge.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3889423517"
+        }
+      ],
+      "reviewed": "17ddf2dfdc9620cc0837259becdbdbed181a4d3e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3889399584"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps `in-progress` would be better than `inProgress`",
+      "created": "2026-09-01T15:15:01Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.nats.v2_17.internal;\n+\n+import static java.nio.charset.StandardCharsets.US_ASCII;\n+\n+import javax.annotation.Nullable;\n+\n+final class NatsSubject {\n+  static final String JETSTREAM_ACK_SUBJECT = \"$JS.ACK\";\n+\n+  static final String ACK_OPERATION_NAME = \"ack\";\n+  static final String NAK_OPERATION_NAME = \"nak\";\n+  static final String IN_PROGRESS_OPERATION_NAME = \"inProgress\";",
+      "id": "PRRT_kwDODJKVX86eKXlA",
+      "opened": "2026-09-01T15:15:01Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/NatsSubject.java",
+      "replies": [
+        {
+          "at": "2026-09-01T20:37:11Z",
+          "body": "yeah `in-progress` looks better based on https://docs.nats.io/learn/jetstream/acknowledgment#the-four-responses",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3908218740"
+        },
+        {
+          "at": "2026-09-01T21:04:48Z",
+          "body": "I agree, updating",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3908430669"
+        }
+      ],
+      "reviewed": "17ddf2dfdc9620cc0837259becdbdbed181a4d3e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3905570014"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "https://opentelemetry.io/docs/specs/semconv/registry/attributes/messaging/#messaging-operation-name give `nack` as a sample. @trask should we try to use a common set of names for common operations or should these be system specific? The attribute description does say `The system-specific name of the messaging operation.`",
+      "created": "2026-09-01T15:16:50Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.nats.v2_17.internal;\n+\n+import static java.nio.charset.StandardCharsets.US_ASCII;\n+\n+import javax.annotation.Nullable;\n+\n+final class NatsSubject {\n+  static final String JETSTREAM_ACK_SUBJECT = \"$JS.ACK\";\n+\n+  static final String ACK_OPERATION_NAME = \"ack\";\n+  static final String NAK_OPERATION_NAME = \"nak\";",
+      "id": "PRRT_kwDODJKVX86eKaON",
+      "opened": "2026-09-01T15:16:50Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/NatsSubject.java",
+      "replies": [
+        {
+          "at": "2026-09-01T20:36:30Z",
+          "body": "`nak` looks good - https://docs.nats.io/learn/jetstream/acknowledgment#the-four-responses",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3908213229"
+        }
+      ],
+      "reviewed": "17ddf2dfdc9620cc0837259becdbdbed181a4d3e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3905586478"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@trask should we spell this out as `terminate` or is `term` fine?",
+      "created": "2026-09-01T15:22:10Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.nats.v2_17.internal;\n+\n+import static java.nio.charset.StandardCharsets.US_ASCII;\n+\n+import javax.annotation.Nullable;\n+\n+final class NatsSubject {\n+  static final String JETSTREAM_ACK_SUBJECT = \"$JS.ACK\";\n+\n+  static final String ACK_OPERATION_NAME = \"ack\";\n+  static final String NAK_OPERATION_NAME = \"nak\";\n+  static final String IN_PROGRESS_OPERATION_NAME = \"inProgress\";\n+  static final String TERM_OPERATION_NAME = \"term\";",
+      "id": "PRRT_kwDODJKVX86eKh3x",
+      "opened": "2026-09-01T15:22:10Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/NatsSubject.java",
+      "replies": [
+        {
+          "at": "2026-09-01T20:36:34Z",
+          "body": "`term` looks good - https://docs.nats.io/learn/jetstream/acknowledgment#the-four-responses",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3908213602"
+        }
+      ],
+      "reviewed": "17ddf2dfdc9620cc0837259becdbdbed181a4d3e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3905633752"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think ideally we should use the standard messaging span name extractor. Would it work if for settlement operations we had a custom getter like in https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/523c42815293f6e696d8e49d9d8e555438ec617e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonInstrumenterFactory.java#L25-L32 that overrides the destination name when needed?",
+      "created": "2026-09-01T16:15:06Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.nats.v2_17.internal;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingOperationType;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingSpanNameExtractor;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanNameExtractor;\n+\n+final class NatsSpanNameExtractor implements SpanNameExtractor<NatsRequest> {\n+  private static final String LEGACY_SETTLEMENT_SPAN_NAME = \"$JS.ACK publish\";\n+\n+  private final SpanNameExtractor<NatsRequest> delegate;\n+  private final MessagingOperationType operationType;\n+\n+  static SpanNameExtractor<NatsRequest> create(\n+      MessagingAttributesGetter<NatsRequest, ?> getter,\n+      MessagingOperationType operationType,\n+      String operationName) {\n+    return new NatsSpanNameExtractor(\n+        MessagingSpanNameExtractor.create(getter, operationType, operationName), operationType);\n+  }\n+\n+  private NatsSpanNameExtractor(\n+      SpanNameExtractor<NatsRequest> delegate, MessagingOperationType operationType) {\n+    this.delegate = delegate;\n+    this.operationType = operationType;\n+  }\n+\n+  @Override\n+  public String extract(NatsRequest request) {\n+    if (!emitStableMessagingSemconv() && NatsSubject.isJetStreamSettlement(request.getSubject())) {\n+      return LEGACY_SETTLEMENT_SPAN_NAME;\n+    }\n+    if (operationType == MessagingOperationType.SETTLE",
+      "id": "PRRT_kwDODJKVX86eLqzU",
+      "opened": "2026-09-01T16:15:06Z",
+      "path": "instrumentation/nats/nats-2.17/library/src/main/java/io/opentelemetry/instrumentation/nats/v2_17/internal/NatsSpanNameExtractor.java",
+      "replies": [
+        {
+          "at": "2026-09-02T11:11:42Z",
+          "body": "Looks like currently this won't be enough as `MessagingSpanNameExtractor` takes the operation name as parameter but here the operation name is derived from the request for settle operations. Perhaps the operation name in `MessagingSpanNameExtractor` needs to be changed to `Function<REQUEST, String>`. cc @trask ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3913468094"
+        }
+      ],
+      "reviewed": "17ddf2dfdc9620cc0837259becdbdbed181a4d3e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396#discussion_r3906076418"
+    }
+  ]
+}

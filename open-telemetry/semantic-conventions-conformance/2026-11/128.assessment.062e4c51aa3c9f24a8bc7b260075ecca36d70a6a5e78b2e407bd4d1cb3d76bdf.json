@@ -1,0 +1,44 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ca8c68596c172a132683b96382bc0f3904d36096d0d4366414e77dbecbebac73",
+  "input_digest": "062e4c51aa3c9f24a8bc7b260075ecca36d70a6a5e78b2e407bd4d1cb3d76bdf",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d8c3f08bce56ae5903ed5dba5b3dfa2163951c98/scenarios/database/java/shared/r2dbc/scenarios/src/test/java/io/opentelemetry/conformance/database/r2dbc/R2dbcScenarioTest.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d509a561275ebb3fd7ef5215921d69c9655dbd6b/scenarios/database/java/shared/r2dbc/scenarios/src/test/java/io/opentelemetry/conformance/database/r2dbc/R2dbcScenarioTest.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/fb56eb52f02341833e59da65da2d9b2967f56593"
+      ],
+      "id": "PRRT_kwDOTuzK5c6yV0lv",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fb56eb52f02341833e59da65da2d9b2967f56593/scenarios/database/java/shared/r2dbc/scenarios/src/main/java/io/opentelemetry/conformance/database/r2dbc/R2dbcScenario.java",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d509a561275ebb3fd7ef5215921d69c9655dbd6b/scenarios/database/java/shared/r2dbc/scenarios/src/main/java/io/opentelemetry/conformance/database/r2dbc/R2dbcScenario.java"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zADl0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fb56eb52f02341833e59da65da2d9b2967f56593/scenarios/database/java/shared/r2dbc/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d509a561275ebb3fd7ef5215921d69c9655dbd6b/scenarios/database/java/shared/r2dbc/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/b49883f4c61d19115fee7de0052dda051addd32b"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zADlw",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

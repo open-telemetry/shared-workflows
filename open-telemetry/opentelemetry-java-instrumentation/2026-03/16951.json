@@ -1,0 +1,25 @@
+{
+  "head": "391dd0f7268ac2b65f3f433a7fc03a26b7f930fa",
+  "merge": "7b8792a88cc6cfc3cd2b62902a2d2cc65a96daad",
+  "merged": "2026-03-25T09:42:14Z",
+  "missing_roots": 0,
+  "number": 16951,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "maybe\n`requestResult.complete(throwable.getCause() != null ? throwable.getCause() : throwable);`",
+      "created": "2026-03-22T17:11:06Z",
+      "hunk": "@@ -62,7 +62,12 @@ public void sendRequestWithCallback(\n         .whenComplete(\n             (response, throwable) -> {\n               if (throwable != null) {\n-                requestResult.complete(throwable.getCause());\n+                if (throwable.getCause() != null) {\n+                  requestResult.complete(throwable.getCause());\n+                } else {\n+                  requestResult.complete(\n+                      new IllegalStateException(\"throwable.getCause() returned null\", throwable));\n+                }",
+      "id": "PRRT_kwDODJKVX851-7UT",
+      "opened": "2026-03-22T17:11:06Z",
+      "path": "instrumentation/play/play-ws/play-ws-common/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/playws/PlayJavaStreamedWsClientBaseTest.java",
+      "replies": [],
+      "reviewed": "252240ef9623827c8a0bdae39cfcf1de467020ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16951#discussion_r2971785061"
+    }
+  ]
+}

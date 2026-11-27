@@ -1,0 +1,54 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c3425e5b92707f0b4a34398b71fd4c6219b4bafcf12c05d89b71b8b565bf4ab5",
+  "input_digest": "9054fe1bc60831357e216709ce8612df8da610cbe7afa2ee4704fab8a681fcfa",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1d9cb4249b7d0113eea51de51bc6f13092428be4/instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessResource.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/78e8115157cd4e6ad067e618be22e53aa3138fc1/instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessResource.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8353ec70dfd3ec1770a1a774dde91f54b83038fd"
+      ],
+      "id": "PRRT_kwDODJKVX86MYHwp",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8353ec70dfd3ec1770a1a774dde91f54b83038fd/instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/internal/ProcessResourceComponentProvider.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8353ec70dfd3ec1770a1a774dde91f54b83038fd/instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessResource.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8353ec70dfd3ec1770a1a774dde91f54b83038fd/instrumentation/resources/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/78e8115157cd4e6ad067e618be22e53aa3138fc1/instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/internal/ProcessResourceComponentProvider.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/78e8115157cd4e6ad067e618be22e53aa3138fc1/instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessResource.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/78e8115157cd4e6ad067e618be22e53aa3138fc1/instrumentation/resources/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fb329a0a1cea47fd475a9097e061b4afe6f724cf"
+      ],
+      "id": "PRRT_kwDODJKVX86MYSfs",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8353ec70dfd3ec1770a1a774dde91f54b83038fd/instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessResource.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/78e8115157cd4e6ad067e618be22e53aa3138fc1/instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessResource.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fb329a0a1cea47fd475a9097e061b4afe6f724cf"
+      ],
+      "id": "PRRT_kwDODJKVX86MYSgE",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86MYTMr",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

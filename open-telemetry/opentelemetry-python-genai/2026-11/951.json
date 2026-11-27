@@ -1,0 +1,94 @@
+{
+  "head": "cf0a235a1510cb46c47f393dbf13600375cd46fc",
+  "merge": "14b33dbe0b5fa525cb0e1f65f8703075583b7d9d",
+  "merged": "2026-11-03T05:21:51Z",
+  "missing_roots": 0,
+  "number": 951,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Non-streamed `create` still reports `\"stop\"` for every status (e.g. `requires_action`, or `in_progress` with `background=True`), and its agent spans get no `gen_ai.response.finish_reasons`, so stream and non-stream now disagree. What do you think about deriving it from the status for both paths here? Then the explicit `finish_reasons` block in `_CreateStreamMixin._record_interaction` can go.\n\n```suggestion\n    finish_reason = _interaction_finish_reason(_get_field(response, \"status\"))\n    if finish_reason:\n        invocation.finish_reasons = [finish_reason]\n\n    if telemetry_handler.should_capture_content():\n        messages = _interactions_response_to_messages(\n            response, finish_reason=finish_reason\n        )\n        if streamed_parts and not _has_content(messages):\n            messages = _streamed_output_messages(\n                streamed_parts, finish_reason=finish_reason\n            )\n        invocation.output_messages = messages\n```",
+      "created": "2026-10-22T21:18:31Z",
+      "hunk": "@@ -223,9 +224,21 @@ def _apply_interaction_response_attributes(\n         )\n \n     if telemetry_handler.should_capture_content():\n-        invocation.output_messages = _interactions_response_to_messages(\n-            response\n+        # A streamed completion event carries no steps, so a stream's output\n+        # comes from its step events and its finish reason from the status.\n+        finish_reason = (\n+            _interaction_finish_reason(_get_field(response, \"status\"))\n+            if streamed_parts is not None\n+            else \"stop\"\n+        )\n+        messages = _interactions_response_to_messages(\n+            response, finish_reason=finish_reason\n         )\n+        if streamed_parts and not _has_content(messages):\n+            messages = _streamed_output_messages(\n+                streamed_parts, finish_reason=finish_reason\n+            )\n+        invocation.output_messages = messages",
+      "id": "PRRT_kwDOSbspP86vYgUh",
+      "opened": "2026-10-22T21:25:32Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-10-23T04:32:13Z",
+          "body": "Done in 5a3ec52e. Streamed and non-streamed `create` now derive finish reasons from the status on both model and agent spans, regardless of content capture, and the explicit block in `_CreateStreamMixin._record_interaction` is gone. `in_progress` or a missing status gives no finish reason. Before this, a non-streamed model span with content capture on reported `stop` even for `in_progress`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/951#discussion_r4356107617"
+        }
+      ],
+      "reviewed": "ad97fdfac366e452b4cfc5c6955c5c9147609471",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/951#discussion_r4353639068"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The rebuild-from-steps path is only covered by a plain-text cassette. The other new streaming tests use hand-built `MagicMock` events, which don't match the SDK's real event types, so a wrong field name wouldn't fail them. Also, streamed `create` still has no tests for a mid-stream error, a caller-side error, or close/early-close, and this PR changes how those finish.\n\nWhat do you think about following the OpenAI/Anthropic pattern?\n\n- Record a streamed tool-call cassette (sync + async) that ends in `requires_action`, and check the rebuilt `tool_call` part and `finish_reasons == (\"tool_calls\",)` with content capture on and off.\n- Inject failures on top of a recorded cassette by wrapping the SDK stream in a delegate that raises after N events, like [`ErrorInjectingStreamDelegate`](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_responses.py#L1462-L1497) and [`_AsyncErrorInjectingStreamDelegate`](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py#L725-L802). Add a `raise` inside the `with` block for the caller-side case.\n\nMocks are still fine for a stream that ends without a completion event.\n",
+      "created": "2026-10-22T21:18:32Z",
+      "hunk": "@@ -461,6 +462,81 @@ def test_streaming_generates_agent_span(self) -> None:\n         self.assertEqual(span.attributes[\"gen_ai.usage.input_tokens\"], 5)\n         self.assertEqual(span.attributes[\"gen_ai.usage.output_tokens\"], 8)\n \n+    @patch.dict(\n+        \"os.environ\",\n+        {\n+            \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": \"NO_CONTENT\",\n+            # A configured completion hook turns content capture back on.\n+            \"OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK\": \"\",\n+        },\n+    )\n+    def test_streaming_records_finish_reason_from_status(self) -> None:\n+        self.configure_valid_interaction()\n+        self._interactions[-1].status = \"requires_action\"\n+        self.run_streaming_interaction(\n+            model=\"gemini-2.5-flash\", input=\"Streaming test\", stream=True\n+        )\n+        span = self.otel.get_span_named(\"interactions.create gemini-2.5-flash\")\n+        self.assertNotIn(\n+            GenAIAttributes.GEN_AI_OUTPUT_MESSAGES, span.attributes\n+        )\n+        self.assertEqual(\n+            span.attributes[\"gen_ai.response.finish_reasons\"], (\"tool_calls\",)\n+        )\n+\n+    @patch.dict(\n+        \"os.environ\",\n+        {\"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": \"SPAN_ONLY\"},\n+    )\n+    def test_streaming_output_message_finish_reason_matches_status(",
+      "id": "PRRT_kwDOSbspP86vYgUy",
+      "opened": "2026-10-22T21:25:32Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/interactions/base.py",
+      "replies": [
+        {
+          "at": "2026-10-23T04:36:38Z",
+          "body": "Added in 786d15b3: sync and async tool-call cassettes ending in `requires_action` (capture on and off), errors injected after 0 and 7 events of the recorded text streams, a `raise` inside `with`, and early close.\r\n\r\nThe tool-call and capture-on early-close tests fail with main's `interactions.py`. The error tests pass on both, since a failed stream still drops partial output. Should keeping it on failure, as Anthropic does, be a separate PR?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/951#discussion_r4356128576"
+        }
+      ],
+      "reviewed": "ad97fdfac366e452b4cfc5c6955c5c9147609471",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/951#discussion_r4353639091"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "When accumulation or rebuild fails, `_record_interaction` still checks `should_capture_content()` and builds messages from the step-less completion event, so the span gets a made-up `[{\"role\":\"assistant\",\"parts\":[{\"content\":\"\",\"type\":\"text\"}]}]` instead of no output. `test_streaming_survives_content_accumulation_error` filters out empty text, so it doesn't catch this - could it assert `GEN_AI_OUTPUT_MESSAGES` is absent?\n\n```suggestion\n        if self._self_last_interaction:\n            self._record_interaction(\n                self._self_last_interaction, streamed_parts\n            )\n            if not self._self_capture_content:\n                self._self_invocation.output_messages = []\n```",
+      "created": "2026-10-31T19:46:26Z",
+      "hunk": "@@ -541,68 +554,126 @@ def _apply_fetched_interaction_attributes(\n             ]\n \n \n-class InteractionsStreamWrapper(SyncStreamWrapper[InteractionSSEEvent]):\n-    def __init__(\n-        self,\n-        stream: Iterable[InteractionSSEEvent],\n-        invocation: InferenceInvocation | RemoteAgentInvocation,\n-        telemetry_handler: TelemetryHandler,\n-    ) -> None:\n-        super().__init__(stream, invocation=invocation)\n-        self._self_invocation = invocation\n+class _InteractionStreamMixin:\n+    \"\"\"Event handling shared by the interaction stream wrappers.\n+\n+    A completion event carries the interaction's metadata but no steps, so the\n+    output is rebuilt from the ``step.start`` / ``step.delta`` events.\n+    \"\"\"\n+\n+    _self_invocation: Any\n+    _self_telemetry_handler: TelemetryHandler\n+    _self_last_interaction: Interaction | None\n+    _self_capture_content: bool\n+    _self_content: _StreamedContent\n+\n+    def _init_stream_state(self, telemetry_handler: TelemetryHandler) -> None:\n         self._self_telemetry_handler = telemetry_handler\n-        self._self_last_interaction: Interaction | None = None\n+        self._self_last_interaction = None\n+        # Snapshotted so no response text is buffered when content capture is\n+        # off; the handler settles the mode at construction anyway.\n+        self._self_capture_content = telemetry_handler.should_capture_content()\n+        self._self_content = _StreamedContent()\n \n     def _process_chunk(self, chunk: InteractionSSEEvent) -> None:\n         event_type = _get_field(chunk, \"event_type\")\n-        if event_type == \"interaction.completed\":\n-            interaction = _get_field(chunk, \"interaction\")\n-            if interaction:\n-                self._self_last_interaction = interaction\n+        if event_type in (\"step.start\", \"step.delta\"):\n+            if self._self_capture_content:\n+                try:\n+                    self._self_content.add(chunk)\n+                except Exception:  # pylint: disable=broad-exception-caught\n+                    # A payload the accumulator can't handle must not break the\n+                    # caller's stream; drop the captured output instead.\n+                    self._self_capture_content = False\n+                    self._self_content = _StreamedContent()\n+                    _logger.debug(\n+                        \"Failed to accumulate interaction stream content\",\n+                        exc_info=True,\n+                    )\n+            return\n+        if interaction := _interaction_from_event(chunk):\n+            self._self_last_interaction = interaction\n+        else:\n+            self._process_other_event(chunk)\n \n-    def _on_stream_end(self) -> None:\n+    def _process_other_event(self, chunk: InteractionSSEEvent) -> None:\n+        \"\"\"Handle an event that is neither a step nor the completion.\"\"\"\n+\n+    def _record_interaction(\n+        self, interaction: Interaction, streamed_parts: list[MessagePart]\n+    ) -> None:\n+        raise NotImplementedError\n+\n+    def _record_response(self) -> None:\n+        try:\n+            streamed_parts = self._self_content.parts()\n+        except Exception:  # pylint: disable=broad-exception-caught\n+            # Same as a failed accumulation: drop the captured output.\n+            streamed_parts = []\n+            self._self_capture_content = False\n+            _logger.debug(\n+                \"Failed to rebuild interaction stream content\", exc_info=True\n+            )\n         if self._self_last_interaction:\n-            _apply_interaction_response_attributes(\n-                self._self_last_interaction,\n-                self._self_invocation,\n-                self._self_telemetry_handler,\n+            self._record_interaction(\n+                self._self_last_interaction, streamed_parts\n+            )",
+      "id": "PRRT_kwDOSbspP86yUDjc",
+      "opened": "2026-10-31T20:11:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-11-02T09:59:32Z",
+          "body": "Done in 0e010416. When accumulation or rebuild fails, the stream now clears the output messages after recording the interaction, so `gen_ai.output.messages` stays unset instead of holding an empty text part. Both failure tests now assert the attribute is absent, and I added the same check for a rebuild error on the `fetch` stream.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/951#discussion_r4441013813"
+        }
+      ],
+      "reviewed": "df43c232fa83b443c96970f83833929728244f2c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/951#discussion_r4433067679"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `OutputMessage.finish_reason` is deprecated in util in favor of `gen_ai.response.finish_reasons`, which this PR already sets. Sorry, I suggested passing it in my earlier comment! Maybe skip adding it to the streamed messages (and pass `finish_reason=None` to `_interactions_response_to_messages`)?",
+      "created": "2026-10-31T19:46:26Z",
+      "hunk": "@@ -767,9 +838,16 @@ def parts(self) -> list[MessagePart]:\n \n def _streamed_output_messages(\n     parts: list[MessagePart],\n+    finish_reason: str | None = None,\n ) -> list[OutputMessage]:\n     \"\"\"Wrap parts accumulated from stream events as an output message.\"\"\"\n-    return [OutputMessage(role=Role.ASSISTANT.value, parts=parts)]\n+    return [\n+        OutputMessage(\n+            role=Role.ASSISTANT.value,\n+            parts=parts,\n+            finish_reason=finish_reason,\n+        )",
+      "id": "PRRT_kwDOSbspP86yUDjd",
+      "opened": "2026-10-31T20:11:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [
+        {
+          "at": "2026-11-02T09:59:35Z",
+          "body": "Done in cf0a235a. Streamed messages no longer set `finish_reason`, and `create` now passes `finish_reason=None`, the same as `fetch` on main, so the value lives only in `gen_ai.response.finish_reasons`. One visible change: a non-streamed `create` message now has `\"finish_reason\": null` where main reports `\"stop\"`. I updated the tests that asserted the old value.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/951#discussion_r4441014393"
+        }
+      ],
+      "reviewed": "df43c232fa83b443c96970f83833929728244f2c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/951#discussion_r4433067681"
+    }
+  ]
+}

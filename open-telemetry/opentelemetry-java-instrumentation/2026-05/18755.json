@@ -1,0 +1,25 @@
+{
+  "head": "9bc345a7be1c16e72943b498959081ef9db05660",
+  "merge": "c7fb454ab9473203bdbfbf7576e3d4dd53f03427",
+  "merged": "2026-05-14T23:23:02Z",
+  "missing_roots": 0,
+  "number": 18755,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-05-14T22:35:35Z",
+      "hunk": "@@ -22,5 +22,10 @@ otelJava {\n tasks {\n   test {\n     jvmArgs(\"-Dotel.instrumentation.servlet.experimental.capture-request-parameters=test-parameter\")\n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"otel.instrumentation.servlet.experimental.capture-request-parameters=test-parameter\",\n+    )",
+      "id": "PRRT_kwDODJKVX86CNNKG",
+      "opened": "2026-05-14T22:35:35Z",
+      "path": "instrumentation/servlet/servlet-5.0/jetty11-testing/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c067f05332774650cb3ce75e3c2b214eb4797779",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18755#discussion_r3244668302"
+    }
+  ]
+}

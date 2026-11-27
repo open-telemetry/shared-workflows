@@ -1,0 +1,85 @@
+{
+  "head": "7fac60554e5e0b7beba7d74a6e46924dd4933b95",
+  "merge": "a459b7f9e3159dc3fec73409b1083af75a47561b",
+  "merged": "2026-08-05T18:20:01Z",
+  "missing_roots": 0,
+  "number": 19377,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The exit wait can move onto the reader thread too, which leaves a single bounded wait and drops the shared deadline and `remainingMillis`. Sent you jaydeluca#35 with it.",
+      "created": "2026-08-03T20:49:34Z",
+      "hunk": "@@ -248,13 +257,36 @@ private static List<String> readFileLines(Path path) {\n   }\n \n   private static List<String> runCommand(List<String> command) {\n+    return runCommand(command, COMMAND_TIMEOUT_MILLIS);\n+  }\n+\n+  // Visible for testing\n+  static List<String> runCommand(List<String> command, long timeoutMillis) {\n+    Process process = null;\n     try {\n       ProcessBuilder processBuilder = new ProcessBuilder(command);\n       processBuilder.redirectErrorStream(true);\n-      Process process = processBuilder.start();\n+      process = processBuilder.start();\n+      // none of these commands read stdin; closing it means a command that would otherwise wait\n+      // for input sees EOF and exits instead of running until the timeout\n+      process.getOutputStream().close();\n+\n+      long deadlineNanos = System.nanoTime() + MILLISECONDS.toNanos(timeoutMillis);\n+      // the output has to be drained on another thread: reading to EOF on this thread is unbounded,\n+      // and not draining at all lets a chatty command deadlock on a full pipe buffer\n+      InputStream processOutput = process.getInputStream();\n+      FutureTask<List<String>> readOutput = new FutureTask<>(() -> getProcessOutput(processOutput));\n+      Thread readerThread = new Thread(readOutput, \"otel-host-id-lookup\");\n+      readerThread.setDaemon(true);\n+      readerThread.start();\n+\n+      List<String> output = readOutput.get(timeoutMillis, MILLISECONDS);\n+      if (!process.waitFor(remainingMillis(deadlineNanos), MILLISECONDS)) {\n+        logger.log(FINE, \"Timed out running command {0}\", command);\n+        return emptyList();\n+      }",
+      "id": "PRRT_kwDODJKVX86WHkpo",
+      "opened": "2026-08-03T21:21:11Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "c1d100bb56e1d1239d34ac1210b254b9ea1ff2a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19377#discussion_r3707576678"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This comment doesn't match what the test actually guards against. Draining on the calling thread -- which is what the code did before this PR -- never deadlocks on large output; it just leaves the read unbounded. The deadlock only shows up if you wait for the process to exit before reading its output, which is what this test is really protecting against.\n\n```suggestion\n    // more output than fits in the pipe buffer: waiting for the process to exit before reading\n    // its output would deadlock here\n```",
+      "created": "2026-08-03T20:49:34Z",
+      "hunk": "@@ -196,4 +199,43 @@ void shouldApply() {\n                 null))\n         .isFalse();\n   }\n+\n+  @Test\n+  @DisabledOnOs(OS.WINDOWS)\n+  void runCommandReturnsOutput() {\n+    assertThat(HostIdResource.runCommand(asList(\"/bin/sh\", \"-c\", \"echo hello\"), 5000))\n+        .containsExactly(\"hello\");\n+  }\n+\n+  @Test\n+  @DisabledOnOs(OS.WINDOWS)\n+  void runCommandTimesOut() {\n+    long startNanos = System.nanoTime();\n+    assertThat(HostIdResource.runCommand(asList(\"/bin/sh\", \"-c\", \"sleep 30\"), 200)).isEmpty();\n+    // the command would take 30s to complete, so anything close to that means the timeout was\n+    // not applied\n+    assertThat(NANOSECONDS.toMillis(System.nanoTime() - startNanos)).isLessThan(10_000);\n+  }\n+\n+  @Test\n+  @DisabledOnOs(OS.WINDOWS)\n+  void runCommandNonZeroExitCode() {\n+    assertThat(HostIdResource.runCommand(asList(\"/bin/sh\", \"-c\", \"echo out; exit 3\"), 5000))\n+        .isEmpty();\n+  }\n+\n+  @Test\n+  @DisabledOnOs(OS.WINDOWS)\n+  void runCommandLargeOutputDoesNotDeadlock() {\n+    // more output than fits in the pipe buffer: the command can only exit once the output is\n+    // drained, so this deadlocks unless the draining happens off the calling thread",
+      "id": "PRRT_kwDODJKVX86WHkpp",
+      "opened": "2026-08-03T21:21:11Z",
+      "path": "instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/HostIdResourceTest.java",
+      "replies": [],
+      "reviewed": "c1d100bb56e1d1239d34ac1210b254b9ea1ff2a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19377#discussion_r3707576679"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "since, as you noted, we don't execute anything that reads stdin could consider omitting this",
+      "created": "2026-08-04T14:35:06Z",
+      "hunk": "@@ -248,40 +257,92 @@ private static List<String> readFileLines(Path path) {\n   }\n \n   private static List<String> runCommand(List<String> command) {\n+    return runCommand(command, COMMAND_TIMEOUT_MILLIS);\n+  }\n+\n+  // Visible for testing\n+  static List<String> runCommand(List<String> command, long timeoutMillis) {\n+    Process process = null;\n+    // set once this method stops caring about the result, so that the thread below can tell a\n+    // command that failed on its own from one that was killed on the way out\n+    AtomicBoolean abandoned = new AtomicBoolean();\n     try {\n       ProcessBuilder processBuilder = new ProcessBuilder(command);\n       processBuilder.redirectErrorStream(true);\n-      Process process = processBuilder.start();\n+      process = processBuilder.start();\n+      // none of these commands read stdin; closing it means a command that would otherwise wait\n+      // for input sees EOF and exits instead of running until the timeout\n+      process.getOutputStream().close();",
+      "id": "PRRT_kwDODJKVX86WXFq5",
+      "opened": "2026-08-04T14:35:06Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "49950246e188eabe136b737cd8b99f8d5a7faa84",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19377#discussion_r3713499208"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could consider\n```java\n    return new BufferedReader(new InputStreamReader(processOutput, UTF_8)).lines().collect(\n        Collectors.toList());\n```",
+      "created": "2026-08-04T14:47:07Z",
+      "hunk": "@@ -248,40 +257,92 @@ private static List<String> readFileLines(Path path) {\n   }\n \n   private static List<String> runCommand(List<String> command) {\n+    return runCommand(command, COMMAND_TIMEOUT_MILLIS);\n+  }\n+\n+  // Visible for testing\n+  static List<String> runCommand(List<String> command, long timeoutMillis) {\n+    Process process = null;\n+    // set once this method stops caring about the result, so that the thread below can tell a\n+    // command that failed on its own from one that was killed on the way out\n+    AtomicBoolean abandoned = new AtomicBoolean();\n     try {\n       ProcessBuilder processBuilder = new ProcessBuilder(command);\n       processBuilder.redirectErrorStream(true);\n-      Process process = processBuilder.start();\n+      process = processBuilder.start();\n+      // none of these commands read stdin; closing it means a command that would otherwise wait\n+      // for input sees EOF and exits instead of running until the timeout\n+      process.getOutputStream().close();\n+\n+      // reading the output to EOF and waiting for the process to exit are both unbounded, so they\n+      // run on another thread that the timeout below can walk away from. draining the output also\n+      // has to happen before waiting for exit, otherwise a chatty command deadlocks on a full pipe\n+      // buffer.\n+      Process startedProcess = process;\n+      FutureTask<List<String>> commandOutput =\n+          new FutureTask<>(() -> getCommandOutput(startedProcess, command, abandoned));\n+      Thread readerThread = new Thread(commandOutput, \"otel-host-id-lookup\");\n+      readerThread.setDaemon(true);\n+      readerThread.start();\n+\n+      return commandOutput.get(timeoutMillis, MILLISECONDS);\n+    } catch (TimeoutException e) {\n+      logger.log(FINE, \"Timed out running command {0}\", command);\n+      return emptyList();\n+    } catch (IOException | ExecutionException e) {\n+      logger.log(FINE, \"Failed to run command \" + command, e);\n+      return emptyList();\n+    } catch (InterruptedException e) {\n+      Thread.currentThread().interrupt();\n+      logger.log(FINE, \"Interrupted running command \" + command, e);\n+      return emptyList();\n+    } finally {\n+      abandoned.set(true);\n+      if (process != null) {\n+        // no-op if the process already exited, otherwise this both stops the stray child and\n+        // unblocks the reader thread\n+        process.destroyForcibly();\n+      }\n+    }\n+  }\n+\n+  private static List<String> getCommandOutput(\n+      Process process, List<String> command, AtomicBoolean abandoned)\n+      throws IOException, InterruptedException {\n+    List<String> output = getProcessOutput(process.getInputStream());\n \n-      List<String> output = getProcessOutput(process);\n-      int exitedValue = process.waitFor();\n-      if (exitedValue != 0) {\n+    int exitedValue = process.waitFor();\n+    if (abandoned.get()) {\n+      // the timeout has already been reported, but whatever the command managed to print before it\n+      // was killed is the most useful clue about where it got stuck\n+      if (!output.isEmpty()) {\n         logger.fine(\n-            \"Failed to run command \"\n-                + command\n-                + \". Exit code: \"\n-                + exitedValue\n-                + \" Output: \"\n-                + String.join(\"\\n\", output));\n-\n-        return emptyList();\n+            \"Output of command \" + command + \" before it was killed: \" + String.join(\"\\n\", output));\n       }\n \n-      return output;\n-    } catch (IOException | InterruptedException e) {\n-      if (e instanceof InterruptedException) {\n-        Thread.currentThread().interrupt();\n-      }\n-      logger.log(FINE, \"Failed to run command \" + command, e);\n       return emptyList();\n     }\n+\n+    if (exitedValue != 0) {\n+      logger.fine(\n+          \"Failed to run command \"\n+              + command\n+              + \". Exit code: \"\n+              + exitedValue\n+              + \" Output: \"\n+              + String.join(\"\\n\", output));\n+\n+      return emptyList();\n+    }\n+\n+    return output;\n   }\n \n-  private static List<String> getProcessOutput(Process process) throws IOException {\n+  private static List<String> getProcessOutput(InputStream processOutput) throws IOException {",
+      "id": "PRRT_kwDODJKVX86WXVM4",
+      "opened": "2026-08-04T14:47:07Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "49950246e188eabe136b737cd8b99f8d5a7faa84",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19377#discussion_r3713590967"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Do not log the captured output on timeout. For the macOS lookup, `ioreg` output can contain `IOPlatformSerialNumber` and other hardware identifiers, so this reintroduces the data exposure that was removed from the normal missing-UUID path. Keep the timeout message but discard the partial output.",
+      "created": "2026-08-04T19:45:19Z",
+      "hunk": "@@ -248,46 +258,87 @@ private static List<String> readFileLines(Path path) {\n   }\n \n   private static List<String> runCommand(List<String> command) {\n+    return runCommand(command, COMMAND_TIMEOUT_MILLIS);\n+  }\n+\n+  // Visible for testing\n+  static List<String> runCommand(List<String> command, long timeoutMillis) {\n+    Process process = null;\n+    // set once this method stops caring about the result, so that the thread below can tell a\n+    // command that failed on its own from one that was killed on the way out\n+    AtomicBoolean abandoned = new AtomicBoolean();\n     try {\n       ProcessBuilder processBuilder = new ProcessBuilder(command);\n       processBuilder.redirectErrorStream(true);\n-      Process process = processBuilder.start();\n+      process = processBuilder.start();\n+\n+      // reading the output to EOF and waiting for the process to exit are both unbounded, so they\n+      // run on another thread that the timeout below can walk away from. draining the output also\n+      // has to happen before waiting for exit, otherwise a chatty command deadlocks on a full pipe\n+      // buffer.\n+      Process startedProcess = process;\n+      FutureTask<List<String>> commandOutput =\n+          new FutureTask<>(() -> getCommandOutput(startedProcess, command, abandoned));\n+      Thread readerThread = new Thread(commandOutput, \"otel-host-id-lookup\");\n+      readerThread.setDaemon(true);\n+      readerThread.start();\n+\n+      return commandOutput.get(timeoutMillis, MILLISECONDS);\n+    } catch (TimeoutException e) {\n+      logger.log(FINE, \"Timed out running command {0}\", command);\n+      return emptyList();\n+    } catch (IOException | ExecutionException e) {\n+      logger.log(FINE, \"Failed to run command \" + command, e);\n+      return emptyList();\n+    } catch (InterruptedException e) {\n+      Thread.currentThread().interrupt();\n+      logger.log(FINE, \"Interrupted running command \" + command, e);\n+      return emptyList();\n+    } finally {\n+      abandoned.set(true);\n+      if (process != null) {\n+        // no-op if the process already exited, otherwise this both stops the stray child and\n+        // unblocks the reader thread\n+        process.destroyForcibly();\n+      }\n+    }\n+  }\n+\n+  private static List<String> getCommandOutput(\n+      Process process, List<String> command, AtomicBoolean abandoned)\n+      throws IOException, InterruptedException {\n+    List<String> output = getProcessOutput(process.getInputStream());\n \n-      List<String> output = getProcessOutput(process);\n-      int exitedValue = process.waitFor();\n-      if (exitedValue != 0) {\n+    int exitedValue = process.waitFor();\n+    if (abandoned.get()) {\n+      // the timeout has already been reported, but whatever the command managed to print before it\n+      // was killed is the most useful clue about where it got stuck\n+      if (!output.isEmpty()) {\n         logger.fine(\n-            \"Failed to run command \"\n-                + command\n-                + \". Exit code: \"\n-                + exitedValue\n-                + \" Output: \"\n-                + String.join(\"\\n\", output));\n-\n-        return emptyList();\n+            \"Output of command \" + command + \" before it was killed: \" + String.join(\"\\n\", output));",
+      "id": "PRRT_kwDODJKVX86Wcxgj",
+      "opened": "2026-08-04T19:45:20Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/HostIdResource.java",
+      "replies": [],
+      "reviewed": "7816f87d39105ebaebcf28c339b516a2b1d6f38b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19377#discussion_r3715669112"
+    }
+  ]
+}

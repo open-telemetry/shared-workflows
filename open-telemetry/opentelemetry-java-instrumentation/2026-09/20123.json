@@ -1,0 +1,31 @@
+{
+  "head": "34bb53207e4775cc8533e9c39b07118a518a2c7f",
+  "merge": "510b35175e75e11a5c6c1334e1ec76186bbab26b",
+  "merged": "2026-09-15T02:07:52Z",
+  "missing_roots": 0,
+  "number": 20123,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When this drops a surrogate pair at an item's boundary, `serialize()` returns `maxLength - 1` characters even though `writer.limitReached()` is true. The enclosing `serializeNdJson()` loop then mistakes that spare code unit for capacity, serializes the next item, and appends `QUERY_SEPARATOR`, so the result is no longer a prefix of the serialized NDJSON (it skips the pair/rest of the current item and includes a later separator). Preserve the limit-reached status and stop the enclosing NDJSON serialization when this truncation occurs.",
+      "created": "2026-09-12T21:16:33Z",
+      "hunk": "@@ -162,6 +176,7 @@ public void close() {}\n \n     @Override\n     public String toString() {\n+      truncate(result, maxLength);",
+      "id": "PRRT_kwDODJKVX86hzozg",
+      "opened": "2026-09-12T21:16:33Z",
+      "path": "instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchBodyExtractor.java",
+      "replies": [
+        {
+          "at": "2026-09-12T21:23:03Z",
+          "body": "Addressed in 34bb53207e4775cc8533e9c39b07118a518a2c7f.\n\nAnalysis: Unicode-safe cleanup can leave the serialized text one code unit below the limit after the writer has already marked it truncated. Returning only the text loses that state, so NDJSON serialization can incorrectly continue with another item. Carrying the state with the serialized value lets every enclosing serializer stop at the same item. Reserving separator space before serializing later items keeps each appended value within its true remaining budget.\n\nUpsides: The output remains a prefix of the serialized NDJSON, nested NDJSON truncation propagates correctly, and the regression test covers the dropped-surrogate boundary.\n\nDownsides: Each serialized item now creates a small internal result object.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20123#discussion_r3997642836"
+        }
+      ],
+      "reviewed": "dda401597253fd8bf31081dbe86a38d007ece475",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20123#discussion_r3997601664"
+    }
+  ]
+}

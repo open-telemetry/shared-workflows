@@ -1,0 +1,57 @@
+{
+  "head": "985cd12a5f83c5a33e6fed41d6d5028cb7f5add4",
+  "merge": "d3fc54a12d475e8baf48985f898977ec3052a0e9",
+  "merged": "2026-08-18T13:06:29Z",
+  "missing_roots": 0,
+  "number": 19606,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This backward-compatibility guarantee is not implemented by the current delegate. `DefaultHttpClientInstrumenterBuilder#setCapturedRequestHeaders` wraps these names in `IncludeExclude`, and `CapturedHttpHeaders` then treats `*` and `?` as globs. Now that this PR enables name enumeration, an existing call with the literal name `*` captures every request header; the response, server, and Ratpack aliases have the same problem. Preserve an exact-name path for the deprecated setters before enabling enumeration.",
+      "created": "2026-08-15T04:09:10Z",
+      "hunk": "@@ -40,23 +41,69 @@ public final class NettyClientTelemetryBuilder {\n         NettyClientInstrumenterBuilderFactory.create(\"io.opentelemetry.netty-4.1\", openTelemetry);\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded. No headers are\n+   * captured when no selector is configured or when the selector is {@linkplain\n+   * IncludeExclude#isEmpty() empty}.\n+   */\n+  @CanIgnoreReturnValue\n+  public NettyClientTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86Zd92g",
+      "opened": "2026-08-15T04:09:11Z",
+      "path": "instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/NettyClientTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:17:19Z",
+          "body": "This is exactly the concern the deprecated setters now address, and the exact-name path is already in place — the comment is reading an older snapshot of the base branch.\n\nThese deprecated setters no longer build an `IncludeExclude`; they delegate to `DefaultHttpClientInstrumenterBuilder#setCapturedRequestHeaders`, which on this PR's base branch (`trask/http-header-selectors-api`, commit `1572a0077b`) routes through `CapturedHttpHeaders.createExact` and stores the names as a literal set, with no selector and no glob interpretation. This branch's head commit is simply built on an older snapshot of that base; CI builds `refs/pull/N/merge`, so the literal path is what actually compiles and runs here.\n\nI validated that rather than assuming it: with `1572a0077b` applied locally, the new `doesNotTreatConfiguredNamesAsPatterns` tests in `NettyServerHeaderCaptureTest` and `RatpackServerHeaderCaptureTest` pass, asserting that `setCapturedRequestHeaders([\"*\"])` and `setCapturedResponseHeaders([\"*\"])` capture no header attributes at all even though name enumeration is enabled. Those tests exist specifically to pin this behavior so the widening cannot reappear.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19606#discussion_r3788466614"
+        },
+        {
+          "at": "2026-08-15T04:37:32Z",
+          "body": "Following up with measured evidence rather than leaving this as an assertion, since a stale-base false positive and a real widening would read identically.\n\nI ran the `doesNotTreatConfiguredNamesAsPatterns` regression test both ways, forcing re-execution so nothing came from the build cache.\n\nOn the PR merge ref (`refs/pull/19606/merge`, merge commit `5a9c7f8188` of head `9035c9777c` into base `1572a0077b`), which is what CI actually builds, both the Netty and Ratpack tests pass: `setCapturedRequestHeaders([\"*\"])` and `setCapturedResponseHeaders([\"*\"])` produce a span with no `http.request.header.*` or `http.response.header.*` attributes at all.\n\nOn the head branch in isolation, which is the tree this comment was generated from, the same test fails exactly as described here — the span carries `http.request.header.host=[localhost]`, `http.request.header.x-test-request=[test]`, `http.response.header.x-test-response=[test]` and `http.response.header.content-type=[text/plain]`, i.e. every header. That failure is the base-branch snapshot in this head predating `1572a0077b`, not the code in this diff, and it disappears in the merge.\n\nSo the finding is accurate about the widening being dangerous and I've kept a test pinning it, but the fix is present in what merges here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19606#discussion_r3788499700"
+        }
+      ],
+      "reviewed": "9035c9777cea5bd122eb6832a095e8a5d269cbcd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19606#discussion_r3788450106"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could consider having a constant with type `IncludeExclude` in `AbstractHttpClientTest` so that tests wouldn't need to use\n```java\nIncludeExclude.builder()\n    .setIncluded(AbstractHttpClientTest.TEST_REQUEST_HEADER)\n    .build()\n```",
+      "created": "2026-08-18T11:37:33Z",
+      "hunk": "@@ -9,14 +9,17 @@\n \n import io.netty.channel.Channel;\n import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n-import io.opentelemetry.instrumentation.testing.junit.http.AbstractHttpClientTest;\n import io.opentelemetry.instrumentation.testing.junit.http.HttpClientInstrumentationExtension;\n import io.opentelemetry.instrumentation.testing.junit.http.HttpClientTestOptions;\n import org.junit.jupiter.api.extension.RegisterExtension;\n \n class Netty41ClientTest extends AbstractNetty41ClientTest {\n \n+  private static final IncludeExclude TEST_HEADERS =\n+      IncludeExclude.builder().setIncluded(singletonList(\"x-test-*\")).build();",
+      "id": "PRRT_kwDODJKVX86aFwT0",
+      "opened": "2026-08-18T11:37:33Z",
+      "path": "instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/Netty41ClientTest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T13:05:05Z",
+          "body": "Will bundle into a follow-up PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19606#discussion_r3804292010"
+        }
+      ],
+      "reviewed": "985cd12a5f83c5a33e6fed41d6d5028cb7f5add4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19606#discussion_r3803665941"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "300dda91819bbe7d957f17b9e0970be30c4eb895",
+  "merge": "a434402d73c5b7ae6a647db43fd78baa570ed5a3",
+  "merged": "2026-09-18T08:22:24Z",
+  "missing_roots": 0,
+  "number": 222,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This dependency bump changes the runtime used to generate GenAI coverage, but no corresponding `data.json` files are included. The GenAI workflow reruns every implementation and compares the generated coverage (`.github/workflows/runner.yml:488-494`), so run the affected directories with `--report-only` and commit the resulting `data.json` updates (or verify and include them unchanged as appropriate).",
+      "created": "2026-09-18T01:12:11Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"openai-opentelemetry-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"openai==3.14.1\",\n+    \"openai==3.15.0\",",
+      "id": "PRRT_kwDOTuzK5c6jlhfT",
+      "opened": "2026-09-18T01:12:11Z",
+      "path": "scenarios/gen-ai/python/openai/opentelemetry-openai/pyproject.toml",
+      "replies": [],
+      "reviewed": "300dda91819bbe7d957f17b9e0970be30c4eb895",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/222#discussion_r4042844768"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "5d0b7a04d6672ea23a475974c5e7edfac8f6fcff05da2ea6728ed32e65930f61",
+  "input_digest": "7f5f8fafad266386e23ba64e0f37f3029001effd88072b649a5c15ea8556c885",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b0d2c7d1531b66f09e4aad484986b5bb28d430a2/instrumentation/opentelemetry-api/opentelemetry-api-1.56/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_56/incubator/ExtendedOpenTelemetryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b0d2c7d1531b66f09e4aad484986b5bb28d430a2/instrumentation/opentelemetry-api/opentelemetry-api-1.56/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50a829751a2c73640381c91faaedc00d016b67ee/instrumentation/opentelemetry-api/opentelemetry-api-1.56/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_56/incubator/ExtendedOpenTelemetryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50a829751a2c73640381c91faaedc00d016b67ee/instrumentation/opentelemetry-api/opentelemetry-api-1.56/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX857Fa-Y",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX857Ffl4",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bebfd6e2ab4131ac66e8521cd3cbe5e590ab252b/instrumentation/opentelemetry-api/opentelemetry-api-1.61/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bebfd6e2ab4131ac66e8521cd3cbe5e590ab252b/instrumentation/opentelemetry-api/opentelemetry-api-1.61/testing/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50a829751a2c73640381c91faaedc00d016b67ee/instrumentation/opentelemetry-api/opentelemetry-api-1.61/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50a829751a2c73640381c91faaedc00d016b67ee/instrumentation/opentelemetry-api/opentelemetry-api-1.61/testing/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX857J36n",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

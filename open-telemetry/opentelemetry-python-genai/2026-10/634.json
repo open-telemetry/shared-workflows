@@ -1,0 +1,106 @@
+{
+  "head": "847594bb9f567eebb362d75694b5859cce56f2a2",
+  "merge": "ea375a9198ab7ea6f4638ce5a08345d52eb42d65",
+  "merged": "2026-10-27T23:20:02Z",
+  "missing_roots": 0,
+  "number": 634,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description/issue references a Towncrier fragment for #597, but the added fragment file is named `634.added`; please rename the fragment file to match this PR number (e.g., `util/opentelemetry-util-genai/.changelog/597.added`) so changelog entries stay traceable.",
+      "created": "2026-09-05T12:12:23Z",
+      "hunk": "@@ -0,0 +1,2 @@\n+Add support to track and record agent inference and tool call metrics on AgentInvocation.",
+      "id": "PRRT_kwDOSbspP86fjL_5",
+      "opened": "2026-09-05T12:12:24Z",
+      "path": "util/opentelemetry-util-genai/.changelog/597.added",
+      "replies": [
+        {
+          "at": "2026-09-05T13:14:06Z",
+          "body": "Renamed the Towncrier fragment to 597.added in commit 92c520b to match the referenced issue number.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/634#discussion_r3940726885"
+        }
+      ],
+      "reviewed": "79c776b852341f9dfaf498af648a782cb706428f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/634#discussion_r3940596729"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "these are only applicable to local agents, not to remote ones.\n\nCan you please move it to the appropriate override? ",
+      "created": "2026-09-14T21:17:36Z",
+      "hunk": "@@ -96,6 +96,9 @@ def __init__(\n         self.input_tokens: int | None = None\n         self.output_tokens: int | None = None\n \n+        self.inference_calls: int | None = None\n+        self.tool_calls: int | None = None",
+      "id": "PRRT_kwDOSbspP86iSPtk",
+      "opened": "2026-09-14T21:17:36Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [],
+      "reviewed": "c7bc53204107fd7baef08b2b22c4ca7c74b1df1c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/634#discussion_r4009676841"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "From the [sem conv](https://github.com/open-telemetry/semantic-conventions-genai/blob/0c87594975195608dc91b3f702e250a7b240c151/docs/gen-ai/gen-ai-metrics.md#metric-gen_aiinvoke_agentinference_calls), I think the we want an advisory for boundaries to be `[1, 2, 4, 8, 16, 32, 64, 128].` right for both?",
+      "created": "2026-09-15T15:53:07Z",
+      "hunk": "@@ -126,6 +130,22 @@ def __init__(self, meter: Meter) -> None:\n             unit=\"s\",\n             explicit_bucket_boundaries_advisory=_GEN_AI_INVOKE_AGENT_DURATION_BUCKETS,\n         )\n+        self.invoke_agent_inference_calls: Histogram = meter.create_histogram(\n+            name=_GEN_AI_INVOKE_AGENT_INFERENCE_CALLS,\n+            description=(\n+                \"The number of inference (model) calls a GenAI agent makes\"\n+                \" during a single invocation.\"\n+            ),\n+            unit=\"{inference_call}\",",
+      "id": "PRRT_kwDOSbspP86imHHD",
+      "opened": "2026-09-15T15:53:07Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_instruments.py",
+      "replies": [],
+      "reviewed": "c7bc53204107fd7baef08b2b22c4ca7c74b1df1c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/634#discussion_r4017580999"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Per semconv, `gen_ai.invoke_agent.inference_calls` and `gen_ai.invoke_agent.tool_calls` only define `gen_ai.agent.name`. They should not include `gen_ai.request.model` or `error.type`.\n\nPlease record them with attributes containing only `gen_ai.agent.name` (when set), and update the corresponding assertions in `test_handler_agent.py`.",
+      "created": "2026-09-22T13:34:57Z",
+      "hunk": "@@ -229,16 +231,34 @@ def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n         attrs.update(self.metric_attributes)\n         return attrs\n \n+    def _record_call_metrics(\n+        self, attributes: dict[str, AttributeValue]",
+      "id": "PRRT_kwDOSbspP86kv8tb",
+      "opened": "2026-09-22T13:34:58Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [],
+      "reviewed": "8ebd463c046af5f9b7110150f44ed72734129713",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/634#discussion_r4072225807"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Nit: please update `AgentInvocation` to `LocalAgentInvocation` since remote agents do not track these metrics.",
+      "created": "2026-09-22T13:34:57Z",
+      "hunk": "@@ -0,0 +1 @@\n+Add agent call count metrics on AgentInvocation.",
+      "id": "PRRT_kwDOSbspP86kv8tj",
+      "opened": "2026-09-22T13:34:58Z",
+      "path": "util/opentelemetry-util-genai/.changelog/634.added",
+      "replies": [],
+      "reviewed": "8ebd463c046af5f9b7110150f44ed72734129713",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/634#discussion_r4072225816"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `RemoteAgentInvocation` has no such attributes, so this just adds dynamic attrs and the test can't fail. `test_remote_agent_does_not_expose_call_counts` already covers this - consider dropping these two lines (or the whole test).",
+      "created": "2026-10-27T22:09:55Z",
+      "hunk": "@@ -858,6 +858,172 @@ def test_fail_agent_records_error_metric(self) -> None:\n         )\n         self.assertAlmostEqual(duration_point.sum, 1.0, places=3)\n \n+    def test_agent_records_inference_and_tool_calls(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        invocation = handler.invoke_local_agent(\n+            agent_name=\"SearchAgent\",\n+            request_model=\"gpt-4o\",\n+        )\n+        invocation.inference_calls = 3\n+        invocation.tool_calls = 5\n+        invocation.stop()\n+\n+        metrics = self._harvest_metrics()\n+\n+        self.assertIn(\"gen_ai.invoke_agent.inference_calls\", metrics)\n+        inf_points = metrics[\"gen_ai.invoke_agent.inference_calls\"]\n+        self.assertEqual(len(inf_points), 1)\n+        self.assertAlmostEqual(inf_points[0].sum, 3.0, places=3)\n+        self.assertEqual(\n+            inf_points[0].attributes[GenAI.GEN_AI_AGENT_NAME],\n+            \"SearchAgent\",\n+        )\n+        self.assertEqual(\n+            dict(inf_points[0].attributes),\n+            {GenAI.GEN_AI_AGENT_NAME: \"SearchAgent\"},\n+        )\n+\n+        self.assertIn(\"gen_ai.invoke_agent.tool_calls\", metrics)\n+        tool_points = metrics[\"gen_ai.invoke_agent.tool_calls\"]\n+        self.assertEqual(len(tool_points), 1)\n+        self.assertAlmostEqual(tool_points[0].sum, 5.0, places=3)\n+        self.assertEqual(\n+            tool_points[0].attributes[GenAI.GEN_AI_AGENT_NAME],\n+            \"SearchAgent\",\n+        )\n+        self.assertEqual(\n+            dict(tool_points[0].attributes),\n+            {GenAI.GEN_AI_AGENT_NAME: \"SearchAgent\"},\n+        )\n+\n+    def test_agent_without_calls_does_not_record_call_metrics(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        invocation = handler.invoke_local_agent(agent_name=\"MinimalAgent\")\n+        invocation.stop()\n+\n+        metrics = self._harvest_metrics()\n+        self.assertIn(\"gen_ai.invoke_agent.duration\", metrics)\n+        self.assertNotIn(\"gen_ai.invoke_agent.inference_calls\", metrics)\n+        self.assertNotIn(\"gen_ai.invoke_agent.tool_calls\", metrics)\n+\n+    def test_agent_records_zero_calls(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        invocation = handler.invoke_local_agent(agent_name=\"ZeroAgent\")\n+        invocation.inference_calls = 0\n+        invocation.tool_calls = 0\n+        invocation.stop()\n+\n+        metrics = self._harvest_metrics()\n+        self.assertIn(\"gen_ai.invoke_agent.inference_calls\", metrics)\n+        self.assertAlmostEqual(\n+            metrics[\"gen_ai.invoke_agent.inference_calls\"][0].sum,\n+            0.0,\n+            places=3,\n+        )\n+        self.assertIn(\"gen_ai.invoke_agent.tool_calls\", metrics)\n+        self.assertAlmostEqual(\n+            metrics[\"gen_ai.invoke_agent.tool_calls\"][0].sum,\n+            0.0,\n+            places=3,\n+        )\n+\n+    def test_remote_agent_does_not_record_call_metrics(self) -> None:\n+        handler = TelemetryHandler(\n+            tracer_provider=self.tracer_provider,\n+            meter_provider=self.meter_provider,\n+        )\n+        invocation = handler.invoke_remote_agent(\n+            provider=\"openai\",\n+            request_model=\"gpt-4o\",\n+            server_address=\"api.openai.com\",\n+            server_port=443,\n+            agent_name=\"RemoteAgent\",\n+        )\n+        invocation.inference_calls = 2\n+        invocation.tool_calls = 1",
+      "id": "PRRT_kwDOSbspP86w550w",
+      "opened": "2026-10-27T22:13:22Z",
+      "path": "util/opentelemetry-util-genai/tests/test_handler_agent.py",
+      "replies": [],
+      "reviewed": "7a8e4dec4c10e58dfec4ab63a88174725b5500e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/634#discussion_r4394756548"
+    }
+  ]
+}

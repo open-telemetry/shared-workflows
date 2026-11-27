@@ -1,0 +1,31 @@
+{
+  "head": "1edce4dfa8b62bd6d030ee0c2821c53e4852c1e9",
+  "merge": "f00c141751254fb1f8f4d69267a4dc4e97fc7d03",
+  "merged": "2026-01-28T13:41:25Z",
+  "missing_roots": 0,
+  "number": 16003,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "since this really can't be null maybe `requireNonNull` would be better",
+      "created": "2026-01-28T10:45:34Z",
+      "hunk": "@@ -53,6 +54,9 @@ public Description matchMethod(MethodTree methodTree, VisitorState visitorState)\n     if (containerClass.getSimpleName().toString().endsWith(\"Advice\")) {\n       return NO_MATCH;\n     }\n+    if (delegate == null) {",
+      "id": "PRRT_kwDODJKVX85raXVt",
+      "opened": "2026-01-28T10:45:34Z",
+      "path": "custom-checks/src/main/java/io/opentelemetry/javaagent/customchecks/OtelCanIgnoreReturnValueSuggester.java",
+      "replies": [
+        {
+          "at": "2026-01-28T11:18:56Z",
+          "body": "fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16003#discussion_r2736168623"
+        }
+      ],
+      "reviewed": "a92de8cc7e5f570a521d39f7aa3329744bec99e6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16003#discussion_r2736046336"
+    }
+  ]
+}

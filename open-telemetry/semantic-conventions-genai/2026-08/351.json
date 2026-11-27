@@ -1,0 +1,382 @@
+{
+  "head": "b0882638e99709ca0206c3677424b649e4d97616",
+  "merge": "6da96d248f37477e524faa4bc8e934da3932523f",
+  "merged": "2026-08-01T18:28:57Z",
+  "missing_roots": 0,
+  "number": 351,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The operation table says `execute_tool` is “not instrumentable”, but the current scenario still emits an `execute_tool` span around the app-side `get_weather` call (see `reference/scenarios/openai/scenario.py:377-386`). This makes the table misleading (and contradicts the new guidance in `reference/AGENTS.md` about not emitting `execute_tool` when the client doesn’t execute tools).",
+      "created": "2026-06-26T03:56:52Z",
+      "hunk": "@@ -0,0 +1,16 @@\n+# openai\n+\n+The `openai` client is a **model-call boundary**: it calls the model directly,\n+so it owns inference and embeddings. It also owns retrieval\n+(the Vector Stores API — `client.vector_stores.search` — and the `file_search`\n+tool) and memory (the Conversations API and stored responses via `store` /\n+`previous_response_id`). It has no agent, workflow, or plan concepts (the\n+Assistants API is covered by the `openai-assistants` scenario).\n+\n+| Operation | Should be instrumented here | Status |\n+| --- | --- | --- |\n+| inference (`chat`) | Yes — calls the model directly | ✅ Implemented |\n+| embeddings | Yes — calls the model directly | ✅ Implemented |\n+| execute_tool | No — the base client returns tool calls but doesn't execute them; the tool runs in app code | ❌ Shown, but not instrumentable |",
+      "id": "PRRT_kwDOSUeMrM6MamFo",
+      "opened": "2026-06-26T03:56:54Z",
+      "path": "reference/scenarios/openai/README.md",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3479045146"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The table states `execute_tool` is “not instrumentable”, but the MistralAI scenario currently emits an `execute_tool` span around the app-side tool call (`reference/scenarios/mistralai/scenario.py:162-175`). This conflicts with the table and the new execute_tool guidance in `reference/AGENTS.md`.",
+      "created": "2026-06-26T03:56:53Z",
+      "hunk": "@@ -0,0 +1,12 @@\n+# mistralai\n+\n+The `mistralai` client is a **model-call boundary**: it calls the model\n+directly, so it owns inference and embeddings. Tool calling is supported, with\n+the tool itself running in application code. (The hosted Agents API is a\n+separate, remote service.)\n+\n+| Operation | Should be instrumented here | Status |\n+| --- | --- | --- |\n+| inference (`chat`) | Yes — calls the model directly | ✅ Implemented |\n+| embeddings | Yes — calls the model directly | ✅ Implemented |\n+| execute_tool | No — the client returns tool calls but doesn't execute them; the tool runs in app code | ❌ Shown, but not instrumentable |",
+      "id": "PRRT_kwDOSUeMrM6MamF8",
+      "opened": "2026-06-26T03:56:54Z",
+      "path": "reference/scenarios/mistralai/README.md",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3479045177"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The table marks `execute_tool` as “not instrumentable”, but the Cohere scenario currently emits an `execute_tool` span around the app-side tool call (`reference/scenarios/cohere/scenario.py:139-152`). This is inconsistent with the table (and with `reference/AGENTS.md`’s tool-execution guidance).",
+      "created": "2026-06-26T03:56:53Z",
+      "hunk": "@@ -0,0 +1,12 @@\n+# cohere\n+\n+The `cohere` client is a **model-call boundary**: it calls the model directly,\n+so it owns inference and embeddings. Tool calling is supported, with the tool\n+itself running in application code.\n+\n+| Operation | Should be instrumented here | Status |\n+| --- | --- | --- |\n+| inference (`chat`) | Yes — calls the model directly | ✅ Implemented |\n+| embeddings | Yes — calls the model directly | ✅ Implemented |\n+| execute_tool | No — the client returns tool calls but doesn't execute them; the tool runs in app code | ❌ Shown, but not instrumentable |",
+      "id": "PRRT_kwDOSUeMrM6MamFt",
+      "opened": "2026-06-26T03:56:54Z",
+      "path": "reference/scenarios/cohere/README.md",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3479045155"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The table says `execute_tool` is “not instrumentable”, but the Groq scenario still emits an `execute_tool` span around the tool execution (see `reference/scenarios/groq/scenario.py:153+`). This makes the operation table inaccurate relative to the scenario behavior.",
+      "created": "2026-06-26T03:56:53Z",
+      "hunk": "@@ -0,0 +1,11 @@\n+# groq\n+\n+The `groq` client is a **model-call boundary**: it calls the model directly, so\n+it owns inference. Groq's API has no embeddings endpoint, so embeddings is out\n+of scope. Tool calling is supported, with the tool itself running in application\n+code.\n+\n+| Operation | Should be instrumented here | Status |\n+| --- | --- | --- |\n+| inference (`chat`) | Yes — calls the model directly | ✅ Implemented |\n+| execute_tool | No — the client returns tool calls but doesn't execute them; the tool runs in app code | ❌ Shown, but not instrumentable |",
+      "id": "PRRT_kwDOSUeMrM6MamFz",
+      "opened": "2026-06-26T03:56:54Z",
+      "path": "reference/scenarios/groq/README.md",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3479045162"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The operation table says LiteLLM `execute_tool` is “not instrumentable”, but the LiteLLM scenario currently emits an `execute_tool` span around the app-side tool call (see `reference/scenarios/litellm/scenario.py:224+`). This inconsistency makes the per-library guidance misleading.",
+      "created": "2026-06-26T03:56:53Z",
+      "hunk": "@@ -0,0 +1,12 @@\n+# litellm\n+\n+LiteLLM is a unified gateway that translates calls to many providers and makes\n+the model HTTP request itself, so it is a **model-call boundary**: it owns\n+inference and embeddings. Tool calling is supported, with the tool itself\n+running in application code.\n+\n+| Operation | Should be instrumented here | Status |\n+| --- | --- | --- |\n+| inference (`chat`) | Yes — calls the provider model directly | ✅ Implemented |\n+| embeddings | Yes — calls the provider model directly | ✅ Implemented |\n+| execute_tool | No — the client returns tool calls but doesn't execute them; the tool runs in app code | ❌ Shown, but not instrumentable |",
+      "id": "PRRT_kwDOSUeMrM6MamGE",
+      "opened": "2026-06-26T03:56:54Z",
+      "path": "reference/scenarios/litellm/README.md",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3479045187"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The table marks Bedrock `execute_tool` as “not instrumentable”, but the Bedrock scenario currently emits an `execute_tool` span around the app-side tool execution when `converse` returns `toolUse` (see `reference/scenarios/aws-bedrock/scenario.py:175-188`). This conflicts with the table and with the new tool-execution rule in `reference/AGENTS.md`.",
+      "created": "2026-06-26T03:56:54Z",
+      "hunk": "@@ -0,0 +1,12 @@\n+# aws-bedrock\n+\n+The Bedrock Runtime client (`Converse` / `InvokeModel`) is a **model-call\n+boundary**: it calls the model directly, so it owns inference and embeddings.\n+Converse tool use is supported, with the tool itself running in application\n+code. (Knowledge Bases / Agents live in separate Bedrock services and scenarios.)\n+\n+| Operation | Should be instrumented here | Status |\n+| --- | --- | --- |\n+| inference (`chat`) | Yes — `Converse` / `InvokeModel`, calls the model directly | ✅ Implemented |\n+| embeddings | Yes — Titan / Cohere embedding models via `InvokeModel` | ✅ Implemented |\n+| execute_tool | No — Converse returns tool-use requests but doesn't execute them; the tool runs in app code | ❌ Shown, but not instrumentable |",
+      "id": "PRRT_kwDOSUeMrM6MamGI",
+      "opened": "2026-06-26T03:56:54Z",
+      "path": "reference/scenarios/aws-bedrock/README.md",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3479045193"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This README implies Instructor “owns” tool execution and should emit `execute_tool` (row at line 10), but in the scenario the tool is executed in application code after `create_with_completion` returns (`reference/scenarios/instructor/scenario.py:40-63`). That seems to contradict `reference/AGENTS.md`’s guidance that `execute_tool` is not instrumentable when the library doesn’t execute the tool itself (lines 47-57).",
+      "created": "2026-06-26T03:56:54Z",
+      "hunk": "@@ -0,0 +1,10 @@\n+# instructor\n+\n+Instructor patches an LLM client (e.g. `openai`) to return structured outputs.\n+The actual model call is made by the wrapped client, so it **delegates\n+inference**. It owns the tool execution it drives from the structured tool call.\n+\n+| Operation | Should be instrumented here | Status |\n+| --- | --- | --- |\n+| inference (`chat`) | No — wraps and delegates to the LLM client (`openai`) | ✅ Correctly not emitted |\n+| execute_tool | Yes — app-side execution from the structured tool call | ✅ Implemented |",
+      "id": "PRRT_kwDOSUeMrM6MamGP",
+      "opened": "2026-06-26T03:56:54Z",
+      "path": "reference/scenarios/instructor/README.md",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3479045201"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "check if pydantic relies on client libs or uses rest apis directly",
+      "created": "2026-06-30T16:23:42Z",
+      "hunk": "@@ -6,75 +6,66 @@\n \n | Attribute | Supporting Libraries |\n | --- | --- |\n-| gen_ai.operation.name | [anthropic], [autogen], [aws-bedrock], [azure-ai-inference], [azure-openai], [claude-agent-sdk], [cohere], [crewai], [dspy], [google-adk], [google-genai], [groq], [instructor], [langchain], [litellm], [llamaindex], [mistralai], [openai], [openai-agents], [pydantic-ai], [vertexai] |\n-| gen_ai.provider.name | [anthropic], [autogen], [aws-bedrock], [azure-ai-inference], [azure-openai], [claude-agent-sdk], [cohere], [crewai], [dspy], [google-adk], [google-genai], [groq], [instructor], [langchain], [litellm], [llamaindex], [mistralai], [openai], [openai-agents], [pydantic-ai], [vertexai] |",
+      "id": "PRRT_kwDOSUeMrM6NVyP2",
+      "opened": "2026-06-30T16:23:42Z",
+      "path": "reference/reports/inference-span.md",
+      "replies": [
+        {
+          "at": "2026-07-18T02:52:23Z",
+          "body": "pydantic depends on model libs https://github.com/pydantic/pydantic-ai/blob/9688a9cca2fcf81451cdac35e701250dbdfec75e/pydantic_ai_slim/pyproject.toml#L72",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3607413419"
+        }
+      ],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3500289961"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "Based on the new `reference/AGENTS.md`, should any scenarios that currently emit app-side `execute_tool` spans be updated?\n\nFeel free to correct me, but I believe `openai`, `cohere`, `groq`, `mistralai`, `litellm`, and `aws-bedrock` appear to model clients that return tool-call requests while the application executes/builds the tool result.",
+      "created": "2026-06-30T17:40:30Z",
+      "hunk": "@@ -29,8 +29,8 @@ Run `uv run update-reports` to regenerate.\n | [Invoke Agent Internal](reports/invoke-agent-internal-span.md) | autogen, crewai, google-adk, openai-agents, pydantic-ai |\n | [Invoke Workflow](reports/invoke-workflow-span.md) | crewai, google-adk |\n | [Plan](reports/plan-span.md) | crewai, langchain |\n-| [Inference](reports/inference-span.md) | anthropic, autogen, aws-bedrock, azure-ai-inference, azure-openai, claude-agent-sdk, cohere, crewai, dspy, google-adk, google-genai, groq, instructor, langchain, litellm, llamaindex, mistralai, openai, openai-agents, pydantic-ai, vertexai |\n-| [Embeddings](reports/embeddings-span.md) | aws-bedrock, azure-ai-inference, azure-openai, cohere, google-genai, litellm, llamaindex, mistralai, openai |\n+| [Inference](reports/inference-span.md) | anthropic, aws-bedrock, azure-ai-inference, azure-openai, claude-agent-sdk, cohere, google-genai, groq, litellm, mistralai, openai, vertexai |\n+| [Embeddings](reports/embeddings-span.md) | aws-bedrock, azure-ai-inference, azure-openai, cohere, google-genai, litellm, mistralai, openai |\n | [Retrieval](reports/retrieval-span.md) | haystack, langchain, llamaindex |\n | [Memory](reports/memory-span.md) | aws-bedrock-agentcore, google-adk |\n | [Execute Tool](reports/execute-tool-span.md) | autogen, crewai, google-adk, groq, instructor, litellm, llamaindex, mistralai, openai, openai-agents, openai-assistants, pydantic-ai |",
+      "id": "PRRT_kwDOSUeMrM6NXCWR",
+      "opened": "2026-06-30T18:14:11Z",
+      "path": "reference/README.md",
+      "replies": [
+        {
+          "at": "2026-07-18T02:53:22Z",
+          "body": "they should be, I just don't want to do it all in one PR - so this is a follow up if you don't mind",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3607416001"
+        }
+      ],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3500744690"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "Should we remove the chat-span reference here?",
+      "created": "2026-06-30T17:55:23Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6NXRe7",
+      "opened": "2026-06-30T18:14:11Z",
+      "path": "reference/scenarios/crewai/scenario.py",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3500829690"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "Same chat span reference here?",
+      "created": "2026-06-30T18:04:13Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6NXb6i",
+      "opened": "2026-06-30T18:14:11Z",
+      "path": "reference/scenarios/crewai/scenario.py",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3500889797"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "Same chat span reference here?",
+      "created": "2026-06-30T18:05:20Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6NXdMh",
+      "opened": "2026-06-30T18:14:11Z",
+      "path": "reference/scenarios/crewai/scenario.py",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3500896730"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "make it more clear that REST API calls made without lib is ok",
+      "created": "2026-07-14T16:24:30Z",
+      "hunk": "@@ -75,6 +75,21 @@ uv run update-reports\n - After regenerating `scenarios/*/data.json`, run `uv run update-reports` and\n   commit both alongside your change.\n \n+### Which operations a scenario should emit\n+\n+A scenario emits telemetry only for the operations the library itself performs.\n+Two principles:\n+\n+- **Don't re-emit another library's telemetry.** If the library delegates an\n+  operation to another instrumentable library (for example a framework that\n+  calls `openai`, `litellm`, or `google-genai` under the hood), that operation",
+      "id": "PRRT_kwDOSUeMrM6Q0kq4",
+      "opened": "2026-07-14T16:24:30Z",
+      "path": "reference/CONTRIBUTING.md",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3580793661"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "explain it's the default, but there could be exception",
+      "created": "2026-07-14T16:25:15Z",
+      "hunk": "@@ -75,6 +75,21 @@ uv run update-reports\n - After regenerating `scenarios/*/data.json`, run `uv run update-reports` and\n   commit both alongside your change.\n \n+### Which operations a scenario should emit\n+\n+A scenario emits telemetry only for the operations the library itself performs.\n+Two principles:\n+\n+- **Don't re-emit another library's telemetry.** If the library delegates an\n+  operation to another instrumentable library (for example a framework that\n+  calls `openai`, `litellm`, or `google-genai` under the hood), that operation\n+  belongs to the underlying library. Emit only what this library owns and\n+  correlate via standard context propagation.\n+- **Emit an operation only when the library has that concept.** A library emits\n+  inference or embeddings only when it is itself the model-call boundary, an\n+  agent span only when it models agents, a workflow span only when it models\n+  workflows or graphs, and so on.\n+",
+      "id": "PRRT_kwDOSUeMrM6Q0l0X",
+      "opened": "2026-07-14T16:25:15Z",
+      "path": "reference/CONTRIBUTING.md",
+      "replies": [],
+      "reviewed": "578411f0a0d213932b581ceb9aa714bd735cbf7a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3580800464"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Status looks wrong here. `scenarios/aws-bedrock/data.json` contains only `inference` and `embeddings` — no `execute_tool` span is emitted, and `aws-bedrock` isn't in the Execute Tool row of `reference/README.md`. Nothing is \"shown\", so this should use the same `➖` marker as anthropic / azure-ai-inference / azure-openai.\n\n```suggestion\n| execute_tool | No — Converse returns tool-use requests but doesn't execute them; the tool runs in app code | ➖ Not instrumentable |\n```",
+      "created": "2026-07-31T01:43:41Z",
+      "hunk": "@@ -0,0 +1,12 @@\n+# aws-bedrock\n+\n+The Bedrock Runtime client (`Converse` / `InvokeModel`) is a **model-call\n+boundary**: it calls the model directly, so it owns inference and embeddings.\n+Converse tool use is supported, with the tool itself running in application\n+code. (Knowledge Bases / Agents live in separate Bedrock services and scenarios.)\n+\n+| Operation | Should be instrumented here | Status |\n+| --- | --- | --- |\n+| inference (`chat`) | Yes — `Converse` / `InvokeModel`, calls the model directly | ✅ Implemented |\n+| embeddings | Yes — Titan / Cohere embedding models via `InvokeModel` | ✅ Implemented |\n+| execute_tool | No — Converse returns tool-use requests but doesn't execute them; the tool runs in app code | ❌ Shown, but not instrumentable |",
+      "id": "PRRT_kwDOSUeMrM6VSw18",
+      "opened": "2026-07-31T02:02:43Z",
+      "path": "reference/scenarios/aws-bedrock/README.md",
+      "replies": [],
+      "reviewed": "fe21cadabf340f1b32e467f089f1519982c139d0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3687470343"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Same as aws-bedrock: `scenarios/cohere/data.json` has only `inference` and `embeddings`, and `cohere` isn't listed under Execute Tool in `reference/README.md`, so nothing is \"shown\".\n\n```suggestion\n| execute_tool | No — the client returns tool calls but doesn't execute them; the tool runs in app code | ➖ Not instrumentable |\n```",
+      "created": "2026-07-31T01:43:42Z",
+      "hunk": "@@ -0,0 +1,12 @@\n+# cohere\n+\n+The `cohere` client is a **model-call boundary**: it calls the model directly,\n+so it owns inference and embeddings. Tool calling is supported, with the tool\n+itself running in application code.\n+\n+| Operation | Should be instrumented here | Status |\n+| --- | --- | --- |\n+| inference (`chat`) | Yes — calls the model directly | ✅ Implemented |\n+| embeddings | Yes — calls the model directly | ✅ Implemented |\n+| execute_tool | No — the client returns tool calls but doesn't execute them; the tool runs in app code | ❌ Shown, but not instrumentable |",
+      "id": "PRRT_kwDOSUeMrM6VSw2B",
+      "opened": "2026-07-31T02:02:43Z",
+      "path": "reference/scenarios/cohere/README.md",
+      "replies": [],
+      "reviewed": "fe21cadabf340f1b32e467f089f1519982c139d0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3687470347"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This contradicts the litmus test this PR adds. Instructor doesn't execute the tool — it parses the tool call into a Pydantic model and hands it back. In `scenario.py` the `execute_tool` span wraps a local `get_weather()` that the scenario itself defines and calls; Instructor never sees it. That's exactly the case AGENTS.md describes as \"the client only returns tool calls and the tool runs in application code the library never sees → **not instrumentable**\", and it's the same shape as `openai`, which this PR marks `❌ Shown, but not instrumentable`.\n\n```suggestion\n| execute_tool | No — Instructor parses the tool call into a model; the tool runs in app code | ❌ Shown, but not instrumentable |\n```\n\nThe intro sentence on line 5 (\"It owns the tool execution it drives from the structured tool call\") needs the same correction.",
+      "created": "2026-07-31T01:43:42Z",
+      "hunk": "@@ -0,0 +1,10 @@\n+# instructor\n+\n+Instructor patches an LLM client (e.g. `openai`) to return structured outputs.\n+The actual model call is made by the wrapped client, so it **delegates\n+inference**. It owns the tool execution it drives from the structured tool call.\n+\n+| Operation | Should be instrumented here | Status |\n+| --- | --- | --- |\n+| inference (`chat`) | No — wraps and delegates to the LLM client (`openai`) | ✅ Correctly not emitted |\n+| execute_tool | Yes — app-side execution from the structured tool call | ✅ Implemented |",
+      "id": "PRRT_kwDOSUeMrM6VSw2C",
+      "opened": "2026-07-31T02:02:43Z",
+      "path": "reference/scenarios/instructor/README.md",
+      "replies": [],
+      "reviewed": "fe21cadabf340f1b32e467f089f1519982c139d0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3687470348"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`gen_ai.response.model` and `gen_ai.response.id` aren't part of `gen_ai.invoke_agent.internal` — neither is in `attributes.gen_ai.invoke_agent.common` (`model/gen-ai/spans.yaml`). `data_files.py` only records attributes that are in the span spec, which is why `scenarios/autogen/data.json` `invoke_agent_internal` doesn't list them. So these four lines are dead: they set attributes that the conventions don't define on this span and that the reports silently drop.\n\n`captured_results` is still needed for `finish_reasons` and the token sums, so only the response-id/model block needs to go:\n\n```suggestion\n```\n\nSame thing in `openai-agents/scenario.py` and `pydantic-ai/scenario.py`. If the intent is that an agent span should carry the underlying response id/model, that needs a model change (and a changelog fragment) rather than scenario code that no report can see.",
+      "created": "2026-07-31T01:43:42Z",
+      "hunk": "@@ -162,114 +161,62 @@ async def _run():\n                     json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]}]),\n                 )\n                 agent_span.set_attribute(\"gen_ai.tool.definitions\", json.dumps(tool_defs))\n-                host, port = mock_server_host_port(MOCK_BASE_URL)\n-                span_attributes_3 = {\n-                    \"gen_ai.operation.name\": \"chat\",\n-                    \"gen_ai.provider.name\": \"openai\",\n-                    \"gen_ai.request.model\": request_model,\n-                }\n-                if host:\n-                    span_attributes_3[\"server.address\"] = host\n-                if port is not None:\n-                    span_attributes_3[\"server.port\"] = port\n-                with _reference_tracer.start_as_current_span(\"chat gpt-4o-mini\", attributes=span_attributes_3) as span:\n-                    span.set_attribute(\"gen_ai.request.seed\", request_seed)\n-                    span.set_attribute(\"gen_ai.request.max_tokens\", request_max_tokens)\n-                    span.set_attribute(\"gen_ai.request.temperature\", request_temperature)\n-                    span.set_attribute(\"gen_ai.request.top_p\", request_top_p)\n-                    span.set_attribute(\"gen_ai.request.stop_sequences\", request_stop_sequences)\n-                    span.set_attribute(\"gen_ai.request.frequency_penalty\", request_frequency_penalty)\n-                    span.set_attribute(\"gen_ai.request.presence_penalty\", request_presence_penalty)\n-                    span.set_attribute(\n-                        \"gen_ai.system_instructions\",\n-                        json.dumps([{\"type\": \"text\", \"content\": system_message}]),\n+                # AutoGen delegates the LLM call to the underlying openai client,\n+                # whose own instrumentation owns the inference span and the\n+                # inference-operation-details event. This scenario emits only the\n+                # agent operations; it captures the model response to populate the\n+                # invoke_agent span's response attributes.\n+                original_create = model_client.create\n+\n+                async def _capture_create(messages, **kwargs):\n+                    result = await original_create(messages, **kwargs)\n+                    captured_results.append(result)\n+                    return result\n+\n+                model_client.create = _capture_create\n+                try:\n+                    response = await agent.on_messages(\n+                        [TextMessage(content=input_text, source=\"user\")],\n+                        cancellation_token=CancellationToken(),\n                     )\n-                    span.set_attribute(\n-                        \"gen_ai.input.messages\",\n-                        json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]}]),\n-                    )\n-                    span.set_attribute(\"gen_ai.tool.definitions\", json.dumps(tool_defs))\n-                    original_create = model_client.create\n-\n-                    async def _capture_create(messages, **kwargs):\n-                        result = await original_create(messages, **kwargs)\n-                        captured_results.append(result)\n-                        return result\n-\n-                    model_client.create = _capture_create\n-                    try:\n-                        response = await agent.on_messages(\n-                            [TextMessage(content=input_text, source=\"user\")],\n-                            cancellation_token=CancellationToken(),\n-                        )\n-                    finally:\n-                        model_client.create = original_create\n-                    finish_reasons = [result.finish_reason for result in captured_results if result.finish_reason]\n-                    if finish_reasons:\n-                        agent_span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n-                    if captured_results:\n-                        last_result = captured_results[-1]\n-                        if getattr(last_result, \"model\", None):\n-                            agent_span.set_attribute(\"gen_ai.response.model\", last_result.model)\n-                        if getattr(last_result, \"id\", None):\n-                            agent_span.set_attribute(\"gen_ai.response.id\", last_result.id)\n-                    total_input_tokens = sum(\n-                        result.usage.prompt_tokens\n-                        for result in captured_results\n-                        if getattr(result, \"usage\", None) is not None\n-                    )\n-                    total_output_tokens = sum(\n-                        result.usage.completion_tokens\n-                        for result in captured_results\n-                        if getattr(result, \"usage\", None) is not None\n-                    )\n-                    if total_input_tokens:\n-                        agent_span.set_attribute(\"gen_ai.usage.input_tokens\", total_input_tokens)\n-                    if total_output_tokens:\n-                        agent_span.set_attribute(\"gen_ai.usage.output_tokens\", total_output_tokens)\n-                    output_messages = json.dumps(\n-                        [\n-                            {\n-                                \"role\": \"assistant\",\n-                                \"parts\": [{\"type\": \"text\", \"content\": str(response.chat_message.content)}],\n-                            }\n-                        ]\n-                    )\n-                    span.set_attribute(\n-                        \"gen_ai.output.messages\",\n-                        output_messages,\n-                    )\n-                    agent_span.set_attribute(\n-                        \"gen_ai.output.messages\",\n-                        output_messages,\n-                    )\n-                    event_attrs = {\n-                        \"gen_ai.operation.name\": \"invoke_agent\",\n-                        \"gen_ai.request.model\": request_model,\n-                        \"gen_ai.system_instructions\": json.dumps([{\"type\": \"text\", \"content\": system_message}]),\n-                        \"gen_ai.input.messages\": json.dumps(\n-                            [\n-                                {\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]},\n-                            ]\n-                        ),\n-                        \"gen_ai.output.messages\": output_messages,\n-                    }\n-                    if finish_reasons:\n-                        event_attrs[\"gen_ai.response.finish_reasons\"] = finish_reasons\n-                    if total_input_tokens:\n-                        event_attrs[\"gen_ai.usage.input_tokens\"] = total_input_tokens\n-                    if total_output_tokens:\n-                        event_attrs[\"gen_ai.usage.output_tokens\"] = total_output_tokens\n-                    if host:\n-                        event_attrs[\"server.address\"] = host\n-                    if port is not None:\n-                        event_attrs[\"server.port\"] = port\n-                    reference_event_logger().emit(\n-                        event_name=\"gen_ai.client.inference.operation.details\",\n-                        body=\"Inference operation details\",\n-                        attributes=event_attrs,\n-                    )\n-                    print(f\"    -> {str(response.chat_message.content)[:60]}\")\n+                finally:\n+                    model_client.create = original_create\n+                finish_reasons = [result.finish_reason for result in captured_results if result.finish_reason]\n+                if finish_reasons:\n+                    agent_span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n+                if captured_results:\n+                    last_result = captured_results[-1]\n+                    if getattr(last_result, \"model\", None):\n+                        agent_span.set_attribute(\"gen_ai.response.model\", last_result.model)\n+                    if getattr(last_result, \"id\", None):\n+                        agent_span.set_attribute(\"gen_ai.response.id\", last_result.id)",
+      "id": "PRRT_kwDOSUeMrM6VSw2F",
+      "opened": "2026-07-31T02:02:43Z",
+      "path": "reference/scenarios/autogen/scenario.py",
+      "replies": [],
+      "reviewed": "fe21cadabf340f1b32e467f089f1519982c139d0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3687470351"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Same as autogen: `gen_ai.response.id` / `gen_ai.response.model` aren't defined on `gen_ai.invoke_agent.internal`, so they never reach `data.json` (`invoke_agent_internal` there has no `gen_ai.response.id`/`.model`). `captured_responses` is still needed for `finish_reasons` below, so just drop these:\n\n```suggestion\n```",
+      "created": "2026-07-31T01:43:42Z",
+      "hunk": "@@ -85,77 +84,48 @@ def get_weather(ctx: ToolContext[None], location: str) -> str:\n                 ]\n             ),\n         )\n-        span_attributes = {\n-            \"gen_ai.operation.name\": \"chat\",\n-            \"gen_ai.provider.name\": \"openai\",\n-            \"gen_ai.request.model\": request_model,\n-        }\n-        if host:\n-            span_attributes[\"server.address\"] = host\n-        if port is not None:\n-            span_attributes[\"server.port\"] = port\n-        with _reference_tracer.start_as_current_span(\"chat gpt-4o-mini\", attributes=span_attributes) as span:\n-            span.set_attribute(\n-                \"gen_ai.tool.definitions\",\n+        original_create = client.chat.completions.create\n+\n+        async def _capture_create(*args, **kwargs):\n+            response = await original_create(*args, **kwargs)\n+            captured_responses.append(response)\n+            return response\n+\n+        client.chat.completions.create = _capture_create\n+        try:\n+            result = await Runner.run(agent, input_text)\n+        finally:\n+            client.chat.completions.create = original_create\n+        usage = result.context_wrapper.usage\n+        if usage.total_tokens:\n+            agent_span.set_attribute(\"gen_ai.usage.input_tokens\", usage.input_tokens)\n+            agent_span.set_attribute(\"gen_ai.usage.output_tokens\", usage.output_tokens)\n+        if captured_responses:\n+            last_response = captured_responses[-1]\n+            if getattr(last_response, \"id\", None):\n+                agent_span.set_attribute(\"gen_ai.response.id\", last_response.id)\n+            if getattr(last_response, \"model\", None):\n+                agent_span.set_attribute(\"gen_ai.response.model\", last_response.model)",
+      "id": "PRRT_kwDOSUeMrM6VSw2L",
+      "opened": "2026-07-31T02:02:43Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [],
+      "reviewed": "fe21cadabf340f1b32e467f089f1519982c139d0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3687470359"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Same as autogen/openai-agents — these two attributes aren't on the `invoke_agent.internal` span definition and get dropped from `data.json`:\n\n```suggestion\n```\n\nAlso, the module docstring (line 3) still says `Exercises: chat via OpenAI client`, but `run_chat()` is gone and the only remaining scenario is tool calling via an agent — worth updating to `Exercises: agent run with tool calling`.",
+      "created": "2026-07-31T01:43:42Z",
+      "hunk": "@@ -259,91 +108,41 @@ def get_weather(ctx: RunContext[None], location: str) -> str:\n                 ]\n             ),\n         )\n-        host, port = mock_server_host_port(MOCK_BASE_URL)\n-        span_attributes_2 = {\n-            \"gen_ai.operation.name\": \"chat\",\n-            \"gen_ai.provider.name\": \"openai\",\n-            \"gen_ai.request.model\": request_model,\n-        }\n-        if host:\n-            span_attributes_2[\"server.address\"] = host\n-        if port is not None:\n-            span_attributes_2[\"server.port\"] = port\n-        with _reference_tracer.start_as_current_span(\"chat gpt-4o-mini\", attributes=span_attributes_2) as span:\n-            span.set_attribute(\"gen_ai.request.temperature\", request_temperature)\n-            span.set_attribute(\"gen_ai.request.top_p\", request_top_p)\n-            span.set_attribute(\"gen_ai.request.max_tokens\", request_max_tokens)\n-            span.set_attribute(\"gen_ai.request.seed\", request_seed)\n-            span.set_attribute(\"gen_ai.request.stop_sequences\", request_stop_sequences)\n-            span.set_attribute(\"gen_ai.request.frequency_penalty\", request_frequency_penalty)\n-            span.set_attribute(\"gen_ai.request.presence_penalty\", request_presence_penalty)\n-            span.set_attribute(\"gen_ai.system_instructions\", system_instructions)\n-            span.set_attribute(\n-                \"gen_ai.input.messages\",\n-                json.dumps(\n-                    [\n-                        {\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": prompt_text}]},\n-                    ]\n-                ),\n+        result = agent.run_sync(prompt_text, model_settings=model_settings)\n+        if result.response.model_name:\n+            agent_span.set_attribute(\"gen_ai.response.model\", result.response.model_name)\n+        if result.response.provider_response_id:\n+            agent_span.set_attribute(\"gen_ai.response.id\", result.response.provider_response_id)",
+      "id": "PRRT_kwDOSUeMrM6VSw2M",
+      "opened": "2026-07-31T02:02:43Z",
+      "path": "reference/scenarios/pydantic-ai/scenario.py",
+      "replies": [],
+      "reviewed": "fe21cadabf340f1b32e467f089f1519982c139d0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3687470362"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`run_crew()` doesn't emit only the workflow operation — the `@tool get_weather` defined at line 54 emits an `execute_tool` span inside this same run (that's where the tool-call-id-less `execute_tool` entry in `crewai/data.json` comes from).\n\n```suggestion\n        # CrewAI delegates the LLM call to the underlying LLM client, whose\n        # own instrumentation owns the inference span. This scenario emits\n        # only the workflow and tool operations CrewAI runs itself.\n```",
+      "created": "2026-07-31T01:43:42Z",
+      "hunk": "@@ -104,91 +102,22 @@ def get_weather(location: str) -> str:\n             \"gen_ai.input.messages\",\n             json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": task.description}]}]),\n         )\n-        span_attributes = {\n-            \"gen_ai.operation.name\": \"chat\",\n-            \"gen_ai.provider.name\": \"openai\",\n-            \"gen_ai.request.model\": request_model,\n-        }\n-        if host:\n-            span_attributes[\"server.address\"] = host\n-        if port is not None:\n-            span_attributes[\"server.port\"] = port\n-        with _reference_tracer.start_as_current_span(\"chat gpt-4o-mini\", attributes=span_attributes) as span:\n-            span.set_attribute(\"gen_ai.request.choice.count\", request_choice_count)\n-            span.set_attribute(\"gen_ai.request.max_tokens\", request_max_tokens)\n-            span.set_attribute(\"gen_ai.request.temperature\", request_temperature)\n-            span.set_attribute(\"gen_ai.request.seed\", request_seed)\n-            span.set_attribute(\"gen_ai.request.stop_sequences\", request_stop_sequences)\n-            span.set_attribute(\"gen_ai.request.frequency_penalty\", request_frequency_penalty)\n-            span.set_attribute(\"gen_ai.request.presence_penalty\", request_presence_penalty)\n-            span.set_attribute(\"gen_ai.request.top_p\", request_top_p)\n-            span.set_attribute(\"gen_ai.system_instructions\", json.dumps([{\"type\": \"text\", \"content\": system_prompt}]))\n-            span.set_attribute(\n-                \"gen_ai.input.messages\",\n-                json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": task.description}]}]),\n-            )\n-            span.set_attribute(\n-                \"gen_ai.tool.definitions\",\n-                json.dumps(\n-                    [\n-                        {\n-                            \"type\": \"function\",\n-                            \"function\": {\n-                                \"name\": t.name,\n-                                \"description\": t.func.__doc__,\n-                                \"parameters\": t.args_schema.model_json_schema(),\n-                            },\n-                        }\n-                        for t in tools\n-                    ]\n-                ),\n-            )\n-            original_create = researcher.llm._client.chat.completions.create\n-\n-            def _capture_completion(*args, **kwargs):\n-                nonlocal captured_completion\n-                response = original_create(*args, **kwargs)\n-                captured_completion = response\n-                return response\n-\n-            researcher.llm._client.chat.completions.create = _capture_completion\n-            try:\n-                result = crew.kickoff()\n-            finally:\n-                researcher.llm._client.chat.completions.create = original_create\n-            if captured_completion is not None:\n-                span.set_attribute(\"gen_ai.response.model\", captured_completion.model)\n-                span.set_attribute(\"gen_ai.response.id\", captured_completion.id)\n-                span.set_attribute(\n-                    \"gen_ai.response.finish_reasons\",\n-                    [choice.finish_reason for choice in captured_completion.choices],\n-                )\n-                if captured_completion.usage:\n-                    span.set_attribute(\"gen_ai.usage.input_tokens\", captured_completion.usage.prompt_tokens)\n-                    span.set_attribute(\"gen_ai.usage.output_tokens\", captured_completion.usage.completion_tokens)\n-            span.set_attribute(\n-                \"gen_ai.output.messages\",\n-                json.dumps(\n-                    [\n-                        {\n-                            \"role\": \"assistant\",\n-                            \"parts\": [{\"type\": \"text\", \"content\": str(result)}],\n-                        }\n-                    ]\n-                ),\n-            )\n-            workflow_span.set_attribute(\n-                \"gen_ai.output.messages\",\n-                json.dumps(\n-                    [\n-                        {\n-                            \"role\": \"assistant\",\n-                            \"parts\": [{\"type\": \"text\", \"content\": str(result)}],\n-                        }\n-                    ]\n-                ),\n-            )\n-            print(f\"    -> {str(result)[:60]}\")\n+        # CrewAI delegates the LLM call to the underlying LLM client, whose\n+        # own instrumentation owns the inference span. This scenario emits only\n+        # the workflow operation.",
+      "id": "PRRT_kwDOSUeMrM6VSw2O",
+      "opened": "2026-07-31T02:02:43Z",
+      "path": "reference/scenarios/crewai/scenario.py",
+      "replies": [],
+      "reviewed": "fe21cadabf340f1b32e467f089f1519982c139d0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3687470368"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`request_model` and `request_temperature` were only used by the inference span that this PR removes; the body now uses just `llm`. Ruff's `F841` doesn't cover parameters, so this won't fail CI, but they're dead.\n\n```suggestion\ndef run_agent_reference(llm):\n```\n\nThe call site at line 129 needs the same change: `run_agent_reference(llm)`.",
+      "created": "2026-07-31T01:43:42Z",
+      "hunk": "@@ -16,141 +15,6 @@\n _reference_tracer = reference_tracer()\n \n \n-def run_chat_reference(llm, request_model, request_temperature, request_choice_count):\n-    \"\"\"Scenario: basic chat completion with reference implementation.\"\"\"\n-    from llama_index.core.llms import ChatMessage, MessageRole\n-\n-    print(\"  [chat] basic chat completion (reference implementation)\")\n-    host, port = mock_server_host_port(MOCK_BASE_URL)\n-    user_content = \"Say hello.\"\n-    span_attributes = {\n-        \"gen_ai.operation.name\": \"chat\",\n-        \"gen_ai.provider.name\": \"openai\",\n-        \"gen_ai.request.model\": request_model,\n-    }\n-    if host:\n-        span_attributes[\"server.address\"] = host\n-    if port is not None:\n-        span_attributes[\"server.port\"] = port\n-    with _reference_tracer.start_as_current_span(\"chat gpt-4o-mini\", attributes=span_attributes) as span:\n-        span.set_attribute(\"gen_ai.request.choice.count\", request_choice_count)\n-        span.set_attribute(\"gen_ai.request.temperature\", request_temperature)\n-        span.set_attribute(\n-            \"gen_ai.input.messages\",\n-            json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": user_content}]}]),\n-        )\n-        resp = llm.chat([ChatMessage(role=MessageRole.USER, content=user_content)])\n-        raw = getattr(resp, \"raw\", None)\n-        if raw:\n-            if getattr(raw, \"model\", None):\n-                span.set_attribute(\"gen_ai.response.model\", raw.model)\n-            if getattr(raw, \"id\", None):\n-                span.set_attribute(\"gen_ai.response.id\", raw.id)\n-            if getattr(raw, \"choices\", None):\n-                span.set_attribute(\"gen_ai.response.finish_reasons\", [c.finish_reason for c in raw.choices])\n-            if getattr(raw, \"usage\", None) and raw.usage:\n-                span.set_attribute(\"gen_ai.usage.input_tokens\", raw.usage.prompt_tokens)\n-                span.set_attribute(\"gen_ai.usage.output_tokens\", raw.usage.completion_tokens)\n-        span.set_attribute(\n-            \"gen_ai.output.messages\",\n-            json.dumps(\n-                [\n-                    {\n-                        \"role\": \"assistant\",\n-                        \"parts\": [{\"type\": \"text\", \"content\": str(resp)}],\n-                        \"finish_reason\": raw.choices[0].finish_reason\n-                        if raw and getattr(raw, \"choices\", None)\n-                        else None,\n-                    }\n-                ]\n-            ),\n-        )\n-\n-        # Emit inference operation details event\n-        event_attrs = {\n-            \"gen_ai.operation.name\": \"chat\",\n-            \"gen_ai.request.model\": request_model,\n-            \"gen_ai.request.choice.count\": request_choice_count,\n-            \"gen_ai.input.messages\": json.dumps(\n-                [{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": user_content}]}]\n-            ),\n-            \"gen_ai.output.messages\": json.dumps(\n-                [\n-                    {\n-                        \"role\": \"assistant\",\n-                        \"parts\": [{\"type\": \"text\", \"content\": str(resp)}],\n-                        \"finish_reason\": raw.choices[0].finish_reason\n-                        if raw and getattr(raw, \"choices\", None)\n-                        else None,\n-                    }\n-                ]\n-            ),\n-        }\n-        if raw:\n-            if getattr(raw, \"model\", None):\n-                event_attrs[\"gen_ai.response.model\"] = raw.model\n-            if getattr(raw, \"id\", None):\n-                event_attrs[\"gen_ai.response.id\"] = raw.id\n-            if getattr(raw, \"choices\", None):\n-                event_attrs[\"gen_ai.response.finish_reasons\"] = [c.finish_reason for c in raw.choices]\n-            if getattr(raw, \"usage\", None) and raw.usage:\n-                event_attrs[\"gen_ai.usage.input_tokens\"] = raw.usage.prompt_tokens\n-                event_attrs[\"gen_ai.usage.output_tokens\"] = raw.usage.completion_tokens\n-        reference_event_logger().emit(\n-            event_name=\"gen_ai.client.inference.operation.details\",\n-            body=\"Inference operation details\",\n-            attributes=event_attrs,\n-        )\n-\n-        print(f\"    -> {str(resp)[:60]}\")\n-\n-\n-def run_chat_streaming_reference(llm, request_model, request_temperature):\n-    \"\"\"Scenario: streaming chat completion with reference implementation.\"\"\"\n-    from llama_index.core.llms import ChatMessage, MessageRole\n-\n-    print(\"  [chat_streaming] streaming chat completion (reference implementation)\")\n-    host, port = mock_server_host_port(MOCK_BASE_URL)\n-    span_attributes_2 = {\n-        \"gen_ai.operation.name\": \"chat\",\n-        \"gen_ai.provider.name\": \"openai\",\n-        \"gen_ai.request.model\": request_model,\n-    }\n-    if host:\n-        span_attributes_2[\"server.address\"] = host\n-    if port is not None:\n-        span_attributes_2[\"server.port\"] = port\n-    with _reference_tracer.start_as_current_span(\"chat gpt-4o-mini\", attributes=span_attributes_2) as span:\n-        span.set_attribute(\"gen_ai.request.temperature\", request_temperature)\n-        text = \"\"\n-        finish_reasons = []\n-        stream_resp = llm.stream_chat([ChatMessage(role=MessageRole.USER, content=\"Tell me a joke.\")])\n-        for token in stream_resp:\n-            text += token.delta\n-            token_raw = getattr(token, \"raw\", None)\n-            if token_raw and getattr(token_raw, \"choices\", None):\n-                finish_reasons.extend(\n-                    choice.finish_reason\n-                    for choice in token_raw.choices\n-                    if choice.finish_reason and choice.finish_reason not in finish_reasons\n-                )\n-        raw = getattr(stream_resp, \"raw\", None)\n-        if raw:\n-            if getattr(raw, \"model\", None):\n-                span.set_attribute(\"gen_ai.response.model\", raw.model)\n-            if getattr(raw, \"id\", None):\n-                span.set_attribute(\"gen_ai.response.id\", raw.id)\n-            if getattr(raw, \"choices\", None):\n-                finish_reasons.extend(\n-                    choice.finish_reason\n-                    for choice in raw.choices\n-                    if choice.finish_reason and choice.finish_reason not in finish_reasons\n-                )\n-        if finish_reasons:\n-            span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n-        print(f\"    -> {text[:60]}\")\n-\n-\n def run_agent_reference(llm, request_model, request_temperature):",
+      "id": "PRRT_kwDOSUeMrM6VSw2R",
+      "opened": "2026-07-31T02:02:43Z",
+      "path": "reference/scenarios/llamaindex/scenario.py",
+      "replies": [],
+      "reviewed": "fe21cadabf340f1b32e467f089f1519982c139d0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3687470374"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Every other litmus test has a **No** branch; this one stops at **Yes**, so a reader who answers \"no\" is left without an exit.\r\n\r\n```suggestion\r\n- **Yes** → emit a workflow span around the library API that invokes the\r\n  workflow.\r\n- **No** → don't emit a workflow span. A single agent run or a plain chain\r\n  of calls is not a workflow.\r\n```\r\n",
+      "created": "2026-07-31T01:43:42Z",
+      "hunk": "@@ -0,0 +1,94 @@\n+# Authoring reference scenarios\n+\n+Two steps:\n+\n+1. **Decide what the library supports** — run the litmus tests below to figure\n+   out which operations (spans, metrics, events) a library can legitimately\n+   emit.\n+2. **Implement them in a reference scenario** — emit only those operations, then\n+   regenerate the data and reports.\n+\n+For per-scenario authoring rules, see\n+[../.github/instructions/reference-scenarios.instructions.md](../.github/instructions/reference-scenarios.instructions.md).\n+\n+## Step 1 — Decide what the library supports\n+\n+A scenario emits telemetry only for operations the library itself performs. If\n+library A delegates an operation to another (also instrumentable) library B, do\n+**not** instrument that call in library A — it belongs to B.\n+\n+**Fact-check against the library's real API reference.** Do not guess what a\n+library does or doesn't support from its name or reputation. Before deciding an\n+operation is in or out of scope, confirm it against the library's official API\n+docs — many SDKs cover more than their obvious use case (e.g. `openai` has\n+retrieval via vector stores / file search and conversation state, not just\n+inference). Describe each operation in terms of the concrete API that backs it.\n+\n+Run each litmus test to decide which operations apply.\n+\n+### Model call (inference / embeddings)\n+\n+Before emitting an inference (`chat`) or `embeddings` span — or an\n+inference-operation-details event — ask:\n+\n+> Does this library delegate the actual model call to another instrumentable\n+> library (e.g. `openai`, `litellm`, `google-genai`)?\n+\n+- **Yes** → do **not** emit inference or embeddings (span or event). It belongs\n+  to the underlying LLM library. Emit only framework-owned operations\n+  (`invoke_agent`, `invoke_workflow`, `plan`, `execute_tool`, `retrieval`).\n+- **No** (the library is itself the model-call boundary — it calls the model\n+  directly, or owns it across a process boundary no in-process instrumentable\n+  library can observe) → emit it, and correlate via standard context\n+  propagation.\n+\n+### Tool execution\n+\n+> Does the library execute the tool itself — i.e. does it provide a\n+> tool-execution helper (automatic function calling, an agent/tool runner) that\n+> invokes the tool and feeds the result back?\n+\n+- **Yes** (e.g. `google-genai` / `vertexai` automatic function calling, agent\n+  frameworks that run tools) → `execute_tool` is instrumentable here; emit it.\n+- **No** (the client only returns tool calls and the tool runs in application\n+  code the library never sees) → `execute_tool` is **not instrumentable** by\n+  this library. Do not emit it from a model-client scenario; a span around the\n+  app's own function is not something generic instrumentation of the client\n+  could produce.\n+\n+### Client invoke / create agent\n+\n+> Does this library create and invoke remote AI agents (e.g. AWS Bedrock Agent\n+> or OpenAI Assistants)?\n+\n+- **Yes** → emit client spans for create and invoke agent operations.\n+- **No** → do not emit client agent spans. If the library implements agentic or\n+  other AI scenarios, check the internal invoke agent or workflow tests instead.\n+\n+### Internal invoke agent\n+\n+> Does the library have a concept of an AI agent?\n+\n+- **Yes** → emit an internal invoke agent span only for scenarios that use the\n+  library's agent API.\n+- **No** (no formal agent concept, or the AI scenario doesn't involve agents) →\n+  check the workflow test instead.\n+\n+### Workflow\n+\n+> Does the library have a concept of an AI workflow or graph — an operation that\n+> combines arbitrary AI-related operations such as agent invocations, chained\n+> LLM calls, and other auxiliary operations?\n+\n+- **Yes** → emit a workflow span around the library API that invokes the\n+  workflow.",
+      "id": "PRRT_kwDOSUeMrM6VSw2Y",
+      "opened": "2026-07-31T02:02:43Z",
+      "path": "reference/AGENTS.md",
+      "replies": [],
+      "reviewed": "fe21cadabf340f1b32e467f089f1519982c139d0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3687470383"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This sentence is hard to parse: `may emit ... but should not do so by default — unless ..., so that ...` chains a permission, a prohibition, an exception and a rationale into one clause. Suggested split:\r\n\r\n```suggestion\r\nAgent-framework instrumentation SHOULD NOT emit inference spans by default; the underlying LLM\r\nlibrary owns them. The exception is a framework that issues the model call in a way no other\r\ninstrumentable library can observe — it calls the REST API directly, embeds a vendored model\r\nlibrary, or similar. In that case the framework is the only place the inference call is\r\nvisible, so it SHOULD emit the span.\r\n```",
+      "created": "2026-07-31T01:43:42Z",
+      "hunk": "@@ -75,6 +75,29 @@ uv run update-reports\n - After regenerating `scenarios/*/data.json`, run `uv run update-reports` and\n   commit both alongside your change.\n \n+### Which operations a scenario should emit\n+\n+A scenario emits telemetry only for the operations the library itself performs.\n+Two principles:\n+\n+- **Don't re-emit another library's telemetry.** If the library delegates an\n+  operation to another instrumentable library (for example a framework that\n+  calls `openai`, `anthropic`, or `google-genai` under the hood),\n+  instrumentation for that operation belongs to the underlying library.\n+- **Emit an operation only when the library has that concept.** Emit inference\n+  or embeddings only when the library is itself the model-call boundary, an\n+  agent span only when it models agents, a workflow span only when it models\n+  workflows or graphs, and so on. Calling the provider's REST API directly (with\n+  no separate instrumentable client library in between) makes the library the\n+  model-call boundary, so it is a valid reason to emit inference.\n+\n+Instrumentation for agent frameworks may emit spans for inference calls, but\n+should not do so by default — unless the framework issues the model call in a\n+way no other instrumentable library can observe (it calls the REST API directly,\n+embeds a vendored model library, or similar), so that without the framework's\n+instrumentation the application would have no observability into those inference\n+calls.",
+      "id": "PRRT_kwDOSUeMrM6VSw2c",
+      "opened": "2026-07-31T02:02:43Z",
+      "path": "reference/CONTRIBUTING.md",
+      "replies": [],
+      "reviewed": "fe21cadabf340f1b32e467f089f1519982c139d0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/351#discussion_r3687470387"
+    }
+  ]
+}

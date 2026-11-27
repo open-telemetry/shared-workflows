@@ -1,0 +1,109 @@
+{
+  "head": "02e1f7f2263593abd7f73cb534d8da921631f63f",
+  "merge": "dc53f7abda36a0c6d5f191a5db5089c9520c94ad",
+  "merged": "2026-09-21T14:33:57Z",
+  "missing_roots": 0,
+  "number": 741,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`GenAIInvocation` is re-exported as a public type, so making this new keyword-only argument required breaks existing callers that instantiate it or subclass it and forward the previously supported constructor arguments; they now fail with `TypeError` before an invocation can be created. The PR is marked non-breaking, so preserve the old call shape (for example, make this optional and normalize `None` to an empty mapping) or deprecate the public constructor before requiring the argument.",
+      "created": "2026-09-18T19:42:07Z",
+      "hunk": "@@ -74,6 +73,8 @@ def __init__(\n         metric_attributes: dict[str, AttributeValue] | None = None,\n         error_type_resolver: ErrorTypeResolver | None = None,\n         *,\n+        start_attributes: dict[str, AttributeValue],",
+      "id": "PRRT_kwDOSbspP86j356t",
+      "opened": "2026-09-18T19:42:07Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "480a74cf99f88953afa28ad14aae3f0ad9e0cc65",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/741#discussion_r4050147714"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Could we keep `_start_attributes` private instead of exposing it publicly? Unlike `invocation.attributes` (which callers mutate before finishing), modifying `start_attributes` after `__init__` won't update the span. Keeping it internal avoids expanding the public API surface.",
+      "created": "2026-09-19T03:12:50Z",
+      "hunk": "@@ -95,12 +96,17 @@ def __init__(\n             {} if metric_attributes is None else metric_attributes\n         )\n         \"\"\"Additional attributes to set on metrics. Must be low cardinality. Not set on spans or events.\"\"\"\n-        self.span: Span = _INVALID_SPAN\n-        self._span_context: Context\n-        self._span_name: str = span_name\n-        self._span_kind: SpanKind = span_kind\n-        self._context_token: ContextToken | None = None\n-        self._monotonic_start_s: float\n+        self.start_attributes: dict[str, AttributeValue] = start_attributes",
+      "id": "PRRT_kwDOSbspP86j8kpI",
+      "opened": "2026-09-19T03:14:05Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-21T14:03:20Z",
+          "body": "yeah good idea. done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/741#discussion_r4062864543"
+        }
+      ],
+      "reviewed": "7f8e5090a9a09e12b587088961b2af36ce6f3b54",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/741#discussion_r4052033254"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Since `operation_name` is already passed to `super().__init__`, what do you think about having `GenAIInvocation.__init__` populate `GenAI.GEN_AI_OPERATION_NAME` automatically? That would save repeating it across all subclasses.",
+      "created": "2026-09-19T03:12:51Z",
+      "hunk": "@@ -100,7 +100,17 @@ def __init__(\n         operation_name = (\n             operation_name or GenAI.GenAiOperationNameValues.CHAT.value\n         )\n-        \"\"\"Use handler.inference(provider) rather than calling this directly.\"\"\"\n+        start_attributes: dict[str, AttributeValue] = {\n+            k: v",
+      "id": "PRRT_kwDOSbspP86j8kpK",
+      "opened": "2026-09-19T03:14:05Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-21T14:03:38Z",
+          "body": "yep true, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/741#discussion_r4062867379"
+        }
+      ],
+      "reviewed": "7f8e5090a9a09e12b587088961b2af36ce6f3b54",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/741#discussion_r4052033258"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`self._provider`, `self._request_model`, etc. are stored in `__init__` above but no longer used now that this copies `start_attributes`. Could we build metric attributes from the instance fields (matching `EmbeddingInvocation` and `RetrievalInvocation`), or clean up the unused fields?",
+      "created": "2026-09-19T03:12:51Z",
+      "hunk": "@@ -387,7 +385,7 @@ def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n         # Cached because this is rebuilt once per streaming chunk. Any mutation\n         # of its inputs must call _invalidate_metric_attributes.",
+      "id": "PRRT_kwDOSbspP86j8kpL",
+      "opened": "2026-09-19T03:14:05Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-21T14:03:48Z",
+          "body": "yep, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/741#discussion_r4062868723"
+        }
+      ],
+      "reviewed": "7f8e5090a9a09e12b587088961b2af36ce6f3b54",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/741#discussion_r4052033259"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "If `start_attributes` remains internal, this refactor doesn't introduce public API changes and we can remove this changelog fragment.",
+      "created": "2026-09-19T03:12:51Z",
+      "hunk": "@@ -0,0 +1 @@\n+Inline invocation span initialization into `GenAIInvocation.__init__` and expose `start_attributes` as a public attribute.",
+      "id": "PRRT_kwDOSbspP86j8kpM",
+      "opened": "2026-09-19T03:14:05Z",
+      "path": "util/opentelemetry-util-genai/.changelog/741.changed",
+      "replies": [
+        {
+          "at": "2026-09-21T14:04:01Z",
+          "body": "nice, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/741#discussion_r4062870585"
+        }
+      ],
+      "reviewed": "7f8e5090a9a09e12b587088961b2af36ce6f3b54",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/741#discussion_r4052033260"
+    }
+  ]
+}

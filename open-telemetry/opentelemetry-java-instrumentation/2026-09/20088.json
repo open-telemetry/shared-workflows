@@ -1,0 +1,31 @@
+{
+  "head": "6a63d18535a71bdd683f4007f0e110d8c968fdee",
+  "merge": "decebd668cb0f772017d785376c7910ebb9edabd",
+  "merged": "2026-09-10T13:34:23Z",
+  "missing_roots": 0,
+  "number": 20088,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "This line is unnecessary. Perhaps we should introduce a mechanism for excluding some muzzle blocks from the doc? Could search for a comment inside the pass block.\ncc @jaydeluca ",
+      "created": "2026-09-10T10:02:47Z",
+      "hunk": "@@ -8199,6 +8255,7 @@ libraries:\n     name: io.opentelemetry.couchbase-2.0\n   has_javaagent: true\n   javaagent_target_versions:\n+  - com.couchbase.client:java-client:[2,2.6)",
+      "id": "PRRT_kwDODJKVX86hBjJ_",
+      "opened": "2026-09-10T10:02:46Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-09-10T10:32:17Z",
+          "body": "yes I can take care of this",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20088#discussion_r3978125704"
+        }
+      ],
+      "reviewed": "6a63d18535a71bdd683f4007f0e110d8c968fdee",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20088#discussion_r3977891687"
+    }
+  ]
+}

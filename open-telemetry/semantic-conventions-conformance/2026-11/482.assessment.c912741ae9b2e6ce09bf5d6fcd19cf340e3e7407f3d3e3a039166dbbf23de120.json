@@ -1,0 +1,73 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "57cd8dc6d41e0eb87d126b8e59be3c6b6e93dd39f79b9a30b2b8907306b854e2",
+  "input_digest": "c912741ae9b2e6ce09bf5d6fcd19cf340e3e7407f3d3e3a039166dbbf23de120",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/4b6a7dea909c76c4461e3ed5c0d7851f9cd4ec52/tools/runner/src/opentelemetry/conformance/_checks.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/368d34f571798aa589911e5d86bf6c1a3ea19e04/tools/runner/src/opentelemetry/conformance/_checks.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/368d34f571798aa589911e5d86bf6c1a3ea19e04/tools/runner/src/opentelemetry/conformance/_session.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/90f6f0162d6e62acd761e185d6b038352ab4f2fe"
+      ],
+      "id": "PRRT_kwDOTuzK5c61NvSy",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/90f6f0162d6e62acd761e185d6b038352ab4f2fe/tools/runner/src/opentelemetry/conformance/_checks.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/368d34f571798aa589911e5d86bf6c1a3ea19e04/tools/runner/src/opentelemetry/conformance/_checks.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/cf015ecef3460920186a09640cf886554b0315cb"
+      ],
+      "id": "PRRT_kwDOTuzK5c61cP32",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/90f6f0162d6e62acd761e185d6b038352ab4f2fe/tools/runner/src/opentelemetry/conformance/_checks.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/368d34f571798aa589911e5d86bf6c1a3ea19e04/tools/runner/src/opentelemetry/conformance/_checks.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/cf015ecef3460920186a09640cf886554b0315cb"
+      ],
+      "id": "PRRT_kwDOTuzK5c61cP3u",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/90f6f0162d6e62acd761e185d6b038352ab4f2fe/tools/runner/tests/test_contract_findings.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/368d34f571798aa589911e5d86bf6c1a3ea19e04/tools/runner/tests/test_contract_findings.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/cf015ecef3460920186a09640cf886554b0315cb"
+      ],
+      "id": "PRRT_kwDOTuzK5c61cP3x",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/90f6f0162d6e62acd761e185d6b038352ab4f2fe/tools/runner/src/opentelemetry/conformance/_checks.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/90f6f0162d6e62acd761e185d6b038352ab4f2fe/tools/runner/src/opentelemetry/conformance/_session.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/368d34f571798aa589911e5d86bf6c1a3ea19e04/tools/runner/src/opentelemetry/conformance/_checks.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/368d34f571798aa589911e5d86bf6c1a3ea19e04/tools/runner/src/opentelemetry/conformance/_session.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/368d34f571798aa589911e5d86bf6c1a3ea19e04/tools/runner/tests/test_contract_findings.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/cf015ecef3460920186a09640cf886554b0315cb"
+      ],
+      "id": "PRRT_kwDOTuzK5c61cP36",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

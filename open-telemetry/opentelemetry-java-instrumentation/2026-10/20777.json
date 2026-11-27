@@ -1,0 +1,124 @@
+{
+  "head": "d9b966410b54a06c5b23ae7e9c8be143ec089cc2",
+  "merge": "e4bdd5983b293bda30f96503d7b49559878ec237",
+  "merged": "2026-10-21T05:56:03Z",
+  "missing_roots": 0,
+  "number": 20777,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to integrate its error-type coverage into the existing integration tests only, rather than adding standalone callback-level tests. Do not create a follow-up PR.\n\nRemove both new AwsSdkErrorTypeTest classes under instrumentation/aws-sdk/aws-sdk-1.11/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/ and instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/.\n\nPut the service-error cases in the existing shared AbstractS3ClientTest for SDK v1 and AbstractAws2ClientTest for SDK v2 under their testing/src/main/java trees. Exercise actual SDK client calls against the existing mock HTTP server, return S3 error responses, and assert the emitted telemetry. Cover valid service error codes and meaningful missing, empty, and blank-code fallback cases through the real SDK path. Reuse and extend existing success and client-failure assertions rather than duplicating those scenarios. Do not manually invoke RequestHandler2 or ExecutionInterceptor callbacks or create another test class to replace these two.\n\nRun the relevant existing integration cases in legacy, rpc preview, and rpc/dup modes with mode-aware assertions, preserving the legacy classification and exception-class fallback. Adjust the preview Gradle tasks that currently filter only AwsSdkErrorTypeTest so they exercise the integration coverage instead, and wire required modes into check using repository conventions. Keep the shared coverage usable by existing library, javaagent, and autoconfigure subclasses. Keep production behavior unchanged and scope changes to this test refactor and necessary test wiring. Run the narrowest applicable formatting and validation commands. Preserve this PR's current draft/ready state.",
+      "created": "2026-10-20T21:05:27Z",
+      "hunk": "@@ -111,6 +111,20 @@ testing {\n }\n \n tasks {\n+  val testPreviewSemconv = register<Test>(\"testPreviewSemconv\") {",
+      "id": "PRRT_kwDODJKVX86uhk9_",
+      "opened": "2026-10-20T21:05:27Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "fa342de214ebfd0df358c65ff29e17c1b7b08f22",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20777#discussion_r4330309042"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to remove the defensive empty/whitespace error-code checks, including the analogous DynamoDB check introduced today by #20732. Make all of these changes in this PR, not a separate or follow-up PR.\n\nIn instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/AwsSdkRpcAttributesGetter.java, return ((AmazonServiceException) error).getErrorCode() directly after the instanceof check. Do not replace trim().isEmpty() with isEmpty(); remove the empty/blank-string filtering entirely. The shared extractor already falls back to the exception class name when the getter returns null.\n\nApply the same simplification to getErrorType in the SDK v2 AwsSdkRpcAttributesGetter.java and DynamoDbAttributesGetter.java under instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/. Keep the exception-type checks and the awsErrorDetails() null guards, then return the SDK's errorCode() directly. Trust the SDK's returned string rather than normalizing or filtering it.\n\nUpdate affected existing integration tests so they no longer require empty or whitespace-only codes to trigger exception-class fallback. Retain coverage for normal service error codes, null fallback, and the existing semconv modes. Keep coverage in the existing shared integration-test classes; do not add standalone callback tests or synthetic tests solely to assert malformed-string passthrough. Update the PR description if it still promises blank-code fallback. Keep unrelated behavior and this PR's draft state unchanged. Run the narrowest applicable formatting and validation commands.",
+      "created": "2026-10-20T22:16:12Z",
+      "hunk": "@@ -42,4 +44,17 @@ public String getService(Request<?> request) {\n   public String getMethod(Request<?> request) {\n     return OPERATION_NAME.get(request.getOriginalRequest().getClass());\n   }\n+\n+  @Nullable\n+  @Override\n+  public String getErrorType(\n+      Request<?> request, @Nullable Response<?> response, @Nullable Throwable error) {\n+    if (error instanceof AmazonServiceException) {\n+      String errorCode = ((AmazonServiceException) error).getErrorCode();\n+      if (errorCode != null && !errorCode.trim().isEmpty()) {",
+      "id": "PRRT_kwDODJKVX86ujAR2",
+      "opened": "2026-10-20T22:16:11Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/AwsSdkRpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-20T22:27:37Z",
+          "body": "Updated and pushed as `72e603b8`: all three getters now return SDK error codes directly after the requested type/null guards, and the shared integration tests retain valid-code and null-fallback coverage without malformed-code cases.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20777#discussion_r4331004449"
+        }
+      ],
+      "reviewed": "4bd8aa2bd1c124d6df75705d5343d84e35ca12f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20777#discussion_r4330918587"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "unrelated cleanup from another PR from earlier today",
+      "created": "2026-10-20T22:34:58Z",
+      "hunk": "@@ -79,8 +79,7 @@ public String getErrorType(\n     if (details == null) {\n       return null;\n     }\n-    String errorCode = details.errorCode();\n-    return errorCode == null || errorCode.trim().isEmpty() ? null : errorCode;\n+    return details.errorCode();",
+      "id": "PRRT_kwDODJKVX86ujU5f",
+      "opened": "2026-10-20T22:34:58Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesGetter.java",
+      "replies": [],
+      "reviewed": "72e603b8712cc61240aa1e838181d6dab499faf3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20777#discussion_r4331057210"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to use the existing suite-owned Gradle executions DSL for the newly added semconv variants in both instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts and instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts. Do not create a follow-up PR.\n\nIn each file, add register(\"PreviewSemconv\") and register(\"BothSemconv\") inside the existing named<JvmTestSuite>(\"test\") executions block. Import io.opentelemetry.instrumentation.gradle.telemetryConfig and use telemetryConfig(\"otel.semconv-stability.preview\", \"rpc\") and telemetryConfig(\"otel.semconv-stability.preview\", \"rpc/dup\"), respectively. Preserve the exact filters: \"*S3ClientTest.testServiceError\" for SDK 1.11 and \"*Aws2ClientTest.testS3ServiceError\" for SDK 2.2, in both modes.\n\nRemove the corresponding manual register<Test> task declarations, their explicit classes/classpath and JVM/metadata property wiring, and their added check dependencies. Keep the existing dependsOn(testing.suites) wiring for the other suites. The executions DSL supplies the variant task names, classes, classpath, and check lifecycle wiring; telemetryConfig supplies both the JVM setting and metadata label.\n\nAcceptance criteria: testPreviewSemconv and testBothSemconv retain their current names, selected integration tests, rpc and rpc/dup settings, and metadata labels in both modules, and both variants remain included in check. Preserve all other suites, variants, shared test configuration, and production behavior. Limit changes to these two build files, preserve this PR's current draft/ready state, and run the narrowest applicable spotlessApply and validation commands.",
+      "created": "2026-10-20T22:40:12Z",
+      "hunk": "@@ -111,6 +111,22 @@ testing {\n }\n \n tasks {\n+  val testPreviewSemconv = register<Test>(\"testPreviewSemconv\") {",
+      "id": "PRRT_kwDODJKVX86ujaQu",
+      "opened": "2026-10-20T22:40:12Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-20T22:47:50Z",
+          "body": "Updated and pushed as `a8651e99`. Both modules now use the suite-owned `PreviewSemconv` and `BothSemconv` executions with the requested filters and `telemetryConfig`; their generated tasks remain in `check`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20777#discussion_r4331146181"
+        }
+      ],
+      "reviewed": "72e603b8712cc61240aa1e838181d6dab499faf3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20777#discussion_r4331093700"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Retain the blank-code check to preserve existing DynamoDB error handling. `DbClientAttributesExtractor.onEndCommon()` falls back to the exception class only for `null`, so an empty or whitespace-only code now becomes `error.type` on DynamoDB spans and duration metrics. This regression also applies when RPC preview is disabled.",
+      "created": "2026-10-21T02:45:48Z",
+      "hunk": "@@ -79,8 +79,7 @@ public String getErrorType(\n     if (details == null) {\n       return null;\n     }\n-    String errorCode = details.errorCode();\n-    return errorCode == null || errorCode.trim().isEmpty() ? null : errorCode;\n+    return details.errorCode();",
+      "id": "PRRT_kwDODJKVX86umrGH",
+      "opened": "2026-10-21T02:45:48Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-21T02:47:14Z",
+          "body": "this code has not been released yet so not a regression",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20777#discussion_r4332515205"
+        }
+      ],
+      "reviewed": "7f663273c272dd68f24463aa3ff49ae799aa9f81",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20777#discussion_r4332508321"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Register the new RPC preview and `/dup` profiles for both SDK versions in `.github/scripts/instrumentations.sh`. It currently lists neither `library:testPreviewSemconv` nor `library:testBothSemconv` under `aws-sdk:aws-sdk-1.11` or `aws-sdk:aws-sdk-2.2`, so automated metadata collection misses these telemetry shapes. `instrumentation-docs/readme.md:75–82` requires representative collection tasks for each supported profile; `telemetryConfig` labels output but does not schedule collection.",
+      "created": "2026-10-21T02:45:48Z",
+      "hunk": "@@ -87,6 +88,14 @@ testing {\n             includeTestsMatching(\"SqsTracingTest.testDeleteMessageError\")\n           }\n         }\n+        register(\"PreviewSemconv\") {\n+          filter.includeTestsMatching(\"*S3ClientTest.testServiceError\")\n+          telemetryConfig(\"otel.semconv-stability.preview\", \"rpc\")\n+        }",
+      "id": "PRRT_kwDODJKVX86umrGb",
+      "opened": "2026-10-21T02:45:48Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-21T02:56:06Z",
+          "body": "Added both `testPreviewSemconv` and `testBothSemconv` collection entries for the SDK 1.11 and 2.2 library modules. All four tasks passed with `-PcollectMetadata=true`. Commit: `d9b96641`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20777#discussion_r4332564389"
+        }
+      ],
+      "reviewed": "7f663273c272dd68f24463aa3ff49ae799aa9f81",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20777#discussion_r4332508351"
+    }
+  ]
+}

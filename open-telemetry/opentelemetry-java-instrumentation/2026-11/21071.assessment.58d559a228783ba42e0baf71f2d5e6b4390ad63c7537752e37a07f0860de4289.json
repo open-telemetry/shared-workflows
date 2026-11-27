@@ -1,0 +1,114 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b85d9a3252b3c4bfe8b9c9c2dc858602604b97203b620a39bceeec7bd8fccf9d",
+  "input_digest": "58d559a228783ba42e0baf71f2d5e6b4390ad63c7537752e37a07f0860de4289",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e893f209393f33c3269ba54f9e1e776153b08dd/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/ApplicationSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e893f209393f33c3269ba54f9e1e776153b08dd/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/Bridging.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/ApplicationSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/Bridging.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/28a093376fb4924f36c4fd51126914e47d3e0ff5"
+      ],
+      "id": "PRRT_kwDODJKVX86xp5r8",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e893f209393f33c3269ba54f9e1e776153b08dd/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/ApplicationSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1e893f209393f33c3269ba54f9e1e776153b08dd/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/Bridging.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/ApplicationSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/Bridging.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/ApplicationSpanHolder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86xqARC",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/28a093376fb4924f36c4fd51126914e47d3e0ff5/javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/FieldHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/ApplicationSpanHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/ApplicationSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/Bridging.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0b6a1b64e39695ecec097516685718a91ceefacb"
+      ],
+      "id": "PRRT_kwDODJKVX86x4r-v",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0d29da243724e5f458f6cbee076162edd25d2302/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentStarterImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentStarterImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0b6a1b64e39695ecec097516685718a91ceefacb"
+      ],
+      "id": "PRRT_kwDODJKVX86yCTma",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0d29da243724e5f458f6cbee076162edd25d2302/javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/FieldHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/ApplicationSpanHolder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/ApplicationSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/Bridging.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0b6a1b64e39695ecec097516685718a91ceefacb"
+      ],
+      "id": "PRRT_kwDODJKVX86yCk4N",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0d29da243724e5f458f6cbee076162edd25d2302/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentStarterImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentStarterImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0b6a1b64e39695ecec097516685718a91ceefacb"
+      ],
+      "id": "PRRT_kwDODJKVX86yCl0M",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b6a1b64e39695ecec097516685718a91ceefacb/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/ApplicationSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/ApplicationSpan.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/044f87fa5a5a8f41529f185855e8ad983d088604"
+      ],
+      "id": "PRRT_kwDODJKVX86yJOe0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b6a1b64e39695ecec097516685718a91ceefacb/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/Bridging.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f62d178f7e95c46be50cbb2e8678407ccb6dfa5a/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/Bridging.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/044f87fa5a5a8f41529f185855e8ad983d088604"
+      ],
+      "id": "PRRT_kwDODJKVX86yJOpd",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

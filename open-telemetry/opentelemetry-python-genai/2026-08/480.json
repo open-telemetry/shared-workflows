@@ -1,0 +1,52 @@
+{
+  "head": "2579ad026d42a743bebee149532d8008ea5fb74f",
+  "merge": "e2d52d0080d94b253f81dc9e296737e01c44e56f",
+  "merged": "2026-08-26T22:33:51Z",
+  "missing_roots": 0,
+  "number": 480,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`top_k` is described as being captured from numeric `extra_body` values, but the current implementation only accepts `int`. If users supply `top_k` as `40.0` (a numeric value that can appear in loosely-typed payloads), telemetry will silently drop it. Consider accepting `(int, float)` (excluding `bool`) and casting to `int` only when the float is integral; otherwise ignore.",
+      "created": "2026-08-26T16:42:55Z",
+      "hunk": "@@ -201,6 +201,32 @@ def extract_params(  # pylint: disable=too-many-locals\n     timeout: float | _http_lib.Timeout | None = None,\n     **_kwargs: object,\n ) -> MessageRequestParams:\n+    if isinstance(extra_body, Mapping):\n+        body = cast(Mapping[object, object], extra_body)\n+        body_temperature = body.get(\"temperature\")\n+        if (\n+            temperature is None\n+            and isinstance(body_temperature, (int, float))\n+            and not isinstance(body_temperature, bool)\n+        ):\n+            temperature = float(body_temperature)\n+\n+        body_top_p = body.get(\"top_p\")\n+        if (\n+            top_p is None\n+            and isinstance(body_top_p, (int, float))\n+            and not isinstance(body_top_p, bool)\n+        ):\n+            top_p = float(body_top_p)\n+\n+        body_top_k = body.get(\"top_k\")\n+        if (\n+            top_k is None\n+            and isinstance(body_top_k, int)\n+            and not isinstance(body_top_k, bool)\n+        ):\n+            top_k = body_top_k",
+      "id": "PRRT_kwDOSbspP86cilqN",
+      "opened": "2026-08-26T16:42:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [
+        {
+          "at": "2026-08-26T17:02:17Z",
+          "body": "Thanks for flagging this. I’m intentionally keeping `top_k` integer only because Anthropic defines it as an integer, and `MessageRequestParams.top_k` is typed as `int | None`. Although `extra_body` bypasses SDK typing, the instrumentation should not normalize a potentially invalid `40.0` payload into a different value. If Anthropic documents support for integral floats, I’d prefer addressing that separately with tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/480#discussion_r3864955325"
+        }
+      ],
+      "reviewed": "2579ad026d42a743bebee149532d8008ea5fb74f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/480#discussion_r3864816434"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The extraction logic for `temperature`, `top_p`, and `top_k` is very similar and repeats the same guard patterns. To reduce duplication and make future changes less error-prone (e.g., consistent boolean filtering and casting), consider factoring this into a small local helper (e.g., `read_numeric(body, key, *, as_type, allow_float)`), then applying it per field.",
+      "created": "2026-08-26T16:42:55Z",
+      "hunk": "@@ -201,6 +201,32 @@ def extract_params(  # pylint: disable=too-many-locals\n     timeout: float | _http_lib.Timeout | None = None,\n     **_kwargs: object,\n ) -> MessageRequestParams:\n+    if isinstance(extra_body, Mapping):\n+        body = cast(Mapping[object, object], extra_body)\n+        body_temperature = body.get(\"temperature\")\n+        if (\n+            temperature is None\n+            and isinstance(body_temperature, (int, float))\n+            and not isinstance(body_temperature, bool)\n+        ):\n+            temperature = float(body_temperature)\n+\n+        body_top_p = body.get(\"top_p\")\n+        if (\n+            top_p is None\n+            and isinstance(body_top_p, (int, float))\n+            and not isinstance(body_top_p, bool)\n+        ):\n+            top_p = float(body_top_p)\n+\n+        body_top_k = body.get(\"top_k\")\n+        if (\n+            top_k is None\n+            and isinstance(body_top_k, int)\n+            and not isinstance(body_top_k, bool)\n+        ):\n+            top_k = body_top_k\n+",
+      "id": "PRRT_kwDOSbspP86cilqq",
+      "opened": "2026-08-26T16:42:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [
+        {
+          "at": "2026-08-26T17:05:41Z",
+          "body": "`top_k` intentionally follows Anthropic’s integer contract, and not float. The explicit extraction for each field preserves the field semantics and keep the fix localized.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/480#discussion_r3864979200"
+        }
+      ],
+      "reviewed": "2579ad026d42a743bebee149532d8008ea5fb74f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/480#discussion_r3864816476"
+    }
+  ]
+}

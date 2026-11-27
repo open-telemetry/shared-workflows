@@ -1,0 +1,101 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "45e329cedfac2dd6182e741db98d898baf1562c6f5ce3503bbe59f7b2d4235f4",
+  "input_digest": "1fac435da2a4759d60f5b6ce73b7f94dfc7ea1302a5134be73297f359a0802eb",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/9d0e2d1b033332442a307b97da95fd85d4a4d220/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1a628a1b44a930d91e2d0c99c44d781bf037d4dc/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py"
+      ],
+      "id": "PRRT_kwDOSbspP86NYoTO",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/9d0e2d1b033332442a307b97da95fd85d4a4d220/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1a628a1b44a930d91e2d0c99c44d781bf037d4dc/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py"
+      ],
+      "id": "PRRT_kwDOSbspP86NYoTy",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/9d0e2d1b033332442a307b97da95fd85d4a4d220/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1a628a1b44a930d91e2d0c99c44d781bf037d4dc/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py"
+      ],
+      "id": "PRRT_kwDOSbspP86NYoUH",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/9f399750b06d8b1be74c21eb0bed039511471bea/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/cassettes/test_chat_anthropic_claude_sonnet_llm_call.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/9f399750b06d8b1be74c21eb0bed039511471bea/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/cassettes/test_chat_anthropic_claude_sonnet_stop_sequences_constructor_fallback.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/9f399750b06d8b1be74c21eb0bed039511471bea/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/cassettes/test_chat_anthropic_claude_sonnet_stop_sequences_fallback.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1a628a1b44a930d91e2d0c99c44d781bf037d4dc/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/cassettes/test_chat_anthropic_claude_sonnet_stop_sequences_constructor_fallback.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1a628a1b44a930d91e2d0c99c44d781bf037d4dc/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/cassettes/test_chat_anthropic_claude_sonnet_stop_sequences_fallback.yaml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1a628a1b44a930d91e2d0c99c44d781bf037d4dc/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py"
+      ],
+      "id": "PRRT_kwDOSbspP86Qbeg-",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOSbspP86Qbhz9",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/03f38a7fb5b07c066e2ef06e5358b2b3597a7840/instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/188.added",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1a628a1b44a930d91e2d0c99c44d781bf037d4dc/instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/188.added"
+      ],
+      "id": "PRRT_kwDOSbspP86Sa6u5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/03f38a7fb5b07c066e2ef06e5358b2b3597a7840/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1a628a1b44a930d91e2d0c99c44d781bf037d4dc/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_llm_call.py"
+      ],
+      "id": "PRRT_kwDOSbspP86Sa6uf",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/03f38a7fb5b07c066e2ef06e5358b2b3597a7840/instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/188.added",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/1a628a1b44a930d91e2d0c99c44d781bf037d4dc/instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/188.added"
+      ],
+      "id": "PRRT_kwDOSbspP86Sa_8P",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDOSbspP86S0D8i",
+      "kind": null,
+      "original": "PRRT_kwDOSbspP86Sa6uf",
+      "status": "duplicate"
+    }
+  ]
+}

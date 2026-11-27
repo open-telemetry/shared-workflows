@@ -1,0 +1,85 @@
+{
+  "head": "5cbecc91322f47a763de8a46f65bac068a7b1162",
+  "merge": "bbf941491eaf9144c4611f619bf2bc73b52a0261",
+  "merged": "2026-08-12T16:49:10Z",
+  "missing_roots": 0,
+  "number": 19470,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Test code should not add `@Nullable`. The overridden base declaration already documents that this argument may be null, so remove the annotation here.",
+      "created": "2026-08-10T05:49:24Z",
+      "hunk": "@@ -23,9 +34,181 @@ protected InstrumentationExtension testing() {\n   }\n \n   @Override\n-  protected void configure(HikariConfig poolConfig, MetricsTrackerFactory userTracker) {\n+  protected void configure(HikariConfig poolConfig, @Nullable MetricsTrackerFactory userTracker) {",
+      "id": "PRRT_kwDODJKVX86Xwa8k",
+      "opened": "2026-08-10T05:49:25Z",
+      "path": "instrumentation/hikaricp-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hikaricp/v3_0/HikariInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "fd0d701bfc5ef77c98c459cbc180d679b71163db",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19470#discussion_r3746941826"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Clearing captured data inside every Awaitility attempt makes the immediately following `metrics()` check vacuous: `clearData()` explicitly guarantees that `metrics()` is empty until the next export, so this can pass even when the pool callbacks were not unregistered. Clear once, then wait for a subsequent metric collection (for example, retain the per-metric `waitAndAssertMetrics(..., isEmpty)` checks) so the cleanup assertions can detect leaked callbacks.",
+      "created": "2026-08-10T05:49:25Z",
+      "hunk": "@@ -168,4 +147,35 @@ void shouldReportTimeouts() throws SQLException {\n         .disableUseTime()\n         .assertConnectionPoolEmitsMetrics();\n   }\n+\n+  protected void assertConnectionUsagePoolNames(String... poolNames) {\n+    testing()\n+        .waitAndAssertMetrics(\n+            INSTRUMENTATION_NAME,\n+            CONNECTION_USAGE_METRIC_NAME,\n+            metrics ->\n+                metrics.anySatisfy(\n+                    metric ->\n+                        assertThat(\n+                                metric.getLongSumData().getPoints().stream()\n+                                    .map(point -> point.getAttributes().get(POOL_NAME_KEY))\n+                                    .collect(toSet()))\n+                            .containsExactlyInAnyOrder(poolNames)));\n+  }\n+\n+  protected void assertNoConnectionPoolMetrics() {\n+    await()\n+        .untilAsserted(\n+            () -> {\n+              testing().clearData();\n+              assertThat(testing().metrics())",
+      "id": "PRRT_kwDODJKVX86Xwa9B",
+      "opened": "2026-08-10T05:49:25Z",
+      "path": "instrumentation/hikaricp-3.0/testing/src/main/java/io/opentelemetry/instrumentation/hikaricp/AbstractHikariInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "fd0d701bfc5ef77c98c459cbc180d679b71163db",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19470#discussion_r3746941860"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] `VirtualField` handles count as constant-like values in the style guide, so this field should be `SCREAMING_SNAKE_CASE`. Renaming it to `GENERATED_POOL_NAME_FIELD` (and updating the three usages below) would match how the other instrumentation modules declare their virtual fields.",
+      "created": "2026-08-10T13:18:33Z",
+      "hunk": "@@ -5,20 +5,50 @@\n \n package io.opentelemetry.javaagent.instrumentation.hikaricp.v3_0;\n \n+import com.zaxxer.hikari.HikariConfig;\n import com.zaxxer.hikari.metrics.MetricsTrackerFactory;\n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n import io.opentelemetry.instrumentation.hikaricp.v3_0.HikariTelemetry;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionPoolNameUtil;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n import javax.annotation.Nullable;\n \n public class HikariSingletons {\n \n+  private static final String DEFAULT_DATA_SOURCE_NAME = \"hikaricp\";\n+\n+  private static final VirtualField<HikariConfig, Boolean> generatedPoolNameField =",
+      "id": "PRRT_kwDODJKVX86X4g9d",
+      "opened": "2026-08-10T13:21:36Z",
+      "path": "instrumentation/hikaricp-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hikaricp/v3_0/HikariSingletons.java",
+      "replies": [],
+      "reviewed": "0bfad2cc5dd0ca6b087a032b67fa90b5554987f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19470#discussion_r3749829987"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] In HikariCP's `dataSourceClassName` configuration mode there is normally no `jdbcUrl` at all (Hikari warns and ignores one if it is set), so `getJdbcUrl()` is null here. `JdbcConnectionUrlParser.parse()` returns `DbInfo.DEFAULT` immediately for a null URL without ever consulting `props`, so the standard `serverName`/`portNumber`/`databaseName` entries in `getDataSourceProperties()` are dropped and every such pool derives `hikaricp`. The derived name is then not just uninformative but shared: those pools report distinct `HikariPool-N` values in `pool.name` today, and afterwards they would all report `hikaricp`. Falling back to the standard data source properties when the URL is absent would close the gap.\n\n`shouldUseDataSourcePropertiesForDefaultPoolName` doesn't cover this, since it injects a `DataSource` instance and supplies a synthetic `jdbc:postgresql:ignored` URL — HikariCP ignores `dataSourceProperties` entirely in that branch.",
+      "created": "2026-08-10T13:18:33Z",
+      "hunk": "@@ -5,20 +5,50 @@\n \n package io.opentelemetry.javaagent.instrumentation.hikaricp.v3_0;\n \n+import com.zaxxer.hikari.HikariConfig;\n import com.zaxxer.hikari.metrics.MetricsTrackerFactory;\n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n import io.opentelemetry.instrumentation.hikaricp.v3_0.HikariTelemetry;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionPoolNameUtil;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n import javax.annotation.Nullable;\n \n public class HikariSingletons {\n \n+  private static final String DEFAULT_DATA_SOURCE_NAME = \"hikaricp\";\n+\n+  private static final VirtualField<HikariConfig, Boolean> generatedPoolNameField =\n+      VirtualField.find(HikariConfig.class, Boolean.class);\n+\n   private static final HikariTelemetry hikariTelemetry =\n       HikariTelemetry.create(GlobalOpenTelemetry.get());\n \n+  public static void setGeneratedPoolName(HikariConfig config, boolean generatedPoolName) {\n+    generatedPoolNameField.set(config, generatedPoolName);\n+  }\n+\n+  public static void copyGeneratedPoolName(HikariConfig source, HikariConfig target) {\n+    Boolean generatedPoolName = generatedPoolNameField.get(source);\n+    if (generatedPoolName != null) {\n+      generatedPoolNameField.set(target, generatedPoolName);\n+    }\n+  }\n+\n   public static MetricsTrackerFactory createMetricsTrackerFactory(\n-      @Nullable MetricsTrackerFactory delegate) {\n+      @Nullable MetricsTrackerFactory delegate, HikariConfig config) {\n+    if (Boolean.TRUE.equals(generatedPoolNameField.get(config))) {\n+      return hikariTelemetry.createMetricsTrackerFactory(delegate, getDataSourceName(config));\n+    }\n     return hikariTelemetry.createMetricsTrackerFactory(delegate);\n   }\n \n+  private static String getDataSourceName(HikariConfig config) {\n+    DbInfo dbInfo =\n+        JdbcConnectionUrlParser.parse(config.getJdbcUrl(), config.getDataSourceProperties());\n+    return JdbcConnectionPoolNameUtil.poolName(dbInfo, DEFAULT_DATA_SOURCE_NAME);",
+      "id": "PRRT_kwDODJKVX86X4g9g",
+      "opened": "2026-08-10T13:21:36Z",
+      "path": "instrumentation/hikaricp-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hikaricp/v3_0/HikariSingletons.java",
+      "replies": [],
+      "reviewed": "0bfad2cc5dd0ca6b087a032b67fa90b5554987f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19470#discussion_r3749829996"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Does this need to be library API at all? A library user sets the pool name themselves via `config.setPoolName(...)`, so `poolNameOverride` only exists to serve the javaagent.\n\nSince `MetricsTrackerFactory` is a functional interface and `PoolBase.setMetricsTrackerFactory` calls `create(config.getPoolName(), stats)` synchronously, the agent can swap the name on the way in and swap it back for the user's delegate, leaving both library classes unchanged:\n\n```java\npublic static MetricsTrackerFactory createMetricsTrackerFactory(\n    @Nullable MetricsTrackerFactory delegate, HikariConfig config) {\n  if (!Boolean.TRUE.equals(GENERATED_POOL_NAME_FIELD.get(config))) {\n    return hikariTelemetry.createMetricsTrackerFactory(delegate);\n  }\n  String dataSourceName = getDataSourceName(config);\n  return (hikariPoolName, poolStats) ->\n      hikariTelemetry\n          .createMetricsTrackerFactory(\n              delegate == null ? null : (ignored, stats) -> delegate.create(hikariPoolName, stats))\n          .create(dataSourceName, poolStats);\n}\n```\n\nIf you prefer keeping it in the library module, `...hikaricp.v3_0.internal` with the standard \"internal and is hence not for public use\" javadoc would keep it off the published surface.",
+      "created": "2026-08-11T14:12:47Z",
+      "hunk": "@@ -39,6 +39,16 @@ public MetricsTrackerFactory createMetricsTrackerFactory() {\n    */\n   public MetricsTrackerFactory createMetricsTrackerFactory(\n       @Nullable MetricsTrackerFactory delegate) {\n-    return new OpenTelemetryMetricsTrackerFactory(openTelemetry, delegate);\n+    return new OpenTelemetryMetricsTrackerFactory(openTelemetry, delegate, null);\n+  }\n+\n+  /**\n+   * Returns a new {@link MetricsTrackerFactory} that uses {@code poolNameOverride} for\n+   * OpenTelemetry metrics. Trackers created by the {@code delegate} metrics tracker factory will\n+   * continue to use the pool name provided by HikariCP.\n+   */\n+  public MetricsTrackerFactory createMetricsTrackerFactory(",
+      "id": "PRRT_kwDODJKVX86YQWfS",
+      "opened": "2026-08-11T14:17:16Z",
+      "path": "instrumentation/hikaricp-3.0/library/src/main/java/io/opentelemetry/instrumentation/hikaricp/v3_0/HikariTelemetry.java",
+      "replies": [],
+      "reviewed": "443ae21d4714a468ee8ec39c140e6d4a5a956c1d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19470#discussion_r3758716564"
+    }
+  ]
+}

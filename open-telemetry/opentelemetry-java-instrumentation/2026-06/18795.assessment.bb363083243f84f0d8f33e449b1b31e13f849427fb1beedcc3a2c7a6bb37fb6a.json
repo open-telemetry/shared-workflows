@@ -1,0 +1,211 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f324bab3d7be670ad6d78e626d2da1296f334f77c72043efee0914774546afb5",
+  "input_digest": "bb363083243f84f0d8f33e449b1b31e13f849427fb1beedcc3a2c7a6bb37fb6a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/789477c47ace5d989ef4b1630c650b5bd3b9bffc/instrumentation/spring/spring-security-config-6.0/library/src/test/java/io/opentelemetry/instrumentation/spring/security/config/v6_0/servlet/EnduserAttributesCapturingServletFilterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/library/src/test/java/io/opentelemetry/instrumentation/spring/security/config/v6_0/servlet/EnduserAttributesCapturingServletFilterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/83156eb5aa2b640a5de915cef79452f9d84dbc5c"
+      ],
+      "id": "PRRT_kwDODJKVX86DCWVF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/789477c47ace5d989ef4b1630c650b5bd3b9bffc/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/EnduserConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/UserConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/119d256cadec889275cc9a2868d92762242473e0"
+      ],
+      "id": "PRRT_kwDODJKVX86DCWVR",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eabd7a63a691afba11dc65663963718e8c27502f/instrumentation/spring/spring-security-config-6.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/metadata.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86DCh6O",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/119d256cadec889275cc9a2868d92762242473e0/instrumentation/spring/spring-security-config-6.0/library/src/main/java/io/opentelemetry/instrumentation/spring/security/config/v6_0/EnduserAttributesCapturer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/library/src/main/java/io/opentelemetry/instrumentation/spring/security/config/v6_0/EnduserAttributesCapturer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/library/src/main/java/io/opentelemetry/instrumentation/spring/security/config/v6_0/UserAttributesCapturer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7a240a0a3f02e838c72ae6d35d91b0f86e5ceed1"
+      ],
+      "id": "PRRT_kwDODJKVX86DCuq-",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7a240a0a3f02e838c72ae6d35d91b0f86e5ceed1/instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/BaseServletHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/BaseServletHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e44bb07f30b47a52e47141e8c25921ce85725dc2"
+      ],
+      "id": "PRRT_kwDODJKVX86DC65t",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7a240a0a3f02e838c72ae6d35d91b0f86e5ceed1/instrumentation/spring/spring-security-config-6.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e44bb07f30b47a52e47141e8c25921ce85725dc2"
+      ],
+      "id": "PRRT_kwDODJKVX86DC65-",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7a240a0a3f02e838c72ae6d35d91b0f86e5ceed1/instrumentation/spring/spring-security-config-6.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e44bb07f30b47a52e47141e8c25921ce85725dc2"
+      ],
+      "id": "PRRT_kwDODJKVX86DC66I",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7a240a0a3f02e838c72ae6d35d91b0f86e5ceed1/instrumentation/spring/spring-security-config-6.0/javaagent/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/javaagent/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e44bb07f30b47a52e47141e8c25921ce85725dc2"
+      ],
+      "id": "PRRT_kwDODJKVX86DC66e",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7f16db7ff871a4319fc25b9b8d54366a8e36e3c6/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java"
+      ],
+      "id": "PRRT_kwDODJKVX86G2SwY",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7f16db7ff871a4319fc25b9b8d54366a8e36e3c6/instrumentation/spring/spring-security-config-6.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9f08543ad01e2f108060cf3930eb0bad4c14ce1f"
+      ],
+      "id": "PRRT_kwDODJKVX86G2Sw9",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7f16db7ff871a4319fc25b9b8d54366a8e36e3c6/instrumentation/spring/spring-security-config-6.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9f08543ad01e2f108060cf3930eb0bad4c14ce1f"
+      ],
+      "id": "PRRT_kwDODJKVX86G2SxN",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9f08543ad01e2f108060cf3930eb0bad4c14ce1f/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/UserConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/UserConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e999fc140e6f03dfe066825268c2282f7043ee37"
+      ],
+      "id": "PRRT_kwDODJKVX86HDOPj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/921d89fe6870018585604b74e1881a6511ae1208/instrumentation/spring/spring-security-config-6.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/921d89fe6870018585604b74e1881a6511ae1208/instrumentation/spring/spring-security-config-6.0/javaagent/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/javaagent/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/921d89fe6870018585604b74e1881a6511ae1208/instrumentation/spring/spring-security-config-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86IQfsc",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/921d89fe6870018585604b74e1881a6511ae1208/instrumentation/spring/spring-security-config-6.0/library/src/main/java/io/opentelemetry/instrumentation/spring/security/config/v6_0/UserAttributesCapturer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/spring/spring-security-config-6.0/library/src/main/java/io/opentelemetry/instrumentation/spring/security/config/v6_0/UserAttributesCapturer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86IQftE",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/921d89fe6870018585604b74e1881a6511ae1208/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/UserConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/UserConfig.java"
+      ],
+      "id": "PRRT_kwDODJKVX86IQftk",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/921d89fe6870018585604b74e1881a6511ae1208/instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/common/internal/ServletAdditionalAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/servlet/servlet-common/library/src/main/java/io/opentelemetry/instrumentation/servlet/common/internal/ServletAdditionalAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86IQfuC",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/921d89fe6870018585604b74e1881a6511ae1208/instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/BaseServletHelper.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4174174c36e76f0c6753aa47c0aec8847e271f5/instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/BaseServletHelper.java"
+      ],
+      "id": "PRRT_kwDODJKVX86IQfum",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

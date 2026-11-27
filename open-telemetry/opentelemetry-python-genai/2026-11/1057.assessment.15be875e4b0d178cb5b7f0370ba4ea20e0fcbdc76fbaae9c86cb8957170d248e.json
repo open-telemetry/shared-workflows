@@ -1,0 +1,61 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "4e208eec1a7572bd37f7487d666a3fccb72cc5e4587b82b9ba1b9a140cab5384",
+  "input_digest": "15be875e4b0d178cb5b7f0370ba4ea20e0fcbdc76fbaae9c86cb8957170d248e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/d0b4c5ebce5ee37ad79d95153d7081ce85a71cd3/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_messages_extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/df1e23b7b0b8447ea673560550989ac6efb7cdcd/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_messages_extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/df1e23b7b0b8447ea673560550989ac6efb7cdcd/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/conftest.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/df1e23b7b0b8447ea673560550989ac6efb7cdcd/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/df1e23b7b0b8447ea673560550989ac6efb7cdcd/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/df1e23b7b0b8447ea673560550989ac6efb7cdcd",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/52783145f6585090d0eda121a4a8e437a53acdfa"
+      ],
+      "id": "PRRT_kwDOSbspP8606Tzh",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/52783145f6585090d0eda121a4a8e437a53acdfa/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/df1e23b7b0b8447ea673560550989ac6efb7cdcd/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/b6187112e11986a02256d6098c6abb3a501ecb3c"
+      ],
+      "id": "PRRT_kwDOSbspP862dwj1",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/52783145f6585090d0eda121a4a8e437a53acdfa/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/df1e23b7b0b8447ea673560550989ac6efb7cdcd/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/b6187112e11986a02256d6098c6abb3a501ecb3c"
+      ],
+      "id": "PRRT_kwDOSbspP862dwjp",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/b6187112e11986a02256d6098c6abb3a501ecb3c/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/df1e23b7b0b8447ea673560550989ac6efb7cdcd/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/b205f00374440ff8172ff429fd27cb9471c261ef"
+      ],
+      "id": "PRRT_kwDOSbspP863YCwW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

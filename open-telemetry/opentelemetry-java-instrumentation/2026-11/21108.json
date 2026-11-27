@@ -1,0 +1,73 @@
+{
+  "head": "07cd7bd014abe170ff28a9c4f7bea643db88f4ea",
+  "merge": "249f560282e7baa3f1f211af7f65aa69a7f3ea26",
+  "merged": "2026-11-02T15:34:59Z",
+  "missing_roots": 0,
+  "number": 21108,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with these scoped bootstrap text and naming corrections, preserving its current class/helper-call renames and runtime behavior.\n\nIn the AdviceBootstrap Javadoc classloader diagram, restore the vertical column alignment lost when IndyBootstrapDispatcher became AdviceBootstrapDispatcher. The up-arrow after the dispatcher should align with the agent-classloader vertical line in the surrounding rows, as it did before the rename. The dispatcher fragment can be written as └─────── AdviceBootstrapDispatcher ─ ↑, using the actual diagram characters and verifying the complete row alignment.\n\nIn instrumentation/internal/internal-reflection/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/reflection/ClassInstrumentation.java, replace the remaining 'via indy bootstrap method' wording with a precise advice-bootstrap/invokedynamic explanation, and rename the isIndy field, constructor parameter, and corresponding uses to useIsolatedAdvice. This branch identifies the isolated-advice transformer, not independently selected helper placement. Preserve the existing instanceof IndyTypeTransformerImpl predicate on this PR; the TypeTransformerImpl rename/package move belongs to another PR and must not be copied here.\n\nKeep all packages, bootstrap method names/signatures, callsite descriptors/arguments, and runtime behavior unchanged. Do not modify other PRs, change the base, or create another PR. Run the narrowest applicable spotlessApply directly, followed by targeted bootstrap and internal-reflection compilation/tests. Acceptance is an aligned diagram, no isIndy identifier or indy-shorthand comment in ClassInstrumentation, and unchanged bootstrap semantics.",
+      "created": "2026-10-31T20:31:13Z",
+      "hunk": "@@ -63,16 +63,16 @@\n  *  ──→ class loader parent/child relationships\n  * </pre>\n  */\n-public class IndyBootstrap {\n+public class AdviceBootstrap {",
+      "id": "PRRT_kwDODJKVX86yUW6s",
+      "opened": "2026-10-31T20:31:13Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/AdviceBootstrap.java",
+      "replies": [
+        {
+          "at": "2026-10-31T20:37:29Z",
+          "body": "Updated and pushed in `2dc04002`. The diagram arrow now aligns with the agent-classloader column, and `ClassInstrumentation` uses `useIsolatedAdvice` with the clarified advice-bootstrap invokedynamic wording; the transformer predicate and linkage behavior are unchanged. Targeted Spotless, compilation, and both focused tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21108#discussion_r4433211345"
+        }
+      ],
+      "reviewed": "c51818cce7bfd6196f6f1c43514d87ad9c40fcc7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21108#discussion_r4433195003"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user-requested naming-only cleanup: \"apply all of those changes cloud\".\n\nIn instrumentation/internal/internal-reflection/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/reflection/ClassInstrumentation.java, rename useIsolatedAdvice to useIsolatedHelperClasses throughout the field, constructor parameter, assignment, and dispatch branch. This is the actual helper-loading choice and must match the naming already selected in sibling PR #21106. Do not rename AdviceInspector methods in this PR.\n\nIn javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/AdviceBootstrap.java, rename getAdviceBootstrapArguments to createBootstrapArgumentResolverFactory and update every caller, including this branch's IndyTypeTransformerImpl, and directly related comments. Preserve its current visibility, return type, and resolver behavior; do not import the sibling PR's class moves or visibility changes.\n\nIn AdviceBootstrap, rename moduleName locals holding instrumentationModule.getClass().getName() to moduleClassName, and rename instrumentationClassloader to instrumentationClassLoader throughout its local references. Correct that class-loader spelling in directly related comments too. Keep AdviceBootstrap, AdviceBootstrapDispatcher, getBootstrapMethod, callSiteMethodType, and emitHelperStaticCall names, the dispatcher diagram, and the JVM-facing bootstrap name/signature unchanged.\n\nUpdate every affected reference, import, constructor, filename, test reference, and directly related documentation or link for these renames. Keep existing packages and visibility, runtime behavior, helper-selection precedence, advice inlining annotations, module identities, configuration names, exception handling, and the JVM-facing bootstrap entry point and signature unchanged. Preserve all earlier changes on this PR. Do not apply sibling PRs' class renames, move additional classes, update other PRs, or make unrelated cleanup. Make the changes on this PR's existing head branch, not in a new PR. Run the narrowest relevant formatters and existing checks for these changes.",
+      "created": "2026-10-31T23:07:09Z",
+      "hunk": "@@ -67,11 +67,11 @@ public ClassVisitor wrap(\n   }\n \n   private static class ClassClassVisitor extends ClassVisitor {\n-    private final boolean isIndy;\n+    private final boolean useIsolatedAdvice;",
+      "id": "PRRT_kwDODJKVX86yVaBq",
+      "opened": "2026-10-31T23:07:09Z",
+      "path": "instrumentation/internal/internal-reflection/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/reflection/ClassInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-31T23:15:55Z",
+          "body": "Applied the requested naming updates and directly related documentation spelling correction; bootstrap behavior and signatures remain unchanged. Targeted Spotless and tooling, bootstrap, and internal-reflection tests passed. Commit: `28b02421`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21108#discussion_r4433652662"
+        }
+      ],
+      "reviewed": "2dc04002559fc1e4088537cb19d24c107b0a9768",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21108#discussion_r4433629277"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply the user-approved small deduplication pass to this PR directly, without restacking the PRs.\n\nIn instrumentation/internal/internal-reflection/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/reflection/ClassInstrumentation.java, restore the private ClassClassVisitor boolean field and constructor parameter name isIndy, its assignment, and its if-condition reference. Only undo the isIndy-to-useIsolatedHelperClasses rename in this PR. The selected useIsolatedHelperClasses name belongs to PR #21106. Preserve this PR's AdviceBootstrap import, emitHelperStaticCall invocation, and revised helper-dispatch comment.\n\nRemove this PR's spelling-only edits to docs/contributing/writing-instrumentation-module.md. The two InstrumentationModuleClassloader-to-InstrumentationModuleClassLoader spelling corrections belong to PR #21109's contributor prose rewrite. Restore this file to this PR's merge-base content so it has no net change in this PR; do not import PR #21109's prose or change that PR.\n\nKeep AdviceBootstrap, AdviceBootstrapDispatcher, AdviceBootstrapDispatcherTest, getBootstrapMethod, createBootstrapArgumentResolverFactory, emitHelperStaticCall, callSiteMethodType, moduleClassName, and instrumentationClassLoader names and references. Preserve the corrected dispatcher diagram and bootstrap comments and every remaining change in this PR.\n\nThis is an explicit implementation request to deduplicate ownership across the four existing PRs, not to undo the selected names in their owning PRs. Implement, commit, and push only the requested removals directly to this PR's existing head branch. Keep runtime behavior, public/package-private visibility except as explicitly preserved above, helper-selection precedence, advice annotations, configuration and telemetry names, bootstrap entry-point names/signatures, and bytecode generation unchanged. Preserve the PR's existing base and draft/ready state. Do not merge, rebase, restack, update main, create another PR, modify another PR, or edit or submit existing review comments. Run the narrowest relevant formatters and existing checks covering the change and verify the pushed diff contains only the requested deduplication.",
+      "created": "2026-11-01T00:09:28Z",
+      "hunk": "@@ -67,11 +67,11 @@ public ClassVisitor wrap(\n   }\n \n   private static class ClassClassVisitor extends ClassVisitor {\n-    private final boolean isIndy;\n+    private final boolean useIsolatedHelperClasses;",
+      "id": "PRRT_kwDODJKVX86yVxn5",
+      "opened": "2026-11-01T00:09:28Z",
+      "path": "instrumentation/internal/internal-reflection/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/reflection/ClassInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-01T00:16:18Z",
+          "body": "Applied and pushed the requested deduplication in `1bbae5c3`. The diff restores `isIndy`, reverts the documentation-only spelling edits, and preserves the AdviceBootstrap changes and runtime behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21108#discussion_r4433800661"
+        }
+      ],
+      "reviewed": "28b02421f0d2b18e51b3b9b38d3b11e47f03ffbe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21108#discussion_r4433782571"
+    }
+  ]
+}

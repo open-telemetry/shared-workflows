@@ -1,0 +1,25 @@
+{
+  "head": "6d03c686c306607e3b53482c81223b10c878b29a",
+  "merge": "586ff0a5e2ef561bd8c500c82ad7242a38cd3a8e",
+  "merged": "2026-11-12T23:52:07Z",
+  "missing_roots": 0,
+  "number": 493,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "martincostello"
+      },
+      "body": "This has disappeared as it's opt-in in .NET 11 (see [System.Net metrics](https://learn.microsoft.com/dotnet/core/diagnostics/built-in-metrics-system-net#metric-httpclientactive_requests)).\n\nIf we want it back, then the generator needs to call `MeterListener.RecordObservableInstruments()`.",
+      "created": "2026-11-12T13:59:13Z",
+      "hunk": "@@ -15,12 +15,6 @@\n     \"dns.lookup.duration\": [\n       \"dns.question.name\"\n     ],\n-    \"http.client.active_requests\": [\n-      \"http.request.method\",\n-      \"server.address\",\n-      \"server.port\",\n-      \"url.scheme\"\n-    ],",
+      "id": "PRRT_kwDOTuzK5c62ptNK",
+      "opened": "2026-11-12T13:59:12Z",
+      "path": "scenarios/http/dotnet/httpclient/opentelemetry-http/client/data.json",
+      "replies": [],
+      "reviewed": "6d03c686c306607e3b53482c81223b10c878b29a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/493#discussion_r4551389060"
+    }
+  ]
+}

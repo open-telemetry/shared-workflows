@@ -1,0 +1,239 @@
+{
+  "head": "63e9e5b381ecfe02709e077290e79b086da73b5c",
+  "merge": "4f94f337fc3afcf6be406863521e4818634671c9",
+  "merged": "2026-10-18T01:23:37Z",
+  "missing_roots": 0,
+  "number": 20621,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please update this PR to pass the `OpenTelemetry` instance into the Couchbase request-tracer factories instead of constructing and passing separate `Tracer` and `Logger` instances from the advice.\n\nFor Couchbase 3.0, use `CouchbaseRequestTracer.create(OpenTelemetry openTelemetry)`, build both the tracer and exception logger inside that factory, and simplify the advice to `builder.requestTracer(CouchbaseRequestTracer.create(GlobalOpenTelemetry.get()));`.\n\nFor Couchbase 3.1, use `create(OpenTelemetry openTelemetry, boolean legacyBridge)` and move both telemetry construction and the existing instrumentation-name selection into the factory. Preserve `io.opentelemetry.couchbase-3.1` for the legacy bridge and `com.couchbase.client.jvm` otherwise. Couchbase 3.2 already accepts `OpenTelemetry`, so use that factory as the reference.\n\nKeep the existing instrumentation names, schema URLs, and exception-signal behavior unchanged. Update affected callers and tests, and run the relevant tests.",
+      "created": "2026-10-15T17:44:10Z",
+      "hunk": "@@ -34,10 +35,17 @@ public static class ConstructorAdvice {\n \n     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n     public static void onExit(@Advice.This CoreEnvironment.Builder<?> builder) {\n+      OpenTelemetry openTelemetry = GlobalOpenTelemetry.get();",
+      "id": "PRRT_kwDODJKVX86s5Tro",
+      "opened": "2026-10-15T17:44:10Z",
+      "path": "instrumentation/couchbase/couchbase-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_0/CouchbaseEnvironmentInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-15T17:49:42Z",
+          "body": "Updated in `969699f0`: the 3.0 factory accepts `OpenTelemetry` and constructs both telemetry collaborators; the 3.1 factory accepts `OpenTelemetry` and `legacyBridge`, selecting the existing instrumentation name and constructing both collaborators internally. The advice now delegates to each factory. Targeted exception-mode tests and 3.0/3.1 compilation passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4286397325"
+        }
+      ],
+      "reviewed": "a547106a3d12dd43db4e5a95abae0d49660dfbe6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4286344488"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please extract the inline tracer construction into a local `Tracer tracer` variable in `create()`, matching the existing `Logger exceptionLogger` variable, and pass it to `CouchbaseTracer`. Apply this in both the Couchbase 3.1 and 3.2 versions of `CouchbaseRequestTracer.java`.",
+      "created": "2026-10-15T18:21:23Z",
+      "hunk": "@@ -33,12 +34,20 @@ public final class CouchbaseRequestTracer implements RequestTracer {\n   private final CouchbaseTracer tracer;\n \n   public static RequestTracer create(OpenTelemetry openTelemetry) {\n+    String instrumentationName = \"com.couchbase.client.jvm\";\n+    Logger exceptionLogger =\n+        openTelemetry\n+            .getLogsBridge()\n+            .loggerBuilder(instrumentationName)\n+            .setSchemaUrl(SchemaUrls.V1_44_0)\n+            .build();\n     return new CouchbaseRequestTracer(\n         new CouchbaseTracer(\n             openTelemetry\n-                .tracerBuilder(\"com.couchbase.client.jvm\")\n+                .tracerBuilder(instrumentationName)",
+      "id": "PRRT_kwDODJKVX86s6LeO",
+      "opened": "2026-10-15T18:21:22Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-10-15T18:27:49Z",
+          "body": "Updated in `2ed61f02`: Couchbase 3.1 and 3.2 now each construct a local `Tracer tracer` and pass it to `CouchbaseTracer`. Both adapter compile tasks and formatting passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4286775622"
+        },
+        {
+          "at": "2026-10-15T18:31:35Z",
+          "body": "@copilot also in instrumentation/couchbase/couchbase-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_0/CouchbaseRequestTracer.java\r\n\r\nalso swap order of tracer/logger declarations to match order they are passed into ctor",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4286811634"
+        },
+        {
+          "at": "2026-10-15T18:38:07Z",
+          "body": "Updated in `7dd16342`: Couchbase 3.0 now also uses a local `Tracer tracer`, and the 3.0, 3.1, and 3.2 factories declare tracer before logger to match the constructor argument order. All three adapter compile tasks and formatting passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4286873908"
+        }
+      ],
+      "reviewed": "969699f0ca50eab9f56403bccb5f25b3c8d63ac4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4286711809"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The `logs` and `logs/dup` tasks only run helper tests with a manually supplied logger. The installed-agent Couchbase tests do not exercise these modes or assert exception logs, so the new logger factory and SDK `RequestSpan.recordException` callback are not tested together. Add an agent-backed failing operation on a supported SDK version that invokes the callback, covering default, `logs`, and `logs/dup` in separate JVMs wired into `check`. Assert span-event selection and the WARN exception log's scope and Couchbase span correlation.",
+      "created": "2026-10-15T19:11:53Z",
+      "hunk": "@@ -33,15 +35,17 @@ public final class CouchbaseRequestTracer implements RequestTracer {\n   private final CouchbaseTracer tracer;\n \n   public static RequestTracer create(OpenTelemetry openTelemetry) {\n+    String instrumentationName = \"com.couchbase.client.jvm\";\n+    Tracer tracer =\n+        openTelemetry.tracerBuilder(instrumentationName).setSchemaUrl(SchemaUrls.V1_44_0).build();\n+    Logger exceptionLogger =\n+        openTelemetry\n+            .getLogsBridge()\n+            .loggerBuilder(instrumentationName)\n+            .setSchemaUrl(SchemaUrls.V1_44_0)",
+      "id": "PRRT_kwDODJKVX86s7Y7Y",
+      "opened": "2026-10-15T19:11:53Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-10-15T19:50:47Z",
+          "body": "Addressed in 894508ccaae8179194ece824fac527c9456b27ef.\n\nCouchbaseExceptionSignalTest constructs ClusterEnvironment with the installed agent, rather than manually supplying a tracer or logger. It performs a failing SDK 3.4.3 get, checks the SDK-provided CompletionException and its timeout cause, asserts the operation span exception selection, and verifies exactly one WARN db.client.operation.exception log with standard exception attributes, com.couchbase.client.jvm scope, the 1.44.0 schema, and the operation span context. The default suite and filtered logs/logs-dup JVM variants pass and are dependencies of check. Both non-default event profiles are registered and verified in metadata collection.\n\n<!-- copilot-loop:ac2fce4927f903b4af103b6f427bdb0317af5bc50a38d07e223ac19aa676a52f:4287224861:b75c190f32c64378990c35c7fa44c0f1 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4287597586"
+        }
+      ],
+      "reviewed": "7dd16342f79e84e8744eb38283b11a0386197355",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4287224861"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "other modules don't add the logsDup task here (actually they don't even have it, is is only tested in the api modules)\nadding `version343Test` seems random",
+      "created": "2026-10-16T05:19:35Z",
+      "hunk": "@@ -75,6 +75,9 @@ readonly INSTRUMENTATIONS=(\n   \"couchbase:couchbase-3.1:javaagent:testExperimental\"\n   \"couchbase:couchbase-3.2:javaagent:test\"\n   \"couchbase:couchbase-3.2:javaagent:testExperimental\"\n+  \"couchbase:couchbase-3.2:javaagent:testExceptionSignalLogs\"\n+  \"couchbase:couchbase-3.2:javaagent:testExceptionSignalLogsDup\"\n+  \"couchbase:couchbase-3.2:javaagent:version343Test\"",
+      "id": "PRRT_kwDODJKVX86tEtGm",
+      "opened": "2026-10-16T05:19:35Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [],
+      "reviewed": "894508ccaae8179194ece824fac527c9456b27ef",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4291175055"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should this be tested here at all or should this only be tested in the api module?",
+      "created": "2026-10-16T05:20:09Z",
+      "hunk": "@@ -95,8 +95,28 @@ tasks {\n     )\n   }\n \n+  val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {\n+    testClassesDirs = sourceSets[\"version343Test\"].output.classesDirs\n+    classpath = sourceSets[\"version343Test\"].runtimeClasspath\n+    filter {\n+      includeTestsMatching(\"*CouchbaseExceptionSignalTest\")\n+    }\n+    jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv.exception.signal.preview=logs\")\n+  }\n+\n+  val testExceptionSignalLogsDup = register<Test>(\"testExceptionSignalLogsDup\") {",
+      "id": "PRRT_kwDODJKVX86tEti3",
+      "opened": "2026-10-16T05:20:09Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T18:55:41Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621/commits/6a20032060022e5b18c3c10aa7d2fb29d667ad62",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4304028663"
+        }
+      ],
+      "reviewed": "894508ccaae8179194ece824fac527c9456b27ef",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4291178092"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Not sure why it uses 343 as the base version. Would have expected it to add the test under the main test suite. Guess this is fine too.",
+      "created": "2026-10-16T05:25:10Z",
+      "hunk": "@@ -95,8 +95,28 @@ tasks {\n     )\n   }\n \n+  val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {\n+    testClassesDirs = sourceSets[\"version343Test\"].output.classesDirs",
+      "id": "PRRT_kwDODJKVX86tExxe",
+      "opened": "2026-10-16T05:25:10Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "894508ccaae8179194ece824fac527c9456b27ef",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4291205304"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] @copilot Please align this PR with the exception-signal testing policy documented afterward in #20648 ([guidance](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f4821236ac4adbbfe49944625485a6fa4c2c69c7/.github/instructions/java-tests.instructions.md#L28-L32)).\n\nRemove the `testExceptionSignalLogsDup` task from the Couchbase 3.2 javaagent module, its `check` dependency, and its registration in `.github/scripts/instrumentations.sh`. Retain default integration coverage and the focused `testExceptionSignalLogs` task, including its `check` and metadata wiring.\n\nKeep the full default / `logs` / `logs/dup` matrix in `couchbase-common-3.0/javaagent-unit-tests`. Couchbase has custom exception-emission logic, so its shared recorder needs that coverage rather than relying only on the API module tests. No `logs/dup` integration or metadata profile is needed.",
+      "created": "2026-10-17T18:41:01Z",
+      "hunk": "@@ -95,8 +95,28 @@ tasks {\n     )\n   }\n \n+  val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {\n+    testClassesDirs = sourceSets[\"version343Test\"].output.classesDirs\n+    classpath = sourceSets[\"version343Test\"].runtimeClasspath\n+    filter {\n+      includeTestsMatching(\"*CouchbaseExceptionSignalTest\")\n+    }\n+    jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv.exception.signal.preview=logs\")\n+  }\n+\n+  val testExceptionSignalLogsDup = register<Test>(\"testExceptionSignalLogsDup\") {",
+      "id": "PRRT_kwDODJKVX86tjMW0",
+      "opened": "2026-10-17T18:41:01Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T18:50:56Z",
+          "body": "Removed the `logs/dup` Couchbase 3.2 integration task and metadata registration, retaining the default and `logs` integration coverage and the full shared unit-test matrix. Commit: `6a200320`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4304011513"
+        }
+      ],
+      "reviewed": "04a20f544c3d1c76080853c68f2e274693c0b88a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4303977093"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] @copilot Please use latest-dependency runs for this exception-signal integration coverage instead of tying it to SDK 3.4.3. Follow the existing `assumeTrue(testLatestDeps())` pattern in `CouchbaseClient32Test.testEmitsProtostellarTarget`; the baseline SDK 3.2.0 lacks the exception-recording callback.\n\n- Move `CouchbaseExceptionSignalTest` into `src/test` and guard the test with `assumeTrue(testLatestDeps())`, using the shared `TestLatestDeps` accessor before allocating resources.\n- Change `testExceptionSignalLogs` to use the normal test output and runtime classpath. Keep its focused class filter, exception-signal property, `metadataConfig`, and `check` dependency, so latest-dependency CI exercises both default and `logs` behavior.\n- In `.github/scripts/instrumentations.sh`, remove this PR's `version343Test` registration, move `testExceptionSignalLogs` to `TEST_LATEST_DEPS_INSTRUMENTATIONS`, and add the Couchbase 3.2 `test` task there too. Retain the existing baseline `test` and `testExperimental` registrations in the standard list.\n\nLeave the existing Protostellar 3.4.3/3.4.4 suites unchanged; do not add a 3.3.4 suite. Preserve the full default / `logs` / `logs/dup` shared unit-test matrix and do not restore a `logs/dup` integration variant. Verify the moved test's default and `logs` assertions against the latest SDK.",
+      "created": "2026-10-17T19:16:20Z",
+      "hunk": "@@ -95,8 +95,18 @@ tasks {\n     )\n   }\n \n+  val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {\n+    testClassesDirs = sourceSets[\"version343Test\"].output.classesDirs",
+      "id": "PRRT_kwDODJKVX86tjhFc",
+      "opened": "2026-10-17T19:16:19Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T19:27:50Z",
+          "body": "Moved the exception-signal test into `src/test`, gated it on `testLatestDeps()`, and wired both `test` and the focused `logs` task into latest-dependency collection. The baseline run confirms the test is skipped. Latest-SDK execution is blocked here by unavailable toolchain downloads and unrelated Gradle configuration; commit `57a5827b`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4304154693"
+        }
+      ],
+      "reviewed": "6a20032060022e5b18c3c10aa7d2fb29d667ad62",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4304114825"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Removing `version343Test` leaves `CouchbaseProtostellar343Test` in an unregistered source directory, so `check` silently loses installed-agent coverage of the supported 3.4.3 legacy constructor path. The retained 3.4.4 suite uses different constructors and does not replace this coverage. Restore the 3.4.3 suite registration so the existing compatibility test continues to run.",
+      "created": "2026-10-17T19:29:38Z",
+      "hunk": "@@ -53,17 +53,6 @@ testing {\n       }\n     }\n \n-    register<JvmTestSuite>(\"version343Test\") {\n-      sources {\n-        java {\n-          setSrcDirs(listOf(\"src/version343Test/java\"))\n-        }\n-      }\n-      dependencies {\n-        implementation(\"com.couchbase.client:java-client:3.4.3\")\n-      }\n-    }\n-\n     register<JvmTestSuite>(\"version344Test\") {",
+      "id": "PRRT_kwDODJKVX86tjn1K",
+      "opened": "2026-10-17T19:29:39Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T21:02:41Z",
+          "body": "Fixed in f189bf02cc828701927ac47b94a664f8155786ee. Restored `version343Test` with its original source directory and pinned 3.4.3 dependency, so `CouchbaseProtostellar343Test` runs through `check` again. Added a comment explaining that 3.4.3 covers the legacy Core-based constructor, distinct from newer SDK constructor paths. The 3.4.4 suite and latest-dependency exception-signal coverage remain unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4304492553"
+        }
+      ],
+      "reviewed": "57a5827b236f16b4994c0b4c539b986571dbcca9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4304160570"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Restore the existing `version343Test` Gradle suite in `instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts`, including its `src/version343Test/java` source directory and pinned `com.couchbase.client:java-client:3.4.3` dependency. This addresses https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4304160570. The previous assignment was to remove its metadata collection registration, not the existing compatibility suite.\n\nAdd a short code comment beside the suite explaining the specific version, for example: `SDK 3.4.3 covers ProtostellarRequest(Core, ...); newer SDKs use different constructors.` The existing `CouchbaseProtostellar343Test` exercises the legacy Core-based request constructor, while 3.4.4 uses CoreProtostellar and latest uses a newer signature. SDK 3.3.4 has the exception callback but predates this Protostellar implementation, so neither 3.3.4 nor latest replaces this compatibility test. Describe the supported constructor coverage, not the history of this PR.\n\nKeep the existing 3.4.4 compatibility suite unchanged. Preserve the latest-dependency approach for `CouchbaseExceptionSignalTest`: keep it in `src/test` with its `testLatestDeps()` guard, retain the focused `logs` task and both latest-dependency metadata registrations, and do not re-add `version343Test` to metadata collection or introduce a 3.3.4 suite. Keep the full default / `logs` / `logs/dup` shared unit-test matrix and no `logs/dup` integration task.\n\nVerify that `CouchbaseProtostellar343Test` is compiled and executed by the restored suite and remains included in `check` through `dependsOn(testing.suites)`.",
+      "created": "2026-10-17T20:49:29Z",
+      "hunk": "@@ -53,17 +53,6 @@ testing {\n       }\n     }\n \n-    register<JvmTestSuite>(\"version343Test\") {",
+      "id": "PRRT_kwDODJKVX86tkSdt",
+      "opened": "2026-10-17T20:49:29Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T20:58:57Z",
+          "body": "Restored `version343Test` with `src/version343Test/java` and the pinned 3.4.3 SDK dependency. The focused suite compiled and ran `CouchbaseProtostellar343Test` successfully. Commit: `f189bf02`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4304480040"
+        }
+      ],
+      "reviewed": "57a5827b236f16b4994c0b4c539b986571dbcca9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4304446011"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Replace only the new standalone manual Test-execution blocks identified below with the suite-owned execution convention introduced by merged PR #20625. The user explicitly chose to limit this follow-up to newly introduced standalone blocks, not partially migrate modules with existing manual-task mixes or restructure custom suites.\n\nUse `testing { suites { named<JvmTestSuite>(\"test\") { executions { ... } } } }`, with one `executions` block per suite. Register each existing variant using its suffix, such as `register(\"ExceptionSignalLogs\")`, preserving the generated task name `testExceptionSignalLogs`. The helper owns the test output, runtime classpath, and check dependencies, so remove the replaced raw `register<Test>` declarations, their redundant source/classpath assignments, and their redundant explicit check wiring. Preserve all filters and variant-only settings on the same variants; do not put filtered selectors into common `configureEach` or narrow the ordinary default test execution. Do not change the helper API or capitalize/decapitalize suffixes differently.\n\nThese PR branches currently predate #20625 and do not contain the execution helper. Make the merged convention available by merging the current PR base branch into this PR's existing head branch, preserving the pre-update PR head on the first-parent chain. Do not rebase, force-push, reverse the merge direction, copy the shared helper into this PR, or change another PR's branch. Preserve the existing PR base and draft/ready state.\n\nIn `instrumentation/couchbase/couchbase-common-3.0/javaagent-unit-tests/build.gradle.kts`, replace the entire newly added `tasks { ... }` block with default-suite executions. Preserve `testExceptionSignalLogs` and `testExceptionSignalLogsDup` as `register(\"ExceptionSignalLogs\")` and `register(\"ExceptionSignalLogsDup\")`, using the same JVM exception-signal settings of `logs` and `logs/dup`. Keep both variants running the full existing unit-test sources and preserve the default/logs/logs-dup matrix.\n\nThese shared unit-test variants currently have no `metadataConfig` label and are not metadata-collection profiles. Keep their JVM settings as ordinary `jvmArgs` or equivalent system properties; do not introduce `telemetryConfig`, metadata labels, or collection registrations for them.\n\nLeave `instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts` and its existing manual-task mix unchanged. In particular, retain its latest-dependency exception-signal coverage, version343Test/version344Test compatibility suites, and all existing integration and collection wiring. Do not restore a logs-dup integration task.\n\nKeep this a behavior-preserving Gradle refactor. Preserve dependencies, Java-version constraints, normal test coverage, telemetry-profile labels or deliberate lack of labels, and metadata collection registrations. Do not change production code or test assertions, add or remove execution variants, or migrate unrelated files. Run repository formatting and the focused checks that cover the migrated variants. Update this existing PR rather than opening a new one. Acceptance: only the listed new standalone execution blocks use the new convention, their current execution matrix and selection are unchanged, and every migrated task is still included in check through the helper.",
+      "created": "2026-10-18T00:54:23Z",
+      "hunk": "@@ -8,3 +8,21 @@ dependencies {\n   testImplementation(project(\":javaagent-extension-api\"))\n   testImplementation(\"io.opentelemetry:opentelemetry-sdk-testing\")\n }\n+\n+tasks {\n+  val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {",
+      "id": "PRRT_kwDODJKVX86tmDKo",
+      "opened": "2026-10-18T00:54:23Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.0/javaagent-unit-tests/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-18T01:05:22Z",
+          "body": "Migrated the shared unit-test variants to suite-owned executions in `97e4934`; the default, `logs`, and `logs/dup` tasks pass, and the `check` dry run includes both variants.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4305214504"
+        }
+      ],
+      "reviewed": "f189bf02cc828701927ac47b94a664f8155786ee",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20621#discussion_r4305188356"
+    }
+  ]
+}

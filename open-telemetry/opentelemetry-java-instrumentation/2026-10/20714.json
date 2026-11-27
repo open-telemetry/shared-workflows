@@ -1,0 +1,139 @@
+{
+  "head": "07e5eb5537b1f1fe1981edc0f0deb4cdaa9a7f5c",
+  "merge": "de2046c26a6fe001ec7b1dcc1f5ab883bf8ae73f",
+  "merged": "2026-10-20T06:33:41Z",
+  "missing_roots": 0,
+  "number": 20714,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Reduce this PR's added testing to the existing AwsLambdaSqsMessageHandlerTest.processSpans() mixed-batch integration test. Preserve the production fix and all pre-existing tests. This is a user-directed reduction of coverage, not a request to expand it.\n\nThe user's goal is: \"All I really want is basic integration test coverage for that shows these error types now being captured where they weren't before\". This PR concerns Lambda SQS messaging telemetry, not database spans.\n\nKeep the updated processSpans() assertions: the message whose handler returns false has status ERROR and error.type=\"_OTHER\" on its process span and duration metric, while successful messages and the enclosing invocation remain successful. Keep the existing mixed-batch response assertions and counting semantics. That one public handleRequest invocation already exercises the production handler and the common instrumenter factory together; no separate helper or suppression matrix is needed.\n\nRevert this PR's parameterization and added assertions in keyedEventSuppressesSelectedMessage to its original pre-PR single-case test. Do not delete that original test. Remove the newly introduced parameterized-test imports if they become unused. Keep the rest of the existing test suite unchanged.\n\nKeep the production changes in TracingSqsMessageHandler and AwsLambdaSqsInstrumenterFactory unchanged. Keep this existing PR draft against main. Follow repository instructions, format changed files, and run the narrow relevant existing tests. Do not add unrelated cleanup, configuration, production changes, new PR work, or review requests.",
+      "created": "2026-10-19T04:11:57Z",
+      "hunk": "@@ -235,11 +288,12 @@ void missingEventSource() {\n                 span -> span.hasName(\"process queue1\")));\n   }\n \n-  @Test\n-  void keyedEventSuppressesSelectedMessage() {\n+  @ParameterizedTest\n+  @ValueSource(strings = {\"message1\", \"message2\"})\n+  void keyedEventSuppressesSelectedMessage(String messageId) {",
+      "id": "PRRT_kwDODJKVX86tyHML",
+      "opened": "2026-10-19T04:11:56Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T04:16:44Z",
+          "body": "Restored the original single-case suppression test and kept the mixed-batch integration assertions unchanged. Focused test passed. Commit: `0dda0975`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20714#discussion_r4310279390"
+        }
+      ],
+      "reviewed": "137e1a791e5dc0469f3931b0a18a437399489305",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20714#discussion_r4310258147"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly with these two user-requested changes. Do not create a new result class or request a separate follow-up PR.\r\n\r\nUse Boolean, rather than Void, as the response type for per-message SQS processing. Pass the handleMessage success/failure outcome directly to messageInstrumenter.end. Update the relevant instrumenter factory, response-dependent messaging getters/extractors, and customization API consistently. Keep the event/batch instrumenter response type Void. Handle any published protected-constructor API compatibility according to repository policy; do not use raw types or unsafe casts to feed Boolean values into existing Void extractors.\r\n\r\nUse a SpanStatusExtractor to derive the per-message status from the response and exception, and an AttributesExtractor to record error.type=\"_OTHER\" for a false response with no exception. Remove the MESSAGE_PROCESSING_SUCCESSFUL context key, withMessageProcessingOutcome helper, manual span-status mutation, and the comment explaining the Void/context workaround. Preserve the existing exception classification and recording, failed-item response contents, consumed-message counts, and successful enclosing invocation behavior. A successful message remains UNSET; a false response produces ERROR and error.type=\"_OTHER\" on its process span and duration metric.\r\n\r\nIn AwsLambdaSqsMessageHandlerTest, replace the newly added hasStatusSatisfying(status -> status.hasCode(StatusCode.UNSET)) assertions with .hasStatus(StatusData.unset()). Use the corresponding direct .hasStatus(StatusData.error()) for the newly added ERROR assertion, with the appropriate StatusData import and removal of unused imports.\r\n\r\nRelevant files are TracingSqsMessageHandler in instrumentation/aws-lambda/aws-lambda-events-3.11/library, AwsLambdaSqsInstrumenterFactory and the SQS messaging getters in instrumentation/aws-lambda/aws-lambda-events-common-2.2/library, and AwsLambdaSqsMessageHandlerTest. Keep the existing mixed-batch processSpans integration coverage and pre-existing tests; do not add a helper-test or suppression matrix or unrelated cleanup. Follow repository API/deprecation documentation requirements for any supported API change, apply formatting, and run the narrow relevant existing tests. Preserve this PR's draft state and base branch. Do not post replies to human comments, resolve review threads, or request a review.",
+      "created": "2026-10-19T19:05:02Z",
+      "hunk": "@@ -83,13 +83,18 @@ protected final SQSBatchResponse handleEvent(SQSEvent event, Context context) {\n         io.opentelemetry.context.Context otelContext =\n             messageInstrumenter.start(parentContext, message);\n         Throwable error = null;\n+        boolean successful = true;\n         try (Scope ignored = otelContext.makeCurrent()) {\n-          handleMessage(message, context, batchItemFailures);\n+          successful = handleMessage(message, context, batchItemFailures);",
+      "id": "PRRT_kwDODJKVX86uD_QB",
+      "opened": "2026-10-19T19:05:02Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/TracingSqsMessageHandler.java",
+      "replies": [],
+      "reviewed": "0dda097528ba0ad88f9bb938ecb5fafef354b18f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20714#discussion_r4317709413"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply this user-approved test-only simplification directly to this existing Lambda SQS PR. Change only the metric assertions inside AwsLambdaSqsMessageHandlerTest.processSpans(), in instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java. Do not create a separate follow-up PR.\r\n\r\nFor messaging.process.duration, retain the metric-name selection, histogram type, and unit \"s\". Assert exactly the expected point attribute key sets using point.hasAttributesSatisfying(attributes -> assertThat(attributes.asMap()).containsOnlyKeys(...)). One point must contain only MESSAGING_OPERATION_NAME, MESSAGING_SYSTEM, and MESSAGING_DESTINATION_NAME. The other must contain those three keys plus ERROR_TYPE. Do not repeat attribute values, including error.type=\"_OTHER\", on the metric.\r\n\r\nFor messaging.client.consumed.messages, retain the metric-name selection and long-sum type, assert unit \"{message}\", and assert one point containing only MESSAGING_OPERATION_NAME, MESSAGING_SYSTEM, and MESSAGING_DESTINATION_NAME using the same exact-key assertion style.\r\n\r\nRemove .hasCount(...), .hasSumGreaterThan(...), and .hasValue(2) from these processSpans metric assertions. This is an explicit user-directed reduction of assertions, superseding earlier requests to retain metric value and numeric checks here. The purpose is metric identity and exact attribute-key coverage, with separate key sets for successful and failed points, not aggregation or duplicate-recording coverage.\r\n\r\nKeep all span assertions unchanged, including error.type=\"_OTHER\" on the failed span and the direct StatusData.unset()/StatusData.error() assertions. Keep the response assertions unchanged. Do not change production code, the Boolean-response design, shared assertion helpers, other tests, documentation, the changelog, or other PRs or issues. Do not add new helpers, tests, or coverage matrices. Follow repository formatting instructions and run the narrow relevant existing test. Preserve this PR's draft state and base branch. Do not post replies to human comments, resolve threads, or request a review.",
+      "created": "2026-10-19T19:39:24Z",
+      "hunk": "@@ -162,7 +169,51 @@ void processSpans() {\n                                     \"53995c3f42cd8ad9\",\n                                     TraceFlags.getSampled(),\n                                     TraceState.getDefault())))));\n-    assertMetrics(testing, TracingSqsEventHandler.INSTRUMENTATION_NAME, \"queue1\", 3, 2, null);\n+    testing.waitAndAssertMetrics(\n+        TracingSqsEventHandler.INSTRUMENTATION_NAME,\n+        \"messaging.process.duration\",\n+        metrics ->\n+            metrics.satisfiesExactly(\n+                metric ->\n+                    assertThat(metric)\n+                        .hasUnit(\"s\")\n+                        .hasHistogramSatisfying(\n+                            histogram ->\n+                                histogram.hasPointsSatisfying(\n+                                    point ->\n+                                        point\n+                                            .hasCount(2)",
+      "id": "PRRT_kwDODJKVX86uEwJS",
+      "opened": "2026-10-19T19:39:24Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java",
+      "replies": [],
+      "reviewed": "ae24cb1ffdcaa707172e29e6f527d4a7f002a8c2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20714#discussion_r4318036016"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] These assertions check only attribute keys, so an incorrect metric `error.type` value or incorrect success/failure observation counts would still pass. The removed `assertMetrics` call checked values and counts. Preserve those checks when splitting the histogram: assert exact attributes, including `error.type=\"_OTHER\"` on the failed point, with 1 failed observation and 2 non-error observations (batch plus successful message).",
+      "created": "2026-10-19T20:22:56Z",
+      "hunk": "@@ -162,7 +169,52 @@ void processSpans() {\n                                     \"53995c3f42cd8ad9\",\n                                     TraceFlags.getSampled(),\n                                     TraceState.getDefault())))));\n-    assertMetrics(testing, TracingSqsEventHandler.INSTRUMENTATION_NAME, \"queue1\", 3, 2, null);\n+    testing.waitAndAssertMetrics(\n+        TracingSqsEventHandler.INSTRUMENTATION_NAME,\n+        \"messaging.process.duration\",\n+        metrics ->\n+            metrics.satisfiesExactly(\n+                metric ->\n+                    assertThat(metric)\n+                        .hasUnit(\"s\")\n+                        .hasHistogramSatisfying(\n+                            histogram ->\n+                                histogram.hasPointsSatisfying(\n+                                    point ->\n+                                        point.hasAttributesSatisfying(\n+                                            attributes ->\n+                                                assertThat(attributes.asMap())\n+                                                    .containsOnlyKeys(\n+                                                        MESSAGING_OPERATION_NAME,\n+                                                        MESSAGING_SYSTEM,\n+                                                        MESSAGING_DESTINATION_NAME)),\n+                                    point ->\n+                                        point.hasAttributesSatisfying(\n+                                            attributes ->\n+                                                assertThat(attributes.asMap())\n+                                                    .containsOnlyKeys(\n+                                                        MESSAGING_OPERATION_NAME,\n+                                                        MESSAGING_SYSTEM,\n+                                                        MESSAGING_DESTINATION_NAME,\n+                                                        ERROR_TYPE))))));",
+      "id": "PRRT_kwDODJKVX86uFw0A",
+      "opened": "2026-10-19T20:22:56Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T20:24:58Z",
+          "body": "No, see https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20738",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20714#discussion_r4318488388"
+        }
+      ],
+      "reviewed": "bbf1e35d426b106f2ec1fd4ab5a420c503d7dbed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20714#discussion_r4318468844"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Replacing `assertMetrics` also drops the consumed-message counter's value assertion. This now passes even if the failed message is excluded from the count, although both messages were delivered. Preserve the expected value of 2 and exact attribute values for this partial-batch case.",
+      "created": "2026-10-19T20:22:56Z",
+      "hunk": "@@ -162,7 +169,52 @@ void processSpans() {\n                                     \"53995c3f42cd8ad9\",\n                                     TraceFlags.getSampled(),\n                                     TraceState.getDefault())))));\n-    assertMetrics(testing, TracingSqsEventHandler.INSTRUMENTATION_NAME, \"queue1\", 3, 2, null);\n+    testing.waitAndAssertMetrics(\n+        TracingSqsEventHandler.INSTRUMENTATION_NAME,\n+        \"messaging.process.duration\",\n+        metrics ->\n+            metrics.satisfiesExactly(\n+                metric ->\n+                    assertThat(metric)\n+                        .hasUnit(\"s\")\n+                        .hasHistogramSatisfying(\n+                            histogram ->\n+                                histogram.hasPointsSatisfying(\n+                                    point ->\n+                                        point.hasAttributesSatisfying(\n+                                            attributes ->\n+                                                assertThat(attributes.asMap())\n+                                                    .containsOnlyKeys(\n+                                                        MESSAGING_OPERATION_NAME,\n+                                                        MESSAGING_SYSTEM,\n+                                                        MESSAGING_DESTINATION_NAME)),\n+                                    point ->\n+                                        point.hasAttributesSatisfying(\n+                                            attributes ->\n+                                                assertThat(attributes.asMap())\n+                                                    .containsOnlyKeys(\n+                                                        MESSAGING_OPERATION_NAME,\n+                                                        MESSAGING_SYSTEM,\n+                                                        MESSAGING_DESTINATION_NAME,\n+                                                        ERROR_TYPE))))));\n+    testing.waitAndAssertMetrics(\n+        TracingSqsEventHandler.INSTRUMENTATION_NAME,\n+        \"messaging.client.consumed.messages\",\n+        metrics ->\n+            metrics.satisfiesExactly(\n+                metric ->\n+                    assertThat(metric)\n+                        .hasLongSumSatisfying(\n+                            sum ->\n+                                sum.hasPointsSatisfying(\n+                                    point ->\n+                                        point.hasAttributesSatisfying(\n+                                            attributes ->\n+                                                assertThat(attributes.asMap())\n+                                                    .containsOnlyKeys(\n+                                                        MESSAGING_OPERATION_NAME,\n+                                                        MESSAGING_SYSTEM,\n+                                                        MESSAGING_DESTINATION_NAME))))));",
+      "id": "PRRT_kwDODJKVX86uFw0w",
+      "opened": "2026-10-19T20:22:56Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T20:25:16Z",
+          "body": "See https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20738",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20714#discussion_r4318491165"
+        }
+      ],
+      "reviewed": "bbf1e35d426b106f2ec1fd4ab5a420c503d7dbed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20714#discussion_r4318468917"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  `Instrumenter<SQSMessage, Boolean>`.\n```",
+      "created": "2026-10-19T20:37:04Z",
+      "hunk": "@@ -285,6 +285,9 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- The `TracingSqsMessageHandler` customization constructor now accepts an\n+  `Instrumenter<SQSMessage, Boolean>`; update custom message instrumenters to use the\n+  processing result as their response.",
+      "id": "PRRT_kwDODJKVX86uGE01",
+      "opened": "2026-10-19T20:37:03Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "bbf1e35d426b106f2ec1fd4ab5a420c503d7dbed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20714#discussion_r4318603441"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing Lambda SQS PR directly to preserve the pre-existing shared-helper metric assertion pattern when extending `AwsLambdaSqsMessageHandlerTest.processSpans()`. The user now wants the new key-only metric guidance applied to new tests only, not retroactively to existing tests. This intentionally supersedes the earlier request on this PR to use key-only assertions, remove numeric/value checks, and leave shared assertion helpers untouched.\n\nThe original test called `AwsLambdaSqsMetricsAssertions.assertMetrics(testing, TracingSqsEventHandler.INSTRUMENTATION_NAME, \"queue1\", 3, 2, null)`. The current PR replaces that call with large inline key-only assertion blocks. Restore the helper-based pattern. Extend `instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/AwsLambdaSqsMetricsAssertions.java` only as needed to express the split processing-duration points for the existing mixed-batch test in `instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java`. Keep existing helper callers working without unrelated rewrites. The required expectations are 2 non-error processing-duration observations with no ERROR_TYPE, 1 failed processing-duration observation with ERROR_TYPE=\"_OTHER\", and consumed-message counter value 2 with no ERROR_TYPE. Use the helper's existing exact attribute-value assertion style, including operation \"process\", system AWS_SQS, and destination \"queue1\". Preserve its existing count, positive-duration, unit/description, and exact emitted-metric inventory checks while accommodating the two duration points. The goal is a focused extension of existing assertions, not a migration to key-only assertions or a new test matrix.\n\nPreserve all span and mixed-batch response assertions, the Boolean-response design, production behavior, exception handling, and all other tests. Do not reintroduce the previously removed suppression/helper-test matrix, change production code or documentation, touch other PRs, or merge/rebase branches. Update this PR's existing head branch, not a separate follow-up PR, and preserve its live base and draft/ready state. Follow repository formatting instructions and run the narrow relevant existing tests. Acceptance: `processSpans()` again delegates metric assertions through the existing shared helper pattern; the required success/error point attributes and counts and consumed-message value are asserted; no existing coverage is dropped; unnecessary inline key-only churn is removed. Do not reply to human comments, resolve threads, or request a review.",
+      "created": "2026-10-19T23:47:44Z",
+      "hunk": "@@ -162,7 +169,52 @@ void processSpans() {\n                                     \"53995c3f42cd8ad9\",\n                                     TraceFlags.getSampled(),\n                                     TraceState.getDefault())))));\n-    assertMetrics(testing, TracingSqsEventHandler.INSTRUMENTATION_NAME, \"queue1\", 3, 2, null);\n+    testing.waitAndAssertMetrics(",
+      "id": "PRRT_kwDODJKVX86uJYdG",
+      "opened": "2026-10-19T23:47:44Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/v3_11/AwsLambdaSqsMessageHandlerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T23:55:36Z",
+          "body": "Restored the shared metric assertion pattern and extended it for the mixed success/failure duration points. The focused test passes. Commit: `07e5eb55`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20714#discussion_r4320070061"
+        }
+      ],
+      "reviewed": "72dc1e98360f7f94ce3957df58401092ea22f578",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20714#discussion_r4320024755"
+    }
+  ]
+}

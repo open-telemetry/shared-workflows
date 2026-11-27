@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "19703982d0f1930264df9f2edb7edd555aa38099d4c2525b5b526f7f5d935026",
+  "input_digest": "4de2e5c8ae8f8cd39cee12ddbd0def672b5a5ef38b249436378e0d061fd3df8e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/83b39d2a97df68b1d143e295c537b28482c4697a/instrumentation/ratpack/ratpack-1.7/library/src/main/java/io/opentelemetry/instrumentation/ratpack/v1_7/internal/RatpackHttpProtocolVersion.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/afbbe587251f192e0a38733cee1261f2b14d0f9f/instrumentation/ratpack/ratpack-1.7/library/src/main/java/io/opentelemetry/instrumentation/ratpack/v1_7/internal/RatpackHttpProtocolVersion.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/afbbe587251f192e0a38733cee1261f2b14d0f9f/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/HttpProtocolUtil.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c06Gy",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b85d627133e26b1c7d553dc179cd228497e2736f/instrumentation/ratpack/ratpack-1.7/library/src/main/java/io/opentelemetry/instrumentation/ratpack/v1_7/internal/RatpackHttpProtocolVersion.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/afbbe587251f192e0a38733cee1261f2b14d0f9f/instrumentation/ratpack/ratpack-1.7/library/src/main/java/io/opentelemetry/instrumentation/ratpack/v1_7/internal/RatpackHttpProtocolVersion.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b85d627133e26b1c7d553dc179cd228497e2736f/instrumentation/ratpack/ratpack-1.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/ratpack/v1_7/RatpackProtocolVersionAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/afbbe587251f192e0a38733cee1261f2b14d0f9f/instrumentation/ratpack/ratpack-1.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/ratpack/v1_7/RatpackProtocolVersionAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86c2cbF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

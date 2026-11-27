@@ -1,0 +1,25 @@
+{
+  "head": "9dd02412c36efc051811c74c7cba3a8adb11042c",
+  "merge": "9c6dba02e52409387227ad5ea2849bfe1207aaf7",
+  "merged": "2026-03-27T15:25:49Z",
+  "missing_roots": 0,
+  "number": 17130,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // contains the class that we check for to disable the instrumentation on older versions\n```",
+      "created": "2026-03-27T14:54:16Z",
+      "hunk": "@@ -8,9 +8,12 @@ muzzle {\n     group.set(\"org.springframework.security\")\n     module.set(\"spring-security-config\")\n     versions.set(\"[6.0.0,]\")\n+    assertInverse.set(true)\n \n     extraDependency(\"jakarta.servlet:jakarta.servlet-api:6.0.0\")\n-    extraDependency(\"org.springframework.security:spring-security-web:6.0.0\")\n+    // deliberately not using 6.0.0 because it would also pull in spring-security-core 6.0.0 which\n+    // contains the class that we check for to disable the instrumetnation on older versions",
+      "id": "PRRT_kwDODJKVX853TtSd",
+      "opened": "2026-03-27T14:54:21Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e45a3e908523df03bc777f500ae287e0a19f6cfe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17130#discussion_r3001477265"
+    }
+  ]
+}

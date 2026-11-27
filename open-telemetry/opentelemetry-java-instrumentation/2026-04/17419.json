@@ -1,0 +1,40 @@
+{
+  "head": "d8a10fc607657b2cb792d32f9f0d260aa5fad75a",
+  "merge": "6d8ac90c0f9f00a68ec1d00fd73d65a6a316a89f",
+  "merged": "2026-04-06T13:21:16Z",
+  "missing_roots": 0,
+  "number": 17419,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "there's a small variety of existing names, this is the most dominant, and matches instrumenter start/end which those methods typically delegate to",
+      "created": "2026-04-01T20:43:05Z",
+      "hunk": "@@ -172,6 +172,95 @@ Because `none()` matches no methods, ByteBuddy never inlines this advice into an\n `suppress = Throwable.class` on such a method is entirely meaningless — **do not add it**,\n and **do not flag its absence** during review.\n \n+## AdviceScope Patterns\n+\n+`AdviceScope` usage in this repository falls into **two justified state patterns**.\n+Review new code against these patterns instead of treating every existing variation as equally\n+canonical.\n+\n+### Pattern 1 — Nullable `AdviceScope` for ordinary advice\n+\n+Use this by default when enter advice may decide not to start instrumentation.\n+\n+- `@Advice.OnMethodEnter` returns `@Nullable AdviceScope`\n+- The factory method returns `null` when preconditions fail or instrumentation should not start\n+- If an `AdviceScope` is created, its `Context` and `Scope` fields should be non-null\n+- The `end()` method should close `scope` unconditionally; the null check belongs in exit advice,\n+  not inside `AdviceScope.end()`\n+\n+In this document, use `start()` / `end()` as the canonical `AdviceScope` naming.",
+      "id": "PRRT_kwDODJKVX854WEJL",
+      "opened": "2026-04-01T20:43:05Z",
+      "path": ".github/agents/knowledge/javaagent-advice-patterns.md",
+      "replies": [],
+      "reviewed": "69e84b546c24e2817f6d1e8c78f838e50ed7eade",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17419#discussion_r3024543228"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "the main purpose of this change is to not create AdviceScope at all when not needed (instead of using `@Nullable` scope inside of the AdviceScope as a marker",
+      "created": "2026-04-01T22:57:09Z",
+      "hunk": "@@ -60,19 +60,26 @@ public static class AdviceScope {\n       private final Context context;\n       private final Scope scope;\n \n-      public AdviceScope(\n+      private AdviceScope(Jaxrs2HandlerData handlerData, Context context) {\n+        this.handlerData = handlerData;\n+        this.context = context;\n+        scope = context.makeCurrent();\n+      }\n+\n+      @Nullable\n+      public static AdviceScope start(\n           Class<?> resourceClass, Method method, AbstractRequestContextImpl requestContext) {\n-        handlerData = new Jaxrs2HandlerData(resourceClass, method);\n-        context =\n+        Jaxrs2HandlerData handlerData = new Jaxrs2HandlerData(resourceClass, method);\n+        Context context =\n             Jaxrs2RequestContextHelper.createOrUpdateAbortSpan(\n                 instrumenter(), (ContainerRequestContext) requestContext, handlerData);\n-        scope = context != null ? context.makeCurrent() : null;\n+        if (context == null) {\n+          return null;\n+        }\n+        return new AdviceScope(handlerData, context);\n       }",
+      "id": "PRRT_kwDODJKVX854Xiak",
+      "opened": "2026-04-01T22:57:09Z",
+      "path": "instrumentation/jaxrs/jaxrs-2.0/jaxrs-2.0-cxf-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxrs/v2_0/CxfRequestContextInstrumentation.java",
+      "replies": [],
+      "reviewed": "af073d89319a91a747677c989a4420f6d1db95f2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17419#discussion_r3025058277"
+    }
+  ]
+}

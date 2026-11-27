@@ -1,0 +1,25 @@
+{
+  "head": "18ba6f73ef90aa3400a861e47ec3306084569695",
+  "merge": "6eadcc2b2c1442bab65332a79165219346d1029a",
+  "merged": "2026-10-05T06:24:45Z",
+  "missing_roots": 0,
+  "number": 20378,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-04T00:10:34Z",
+      "hunk": "@@ -38,7 +38,21 @@ OpenTelemetry openTelemetry = ...\n \n embeddedServer(Netty, 8080) {\n   install(KtorServerTelemetry) {\n-    setOpenTelemetry(openTelemetry)\n+    openTelemetry(openTelemetry)\n   }\n }\n ```\n+\n+Configure header capture with `requestHeaders` and `responseHeaders`:\n+\n+```kotlin\n+install(KtorServerTelemetry) {\n+  openTelemetry(openTelemetry)\n+  requestHeaders(IncludeExclude.builder().setIncluded(\"x-request-id\").build())\n+  responseHeaders(IncludeExclude.builder().setIncluded(\"x-response-id\").build())\n+}\n+```\n+\n+Other configuration methods are `knownMethods`, `attributesExtractor`, `spanNameExtractor`,\n+`spanStatusExtractor`, and `spanKindExtractor`. Extractor customizers receive the default extractor\n+and return its replacement.",
+      "id": "PRRT_kwDODJKVX86otPxV",
+      "opened": "2026-10-04T00:10:34Z",
+      "path": "instrumentation/ktor/ktor-1.0/library/README.md",
+      "replies": [],
+      "reviewed": "4d216db95bd11babc5f73506e2ee473593c1c782",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20378#discussion_r4175490321"
+    }
+  ]
+}

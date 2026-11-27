@@ -1,0 +1,70 @@
+{
+  "head": "07884e6cb8f5ba03af25d1f0fd2765602b069071",
+  "merge": "5f5ae69e52464c56eea4389fb793c2690caaea78",
+  "merged": "2026-08-27T01:49:08Z",
+  "missing_roots": 0,
+  "number": 469,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The stated reason is inaccurate. Aggregating child-call breakdowns into one agent value loses the model and call context needed to interpret them, but it does not inherently count tokens more than once. Double counting occurs only if a consumer sums parent and child spans, and that applies equally to the total token attributes retained here. Describe the loss of context instead.",
+      "created": "2026-08-23T19:28:51Z",
+      "hunk": "@@ -40,18 +40,22 @@ attribute_groups:\n     attributes:\n       - ref: gen_ai.usage.input_tokens\n         requirement_level: recommended\n+      - ref: gen_ai.usage.output_tokens\n+        requirement_level: recommended\n+\n+  # Kept out of `attributes.gen_ai.usage`: an internal agent span reports the\n+  # usage its own call tree accumulated, and summing cache and modality\n+  # breakdowns across that tree would count the same tokens more than once.",
+      "id": "PRRT_kwDOSUeMrM6bhlyf",
+      "opened": "2026-08-23T19:28:52Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "dc28101400940510337e565b058189fad48ffeb7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/469#discussion_r3839391558"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Splitting out these groups removes their attributes from the internal `invoke_agent` table, but the retained `gen_ai.usage.input_tokens` reference still inherits the registry note whose example lists cache and modality attributes. As a result, the generated internal-span documentation at lines 628-634 advertises attributes that this change has just excluded. Override that note for the internal span, or split the total-usage reference so this span gets guidance that only discusses total tokens.",
+      "created": "2026-08-23T19:28:52Z",
+      "hunk": "@@ -40,18 +40,22 @@ attribute_groups:\n     attributes:\n       - ref: gen_ai.usage.input_tokens\n         requirement_level: recommended\n+      - ref: gen_ai.usage.output_tokens\n+        requirement_level: recommended\n+\n+  # Kept out of `attributes.gen_ai.usage`: an internal agent span reports the\n+  # usage its own call tree accumulated, and summing cache and modality\n+  # breakdowns across that tree would count the same tokens more than once.\n+  - id: attributes.gen_ai.usage.cache",
+      "id": "PRRT_kwDOSUeMrM6bhlyl",
+      "opened": "2026-08-23T19:28:52Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "dc28101400940510337e565b058189fad48ffeb7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/469#discussion_r3839391570"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Calling these breakdowns \"only meaningful per inference call\" conflicts with the client `invoke_agent` span, which still defines both cache and modality breakdowns at lines 530-531 for provider-reported remote-agent totals. Scope the restriction to internal call-tree aggregation so the generated guidance does not rule out another supported span.",
+      "created": "2026-08-23T19:28:52Z",
+      "hunk": "@@ -562,6 +568,12 @@ spans:\n     note: |\n       The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n \n+      Token usage attributes on this span report the usage accumulated by the\n+      agent call tree, which may span multiple models and inference calls.\n+      Cache and modality token breakdowns are not reported on this span - they\n+      are only meaningful per inference call and SHOULD be aggregated by the\n+      consumer from the `gen_ai.inference.client` spans in the tree.",
+      "id": "PRRT_kwDOSUeMrM6bhlyv",
+      "opened": "2026-08-23T19:28:52Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "dc28101400940510337e565b058189fad48ffeb7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/469#discussion_r3839391583"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The client `invoke_agent` span keeps both attributes, so \"on agent spans\" overstates the removal.\n\n```suggestion\nRemove `gen_ai.usage.cache_read.input_tokens` and `gen_ai.usage.cache_write.input_tokens` from the internal `invoke_agent` span. Cache breakdowns on that span aggregate across models and inference calls, which makes them misleading; consumers should aggregate them from `gen_ai.inference.client` spans instead.\n```",
+      "created": "2026-08-25T17:49:40Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove `gen_ai.usage.cache_read.input_tokens` and `gen_ai.usage.cache_write.input_tokens` from the internal `invoke_agent` span. Cache breakdowns aggregate across models and inference calls, which makes them misleading on agent spans; consumers should aggregate them from `gen_ai.inference.client` spans instead.",
+      "id": "PRRT_kwDOSUeMrM6cLgii",
+      "opened": "2026-08-25T17:51:27Z",
+      "path": "changelog.d/469.breaking.md",
+      "replies": [],
+      "reviewed": "ec82158983603884565be2175f2e59b65f61d33d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/469#discussion_r3855699969"
+    }
+  ]
+}

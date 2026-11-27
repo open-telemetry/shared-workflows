@@ -1,0 +1,52 @@
+{
+  "head": "0c362b23e1851779485c4ff23dafc4b4b366eab5",
+  "merge": "74a5a6ee7aed823355e056e3fbf144f111ac0c90",
+  "merged": "2026-09-29T17:31:31Z",
+  "missing_roots": 0,
+  "number": 20306,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This generated workflow still passes `${{ secrets.COPILOT_GITHUB_TOKEN }}` to the agent at line 941 and retains the secret checks/manifest entry. As a result, granting this permission does not move this runnable lock workflow to the organization token; deleting the old secret will break Copilot authentication. Regenerate the lock workflow so the Copilot token comes from `${{ github.token }}` and the PAT is no longer required.",
+      "created": "2026-09-29T01:48:15Z",
+      "hunk": "@@ -417,6 +417,7 @@ jobs:\n     environment: protected\n     permissions:\n       contents: read\n+      copilot-requests: write",
+      "id": "PRRT_kwDODJKVX86m7Xqg",
+      "opened": "2026-09-29T01:48:16Z",
+      "path": ".github/workflows/module-cleanup.lock.yml",
+      "replies": [
+        {
+          "at": "2026-09-29T17:24:13Z",
+          "body": "No code change.\n\nAlready resolved in the current head: the agent uses github.token, and COPILOT_GITHUB_TOKEN is no longer required as a secret.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20306#discussion_r4136371365"
+        }
+      ],
+      "reviewed": "8dbfcb6b0c9528399545e7bd37e7f7dc356b784a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20306#discussion_r4128798976"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This generated workflow still authenticates the agent with `${{ secrets.COPILOT_GITHUB_TOKEN }}` at line 982 and still validates/lists that secret. Consequently, this permission does not actually switch the runnable lock workflow to organization billing, and removing the protected-environment secret will leave the agent without credentials. Regenerate the lock workflow so the Copilot token is sourced from `${{ github.token }}` and the PAT requirement is removed.",
+      "created": "2026-09-29T01:48:16Z",
+      "hunk": "@@ -429,6 +429,7 @@ jobs:\n     environment: protected\n     permissions:\n       contents: read\n+      copilot-requests: write",
+      "id": "PRRT_kwDODJKVX86m7Xqz",
+      "opened": "2026-09-29T01:48:16Z",
+      "path": ".github/workflows/pr-review.lock.yml",
+      "replies": [
+        {
+          "at": "2026-09-29T17:24:14Z",
+          "body": "No code change.\n\nAlready resolved in the current head: the agent uses github.token, and COPILOT_GITHUB_TOKEN is no longer required as a secret.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20306#discussion_r4136371625"
+        }
+      ],
+      "reviewed": "8dbfcb6b0c9528399545e7bd37e7f7dc356b784a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20306#discussion_r4128799006"
+    }
+  ]
+}

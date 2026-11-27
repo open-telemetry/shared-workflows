@@ -1,0 +1,85 @@
+{
+  "head": "5a30d23cdd8f3a5b4fa2321ed4d92e1a9690454b",
+  "merge": "fa8d8de6f80b3432a4b60abce6a56805504f1033",
+  "merged": "2026-08-21T15:05:24Z",
+  "missing_roots": 0,
+  "number": 438,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`pyproject_reqs` is a set, so iterating it here produces nondeterministic error ordering across runs/Python versions. Sorting makes CI output stable and easier to diff when multiple requirements are missing bounds.",
+      "created": "2026-08-21T00:47:00Z",
+      "hunk": "@@ -162,6 +163,22 @@ def check_instruments_match(pkg_dir: Path, pyproject: dict) -> list[str]:\n             f\"does not match pyproject.toml instruments extra ({pyproject_instruments_raw}).\"\n         )\n \n+    for req in pyproject_reqs:\n+        has_lower = any(\n+            s.operator in (\">=\", \">\", \"~=\", \"==\") for s in req.specifier\n+        )\n+        has_upper = any(\n+            s.operator in (\"<\", \"<=\", \"~=\", \"==\") for s in req.specifier\n+        )",
+      "id": "PRRT_kwDOSbspP86bAMFg",
+      "opened": "2026-08-21T00:47:01Z",
+      "path": "scripts/check_deps.py",
+      "replies": [],
+      "reviewed": "f5b73b3a3edd6745005d4ce960100849bfb8a0d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/438#discussion_r3826453872"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new instruments constraint `langchain >= 0.3.21, < 1` conflicts with this package’s own test matrix: `instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.latest.txt` pins `langchain==1.3.15` (line 17). With the extra capped to `< 1`, the editable install `...-langchain[instruments]` cannot resolve alongside the pinned 1.x dependency and will fail the `*-latest` env. Either widen the supported range (e.g. `< 2` if 1.x is supported) or update the tests/README to stop targeting 1.x.",
+      "created": "2026-08-21T00:47:00Z",
+      "hunk": "@@ -31,7 +31,7 @@ dependencies = [\n \n [project.optional-dependencies]\n instruments = [\n-  \"langchain >= 0.3.21\",\n+  \"langchain >= 0.3.21, < 1\",\n ]",
+      "id": "PRRT_kwDOSbspP86bAMFy",
+      "opened": "2026-08-21T00:47:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/pyproject.toml",
+      "replies": [],
+      "reviewed": "f5b73b3a3edd6745005d4ce960100849bfb8a0d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/438#discussion_r3826453908"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The suggested upper-bound example `'< (x+1)'` is not a valid PEP 508 specifier and may confuse contributors copy/pasting it. Consider using a syntactically valid placeholder like `'< 2'` or `'< next_major'`.",
+      "created": "2026-08-21T00:47:00Z",
+      "hunk": "@@ -162,6 +163,22 @@ def check_instruments_match(pkg_dir: Path, pyproject: dict) -> list[str]:\n             f\"does not match pyproject.toml instruments extra ({pyproject_instruments_raw}).\"\n         )\n \n+    for req in pyproject_reqs:\n+        has_lower = any(\n+            s.operator in (\">=\", \">\", \"~=\", \"==\") for s in req.specifier\n+        )\n+        has_upper = any(\n+            s.operator in (\"<\", \"<=\", \"~=\", \"==\") for s in req.specifier\n+        )\n+        if not has_lower:\n+            errors.append(\n+                f\"{pkg_dir.name}: requirement '{req}' in pyproject.toml instruments extra is missing a lower bound (e.g. '>= x.y.z').\"\n+            )\n+        if not has_upper:\n+            errors.append(\n+                f\"{pkg_dir.name}: requirement '{req}' in pyproject.toml instruments extra is missing an upper bound (e.g. '< (x+1)').\"\n+            )",
+      "id": "PRRT_kwDOSbspP86bAMGE",
+      "opened": "2026-08-21T00:47:01Z",
+      "path": "scripts/check_deps.py",
+      "replies": [],
+      "reviewed": "f5b73b3a3edd6745005d4ce960100849bfb8a0d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/438#discussion_r3826453934"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_instruments` is now capped at `langchain < 1`, but this repo’s langchain instrumentation tests explicitly pin `langchain==1.3.15` (see `instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.latest.txt:17`). This cap will prevent resolving/installing the test env (and can also cause the runtime compatibility check to reject supported 1.x installs).",
+      "created": "2026-08-21T00:47:01Z",
+      "hunk": "@@ -2,4 +2,4 @@\n # SPDX-License-Identifier: Apache-2.0\n \n \n-_instruments = (\"langchain >= 0.3.21\",)\n+_instruments = (\"langchain >= 0.3.21, < 1\",)",
+      "id": "PRRT_kwDOSbspP86bAMGT",
+      "opened": "2026-08-21T00:47:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/package.py",
+      "replies": [],
+      "reviewed": "f5b73b3a3edd6745005d4ce960100849bfb8a0d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/438#discussion_r3826453956"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The README now advertises `langchain >= 0.3.21, < 1`, but the langchain instrumentation’s own `tests/requirements.latest.txt` pins `langchain==1.3.15`. Unless support for 1.x is being dropped (and the tests updated accordingly), this documentation bound is inconsistent with the tested supported versions.",
+      "created": "2026-08-21T00:47:01Z",
+      "hunk": "@@ -13,22 +13,22 @@ All instrumentations use [opentelemetry-util-genai](./util/opentelemetry-util-ge\n \n | Instrumentation | Supported Package | Version |\n | --------------- | ----------------- | ------- |\n-| [opentelemetry-instrumentation-genai-agno](./instrumentation/opentelemetry-instrumentation-genai-agno) | agno >= 2.0.0 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-agno/) |\n-| [opentelemetry-instrumentation-genai-anthropic](./instrumentation/opentelemetry-instrumentation-genai-anthropic) | anthropic >= 0.51.0 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-anthropic/) |\n-| [opentelemetry-instrumentation-genai-langchain](./instrumentation/opentelemetry-instrumentation-genai-langchain) | langchain >= 0.3.21 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-langchain/) |\n+| [opentelemetry-instrumentation-genai-agno](./instrumentation/opentelemetry-instrumentation-genai-agno) | agno >= 2.0.0, < 3 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-agno/) |\n+| [opentelemetry-instrumentation-genai-anthropic](./instrumentation/opentelemetry-instrumentation-genai-anthropic) | anthropic >= 0.51.0, < 2 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-anthropic/) |\n+| [opentelemetry-instrumentation-genai-langchain](./instrumentation/opentelemetry-instrumentation-genai-langchain) | langchain >= 0.3.21, < 1 | [1.1b0](https://pypi.org/project/opentelemetry-instrumentation-genai-langchain/) |",
+      "id": "PRRT_kwDOSbspP86bAMGh",
+      "opened": "2026-08-21T00:47:01Z",
+      "path": "README.md",
+      "replies": [],
+      "reviewed": "f5b73b3a3edd6745005d4ce960100849bfb8a0d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/438#discussion_r3826453982"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d4db41386849ef3efc413e9c5d8b51dc0a6ea5ed4cb111edc44fed1c771ddd45",
+  "input_digest": "faa1de23d1375da9de0e1ce75b9a2737451936c91531c357aa73c5ebfd164c42",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5fdbef37279a1e7bffa0d6c10fed32c016ac4d3/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9e211a215474023fb064a70806755785a41b9e4/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9e211a215474023fb064a70806755785a41b9e4/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ewYD8",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5fdbef37279a1e7bffa0d6c10fed32c016ac4d3/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9e211a215474023fb064a70806755785a41b9e4/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ewYEW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f5a787e849b91407ec758add6d0b610fbc9900b0/instrumentation/openai/openai-java-1.1/library/src/test/java/io/opentelemetry/instrumentation/openai/v1_1/ChatAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9e211a215474023fb064a70806755785a41b9e4/instrumentation/openai/openai-java-1.1/library/src/test/java/io/opentelemetry/instrumentation/openai/v1_1/ChatAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86fDY7X",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f5a787e849b91407ec758add6d0b610fbc9900b0/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f5a787e849b91407ec758add6d0b610fbc9900b0/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9e211a215474023fb064a70806755785a41b9e4/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9e211a215474023fb064a70806755785a41b9e4/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesExtractorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86fDY82",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f5a787e849b91407ec758add6d0b610fbc9900b0/instrumentation/openai/openai-java-1.1/testing/src/main/resources/mappings/io.opentelemetry.instrumentation.openai.v1_1.abstractchattest.basic.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f5a787e849b91407ec758add6d0b610fbc9900b0/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractChatTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9e211a215474023fb064a70806755785a41b9e4/instrumentation/openai/openai-java-1.1/testing/src/main/resources/mappings/io.opentelemetry.instrumentation.openai.v1_1.abstractchattest.basic.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9e211a215474023fb064a70806755785a41b9e4/instrumentation/openai/openai-java-1.1/testing/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/AbstractChatTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86fDY8S",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

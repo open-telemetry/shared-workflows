@@ -1,0 +1,78 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "df497e90ed4c6f087e81d6619f86b35a78a511c36d92165293331254559fba54",
+  "input_digest": "4bce74ffdbdca45da8a48a0e11fd0bddf3f5b61405e61641ddd6a2033ddb520c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b6a41aee0e5fec7e921438ae8d514a95762bd61c/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5783958f45f215048cc278b985a722a4d9f9b50b/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseServerTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5783958f45f215048cc278b985a722a4d9f9b50b/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseMasterTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5783958f45f215048cc278b985a722a4d9f9b50b/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseMasterTarget.java"
+      ],
+      "id": "PRRT_kwDODJKVX86crw8C",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86fk2YJ",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86crw8C",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e49a82b00203f4cf6ed12b872a488217866c9b3c/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5783958f45f215048cc278b985a722a4d9f9b50b/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e49a82b00203f4cf6ed12b872a488217866c9b3c/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseMasterTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5783958f45f215048cc278b985a722a4d9f9b50b/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseMasterTarget.java"
+      ],
+      "id": "PRRT_kwDODJKVX86f8gKA",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86f8u7o",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86f8x0Q",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/12c6b845ed9c6e1bf9a9cef66e161ccbe6ce9a0d/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseMasterTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5783958f45f215048cc278b985a722a4d9f9b50b/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseMasterTarget.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gAuN5",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8309be16ceef24cc743f0b955ebe47791aa02d29/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseZookeeperTarget.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5783958f45f215048cc278b985a722a4d9f9b50b/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/common/HbaseZookeeperTarget.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gb4ns",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86gh9J4",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

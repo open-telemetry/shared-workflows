@@ -1,0 +1,25 @@
+{
+  "head": "4f1ecded934a61e3fb96161f5259d3a6d7d0996e",
+  "merge": "e0e94ed7457750310ee1f8db6be6eaeb5512a922",
+  "merged": "2026-02-11T16:29:59Z",
+  "missing_roots": 0,
+  "number": 16079,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Usually we use `toLowerCase` with `Locale.ROOT`. Here it shouldn't matter whether the locale is used, though might help to add it for consistency.",
+      "created": "2026-02-11T08:09:36Z",
+      "hunk": "@@ -621,6 +639,51 @@ WHITESPACE           = [ \\t\\r\\n]+\n   /** SHOW operation - blocks other keywords from being parsed. */\n   private class Show extends Operation {}\n \n+  /**\n+   * WITH clause operation - handles CTE (Common Table Expression) definitions.\n+   * CTEs have the form: WITH name AS (query), name2 AS (query2), ... main_query\n+   */\n+  private class With extends Operation {\n+    // State: true when expecting a CTE name (after WITH or after comma between CTEs)\n+    boolean expectingCteName = true;\n+\n+    // The paren level when WITH was seen - used to detect main query vs CTE body\n+    final int baseParenLevel = parenLevel;\n+\n+    void handleIdentifier() {\n+      if (expectingCteName) {\n+        // This is the CTE name - record it in global set for filtering CTE references\n+        cteNames.add(yytext().toLowerCase());",
+      "id": "PRRT_kwDODJKVX85t67df",
+      "opened": "2026-02-11T08:09:36Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [],
+      "reviewed": "00b7263b1dfc7970109cb4c390f4b2f74ef0895e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16079#discussion_r2791932032"
+    }
+  ]
+}

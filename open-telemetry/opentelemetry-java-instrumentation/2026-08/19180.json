@@ -1,0 +1,124 @@
+{
+  "head": "3fcc00d0e03e65b2f0cb347a324d5e4b30709e3d",
+  "merge": "0ae4cc70d2c2a2bd02f71a33f90b80db7e65ef99",
+  "merged": "2026-08-11T13:31:12Z",
+  "missing_roots": 0,
+  "number": 19180,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is misleading because sys props still supported by java agent",
+      "created": "2026-07-10T16:36:21Z",
+      "hunk": "@@ -2,8 +2,12 @@\n \n ## Unreleased\n \n-- Add Cassandra JMX metrics target system.\n-  ([#19080](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080))\n+### 🚫 Deprecations\n+\n+- Deprecate `otel.instrumentation.experimental.span-suppression-strategy` in favor of\n+  `Experimental.setSpanSuppressionStrategy(...)` or declarative instrumentation configuration.\n+  The system property is ignored when v3 preview is enabled and will be removed in 3.0.\n+  ([#19180](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180))",
+      "id": "PRRT_kwDODJKVX86P8yx0",
+      "opened": "2026-07-10T16:36:21Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-07-10T16:45:23Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/92b43b9b7699e6d4ad862ce660525c7dbf24fb24.\n\nClarified that library instrumentation users should migrate while the Java agent continues to support the property through its declarative config bridge.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180#discussion_r3560542384"
+        }
+      ],
+      "reviewed": "d3d8d4150a4a53cac5ac8dfe941c329c68266df1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180#discussion_r3560493819"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "move v3preview to condition instead of param",
+      "created": "2026-07-10T16:37:02Z",
+      "hunk": "@@ -408,13 +416,29 @@ private String getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    @SuppressWarnings(\"deprecation\") // using deprecated config property\n-    String result =\n-        commonConfig.getString(\n-            \"span_suppression_strategy/development\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.experimental.span-suppression-strategy\", \"\"));\n-    return result.isEmpty() ? null : result;\n+    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n+    if (result == null) {\n+      result = getDeprecatedSpanSuppressionStrategyProperty(SemconvStability.v3Preview());\n+    }",
+      "id": "PRRT_kwDODJKVX86P8zb6",
+      "opened": "2026-07-10T16:37:02Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-07-10T16:45:24Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/92b43b9b7699e6d4ad862ce660525c7dbf24fb24.\n\nMoved the v3-preview check to the fallback condition and removed the helper parameter and synthetic test branch.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180#discussion_r3560542537"
+        }
+      ],
+      "reviewed": "d3d8d4150a4a53cac5ac8dfe941c329c68266df1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180#discussion_r3560497459"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This checks the cached v3-preview flag from `GlobalOpenTelemetry`, not the configuration attached to this builder's `openTelemetry`. When a library passes a non-global `ExtendedOpenTelemetry` whose `common.v3_preview` is true, the deprecated system property is still applied, contrary to the stated rule that v3 preview disables it. Resolve `v3_preview` from `commonConfig` first and use the global value only as its fallback; a test with a non-global configured instance would cover this case.",
+      "created": "2026-07-10T16:49:32Z",
+      "hunk": "@@ -408,13 +416,26 @@ private String getSpanSuppressionStrategy() {\n               .getInstrumentationConfig(\"common\");\n     }\n \n-    @SuppressWarnings(\"deprecation\") // using deprecated config property\n-    String result =\n-        commonConfig.getString(\n-            \"span_suppression_strategy/development\",\n-            ConfigPropertiesUtil.getString(\n-                \"otel.instrumentation.experimental.span-suppression-strategy\", \"\"));\n-    return result.isEmpty() ? null : result;\n+    String result = commonConfig.getString(\"span_suppression_strategy/development\");\n+    if (result == null && !SemconvStability.v3Preview()) {\n+      result = getDeprecatedSpanSuppressionStrategyProperty();\n+    }\n+    return SpanSuppressionStrategy.fromConfig(result);",
+      "id": "PRRT_kwDODJKVX86P8_dc",
+      "opened": "2026-07-10T16:49:32Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-07-10T17:04:42Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/ff60c254bb282acee1056a953b94d3c7a3510a46.\n\nThe builder now uses SemconvStability.v3Preview(openTelemetry), shared with #19179, and a non-global ExtendedOpenTelemetry regression test verifies the configured v3 preview value disables the deprecated property fallback.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180#discussion_r3560655985"
+        }
+      ],
+      "reviewed": "92b43b9b7699e6d4ad862ce660525c7dbf24fb24",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180#discussion_r3560565448"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(intentionally removed, deprecations and breaking changes are the only ones I find helpful when validating the LLM prepared change log)",
+      "created": "2026-07-10T17:17:50Z",
+      "hunk": "@@ -2,8 +2,13 @@\n \n ## Unreleased\n \n-- Add Cassandra JMX metrics target system.\n-  ([#19080](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080))",
+      "id": "PRRT_kwDODJKVX86P9b6p",
+      "opened": "2026-07-10T17:17:49Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "bf3d4edf4229fef597fac47d2c07131973f94262",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180#discussion_r3560728402"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Adding this section replaces the existing Unreleased entry for #19080, so the next release notes silently lose the Cassandra JMX enhancement. Preserve that entry under an Enhancements section while adding this deprecation.",
+      "created": "2026-07-10T17:43:31Z",
+      "hunk": "@@ -2,8 +2,13 @@\n \n ## Unreleased\n \n-- Add Cassandra JMX metrics target system.\n-  ([#19080](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080))\n+### 🚫 Deprecations",
+      "id": "PRRT_kwDODJKVX86P93it",
+      "opened": "2026-07-10T17:43:32Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-07-10T17:49:28Z",
+          "body": "intentional",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180#discussion_r3560929704"
+        }
+      ],
+      "reviewed": "4cf442caf1f34dfb969d322000f65fe64eb0488d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180#discussion_r3560891271"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-08-11T01:55:43Z",
+      "hunk": "@@ -31,6 +36,12 @@\n   `MessagingConsumerMetrics.getForOperationType()`.\n   ([#19357](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19357))\n \n+### 📈 Enhancements\n+\n+- When `otel.instrumentation.common.v3-preview` is enabled, library instrumentation ignores the\n+  deprecated `otel.instrumentation.experimental.span-suppression-strategy` system property.\n+  ([#19180](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180))\n+",
+      "id": "PRRT_kwDODJKVX86YF4PI",
+      "opened": "2026-08-11T01:55:43Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "5cf622fbe924f5f7d0c18da64238f9de5a42c6e6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19180#discussion_r3754739119"
+    }
+  ]
+}

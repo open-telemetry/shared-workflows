@@ -1,0 +1,354 @@
+{
+  "head": "90117008b93989dfd1c8b91b2e20b0ea2738e9c7",
+  "merge": "f2320c315f728f9f0e63106265e50a05bad7c8ac",
+  "merged": "2026-10-21T00:29:41Z",
+  "missing_roots": 0,
+  "number": 859,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`agent_name` and `request_model` can now be populated by context enrichment, but they are only emitted as construction-time attributes. If the outer agent omitted them, the merged inner values never reach the span (although metrics see them). Include both data-backed values in the finish attributes.",
+      "created": "2026-10-08T19:23:39Z",
+      "hunk": "@@ -90,73 +152,267 @@ def __init__(\n             context=context,\n             conversation_id=conversation_id,\n             content_capturing_mode=content_capturing_mode,\n+            start_span=start_span,\n             _attach_to_context=_attach_to_context,\n+            attributes=self.data.attributes,\n+            metric_attributes=self.data.metric_attributes,\n+            context_key=AGENT_CONTEXT_KEY,\n+            dataclass_class_object=AgentData,\n         )\n         self._request_model: str | None = request_model\n         self._agent_name: str | None = agent_name\n-        self.agent_description: str | None = None\n-\n-        self.data_source_id: str | None = None\n-        self.output_type: str | None = None\n-\n-        self.temperature: float | None = None\n-        self.top_p: float | None = None\n-        self.frequency_penalty: float | None = None\n-        self.presence_penalty: float | None = None\n-        self.max_tokens: int | None = None\n-        self.stop_sequences: list[str] | None = None\n-        self.seed: int | None = None\n-        self.choice_count: int | None = None\n-\n-        self.finish_reasons: list[str] | None = None\n-\n-        self.input_tokens: int | None = None\n-        self.output_tokens: int | None = None\n-\n-        self.input_messages: list[InputMessage] = []\n-        self.output_messages: list[OutputMessage] = []\n-        self.system_instruction: (\n-            list[SystemInstructionPart] | list[MessagePart]\n-        ) = []\n-        \"\"\"System instructions for the agent. Passing ``MessagePart`` is deprecated; use ``SystemInstructionPart``.\"\"\"\n-        self.tool_definitions: list[ToolDefinition] | None = None\n+        self.data.attributes = self.attributes\n+        self.data.metric_attributes = self.metric_attributes\n \n     @property\n     def agent_name(self) -> str | None:\n         \"\"\"The agent name provided at construction time.\"\"\"\n-        return self._agent_name\n+        return self.data.agent_name\n+\n+    @property\n+    def agent_description(self) -> str | None:\n+        return self.data.agent_description\n+\n+    @agent_description.setter\n+    def agent_description(self, value: str | None) -> None:\n+        self.data.agent_description = value\n+\n+    @property\n+    def data_source_id(self) -> str | None:\n+        return self.data.data_source_id\n+\n+    @data_source_id.setter\n+    def data_source_id(self, value: str | None) -> None:\n+        self.data.data_source_id = value\n+\n+    @property\n+    def output_type(self) -> str | None:\n+        return self.data.output_type\n+\n+    @output_type.setter\n+    def output_type(self, value: str | None) -> None:\n+        self.data.output_type = value\n+\n+    @property\n+    def temperature(self) -> float | None:\n+        return self.data.request_temperature\n+\n+    @temperature.setter\n+    def temperature(self, value: float | None) -> None:\n+        self.data.request_temperature = value\n+\n+    @property\n+    def top_p(self) -> float | None:\n+        return self.data.request_top_p\n+\n+    @top_p.setter\n+    def top_p(self, value: float | None) -> None:\n+        self.data.request_top_p = value\n+\n+    @property\n+    def frequency_penalty(self) -> float | None:\n+        return self.data.request_frequency_penalty\n+\n+    @frequency_penalty.setter\n+    def frequency_penalty(self, value: float | None) -> None:\n+        self.data.request_frequency_penalty = value\n+\n+    @property\n+    def presence_penalty(self) -> float | None:\n+        return self.data.request_presence_penalty\n+\n+    @presence_penalty.setter\n+    def presence_penalty(self, value: float | None) -> None:\n+        self.data.request_presence_penalty = value\n+\n+    @property\n+    def max_tokens(self) -> int | None:\n+        return self.data.request_max_tokens\n+\n+    @max_tokens.setter\n+    def max_tokens(self, value: int | None) -> None:\n+        self.data.request_max_tokens = value\n+\n+    @property\n+    def stop_sequences(self) -> list[str] | None:\n+        return self.data.request_stop_sequences\n+\n+    @stop_sequences.setter\n+    def stop_sequences(self, value: Sequence[str] | None) -> None:\n+        self.data.request_stop_sequences = (\n+            list(value) if value is not None else None\n+        )\n+\n+    @property\n+    def seed(self) -> int | None:\n+        return self.data.request_seed\n+\n+    @seed.setter\n+    def seed(self, value: int | None) -> None:\n+        self.data.request_seed = value\n+\n+    @property\n+    def choice_count(self) -> int | None:\n+        return self.data.request_choice_count\n+\n+    @choice_count.setter\n+    def choice_count(self, value: int | None) -> None:\n+        self.data.request_choice_count = value\n+\n+    @property\n+    def finish_reasons(self) -> list[str] | None:\n+        return self.data.response_finish_reasons\n+\n+    @finish_reasons.setter\n+    def finish_reasons(self, value: Sequence[str] | None) -> None:\n+        self.data.response_finish_reasons = (\n+            list(value) if value is not None else None\n+        )\n+\n+    @property\n+    def input_tokens(self) -> int | None:\n+        return self.data.usage_input_tokens\n+\n+    @input_tokens.setter\n+    def input_tokens(self, value: int | None) -> None:\n+        self.data.usage_input_tokens = value\n+\n+    @property\n+    def output_tokens(self) -> int | None:\n+        return self.data.usage_output_tokens\n+\n+    @output_tokens.setter\n+    def output_tokens(self, value: int | None) -> None:\n+        self.data.usage_output_tokens = value\n+\n+    @property\n+    def input_messages(self) -> list[InputMessage]:\n+        if isinstance(self.data.input_messages, list):\n+            return self.data.input_messages\n+        messages = (\n+            list(self.data.input_messages) if self.data.input_messages else []\n+        )\n+        self.data.input_messages = messages\n+        return messages\n+\n+    @input_messages.setter\n+    def input_messages(self, value: Sequence[InputMessage]) -> None:\n+        self.data.input_messages = value\n+\n+    @property\n+    def output_messages(self) -> list[OutputMessage]:\n+        if isinstance(self.data.output_messages, list):\n+            return self.data.output_messages\n+        messages = (\n+            list(self.data.output_messages)\n+            if self.data.output_messages\n+            else []\n+        )\n+        self.data.output_messages = messages\n+        return messages\n+\n+    @output_messages.setter\n+    def output_messages(self, value: Sequence[OutputMessage]) -> None:\n+        self.data.output_messages = value\n+\n+    @property\n+    def system_instruction(\n+        self,\n+    ) -> list[SystemInstructionPart] | list[MessagePart]:\n+        \"\"\"System instructions for the agent. Passing ``MessagePart`` is deprecated; use ``SystemInstructionPart``.\"\"\"\n+        if isinstance(self.data.system_instructions, list):\n+            return self.data.system_instructions\n+        instructions = (\n+            list(self.data.system_instructions)\n+            if self.data.system_instructions\n+            else []\n+        )\n+        self.data.system_instructions = instructions\n+        return instructions\n+\n+    @system_instruction.setter\n+    def system_instruction(\n+        self,\n+        value: Sequence[SystemInstructionPart] | Sequence[MessagePart] | None,\n+    ) -> None:\n+        self.data.system_instructions = (\n+            list(value) if value is not None else None\n+        )\n+\n+    @property\n+    def tool_definitions(self) -> list[ToolDefinition] | None:\n+        return self.data.tool_definitions\n+\n+    @tool_definitions.setter\n+    def tool_definitions(self, value: Sequence[ToolDefinition] | None) -> None:\n+        self.data.tool_definitions = list(value) if value is not None else None\n+\n+    def enrich_from_context(self, data: AgentData) -> None:\n+        \"\"\"Enrich invocation attributes from context data published by inner invocations.\n+\n+        Outer (root) attributes take precedence over inner values. Inner\n+        invocations never override content capture fields.\n+        \"\"\"\n+        input_messages = self.data.input_messages\n+        output_messages = self.data.output_messages\n+        system_instructions = self.data.system_instructions\n+        tool_definitions = self.data.tool_definitions\n+\n+        self.data.merge(data, overwrite=False)\n+\n+        self.data.input_messages = input_messages\n+        self.data.output_messages = output_messages\n+        self.data.system_instructions = system_instructions\n+        self.data.tool_definitions = tool_definitions\n \n     def _get_agent_attributes(self) -> dict[str, AttributeValue]:\n         optional_attrs = (\n-            (GenAI.GEN_AI_AGENT_DESCRIPTION, self.agent_description),\n+            (GenAI.GEN_AI_AGENT_DESCRIPTION, self.data.agent_description),\n         )",
+      "id": "PRRT_kwDOSbspP86qhOqa",
+      "opened": "2026-10-08T19:23:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [],
+      "reviewed": "967b9f807ea6610dedaf46fe8db7e46c6dc8d884",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4223226054"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The merged `request_model`, `server_address`, and `server_port` values are only used for metrics. When the outer embedding omits one and the suppressed inner invocation supplies it, the span still lacks the corresponding start attribute. Include these enriched fields in the finish-time span attributes, as inference already does.",
+      "created": "2026-10-08T19:23:39Z",
+      "hunk": "@@ -93,22 +190,92 @@ def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n         return attrs\n \n     def _get_metric_token_counts(self) -> dict[str, int]:\n-        if self.input_tokens is not None:\n-            return {GenAI.GenAiTokenTypeValues.INPUT.value: self.input_tokens}\n+        if self.data.usage_input_tokens is not None:\n+            return {\n+                GenAI.GenAiTokenTypeValues.INPUT.value: (\n+                    self.data.usage_input_tokens\n+                )\n+            }\n         return {}\n \n     def _apply_finish(self, error: Error | None = None) -> None:\n+        if error is not None:\n+            self._apply_error_attributes(error)\n+        ctx_data = get_value(EMBEDDING_CONTEXT_KEY, context=self._span_context)\n+        if isinstance(ctx_data, EmbeddingData):\n+            self.enrich_from_context(ctx_data)",
+      "id": "PRRT_kwDOSbspP86qhOrX",
+      "opened": "2026-10-08T19:23:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_embedding_invocation.py",
+      "replies": [],
+      "reviewed": "967b9f807ea6610dedaf46fe8db7e46c6dc8d884",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4223226143"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The inner `request_stream` and server values are merged here but `_get_attributes()` does not return them, so an outer fetch with those values unset never receives them on its span. Add these enriched start fields to the finish-time attributes.",
+      "created": "2026-10-08T19:23:40Z",
+      "hunk": "@@ -119,60 +164,188 @@ def __init__(\n             error_type_resolver=error_type_resolver,\n             start_attributes=start_attributes,\n             content_capturing_mode=content_capturing_mode,\n+            start_span=start_span,\n             context=context,\n             _attach_to_context=_attach_to_context,\n+            attributes=self.data.attributes,\n+            metric_attributes=self.data.metric_attributes,\n+            context_key=FETCH_RESPONSE_CONTEXT_KEY,\n+            dataclass_class_object=FetchResponseData,\n         )\n         self._provider: str = provider\n         self._response_id: str = response_id\n         self._request_stream = request_stream\n         self._server_address: str | None = server_address\n         self._server_port: int | None = server_port\n-        self.response_model_name: str | None = None\n-        self.response_status: str | None = None\n-        self.finish_reasons: list[str] | None = None\n-        self.stream_cursor: str | None = None\n-        self.output_messages: list[OutputMessage] = []\n-        self.system_instruction: (\n-            list[SystemInstructionPart] | list[MessagePart]\n-        ) = []\n-        \"\"\"System instructions for the model. Passing ``MessagePart`` is deprecated; use ``SystemInstructionPart``.\"\"\"\n-        self.tool_definitions: list[ToolDefinition] | None = None\n+        self.data.attributes = self.attributes\n+        self.data.metric_attributes = self.metric_attributes\n \n     @property\n     def response_id(self) -> str:\n         \"\"\"The identifier of the response being fetched.\"\"\"\n-        return self._response_id\n+        return self.data.response_id or self._response_id\n+\n+    @property\n+    def provider(self) -> str | None:\n+        return self.data.provider_name\n+\n+    @property\n+    def server_address(self) -> str | None:\n+        return self.data.server_address\n+\n+    @property\n+    def server_port(self) -> int | None:\n+        return self.data.server_port\n+\n+    @property\n+    def request_stream(self) -> bool | None:\n+        return (\n+            self._request_stream\n+            if self._request_stream is not None\n+            else self.data.request_stream\n+        )\n+\n+    @request_stream.setter\n+    def request_stream(self, value: bool | None) -> None:\n+        self._request_stream = value\n+        self.data.request_stream = value\n+\n+    @property\n+    def response_model_name(self) -> str | None:\n+        return self.data.response_model\n+\n+    @response_model_name.setter\n+    def response_model_name(self, value: str | None) -> None:\n+        self.data.response_model = value\n+\n+    @property\n+    def response_status(self) -> str | None:\n+        return self.data.response_status\n+\n+    @response_status.setter\n+    def response_status(self, value: str | None) -> None:\n+        self.data.response_status = value\n+\n+    @property\n+    def finish_reasons(self) -> list[str] | None:\n+        return self.data.response_finish_reasons\n+\n+    @finish_reasons.setter\n+    def finish_reasons(self, value: Sequence[str] | None) -> None:\n+        self.data.response_finish_reasons = (\n+            list(value) if value is not None else None\n+        )\n+\n+    @property\n+    def stream_cursor(self) -> str | None:\n+        return self.data.request_stream_cursor\n+\n+    @stream_cursor.setter\n+    def stream_cursor(self, value: str | None) -> None:\n+        self.data.request_stream_cursor = value\n+\n+    @property\n+    def output_messages(self) -> list[OutputMessage]:\n+        if isinstance(self.data.output_messages, list):\n+            return self.data.output_messages\n+        messages = (\n+            list(self.data.output_messages)\n+            if self.data.output_messages\n+            else []\n+        )\n+        self.data.output_messages = messages\n+        return messages\n+\n+    @output_messages.setter\n+    def output_messages(self, value: Sequence[OutputMessage]) -> None:\n+        self.data.output_messages = value\n+\n+    @property\n+    def system_instruction(\n+        self,\n+    ) -> list[SystemInstructionPart] | list[MessagePart]:\n+        \"\"\"System instructions for the model. Passing ``MessagePart`` is deprecated; use ``SystemInstructionPart``.\"\"\"\n+        if isinstance(self.data.system_instructions, list):\n+            return self.data.system_instructions\n+        instructions = (\n+            list(self.data.system_instructions)\n+            if self.data.system_instructions\n+            else []\n+        )\n+        self.data.system_instructions = instructions\n+        return instructions\n+\n+    @system_instruction.setter\n+    def system_instruction(\n+        self,\n+        value: Sequence[SystemInstructionPart] | Sequence[MessagePart] | None,\n+    ) -> None:\n+        self.data.system_instructions = (\n+            list(value) if value is not None else None\n+        )\n+\n+    @property\n+    def tool_definitions(self) -> list[ToolDefinition] | None:\n+        return self.data.tool_definitions\n+\n+    @tool_definitions.setter\n+    def tool_definitions(self, value: Sequence[ToolDefinition] | None) -> None:\n+        self.data.tool_definitions = list(value) if value is not None else None\n+\n+    def enrich_from_context(self, data: FetchResponseData) -> None:\n+        \"\"\"Enrich invocation attributes from context data published by inner invocations.\n+\n+        Outer (root) attributes take precedence over inner values. Inner\n+        invocations never override content capture fields.\n+        \"\"\"\n+        output_messages = self.data.output_messages\n+        system_instructions = self.data.system_instructions\n+        tool_definitions = self.data.tool_definitions\n+\n+        self.data.merge(data, overwrite=False)\n+\n+        self.data.output_messages = output_messages\n+        self.data.system_instructions = system_instructions\n+        self.data.tool_definitions = tool_definitions\n \n     def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n         # response_id intentionally excluded — high cardinality.\n         optional_attrs: tuple[tuple[str, AttributeValue | None], ...] = (\n-            (GenAI.GEN_AI_RESPONSE_MODEL, self.response_model_name),\n-            (server_attributes.SERVER_ADDRESS, self._server_address),\n-            (server_attributes.SERVER_PORT, self._server_port),\n+            (GenAI.GEN_AI_RESPONSE_MODEL, self.data.response_model),\n+            (server_attributes.SERVER_ADDRESS, self.data.server_address),\n+            (server_attributes.SERVER_PORT, self.data.server_port),\n         )\n         attrs: dict[str, AttributeValue] = {\n             GenAI.GEN_AI_OPERATION_NAME: self._operation_name,\n-            GenAI.GEN_AI_PROVIDER_NAME: self._provider,\n+            GenAI.GEN_AI_PROVIDER_NAME: self.data.provider_name\n+            or self._provider,\n             **{k: v for k, v in optional_attrs if v is not None},\n         }\n         attrs.update(self.metric_attributes)\n         return attrs\n \n     def _get_attributes(self) -> dict[str, AttributeValue]:\n         optional_attrs: tuple[tuple[str, AttributeValue | None], ...] = (\n-            (_GEN_AI_REQUEST_STREAM_CURSOR, self.stream_cursor),\n+            (_GEN_AI_REQUEST_STREAM_CURSOR, self.data.request_stream_cursor),\n             (\n                 GenAI.GEN_AI_RESPONSE_FINISH_REASONS,\n-                self.finish_reasons or None,\n+                self.data.response_finish_reasons or None,\n             ),\n-            (GenAI.GEN_AI_RESPONSE_MODEL, self.response_model_name),\n-            (_GEN_AI_RESPONSE_STATUS, self.response_status),\n+            (GenAI.GEN_AI_RESPONSE_MODEL, self.data.response_model),\n+            (_GEN_AI_RESPONSE_STATUS, self.data.response_status),\n         )\n         return {k: v for k, v in optional_attrs if v is not None}\n \n     def _apply_finish(self, error: Error | None = None) -> None:\n         if error is not None:\n             self._apply_error_attributes(error)\n+        ctx_data = get_value(\n+            FETCH_RESPONSE_CONTEXT_KEY, context=self._span_context\n+        )\n+        if isinstance(ctx_data, FetchResponseData):\n+            self.enrich_from_context(ctx_data)",
+      "id": "PRRT_kwDOSbspP86qhOr6",
+      "opened": "2026-10-08T19:23:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_fetch_response_invocation.py",
+      "replies": [],
+      "reviewed": "967b9f807ea6610dedaf46fe8db7e46c6dc8d884",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4223226194"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new suppressed invocation classes call the base with `start_span=False`, but only suppressed inference overrides `_on_stream_chunk`. The base implementation still records time-to-first-chunk and inter-chunk metrics, so streamed suppressed remote-agent and fetch-response invocations (both are passed to `SyncStreamWrapper`/`AsyncStreamWrapper`) emit the metrics these classes promise to suppress. Retain whether this invocation owns telemetry here and make the base stream-timing path a no-op for suppressed invocations, or override it consistently in every suppressed class.",
+      "created": "2026-10-08T19:23:40Z",
+      "hunk": "@@ -101,7 +130,13 @@ def __init__(\n         conversation_id: str | None = None,\n         content_capturing_mode: ContentCapturingMode | None = None,\n         start_span: bool = True,\n+        context_key: str | None = None,\n+        dataclass_class_object: Callable[[], _ContextData] | None = None,\n     ) -> None:\n+        self._context_key: str | None = context_key\n+        self._dataclass_class_object: Callable[[], _ContextData] | None = (\n+            dataclass_class_object\n+        )",
+      "id": "PRRT_kwDOSbspP86qhOse",
+      "opened": "2026-10-08T19:23:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "967b9f807ea6610dedaf46fe8db7e46c6dc8d884",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4223226258"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Enrichment can fill `data_source_id`, provider, request model, and server fields from the suppressed retrieval, but none are applied to the span at finish. Thus an outer retrieval created without these optional values silently drops the inner values even though its metrics use some of them. Add all enriched non-content fields to the finish attributes.",
+      "created": "2026-10-08T19:23:40Z",
+      "hunk": "@@ -141,10 +248,74 @@ def _get_content_attributes_for_span(self) -> dict[str, AttributeValue]:\n     def _apply_finish(self, error: Error | None = None) -> None:\n         if error is not None:\n             self._apply_error_attributes(error)\n+        ctx_data = get_value(RETRIEVAL_CONTEXT_KEY, context=self._span_context)\n+        if isinstance(ctx_data, RetrievalData):\n+            self.enrich_from_context(ctx_data)",
+      "id": "PRRT_kwDOSbspP86qhOtF",
+      "opened": "2026-10-08T19:23:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_retrieval_invocation.py",
+      "replies": [],
+      "reviewed": "967b9f807ea6610dedaf46fe8db7e46c6dc8d884",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4223226321"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A suppressed inner tool's `tool_type` is merged into `self.data`, but finish-time span attributes omit it. When the outer tool did not specify a type, the propagated `gen_ai.tool.type` is therefore lost; include it alongside the other enriched tool fields.",
+      "created": "2026-10-08T19:23:41Z",
+      "hunk": "@@ -99,48 +137,112 @@ def __init__(\n             context=context,\n             _attach_to_context=_attach_to_context,\n             content_capturing_mode=content_capturing_mode,\n+            start_span=start_span,\n+            attributes=self.data.attributes,\n+            metric_attributes=self.data.metric_attributes,\n+            context_key=TOOL_CONTEXT_KEY,\n+            dataclass_class_object=ToolData,\n         )\n         self._name: str = name\n-        self.tool_result: AnyValue | None = None\n-        # Since arguments and tool_result can be expensive to serialize,\n-        # it's recommended to check the content capture flag in the\n-        # instrumentation library before assigning these attributes\n-        # to the invocation.\n-        self.arguments: AnyValue | None = None\n-        self.tool_call_id: str | None = tool_call_id\n-        self.tool_description: str | None = tool_description\n         self._tool_type: str | None = tool_type\n         self._agent_name: str | None = agent_name\n+        self.data.attributes = self.attributes\n+        self.data.metric_attributes = self.metric_attributes\n+\n+    @property\n+    def name(self) -> str | None:\n+        return self.data.tool_name\n+\n+    @property\n+    def tool_type(self) -> str | None:\n+        return self.data.tool_type\n+\n+    @property\n+    def agent_name(self) -> str | None:\n+        return self.data.agent_name\n+\n+    @property\n+    def tool_call_id(self) -> str | None:\n+        return self.data.tool_call_id\n+\n+    @tool_call_id.setter\n+    def tool_call_id(self, value: str | None) -> None:\n+        self.data.tool_call_id = value\n+\n+    @property\n+    def tool_description(self) -> str | None:\n+        return self.data.tool_description\n+\n+    @tool_description.setter\n+    def tool_description(self, value: str | None) -> None:\n+        self.data.tool_description = value\n+\n+    @property\n+    def arguments(self) -> AnyValue | None:\n+        return self.data.tool_call_arguments\n+\n+    @arguments.setter\n+    def arguments(self, value: AnyValue | None) -> None:\n+        self.data.tool_call_arguments = value\n+\n+    @property\n+    def tool_result(self) -> AnyValue | None:\n+        return self.data.tool_call_result\n+\n+    @tool_result.setter\n+    def tool_result(self, value: AnyValue | None) -> None:\n+        self.data.tool_call_result = value\n+\n+    def enrich_from_context(self, data: ToolData) -> None:\n+        \"\"\"Enrich invocation attributes from context data published by inner invocations.\n+\n+        Outer (root) attributes take precedence over inner values. Inner\n+        invocations never override content capture fields.\n+        \"\"\"\n+        tool_call_arguments = self.data.tool_call_arguments\n+        tool_call_result = self.data.tool_call_result\n+\n+        self.data.merge(data, overwrite=False)\n+\n+        self.data.tool_call_arguments = tool_call_arguments\n+        self.data.tool_call_result = tool_call_result\n \n     def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n         attrs: dict[str, AttributeValue] = {\n-            GenAI.GEN_AI_TOOL_NAME: self._name,\n+            GenAI.GEN_AI_TOOL_NAME: self.data.tool_name or self._name,\n         }\n-        if self._tool_type is not None:\n-            attrs[GenAI.GEN_AI_TOOL_TYPE] = self._tool_type\n-        if self._agent_name is not None:\n-            attrs[GenAI.GEN_AI_AGENT_NAME] = self._agent_name\n+        if self.data.tool_type is not None:\n+            attrs[GenAI.GEN_AI_TOOL_TYPE] = self.data.tool_type\n+        if self.data.agent_name is not None:\n+            attrs[GenAI.GEN_AI_AGENT_NAME] = self.data.agent_name\n         attrs.update(self.metric_attributes)\n         return attrs\n \n     def _apply_finish(self, error: Error | None = None) -> None:\n         if error is not None:\n             self._apply_error_attributes(error)\n+        ctx_data = get_value(TOOL_CONTEXT_KEY, context=self._span_context)\n+        if isinstance(ctx_data, ToolData):\n+            self.enrich_from_context(ctx_data)",
+      "id": "PRRT_kwDOSbspP86qhOtl",
+      "opened": "2026-10-08T19:23:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [],
+      "reviewed": "967b9f807ea6610dedaf46fe8db7e46c6dc8d884",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4223226375"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If the outer workflow has no name and a suppressed inner workflow supplies one, this merge updates `self.data.workflow_name`, but `_apply_finish` never writes it to the span. The metric gets the enriched name while the span does not; add the workflow-name attribute at finish.",
+      "created": "2026-10-08T19:23:41Z",
+      "hunk": "@@ -98,17 +181,23 @@ def _get_messages_for_span(self) -> dict[str, AttributeValue]:\n \n     def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n         attrs: dict[str, AttributeValue] = {}\n-        if self._name is not None:\n-            attrs[GenAI.GEN_AI_WORKFLOW_NAME] = self._name\n+        if self.data.workflow_name is not None:\n+            attrs[GenAI.GEN_AI_WORKFLOW_NAME] = self.data.workflow_name\n         attrs.update(self.metric_attributes)\n         return attrs\n \n     def _apply_finish(self, error: Error | None = None) -> None:\n-        attributes: dict[str, AttributeValue] = self._get_messages_for_span()\n-        if self.conversation_id is not None:\n-            attributes[GenAI.GEN_AI_CONVERSATION_ID] = self.conversation_id\n         if error is not None:\n             self._apply_error_attributes(error)\n+        ctx_data = get_value(WORKFLOW_CONTEXT_KEY, context=self._span_context)\n+        if isinstance(ctx_data, WorkflowData):\n+            self.enrich_from_context(ctx_data)\n+        self.data.attributes = self.attributes\n+        self.data.metric_attributes = self.metric_attributes\n+        attributes: dict[str, AttributeValue] = self._get_messages_for_span()\n+        conv_id = self.conversation_id or self.data.conversation_id\n+        if conv_id is not None:\n+            attributes[GenAI.GEN_AI_CONVERSATION_ID] = conv_id",
+      "id": "PRRT_kwDOSbspP86qhOuB",
+      "opened": "2026-10-08T19:23:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_workflow_invocation.py",
+      "replies": [],
+      "reviewed": "967b9f807ea6610dedaf46fe8db7e46c6dc8d884",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4223226421"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These new context keys and data classes are public API, but the package README does not document their purpose or how instrumentation authors should use them. Add public API documentation for context propagation and suppression so consumers do not have to infer the contract from private implementation modules.",
+      "created": "2026-10-08T19:23:41Z",
+      "hunk": "@@ -36,23 +44,47 @@\n     Error,\n     GenAIInvocation,\n )\n-from opentelemetry.util.genai._retrieval_invocation import RetrievalInvocation\n-from opentelemetry.util.genai._tool_invocation import ToolInvocation\n-from opentelemetry.util.genai._workflow_invocation import WorkflowInvocation\n+from opentelemetry.util.genai._retrieval_invocation import (\n+    RETRIEVAL_CONTEXT_KEY,\n+    RetrievalData,\n+    RetrievalInvocation,\n+)\n+from opentelemetry.util.genai._tool_invocation import (\n+    TOOL_CONTEXT_KEY,\n+    ToolData,\n+    ToolInvocation,\n+)\n+from opentelemetry.util.genai._workflow_invocation import (\n+    WORKFLOW_CONTEXT_KEY,\n+    WorkflowData,\n+    WorkflowInvocation,\n+)\n \n __all__ = [\n+    \"AGENT_CONTEXT_KEY\",\n     \"CLIENT_INFERENCE_CONTEXT_KEY\",\n+    \"EMBEDDING_CONTEXT_KEY\",\n+    \"FETCH_RESPONSE_CONTEXT_KEY\",\n+    \"RETRIEVAL_CONTEXT_KEY\",\n+    \"TOOL_CONTEXT_KEY\",\n+    \"WORKFLOW_CONTEXT_KEY\",\n+    \"AgentData\",\n     \"AgentInvocation\",\n     \"ContextToken\",\n+    \"EmbeddingData\",\n     \"EmbeddingInvocation\",",
+      "id": "PRRT_kwDOSbspP86qhOuf",
+      "opened": "2026-10-08T19:23:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/invocation.py",
+      "replies": [],
+      "reviewed": "967b9f807ea6610dedaf46fe8db7e46c6dc8d884",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4223226474"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "A nested agent inherits the outer tool context, so `tool(\"search\") → agent → tool(\"search\")` suppresses a separate tool call. Could we clear `TOOL_CONTEXT_KEY` in the context used to start local and remote agent invocations? Add a regression test asserting all three spans exist and the inner tool is parented to the agent.",
+      "created": "2026-10-11T04:05:29Z",
+      "hunk": "@@ -364,7 +408,14 @@ def tool(\n         Recommended to set ``invocation.arguments`` and ``invocation.tool_result`` on the\n         invocation object but only if `invocation.should_capture_content` is True.\n         \"\"\"\n-        return ToolInvocation(\n+        ctx_data = get_value(TOOL_CONTEXT_KEY, context=context)\n+        is_suppressed = isinstance(ctx_data, ToolData) and (\n+            ctx_data.tool_name is None or ctx_data.tool_name == name\n+        )",
+      "id": "PRRT_kwDOSbspP86rKJTI",
+      "opened": "2026-10-11T04:11:24Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-10-12T14:13:49Z",
+          "body": "Ack added tests and cleared the tool context in the agent init code",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4249002221"
+        }
+      ],
+      "reviewed": "7d1a972bf3d529933bd81f1a59acab3cc5a8f9bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4240192917"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please follow `CLIENT_INFERENCE_CONTEXT_KEY` and `opentelemetry.genai.client.inference.context` for the new client-operation keys:\r\n\r\n| Constant | Value |\r\n|---|---|\r\n| `CLIENT_EMBEDDING_CONTEXT_KEY` | `opentelemetry.genai.client.embedding.context` |\r\n| `CLIENT_FETCH_RESPONSE_CONTEXT_KEY` | `opentelemetry.genai.client.fetch_response.context` |\r\n| `CLIENT_RETRIEVAL_CONTEXT_KEY` | `opentelemetry.genai.client.retrieval.context` |\r\n",
+      "created": "2026-10-11T04:10:03Z",
+      "hunk": "@@ -36,23 +43,44 @@\n     Error,\n     GenAIInvocation,\n )\n-from opentelemetry.util.genai._retrieval_invocation import RetrievalInvocation\n-from opentelemetry.util.genai._tool_invocation import ToolInvocation\n-from opentelemetry.util.genai._workflow_invocation import WorkflowInvocation\n+from opentelemetry.util.genai._retrieval_invocation import (\n+    RETRIEVAL_CONTEXT_KEY,\n+    RetrievalData,\n+    RetrievalInvocation,\n+)\n+from opentelemetry.util.genai._tool_invocation import (\n+    TOOL_CONTEXT_KEY,\n+    ToolData,\n+    ToolInvocation,\n+)\n+from opentelemetry.util.genai._workflow_invocation import (\n+    WorkflowData,\n+    WorkflowInvocation,\n+)\n \n __all__ = [\n     \"CLIENT_INFERENCE_CONTEXT_KEY\",\n+    \"EMBEDDING_CONTEXT_KEY\",\n+    \"FETCH_RESPONSE_CONTEXT_KEY\",\n+    \"RETRIEVAL_CONTEXT_KEY\",",
+      "id": "PRRT_kwDOSbspP86rKMVS",
+      "opened": "2026-10-11T04:11:24Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-12T13:56:37Z",
+          "body": "Ack.. resolved",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4248830550"
+        }
+      ],
+      "reviewed": "7d1a972bf3d529933bd81f1a59acab3cc5a8f9bc",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4240210226"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`WorkflowInvocation` has the same agent-as-tool problem (`tool(\"x\") -> workflow -> tool(\"x\")`). \r\n\r\nCould we have a rule that we don't suppress unless it's an immediate parent. E.g. \r\n\r\n```\r\n- layer A - sets context for A \r\n   - layer B - removes context for A, set context for B\r\n      - layer A - fine, sets context for A, removes context for B\r\n         - layer A again - suppressed\r\n           - layer B again - not suppressed\r\n```\r\n\r\nThis way we have generic approach and never need to update / decide when to suppress what. \r\n\r\nAlternative shortcut: we can limit suppression to client operations for now (inference, embeddings, fetch response, etc), etc since duplicate instrumentation on agent framework level are quite uncommon. Same with tools - if model client make a call, then outer agent framework would not see it at all and won't be able to instrument it too, no need to suppress them (at least for now)",
+      "created": "2026-10-15T20:03:40Z",
+      "hunk": "@@ -76,6 +124,18 @@ def __init__(\n                 )\n                 if v is not None\n             }\n+        if data is None:\n+            data = AgentData(\n+                agent_name=agent_name,\n+                request_model=request_model,\n+                conversation_id=conversation_id,\n+                input_messages=[],\n+                output_messages=[],\n+                system_instructions=[],\n+            )\n+        self.data: AgentData = data\n+        # Clear tool context across agent boundary to avoid suppressing non-duplicate spans.\n+        context = set_value(TOOL_CONTEXT_KEY, None, context=context)",
+      "id": "PRRT_kwDOSbspP86s8i_h",
+      "opened": "2026-10-15T20:55:58Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-16T13:18:57Z",
+          "body": "Ok i'm fine disabling it for tools for now.. I've gotten rid of it, so now theres only suppression for: Inference / Embedding / Fetch Response / Retrieval",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4295074607"
+        }
+      ],
+      "reviewed": "5896ade7f848c4760f7c3ffe6431f66b013e7e6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4287716128"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This ignores `FetchResponseData.capture_content` / `upload_completion` and always passes `NO_CONTENT` and a no-op hook, so the flags inherited from `_ContextData` do nothing here. `enrich_from_context` also always drops inner content. Could we gate both on the context flags like `SuppressedInferenceInvocation` does? Pulling that logic into a shared helper would keep the suppressed classes consistent.",
+      "created": "2026-10-15T20:53:31Z",
+      "hunk": "@@ -194,3 +374,70 @@ def _apply_finish(self, error: Error | None = None) -> None:\n             system_instruction=self.system_instruction,\n             tool_definitions=self.tool_definitions,\n         )\n+\n+\n+class SuppressedFetchResponseInvocation(FetchResponseInvocation):\n+    \"\"\"Represents a fetch response invocation running inside an active fetch response context.\n+\n+    Suppresses span creation and metrics. On stop or fail, publishes its\n+    attributes to the active fetch response context.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        tracer: Tracer,\n+        instruments: _Instruments,\n+        logger: Logger,\n+        completion_hook: CompletionHook,\n+        provider: str,\n+        *,\n+        response_id: str,\n+        request_stream: bool | None = None,\n+        server_address: str | None = None,\n+        server_port: int | None = None,\n+        error_type_resolver: ErrorTypeResolver | None = None,\n+        content_capturing_mode: ContentCapturingMode | None = None,\n+        context: Context | None = None,\n+        _attach_to_context: bool = True,\n+    ) -> None:\n+        super().__init__(\n+            tracer,\n+            instruments,\n+            logger,\n+            _NoOpCompletionHook(),\n+            provider,\n+            response_id=response_id,\n+            request_stream=request_stream,\n+            server_address=server_address,\n+            server_port=server_port,\n+            error_type_resolver=error_type_resolver,\n+            content_capturing_mode=ContentCapturingMode.NO_CONTENT,",
+      "id": "PRRT_kwDOSbspP86s9nWL",
+      "opened": "2026-10-15T20:55:58Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_fetch_response_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-16T13:52:10Z",
+          "body": "Ack added shared helpers that are called from all the invocations that support suppression..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4295384264"
+        }
+      ],
+      "reviewed": "5896ade7f848c4760f7c3ffe6431f66b013e7e6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4288168256"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Same as fetch response: `RetrievalData.capture_content` is ignored here (always `NO_CONTENT`), and `enrich_from_context` always drops inner `query_text` / `documents`.",
+      "created": "2026-10-15T20:53:33Z",
+      "hunk": "@@ -141,10 +250,89 @@ def _get_content_attributes_for_span(self) -> dict[str, AttributeValue]:\n     def _apply_finish(self, error: Error | None = None) -> None:\n         if error is not None:\n             self._apply_error_attributes(error)\n-        attributes: dict[str, AttributeValue] = {}\n-        if self.top_k is not None:\n-            attributes[_GEN_AI_RETRIEVAL_TOP_K] = int(self.top_k)\n+        ctx_data = get_value(\n+            CLIENT_RETRIEVAL_CONTEXT_KEY, context=self._span_context\n+        )\n+        if isinstance(ctx_data, RetrievalData):\n+            self.enrich_from_context(ctx_data)\n+        self.data.attributes = self.attributes\n+        self.data.metric_attributes = self.metric_attributes\n+        optional_attrs: tuple[tuple[str, AttributeValue | None], ...] = (\n+            (GenAI.GEN_AI_DATA_SOURCE_ID, self.data.data_source_id),\n+            (GenAI.GEN_AI_PROVIDER_NAME, self.data.provider_name),\n+            (GenAI.GEN_AI_REQUEST_MODEL, self.data.request_model),\n+            (server_attributes.SERVER_ADDRESS, self.data.server_address),\n+            (server_attributes.SERVER_PORT, self.data.server_port),\n+            (\n+                _GEN_AI_RETRIEVAL_TOP_K,\n+                int(self.data.retrieval_top_k)\n+                if self.data.retrieval_top_k is not None\n+                else None,\n+            ),\n+        )\n+        attributes: dict[str, AttributeValue] = {\n+            k: v for k, v in optional_attrs if v is not None\n+        }\n         attributes.update(self._get_content_attributes_for_span())\n         attributes.update(self.attributes)\n         self.span.set_attributes(attributes)\n         self._record_client_metrics()\n+\n+\n+class SuppressedRetrievalInvocation(RetrievalInvocation):\n+    \"\"\"Represents a retrieval invocation running inside an active retrieval context.\n+\n+    Suppresses span creation and metrics. On stop or fail, publishes its\n+    attributes to the active retrieval context.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        tracer: Tracer,\n+        instruments: _Instruments,\n+        logger: Logger,\n+        completion_hook: CompletionHook,\n+        *,\n+        data_source_id: str | None = None,\n+        provider: str | None = None,\n+        request_model: str | None = None,\n+        server_address: str | None = None,\n+        server_port: int | None = None,\n+        content_capturing_mode: ContentCapturingMode | None = None,\n+        context: Context | None = None,\n+        _attach_to_context: bool = True,\n+    ) -> None:\n+        super().__init__(\n+            tracer,\n+            instruments,\n+            logger,\n+            _NoOpCompletionHook(),\n+            data_source_id=data_source_id,\n+            provider=provider,\n+            request_model=request_model,\n+            server_address=server_address,\n+            server_port=server_port,\n+            content_capturing_mode=ContentCapturingMode.NO_CONTENT,",
+      "id": "PRRT_kwDOSbspP86s9nX2",
+      "opened": "2026-10-15T20:55:58Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_retrieval_invocation.py",
+      "replies": [],
+      "reviewed": "5896ade7f848c4760f7c3ffe6431f66b013e7e6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4288168457"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Same as fetch response: `ToolData.capture_content` is ignored here (always `NO_CONTENT`), and `enrich_from_context` always drops inner `arguments` / `tool_result`.",
+      "created": "2026-10-15T20:53:35Z",
+      "hunk": "@@ -153,3 +252,60 @@ def _record_metrics(self) -> None:\n \n     def _on_stream_chunk(self, chunk_at: float) -> None:\n         \"\"\"A streamed tool result only scopes context; the conventions define no chunk timing metrics for tools.\"\"\"\n+\n+\n+class SuppressedToolInvocation(ToolInvocation):\n+    \"\"\"Represents a tool invocation running inside an active tool context.\n+\n+    Suppresses span creation and metrics. On stop or fail, publishes its\n+    attributes to the active tool context.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        tracer: Tracer,\n+        instruments: _Instruments,\n+        logger: Logger,\n+        completion_hook: CompletionHook,\n+        name: str,\n+        *,\n+        tool_type: str | None = None,\n+        agent_name: str | None = None,\n+        tool_call_id: str | None = None,\n+        tool_description: str | None = None,\n+        content_capturing_mode: ContentCapturingMode | None = None,\n+        context: Context | None = None,\n+        _attach_to_context: bool = True,\n+    ) -> None:\n+        super().__init__(\n+            tracer,\n+            instruments,\n+            logger,\n+            _NoOpCompletionHook(),\n+            name,\n+            tool_type=tool_type,\n+            agent_name=agent_name,\n+            tool_call_id=tool_call_id,\n+            tool_description=tool_description,\n+            content_capturing_mode=ContentCapturingMode.NO_CONTENT,",
+      "id": "PRRT_kwDOSbspP86s9nZ9",
+      "opened": "2026-10-15T20:55:58Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [],
+      "reviewed": "5896ade7f848c4760f7c3ffe6431f66b013e7e6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4288168677"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Sorry, my earlier suggestion to mirror `SuppressedInferenceInvocation` carried over an issue it already has: when the outer sets both `capture_content` and `upload_completion`, the inner uploads here, then the outer enriches from context and uploads the same content again.\r\n\r\nCould we never call completion hook in suppressed invocations and have a test validating hook is called once by outer? ",
+      "created": "2026-10-16T15:48:20Z",
+      "hunk": "@@ -194,3 +385,99 @@ def _apply_finish(self, error: Error | None = None) -> None:\n             system_instruction=self.system_instruction,\n             tool_definitions=self.tool_definitions,\n         )\n+\n+\n+class SuppressedFetchResponseInvocation(FetchResponseInvocation):\n+    \"\"\"Represents a fetch response invocation running inside an active fetch response context.\n+\n+    Suppresses span creation and metrics. On stop or fail, publishes its\n+    attributes to the active fetch response context.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        tracer: Tracer,\n+        instruments: _Instruments,\n+        logger: Logger,\n+        completion_hook: CompletionHook,\n+        provider: str,\n+        *,\n+        response_id: str,\n+        request_stream: bool | None = None,\n+        server_address: str | None = None,\n+        server_port: int | None = None,\n+        error_type_resolver: ErrorTypeResolver | None = None,\n+        content_capturing_mode: ContentCapturingMode | None = None,\n+        context: Context | None = None,\n+        _attach_to_context: bool = True,\n+    ) -> None:\n+        ctx_data = get_value(\n+            CLIENT_FETCH_RESPONSE_CONTEXT_KEY, context=context\n+        )\n+        (\n+            self._capture_content_to_context,\n+            self._upload_completion,\n+            effective_content_mode,\n+            effective_completion_hook,\n+        ) = _resolve_suppressed_content_and_hook(\n+            ctx_data, content_capturing_mode, completion_hook\n+        )\n+\n+        super().__init__(\n+            tracer,\n+            instruments,\n+            logger,\n+            effective_completion_hook,\n+            provider,\n+            response_id=response_id,\n+            request_stream=request_stream,\n+            server_address=server_address,\n+            server_port=server_port,\n+            error_type_resolver=error_type_resolver,\n+            content_capturing_mode=effective_content_mode,\n+            start_span=False,\n+            context=context,\n+            _attach_to_context=_attach_to_context,\n+        )\n+\n+    def _on_stream_chunk(self, chunk_at: float) -> None:\n+        super()._on_stream_chunk(chunk_at)\n+        self.data.request_stream = True\n+\n+    def publish_to_context(self, data: FetchResponseData) -> None:\n+        \"\"\"Publish invocation attributes to the active fetch response context.\"\"\"\n+        self.data.attributes = self.attributes\n+        self.data.metric_attributes = self.metric_attributes\n+        if self._request_stream is not None:\n+            self.data.request_stream = self._request_stream\n+\n+        # Prevent inner content from merging into context when content capture is off,\n+        # such as when messages were populated only for completion hook upload.\n+        if not self._capture_content_to_context:\n+            self.data.output_messages = None\n+            self.data.system_instructions = None\n+            self.data.tool_definitions = None\n+\n+        data.merge(self.data, overwrite=True)\n+\n+    def _finish(self, error: Error | None = None) -> None:\n+        if self._finished:\n+            return\n+        self._finished = True\n+\n+        if self._upload_completion:",
+      "id": "PRRT_kwDOSbspP86tRdt2",
+      "opened": "2026-10-16T16:14:57Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_fetch_response_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-16T21:56:15Z",
+          "body": "ADK wants us to do the completion hook stuff.. so i want inner to be able to do it.. But for instrumentations within this repo we dont want that, so in publish to context we should make sure capture content and upload hook are always set to false.. i will add a test which ensures that",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4299723877"
+        },
+        {
+          "at": "2026-10-19T13:38:26Z",
+          "body": "Yeah I confirmed that within this repo these vars are always set to false..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4314482549"
+        }
+      ],
+      "reviewed": "b4f212ddbff67bb3076a024296b935e06d8c7eb1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4296516311"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "New public `data` kwarg with no caller now that tool suppression is gone. When passed, `name`/`tool_type`/`agent_name`/`tool_call_id`/`tool_description` are silently ignored for `self.data`. Could we drop it until something needs it?",
+      "created": "2026-10-16T15:48:20Z",
+      "hunk": "@@ -59,6 +80,7 @@ def __init__(\n         content_capturing_mode: ContentCapturingMode | None = None,\n         context: Context | None = None,\n         _attach_to_context: bool = True,\n+        data: ToolData | None = None,",
+      "id": "PRRT_kwDOSbspP86tRdt9",
+      "opened": "2026-10-16T16:14:57Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-19T13:51:16Z",
+          "body": "Ack dropped",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4314613688"
+        }
+      ],
+      "reviewed": "b4f212ddbff67bb3076a024296b935e06d8c7eb1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4296516326"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`ToolData` (like `AgentData` / `WorkflowData`) no longer backs a context key, but it's exported and inherits `capture_content` / `upload_completion`, which do nothing for it. Once released these are hard to take back. Could we keep these three unexported (or not derive them from `_ContextData`) until suppression supports them?",
+      "created": "2026-10-16T15:48:21Z",
+      "hunk": "@@ -36,23 +43,42 @@\n     Error,\n     GenAIInvocation,\n )\n-from opentelemetry.util.genai._retrieval_invocation import RetrievalInvocation\n-from opentelemetry.util.genai._tool_invocation import ToolInvocation\n-from opentelemetry.util.genai._workflow_invocation import WorkflowInvocation\n+from opentelemetry.util.genai._retrieval_invocation import (\n+    CLIENT_RETRIEVAL_CONTEXT_KEY,\n+    RetrievalData,\n+    RetrievalInvocation,\n+)\n+from opentelemetry.util.genai._tool_invocation import (\n+    ToolData,",
+      "id": "PRRT_kwDOSbspP86tRduA",
+      "opened": "2026-10-16T16:14:57Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-19T13:51:49Z",
+          "body": "Ack dropped and dont derive them from _ContextData",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4314619601"
+        }
+      ],
+      "reviewed": "b4f212ddbff67bb3076a024296b935e06d8c7eb1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4296516332"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not-blocking, ok to followup, but this made me think:\n\ndo we need data to be public? Nothing outside of Invocation should deal with data, external instrumentation would set the data object on context, but never need to access it on invocation, so the proposal is to make it internal to invocation. ",
+      "created": "2026-10-16T16:14:52Z",
+      "hunk": "@@ -59,6 +80,7 @@ def __init__(\n         content_capturing_mode: ContentCapturingMode | None = None,\n         context: Context | None = None,\n         _attach_to_context: bool = True,\n+        data: ToolData | None = None,",
+      "id": "PRRT_kwDOSbspP86tSDkO",
+      "opened": "2026-10-16T16:14:57Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-19T13:52:03Z",
+          "body": "Ack no longer public",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4314621763"
+        }
+      ],
+      "reviewed": "b4f212ddbff67bb3076a024296b935e06d8c7eb1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4296765184"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`inv.data` is still a public attribute here and on the embedding / fetch response / retrieval / tool / workflow invocations, so `AgentData` etc. leak out through it even though they're unexported. Could we rename it to `_data`",
+      "created": "2026-10-20T01:28:02Z",
+      "hunk": "@@ -76,6 +122,16 @@ def __init__(\n                 )\n                 if v is not None\n             }\n+        if _data is None:\n+            _data = AgentData(\n+                agent_name=agent_name,\n+                request_model=request_model,\n+                conversation_id=conversation_id,\n+                input_messages=[],\n+                output_messages=[],\n+                system_instructions=[],\n+            )\n+        self.data: AgentData = _data",
+      "id": "PRRT_kwDOSbspP86uKo2Q",
+      "opened": "2026-10-20T01:31:00Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [
+        {
+          "at": "2026-10-20T15:14:57Z",
+          "body": "Ack renamed it everywhere",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4326671736"
+        }
+      ],
+      "reviewed": "6b4125f366c44998cb438d1e25a74b4d73558d81",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/859#discussion_r4320566641"
+    }
+  ]
+}

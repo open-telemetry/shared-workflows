@@ -1,0 +1,62 @@
+{
+  "head": "446aef84f57d198c3275a6bad0785c81347c232b",
+  "merge": "58763007748f9b2b65bf1e494a25787ae371a40f",
+  "merged": "2026-06-09T22:48:23Z",
+  "missing_roots": 0,
+  "number": 18927,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These new DDL cases are used by simplifySql() in both stable-semconv and old-semconv test runs. In the old-semconv path (emitStableDatabaseSemconv()==false), AutoSqlSanitizer derives operationName as \"CREATE <operationTarget>\" / \"ALTER <operationTarget>\" (preserving the original token case) and only sets collectionName for TABLE when operationTarget is exactly \"TABLE\". With lowercase `table`, the old sanitizer will therefore return operationName \"CREATE table\" (or \"ALTER table\") and a null collectionName, so the current expected values (\"CREATE\" + \"users\") won't match old-semconv behavior.",
+      "created": "2026-06-07T04:56:38Z",
+      "hunk": "@@ -1021,13 +1021,27 @@ private static Stream<Arguments> ddlArgs() {\n                 \"CREATE TABLE\",\n                 \"users\",\n                 \"CREATE TABLE users\")),\n+        Arguments.of(\n+            \"create table users (password VARCHAR(255))\",\n+            expect(\n+                \"create table users (password VARCHAR(?))\",\n+                \"CREATE\",\n+                \"users\",\n+                \"CREATE table users\")),",
+      "id": "PRRT_kwDODJKVX86HoOmE",
+      "opened": "2026-06-07T04:56:38Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+      "replies": [
+        {
+          "at": "2026-06-07T05:35:19Z",
+          "body": "pending https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18927#discussion_r3368811583"
+        },
+        {
+          "at": "2026-06-09T13:16:18Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/ab2782aeb436409c26b23cacd17023ed7ec1bb0b.\n\nUpdated the old SQL sanitizer to treat DDL targets case-insensitively, so lowercase `create table` captures the table name and keeps `PASSWORD` as an identifier in `VARCHAR(...)`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18927#discussion_r3380889097"
+        }
+      ],
+      "reviewed": "dfe90dfbf003013bccf31cf8da00d17957f2fa95",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18927#discussion_r3368777528"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same as above for lowercase ALTER TABLE: in the old-semconv path, AutoSqlSanitizer will produce operationName \"ALTER table\" (target case preserved) and will not capture the table name into collectionName when the operationTarget is \"table\" (not exactly \"TABLE\"). The expected values should match that behavior (or the old sanitizer should be updated separately).",
+      "created": "2026-06-07T04:56:38Z",
+      "hunk": "@@ -1021,13 +1021,27 @@ private static Stream<Arguments> ddlArgs() {\n                 \"CREATE TABLE\",\n                 \"users\",\n                 \"CREATE TABLE users\")),\n+        Arguments.of(\n+            \"create table users (password VARCHAR(255))\",\n+            expect(\n+                \"create table users (password VARCHAR(?))\",\n+                \"CREATE\",\n+                \"users\",\n+                \"CREATE table users\")),\n         Arguments.of(\n             \"ALTER TABLE users ADD COLUMN password VARCHAR(255)\",\n             expect(\n                 \"ALTER TABLE users ADD COLUMN password VARCHAR(?)\",\n                 \"ALTER TABLE\",\n                 \"users\",\n                 \"ALTER TABLE users\")),\n+        Arguments.of(\n+            \"alter table users ADD COLUMN password VARCHAR(255)\",\n+            expect(\n+                \"alter table users ADD COLUMN password VARCHAR(?)\",\n+                \"ALTER\",\n+                \"users\",\n+                \"ALTER table users\")),",
+      "id": "PRRT_kwDODJKVX86HoOmP",
+      "opened": "2026-06-07T04:56:38Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQueryAnalyzerTest.java",
+      "replies": [
+        {
+          "at": "2026-06-07T05:35:22Z",
+          "body": "pending https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18927#discussion_r3368811634"
+        },
+        {
+          "at": "2026-06-09T13:16:20Z",
+          "body": "Fixed in https://github.com/trask/opentelemetry-java-instrumentation/commit/ab2782aeb436409c26b23cacd17023ed7ec1bb0b.\n\nUpdated the old SQL sanitizer to treat DDL targets case-insensitively, so lowercase `alter table` captures the table name and keeps `PASSWORD` as an identifier in `VARCHAR(...)`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18927#discussion_r3380889345"
+        }
+      ],
+      "reviewed": "dfe90dfbf003013bccf31cf8da00d17957f2fa95",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18927#discussion_r3368777541"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "head": "edec30ad71c43452d3366dca8db9fd84d24d9738",
+  "merge": "2c5f04c76732cc38ef5aa30babd4a9553d68d8f7",
+  "merged": "2026-10-15T08:13:28Z",
+  "missing_roots": 0,
+  "number": 20551,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot this doesn't follow the normal pattern",
+      "created": "2026-10-13T00:34:38Z",
+      "hunk": "@@ -186,7 +186,9 @@ void testSendDynamoDbRequestWithRetries() {\n                                   equalTo(RPC_SYSTEM, \"aws-api\"),\n                                   equalTo(RPC_SERVICE, service),\n                                   equalTo(RPC_METHOD, operation),\n-                                  equalTo(stringKey(\"aws.agent\"), \"java-aws-sdk\"),\n+                                  equalTo(\n+                                      stringKey(\"aws.agent\"),\n+                                      AbstractAws2ClientCoreTest.experimental(\"java-aws-sdk\")),",
+      "id": "PRRT_kwDODJKVX86rqqXy",
+      "opened": "2026-10-13T00:34:38Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2ClientRecordHttpErrorTest.java",
+      "replies": [
+        {
+          "at": "2026-10-13T00:43:10Z",
+          "body": "Updated to the standard static-import pattern in ac2e98ed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20551#discussion_r4253616086"
+        }
+      ],
+      "reviewed": "3a085bf0673e773b75354b3f666c9b12c669baa2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20551#discussion_r4253568437"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please refactor the experimental-span-attribute test setup in both AWS SDK testing modules so the expectations and instrumentation use the same explicit flag, rather than inferring configuration from `testing() instanceof AgentInstrumentationExtension`.\n\nUse one shared `EXPERIMENTAL_ATTRIBUTES` constant per AWS SDK testing module, read once from `otel.instrumentation.aws-sdk.experimental-span-attributes`, and keep the conventional `experimental(value)` helper backed by that constant. Share this flag/helper across the affected abstract test bases, remove `captureExperimentalSpanAttributes()` and the repeated library-autoconfigure overrides, and remove imports made unused by this refactor.\n\nUpdate the manually configured library test builders to use `.setCaptureExperimentalSpanAttributes(EXPERIMENTAL_ATTRIBUTES)` instead of hard-coded `true`. Set the property to `true` in their Gradle test tasks to preserve their current opt-in behavior. Preserve the existing default-off and flag-on behavior of javaagent and library-autoconfigure test profiles; keep this focused on the refactor rather than adding a new test matrix.",
+      "created": "2026-10-13T01:29:54Z",
+      "hunk": "@@ -49,6 +50,15 @@ public abstract class AbstractBaseAwsClientTest {\n   protected final MockWebServerExtension server = new MockWebServerExtension();\n   protected AwsClientBuilder.EndpointConfiguration endpoint;\n \n+  protected String experimental(String value) {\n+    return captureExperimentalSpanAttributes() ? value : null;\n+  }\n+\n+  protected boolean captureExperimentalSpanAttributes() {",
+      "id": "PRRT_kwDODJKVX86rrUb3",
+      "opened": "2026-10-13T01:29:54Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractBaseAwsClientTest.java",
+      "replies": [
+        {
+          "at": "2026-10-13T01:53:13Z",
+          "body": "Addressed in 398f8241. Both testing modules now share one property-backed `EXPERIMENTAL_ATTRIBUTES` flag and `experimental(value)` helper. Removed inference/hooks and autoconfigure overrides; library builders use the flag with explicit Gradle opt-in. Existing profiles are unchanged. Java 25 validation passed: 1,049 test cases, 29 skipped, no failures or errors.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20551#discussion_r4253951682"
+        }
+      ],
+      "reviewed": "279cb9802e1a505c4c2f53ae1c6bc7dd3419ba84",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20551#discussion_r4253847823"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot inline this",
+      "created": "2026-10-14T18:16:25Z",
+      "hunk": "@@ -199,6 +208,7 @@ void testConverseBasic() {\n                                             equalTo(GEN_AI_REQUEST_MODEL, modelId)))));\n \n     SpanContext spanCtx = getTesting().waitForTraces(1).get(0).get(0).getSpanContext();\n+    KeyValue[] emptyBody = {};",
+      "id": "PRRT_kwDODJKVX86sdPC_",
+      "opened": "2026-10-14T18:16:24Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2BedrockRuntimeTest.java",
+      "replies": [
+        {
+          "at": "2026-10-14T18:27:26Z",
+          "body": "Inlined as `Value.of(emptyMap())` in a5f8832e. Targeted formatting and `testConverseBasic` passed with message-content capture both off and on.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20551#discussion_r4274685181"
+        }
+      ],
+      "reviewed": "fc4f856abac8496e472b79e4265c82ffa0c71f46",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20551#discussion_r4274571501"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot inline this",
+      "created": "2026-10-14T18:28:42Z",
+      "hunk": "@@ -118,6 +126,7 @@ protected static void configureClient(AwsClientBuilder<?, ?> builder) {\n \n   @Test\n   void testConverseBasic() {\n+    boolean captureMessageContent = isCaptureMessageContentEnabled();",
+      "id": "PRRT_kwDODJKVX86sdiQs",
+      "opened": "2026-10-14T18:28:42Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2BedrockRuntimeTest.java",
+      "replies": [
+        {
+          "at": "2026-10-14T18:40:48Z",
+          "body": "Inlined `isCaptureMessageContentEnabled()` in both assertions in a76bd668. Targeted formatting and `testConverseBasic` passed with content capture off and on.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20551#discussion_r4274817432"
+        }
+      ],
+      "reviewed": "a5f8832e17ac845631a05290da279d4f1ab0bd70",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20551#discussion_r4274697566"
+    }
+  ]
+}

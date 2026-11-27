@@ -1,0 +1,52 @@
+{
+  "head": "c7ffefb28b880fb38799732251cda264c7540eca",
+  "merge": "7f94bc99406b35bda5397e2cf6ed53c8b5a228a6",
+  "merged": "2026-10-13T10:49:00Z",
+  "missing_roots": 0,
+  "number": 20531,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Keep the Version 2.32.0 deprecation entry when adding this removal entry. Deleting that released entry rewrites the historical changelog and removes the original PR reference; elsewhere this file retains deprecation entries after removal (for example, the Elasticsearch entries at `CHANGELOG.md:207-209` and `CHANGELOG.md:290-293`).",
+      "created": "2026-10-12T15:34:51Z",
+      "hunk": "@@ -4,6 +4,12 @@\n \n ### ⚠️ Breaking changes\n \n+- Remove bundled support for the contrib `otel.traces.sampler=linksbased_parentbased_always_on` and\n+  declarative `rule_based_routing` samplers. The links-based sampler has no replacement. For",
+      "id": "PRRT_kwDODJKVX86rhnP-",
+      "opened": "2026-10-12T15:34:52Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-12T16:37:08Z",
+          "body": "Addressed in 94f80616f4ead60e5e07e0f89b21e2284440c72e.\n\nThe finding is warranted: git diff HEAD^ HEAD at the frozen head shows deletion of the released sampler deprecation entry and its original PR reference. Candidate commit 1 restores the exact four historical lines under Version 2.32.0. Focused assertions confirm that every released section matches the pre-PR changelog and that Unreleased remains unchanged.\n\n<!-- copilot-loop:25345195b259259b9ed28adea52069c2ec6994afc01de6f29cd2e6f1cfb2e992:4249778794:49af8e4d42dc4934aff737f041ee8702 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20531#discussion_r4250306772"
+        }
+      ],
+      "reviewed": "6b5189c493e083483b05bf2b02ceec2cf47a748e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20531#discussion_r4249778794"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] @copilot Please add declarative integration coverage for the SDK incubator `composite/development` -> `rule_based` sampler in both the Java agent and Spring Boot starter. Configure a `url.path` rule with `included: [\"/actuator*\"]` selecting `always_off`, followed by an unconditional `always_on` fallback. Verify that a matching span is not sampled and a nonmatching span is sampled. Exercise each distribution's actual declarative configuration path and bundled dependencies, rather than constructing the sampler directly. The current `always_off` tests do not cover the replacement recommended in this PR's migration guidance. The SDK already tests the sampler algorithm; the missing coverage here is configuration and packaging integration.",
+      "created": "2026-10-12T17:52:02Z",
+      "hunk": "@@ -87,6 +88,16 @@ void initializeProvidersAndOpenTelemetry() {\n         });\n   }\n \n+  @Test\n+  void configuresDeclarativeSampler() {",
+      "id": "PRRT_kwDODJKVX86rkSBD",
+      "opened": "2026-10-12T17:52:02Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/testDeclarativeConfig/java/io/opentelemetry/instrumentation/spring/autoconfigure/DeclarativeConfigTest.java",
+      "replies": [
+        {
+          "at": "2026-10-12T18:16:55Z",
+          "body": "Added both declarative integration tests and verified the Java agent and Spring Boot starter paths. The tests cover the `/actuator*` drop rule and always-on fallback. Commit: `9251b4ab`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20531#discussion_r4251067431"
+        }
+      ],
+      "reviewed": "94f80616f4ead60e5e07e0f89b21e2284440c72e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20531#discussion_r4250880679"
+    }
+  ]
+}

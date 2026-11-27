@@ -1,0 +1,31 @@
+{
+  "head": "4fe94c47100a26ec456878aebf62c40f7a498d32",
+  "merge": "422f566e935186069e89dec73b5f7664605d4f54",
+  "merged": "2026-11-06T19:33:19Z",
+  "missing_roots": 0,
+  "number": 21210,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Could we replace this new delegating mock test with coverage in `Jms3InstrumentationTest` for `JMSContext.createDurableConsumer`, `createSharedConsumer`, and `createSharedDurableConsumer`, covering the same receive variants? That class already inherits the Artemis container setup from `AbstractJms3Test`, so no new container infrastructure is needed. This would verify the actual provider delegation rather than reproducing it in mocks.\r\n\r\nThe existing non-delegating mock tests should stay. They verify the simplified-API advice independently, whereas Artemis tests can pass through classic `MessageConsumer` instrumentation.",
+      "created": "2026-11-05T16:43:21Z",
+      "hunk": "@@ -105,6 +111,50 @@ void receiveEmitsExactlyOneReceiveSpan(Function<JMSConsumer, Message> receiver)\n                             equalTo(MESSAGING_MESSAGE_ID, MESSAGE_ID))));\n   }\n \n+  // mirrors how providers implement JMSContext.createDurableConsumer and friends: the JMSConsumer\n+  // is created over a MessageConsumer obtained from the classic Session method, and delegates its\n+  // receive methods to it\n+  @SuppressWarnings(\"DirectInvocationOnMock\")\n+  @ParameterizedTest\n+  @MethodSource(\"receivers\")\n+  void receiveCapturesSubscriptionNameOfDelegateConsumer(Function<JMSConsumer, Message> receiver)",
+      "id": "PRRT_kwDODJKVX860Kvp_",
+      "opened": "2026-11-05T16:49:21Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/Jms3SimplifiedApiTest.java",
+      "replies": [
+        {
+          "at": "2026-11-06T15:33:44Z",
+          "body": "Replaced it with Artemis tests in `Jms3InstrumentationTest` for the three `JMSContext` consumer types with `receive()`, `receive(timeout)` and `receiveNoWait()`. The other mock tests are unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21210#discussion_r4494216076"
+        }
+      ],
+      "reviewed": "916fb4287aebf211dad089aedacd01075f598780",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21210#discussion_r4483245916"
+    }
+  ]
+}

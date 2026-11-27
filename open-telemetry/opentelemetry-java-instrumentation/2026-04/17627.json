@@ -1,0 +1,25 @@
+{
+  "head": "f722186fde3c4e5087942d29fb32b34784b4d869",
+  "merge": "aea42dd150389781bd4439a3f40030a9fc61af9d",
+  "merged": "2026-04-07T11:43:11Z",
+  "missing_roots": 0,
+  "number": 17627,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "feels like an overkill",
+      "created": "2026-04-07T11:43:00Z",
+      "hunk": "@@ -94,10 +94,15 @@ static void setUpAll() {\n \n   @AfterAll\n   static void tearDownAll() {\n-    if (sender != null) {\n-      sender.close();\n+    try {",
+      "id": "PRRT_kwDODJKVX855QytX",
+      "opened": "2026-04-07T11:43:00Z",
+      "path": "instrumentation/reactor/reactor-kafka-1.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/reactor/kafka/v1_0/AbstractReactorKafkaTest.java",
+      "replies": [],
+      "reviewed": "f722186fde3c4e5087942d29fb32b34784b4d869",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17627#discussion_r3044739258"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "8cd786a4f4f401225619c2465cca6d56ff70d5e8",
+  "merge": "e306271a4ab9f1ac702f8209f4dc92388a94936a",
+  "merged": "2026-05-28T15:05:12Z",
+  "missing_roots": 0,
+  "number": 205,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The line wrap splits the term \"message-part\" across two lines, which renders as \"message and message- part structure\" in Markdown. This changes the intended wording and makes the definition harder to read.\n",
+      "created": "2026-05-27T23:22:32Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+# Label Definitions\n+\n+## `area:*`\n+\n+### `area:agent`\n+\n+A single agent invocation: agent identity and configuration, the\n+agent's reasoning/planning loop, and anything scoped to the behavior\n+of one agent run.\n+\n+### `area:agent-orchestration`\n+\n+How agents, workflows, and tasks compose above the single-agent layer:\n+workflow execution, handoffs, delegation, and anything that spans more\n+than one agent invocation.\n+\n+### `area:embeddings`\n+\n+Embedding requests and their results.\n+\n+### `area:evaluation`\n+\n+Evaluation of GenAI runs: evaluator identity, evaluation runs, scores\n+and verdicts, and how evaluation results relate to the runs they\n+evaluate.\n+\n+### `area:inference`\n+\n+A single LLM call: model identity, request parameters, response and\n+finish information, and choices. Tool-call and message payloads\n+carried by an inference call belong under `area:tools` and\n+`area:messages`; apply those alongside `area:inference` when relevant.\n+\n+### `area:mcp`\n+\n+Conventions in the `mcp.*` namespace: anything MCP-specific, including\n+MCP transport, MCP tool listing and approval, and MCP-flavored\n+extensions of GenAI semantics. MCP-transport-specific tool semantics\n+belong here; generic tool-call shape belongs under `area:tools`. Apply\n+both when both apply.\n+\n+### `area:memory`\n+\n+Agent memory: memory store operations, memory record lifecycle, memory\n+search, and the memory-layer taxonomy. When a memory layer is\n+implemented over a vector store, use `area:memory` for memory-API-level\n+concerns and `area:retrieval` for the underlying vector-store\n+semantics; apply both when both apply.\n+\n+### `area:messages`\n+\n+Shape and content of input and output messages: message and message-\n+part structure, system instructions, content modalities (text, image,\n+audio, video, file), citations, reasoning content, and prompt\n+templates.",
+      "id": "PRRT_kwDOSUeMrM6FQQ7s",
+      "opened": "2026-05-27T23:22:32Z",
+      "path": ".github/LABELS.md",
+      "replies": [
+        {
+          "at": "2026-05-27T23:26:56Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/205/commits/8cd786a4f4f401225619c2465cca6d56ff70d5e8",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/205#discussion_r3314443019"
+        }
+      ],
+      "reviewed": "22574e3afc8652973b3e01e83dfe32f0f7974a31",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/205#discussion_r3314429935"
+    }
+  ]
+}

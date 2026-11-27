@@ -1,0 +1,25 @@
+{
+  "head": "795dea8741f5c33730f1d04de865d309d7365c43",
+  "merge": "afcb3d1ff6c82ab3a4b667731784b13377126907",
+  "merged": "2026-09-10T17:47:18Z",
+  "missing_roots": 0,
+  "number": 671,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The changelog fragment filename will fail the CI changelog workflow: fragments must be named \"<PR_NUMBER>.<type>\" (and the PR number must match this PR). The PR description indicates this should be \"609.added\", but the current file is \"+cache-write-modality-tokens.added\".",
+      "created": "2026-09-10T09:03:44Z",
+      "hunk": "@@ -0,0 +1 @@\n+Record `cache_write_input_tokens` and modality token breakdown attributes (`text`, `image`, `audio`) from LangChain usage metadata on `InferenceInvocation`.",
+      "id": "PRRT_kwDOSbspP86hARtT",
+      "opened": "2026-09-10T09:03:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/671.added",
+      "replies": [],
+      "reviewed": "9d7bf94126b27ccb54ac4cae63f6a537cdf95a72",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/671#discussion_r3977390451"
+    }
+  ]
+}

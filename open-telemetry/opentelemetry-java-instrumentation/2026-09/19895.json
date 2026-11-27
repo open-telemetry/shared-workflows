@@ -1,0 +1,40 @@
+{
+  "head": "b565bf8d67736540bcad2c791632938b40d0ca0a",
+  "merge": "abf167774edd12867f7fbd129154aa8ffbc73e60",
+  "merged": "2026-09-01T12:16:31Z",
+  "missing_roots": 0,
+  "number": 19895,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This only skips propagation fields that are immediately adjacent to the first one. If an ordinary or unknown field appears between two field-8888 maps, the generated processor later calls `readFieldBegin()` again, which treats the second map as a new first field, starts another span, and overwrites `currentRequest`/`currentContext`; the earlier span is still leaked. Track whether propagation has already been processed for the current message (resetting that state in `readMessageBegin`) and skip every later field-8888 map, regardless of intervening fields.",
+      "created": "2026-08-28T15:24:42Z",
+      "hunk": "@@ -87,14 +88,23 @@ public TField readFieldBegin() throws TException {\n       ThriftRequest request = new ThriftRequest(methodName, serviceName, getSocket(), headers);\n       Context parentContext = Context.current();\n       if (!instrumenter.shouldStart(parentContext, request)) {\n-        // proceed to the next field\n-        return this.readFieldBegin();\n+        return readNextField();\n       }\n       currentRequest = request;\n       currentContext = instrumenter.start(parentContext, request);\n \n-      // proceed to the next field\n-      return this.readFieldBegin();\n+      return readNextField();\n+    }\n+    return field;\n+  }\n+\n+  private TField readNextField() throws TException {\n+    TField field = super.readFieldBegin();\n+    // skip over context propagation fields\n+    while (isContextPropagationField(field)) {\n+      TProtocolUtil.skip(this, field.type);\n+      super.readFieldEnd();\n+      field = super.readFieldBegin();",
+      "id": "PRRT_kwDODJKVX86dNywK",
+      "opened": "2026-08-28T15:24:42Z",
+      "path": "instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ServerInProtocolDecorator.java",
+      "replies": [],
+      "reviewed": "e69c144bc3eff63deee62dbc2e855c68665d084d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19895#discussion_r3881806739"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Add regression coverage that feeds many repeated field-8888 maps through the decorated server protocol and verifies parsing completes without stack growth and exactly one server span is ended. Include a case with a normal/unknown field between propagation maps so the non-consecutive duplicate path is covered as well.",
+      "created": "2026-08-28T15:24:42Z",
+      "hunk": "@@ -87,14 +88,23 @@ public TField readFieldBegin() throws TException {\n       ThriftRequest request = new ThriftRequest(methodName, serviceName, getSocket(), headers);\n       Context parentContext = Context.current();\n       if (!instrumenter.shouldStart(parentContext, request)) {\n-        // proceed to the next field\n-        return this.readFieldBegin();\n+        return readNextField();\n       }\n       currentRequest = request;\n       currentContext = instrumenter.start(parentContext, request);\n \n-      // proceed to the next field\n-      return this.readFieldBegin();\n+      return readNextField();\n+    }\n+    return field;\n+  }\n+\n+  private TField readNextField() throws TException {\n+    TField field = super.readFieldBegin();\n+    // skip over context propagation fields\n+    while (isContextPropagationField(field)) {\n+      TProtocolUtil.skip(this, field.type);",
+      "id": "PRRT_kwDODJKVX86dNywq",
+      "opened": "2026-08-28T15:24:42Z",
+      "path": "instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ServerInProtocolDecorator.java",
+      "replies": [],
+      "reviewed": "e69c144bc3eff63deee62dbc2e855c68665d084d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19895#discussion_r3881806784"
+    }
+  ]
+}

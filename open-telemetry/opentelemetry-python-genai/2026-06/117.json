@@ -1,0 +1,322 @@
+{
+  "head": "5b05826bc18b329a750fa0a4c9bb6cabe3cb237b",
+  "merge": "58d41b24dd9c69c60469b78adf15c0ccd8018600",
+  "merged": "2026-06-15T15:14:55Z",
+  "missing_roots": 0,
+  "number": 117,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `get_content_capturing_mode()` docstring still references a removed/obsolete GEN_AI “stability mode DEFAULT” behavior and a `ValueError` that is no longer raised. This is now misleading for callers.",
+      "created": "2026-06-08T17:59:54Z",
+      "hunk": "@@ -22,24 +17,13 @@\n logger = logging.getLogger(__name__)\n \n \n-def is_experimental_mode() -> bool:\n-    return (\n-        _OpenTelemetrySemanticConventionStability._get_opentelemetry_stability_opt_in_mode(\n-            _OpenTelemetryStabilitySignalType.GEN_AI,\n-        )\n-        is _StabilityMode.GEN_AI_LATEST_EXPERIMENTAL\n-    )\n-\n-\n def get_content_capturing_mode() -> ContentCapturingMode:\n     \"\"\"This function should not be called when GEN_AI stability mode is set to DEFAULT.\n \n     When the GEN_AI stability mode is DEFAULT this function will raise a ValueError -- see the code below.\"\"\"",
+      "id": "PRRT_kwDOSbspP86H6zq8",
+      "opened": "2026-06-08T17:59:56Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [],
+      "reviewed": "52225d78845ae72ae5b6c30d6287b319bb232e59",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3375322844"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`get_content_capturing_mode()` calls `.strip()` on `os.environ.get(...)` without a default. When the env var is unset, `os.environ.get(...)` returns `None` and this will raise `AttributeError`, breaking the default (NO_CONTENT) behavior.",
+      "created": "2026-06-08T17:59:54Z",
+      "hunk": "@@ -22,24 +17,13 @@\n logger = logging.getLogger(__name__)\n \n \n-def is_experimental_mode() -> bool:\n-    return (\n-        _OpenTelemetrySemanticConventionStability._get_opentelemetry_stability_opt_in_mode(\n-            _OpenTelemetryStabilitySignalType.GEN_AI,\n-        )\n-        is _StabilityMode.GEN_AI_LATEST_EXPERIMENTAL\n-    )\n-\n-\n def get_content_capturing_mode() -> ContentCapturingMode:\n     \"\"\"This function should not be called when GEN_AI stability mode is set to DEFAULT.\n \n     When the GEN_AI stability mode is DEFAULT this function will raise a ValueError -- see the code below.\"\"\"\n-    envvar = os.environ.get(OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT)\n-    if not is_experimental_mode():\n-        raise ValueError(\n-            \"This function should never be called when StabilityMode is not experimental.\"\n-        )\n+    envvar = os.environ.get(\n+        OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\n+    ).strip()",
+      "id": "PRRT_kwDOSbspP86H6zqa",
+      "opened": "2026-06-08T17:59:56Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [],
+      "reviewed": "52225d78845ae72ae5b6c30d6287b319bb232e59",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3375322800"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`should_emit_event()` calls `.lower().strip()` on the result of `os.environ.get(...)` without handling the env var being unset. If `OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT` is missing, this will raise `AttributeError` and break the default behavior.",
+      "created": "2026-06-08T17:59:54Z",
+      "hunk": "@@ -65,62 +49,34 @@ def should_emit_event() -> bool:\n     - NO_CONTENT or SPAN_ONLY: defaults to False\n     - EVENT_ONLY or SPAN_AND_EVENT: defaults to True\n     \"\"\"\n-    envvar = os.environ.get(OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT)\n     # If explicitly set (and not empty), use the user's value (highest priority)\n-    if envvar and envvar.strip():\n-        envvar_lower = envvar.lower().strip()\n-        if envvar_lower == \"true\":\n+    if (\n+        envvar := os.environ.get(OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT)\n+        .lower()\n+        .strip()\n+    ):",
+      "id": "PRRT_kwDOSbspP86H6zqy",
+      "opened": "2026-06-08T17:59:56Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [],
+      "reviewed": "52225d78845ae72ae5b6c30d6287b319bb232e59",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3375322830"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`TelemetryHandler.should_capture_content()` was removed, but other instrumentations in this repo still call it (e.g., OpenAI/Anthropic patches). This is a breaking public API change that will cause runtime `AttributeError` and/or import-time failures for those instrumentations.",
+      "created": "2026-06-08T17:59:55Z",
+      "hunk": "@@ -107,30 +97,6 @@ def __init__(\n             schema_url=schema_url,\n         )\n         self._completion_hook = completion_hook or _NoOpCompletionHook()\n-        if is_experimental_mode():\n-            content_enabled = (\n-                get_content_capturing_mode() != ContentCapturingMode.NO_CONTENT\n-            )\n-        else:\n-            content_enabled = os.environ.get(\n-                OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT, \"\"\n-            ).lower() in (\n-                \"true\",\n-                \"span_only\",\n-                \"event_only\",\n-                \"span_and_event\",\n-            )\n-        self._capture_content = content_enabled or not isinstance(\n-            self._completion_hook, _NoOpCompletionHook\n-        )\n-\n-    def should_capture_content(self) -> bool:\n-        \"\"\"Returns True if content should be captured.\n-\n-        Content is captured when the content capturing mode requires it, or\n-        when a real completion hook is configured (not a no-op).\n-        \"\"\"\n-        return self._capture_content\n ",
+      "id": "PRRT_kwDOSbspP86H6zrF",
+      "opened": "2026-06-08T17:59:56Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "52225d78845ae72ae5b6c30d6287b319bb232e59",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3375322858"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test claims `OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT` is “not set”, but the patch sets it to \"false\". Since `should_emit_event()` treats any non-empty value as an explicit override, this no longer tests the default behavior.",
+      "created": "2026-06-08T17:59:55Z",
+      "hunk": "@@ -247,10 +256,12 @@ def test_does_not_emit_llm_event_when_emit_event_false(self):\n         logs = self.log_exporter.get_finished_logs()\n         self.assertEqual(len(logs), 0)\n \n-    @patch_env_vars(\n-        stability_mode=\"gen_ai_latest_experimental\",\n-        content_capturing=\"NO_CONTENT\",\n-        emit_event=\"\",\n+    @patch.dict(\n+        os.environ,\n+        {\n+            \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": \"NO_CONTENT\",\n+            \"OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT\": \"false\",\n+        },",
+      "id": "PRRT_kwDOSbspP86H6zrQ",
+      "opened": "2026-06-08T17:59:56Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils_events.py",
+      "replies": [],
+      "reviewed": "52225d78845ae72ae5b6c30d6287b319bb232e59",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3375322875"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test claims `OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT` is “not set”, but the patch sets it to \"false\". That makes the test exercise the explicit override path rather than the default derived from content mode.",
+      "created": "2026-06-08T17:59:55Z",
+      "hunk": "@@ -267,10 +278,12 @@ def test_does_not_emit_llm_event_by_default_for_no_content(self):\n         logs = self.log_exporter.get_finished_logs()\n         self.assertEqual(len(logs), 0)\n \n-    @patch_env_vars(\n-        stability_mode=\"gen_ai_latest_experimental\",\n-        content_capturing=\"SPAN_ONLY\",\n-        emit_event=\"\",\n+    @patch.dict(\n+        os.environ,\n+        {\n+            \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": \"SPAN_ONLY\",\n+            \"OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT\": \"false\",\n+        },",
+      "id": "PRRT_kwDOSbspP86H6zrc",
+      "opened": "2026-06-08T17:59:56Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils_events.py",
+      "replies": [],
+      "reviewed": "52225d78845ae72ae5b6c30d6287b319bb232e59",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3375322893"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test says `OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT` is unset, but it’s patched to \"false\". With the current precedence rules, that disables events and undermines the intent of testing the EVENT_ONLY default.",
+      "created": "2026-06-08T17:59:55Z",
+      "hunk": "@@ -287,10 +300,12 @@ def test_does_not_emit_llm_event_by_default_for_span_only(self):\n         logs = self.log_exporter.get_finished_logs()\n         self.assertEqual(len(logs), 0)\n \n-    @patch_env_vars(\n-        stability_mode=\"gen_ai_latest_experimental\",\n-        content_capturing=\"EVENT_ONLY\",\n-        emit_event=\"\",\n+    @patch.dict(\n+        os.environ,\n+        {\n+            \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": \"EVENT_ONLY\",\n+            \"OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT\": \"false\",\n+        },",
+      "id": "PRRT_kwDOSbspP86H6zri",
+      "opened": "2026-06-08T17:59:56Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils_events.py",
+      "replies": [],
+      "reviewed": "52225d78845ae72ae5b6c30d6287b319bb232e59",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3375322900"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test says `OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT` is unset, but it’s patched to \"false\". That forces the explicit override path and can prevent the expected default event emission for SPAN_AND_EVENT.",
+      "created": "2026-06-08T17:59:55Z",
+      "hunk": "@@ -311,10 +326,12 @@ def test_emits_llm_event_by_default_for_event_only(self):\n             log_record.event_name, \"gen_ai.client.inference.operation.details\"\n         )\n \n-    @patch_env_vars(\n-        stability_mode=\"gen_ai_latest_experimental\",\n-        content_capturing=\"SPAN_AND_EVENT\",\n-        emit_event=\"\",\n+    @patch.dict(\n+        os.environ,\n+        {\n+            \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": \"SPAN_AND_EVENT\",\n+            \"OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT\": \"false\",\n+        },",
+      "id": "PRRT_kwDOSbspP86H6zrv",
+      "opened": "2026-06-08T17:59:56Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils_events.py",
+      "replies": [],
+      "reviewed": "52225d78845ae72ae5b6c30d6287b319bb232e59",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3375322915"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`setup_content_recording` is an autouse parametrized fixture that mutates `os.environ` but never restores the prior value. This can make the overall test suite order-dependent (later tests inherit the last param’s env setting).",
+      "created": "2026-06-08T17:59:56Z",
+      "hunk": "@@ -347,15 +341,9 @@ def fixture_otel_mocker():\n     params=[\"SPAN_AND_EVENT\", \"NO_CONTENT\"],\n )\n def fixture_setup_content_recording(request):\n-    os.environ.update(\n-        {\n-            OTEL_SEMCONV_STABILITY_OPT_IN: \"gen_ai_latest_experimental\",\n-            OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: request.param,\n-        }\n+    os.environ[OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT] = (\n+        request.param\n     )",
+      "id": "PRRT_kwDOSbspP86H6zsJ",
+      "opened": "2026-06-08T17:59:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_e2e.py",
+      "replies": [],
+      "reviewed": "52225d78845ae72ae5b6c30d6287b319bb232e59",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3375322948"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`setUp()` sets `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` globally but `tearDown()` doesn’t restore the previous value. This can leak configuration into other test modules and create order-dependent failures.",
+      "created": "2026-06-08T17:59:56Z",
+      "hunk": "@@ -3,31 +3,19 @@\n \n import os\n import unittest\n-from unittest.mock import patch\n \n import google.genai\n \n-from opentelemetry.instrumentation._semconv import (\n-    _OpenTelemetrySemanticConventionStability,\n-)\n-\n from .auth import FakeCredentials\n from .instrumentation_context import InstrumentationContext\n from .otel_mocker import OTelMocker\n \n \n class TestCase(unittest.TestCase):\n     def setUp(self):\n-        # Most tests want this environment variable setup. Need to figure out a less hacky way of doing this.\n-        with patch.dict(\n-            \"os.environ\",\n-            {\n-                \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": \"SPAN_AND_EVENT\",\n-                \"OTEL_SEMCONV_STABILITY_OPT_IN\": \"gen_ai_latest_experimental\",\n-            },\n-        ):\n-            _OpenTelemetrySemanticConventionStability._initialized = False\n-            _OpenTelemetrySemanticConventionStability._initialize()\n+        os.environ[\"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\"] = (\n+            \"SPAN_AND_EVENT\"\n+        )",
+      "id": "PRRT_kwDOSbspP86H6zsa",
+      "opened": "2026-06-08T17:59:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/common/base.py",
+      "replies": [],
+      "reviewed": "52225d78845ae72ae5b6c30d6287b319bb232e59",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3375322970"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "there are a lot of tests and maybe instrumentations in this repo that depend on it. let's keep it for now and return True always. It might also be used by old versions in the contrib repo that we want to keep runtime compatibility with until we deprecate them. ",
+      "created": "2026-06-09T18:18:16Z",
+      "hunk": "@@ -22,24 +17,11 @@\n logger = logging.getLogger(__name__)\n \n \n-def is_experimental_mode() -> bool:",
+      "id": "PRRT_kwDOSbspP86IP1HX",
+      "opened": "2026-06-09T18:25:06Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-06-10T17:27:00Z",
+          "body": "getting rid of all the dependencies in this repo -- we are on track to complete that task.. I wasn't planning to submit this until that is done.\r\n\r\nmaintaining compatibility with the old repo -- that sounds complicated.. we probably want to set up cross-repo tests (like we have between otel-python and otel-python-contrib) if we want to enforce that, but I feel like we should just deprecate the stuff in the old repo and not worry about that..\r\n\r\nI've added it back with a deprecation warning..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3390232315"
+        }
+      ],
+      "reviewed": "03cd2533297ba702c62356ab2389dccfbbf24f4c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3382899792"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "are we moving these tests somewhere? I assume they still validate something when flag is on.",
+      "created": "2026-06-09T18:19:48Z",
+      "hunk": "@@ -1,240 +0,0 @@\n-# Copyright The OpenTelemetry Authors\n-# SPDX-License-Identifier: Apache-2.0\n-\n-import os\n-import unittest\n-from unittest.mock import patch\n-\n-from opentelemetry.instrumentation._semconv import (\n-    OTEL_SEMCONV_STABILITY_OPT_IN,\n-    _OpenTelemetrySemanticConventionStability,\n-)\n-from opentelemetry.util.genai.environment_variables import (\n-    OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT,\n-    OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT,\n-)\n-from opentelemetry.util.genai.utils import (\n-    should_capture_content_on_spans_in_experimental_mode,\n-    should_emit_event,\n-)\n-\n-\n-def patch_env_vars(stability_mode, content_capturing, emit_event):\n-    def decorator(test_case):\n-        @patch.dict(\n-            os.environ,\n-            {\n-                OTEL_SEMCONV_STABILITY_OPT_IN: stability_mode,\n-                OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: content_capturing,\n-                OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT: emit_event,\n-            },\n-        )\n-        def wrapper(*args, **kwargs):\n-            # Reset state.\n-            _OpenTelemetrySemanticConventionStability._initialized = False\n-            _OpenTelemetrySemanticConventionStability._initialize()\n-            return test_case(*args, **kwargs)\n-\n-        return wrapper\n-\n-    return decorator\n-\n-\n-class TestShouldEmitEvent(unittest.TestCase):",
+      "id": "PRRT_kwDOSbspP86IP2rP",
+      "opened": "2026-06-09T18:25:06Z",
+      "path": "util/opentelemetry-util-genai/tests/test_events_options.py",
+      "replies": [
+        {
+          "at": "2026-06-10T17:27:44Z",
+          "body": "Yes I refactored them and moved them into `test_utils.py`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3390236910"
+        }
+      ],
+      "reviewed": "03cd2533297ba702c62356ab2389dccfbbf24f4c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3382908301"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is this used by something in contrib? If yes we should not remove it from public API until we deprecate those",
+      "created": "2026-06-09T18:21:20Z",
+      "hunk": "@@ -65,62 +47,34 @@ def should_emit_event() -> bool:\n     - NO_CONTENT or SPAN_ONLY: defaults to False\n     - EVENT_ONLY or SPAN_AND_EVENT: defaults to True\n     \"\"\"\n-    envvar = os.environ.get(OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT)\n     # If explicitly set (and not empty), use the user's value (highest priority)\n-    if envvar and envvar.strip():\n-        envvar_lower = envvar.lower().strip()\n-        if envvar_lower == \"true\":\n+    if (\n+        envvar := os.environ.get(OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT, \"\")\n+        .lower()\n+        .strip()\n+    ):\n+        if envvar == \"true\":\n             return True\n-        if envvar_lower == \"false\":\n+        if envvar == \"false\":\n             return False\n         logger.warning(\n             \"%s is not a valid option for `%s` environment variable. Must be one of true or false (case-insensitive). Defaulting based on content capturing mode.\",\n             envvar,\n             OTEL_INSTRUMENTATION_GENAI_EMIT_EVENT,\n         )\n-        # Invalid value falls through to default logic below\n-\n-    # If not explicitly set (or invalid), determine default based on content capturing mode\n-    try:\n-        if not is_experimental_mode():\n-            # Not in experimental mode, default to False\n-            return False\n-        content_mode = get_content_capturing_mode()\n-        # EVENT_ONLY and SPAN_AND_EVENT require events, so default to True\n-        if content_mode in (\n-            ContentCapturingMode.EVENT_ONLY,\n-            ContentCapturingMode.SPAN_AND_EVENT,\n-        ):\n-            return True\n-        # NO_CONTENT and SPAN_ONLY don't require events, so default to False\n-        return False\n-    except ValueError:\n-        # If get_content_capturing_mode raises ValueError (not in experimental mode),\n-        # default to False\n-        return False\n-\n-\n-def should_capture_content_on_spans_in_experimental_mode() -> bool:",
+      "id": "PRRT_kwDOSbspP86IP4Ku",
+      "opened": "2026-06-09T18:25:06Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-06-10T17:29:35Z",
+          "body": "I don't see any usages in contrib for this method -- ok to remove it ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3390248617"
+        }
+      ],
+      "reviewed": "03cd2533297ba702c62356ab2389dccfbbf24f4c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3382916323"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this is used by instrumentation libs and is still useful and necessary for them regardless of the experimental flag.\n\nCalling get_content_capturing_mode would result in extra logic for callers and need to read env var potentially on a hot path.",
+      "created": "2026-06-09T18:22:13Z",
+      "hunk": "@@ -107,30 +97,6 @@ def __init__(\n             schema_url=schema_url,\n         )\n         self._completion_hook = completion_hook or _NoOpCompletionHook()\n-        if is_experimental_mode():\n-            content_enabled = (\n-                get_content_capturing_mode() != ContentCapturingMode.NO_CONTENT\n-            )\n-        else:\n-            content_enabled = os.environ.get(\n-                OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT, \"\"\n-            ).lower() in (\n-                \"true\",\n-                \"span_only\",\n-                \"event_only\",\n-                \"span_and_event\",\n-            )\n-        self._capture_content = content_enabled or not isinstance(\n-            self._completion_hook, _NoOpCompletionHook\n-        )\n-\n-    def should_capture_content(self) -> bool:",
+      "id": "PRRT_kwDOSbspP86IP5Be",
+      "opened": "2026-06-09T18:25:06Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-06-10T17:48:34Z",
+          "body": "Ok I see how this is being used now.. I got very confused by the name and the logic here.. \n\nSo if this is `True` instrumentations should set the \"message attributes\" on the `invocation` objects, and let this util library decide when/where to add those attributes..\n\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3390365992"
+        },
+        {
+          "at": "2026-06-10T18:49:09Z",
+          "body": "I've returned this method to the code..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3390751638"
+        }
+      ],
+      "reviewed": "03cd2533297ba702c62356ab2389dccfbbf24f4c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3382921028"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "what happens now on malformed env var? do we throw? do we not capture content? do we have tests for it if we're removing those?",
+      "created": "2026-06-09T18:24:02Z",
+      "hunk": "@@ -171,101 +152,6 @@ def stamp_ref(*, log_record, **kwargs):\n             \"s3://bucket/inputs.json\",\n         )\n \n-    @patch.dict(\n-        os.environ, {OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: \"\"}\n-    )\n-    def test_should_capture_content_false_by_default(self):",
+      "id": "PRRT_kwDOSbspP86IP6wq",
+      "opened": "2026-06-09T18:25:06Z",
+      "path": "util/opentelemetry-util-genai/tests/test_handler_completion_hook.py",
+      "replies": [
+        {
+          "at": "2026-06-10T17:58:45Z",
+          "body": "Ok I've added back in these tests now that I understand what this function is for.. I refactored them a little",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3390428361"
+        }
+      ],
+      "reviewed": "03cd2533297ba702c62356ab2389dccfbbf24f4c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3382930709"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "If we are removing all experimental flags, why keep this? I thought now was the time to make breaking changes?",
+      "created": "2026-06-10T19:08:50Z",
+      "hunk": "@@ -54,6 +36,14 @@ def get_content_capturing_mode() -> ContentCapturingMode:\n         return ContentCapturingMode.NO_CONTENT\n \n \n+def is_experimental_mode() -> bool:\n+    \"\"\"\n+    Kept for backwards compatibility. The utils in this library only support the experimental mode sem convs now.",
+      "id": "PRRT_kwDOSbspP86Il0Sy",
+      "opened": "2026-06-10T19:08:49Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [
+        {
+          "at": "2026-06-10T19:24:33Z",
+          "body": "because it's a public API used by libs in the contrib. \r\n\r\nThe plan:\r\n- release this repo\r\n- release the last version on libs in the contrib (they should still work with these utils) and deprecated them along with the release\r\n- after that we're free to party on and break runtime compatibility with them.\r\n\r\nYou can argue that everything is experimental and  not expected to be compatible, but really this version of util here is likely the only thing every lib in contrib repo is compatible with.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3390951019"
+        },
+        {
+          "at": "2026-06-15T13:32:01Z",
+          "body": "Why should the latest version in contrib work with these utils ? Can't we require a version of utils that is only from the old repo ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3413843515"
+        },
+        {
+          "at": "2026-06-15T14:03:57Z",
+          "body": "Resolving since I think this PR is ready to merge either way",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3414058203"
+        }
+      ],
+      "reviewed": "95d12eea8789a1c1e7a368906bdebe132007664d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3390863745"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Nit: Why not keep the patch instead of changing real env vars?",
+      "created": "2026-06-10T19:09:56Z",
+      "hunk": "@@ -3,31 +3,19 @@\n \n import os\n import unittest\n-from unittest.mock import patch\n \n import google.genai\n \n-from opentelemetry.instrumentation._semconv import (\n-    _OpenTelemetrySemanticConventionStability,\n-)\n-\n from .auth import FakeCredentials\n from .instrumentation_context import InstrumentationContext\n from .otel_mocker import OTelMocker\n \n \n class TestCase(unittest.TestCase):\n     def setUp(self):\n-        # Most tests want this environment variable setup. Need to figure out a less hacky way of doing this.\n-        with patch.dict(\n-            \"os.environ\",\n-            {\n-                \"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\": \"SPAN_AND_EVENT\",\n-                \"OTEL_SEMCONV_STABILITY_OPT_IN\": \"gen_ai_latest_experimental\",\n-            },\n-        ):\n-            _OpenTelemetrySemanticConventionStability._initialized = False\n-            _OpenTelemetrySemanticConventionStability._initialize()\n+        os.environ[\"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT\"] = (",
+      "id": "PRRT_kwDOSbspP86Il1NU",
+      "opened": "2026-06-10T19:09:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/common/base.py",
+      "replies": [
+        {
+          "at": "2026-06-15T13:45:05Z",
+          "body": "Ack good point.. switched back to using patch.dict",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3413929757"
+        }
+      ],
+      "reviewed": "95d12eea8789a1c1e7a368906bdebe132007664d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/117#discussion_r3390869062"
+    }
+  ]
+}

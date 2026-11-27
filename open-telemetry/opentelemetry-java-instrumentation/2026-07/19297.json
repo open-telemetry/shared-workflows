@@ -1,0 +1,40 @@
+{
+  "head": "53e1c0fcc5387a735106179212a8b4253a19ae61",
+  "merge": "01af51c27c838c99f5c98174b1bc5ababb9a38fb",
+  "merged": "2026-07-22T21:39:29Z",
+  "missing_roots": 0,
+  "number": 19297,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Quarkus Gradle plugin version (3.37.4) and the enforced platform BOM version (3.38.0) are out of sync. This can lead to dependency alignment issues and build/runtime incompatibilities. Align them to the same Quarkus release series (e.g., set the BOM to 3.37.4, or bump the plugin to the matching 3.38.x if that’s the intended target).",
+      "created": "2026-07-22T18:28:16Z",
+      "hunk": "@@ -17,11 +17,11 @@ plugins {\n   id(\"java\")\n \n   id(\"com.google.cloud.tools.jib\")\n-  id(\"io.quarkus\") version \"3.37.2\"\n+  id(\"io.quarkus\") version \"3.37.4\"",
+      "id": "PRRT_kwDODJKVX86TBhEV",
+      "opened": "2026-07-22T18:28:17Z",
+      "path": "smoke-tests/images/quarkus/build.gradle.kts",
+      "replies": [],
+      "reviewed": "8026a8075b4b5b636294bdef05ca8789235468f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19297#discussion_r3632782440"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Quarkus Gradle plugin version (3.37.4) and the enforced platform BOM version (3.38.0) are out of sync. This can lead to dependency alignment issues and build/runtime incompatibilities. Align them to the same Quarkus release series (e.g., set the BOM to 3.37.4, or bump the plugin to the matching 3.38.x if that’s the intended target).",
+      "created": "2026-07-22T18:28:17Z",
+      "hunk": "@@ -17,11 +17,11 @@ plugins {\n   id(\"java\")\n \n   id(\"com.google.cloud.tools.jib\")\n-  id(\"io.quarkus\") version \"3.37.2\"\n+  id(\"io.quarkus\") version \"3.37.4\"\n }\n \n dependencies {\n-  implementation(enforcedPlatform(\"io.quarkus:quarkus-bom:3.37.2\"))\n+  implementation(enforcedPlatform(\"io.quarkus:quarkus-bom:3.38.0\"))",
+      "id": "PRRT_kwDODJKVX86TBhEu",
+      "opened": "2026-07-22T18:28:17Z",
+      "path": "smoke-tests/images/quarkus/build.gradle.kts",
+      "replies": [],
+      "reviewed": "8026a8075b4b5b636294bdef05ca8789235468f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19297#discussion_r3632782482"
+    }
+  ]
+}

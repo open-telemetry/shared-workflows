@@ -1,0 +1,24 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "6203081247cf8d887abdef2b8bb6a45a692f91a67c0c446b6ddfc7b24dff022d",
+  "input_digest": "d85097c5c8e26b79d4dad111e2710bbd2b9174b276412303411a83fe405ad7c5",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4be08e414641d9d83c7dc0a4b92bb7d7fb6a8942/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/OpenTelemetryDriver.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4be08e414641d9d83c7dc0a4b92bb7d7fb6a8942/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/723bbec482f2b30517862da16204ef900e0eed5f/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/OpenTelemetryDriver.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/723bbec482f2b30517862da16204ef900e0eed5f/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/723bbec482f2b30517862da16204ef900e0eed5f/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/OpenTelemetryDriverQuerySanitizationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c5d09b4adccedc9e932d3aca0f3c281bc638a09f"
+      ],
+      "id": "PRRT_kwDODJKVX86gEPJZ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

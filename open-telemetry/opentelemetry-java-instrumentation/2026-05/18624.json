@@ -1,0 +1,25 @@
+{
+  "head": "a354827c3c188f281e371c768121317f10f89c33",
+  "merge": "2f2abe96d866586f38ed60a3c04003d3c8656b55",
+  "merged": "2026-05-09T17:40:04Z",
+  "missing_roots": 0,
+  "number": 18624,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In `sendRequest`, the failure path does `throw (Exception) value.failed().get();`. `Try.failed().get()` returns a `Throwable`, and this cast can throw `ClassCastException` (e.g., if the failure is an `Error` or other non-`Exception` `Throwable`). Prefer `Await.result(request.execute(), ...)` (like the existing Play WS Scala client tests) so failures propagate naturally, or rethrow with a safe conversion (e.g., if it's an `Exception` throw it, otherwise wrap it).",
+      "created": "2026-05-09T16:44:29Z",
+      "hunk": "@@ -0,0 +1,101 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.playws.v3_0;\n+\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+\n+import io.opentelemetry.instrumentation.testing.junit.http.HttpClientResult;\n+import java.io.IOException;\n+import java.net.MalformedURLException;\n+import java.net.URI;\n+import java.util.Map;\n+import org.junit.jupiter.api.AfterAll;\n+import org.junit.jupiter.api.BeforeAll;\n+import play.api.libs.ws.StandaloneWSClient;\n+import play.api.libs.ws.StandaloneWSRequest;\n+import play.api.libs.ws.StandaloneWSResponse;\n+import play.api.libs.ws.ahc.StandaloneAhcWSClient;\n+import scala.Function1;\n+import scala.concurrent.Await;\n+import scala.concurrent.ExecutionContext;\n+import scala.concurrent.Future;\n+import scala.concurrent.duration.Duration;\n+import scala.jdk.javaapi.CollectionConverters;\n+import scala.util.Try;\n+\n+class PlayScalaWsClientTest extends PlayWsClientBaseTest<StandaloneWSRequest> {\n+\n+  private static StandaloneWSClient wsClient;\n+  private static StandaloneWSClient wsClientWithReadTimeout;\n+\n+  @BeforeAll\n+  static void setup() {\n+    wsClient = new StandaloneAhcWSClient(asyncHttpClient, materializer);\n+    wsClientWithReadTimeout =\n+        new StandaloneAhcWSClient(asyncHttpClientWithReadTimeout, materializer);\n+  }\n+\n+  @AfterAll\n+  static void cleanup() throws IOException {\n+    wsClient.close();\n+    wsClientWithReadTimeout.close();\n+  }\n+\n+  @Override\n+  public StandaloneWSRequest buildRequest(String method, URI uri, Map<String, String> headers)\n+      throws MalformedURLException {\n+    return getClient(uri)\n+        .url(uri.toURL().toString())\n+        .withMethod(method)\n+        .withFollowRedirects(true)\n+        .withHttpHeaders(CollectionConverters.asScala(headers).toSeq());\n+  }\n+\n+  @Override\n+  public int sendRequest(\n+      StandaloneWSRequest request, String method, URI uri, Map<String, String> headers)\n+      throws Exception {\n+    Future<StandaloneWSResponse> futureResponse = request.execute();\n+    Await.ready(futureResponse, Duration.apply(10, SECONDS));\n+    Try<StandaloneWSResponse> value = futureResponse.value().get();\n+    if (value.isSuccess()) {\n+      return value.get().status();\n+    }\n+    // Catch the Throwable and rethrow it\n+    throw (Exception) value.failed().get();\n+  }",
+      "id": "PRRT_kwDODJKVX86A1WTa",
+      "opened": "2026-05-09T16:44:30Z",
+      "path": "instrumentation/play/play-ws/play-ws-2.1/javaagent/src/play3Test/java/io/opentelemetry/javaagent/instrumentation/playws/v3_0/PlayScalaWsClientTest.java",
+      "replies": [],
+      "reviewed": "fb49cbe8fbf5a3c81fdd333572073eab1e7a4c8a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18624#discussion_r3213447063"
+    }
+  ]
+}

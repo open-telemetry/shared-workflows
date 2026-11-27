@@ -1,0 +1,245 @@
+{
+  "head": "e1fd058367ec3e1f9d2def68b08ddf24f0624bf4",
+  "merge": "af47fdf64f1d580914af9867d893a3f9fe8e3ac2",
+  "merged": "2026-07-17T04:33:52Z",
+  "missing_roots": 0,
+  "number": 19175,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This bean does not back off when an application already defines a `ConfigProvider`. That leaves two candidates for the `openTelemetry(..., ConfigProvider)` parameter and prevents the application context from starting. Make the auto-configured provider conditional, as the fallback provider already is.",
+      "created": "2026-07-10T12:18:08Z",
+      "hunk": "@@ -125,13 +125,23 @@ public AutoConfiguredOpenTelemetrySdk autoConfiguredOpenTelemetrySdk(\n             .build();\n       }\n \n+      /**\n+       * Bridges the legacy {@link ConfigProperties}-based configuration\n+       * into a {@link ConfigProvider}, since instrumentation only reads config through {@link\n+       * ConfigProvider}.\n+       */\n+      @Bean\n+      ConfigProvider configProvider(AutoConfiguredOpenTelemetrySdk autoConfiguredOpenTelemetrySdk) {",
+      "id": "PRRT_kwDODJKVX86P4JJu",
+      "opened": "2026-07-10T12:18:09Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-07-10T14:35:24Z",
+          "body": "Verified via test: adding a user-defined `ConfigProvider` bean alongside this autoconfiguration starts cleanly — Spring resolves the type ambiguity by matching this bean's name (`configProvider`) against the parameter name in the consuming `openTelemetry(..., ConfigProvider configProvider)` method, a standard Spring disambiguation rule. This also mirrors the pre-existing (already unconditional) `otelProperties`/`ConfigProperties` beans this change replaces — not a new risk introduced here.\n\nNot applying `@ConditionalOnMissingBean(ConfigProvider.class)` here: these are internal wiring beans other methods in the same nested config depend on (see `openTelemetry(...)`), not something meant to be independently overridable by bean type alone — that's what the top-level `FallbackConfigProvider` already handles for the \"no OpenTelemetry SDK autoconfiguration at all\" case.\n\nRejected.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3559709215"
+        }
+      ],
+      "reviewed": "e125adb9358cfe938300ddff145290a7d06c76b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3558804070"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] A user-supplied `ConfigProvider` is not honored in declarative mode: this unconditional bean creates a second candidate, so the `openTelemetry(..., ConfigProvider)` dependency becomes ambiguous and context startup fails. Let this auto-configuration back off when a provider already exists.",
+      "created": "2026-07-10T12:18:08Z",
+      "hunk": "@@ -157,21 +167,38 @@ public ConfigProperties otelProperties(\n     @Conditional(DeclarativeConfigEnabled.class)\n     static class EmbeddedConfigFileConfig {\n \n+      /** Use {@link ConfigProvider} instead. */\n       @Bean\n-      public OpenTelemetryConfigurationModel openTelemetryConfigurationModel(\n+      OpenTelemetryConfigurationModel openTelemetryConfigurationModel(\n           ConfigurableEnvironment environment) {\n         return EmbeddedConfigFile.extractModel(environment);\n       }\n \n+      /**\n+       * Unlike {@link\n+       * OpenTelemetrySdkConfig.PropertiesConfig#configProvider(AutoConfiguredOpenTelemetrySdk)},\n+       * this reads config directly from the declarative {@link OpenTelemetryConfigurationModel}\n+       * instead of bridging from {@link ConfigProperties}.\n+       */\n       @Bean\n-      public OpenTelemetry openTelemetry(\n+      ConfigProvider configProvider(",
+      "id": "PRRT_kwDODJKVX86P4JKG",
+      "opened": "2026-07-10T12:18:09Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-07-10T14:35:25Z",
+          "body": "Verified via test: adding a user-defined `ConfigProvider` bean alongside this autoconfiguration starts cleanly — Spring resolves the type ambiguity by matching this bean's name (`configProvider`) against the parameter name in the consuming `openTelemetry(..., ConfigProvider configProvider)` method, a standard Spring disambiguation rule. This also mirrors the pre-existing (already unconditional) `otelProperties`/`ConfigProperties` beans this change replaces — not a new risk introduced here.\n\nNot applying `@ConditionalOnMissingBean(ConfigProvider.class)` here: these are internal wiring beans other methods in the same nested config depend on (see `openTelemetry(...)`), not something meant to be independently overridable by bean type alone — that's what the top-level `FallbackConfigProvider` already handles for the \"no OpenTelemetry SDK autoconfiguration at all\" case.\n\nRejected.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3559709386"
+        }
+      ],
+      "reviewed": "e125adb9358cfe938300ddff145290a7d06c76b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3558804102"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Disabled mode also registers this provider unconditionally. Applications that already expose a `ConfigProvider` will now have duplicate beans (or a bean-name collision), making by-type injection ambiguous even though the fallback path explicitly supports custom providers. This bean should back off too.",
+      "created": "2026-07-10T12:18:09Z",
+      "hunk": "@@ -228,11 +255,20 @@ public OpenTelemetry openTelemetry() {\n       return OpenTelemetry.noop();\n     }\n \n+    /**\n+     * @deprecated use {@link ConfigProvider} instead\n+     */\n+    @Deprecated // to be removed in 3.0\n     @Bean\n     public ConfigProperties otelProperties() {\n       return DefaultConfigProperties.createFromMap(emptyMap());\n     }\n \n+    @Bean\n+    ConfigProvider configProvider() {",
+      "id": "PRRT_kwDODJKVX86P4JKZ",
+      "opened": "2026-07-10T12:18:09Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-07-10T14:35:27Z",
+          "body": "Verified via test: adding a user-defined `ConfigProvider` bean alongside this autoconfiguration starts cleanly — Spring resolves the type ambiguity by matching this bean's name (`configProvider`) against the parameter name in the consuming `openTelemetry(..., ConfigProvider configProvider)` method, a standard Spring disambiguation rule. This also mirrors the pre-existing (already unconditional) `otelProperties`/`ConfigProperties` beans this change replaces — not a new risk introduced here.\n\nNot applying `@ConditionalOnMissingBean(ConfigProvider.class)` here: these are internal wiring beans other methods in the same nested config depend on (see `openTelemetry(...)`), not something meant to be independently overridable by bean type alone — that's what the top-level `FallbackConfigProvider` already handles for the \"no OpenTelemetry SDK autoconfiguration at all\" case.\n\nRejected.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3559709514"
+        }
+      ],
+      "reviewed": "e125adb9358cfe938300ddff145290a7d06c76b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3558804129"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "not sure what this comment means, did you mean to deprecate the method?",
+      "created": "2026-07-12T02:13:59Z",
+      "hunk": "@@ -108,8 +107,9 @@ OtelMapConverter otelMapConverter() {\n         return new OtelMapConverter();\n       }\n \n+      /** Use {@link ConfigProvider} and {@link OpenTelemetry} instead. */",
+      "id": "PRRT_kwDODJKVX86QKV3n",
+      "opened": "2026-07-12T02:26:13Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-07-13T10:52:10Z",
+          "body": "Good catch, no — not meant to be deprecated. Reworded in ed6a38d4e4 to describe what it backs instead of \"use X instead\" phrasing that reads like a `@deprecated` notice.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3570023959"
+        }
+      ],
+      "reviewed": "cfe3dc8b3e2be64eb4407bdd5ab0b3052c4d881b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3565451213"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "should all of these method be package-private?",
+      "created": "2026-07-12T02:23:35Z",
+      "hunk": "@@ -125,13 +125,22 @@ public AutoConfiguredOpenTelemetrySdk autoConfiguredOpenTelemetrySdk(\n             .build();\n       }\n \n+      /**\n+       * Bridges the legacy {@link ConfigProperties}-based configuration into a {@link\n+       * ConfigProvider}, since instrumentation only reads config through {@link ConfigProvider}.\n+       */\n+      @Bean\n+      ConfigProvider configProvider(AutoConfiguredOpenTelemetrySdk autoConfiguredOpenTelemetrySdk) {\n+        return ConfigPropertiesBackedConfigProvider.create(\n+            requireNonNull(AutoConfigureUtil.getConfig(autoConfiguredOpenTelemetrySdk)));\n+      }\n+\n       @Bean\n       public OpenTelemetry openTelemetry(",
+      "id": "PRRT_kwDODJKVX86QKZ2i",
+      "opened": "2026-07-12T02:26:13Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-07-13T10:52:13Z",
+          "body": "Yes, good point — made the rest of the public @Bean factory methods (openTelemetry x3, otelProperties x4, FallbackConfigProvider#configProvider) package-private in ed6a38d4e4 for consistency with the others. None of them are ever called directly, only by Spring via reflection, so there's no reason for the inconsistency.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3570024274"
+        }
+      ],
+      "reviewed": "cfe3dc8b3e2be64eb4407bdd5ab0b3052c4d881b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3565476848"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "same here, did you mean to deprecate?",
+      "created": "2026-07-12T02:24:03Z",
+      "hunk": "@@ -157,21 +166,38 @@ public ConfigProperties otelProperties(\n     @Conditional(DeclarativeConfigEnabled.class)\n     static class EmbeddedConfigFileConfig {\n \n+      /** Use {@link ConfigProvider} instead. */",
+      "id": "PRRT_kwDODJKVX86QKaEo",
+      "opened": "2026-07-12T02:26:13Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-07-13T10:52:12Z",
+          "body": "Same as above — reworded in ed6a38d4e4.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3570024140"
+        }
+      ],
+      "reviewed": "cfe3dc8b3e2be64eb4407bdd5ab0b3052c4d881b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3565478289"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Could we derive this provider from the SDK configuration after `DeclarativeConfiguration.create()` applies model customizers?",
+      "created": "2026-07-13T18:06:05Z",
+      "hunk": "@@ -157,21 +169,38 @@ public ConfigProperties otelProperties(\n     @Conditional(DeclarativeConfigEnabled.class)\n     static class EmbeddedConfigFileConfig {\n \n+      /** Backs the {@link ConfigProvider} bean below; not meant to be injected directly. */\n       @Bean\n-      public OpenTelemetryConfigurationModel openTelemetryConfigurationModel(\n+      OpenTelemetryConfigurationModel openTelemetryConfigurationModel(\n           ConfigurableEnvironment environment) {\n         return EmbeddedConfigFile.extractModel(environment);\n       }\n \n+      /**\n+       * Unlike {@link\n+       * OpenTelemetrySdkConfig.PropertiesConfig#configProvider(AutoConfiguredOpenTelemetrySdk)},\n+       * this reads config directly from the declarative {@link OpenTelemetryConfigurationModel}\n+       * instead of bridging from {@link ConfigProperties}.\n+       */\n       @Bean\n-      public OpenTelemetry openTelemetry(\n+      ConfigProvider configProvider(\n           OpenTelemetryConfigurationModel model, ApplicationContext applicationContext) {\n-        OpenTelemetrySdkComponentLoader componentLoader =\n-            new OpenTelemetrySdkComponentLoader(applicationContext);\n-        OpenTelemetrySdk sdk = DeclarativeConfiguration.create(model, componentLoader).getSdk();\n+        return SpringConfigProvider.create(",
+      "id": "PRRT_kwDODJKVX86QfcYc",
+      "opened": "2026-07-13T18:06:33Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-07-14T13:20:32Z",
+          "body": "good catch!",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3579298827"
+        },
+        {
+          "at": "2026-07-14T14:04:25Z",
+          "body": "Derived the declarative `ConfigProvider` from the final `OpenTelemetry` bean now, so it reflects model customizers applied during `DeclarativeConfiguration.create()`. I also hardened it to avoid a bare cast: if a custom `OpenTelemetry` bean is not an `ExtendedOpenTelemetry`, it now falls back to `ConfigProvider.noop()` instead of throwing. Added regression coverage in `DeclarativeConfigTest#configProviderMatchesOpenTelemetryConfigProvider()`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3579664035"
+        }
+      ],
+      "reviewed": "ed6a38d4e41efe200dbf70a8f8e732a0ed91c899",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3573015771"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `SpringConfigProvider` snapshots `model` here before `DeclarativeConfiguration.create(...)` runs the registered model customizers. Consequently, instrumentation config added or changed by a `DeclarativeConfigurationCustomizerProvider` is absent from the exposed bean, contrary to the new Javadoc. Restore the prior ordering and reuse one component loader so the provider is built from the customized model.",
+      "created": "2026-07-14T17:43:57Z",
+      "hunk": "@@ -157,21 +169,38 @@ public ConfigProperties otelProperties(\n     @Conditional(DeclarativeConfigEnabled.class)\n     static class EmbeddedConfigFileConfig {\n \n+      /** Backs the {@link ConfigProvider} bean below; not meant to be injected directly. */\n       @Bean\n-      public OpenTelemetryConfigurationModel openTelemetryConfigurationModel(\n+      OpenTelemetryConfigurationModel openTelemetryConfigurationModel(\n           ConfigurableEnvironment environment) {\n         return EmbeddedConfigFile.extractModel(environment);\n       }\n \n+      /**\n+       * Unlike {@link\n+       * OpenTelemetrySdkConfig.PropertiesConfig#configProvider(AutoConfiguredOpenTelemetrySdk)},\n+       * this derives the provider from the constructed {@link OpenTelemetry} so that it reflects\n+       * declarative model customizers applied during SDK creation.\n+       */\n       @Bean\n-      public OpenTelemetry openTelemetry(\n+      ConfigProvider configProvider(OpenTelemetry openTelemetry) {\n+        return configProviderFrom(openTelemetry);\n+      }\n+\n+      @Bean\n+      OpenTelemetry openTelemetry(\n           OpenTelemetryConfigurationModel model, ApplicationContext applicationContext) {\n-        OpenTelemetrySdkComponentLoader componentLoader =\n-            new OpenTelemetrySdkComponentLoader(applicationContext);\n-        OpenTelemetrySdk sdk = DeclarativeConfiguration.create(model, componentLoader).getSdk();\n+        SpringConfigProvider configProvider =\n+            SpringConfigProvider.create(\n+                model, new OpenTelemetrySdkComponentLoader(applicationContext));\n+\n+        OpenTelemetrySdk sdk =\n+            DeclarativeConfiguration.create(\n+                    model, new OpenTelemetrySdkComponentLoader(applicationContext))\n+                .getSdk();",
+      "id": "PRRT_kwDODJKVX86Q2DI1",
+      "opened": "2026-07-14T17:43:57Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-07-15T09:20:58Z",
+          "body": "Updated the declarative wiring so the wrapper now derives its SpringConfigProvider from the SDK's final config after `DeclarativeConfiguration.create(...)`, and added SpringConfigProviderTest coverage for the post-create wrapping path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3586016000"
+        }
+      ],
+      "reviewed": "eb6731fe3f284b414095ef92c1677a6dadb4ec63",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3581338248"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This adds a deprecation without the required Unreleased changelog entry. `CONTRIBUTING.md:34-45` requires every deprecation to be recorded with its replacement and removal timeline, while the current Unreleased deprecations only cover `DeclarativeConfigPropertiesBridgeBuilder`. Please add the `ConfigProperties` bean migration to `CHANGELOG.md`.",
+      "created": "2026-07-14T17:43:57Z",
+      "hunk": "@@ -143,11 +155,11 @@ public OpenTelemetry openTelemetry(\n        * and {@link\n        * io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizer#addPropertiesSupplier(Supplier)}.\n        *\n-       * @deprecated use the Declarative Config API instead.\n+       * @deprecated use {@link ConfigProvider} instead\n        */\n-      @Deprecated\n+      @Deprecated // to be removed in 3.0",
+      "id": "PRRT_kwDODJKVX86Q2DJd",
+      "opened": "2026-07-14T17:43:57Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-07-15T09:20:59Z",
+          "body": "Added the Unreleased deprecation entry for the Spring Boot starter `ConfigProperties` beans, including the `ConfigProvider` replacement and 3.0 removal timeline.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3586016165"
+        }
+      ],
+      "reviewed": "eb6731fe3f284b414095ef92c1677a6dadb4ec63",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3581338295"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] When the custom `OpenTelemetry` bean implements `ExtendedOpenTelemetry` (for example, a declaratively configured SDK), it already owns the authoritative provider. Returning `noop()` here makes the injected bean disagree with that SDK and drops its instrumentation configuration for Spring components migrated to this bean. Preserve the custom bean's provider and use noop only for plain `OpenTelemetry` implementations.",
+      "created": "2026-07-15T14:57:42Z",
+      "hunk": "@@ -251,17 +298,36 @@ OtelMapConverter otelMapConverter() {\n     }\n   }\n \n+  /**\n+   * @deprecated use {@link ConfigProvider} from {@link FallbackConfigProvider} instead\n+   */\n+  @Deprecated // to be removed in 3.0\n   @Configuration\n   @ConditionalOnBean(OpenTelemetry.class)\n   @ConditionalOnMissingBean({ConfigProperties.class})\n   static class FallbackConfigProperties {\n     @Bean\n-    public ConfigProperties otelProperties(ApplicationContext applicationContext) {\n+    ConfigProperties otelProperties(ApplicationContext applicationContext) {\n       return DefaultConfigProperties.create(\n           emptyMap(), new OpenTelemetrySdkComponentLoader(applicationContext));\n     }\n   }\n \n+  /**\n+   * Backstops setups where a custom {@link OpenTelemetry} bean is supplied (so {@link\n+   * OpenTelemetrySdkConfig} doesn't apply) and no {@link ConfigProvider} bean is otherwise defined,\n+   * so that instrumentation can always rely on a {@link ConfigProvider} bean being present.\n+   */\n+  @Configuration\n+  @ConditionalOnBean(OpenTelemetry.class)\n+  @ConditionalOnMissingBean({ConfigProvider.class})\n+  static class FallbackConfigProvider {\n+    @Bean\n+    ConfigProvider configProvider() {\n+      return ConfigProvider.noop();\n+    }",
+      "id": "PRRT_kwDODJKVX86RJE_D",
+      "opened": "2026-07-15T14:57:43Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [],
+      "reviewed": "bf67a9408ae48cf5aeeca777295db47e287cace4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3588350191"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "with declarative config being stabilized, I forgot the Java implementation still isn't. I'm not sure if we can remove this until `ConfigProvider` is marked stable....",
+      "created": "2026-07-16T15:48:39Z",
+      "hunk": "@@ -143,11 +155,11 @@ public OpenTelemetry openTelemetry(\n        * and {@link\n        * io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizer#addPropertiesSupplier(Supplier)}.\n        *\n-       * @deprecated use the Declarative Config API instead.\n+       * @deprecated use {@link ConfigProvider} instead\n        */\n-      @Deprecated\n+      @Deprecated // to be removed in 3.0",
+      "id": "PRRT_kwDODJKVX86RgWm7",
+      "opened": "2026-07-16T15:48:39Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-07-16T16:35:04Z",
+          "body": "this is blocked by Spec",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3597253155"
+        },
+        {
+          "at": "2026-07-16T17:38:34Z",
+          "body": "undeprecated the bean for non-dc",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3597657002"
+        }
+      ],
+      "reviewed": "45ac65e2b164f038ff441e2947c9271dd47c6b4d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19175#discussion_r3596930564"
+    }
+  ]
+}

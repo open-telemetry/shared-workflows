@@ -1,0 +1,27 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c57db212f39807e7792a4e7a9d008eee134535e78e18688edb448742aca64710",
+  "input_digest": "3afed24eadd6b09cb5e8cdcc1d5c1a305fb3fdc91ded0e33ed3bc1a235d61ff6",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bd0ef177a93235c6283904ebb6b9e8c555ac265/instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/SqsEventSpanLinksExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc768943213a6509d2cd34c92a8bebd964487be5/instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/SqsEventSpanLinksExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e697e8bfa22298cbe84b1d7cbe887162cc601b50",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/eab0add4ef3e45180145b145e2d53a5a513f0312"
+      ],
+      "id": "PRRT_kwDODJKVX86qoD2g",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86qtgBD",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

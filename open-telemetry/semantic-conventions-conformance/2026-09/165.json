@@ -1,0 +1,46 @@
+{
+  "head": "3319827bc6bad2be60f2c19f89427f49db429324",
+  "merge": "b55a5b07509ce713c5d785ec0a5dc8e32829ff31",
+  "merged": "2026-09-01T22:19:50Z",
+  "missing_roots": 0,
+  "number": 165,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The unconditional fallback also runs when the keyed attribute is present but non-string. In that case `_valid_op_and_attr_span_name` rejects a bare operation name, while this helper reports that same bare name as the expected value, recreating the self-contradictory diagnostic this change is intended to remove. Restrict the fallback to an actually absent attribute; malformed values can remain covered by the registry type check as the validation helper's comment intends.",
+      "created": "2026-08-31T21:53:31Z",
+      "hunk": "@@ -269,6 +269,11 @@ _attr_value(span, name) := value if {\n \tvalue := attr.value\n }\n \n+_expected_span_name(span, op, attr_key) := concat(\" \", [op, val]) if {\n+\tval := _attr_value(span, attr_key)\n+\tis_string(val)\n+} else := op",
+      "id": "PRRT_kwDOTuzK5c6d45M9",
+      "opened": "2026-08-31T21:53:31Z",
+      "path": "tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+      "replies": [
+        {
+          "at": "2026-09-01T03:26:54Z",
+          "body": "Addressed: restricted fallback to absent attributes via not _has_attr(span, attr_key).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/165#discussion_r3900523132"
+        }
+      ],
+      "reviewed": "801e3556cf03d69b646b8c810e0f95a5e9ef3640",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/165#discussion_r3898711836"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "These findings previously all being grouped together, but now they're separate findings per model. Is this wrong?",
+      "created": "2026-09-01T04:05:21Z",
+      "hunk": "@@ -340,11 +340,33 @@\n     },\n     {\n       \"id\": \"genai_span_name_format\",\n-      \"message\": \"chat span name should be 'chat' or 'chat <value of gen_ai.request.model>', got 'Completions'\",\n+      \"message\": \"chat span name should be 'chat Qwen/Qwen2-Audio-7B-Instruct', got 'Completions'\",\n       \"signal_type\": \"span\",\n       \"signal_name\": \"Completions\",\n       \"context\": {\n-        \"expected_form\": \"chat or 'chat <gen_ai.request.model>'\",\n+        \"expected_form\": \"chat Qwen/Qwen2-Audio-7B-Instruct\",\n+        \"keyed_attr\": \"gen_ai.request.model\",\n+        \"operation\": \"chat\"\n+      }\n+    },\n+    {\n+      \"id\": \"genai_span_name_format\",\n+      \"message\": \"chat span name should be 'chat meta-llama/Llama-3.3-70B-Instruct-Turbo', got 'Completions'\",\n+      \"signal_type\": \"span\",\n+      \"signal_name\": \"Completions\",\n+      \"context\": {\n+        \"expected_form\": \"chat meta-llama/Llama-3.3-70B-Instruct-Turbo\",\n+        \"keyed_attr\": \"gen_ai.request.model\",\n+        \"operation\": \"chat\"\n+      }\n+    },\n+    {\n+      \"id\": \"genai_span_name_format\",\n+      \"message\": \"chat span name should be 'chat meta-llama/Llama-4-Scout-17B-16E-Instruct', got 'Completions'\",\n+      \"signal_type\": \"span\",\n+      \"signal_name\": \"Completions\",\n+      \"context\": {\n+        \"expected_form\": \"chat meta-llama/Llama-4-Scout-17B-16E-Instruct\",",
+      "id": "PRRT_kwDOTuzK5c6d9yJN",
+      "opened": "2026-09-01T04:05:25Z",
+      "path": "scenarios/gen-ai/python/together/openinference/data.json",
+      "replies": [],
+      "reviewed": "3319827bc6bad2be60f2c19f89427f49db429324",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/165#discussion_r3900677873"
+    }
+  ]
+}

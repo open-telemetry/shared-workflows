@@ -1,0 +1,151 @@
+{
+  "head": "63bd61a90ee5bbd2d6b1392195fface5ffbac000",
+  "merge": "2242786464ba84aed29e1bf20b5b5cd72628150b",
+  "merged": "2026-10-01T02:55:30Z",
+  "missing_roots": 0,
+  "number": 178,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The URL-controlled `ref` is passed directly into `provision`, where it becomes part of `cache_dir() / f\"{label}-{ref}\"`; values containing `..` (and backslashes on Windows) can therefore make the extraction target escape the cache, and an existing target is recursively deleted before replacement. Derive the cache component from a filesystem-safe encoding or digest of the repo/ref rather than interpolating the raw ref.",
+      "created": "2026-09-04T22:41:44Z",
+      "hunk": "@@ -52,6 +63,51 @@ def require_pin(path: Path, name: str) -> str:\n         raise RuntimeError(f\"{path} is missing the pin {name}\") from None\n \n \n+@dataclass(frozen=True)\n+class GitRegistry:\n+    \"\"\"A registry declared as a git URL rather than as a path on disk.\"\"\"\n+\n+    url: str\n+    ref: str | None = None\n+    sub_folder: str | None = None\n+\n+    @property\n+    def repo(self) -> str:\n+        \"\"\"The ``org/name`` to fetch an archive of.\"\"\"\n+        if not self.url.startswith(_GITHUB):\n+            raise RuntimeError(\n+                f\"{self.url}: a registry URL is fetched as a GitHub archive, \"\n+                \"so only github.com URLs work here\"\n+            )\n+        return self.url[len(_GITHUB) :].removesuffix(\".git\")\n+\n+\n+def parse_git_registry(value: str) -> GitRegistry | None:\n+    \"\"\"Read ``<url>.git@<ref>[<sub folder>]``; None if it isn't one.\"\"\"\n+    match = _GIT_REGISTRY.match(value.strip())\n+    if match is None:\n+        return None\n+    return GitRegistry(**match.groupdict())\n+\n+\n+def local_registry(value: str) -> Path:\n+    \"\"\"A declared registry as a directory, fetching it when it is a git URL.\n+\n+    Weaver takes a URL itself, but a domain's advice data is built by reading\n+    files out of the registry, which no weaver command hands back. So a URL is\n+    fetched once here and everything downstream sees an ordinary checkout.\n+    \"\"\"\n+    declared = parse_git_registry(value)\n+    if declared is None:\n+        return Path(value)\n+    repo = declared.repo\n+    # No ref is the default branch, which is what GitHub serves for HEAD.\n+    checkout = provision(\n+        repo, declared.ref or \"HEAD\", label=repo.rpartition(\"/\")[2]\n+    )",
+      "id": "PRRT_kwDOTuzK5c6fdb2_",
+      "opened": "2026-09-04T22:41:44Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_registry.py",
+      "replies": [
+        {
+          "at": "2026-09-06T03:42:38Z",
+          "body": "Fixed in ac9c453: the cache directory name is now a filesystem-safe encoding of the label and ref, so a ref cannot escape the cache. 85ffaf2 also keys the entry by the whole `org/name` rather than the repository basename, so two registries with the same name do not share a checkout.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r3942852241"
+        }
+      ],
+      "reviewed": "0373577916a3dd22420111fadc791c564aef25a0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r3938340251"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A registry declared in `conformance.yaml` is not considered here: `spec.weaver.registry` later overrides these defaults in `conformance_session`, but `_coverage` and `weaver_defaults` have already been built from the pinned registry. Consequently the documented YAML URL validates live telemetry against the fetched checkout while coverage and GenAI advice data are generated from a different registry. Resolve/localize the effective package registry (package declaration first, caller default second) before invoking `_coverage`.",
+      "created": "2026-09-04T22:41:44Z",
+      "hunk": "@@ -208,7 +208,9 @@ def _session(\n         # a missing binary should be reported here rather than from there.\n         check_weaver()\n         override = (\n-            Path(weaver.registry) if weaver and weaver.registry else None\n+            local_registry(weaver.registry)\n+            if weaver and weaver.registry\n+            else None",
+      "id": "PRRT_kwDOTuzK5c6fdb3N",
+      "opened": "2026-09-04T22:41:44Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_domain.py",
+      "replies": [
+        {
+          "at": "2026-09-06T03:42:39Z",
+          "body": "Fixed in ac9c453: the package spec is loaded up front and the effective registry (package declaration first, caller default second) resolves in one place, so coverage and advice data follow the same registry the run is checked against.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r3942852280"
+        }
+      ],
+      "reviewed": "0373577916a3dd22420111fadc791c564aef25a0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r3938340267"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This pattern identifies any string ending in `.git` as a URL, including valid local paths such as `../registry.git`. Those paths previously worked, but now bypass CLI absolutization and `local_registry` raises the GitHub-only error. Require a URL scheme before classifying the value as a git URL so local `.git` directories remain paths.\n\nThis issue also appears on line 105 of the same file.",
+      "created": "2026-09-04T22:41:44Z",
+      "hunk": "@@ -28,6 +30,15 @@\n _FETCH_TIMEOUT_SECONDS = 60\n _VERSION_TIMEOUT_SECONDS = 10\n \n+_GITHUB = \"https://github.com/\"\n+\n+# Weaver's registry-as-git-URL syntax: <url>.git, optionally @<ref>, optionally\n+# [<sub folder>]. See the --registry argument of any weaver command.\n+_GIT_REGISTRY = re.compile(\n+    r\"^(?P<url>[^\\s\\[\\]]+\\.git)(?:@(?P<ref>[^\\s\\[\\]]+))?\"\n+    r\"(?:\\[(?P<sub_folder>[^\\]]+)\\])?$\"\n+)",
+      "id": "PRRT_kwDOTuzK5c6fdb3X",
+      "opened": "2026-09-04T22:41:44Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_registry.py",
+      "replies": [
+        {
+          "at": "2026-09-06T03:42:41Z",
+          "body": "Fixed in ac9c453: the pattern now requires a URL scheme, so a local directory named `*.git` stays a path.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r3942852337"
+        }
+      ],
+      "reviewed": "0373577916a3dd22420111fadc791c564aef25a0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r3938340283"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The URL group is greedy, so a valid declaration such as `https://github.com/org/repo.git@release.git` captures the entire string as `url` and leaves `ref` unset. `_local_registry` then derives the nonexistent repository `org/repo.git@release` and fetches `HEAD`. Make the URL portion reluctant (or otherwise split at the first `.git@`) so refs ending in `.git` are preserved.\n\nThis issue also appears in the following locations of the same file:\n- line 108\n- line 109",
+      "created": "2026-09-06T04:10:20Z",
+      "hunk": "@@ -28,6 +31,17 @@\n _FETCH_TIMEOUT_SECONDS = 60\n _VERSION_TIMEOUT_SECONDS = 10\n \n+_GITHUB = \"https://github.com/\"\n+\n+# Weaver's registry-as-git-URL syntax: <url>.git, optionally @<ref>, optionally\n+# [<sub folder>]. See the --registry argument of any weaver command. The scheme\n+# is what tells it apart from a local checkout named `<something>.git`.\n+_GIT_REGISTRY = re.compile(\n+    r\"^(?P<url>[a-zA-Z][a-zA-Z0-9+.-]*://[^\\s\\[\\]]+\\.git)\"",
+      "id": "PRRT_kwDOTuzK5c6fpBga",
+      "opened": "2026-09-06T04:10:20Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_registry.py",
+      "replies": [],
+      "reviewed": "0ee1bacc214ab58f7022ff450ff7ce8bb34a3ac9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r3942897829"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`provision` is exported from `opentelemetry.conformance`, so removing its required `label=` keyword breaks existing API consumers with `TypeError`. The cache can still be keyed by `repo` and `ref` while retaining `label` as an optional log/display override for backward compatibility.",
+      "created": "2026-09-06T04:10:20Z",
+      "hunk": "@@ -60,14 +117,15 @@ def cache_dir() -> Path:\n     return Path.home() / \".cache\" / \"otel-conformance\" / \"semconv\"\n \n \n-def provision(repo: str, ref: str, *, label: str) -> Path:\n+def provision(repo: str, ref: str) -> Path:",
+      "id": "PRRT_kwDOTuzK5c6fpBge",
+      "opened": "2026-09-06T04:10:20Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_registry.py",
+      "replies": [
+        {
+          "at": "2026-09-06T04:25:36Z",
+          "body": "there are no API consumers",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r3942923597"
+        }
+      ],
+      "reviewed": "0ee1bacc214ab58f7022ff450ff7ce8bb34a3ac9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r3942897837"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "> https://github.com/open-telemetry/weaver/issues/1751 tracks the weaver-side fix; once --advice-data takes a virtual directory, the fetch here can go away.\n\nDo you plan to wait for https://github.com/open-telemetry/weaver/pull/1760 and incorporate it in this PR or a follow-up PR?\n\nAre the checkouts performed by the runner cached? If so, does it make sense to keep performing the checkout in the runner or does weaver also have caching capability for the code checkout?",
+      "created": "2026-09-13T08:18:57Z",
+      "hunk": "@@ -52,6 +66,49 @@ def require_pin(path: Path, name: str) -> str:\n         raise RuntimeError(f\"{path} is missing the pin {name}\") from None\n \n \n+@dataclass(frozen=True)\n+class GitRegistry:\n+    \"\"\"A registry declared as a git URL rather than as a path on disk.\"\"\"\n+\n+    url: str\n+    ref: str | None = None\n+    sub_folder: str | None = None\n+\n+    @property\n+    def repo(self) -> str:\n+        \"\"\"The ``org/name`` to fetch an archive of.\"\"\"\n+        if not self.url.startswith(_GITHUB):\n+            raise RuntimeError(\n+                f\"{self.url}: a registry URL is fetched as a GitHub archive, \"\n+                \"so only github.com URLs work here\"\n+            )\n+        return self.url[len(_GITHUB) :].removesuffix(\".git\")\n+\n+\n+def parse_git_registry(value: str) -> GitRegistry | None:\n+    \"\"\"Read ``<url>.git@<ref>[<sub folder>]``; None if it isn't one.\"\"\"\n+    match = _GIT_REGISTRY.match(value.strip())\n+    if match is None:\n+        return None\n+    return GitRegistry(**match.groupdict())\n+\n+\n+def local_registry(value: str) -> Path:\n+    \"\"\"A declared registry as a directory, fetching it when it is a git URL.\n+\n+    Weaver takes a URL itself, but a domain's advice data is built by reading\n+    files out of the registry, which no weaver command hands back. So a URL is\n+    fetched once here and everything downstream sees an ordinary checkout.",
+      "id": "PRRT_kwDOTuzK5c6h3pDG",
+      "opened": "2026-09-13T08:18:57Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_registry.py",
+      "replies": [
+        {
+          "at": "2026-09-14T21:38:40Z",
+          "body": "I'd like to merge this here - most of it would still be relevant - a bunch of code here assumes it's a local path.\r\nPlus there are other issues in weaver (#https://github.com/open-telemetry/weaver/issues/1681) that makes parts of local check out necessary. Once all are resolved this might be simplified, but I'd prefer not to wait for it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r4009841501"
+        }
+      ],
+      "reviewed": "ef7a2c1bd2fef58c8a76090e48db44c369f6473e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r3999195577"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Refs from the new URL syntax are accepted with `/` (for example, `@release/v1`) and passed through to `provision`, which interpolates them unescaped into `/archive/{ref}.tar.gz`. GitHub requires slashes in a branch/tag name to be percent-encoded; otherwise they become extra URL path segments and the fetch fails. Percent-encode the ref (for example with `quote(ref, safe=\"\")`) when constructing the archive URL.",
+      "created": "2026-09-29T19:52:49Z",
+      "hunk": "@@ -52,6 +66,49 @@ def require_pin(path: Path, name: str) -> str:\n         raise RuntimeError(f\"{path} is missing the pin {name}\") from None\n \n \n+@dataclass(frozen=True)\n+class GitRegistry:\n+    \"\"\"A registry declared as a git URL rather than as a path on disk.\"\"\"\n+\n+    url: str\n+    ref: str | None = None\n+    sub_folder: str | None = None\n+\n+    @property\n+    def repo(self) -> str:\n+        \"\"\"The ``org/name`` to fetch an archive of.\"\"\"\n+        if not self.url.startswith(_GITHUB):\n+            raise RuntimeError(\n+                f\"{self.url}: a registry URL is fetched as a GitHub archive, \"\n+                \"so only github.com URLs work here\"\n+            )\n+        return self.url[len(_GITHUB) :].removesuffix(\".git\")\n+\n+\n+def parse_git_registry(value: str) -> GitRegistry | None:\n+    \"\"\"Read ``<url>.git@<ref>[<sub folder>]``; None if it isn't one.\"\"\"\n+    match = _GIT_REGISTRY.match(value.strip())\n+    if match is None:\n+        return None\n+    return GitRegistry(**match.groupdict())\n+\n+\n+def local_registry(value: str) -> Path:\n+    \"\"\"A declared registry as a directory, fetching it when it is a git URL.\n+\n+    Weaver takes a URL itself, but a domain's advice data is built by reading\n+    files out of the registry, which no weaver command hands back. So a URL is\n+    fetched once here and everything downstream sees an ordinary checkout.\n+    \"\"\"\n+    declared = parse_git_registry(value)\n+    if declared is None:\n+        return Path(value)\n+    repo = declared.repo\n+    # No ref is the default branch, which is what GitHub serves for HEAD.\n+    checkout = provision(repo, declared.ref or \"HEAD\")",
+      "id": "PRRT_kwDOTuzK5c6nRK9Z",
+      "opened": "2026-09-29T19:52:49Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_registry.py",
+      "replies": [
+        {
+          "at": "2026-10-01T02:34:37Z",
+          "body": "Validated with `copilot/registry-git-url`: GitHub accepts the unencoded slash, and the existing registry code downloads and extracts it successfully. No fix needed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r4151267446"
+        }
+      ],
+      "reviewed": "63bd61a90ee5bbd2d6b1392195fface5ffbac000",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/178#discussion_r4137679070"
+    }
+  ]
+}

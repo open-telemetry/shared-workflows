@@ -1,0 +1,25 @@
+{
+  "head": "8582be28ec2006ef2c9ec789dd129f60a6e1ac0e",
+  "merge": "1033bc46e6e7eb7ecf00c19be400e58c099c6ca7",
+  "merged": "2026-06-04T17:02:34Z",
+  "missing_roots": 0,
+  "number": 18897,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getService(URI)` selects the READ_TIMEOUT client type by checking `uri.toString().contains(\"/read-timeout\")`, which can match on the scheme/host/query and is inconsistent with the existing error-mapper logic in `AbstractClientTest` that keys off the request path. Using `uri.getPath()` keeps the selection precise and avoids accidentally enabling read timeouts for unrelated URIs.",
+      "created": "2026-06-04T15:16:37Z",
+      "hunk": "@@ -53,7 +53,13 @@ public void afterAll(ExtensionContext context) throws Exception {\n   }\n \n   public Service<Request, Response> getService(URI uri) {\n-    return getService(uri, \"https\".equals(uri.getScheme()) ? ClientType.TLS : ClientType.DEFAULT);\n+    ClientType type = ClientType.DEFAULT;\n+    if (\"https\".equals(uri.getScheme())) {\n+      type = ClientType.TLS;\n+    } else if (uri.toString().contains(\"/read-timeout\")) {\n+      type = ClientType.READ_TIMEOUT;\n+    }",
+      "id": "PRRT_kwDODJKVX86HHeim",
+      "opened": "2026-06-04T15:16:37Z",
+      "path": "instrumentation/finagle-http-23.11/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/finaglehttp/v23_11/FinagleClientExtension.java",
+      "replies": [],
+      "reviewed": "c409833bb6518ed2d187fbe57afe29b4eeec08d7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18897#discussion_r3357036127"
+    }
+  ]
+}

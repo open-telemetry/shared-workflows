@@ -1,0 +1,36 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a116c9f7a0a76ea9621b37bbd5284980365359c32cb108b3057761bec492f63d",
+  "input_digest": "09165056f7a780d0ea1b6973eff04a0ed2b9ab1a20c23270d45a58d9c3b083e5",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dc4ea211b0f2372185645998cc31c4473e6544aa/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/103e7dbda17651336f5f7cf2a009e401443ebf36/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e1170ab92b58ddadafa9b53a25188c5d9a4d2f3c"
+      ],
+      "id": "PRRT_kwDODJKVX866dc5Z",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e1170ab92b58ddadafa9b53a25188c5d9a4d2f3c/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/103e7dbda17651336f5f7cf2a009e401443ebf36/benchmark-overhead/src/test/java/io/opentelemetry/startup/AgentStartupBenchmark.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e1170ab92b58ddadafa9b53a25188c5d9a4d2f3c/benchmark-overhead/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/103e7dbda17651336f5f7cf2a009e401443ebf36/benchmark-overhead/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e1170ab92b58ddadafa9b53a25188c5d9a4d2f3c/benchmark-overhead/src/test/java/io/opentelemetry/startup/PetclinicStartupUptimeAutoConfiguration.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/103e7dbda17651336f5f7cf2a009e401443ebf36/benchmark-overhead/src/test/java/io/opentelemetry/startup/PetclinicStartupUptimeAutoConfiguration.java"
+      ],
+      "id": "PRRT_kwDODJKVX866es2R",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

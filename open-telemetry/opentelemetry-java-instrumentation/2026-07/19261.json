@@ -1,0 +1,40 @@
+{
+  "head": "706b2ceb4634566f6a345ff3f04a43b37ceb708e",
+  "merge": "7dc4f164c20c926d15209eacf3af6250524a4272",
+  "merged": "2026-07-17T13:25:10Z",
+  "missing_roots": 0,
+  "number": 19261,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This suite records the connect spans only in legacy semconv mode. Because `testStableSemconv` now runs with connection telemetry disabled, metadata collection never observes the `service.peer.name` emitted by `maybeStablePeerService()` in stable mode, so regenerating the instrumentation list drops that existing attribute. Add and collect another suite with both connection telemetry and `otel.semconv-stability.opt-in=database,service.peer` enabled.",
+      "created": "2026-07-17T11:50:14Z",
+      "hunk": "@@ -35,6 +34,14 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.instrumentation.lettuce.experimental-span-attributes=true\")\n   }\n \n+  val testConnectionTelemetryEnabled = register<Test>(\"testConnectionTelemetryEnabled\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    jvmArgs(\"-Dotel.instrumentation.lettuce.connection-telemetry.enabled=true\")\n+    systemProperty(\"metadataConfig\", \"otel.instrumentation.lettuce.connection-telemetry.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86RwUkZ",
+      "opened": "2026-07-17T11:50:15Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "55a91041b48e89fcef866651aa2349ad0123ffa4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19261#discussion_r3602894228"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Collecting this task restores only legacy `peer.service`: its JVM configuration does not opt into stable service-peer semconv, while `testStableSemconv` skips the connect-only tests. As a result, regeneration removes `service.peer.name` from Lettuce 5.0's stable metadata. Also define and collect a task that enables both connection telemetry and `otel.semconv-stability.opt-in=database,service.peer`.",
+      "created": "2026-07-17T11:50:15Z",
+      "hunk": "@@ -199,9 +199,11 @@ readonly INSTRUMENTATIONS=(\n   \"lettuce:lettuce-4.0:javaagent:test\"\n   \"lettuce:lettuce-4.0:javaagent:testExperimental\"\n   \"lettuce:lettuce-4.0:javaagent:testStableSemconv\"\n+  \"lettuce:lettuce-4.0:javaagent:testConnectionTelemetryEnabled\"\n   \"lettuce:lettuce-5.0:javaagent:test\"\n   \"lettuce:lettuce-5.0:javaagent:testExperimental\"\n   \"lettuce:lettuce-5.0:javaagent:testStableSemconv\"\n+  \"lettuce:lettuce-5.0:javaagent:testConnectionTelemetryEnabled\"",
+      "id": "PRRT_kwDODJKVX86RwUk_",
+      "opened": "2026-07-17T11:50:15Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [],
+      "reviewed": "55a91041b48e89fcef866651aa2349ad0123ffa4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19261#discussion_r3602894275"
+    }
+  ]
+}

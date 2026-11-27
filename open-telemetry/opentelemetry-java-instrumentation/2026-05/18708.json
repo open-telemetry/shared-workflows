@@ -1,0 +1,52 @@
+{
+  "head": "70189420738be2f647a1a223e02ab4b88951fcfe",
+  "merge": "95d968d7f689a5b708d0d027acd4f16f7fb15730",
+  "merged": "2026-05-12T15:08:40Z",
+  "missing_roots": 0,
+  "number": 18708,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The method now accepts a nullable `value` and returns `null` when `value` is `null`, but the Javadoc still reads like it only returns null on parse failure. Please update the `@param`/`@return` docs to reflect the nullable input behavior (and that `null` input yields `null`).",
+      "created": "2026-05-12T14:11:00Z",
+      "hunk": "@@ -95,7 +95,11 @@ public static Map<String, String> splitQuery(String query, String separator) {\n    * @param value the string value to parse\n    * @return the parsed integer, or null if parsing fails\n    */\n-  public static Integer parsePort(String value) {\n+  @Nullable\n+  public static Integer parsePort(@Nullable String value) {",
+      "id": "PRRT_kwDODJKVX86BcRlt",
+      "opened": "2026-05-12T14:11:00Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+      "replies": [
+        {
+          "at": "2026-05-12T14:31:46Z",
+          "body": "internal, javadoc is good enough",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18708#discussion_r3227261021"
+        }
+      ],
+      "reviewed": "70189420738be2f647a1a223e02ab4b88951fcfe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18708#discussion_r3227090485"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Consider adding a small regression test that exercises `parsePort(null)` (or a JDBC URL variant that results in a missing/optional port group) to ensure it stays non-throwing and avoids noisy NumberFormatException logging in the future.",
+      "created": "2026-05-12T14:11:00Z",
+      "hunk": "@@ -95,7 +95,11 @@ public static Map<String, String> splitQuery(String query, String separator) {\n    * @param value the string value to parse\n    * @return the parsed integer, or null if parsing fails\n    */\n-  public static Integer parsePort(String value) {\n+  @Nullable\n+  public static Integer parsePort(@Nullable String value) {\n+    if (value == null) {\n+      return null;\n+    }",
+      "id": "PRRT_kwDODJKVX86BcRmi",
+      "opened": "2026-05-12T14:11:00Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+      "replies": [
+        {
+          "at": "2026-05-12T14:32:02Z",
+          "body": "no thanks",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18708#discussion_r3227263146"
+        }
+      ],
+      "reviewed": "70189420738be2f647a1a223e02ab4b88951fcfe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18708#discussion_r3227090556"
+    }
+  ]
+}

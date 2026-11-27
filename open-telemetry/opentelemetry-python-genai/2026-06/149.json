@@ -1,0 +1,25 @@
+{
+  "head": "94c81e32d19cfd7fa3db347f7eac8ba54a98edc1",
+  "merge": "44042cbc3708c9ebe8b86bc6f12c15cbd7f308e7",
+  "merged": "2026-06-19T21:31:26Z",
+  "missing_roots": 0,
+  "number": 149,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The repo’s `.github/workflows/changelog.yml` gate currently (1) fails any PR that directly modifies `**/CHANGELOG.md`, and (2) only accepts fragments named `^<PR_NUMBER>\\.(added|changed|deprecated|removed|fixed)$`. This PR edits multiple `CHANGELOG.md` files and introduces orphan fragments prefixed with `+…`, so CI will fail unless you either (a) update that workflow to allow this one-time migration / orphan fragments, or (b) avoid orphan fragments and rename the fragments to the current PR number (keeping the old contrib PR links in the fragment body), or (c) add the \"Skip Changelog\" label (if maintainers agree).",
+      "created": "2026-06-18T03:31:37Z",
+      "hunk": "@@ -10,12 +10,12 @@\n {% for text, values in sections[section][category].items() %}\n {% if \"\\n  - \" in text or '\\n  * ' in text %}\n {%- set main_text, sub_items = text.split('\\n', 1) %}\n-- {{ main_text }} ({{ values|join(', ') }})\n+- {{ main_text }}{% if values %} ({{ values|join(', ') }}){% endif +%}",
+      "id": "PRRT_kwDOSbspP86KacNr",
+      "opened": "2026-06-18T03:31:37Z",
+      "path": "scripts/changelog_template.j2",
+      "replies": [],
+      "reviewed": "e4d8b77387e6960f9c8cfaf0ad97b06197d99a63",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/149#discussion_r3432794576"
+    }
+  ]
+}

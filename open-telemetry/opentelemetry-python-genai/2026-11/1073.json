@@ -1,0 +1,250 @@
+{
+  "head": "63236ac935eed18480ff4f4ec1fc054b97a7a8c1",
+  "merge": "3305e55ae5f18deb1989ea0ffee420a10515b5a0",
+  "merged": "2026-11-17T19:30:04Z",
+  "missing_roots": 0,
+  "number": 1073,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The beta scenario now accepts an incorrect nonempty query or two missing IDs, so corrupted arguments or lost tool-call correlation can pass. Its cassette records `OpenTelemetry` and `srvtoolu_014Fg5LJHr6fZwE2vCf1sjGk`; assert those values explicitly to preserve the previous [exact-value coverage](../../../AGENTS.md#tests).",
+      "created": "2026-11-10T15:32:12Z",
+      "hunk": "@@ -38,31 +38,21 @@ def validate(self, report: LiveCheckReport) -> None:\n             if attribute[\"name\"] == \"gen_ai.output.messages\"\n         ]\n         assert len(output_messages) == 1\n-        expected_parts = [\n-            {\n-                \"name\": \"web_search\",\n-                \"server_tool_call\": {\n-                    \"input\": {\"query\": \"OpenTelemetry\"},\n-                    \"type\": \"web_search\",\n-                },\n-                \"id\": \"srvtoolu_01\",\n-                \"type\": \"server_tool_call\",\n-            },\n-            {\n-                \"server_tool_call_response\": {\n-                    \"content\": {\n-                        \"type\": \"web_search_tool_result_error\",\n-                        \"error_code\": \"unavailable\",\n-                    },\n-                    \"type\": \"web_search\",\n-                },\n-                \"id\": \"srvtoolu_01\",\n-                \"type\": \"server_tool_call_response\",\n-            },\n+        parts = output_messages[0][0][\"parts\"]\n+        calls = [p for p in parts if p[\"type\"] == \"server_tool_call\"]\n+        responses = [\n+            p for p in parts if p[\"type\"] == \"server_tool_call_response\"\n         ]\n-        assert output_messages[0][0][\"parts\"][:2] == expected_parts, (\n-            output_messages[0][0][\"parts\"][:2]\n+        assert len(calls) == 1\n+        assert calls[0][\"name\"] == \"web_search\"\n+        assert calls[0][\"server_tool_call\"][\"type\"] == \"web_search\"\n+        assert calls[0][\"server_tool_call\"][\"input\"][\"query\"]\n+        assert len(responses) == 1\n+        assert responses[0][\"id\"] == calls[0][\"id\"]",
+      "id": "PRRT_kwDOSbspP861xHrh",
+      "opened": "2026-11-10T15:32:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/conformance/inference_beta_server_tool_calling.py",
+      "replies": [],
+      "reviewed": "9bf04f9584edbfa91f6a7522dfeb471e10edcc87",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4526853193"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These replacement assertions accept an unrelated nonempty query and even `None` for both tool IDs, despite the cassette containing `OpenTelemetry` and a concrete call ID. This removes the previous end-to-end checks that those provider values survive content capture; Weaver's shape validation does not check their values. Please retain exact assertions using the rerecorded query and ID, as required by the [test rule](../../../AGENTS.md#tests).",
+      "created": "2026-11-10T15:32:12Z",
+      "hunk": "@@ -38,28 +38,21 @@ def validate(self, report: LiveCheckReport) -> None:\n             if attribute[\"name\"] == \"gen_ai.output.messages\"\n         ]\n         assert len(output_messages) == 1\n-        assert output_messages[0][0][\"parts\"][:2] == [\n-            {\n-                \"name\": \"web_search\",\n-                \"server_tool_call\": {\n-                    \"input\": {\"query\": \"OpenTelemetry\"},\n-                    \"type\": \"web_search\",\n-                },\n-                \"id\": \"srvtoolu_01\",\n-                \"type\": \"server_tool_call\",\n-            },\n-            {\n-                \"server_tool_call_response\": {\n-                    \"content\": {\n-                        \"error_code\": \"unavailable\",\n-                        \"type\": \"web_search_tool_result_error\",\n-                    },\n-                    \"type\": \"web_search\",\n-                },\n-                \"id\": \"srvtoolu_01\",\n-                \"type\": \"server_tool_call_response\",\n-            },\n+        parts = output_messages[0][0][\"parts\"]\n+        calls = [p for p in parts if p[\"type\"] == \"server_tool_call\"]\n+        responses = [\n+            p for p in parts if p[\"type\"] == \"server_tool_call_response\"\n         ]\n+        assert len(calls) == 1\n+        assert calls[0][\"name\"] == \"web_search\"\n+        assert calls[0][\"server_tool_call\"][\"type\"] == \"web_search\"\n+        assert calls[0][\"server_tool_call\"][\"input\"][\"query\"]\n+        assert len(responses) == 1\n+        assert responses[0][\"id\"] == calls[0][\"id\"]",
+      "id": "PRRT_kwDOSbspP861xHsz",
+      "opened": "2026-11-10T15:32:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/conformance/server_tool_calling.py",
+      "replies": [],
+      "reviewed": "9bf04f9584edbfa91f6a7522dfeb471e10edcc87",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4526853328"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Replacing the exact comparison with these checks lets an incorrect nonempty `queries` value and two `None` IDs pass. The real cassette supplies `queries=[\"OpenTelemetry\"]` and call ID `zpsqtr34`; assert those values explicitly so dropped IDs or corrupted arguments still fail this scenario ([test rule](../../../AGENTS.md#tests)).",
+      "created": "2026-11-10T15:32:13Z",
+      "hunk": "@@ -110,27 +114,26 @@ class InteractionsServerToolCallingScenario(Scenario):\n \n     def validate(self, report: LiveCheckReport) -> None:\n         super().validate(report)\n-        assert _output_parts(report)[:2] == [\n-            {\n-                \"name\": \"google_search\",\n-                \"server_tool_call\": {\n-                    \"arguments\": {\"queries\": [\"OpenTelemetry\"]},\n-                    \"search_type\": \"web_search\",\n-                    \"type\": \"google_search\",\n-                },\n-                \"id\": \"search-1\",\n-                \"type\": \"server_tool_call\",\n-            },\n-            {\n-                \"server_tool_call_response\": {\n-                    \"is_error\": False,\n-                    \"result\": [],\n-                    \"type\": \"google_search\",\n-                },\n-                \"id\": \"search-1\",\n-                \"type\": \"server_tool_call_response\",\n-            },\n+        parts = _output_parts(report)\n+        calls = [p for p in parts if p[\"type\"] == \"server_tool_call\"]\n+        responses = [\n+            p for p in parts if p[\"type\"] == \"server_tool_call_response\"\n         ]\n+        assert len(calls) == 1\n+        assert calls[0][\"name\"] == \"google_search\"\n+        assert calls[0][\"server_tool_call\"][\"type\"] == \"google_search\"\n+        assert calls[0][\"server_tool_call\"][\"search_type\"] == \"web_search\"\n+        assert calls[0][\"server_tool_call\"][\"arguments\"][\"queries\"]\n+        assert len(responses) == 1\n+        assert responses[0][\"id\"] == calls[0][\"id\"]",
+      "id": "PRRT_kwDOSbspP861xHtV",
+      "opened": "2026-11-10T15:32:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/conformance/server_tool_calling.py",
+      "replies": [],
+      "reviewed": "9bf04f9584edbfa91f6a7522dfeb471e10edcc87",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4526853391"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: these scenarios now call Llama but still replay `test_invoke_model_titan_conformance.yaml` / `test_invoke_model_stream_titan_conformance.yaml`. Maybe rename the cassettes to match?",
+      "created": "2026-11-11T18:45:10Z",
+      "hunk": "@@ -58,16 +58,13 @@ def run(\n                     \"bedrock-runtime\", region_name=\"us-east-1\"\n                 )\n                 response = client.invoke_model(\n-                    modelId=\"amazon.titan-text-express-v1\",\n+                    modelId=\"meta.llama3-8b-instruct-v1:0\",",
+      "id": "PRRT_kwDOSbspP862UCs2",
+      "opened": "2026-11-11T18:46:51Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/tests/conformance/invoke_model.py",
+      "replies": [
+        {
+          "at": "2026-11-11T20:39:47Z",
+          "body": "Ack.. renamed the cassettes",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4543006106"
+        }
+      ],
+      "reviewed": "5785d4a3ada36dff63361bf643f3997db305e472",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4541926783"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "question: with this flag, nothing tests the default `ChatBedrock` (InvokeModel) path anymore. The deleted `_old` cassette was the only coverage for it, and that's what users get out of the box. Could we keep a test for it, or was it dropped because Nova stopped working on that path?",
+      "created": "2026-11-11T18:45:10Z",
+      "hunk": "@@ -167,27 +167,31 @@ def fixture_us_amazon_nova_lite_v1_0():\n         provider=\"amazon\",\n         temperature=0.1,\n         max_tokens=100,\n+        beta_use_converse_api=True,",
+      "id": "PRRT_kwDOSbspP862UCsz",
+      "opened": "2026-11-11T18:46:51Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/conftest.py",
+      "replies": [
+        {
+          "at": "2026-11-11T20:42:20Z",
+          "body": "Nova models only support the Converse API on Bedrock (langchain-aws 0.2.2 tried calling /invoke with a Titan payload, which Bedrock rejects). Added test_meta_llama3_8b_instruct_bedrock_llm_call in 5584e9f9 to cover the default ChatBedrock (InvokeModel) path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4543023560"
+        }
+      ],
+      "reviewed": "5785d4a3ada36dff63361bf643f3997db305e472",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4541926779"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The truthiness assertion accepts an error object or `[{}]` in place of the cassette's ten successful search results, so corrupted result mapping can pass conformance. Assert the recorded result type, count, and representative fields, following the [test assertion guidance](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/AGENTS.md#tests). Apply the same check in `inference_beta_server_tool_calling.py:61`.",
+      "created": "2026-11-11T21:12:22Z",
+      "hunk": "@@ -38,28 +38,27 @@ def validate(self, report: LiveCheckReport) -> None:\n             if attribute[\"name\"] == \"gen_ai.output.messages\"\n         ]\n         assert len(output_messages) == 1\n-        assert output_messages[0][0][\"parts\"][:2] == [\n-            {\n-                \"name\": \"web_search\",\n-                \"server_tool_call\": {\n-                    \"input\": {\"query\": \"OpenTelemetry\"},\n-                    \"type\": \"web_search\",\n-                },\n-                \"id\": \"srvtoolu_01\",\n-                \"type\": \"server_tool_call\",\n-            },\n-            {\n-                \"server_tool_call_response\": {\n-                    \"content\": {\n-                        \"error_code\": \"unavailable\",\n-                        \"type\": \"web_search_tool_result_error\",\n-                    },\n-                    \"type\": \"web_search\",\n-                },\n-                \"id\": \"srvtoolu_01\",\n-                \"type\": \"server_tool_call_response\",\n-            },\n+        parts = output_messages[0][0][\"parts\"]\n+        calls = [p for p in parts if p[\"type\"] == \"server_tool_call\"]\n+        responses = [\n+            p for p in parts if p[\"type\"] == \"server_tool_call_response\"\n         ]\n+        assert len(calls) == 1\n+        assert calls[0] == {\n+            \"type\": \"server_tool_call\",\n+            \"id\": \"srvtoolu_012xr2gm6choezHECLKxENA3\",\n+            \"name\": \"web_search\",\n+            \"server_tool_call\": {\n+                \"type\": \"web_search\",\n+                \"input\": {\"query\": \"OpenTelemetry\"},\n+            },\n+        }\n+        assert len(responses) == 1\n+        assert responses[0][\"id\"] == \"srvtoolu_012xr2gm6choezHECLKxENA3\"\n+        assert (\n+            responses[0][\"server_tool_call_response\"][\"type\"] == \"web_search\"\n+        )\n+        assert responses[0][\"server_tool_call_response\"][\"content\"]",
+      "id": "PRRT_kwDOSbspP862XAK2",
+      "opened": "2026-11-11T21:12:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/conformance/server_tool_calling.py",
+      "replies": [],
+      "reviewed": "e55f4c6f552019f7db2641f8e2e4bb18ea222d5f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4543248845"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This auth-detection condition misses valid boto3 credential sources, including `AWS_SHARED_CREDENTIALS_FILE` and ECS container credentials. When either is configured without the four checked clues, the fixture inserts `test_key`/`test_secret`; environment credentials take precedence over those providers, so live re-recording uses invalid credentials despite a valid AWS setup. Please restrict dummy credentials to offline playback, or preserve the SDK credential chain when recording.",
+      "created": "2026-11-11T21:12:22Z",
+      "hunk": "@@ -235,6 +254,14 @@ def start_instrumentation(\n def environment():\n     if not os.getenv(\"OPENAI_API_KEY\"):\n         os.environ[\"OPENAI_API_KEY\"] = \"test_openai_api_key\"\n+    if not (\n+        os.getenv(\"AWS_ACCESS_KEY_ID\")\n+        or os.getenv(\"AWS_PROFILE\")\n+        or os.getenv(\"AWS_WEB_IDENTITY_TOKEN_FILE\")\n+        or os.path.exists(os.path.expanduser(\"~/.aws/credentials\"))",
+      "id": "PRRT_kwDOSbspP862XALX",
+      "opened": "2026-11-11T21:12:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/conftest.py",
+      "replies": [],
+      "reviewed": "e55f4c6f552019f7db2641f8e2e4bb18ea222d5f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4543248910"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The re-recorded cassette contains nonempty search results, but this check also accepts `[]`. Dropping all of the recorded `search_suggestions` data would therefore leave this conformance scenario passing. Please assert that the recorded result content survives, not just its container type, as required by the [test assertion guidance](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/AGENTS.md#tests).",
+      "created": "2026-11-11T21:12:23Z",
+      "hunk": "@@ -110,27 +114,32 @@ class InteractionsServerToolCallingScenario(Scenario):\n \n     def validate(self, report: LiveCheckReport) -> None:\n         super().validate(report)\n-        assert _output_parts(report)[:2] == [\n-            {\n-                \"name\": \"google_search\",\n-                \"server_tool_call\": {\n-                    \"arguments\": {\"queries\": [\"OpenTelemetry\"]},\n-                    \"search_type\": \"web_search\",\n-                    \"type\": \"google_search\",\n-                },\n-                \"id\": \"search-1\",\n-                \"type\": \"server_tool_call\",\n-            },\n-            {\n-                \"server_tool_call_response\": {\n-                    \"is_error\": False,\n-                    \"result\": [],\n-                    \"type\": \"google_search\",\n-                },\n-                \"id\": \"search-1\",\n-                \"type\": \"server_tool_call_response\",\n-            },\n+        parts = _output_parts(report)\n+        calls = [p for p in parts if p[\"type\"] == \"server_tool_call\"]\n+        responses = [\n+            p for p in parts if p[\"type\"] == \"server_tool_call_response\"\n         ]\n+        assert len(calls) == 1\n+        assert calls[0] == {\n+            \"type\": \"server_tool_call\",\n+            \"id\": \"zpsqtr34\",\n+            \"name\": \"google_search\",\n+            \"server_tool_call\": {\n+                \"type\": \"google_search\",\n+                \"search_type\": \"web_search\",\n+                \"arguments\": {\"queries\": [\"OpenTelemetry\"]},\n+            },\n+        }\n+        assert len(responses) == 1\n+        assert responses[0][\"id\"] == \"zpsqtr34\"\n+        assert (\n+            responses[0][\"server_tool_call_response\"][\"type\"]\n+            == \"google_search\"\n+        )\n+        assert responses[0][\"server_tool_call_response\"][\"is_error\"] is False\n+        assert isinstance(\n+            responses[0][\"server_tool_call_response\"][\"result\"], list\n+        )",
+      "id": "PRRT_kwDOSbspP862XAL0",
+      "opened": "2026-11-11T21:12:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/conformance/server_tool_calling.py",
+      "replies": [],
+      "reviewed": "e55f4c6f552019f7db2641f8e2e4bb18ea222d5f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4543248966"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These additions leave dummy AWS credentials in the process environment after the test finishes. Because the fixture is autouse, subsequent tests—including tests from other packages collected in the same process—inherit them and resolve boto3 credentials differently. Please scope these writes with `monkeypatch.setenv` so teardown restores the environment, following [instrumentation/AGENTS.md:334](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/AGENTS.md#tests).",
+      "created": "2026-11-11T21:12:23Z",
+      "hunk": "@@ -235,6 +254,14 @@ def start_instrumentation(\n def environment():\n     if not os.getenv(\"OPENAI_API_KEY\"):\n         os.environ[\"OPENAI_API_KEY\"] = \"test_openai_api_key\"\n+    if not (\n+        os.getenv(\"AWS_ACCESS_KEY_ID\")\n+        or os.getenv(\"AWS_PROFILE\")\n+        or os.getenv(\"AWS_WEB_IDENTITY_TOKEN_FILE\")\n+        or os.path.exists(os.path.expanduser(\"~/.aws/credentials\"))\n+    ):\n+        os.environ.setdefault(\"AWS_ACCESS_KEY_ID\", \"test_key\")\n+        os.environ.setdefault(\"AWS_SECRET_ACCESS_KEY\", \"test_secret\")",
+      "id": "PRRT_kwDOSbspP862XALh",
+      "opened": "2026-11-11T21:12:23Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/conftest.py",
+      "replies": [],
+      "reviewed": "e55f4c6f552019f7db2641f8e2e4bb18ea222d5f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4543248934"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new result assertions are duplicated verbatim in `inference_beta_server_tool_calling.py:61–72`, and the surrounding validation differs only by the recorded tool-call ID. Please extract a shared validator parameterized by that ID so changes to the payload checks cannot drift between the regular and beta scenarios. See the [duplication rule](../../../../.github/copilot-instructions.md).",
+      "created": "2026-11-11T21:46:58Z",
+      "hunk": "@@ -38,28 +38,38 @@ def validate(self, report: LiveCheckReport) -> None:\n             if attribute[\"name\"] == \"gen_ai.output.messages\"\n         ]\n         assert len(output_messages) == 1\n-        assert output_messages[0][0][\"parts\"][:2] == [\n-            {\n-                \"name\": \"web_search\",\n-                \"server_tool_call\": {\n-                    \"input\": {\"query\": \"OpenTelemetry\"},\n-                    \"type\": \"web_search\",\n-                },\n-                \"id\": \"srvtoolu_01\",\n-                \"type\": \"server_tool_call\",\n-            },\n-            {\n-                \"server_tool_call_response\": {\n-                    \"content\": {\n-                        \"error_code\": \"unavailable\",\n-                        \"type\": \"web_search_tool_result_error\",\n-                    },\n-                    \"type\": \"web_search\",\n-                },\n-                \"id\": \"srvtoolu_01\",\n-                \"type\": \"server_tool_call_response\",\n-            },\n+        parts = output_messages[0][0][\"parts\"]\n+        calls = [p for p in parts if p[\"type\"] == \"server_tool_call\"]\n+        responses = [\n+            p for p in parts if p[\"type\"] == \"server_tool_call_response\"\n         ]\n+        assert len(calls) == 1\n+        assert calls[0] == {\n+            \"type\": \"server_tool_call\",\n+            \"id\": \"srvtoolu_012xr2gm6choezHECLKxENA3\",\n+            \"name\": \"web_search\",\n+            \"server_tool_call\": {\n+                \"type\": \"web_search\",\n+                \"input\": {\"query\": \"OpenTelemetry\"},\n+            },\n+        }\n+        assert len(responses) == 1\n+        assert responses[0][\"id\"] == \"srvtoolu_012xr2gm6choezHECLKxENA3\"\n+        assert (\n+            responses[0][\"server_tool_call_response\"][\"type\"] == \"web_search\"\n+        )\n+        results = responses[0][\"server_tool_call_response\"][\"content\"]\n+        assert isinstance(results, list)\n+        assert len(results) == 10\n+        assert all(r[\"type\"] == \"web_search_result\" for r in results)",
+      "id": "PRRT_kwDOSbspP862Xsr_",
+      "opened": "2026-11-11T21:46:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/conformance/server_tool_calling.py",
+      "replies": [],
+      "reviewed": "5b72b6813b2569fc2e212db47a12d1a9b7f577f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4543549443"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new search-result assertions duplicate `ServerToolCallingScenario.validate()` in `tests/conformance/server_tool_calling.py`; the two validation methods are now identical apart from the recorded tool-call ID. Extract a shared validator that accepts the expected ID so payload-validation changes do not require synchronized edits in both scenarios.",
+      "created": "2026-11-12T14:52:35Z",
+      "hunk": "@@ -38,31 +38,38 @@ def validate(self, report: LiveCheckReport) -> None:\n             if attribute[\"name\"] == \"gen_ai.output.messages\"\n         ]\n         assert len(output_messages) == 1\n-        expected_parts = [\n-            {\n-                \"name\": \"web_search\",\n-                \"server_tool_call\": {\n-                    \"input\": {\"query\": \"OpenTelemetry\"},\n-                    \"type\": \"web_search\",\n-                },\n-                \"id\": \"srvtoolu_01\",\n-                \"type\": \"server_tool_call\",\n-            },\n-            {\n-                \"server_tool_call_response\": {\n-                    \"content\": {\n-                        \"type\": \"web_search_tool_result_error\",\n-                        \"error_code\": \"unavailable\",\n-                    },\n-                    \"type\": \"web_search\",\n-                },\n-                \"id\": \"srvtoolu_01\",\n-                \"type\": \"server_tool_call_response\",\n-            },\n+        parts = output_messages[0][0][\"parts\"]\n+        calls = [p for p in parts if p[\"type\"] == \"server_tool_call\"]\n+        responses = [\n+            p for p in parts if p[\"type\"] == \"server_tool_call_response\"\n         ]\n-        assert output_messages[0][0][\"parts\"][:2] == expected_parts, (\n-            output_messages[0][0][\"parts\"][:2]\n+        assert len(calls) == 1\n+        assert calls[0] == {\n+            \"type\": \"server_tool_call\",\n+            \"id\": \"srvtoolu_01PKGW51KPFgUP7K4kSeMtPw\",\n+            \"name\": \"web_search\",\n+            \"server_tool_call\": {\n+                \"type\": \"web_search\",\n+                \"input\": {\"query\": \"OpenTelemetry\"},\n+            },\n+        }\n+        assert len(responses) == 1\n+        assert responses[0][\"id\"] == \"srvtoolu_01PKGW51KPFgUP7K4kSeMtPw\"\n+        assert (\n+            responses[0][\"server_tool_call_response\"][\"type\"] == \"web_search\"\n+        )\n+        results = responses[0][\"server_tool_call_response\"][\"content\"]\n+        assert isinstance(results, list)\n+        assert len(results) == 10\n+        assert all(r[\"type\"] == \"web_search_result\" for r in results)\n+        assert results[0][\"title\"] == \"What is OpenTelemetry?\"",
+      "id": "PRRT_kwDOSbspP862rMyb",
+      "opened": "2026-11-12T14:52:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/conformance/inference_beta_server_tool_calling.py",
+      "replies": [],
+      "reviewed": "eb3b48833a8be279a6f20556efa58934be7e565a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4552033928"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The recording now contains two code-execution call/result pairs, but this validator checks only the first pair. Dropping the second pair from telemetry would therefore pass conformance. Assert all tool-call/result parts with their exact counts and payloads, following the [test assertion guidance](../../../../instrumentation/AGENTS.md#tests).",
+      "created": "2026-11-16T21:18:56Z",
+      "hunk": "@@ -49,20 +50,20 @@ def validate(self, report: LiveCheckReport) -> None:\n             {\n                 \"name\": \"code_execution\",\n                 \"server_tool_call\": {\n-                    \"code\": \"print(1)\",\n+                    \"code\": 'print(\"one\")\\n',",
+      "id": "PRRT_kwDOSbspP864I-w8",
+      "opened": "2026-11-16T21:18:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/conformance/server_tool_calling.py",
+      "replies": [
+        {
+          "at": "2026-11-17T14:03:01Z",
+          "body": "Fixed in e4070d12: updated `GenerateContentServerToolCallingScenario.validate` to assert all 5 output parts (both code-execution call/result pairs and the intermediate text part) instead of slicing `[:2]`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4600622544"
+        }
+      ],
+      "reviewed": "baa29e27052f20442d304bd2e9ceb43dbe55fa16",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4591718318"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This accepts any `ClientError`, so an authentication or quota failure during re-recording would also pass this case and could replace the intended schema-validation recording. Please match the conflicting-parameters error message so the test verifies the expected failure rather than an unrelated provider error, as required by the [test assertion guidance](../../../../instrumentation/AGENTS.md#tests).",
+      "created": "2026-11-16T21:18:57Z",
+      "hunk": "@@ -79,22 +86,31 @@ def test_tool_definition_parameters(\n         content_capture=\"SPAN_ONLY\",\n     ):\n         client = Client(\n-            api_key=\"test-key\",\n+            api_key=os.getenv(\"GOOGLE_API_KEY\", \"test-key\"),\n             vertexai=False,\n         )\n-        result = client.models.generate_content(\n-            model=\"gemini-2.5-flash\",\n-            contents=\"What is the weather in Paris?\",\n-            config=config,\n-        )\n+        if expects_api_error:\n+            with pytest.raises(errors.ClientError):",
+      "id": "PRRT_kwDOSbspP864I-yE",
+      "opened": "2026-11-16T21:18:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_tool_definitions.py",
+      "replies": [
+        {
+          "at": "2026-11-17T14:03:03Z",
+          "body": "Fixed in e4070d12: added `match=\"parameters_json_schema must not be set when parameters is set\"` to `pytest.raises(errors.ClientError, ...)`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4600622920"
+        }
+      ],
+      "reviewed": "baa29e27052f20442d304bd2e9ceb43dbe55fa16",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4591718422"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing forced `tool_choice` lets a future recording contain only text, while the inherited validator would still pass without checking that a tool call was captured. Add a shared scenario validator that asserts an output `tool_call` part is present, following the [test assertion guidance](../../../../instrumentation/AGENTS.md#tests). Apply it to both this scenario and `tests/conformance/tool_calling_beta.py:54`.",
+      "created": "2026-11-17T14:09:16Z",
+      "hunk": "@@ -51,7 +51,7 @@ def run(\n             ):\n                 with vcr.use_cassette(\"tool_calling_conformance.yaml\"):\n                     Anthropic().messages.create(\n-                        model=\"claude-sonnet-4-20250514\",\n+                        model=\"claude-sonnet-5-5\",",
+      "id": "PRRT_kwDOSbspP864eFcs",
+      "opened": "2026-11-17T14:09:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/conformance/tool_calling.py",
+      "replies": [
+        {
+          "at": "2026-11-17T16:45:56Z",
+          "body": "Fixed in 63236ac9: added shared `validate_tool_calling` validator asserting the recorded `tool_call` output part and applied it to both `ToolCallingScenario` and `ToolCallingBetaScenario`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4602775491"
+        }
+      ],
+      "reviewed": "e4070d12de7223ef9bc03a5788a605065e95a996",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1073#discussion_r4600706577"
+    }
+  ]
+}

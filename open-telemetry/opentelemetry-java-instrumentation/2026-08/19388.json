@@ -1,0 +1,40 @@
+{
+  "head": "76d7cab7cbeedff0afde31bbb6ca74ba7db3eae1",
+  "merge": "536277a6929782b842f03bb44fe727c4ea729c66",
+  "merged": "2026-08-04T11:04:26Z",
+  "missing_roots": 0,
+  "number": 19388,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The description states that database client metrics are enabled, but in this entry metrics are only referenced under `otel.semconv-stability.opt-in=database`. To avoid misleading readers, clarify in the description that metrics are emitted only when that opt-in is enabled (or, if metrics are intended to be on by default, add the corresponding `metric_refs` to the `when: default` block).",
+      "created": "2026-08-04T02:49:17Z",
+      "hunk": "@@ -6445,6 +6445,59 @@ libraries:\n         type: STRING\n       - name: rpc.system\n         type: STRING\n+- name: hbase-client-1.0\n+  display_name: HBase Client\n+  description: |\n+    This instrumentation enables database client spans and database client metrics for the Apache HBase client.",
+      "id": "PRRT_kwDODJKVX86WLifo",
+      "opened": "2026-08-04T02:49:18Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "76d7cab7cbeedff0afde31bbb6ca74ba7db3eae1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19388#discussion_r3709093277"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The description states that database client metrics are enabled, but in this entry metrics are only referenced under `otel.semconv-stability.opt-in=database`. To avoid misleading readers, clarify in the description that metrics are emitted only when that opt-in is enabled (or, if metrics are intended to be on by default, add the corresponding `metric_refs` to the `when: default` block).",
+      "created": "2026-08-04T02:49:18Z",
+      "hunk": "@@ -6445,6 +6445,59 @@ libraries:\n         type: STRING\n       - name: rpc.system\n         type: STRING\n+- name: hbase-client-1.0\n+  display_name: HBase Client\n+  description: |\n+    This instrumentation enables database client spans and database client metrics for the Apache HBase client.\n+  semantic_conventions:\n+  - DATABASE_CLIENT_SPANS\n+  - DATABASE_CLIENT_METRICS\n+  library_link: https://hbase.apache.org/\n+  source_path: instrumentation/hbase/hbase-client-1.0\n+  scope:\n+    name: io.opentelemetry.hbase-client-1.0\n+  has_javaagent: true\n+  javaagent_target_versions:\n+  - org.apache.hbase:hbase-client:[1.0.0,1.4.0)\n+  telemetry:\n+  - when: default\n+    spans:\n+    - span_kind: CLIENT\n+      attributes:\n+      - name: db.name\n+        type: STRING\n+      - name: db.operation\n+        type: STRING\n+      - name: db.system\n+        type: STRING\n+      - name: db.user\n+        type: STRING\n+      - name: server.address\n+        type: STRING\n+      - name: server.port\n+        type: LONG\n+  - when: otel.semconv-stability.opt-in=database\n+    metric_refs:",
+      "id": "PRRT_kwDODJKVX86WLif2",
+      "opened": "2026-08-04T02:49:18Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "76d7cab7cbeedff0afde31bbb6ca74ba7db3eae1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19388#discussion_r3709093297"
+    }
+  ]
+}

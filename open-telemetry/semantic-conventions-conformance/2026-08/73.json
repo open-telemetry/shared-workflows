@@ -1,0 +1,94 @@
+{
+  "head": "d5ec3b74adf06d489e45acf4ad71aa82d4e68b24",
+  "merge": "f74bca5ce9f44064eb5b95fdbdbe4d64e2e4536b",
+  "merged": "2026-08-26T01:51:44Z",
+  "missing_roots": 0,
+  "number": 73,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Passing `headers` to `PoolManager.request()` replaces the manager-level defaults rather than merging them, so every call here drops the configured `User-Agent` (and urllib3 supplies its own value instead). Build the per-request headers with `USER_AGENT` and add the content type conditionally so this workload sends the same fixed contract as the other clients.",
+      "created": "2026-08-23T16:24:07Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"The urllib3 workload, with no instrumentation attached.\"\"\"\n+\n+from __future__ import annotations\n+\n+import os\n+\n+import urllib3\n+\n+from otel_http_test_client import CONTENT_TYPE, USER_AGENT, drive\n+\n+_REQUEST_TIMEOUT_SECONDS = 10\n+\n+\n+def run() -> None:\n+    base_url = os.environ.get(\"MOCK_SERVER_URL\")\n+    if not base_url:\n+        raise RuntimeError(\"MOCK_SERVER_URL is not set\")\n+\n+    with urllib3.PoolManager(\n+        headers={\"User-Agent\": USER_AGENT},\n+        timeout=_REQUEST_TIMEOUT_SECONDS,\n+    ) as pool:\n+\n+        def send(method: str, url: str, body: str | None) -> tuple[int, str]:\n+            headers = (\n+                {\"Content-Type\": CONTENT_TYPE} if body is not None else {}\n+            )",
+      "id": "PRRT_kwDOTuzK5c6bgi_i",
+      "opened": "2026-08-23T16:24:08Z",
+      "path": "scenarios/http/python/urllib3/scenarios/client.py",
+      "replies": [
+        {
+          "at": "2026-08-23T18:37:47Z",
+          "body": "No code change.\n\nAnalysis: Commit d7c42fb already changed the current head to build each request's headers from `{\"User-Agent\": USER_AGENT}` and add `Content-Type` only when the request has a body. The `PoolManager` no longer carries an ineffective default header. No further code change is needed.\n\nUpsides: The urllib3 workload sends the same fixed user agent as the other Python clients. Avoiding another edit keeps the existing, verified fix intact.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/73#discussion_r3839280372"
+        }
+      ],
+      "reviewed": "dbc067cf6968e408b3b73ed863cfb50bc5480476",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/73#discussion_r3838997068"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "A uvicorn startup failure hangs the scenario instead of failing it.\n\n`asyncio.to_thread(wait_for_eof)` parks a non-daemon thread on stdin and `asyncio.run` joins it on the way out, so once `server.serve()` dies the process can no longer exit. The driver waits its full 60s and reports `did not listen on ...` rather than the real error. The WSGI scenarios avoid this because `serve()` waits for EOF on the main thread.\n\nWait on stdin through the loop with `loop.add_reader` instead of a worker thread, and race that against the serve task, so whichever ends first wins: stdin closed is a normal shutdown, a dead server re-raises straight away.\n\n```python\nasync def _eof() -> None:\n    loop = asyncio.get_running_loop()\n    done = loop.create_future()\n\n    def on_readable() -> None:\n        if not sys.stdin.buffer.raw.read(4096):  # EOF\n            loop.remove_reader(sys.stdin.fileno())\n            if not done.done():\n                done.set_result(None)\n\n    loop.add_reader(sys.stdin.fileno(), on_readable)\n    try:\n        await done\n    finally:\n        loop.remove_reader(sys.stdin.fileno())\n\n\nasync def _serve(app: object) -> None:\n    server = uvicorn.Server(...)\n    task = asyncio.create_task(server.serve())\n    eof = asyncio.create_task(_eof())\n    try:\n        done, _ = await asyncio.wait(\n            [task, eof], return_when=asyncio.FIRST_COMPLETED\n        )\n        for finished in done:\n            finished.result()\n    finally:\n        eof.cancel()\n        server.should_exit = True\n        await asyncio.gather(task, return_exceptions=True)\n```\n\nJust marking the existing thread as a daemon is not a substitute - the process then aborts with `_enter_buffered_busy`, because the thread is still inside a buffered stdin read when the interpreter tears down.",
+      "created": "2026-08-25T03:47:49Z",
+      "hunk": "@@ -0,0 +1,36 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Runs an ASGI application until the HTTP driver closes standard input.\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from collections.abc import Callable\n+\n+import uvicorn\n+\n+from otel_http_test_client import scenario_port, wait_for_eof\n+\n+\n+def serve(app_factory: Callable[[], object]) -> None:\n+    \"\"\"Serve a freshly constructed ASGI app on the driver-selected port.\"\"\"\n+    asyncio.run(_serve(app_factory()))\n+\n+\n+async def _serve(app: object) -> None:\n+    server = uvicorn.Server(\n+        uvicorn.Config(\n+            app,\n+            host=\"127.0.0.1\",\n+            port=scenario_port(),\n+            log_level=\"warning\",\n+            lifespan=\"off\",\n+        )\n+    )\n+    task = asyncio.create_task(server.serve())\n+    try:\n+        await asyncio.to_thread(wait_for_eof)\n+    finally:\n+        server.should_exit = True\n+        await task",
+      "id": "PRRT_kwDOTuzK5c6b7fDQ",
+      "opened": "2026-08-25T03:49:31Z",
+      "path": "scenarios/http/python/shared/asgi_server.py",
+      "replies": [
+        {
+          "at": "2026-08-25T04:27:33Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/commit/b57466559c2c7622c25ae56cf2d20f19b29438f3",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/73#discussion_r3849564152"
+        }
+      ],
+      "reviewed": "10af73a86066117f8a7da999293d903a20ea35ce",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/73#discussion_r3849404331"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Five client workloads now repeat the same setup.\n\nThe `MOCK_SERVER_URL` lookup, the timeout constant and the conditional `Content-Type` are copied into aiohttp, httpx, urllib, urllib3 and requests, and the four new copies also lost the message `requests/scenarios/client.py` gives when the variable is missing.\n\nTwo helpers in `otel_http_test_client` next to `USER_AGENT` - `mock_server_url()` and `client_headers(body)` - would leave each workload as just the library it is measuring.",
+      "created": "2026-08-25T03:47:49Z",
+      "hunk": "@@ -0,0 +1,48 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"The aiohttp client workload, with no instrumentation attached.\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+import os\n+\n+import aiohttp\n+\n+from otel_http_test_client import (\n+    CONTENT_TYPE,\n+    USER_AGENT,\n+    drive_async,\n+)\n+\n+_REQUEST_TIMEOUT_SECONDS = 10\n+\n+\n+def run() -> None:\n+    asyncio.run(_run())\n+\n+\n+async def _run() -> None:\n+    base_url = os.environ.get(\"MOCK_SERVER_URL\")\n+    if not base_url:\n+        raise RuntimeError(\"MOCK_SERVER_URL is not set\")",
+      "id": "PRRT_kwDOTuzK5c6b7fDT",
+      "opened": "2026-08-25T03:49:31Z",
+      "path": "scenarios/http/python/aiohttp/scenarios/client.py",
+      "replies": [
+        {
+          "at": "2026-08-25T04:27:33Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/commit/5e62ec99671c23f93e78c37c86724ad383a912a9",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/73#discussion_r3849564147"
+        }
+      ],
+      "reviewed": "10af73a86066117f8a7da999293d903a20ea35ce",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/73#discussion_r3849404333"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the status table is a second copy of the contract's statuses, with nothing keeping the two in sync.\n\nWSGI wants a full status line, so a reason phrase does have to come from somewhere - but add a status to `contract.json` and this raises `KeyError` inside the app, which reaches the driver as a 500 with a traceback rather than as an obvious failure. The stdlib already knows every phrase, and gives the same four strings here.\n\nWith `from http import HTTPStatus` added at the top:\n\n```suggestion\n    start_response(\n        f\"{status} {HTTPStatus(status).phrase}\",\n        [\n            (\"Content-Type\", CONTENT_TYPE),\n            (\"Content-Length\", str(len(payload.encode()))),\n        ],\n    )\n    return [payload.encode()]\n```",
+      "created": "2026-08-25T03:47:49Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"A bare WSGI workload, with no instrumentation attached.\"\"\"\n+\n+from __future__ import annotations\n+\n+from collections.abc import Callable, Iterable\n+\n+from otel_http_test_client import CONTENT_TYPE, respond\n+\n+\n+def application(\n+    environ: dict[str, object],\n+    start_response: Callable[[str, list[tuple[str, str]]], object],\n+) -> Iterable[bytes]:\n+    method = str(environ[\"REQUEST_METHOD\"])\n+    path = str(environ[\"PATH_INFO\"])\n+    length = int(environ.get(\"CONTENT_LENGTH\") or 0)\n+    stream = environ[\"wsgi.input\"]\n+    body = stream.read(length).decode() if length else None\n+    status, payload = respond(method, path, body)\n+    start_response(\n+        f\"{status} {_status_text(status)}\",\n+        [\n+            (\"Content-Type\", CONTENT_TYPE),\n+            (\"Content-Length\", str(len(payload.encode()))),\n+        ],\n+    )\n+    return [payload.encode()]\n+\n+\n+def _status_text(status: int) -> str:\n+    return {\n+        200: \"OK\",\n+        201: \"Created\",\n+        404: \"Not Found\",\n+        500: \"Internal Server Error\",\n+    }[status]",
+      "id": "PRRT_kwDOTuzK5c6b7fDW",
+      "opened": "2026-08-25T03:49:31Z",
+      "path": "scenarios/http/python/wsgi/scenarios/server.py",
+      "replies": [
+        {
+          "at": "2026-08-25T04:27:33Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/commit/e9848e8c22bac6cafb2b320e925762f231997373",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/73#discussion_r3849564159"
+        }
+      ],
+      "reviewed": "10af73a86066117f8a7da999293d903a20ea35ce",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/73#discussion_r3849404338"
+    }
+  ]
+}

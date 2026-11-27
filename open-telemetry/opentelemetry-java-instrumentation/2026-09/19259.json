@@ -1,0 +1,133 @@
+{
+  "head": "6473ae433cc4c01b86dc2576b1fd6c0a048aa614",
+  "merge": "42aa2a14e7be320a12ab315ded45df7752470c02",
+  "merged": "2026-09-02T20:10:53Z",
+  "missing_roots": 0,
+  "number": 19259,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] This suppression applies to the whole test class, but the deprecated semantic-convention constants are used only by `addDatabaseAttributes`. Scope `@SuppressWarnings(\"deprecation\")` to that method so future deprecated usages elsewhere in the class are not hidden.",
+      "created": "2026-07-17T09:11:03Z",
+      "hunk": "@@ -0,0 +1,378 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v2_2;\n+\n+import static io.opentelemetry.api.common.AttributeKey.stringKey;\n+import static io.opentelemetry.instrumentation.api.internal.SemconvExceptionSignal.emitExceptionAsSpanEvents;\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.instrumentation.testing.junit.db.DbClientMetricsTestUtil.assertDurationMetric;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_BATCH_SIZE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_SUMMARY;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_TEXT;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.HttpAttributes.HTTP_REQUEST_METHOD;\n+import static io.opentelemetry.semconv.HttpAttributes.HTTP_RESPONSE_STATUS_CODE;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static io.opentelemetry.semconv.UrlAttributes.URL_FULL;\n+import static io.opentelemetry.semconv.incubating.AwsIncubatingAttributes.AWS_REQUEST_ID;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_NAME;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SQL_TABLE;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_METHOD;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_SERVICE;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_SYSTEM;\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.assertj.core.api.Assertions.catchThrowable;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.testing.assertj.AttributeAssertion;\n+import io.opentelemetry.sdk.trace.data.StatusData;\n+import io.opentelemetry.testing.internal.armeria.common.HttpData;\n+import io.opentelemetry.testing.internal.armeria.common.HttpResponse;\n+import io.opentelemetry.testing.internal.armeria.common.HttpStatus;\n+import io.opentelemetry.testing.internal.armeria.common.MediaType;\n+import io.opentelemetry.testing.internal.armeria.common.ResponseHeaders;\n+import io.opentelemetry.testing.internal.armeria.testing.junit5.server.mock.MockWebServerExtension;\n+import io.opentelemetry.testing.internal.armeria.testing.junit5.server.mock.RecordedRequest;\n+import java.util.ArrayList;\n+import java.util.List;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.TestInstance;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;\n+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;\n+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;\n+import software.amazon.awssdk.regions.Region;\n+import software.amazon.awssdk.services.rdsdata.RdsDataAsyncClient;\n+import software.amazon.awssdk.services.rdsdata.RdsDataClient;\n+import software.amazon.awssdk.services.rdsdata.model.BadRequestException;\n+import software.amazon.awssdk.services.rdsdata.model.BatchExecuteStatementRequest;\n+import software.amazon.awssdk.services.rdsdata.model.BeginTransactionRequest;\n+import software.amazon.awssdk.services.rdsdata.model.ExecuteStatementRequest;\n+import software.amazon.awssdk.services.rdsdata.model.Field;\n+import software.amazon.awssdk.services.rdsdata.model.SqlParameter;\n+\n+@TestInstance(TestInstance.Lifecycle.PER_CLASS)\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv",
+      "id": "PRRT_kwDODJKVX86RtiaH",
+      "opened": "2026-07-17T09:11:04Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2RdsDataTest.java",
+      "replies": [
+        {
+          "at": "2026-07-19T11:20:36Z",
+          "body": "Addressed in [72c6be5](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19259/commits/72c6be5b9ce17326f6e8544bebcda41874d8e79b)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19259#discussion_r3610448253"
+        }
+      ],
+      "reviewed": "28ab2ee7114ccd04ee9c99949143da40c8be111c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19259#discussion_r3601869703"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] The style guide says not to add `final` to classes in `.internal` packages, and every sibling getter/extractor in this package (`SqsAttributesGetter`, `BedrockRuntimeAttributesGetter`, `AwsSdkRpcAttributesGetter`, `DynamoDbAttributesExtractor`) is a plain `class`.\n\n```suggestion\nclass RdsDataSqlAttributesGetter\n```",
+      "created": "2026-07-29T19:10:20Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v2_2.internal;\n+\n+import static io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect.DOUBLE_QUOTES_ARE_STRING_LITERALS;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesGetter;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect;\n+import java.util.Collection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import software.amazon.awssdk.core.SdkRequest;\n+import software.amazon.awssdk.core.interceptor.ExecutionAttributes;\n+\n+final class RdsDataSqlAttributesGetter",
+      "id": "PRRT_kwDODJKVX86U4MuF",
+      "opened": "2026-07-29T19:17:38Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/RdsDataSqlAttributesGetter.java",
+      "replies": [],
+      "reviewed": "2455b4504edf344c7f26ed562c46575e368e51dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19259#discussion_r3677336849"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Naming] `DB_SYSTEM_NAME` is the name of the attribute *key* (`DbAttributes.DB_SYSTEM_NAME`), but this constant holds the attribute *value*. Everywhere else in the repo that value is named `OTHER_SQL`, and the style guide asks for a `// copied from` marker when a class under `library/src/main` inlines an incubating semconv constant instead of depending on the incubating artifact. `instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/GenericUrlParser.java` has exactly this shape.\n\n```suggestion\n  // copied from DbIncubatingAttributes.DbSystemNameIncubatingValues\n  private static final String OTHER_SQL = \"other_sql\";\n\n  @Override\n  public String getDbSystemName(ExecutionAttributes request) {\n    return OTHER_SQL;\n```",
+      "created": "2026-07-29T19:10:20Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v2_2.internal;\n+\n+import static io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect.DOUBLE_QUOTES_ARE_STRING_LITERALS;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesGetter;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect;\n+import java.util.Collection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import software.amazon.awssdk.core.SdkRequest;\n+import software.amazon.awssdk.core.interceptor.ExecutionAttributes;\n+\n+final class RdsDataSqlAttributesGetter\n+    implements SqlClientAttributesGetter<ExecutionAttributes, Response> {\n+\n+  private static final String DB_SYSTEM_NAME = \"other_sql\";\n+\n+  @Override\n+  public String getDbSystemName(ExecutionAttributes request) {\n+    return DB_SYSTEM_NAME;",
+      "id": "PRRT_kwDODJKVX86U4MuO",
+      "opened": "2026-07-29T19:17:38Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/RdsDataSqlAttributesGetter.java",
+      "replies": [],
+      "reviewed": "2455b4504edf344c7f26ed562c46575e368e51dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19259#discussion_r3677336866"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] `parameterSets` is resolved twice per request — once via `getValueForField` here and again inside `getListField` — and the field name literal is duplicated. A single lookup is enough and keeps the behavior identical: `ExecuteStatementRequest` has no `parameterSets` field, so the `Optional` is empty and this returns `null` (no `db.operation.batch.size`), while `BatchExecuteStatementRequest` always yields a `List` (an auto-construct empty list when unset), so the size is still reported, including `0`.\n\n```suggestion\n    Object parameterSets =\n        sdkRequest(request).getValueForField(\"parameterSets\", Object.class).orElse(null);\n    if (parameterSets instanceof List) {\n      return (long) ((List<?>) parameterSets).size();\n    }\n    return null;\n```",
+      "created": "2026-07-29T19:10:20Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v2_2.internal;\n+\n+import static io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect.DOUBLE_QUOTES_ARE_STRING_LITERALS;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesGetter;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect;\n+import java.util.Collection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import software.amazon.awssdk.core.SdkRequest;\n+import software.amazon.awssdk.core.interceptor.ExecutionAttributes;\n+\n+final class RdsDataSqlAttributesGetter\n+    implements SqlClientAttributesGetter<ExecutionAttributes, Response> {\n+\n+  private static final String DB_SYSTEM_NAME = \"other_sql\";\n+\n+  @Override\n+  public String getDbSystemName(ExecutionAttributes request) {\n+    return DB_SYSTEM_NAME;\n+  }\n+\n+  @Override\n+  @Nullable\n+  public String getDbNamespace(ExecutionAttributes request) {\n+    return sdkRequest(request).getValueForField(\"database\", String.class).orElse(null);\n+  }\n+\n+  @Override\n+  public SqlDialect getSqlDialect(ExecutionAttributes request) {\n+    return DOUBLE_QUOTES_ARE_STRING_LITERALS;\n+  }\n+\n+  @Override\n+  public Collection<String> getRawQueryTexts(ExecutionAttributes request) {\n+    String sql = sdkRequest(request).getValueForField(\"sql\", String.class).orElse(null);\n+    return sql == null ? emptyList() : singletonList(sql);\n+  }\n+\n+  @Override\n+  public boolean isParameterizedQuery(ExecutionAttributes request, int queryIndex) {\n+    SdkRequest sdkRequest = sdkRequest(request);\n+    List<?> parameters = getListField(sdkRequest, \"parameters\");\n+    if (!parameters.isEmpty()) {\n+      return true;\n+    }\n+    for (Object parameterSet : getListField(sdkRequest, \"parameterSets\")) {\n+      if (parameterSet instanceof Collection && !((Collection<?>) parameterSet).isEmpty()) {\n+        return true;\n+      }\n+    }\n+    return false;\n+  }\n+\n+  @Override\n+  @Nullable\n+  public Long getDbOperationBatchSize(ExecutionAttributes request) {\n+    SdkRequest sdkRequest = sdkRequest(request);\n+    if (!sdkRequest.getValueForField(\"parameterSets\", Object.class).isPresent()) {\n+      return null;\n+    }\n+    return (long) getListField(sdkRequest, \"parameterSets\").size();",
+      "id": "PRRT_kwDODJKVX86U4MuT",
+      "opened": "2026-07-29T19:17:38Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/RdsDataSqlAttributesGetter.java",
+      "replies": [],
+      "reviewed": "2455b4504edf344c7f26ed562c46575e368e51dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19259#discussion_r3677336872"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Style] These two overrides are dead code. `SqlClientAttributesGetter` inherits `ServerAttributesGetter` through `DbClientAttributesGetter`, and `ServerAttributesGetter` already defaults both `getServerAddress` and `getServerPort` to `null`; `DbClientAttributesGetter` doesn't redeclare them. Dropping them changes nothing for `ServerAttributesExtractor` or for the `server.address:server.port` target fallback in `DbClientSpanNameExtractor#computeSpanNameStable`. (`JdbcAttributesGetter` overrides these because it has real values to return.)\n\n```suggestion\n  }\n```",
+      "created": "2026-07-29T19:10:20Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v2_2.internal;\n+\n+import static io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect.DOUBLE_QUOTES_ARE_STRING_LITERALS;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesGetter;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect;\n+import java.util.Collection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import software.amazon.awssdk.core.SdkRequest;\n+import software.amazon.awssdk.core.interceptor.ExecutionAttributes;\n+\n+final class RdsDataSqlAttributesGetter\n+    implements SqlClientAttributesGetter<ExecutionAttributes, Response> {\n+\n+  private static final String DB_SYSTEM_NAME = \"other_sql\";\n+\n+  @Override\n+  public String getDbSystemName(ExecutionAttributes request) {\n+    return DB_SYSTEM_NAME;\n+  }\n+\n+  @Override\n+  @Nullable\n+  public String getDbNamespace(ExecutionAttributes request) {\n+    return sdkRequest(request).getValueForField(\"database\", String.class).orElse(null);\n+  }\n+\n+  @Override\n+  public SqlDialect getSqlDialect(ExecutionAttributes request) {\n+    return DOUBLE_QUOTES_ARE_STRING_LITERALS;\n+  }\n+\n+  @Override\n+  public Collection<String> getRawQueryTexts(ExecutionAttributes request) {\n+    String sql = sdkRequest(request).getValueForField(\"sql\", String.class).orElse(null);\n+    return sql == null ? emptyList() : singletonList(sql);\n+  }\n+\n+  @Override\n+  public boolean isParameterizedQuery(ExecutionAttributes request, int queryIndex) {\n+    SdkRequest sdkRequest = sdkRequest(request);\n+    List<?> parameters = getListField(sdkRequest, \"parameters\");\n+    if (!parameters.isEmpty()) {\n+      return true;\n+    }\n+    for (Object parameterSet : getListField(sdkRequest, \"parameterSets\")) {\n+      if (parameterSet instanceof Collection && !((Collection<?>) parameterSet).isEmpty()) {\n+        return true;\n+      }\n+    }\n+    return false;\n+  }\n+\n+  @Override\n+  @Nullable\n+  public Long getDbOperationBatchSize(ExecutionAttributes request) {\n+    SdkRequest sdkRequest = sdkRequest(request);\n+    if (!sdkRequest.getValueForField(\"parameterSets\", Object.class).isPresent()) {\n+      return null;\n+    }\n+    return (long) getListField(sdkRequest, \"parameterSets\").size();\n+  }\n+\n+  @Override\n+  @Nullable\n+  public String getServerAddress(ExecutionAttributes request) {\n+    return null;\n+  }\n+\n+  @Override\n+  @Nullable\n+  public Integer getServerPort(ExecutionAttributes request) {\n+    return null;\n+  }",
+      "id": "PRRT_kwDODJKVX86U4MuX",
+      "opened": "2026-07-29T19:17:38Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/RdsDataSqlAttributesGetter.java",
+      "replies": [],
+      "reviewed": "2455b4504edf344c7f26ed562c46575e368e51dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19259#discussion_r3677336878"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`getDbOperationBatchSize()` returns `1` when `parameterSets.size() == 1`. However, the test expectations in `AbstractAws2RdsDataTest.batchExecuteStatementModelsParameterSetCount()` explicitly omit `db.operation.batch.size` for the single-parameter-set case. This will cause stable-semconv assertions to fail if `SqlClientAttributesExtractor` emits the batch size for `1`. Consider returning `null` for `size == 1` (while still returning `0` and `>= 2`) to align the emitted attribute with the intended 'batch vs non-batch' behavior.",
+      "created": "2026-09-02T17:36:46Z",
+      "hunk": "@@ -0,0 +1,82 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awssdk.v2_2.internal;\n+\n+import static io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect.DOUBLE_QUOTES_ARE_STRING_LITERALS;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesGetter;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect;\n+import java.util.Collection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import software.amazon.awssdk.core.SdkRequest;\n+import software.amazon.awssdk.core.interceptor.ExecutionAttributes;\n+\n+class RdsDataSqlAttributesGetter\n+    implements SqlClientAttributesGetter<ExecutionAttributes, Response> {\n+\n+  // copied from DbIncubatingAttributes.DbSystemNameIncubatingValues\n+  private static final String OTHER_SQL = \"other_sql\";\n+\n+  @Override\n+  public String getDbSystemName(ExecutionAttributes request) {\n+    return OTHER_SQL;\n+  }\n+\n+  @Override\n+  @Nullable\n+  public String getDbNamespace(ExecutionAttributes request) {\n+    return sdkRequest(request).getValueForField(\"database\", String.class).orElse(null);\n+  }\n+\n+  @Override\n+  public SqlDialect getSqlDialect(ExecutionAttributes request) {\n+    return DOUBLE_QUOTES_ARE_STRING_LITERALS;\n+  }\n+\n+  @Override\n+  public Collection<String> getRawQueryTexts(ExecutionAttributes request) {\n+    String sql = sdkRequest(request).getValueForField(\"sql\", String.class).orElse(null);\n+    return sql == null ? emptyList() : singletonList(sql);\n+  }\n+\n+  @Override\n+  public boolean isParameterizedQuery(ExecutionAttributes request, int queryIndex) {\n+    SdkRequest sdkRequest = sdkRequest(request);\n+    List<?> parameters = getListField(sdkRequest, \"parameters\");\n+    if (!parameters.isEmpty()) {\n+      return true;\n+    }\n+    for (Object parameterSet : getListField(sdkRequest, \"parameterSets\")) {\n+      if (parameterSet instanceof Collection && !((Collection<?>) parameterSet).isEmpty()) {\n+        return true;\n+      }\n+    }\n+    return false;\n+  }\n+\n+  @Override\n+  @Nullable\n+  public Long getDbOperationBatchSize(ExecutionAttributes request) {\n+    Object parameterSets =\n+        sdkRequest(request).getValueForField(\"parameterSets\", Object.class).orElse(null);\n+    if (parameterSets instanceof List) {\n+      return (long) ((List<?>) parameterSets).size();",
+      "id": "PRRT_kwDODJKVX86enOi7",
+      "opened": "2026-09-02T17:36:46Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/RdsDataSqlAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-09-02T19:34:19Z",
+          "body": "The shared `SqlClientAttributesExtractor` already handles this case: it treats a non-null batch size other than `1` as a batch and only emits `db.operation.batch.size` in that branch. Returning `1` here is intentional input to those shared semantics, so no change is needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19259#discussion_r3917903640"
+        }
+      ],
+      "reviewed": "6473ae433cc4c01b86dc2576b1fd6c0a048aa614",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19259#discussion_r3916916418"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The testing module pins `rdsdata` to a fixed version (`2.5.54`) while other AWS SDK compileOnly dependencies are pegged at `2.2.0` and the new test suites use `baseVersion(\\\"2.5.54\\\").orLatest()`. To reduce future drift and keep version intent centralized, consider expressing this dependency via the same `baseVersion(...).orLatest()` mechanism (or an existing version catalog/pin used elsewhere in the repo) instead of hardcoding.",
+      "created": "2026-09-02T17:36:46Z",
+      "hunk": "@@ -17,6 +17,7 @@ dependencies {\n   compileOnly(\"software.amazon.awssdk:kinesis:2.2.0\")\n   compileOnly(\"software.amazon.awssdk:lambda:2.2.0\")\n   compileOnly(\"software.amazon.awssdk:rds:2.2.0\")\n+  compileOnly(\"software.amazon.awssdk:rdsdata:2.5.54\")",
+      "id": "PRRT_kwDODJKVX86enOj0",
+      "opened": "2026-09-02T17:36:46Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/testing/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-02T19:34:21Z",
+          "body": "This `compileOnly` dependency intentionally records the earliest RDS Data SDK version needed to compile the shared test source, like the fixed `bedrockruntime:2.25.63` dependency above it. The consuming test suites use `baseVersion(...).orLatest()` to select the runtime version under test, so no change is needed here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19259#discussion_r3917903851"
+        }
+      ],
+      "reviewed": "6473ae433cc4c01b86dc2576b1fd6c0a048aa614",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19259#discussion_r3916916518"
+    }
+  ]
+}

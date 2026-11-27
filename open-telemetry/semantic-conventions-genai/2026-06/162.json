@@ -1,0 +1,451 @@
+{
+  "head": "fe9123744b8726180f6a0e6d745d0bf7715a9ad8",
+  "merge": "c032e2404edb6fce3f7929b93d50f1e6ab665875",
+  "merged": "2026-06-17T18:33:10Z",
+  "missing_roots": 0,
+  "number": 162,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.conversation.compacted` is specified as `true` when conversation history was actually compacted (summarized/pruned/sliding-window/etc.). In this reference scenario there’s no compaction step shown, so setting it unconditionally to `True` can make the example misleading. Consider either (a) omitting the attribute unless compaction is performed/known, (b) setting it to `False` for this scenario, or (c) adding an explicit compaction step to justify `True`.\n",
+      "created": "2026-05-14T22:15:18Z",
+      "hunk": "@@ -51,6 +51,7 @@ def run_chat_reference(client):\n     if port is not None:\n         span_attributes[\"server.port\"] = port\n     with _reference_tracer.start_as_current_span(\"chat gpt-4o-mini\", attributes=span_attributes) as span:\n+        span.set_attribute(\"gen_ai.conversation.compacted\", True)",
+      "id": "PRRT_kwDOSUeMrM6CM_hK",
+      "opened": "2026-05-14T22:15:19Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "f819627d4f08e7493fab973d82db8031e56c261c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3244591139"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `invoke_agent` span doesn’t specify a `kind`, so it will default to `SpanKind.INTERNAL` in most OpenTelemetry SDKs. If this is intended to be an `invoke_agent` *client* span, explicitly set `kind=SpanKind.CLIENT`; if it’s intended to be the internal orchestrator span, ensure docs/reports list this scenario as supporting `gen_ai.conversation.compacted` for internal spans.",
+      "created": "2026-05-14T22:15:18Z",
+      "hunk": "@@ -69,6 +69,7 @@ def get_weather(ctx: ToolContext[None], location: str) -> str:\n     with _reference_tracer.start_as_current_span(\n         \"invoke_agent test-agent\", attributes=agent_span_attributes\n     ) as agent_span:\n+        agent_span.set_attribute(\"gen_ai.conversation.compacted\", True)",
+      "id": "PRRT_kwDOSUeMrM6CM_hU",
+      "opened": "2026-05-14T22:15:19Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [],
+      "reviewed": "f819627d4f08e7493fab973d82db8031e56c261c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3244591156"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This report says no libraries support `gen_ai.conversation.compacted` on invoke_agent internal spans, but `reference/scenarios/openai-agents/scenario.py` appears to set it on an `invoke_agent` span that defaults to INTERNAL. Update the report to reflect actual support (or adjust the scenario to use `SpanKind.CLIENT` if that’s the intended classification).",
+      "created": "2026-05-14T22:15:19Z",
+      "hunk": "@@ -28,6 +28,7 @@\n \n | Attribute | Supporting Libraries |\n | --- | --- |\n+| gen_ai.conversation.compacted | (none) |",
+      "id": "PRRT_kwDOSUeMrM6CM_he",
+      "opened": "2026-05-14T22:15:19Z",
+      "path": "reference/reports/invoke-agent-internal-span.md",
+      "replies": [],
+      "reviewed": "f819627d4f08e7493fab973d82db8031e56c261c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3244591169"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog entry is inconsistent with surrounding items that include a PR reference link. Consider adding the PR number/link for traceability (or follow the project’s standard changelog format for entries without a PR reference).",
+      "created": "2026-05-14T22:15:19Z",
+      "hunk": "@@ -12,6 +12,7 @@\n \n - Mark `gen_ai.agent.name` as sampling-relevant on `create_agent`, `invoke_agent` client, and `invoke_agent` internal spans.\n   ([#107](https://github.com/open-telemetry/semantic-conventions-genai/pull/107))\n+- Add `gen_ai.conversation.compacted` for reporting compacted GenAI conversation history.",
+      "id": "PRRT_kwDOSUeMrM6CM_hp",
+      "opened": "2026-05-14T22:15:19Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "f819627d4f08e7493fab973d82db8031e56c261c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3244591183"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "where would this value come from in a real instrumentation? It seems to be hard-coded and it's not clear if shared app-agnostic instrumentation would be able to know whether the conversation is compacted",
+      "created": "2026-05-18T23:29:44Z",
+      "hunk": "@@ -41,6 +41,7 @@ def run_chat():\n     if port is not None:\n         span_attributes[\"server.port\"] = port\n     with _reference_tracer.start_as_current_span(\"chat claude-sonnet-4-20250514\", attributes=span_attributes) as span:\n+        span.set_attribute(\"gen_ai.conversation.compacted\", True)",
+      "id": "PRRT_kwDOSUeMrM6C_5mP",
+      "opened": "2026-05-18T23:29:44Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-20T00:27:20Z",
+          "body": "@lmolkova good question!! this comes from server side api. We are going to add this convention only when user enabled server side compaction. But we can extend it if we want to do automatic compaction and it's out of scope for now. I wrote down a small example and it's raw but it conveys how we can capture it.\r\n\r\nExamples:\r\n\r\n**OpenAI Responses API**\r\n\r\n  A request may enable compaction with `context_management`:\r\n\r\n  ```python\r\n  response = client.responses.create(\r\n      model=\"gpt-5.4\",\r\n      input=conversation_so_far,\r\n      context_management=[{\"type\": \"compaction\", \"compact_threshold\": 200000}],\r\n      store=False,\r\n  )\r\n\r\n  That request option means compaction is allowed/configured. The actual signal comes from the response output. When compaction runs, the Responses API can emit a ResponseCompactionItem:\r\n\r\n  {\r\n    \"type\": \"compaction\",\r\n    \"id\": \"cmp_...\",\r\n    \"encrypted_content\": \"...\",\r\n    \"created_by\": \"server\"\r\n  }\r\n\r\n  Instrumentation can derive the attribute from that returned item:\r\n\r\n  conversation_compacted = any(\r\n      getattr(item, \"type\", None) == \"compaction\"\r\n      for item in response.output\r\n  )\r\n\r\n  span.set_attribute(\"gen_ai.conversation.compacted\", conversation_compacted)\r\n  ```\r\n\r\nFor streaming Responses, the same logic applies to output item events: if a streamed response.output_item.added / response.output_item.done event contains an item with type == \"compaction\", the span can be marked compacted.\r\n\r\n**Anthropic Messages API**\r\n\r\nSimilarly, Anthropic supports server-side context management through context_management.edits, for example:\r\n\r\n```python\r\n  response = client.beta.messages.create(\r\n      model=\"claude-sonnet-4-20250514\",\r\n      max_tokens=1024,\r\n      messages=messages,\r\n      context_management={\r\n          \"edits\": [\r\n              {\r\n                  \"type\": \"compact_20260112\",\r\n                  \"trigger\": {\"type\": \"input_tokens\", \"value\": 200000},\r\n                  \"pause_after_compaction\": True,\r\n              }\r\n          ]\r\n      },\r\n      betas=[\"context-management-2026-01-12\"],\r\n  )\r\n\r\n  Again, the request option means compaction is configured, not necessarily that it occurred. The actual signal can come from the response. Anthropic may expose compaction as:\r\n\r\n  {\r\n    \"type\": \"compaction\",\r\n    \"encrypted_content\": \"...\"\r\n  }\r\n\r\n  or through:\r\n\r\n  {\r\n    \"stop_reason\": \"compaction\"\r\n  }\r\n\r\n  or through usage iterations:\r\n\r\n  {\r\n    \"usage\": {\r\n      \"iterations\": [\r\n        {\r\n          \"type\": \"compaction\",\r\n          \"input_tokens\": 123456,\r\n          \"output_tokens\": 789\r\n        }\r\n      ]\r\n    }\r\n  }\r\n\r\n  Instrumentation can derive the attribute from those provider-returned signals:\r\n\r\n  conversation_compacted = (\r\n      response.stop_reason == \"compaction\"\r\n      or any(block.type == \"compaction\" for block in response.content)\r\n      or any(iteration.type == \"compaction\" for iteration in response.usage.iterations)\r\n  )\r\n\r\n  span.set_attribute(\"gen_ai.conversation.compacted\", conversation_compacted)\r\n```\r\n\r\nI can expand more on this if this example is ambiguous and doesn't answer your question. Lmk your thoughts.\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3270521060"
+        }
+      ],
+      "reviewed": "2d1479624e68588728854373ae30ffb57efe671e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3262766861"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "Should we use a valid `gen_ai.operation.name`?",
+      "created": "2026-05-21T21:44:06Z",
+      "hunk": "@@ -130,6 +154,53 @@ def run_chat_reference(client):\n         print(f\"    -> {resp.choices[0].message.content[:60]}\")\n \n \n+def run_responses_compaction_reference(client):\n+    \"\"\"Scenario: Responses API server-side compaction signal from output items.\"\"\"\n+    print(\"  [responses_compaction] responses with server-side compaction (reference implementation)\")\n+    request_model = \"gpt-4o-mini\"\n+    conversation = [\n+        {\n+            \"type\": \"message\",\n+            \"role\": \"user\",\n+            \"content\": \"Let's continue a long implementation task.\",\n+        }\n+    ]\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"responses\",",
+      "id": "PRRT_kwDOSUeMrM6D8aUL",
+      "opened": "2026-05-21T22:24:16Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "5cc4a2e3d92df0c1be2d93753dd46e9c24ec3643",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3284531095"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is this comment outdated? is this instrumentation not doing that already? if not, can it? thx",
+      "created": "2026-05-23T04:05:26Z",
+      "hunk": "@@ -112,6 +138,62 @@ def run_chat():\n         print(f\"    -> {resp.content[0].text[:60]}\")\n \n \n+def run_compaction_reference():\n+    \"\"\"Scenario: Anthropic server-side compaction signal from compaction blocks.\"\"\"\n+    import anthropic\n+\n+    print(\"  [chat_compaction] chat with server-side compaction (reference implementation)\")\n+    request_model = \"claude-sonnet-4-20250514\"\n+    request_max_tokens = 100\n+    messages = [{\"role\": \"user\", \"content\": \"Continue this long conversation.\"}]\n+    client = anthropic.Anthropic(base_url=MOCK_BASE_URL, api_key=\"mock-key\")\n+\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"chat\",\n+        \"gen_ai.provider.name\": \"anthropic\",\n+        \"gen_ai.request.model\": request_model,\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\"chat claude-sonnet-4-20250514\", attributes=span_attributes) as span:\n+        span.set_attribute(\"gen_ai.request.max_tokens\", request_max_tokens)\n+        span.set_attribute(\n+            \"gen_ai.input.messages\",\n+            json.dumps([{\"role\": m[\"role\"], \"parts\": [{\"type\": \"text\", \"content\": m[\"content\"]}]} for m in messages]),\n+        )\n+        resp = client.beta.messages.create(\n+            model=request_model,\n+            max_tokens=request_max_tokens,\n+            messages=messages,\n+            context_management={\n+                \"edits\": [\n+                    {\n+                        \"type\": \"compact_20260112\",\n+                        \"trigger\": {\"type\": \"input_tokens\", \"value\": 200000},\n+                        \"pause_after_compaction\": True,\n+                    }\n+                ]\n+            },\n+            betas=[\"context-management-2026-01-12\"],\n+        )\n+\n+        # Real Anthropic instrumentation can derive this from a compaction\n+        # content block, stop_reason=\"compaction\", or usage iteration with\n+        # type=\"compaction\", rather than guessing from the request option.",
+      "id": "PRRT_kwDOSUeMrM6ERPLE",
+      "opened": "2026-05-23T04:06:49Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [],
+      "reviewed": "ad0cce50ab8ab96898b8110ad86de04ab2db3412",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3292048724"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this looks essentially hardcoded (not something generic instrumentation could capture)?",
+      "created": "2026-05-23T04:06:46Z",
+      "hunk": "@@ -28,9 +45,14 @@ def run_chat_reference(client):\n     request_frequency_penalty = 0.1\n     request_presence_penalty = 0.2\n     request_top_p = 0.9\n+    previous_messages = [\n+        \"User asked for a friendly greeting.\",\n+        \"Assistant should keep the answer short.\",\n+    ]\n+    compacted_user_content, conversation_compacted = compact_conversation_history(previous_messages, \"Say hello.\")",
+      "id": "PRRT_kwDOSUeMrM6ERPfp",
+      "opened": "2026-05-23T04:06:49Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "ad0cce50ab8ab96898b8110ad86de04ab2db3412",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3292050529"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description states that `gen_ai.conversation.compacted` is added as `Recommended` when known on `gen_ai.invoke_agent.client` and `gen_ai.invoke_agent.internal` (with span-specific notes clarifying that \"invoke_agent spans report orchestrator or agent-framework compaction\"). However, this diff only adds the `ref` to the `gen_ai.inference.client` span. The shared `attributes.gen_ai.invoke_agent.common` group at the top of `model/gen-ai/spans.yaml` (used by both invoke_agent spans) is not updated, and no agent-framework-specific note variant is added. As a result, the generated `docs/gen-ai/invoke-agent*.md` pages will not list this attribute, contradicting the PR description. Either add the ref to the invoke_agent attribute group (with the orchestrator-specific note variant) or update the PR description and changelog wording to reflect that this PR currently scopes the attribute to inference spans only.",
+      "created": "2026-05-28T17:00:47Z",
+      "hunk": "@@ -214,6 +214,14 @@ spans:\n           Application developers that manage conversation history MAY add conversation id to GenAI and other\n           spans or logs using custom span or log record processors or hooks provided by instrumentation\n           libraries.\n+      - ref: gen_ai.conversation.compacted\n+        requirement_level:\n+          recommended: when known\n+        note: |\n+          Set to `true` when the provider or client SDK compacts conversation\n+          history server-side or in the client before invoking the model\n+          (e.g., managed memory APIs, server-side conversation state,\n+          context-window auto-truncation).",
+      "id": "PRRT_kwDOSUeMrM6Fd-ZR",
+      "opened": "2026-05-28T17:00:48Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "bf76d0f71cad68d10f06d0280abf75a7c704d12e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3319443880"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": " Anthropic seems to support both -human-readable text and encrypted version -   https://platform.claude.com/docs/en/build-with-claude/compaction#working-with-compaction-blocks\n\nhttps://github.com/anthropics/anthropic-sdk-python/blob/5db69c6d5f3e7e39023973ca4b235046e5661157/src/anthropic/types/beta/beta_compaction_block.py#L19",
+      "created": "2026-05-27T03:25:29Z",
+      "hunk": "@@ -53,6 +53,35 @@\n }\n \n \n+MESSAGE_COMPACTION_RESPONSE = {\n+    \"id\": \"msg-mock-compaction-001\",\n+    \"type\": \"message\",\n+    \"role\": \"assistant\",\n+    \"content\": [\n+        {\n+            \"type\": \"compaction\",\n+            \"encrypted_content\": \"opaque encrypted compaction state\",",
+      "id": "PRRT_kwDOSUeMrM6E_DcG",
+      "opened": "2026-05-29T04:59:57Z",
+      "path": "reference/src/semconv_genai/mock_server/anthropic.py",
+      "replies": [],
+      "reviewed": "4f22dceff09d6dcece457204cadf130d8a97944e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3308226050"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "since it's a part of output and also could be passed as input top the next turn, I think we should model it as message part:\n- it's important to know if we properly preserved it in the chat history\n- the order matters - did we drop things before it and appended next messages after. Anthropic docs  have example that shows how to add 3 latest messages after compaction item https://platform.claude.com/docs/en/build-with-claude/compaction#working-with-compaction-blocks\n- the content matters (unencrypted in case of anthropic), we need to capture it. We don't need to include encrypted content now\n- it's part of input and output according to model APIs and should be in the corresponding attributes.\n\nWe can't express it all with boolean flag.\n\nGiven this (we'll have part with type `compaction` which would include optional content, possibly compaction id  and maybe some other properties, would we still need boolean flag? Can we live without it?",
+      "created": "2026-05-27T03:51:27Z",
+      "hunk": "@@ -354,4 +354,16 @@ def responses():\n     body = request.get_json(silent=True) or {}\n     resp = dict(RESPONSES_RESPONSE)\n     resp[\"model\"] = body.get(\"model\", resp[\"model\"])\n+    resp[\"output\"] = copy.deepcopy(resp[\"output\"])\n+    context_management = body.get(\"context_management\") or []\n+    if any(item.get(\"type\") == \"compaction\" for item in context_management if isinstance(item, dict)):\n+        resp[\"output\"].insert(\n+            0,\n+            {\n+                \"type\": \"compaction\",\n+                \"id\": \"cmp-mock-001\",\n+                \"encrypted_content\": \"opaque encrypted compaction state\",\n+                \"created_by\": \"server\",\n+            },",
+      "id": "PRRT_kwDOSUeMrM6E_T2Z",
+      "opened": "2026-05-29T04:59:57Z",
+      "path": "reference/src/semconv_genai/mock_server/openai.py",
+      "replies": [
+        {
+          "at": "2026-05-29T20:49:46Z",
+          "body": "@lmolkova I agree that a compaction block should be modeled as a message part when it is present in provider input/output. The block is part of the conversation state, its order is semantically important, and for providers like Anthropic it must be passed back on later turns to preserve the compacted history. A boolean alone cannot express whether the block was emitted, where it appeared, what summary/content it carried, or whether later requests preserved it.\r\n\r\nHowever  the boolean is also useful for token accounting. Once a conversation is compacted, subsequent inference spans may show a much lower `gen_ai.usage.input_tokens` count because the effective model input is now a compacted representation rather than the full prior conversation. \r\n`gen_ai.conversation.compacted=true` lets operators distinguish a real workload-size change from a context-management event. It also makes before/after analysis straightforward: filter by `gen_ai.conversation.id`, find the spans before and after the first compacted turn, and compare token usage around that transition.\r\n\r\nSo I would model this as both:\r\n- a `compaction` message part in `gen_ai.output.messages` when the provider emits one, and in `gen_ai.input.messages` when the client passes one back;\r\n- `gen_ai.conversation.compacted=true` on the inference span when the effective input/output for that call involved compaction.\r\n\r\nI believe if we only add the message part, users can reconstruct the boolean in ideal traces, but may miss it if they're not recording messages due to PII concerns. On the other hand, upon deeper reflection, if we only add the boolean, users lose the correctness/debugging view of whether the compacted state was preserved. Hence, I'm thinking of adding `CompactionPart` as:\r\n\r\n```\r\n  CompactionPart:\r\n    type: object\r\n    additionalProperties: true\r\n    properties:\r\n      type:\r\n        const: compaction\r\n      content:\r\n        type: string\r\n        description: The unencrypted compacted conversation summary, when available.\r\n      id:\r\n        type: string\r\n        description: Provider-assigned identifier for the compaction item/block, when available.\r\n    required:\r\n      - type\r\n```\r\n\r\nLmk your thoughts.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3326853252"
+        },
+        {
+          "at": "2026-05-29T21:39:10Z",
+          "body": "thanks for the context! \r\n\r\nI think boolean flag makes sense (in addition to message parts), the compelling case for me is metrics - we'll never record parts on metric but it'd still be useful to know if conversation was compacted.\r\n\r\nWe might also want to record the input params for compaction - either as individual attributes or inside a bag of extended input params along with everything else. It can be a follow up",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3327036772"
+        },
+        {
+          "at": "2026-05-29T21:49:11Z",
+          "body": "Sure I can create issue for adding metrics around compaction.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3327072201"
+        }
+      ],
+      "reviewed": "4f22dceff09d6dcece457204cadf130d8a97944e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3308317607"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is this important to have in semantic conventions?",
+      "created": "2026-05-31T05:34:32Z",
+      "hunk": "@@ -241,6 +241,16 @@ attributes:\n     brief: The unique identifier for a conversation (session, thread), used to store and correlate messages within this conversation.\n     examples: [\"conv_5j66UpCpwteGg4YSxUnt7lPY\"]\n     stability: development\n+  - key: gen_ai.conversation.compacted\n+    type: boolean\n+    brief: Indicates whether the effective conversation history used for this operation is a compacted view of a longer prior conversation.\n+    note: |\n+      Compaction may include summarization, pruning, sliding-window selection, hierarchical memory, or\n+      provider/framework-managed context reduction.\n+",
+      "id": "PRRT_kwDOSUeMrM6F6wQj",
+      "opened": "2026-05-31T06:00:19Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "fcf9ce4fc254108cd20e3e8982eb386c877f25b8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3329762158"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    brief: Indicates whether the effective conversation context used for this operation is a compacted view of a prior conversation.\n```\n\nnit, just slightly shorter",
+      "created": "2026-05-31T05:49:06Z",
+      "hunk": "@@ -241,6 +241,16 @@ attributes:\n     brief: The unique identifier for a conversation (session, thread), used to store and correlate messages within this conversation.\n     examples: [\"conv_5j66UpCpwteGg4YSxUnt7lPY\"]\n     stability: development\n+  - key: gen_ai.conversation.compacted\n+    type: boolean\n+    brief: Indicates whether the effective conversation history used for this operation is a compacted view of a longer prior conversation.",
+      "id": "PRRT_kwDOSUeMrM6F6ytk",
+      "opened": "2026-05-31T06:00:19Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "fcf9ce4fc254108cd20e3e8982eb386c877f25b8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3329775930"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we need to define what compaction is in semconv?\n\n\n```suggestion\n      Instrumentations SHOULD set this attribute to `true` only when they can reliably\n  determine that context compaction was applied.\n```",
+      "created": "2026-05-31T05:50:04Z",
+      "hunk": "@@ -241,6 +241,16 @@ attributes:\n     brief: The unique identifier for a conversation (session, thread), used to store and correlate messages within this conversation.\n     examples: [\"conv_5j66UpCpwteGg4YSxUnt7lPY\"]\n     stability: development\n+  - key: gen_ai.conversation.compacted\n+    type: boolean\n+    brief: Indicates whether the effective conversation history used for this operation is a compacted view of a longer prior conversation.\n+    note: |\n+      Compaction may include summarization, pruning, sliding-window selection, hierarchical memory, or\n+      provider/framework-managed context reduction.\n+\n+      If unset, the compaction state is unknown.",
+      "id": "PRRT_kwDOSUeMrM6F6y3q",
+      "opened": "2026-05-31T06:00:19Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "fcf9ce4fc254108cd20e3e8982eb386c877f25b8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3329776719"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit, I think this is one of a common incantations we use, just for consistency\n\n```suggestion\n          recommended: when available\n```\n",
+      "created": "2026-05-31T05:50:47Z",
+      "hunk": "@@ -214,6 +214,14 @@ spans:\n           Application developers that manage conversation history MAY add conversation id to GenAI and other\n           spans or logs using custom span or log record processors or hooks provided by instrumentation\n           libraries.\n+      - ref: gen_ai.conversation.compacted\n+        requirement_level:\n+          recommended: when known",
+      "id": "PRRT_kwDOSUeMrM6F6y_Z",
+      "opened": "2026-05-31T06:00:19Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "fcf9ce4fc254108cd20e3e8982eb386c877f25b8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3329777354"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\ndo we need to override note?  let's just write note on the attribute definition and reuse it unless there is a need to override.",
+      "created": "2026-05-31T05:51:43Z",
+      "hunk": "@@ -214,6 +214,14 @@ spans:\n           Application developers that manage conversation history MAY add conversation id to GenAI and other\n           spans or logs using custom span or log record processors or hooks provided by instrumentation\n           libraries.\n+      - ref: gen_ai.conversation.compacted\n+        requirement_level:\n+          recommended: when known\n+        note: |\n+          Set to `true` when the provider or client SDK compacts conversation\n+          history server-side or in the client before invoking the model\n+          (e.g., managed memory APIs, server-side conversation state,\n+          context-window auto-truncation).",
+      "id": "PRRT_kwDOSUeMrM6F6zL8",
+      "opened": "2026-05-31T06:00:19Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "fcf9ce4fc254108cd20e3e8982eb386c877f25b8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3329778325"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "don't think anthropic has id in the API - https://github.com/anthropics/anthropic-sdk-python/blob/main/src/anthropic/types/beta/beta_compaction_block.py, https://platform.claude.com/docs/en/build-with-claude/compaction#working-with-compaction-blocks",
+      "created": "2026-05-31T05:56:29Z",
+      "hunk": "@@ -20,6 +20,44 @@\n _reference_tracer = reference_tracer()\n \n \n+def response_has_compaction_block(response):\n+    \"\"\"Return whether Anthropic reported compaction in response content or usage.\"\"\"\n+    if getattr(response, \"stop_reason\", None) == \"compaction\":\n+        return True\n+    for block in getattr(response, \"content\", []) or []:\n+        if getattr(block, \"type\", None) == \"compaction\":\n+            return True\n+    usage = getattr(response, \"usage\", None)\n+    return any(getattr(iteration, \"type\", None) == \"compaction\" for iteration in getattr(usage, \"iterations\", []) or [])\n+\n+\n+def response_output_messages(response):\n+    \"\"\"Convert Anthropic response content blocks into OTel output messages.\"\"\"\n+    parts = []\n+    for block in getattr(response, \"content\", []) or []:\n+        block_type = getattr(block, \"type\", None)\n+        if block_type == \"text\" and getattr(block, \"text\", None):\n+            parts.append({\"type\": \"text\", \"content\": block.text})\n+        elif block_type == \"compaction\":\n+            compaction_part = {\"type\": \"compaction\"}\n+            compaction_id = getattr(block, \"id\", None)",
+      "id": "PRRT_kwDOSUeMrM6F6z9K",
+      "opened": "2026-05-31T06:00:19Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [],
+      "reviewed": "fcf9ce4fc254108cd20e3e8982eb386c877f25b8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3329782137"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we check if response or input messages had compacted item?\n\nI.e. when I continue conversation and pass compaction item back, shouldn't we also mark that conversation as compacted?",
+      "created": "2026-05-31T05:59:26Z",
+      "hunk": "@@ -112,6 +141,92 @@ def run_chat():\n         print(f\"    -> {resp.content[0].text[:60]}\")\n \n \n+def run_compaction_reference():\n+    \"\"\"Scenario: Anthropic server-side compaction signal from compaction blocks.\"\"\"\n+    import anthropic\n+\n+    print(\"  [chat_compaction] chat with server-side compaction (reference implementation)\")\n+    request_model = \"claude-sonnet-4-20250514\"\n+    request_max_tokens = 100\n+    messages = [{\"role\": \"user\", \"content\": \"Continue this long conversation.\"}]\n+    client = anthropic.Anthropic(base_url=MOCK_BASE_URL, api_key=\"mock-key\")\n+\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"chat\",\n+        \"gen_ai.provider.name\": \"anthropic\",\n+        \"gen_ai.request.model\": request_model,\n+    }\n+    if host:\n+        span_attributes[\"server.address\"] = host\n+    if port is not None:\n+        span_attributes[\"server.port\"] = port\n+    with _reference_tracer.start_as_current_span(\"chat claude-sonnet-4-20250514\", attributes=span_attributes) as span:\n+        span.set_attribute(\"gen_ai.request.max_tokens\", request_max_tokens)\n+        span.set_attribute(\n+            \"gen_ai.input.messages\",\n+            json.dumps([{\"role\": m[\"role\"], \"parts\": [{\"type\": \"text\", \"content\": m[\"content\"]}]} for m in messages]),\n+        )\n+        resp = client.beta.messages.create(\n+            model=request_model,\n+            max_tokens=request_max_tokens,\n+            messages=messages,\n+            context_management={\n+                \"edits\": [\n+                    {\n+                        \"type\": \"compact_20260112\",\n+                        \"trigger\": {\"type\": \"input_tokens\", \"value\": 200000},\n+                        \"pause_after_compaction\": True,\n+                    }\n+                ]\n+            },\n+            betas=[\"context-management-2026-01-12\"],\n+        )\n+\n+        # Provider-side instrumentation derives this from the live SDK\n+        # response: a compaction content block, stop_reason=\"compaction\", or\n+        # usage iteration with type=\"compaction\". The request option alone is\n+        # not enough.\n+        conversation_compacted = response_has_compaction_block(resp)",
+      "id": "PRRT_kwDOSUeMrM6F60ZT",
+      "opened": "2026-05-31T06:00:19Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [],
+      "reviewed": "fcf9ce4fc254108cd20e3e8982eb386c877f25b8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3329784473"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "since anthropic has 'compaction' as a stop reason and we're using it for openai as well, we should add it as a value in finish reason enum",
+      "created": "2026-06-01T01:36:30Z",
+      "hunk": "@@ -20,6 +20,82 @@\n _reference_tracer = reference_tracer()\n \n \n+def response_has_compaction_block(response):\n+    \"\"\"Return whether Anthropic reported compaction in response content or usage.\"\"\"\n+    if getattr(response, \"stop_reason\", None) == \"compaction\":\n+        return True\n+    for block in getattr(response, \"content\", []) or []:\n+        if getattr(block, \"type\", None) == \"compaction\":\n+            return True\n+    usage = getattr(response, \"usage\", None)\n+    return any(getattr(iteration, \"type\", None) == \"compaction\" for iteration in getattr(usage, \"iterations\", []) or [])\n+\n+\n+def input_has_compaction_block(messages):\n+    \"\"\"Return whether Anthropic input messages include a compaction block.\"\"\"\n+    for message in messages:\n+        content = message.get(\"content\") if isinstance(message, dict) else getattr(message, \"content\", None)\n+        if isinstance(content, list):\n+            for block in content:\n+                block_type = block.get(\"type\") if isinstance(block, dict) else getattr(block, \"type\", None)\n+                if block_type == \"compaction\":\n+                    return True\n+    return False\n+\n+\n+def input_messages(messages):\n+    \"\"\"Convert Anthropic input messages into OTel input messages.\"\"\"\n+    converted_messages = []\n+    for message in messages:\n+        role = message.get(\"role\") if isinstance(message, dict) else getattr(message, \"role\", None)\n+        content = message.get(\"content\") if isinstance(message, dict) else getattr(message, \"content\", None)\n+        parts = []\n+        if isinstance(content, str):\n+            parts.append({\"type\": \"text\", \"content\": content})\n+        elif isinstance(content, list):\n+            for block in content:\n+                block_type = block.get(\"type\") if isinstance(block, dict) else getattr(block, \"type\", None)\n+                if block_type == \"text\":\n+                    text = block.get(\"text\") if isinstance(block, dict) else getattr(block, \"text\", None)\n+                    if text:\n+                        parts.append({\"type\": \"text\", \"content\": text})\n+                elif block_type == \"compaction\":\n+                    compaction_content = (\n+                        block.get(\"content\") if isinstance(block, dict) else getattr(block, \"content\", None)\n+                    )\n+                    compaction_part = {\"type\": \"compaction\"}\n+                    if compaction_content:\n+                        compaction_part[\"content\"] = compaction_content\n+                    parts.append(compaction_part)\n+        if parts:\n+            converted_messages.append({\"role\": role or \"user\", \"parts\": parts})\n+    return converted_messages\n+\n+\n+def response_output_messages(response):\n+    \"\"\"Convert Anthropic response content blocks into OTel output messages.\"\"\"\n+    parts = []\n+    for block in getattr(response, \"content\", []) or []:\n+        block_type = getattr(block, \"type\", None)\n+        if block_type == \"text\" and getattr(block, \"text\", None):\n+            parts.append({\"type\": \"text\", \"content\": block.text})\n+        elif block_type == \"compaction\":\n+            compaction_part = {\"type\": \"compaction\"}\n+            compaction_content = getattr(block, \"content\", None)\n+            if compaction_content:\n+                compaction_part[\"content\"] = compaction_content\n+            parts.append(compaction_part)\n+    if not parts:\n+        return []\n+    return [\n+        {\n+            \"role\": \"assistant\",\n+            \"parts\": parts,\n+            \"finish_reason\": getattr(response, \"stop_reason\", None) or \"stop\",",
+      "id": "PRRT_kwDOSUeMrM6F_Nsr",
+      "opened": "2026-06-01T01:38:40Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [
+        {
+          "at": "2026-06-01T03:10:27Z",
+          "body": "Yep Liudmila, added it as a finish reason enum.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3331474501"
+        }
+      ],
+      "reviewed": "3ba6733ec8271bf342c19497c7fa3984e93265cb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3331280332"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "here we model it as a separate message and have artificial role and finish reason, while for anthropic case it's a part of an existing message. Can we do the same here? is there a case when it would not work?",
+      "created": "2026-06-01T01:38:36Z",
+      "hunk": "@@ -16,6 +16,50 @@\n _reference_tracer = reference_tracer()\n \n \n+def response_has_compaction_item(response):\n+    \"\"\"Return whether the Responses API output includes a ResponseCompactionItem.\"\"\"\n+    for item in getattr(response, \"output\", []) or []:\n+        item_type = item.get(\"type\") if isinstance(item, dict) else getattr(item, \"type\", None)\n+        if item_type == \"compaction\":\n+            return True\n+    return False\n+\n+\n+def responses_output_messages(response):\n+    \"\"\"Convert Responses API output items into OTel output messages.\"\"\"\n+    output_messages = []\n+    for item in getattr(response, \"output\", []) or []:\n+        item_type = item.get(\"type\") if isinstance(item, dict) else getattr(item, \"type\", None)\n+        if item_type == \"compaction\":\n+            compaction_part = {\"type\": \"compaction\"}\n+            compaction_id = item.get(\"id\") if isinstance(item, dict) else getattr(item, \"id\", None)\n+            if compaction_id:\n+                compaction_part[\"id\"] = compaction_id\n+            output_messages.append(\n+                {\n+                    \"role\": \"assistant\",",
+      "id": "PRRT_kwDOSUeMrM6F_OT_",
+      "opened": "2026-06-01T01:38:40Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-06-01T03:16:39Z",
+          "body": "Yeah we can simulate it as we have in anthropic. I modified it. Afaik for responses.create, compaction-only output is not the primary documented shape; that is more plausible for standalone /responses/compact, while server-side compaction emits a compaction item and then continues inference in the same response. So I believe openai and anthropic have same shape.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3331485578"
+        }
+      ],
+      "reviewed": "3ba6733ec8271bf342c19497c7fa3984e93265cb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3331283730"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we reference it on the operation duration metric? seems to be useful there",
+      "created": "2026-06-01T23:50:36Z",
+      "hunk": "@@ -214,6 +214,9 @@ spans:\n           Application developers that manage conversation history MAY add conversation id to GenAI and other\n           spans or logs using custom span or log record processors or hooks provided by instrumentation\n           libraries.\n+      - ref: gen_ai.conversation.compacted",
+      "id": "PRRT_kwDOSUeMrM6GRukM",
+      "opened": "2026-06-01T23:50:40Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-06-13T02:45:29Z",
+          "body": "Yes @lmolkova we should reference it there. I will add this to a new issue that I am creating.\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3407218218"
+        }
+      ],
+      "reviewed": "c03d2c507a7045bf451e33dcf66150aa39704445",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3337796827"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "Should we also add `finish_reason` to align with the output message schema here?",
+      "created": "2026-06-03T17:33:56Z",
+      "hunk": "@@ -16,6 +16,51 @@\n _reference_tracer = reference_tracer()\n \n \n+def response_has_compaction_item(response):\n+    \"\"\"Return whether the Responses API output includes a ResponseCompactionItem.\"\"\"\n+    for item in getattr(response, \"output\", []) or []:\n+        item_type = item.get(\"type\") if isinstance(item, dict) else getattr(item, \"type\", None)\n+        if item_type == \"compaction\":\n+            return True\n+    return False\n+\n+\n+def responses_output_messages(response):\n+    \"\"\"Convert Responses API output items into OTel output messages.\"\"\"\n+    output_messages = []\n+    pending_parts = []\n+    for item in getattr(response, \"output\", []) or []:\n+        item_type = item.get(\"type\") if isinstance(item, dict) else getattr(item, \"type\", None)\n+        if item_type == \"compaction\":\n+            compaction_part = {\"type\": \"compaction\"}\n+            compaction_id = item.get(\"id\") if isinstance(item, dict) else getattr(item, \"id\", None)\n+            if compaction_id:\n+                compaction_part[\"id\"] = compaction_id\n+            if output_messages and output_messages[-1].get(\"role\") == \"assistant\":\n+                output_messages[-1][\"parts\"].append(compaction_part)\n+            else:\n+                pending_parts.append(compaction_part)\n+            continue\n+        if item_type != \"message\":\n+            continue\n+        role = item.get(\"role\") if isinstance(item, dict) else getattr(item, \"role\", None)\n+        content = item.get(\"content\", []) if isinstance(item, dict) else getattr(item, \"content\", [])\n+        parts = pending_parts\n+        pending_parts = []\n+        for block in content or []:\n+            block_type = block.get(\"type\") if isinstance(block, dict) else getattr(block, \"type\", None)\n+            if block_type != \"output_text\":\n+                continue\n+            text = block.get(\"text\") if isinstance(block, dict) else getattr(block, \"text\", None)\n+            if text:\n+                parts.append({\"type\": \"text\", \"content\": text})\n+        if parts:\n+            output_messages.append({\"role\": role or \"assistant\", \"parts\": parts})",
+      "id": "PRRT_kwDOSUeMrM6G1k52",
+      "opened": "2026-06-03T18:19:44Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "c03d2c507a7045bf451e33dcf66150aa39704445",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3350619533"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "JWinermaSplunk"
+      },
+      "body": "This PR scopes `CompactionPart` to `gen_ai.input.messages` and `gen_ai.output.messages`, but I believe adding it to the shared `MessagePart` alias also affects `SystemInstructions` upon doc regeneration. Is this intended?",
+      "created": "2026-06-03T18:05:54Z",
+      "hunk": "@@ -209,6 +220,7 @@\n     \"    FilePart,\\n\",\n     \"    UriPart,\\n\",\n     \"    ReasoningPart,\\n\",\n+    \"    CompactionPart,\\n\",",
+      "id": "PRRT_kwDOSUeMrM6G2GhO",
+      "opened": "2026-06-03T18:19:44Z",
+      "path": "docs/gen-ai/non-normative/models.ipynb",
+      "replies": [],
+      "reviewed": "fcf9ce4fc254108cd20e3e8982eb386c877f25b8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3350806743"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`requirement_level.recommended` condition notes should be written as complete sentences (capitalized and ending with a period). Here it is `when available`, which does not follow the repo’s requirement-level condition note convention.",
+      "created": "2026-06-08T16:28:23Z",
+      "hunk": "@@ -222,6 +222,9 @@ spans:\n           Application developers that manage conversation history MAY add conversation id to GenAI and other\n           spans or logs using custom span or log record processors or hooks provided by instrumentation\n           libraries.\n+      - ref: gen_ai.conversation.compacted\n+        requirement_level:\n+          recommended: when available",
+      "id": "PRRT_kwDOSUeMrM6H5YA_",
+      "opened": "2026-06-08T16:28:24Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "632adb4f70bb5b73c8f84cf42a08c6da177bd6c4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3374808129"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "should it ever be set to `false`?",
+      "created": "2026-06-16T21:21:04Z",
+      "hunk": "@@ -258,6 +258,14 @@ attributes:\n     brief: The unique identifier for a conversation (session, thread), used to store and correlate messages within this conversation.\n     examples: [\"conv_5j66UpCpwteGg4YSxUnt7lPY\"]\n     stability: development\n+  - key: gen_ai.conversation.compacted\n+    type: boolean\n+    brief: Indicates whether the effective conversation context used for this operation is a compacted view of a prior conversation.\n+    note: |\n+      Instrumentations SHOULD set this attribute to `true` only when they can reliably\n+      determine that context compaction was applied.",
+      "id": "PRRT_kwDOSUeMrM6KCYU-",
+      "opened": "2026-06-16T21:21:04Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-06-16T21:52:52Z",
+          "body": "@trask I am under the assumption that`gen_ai.conversation.compacted` will be emitted only when compaction is known to have occurred. If instrumentation does not know, or no compaction signal is exposed by the provider/framework, we should leave the attribute unset rather than emit false. This is because imo emitting false can be misleading because absence of an observed compaction event is not the same as knowing compaction did not happen, especially for provider-side behavior(please note only anthropic and openai are doing server side compaction currently). So the useful states are: unset = unknown/not reported, true = compaction occurred. But lmk if you think we can do it differently I am open to changing this.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3424256860"
+        },
+        {
+          "at": "2026-06-16T22:17:01Z",
+          "body": "> absence of an observed compaction event is not the same as knowing compaction did not happen\r\n\r\nwhat if you _know_ that compaction hasn't occurred? should you set it to `false` or leave it blank?\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3424360822"
+        },
+        {
+          "at": "2026-06-16T22:19:49Z",
+          "body": "I'm leaning towards leaving it blank.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3424371564"
+        },
+        {
+          "at": "2026-06-16T22:36:05Z",
+          "body": "I don't think we have precedent for this.\r\n\r\nHere's the closest that we have:\r\n\r\n`gen_ai.request.stream`\r\n\r\n> [If unset, the request is assumed to be non-streaming.](model/gen-ai/spans.yaml#L184-L186)\r\n\r\n`messaging.destination.temporary`\r\n\r\n> [When missing, the value is assumed to be `false`.](https://github.com/open-telemetry/semantic-conventions/blob/085cf2230203d9fb552edf94e035ee9da64ec39d/model/messaging/spans.yaml#L53-L55)\r\n\r\n`messaging.destination.anonymous`\r\n\r\n> [When missing, the value is assumed to be `false`.](https://github.com/open-telemetry/semantic-conventions/blob/085cf2230203d9fb552edf94e035ee9da64ec39d/model/messaging/spans.yaml#L56-L58)\r\n\r\n`messaging.kafka.message.tombstone`\r\n\r\n> [When missing, the value is assumed to be `false`.](https://github.com/open-telemetry/semantic-conventions/blob/085cf2230203d9fb552edf94e035ee9da64ec39d/model/messaging/spans.yaml#L160-L162)\r\n\r\nWould this work?\r\n\r\nOtherwise, we could consider something like this:\r\n\r\n```suggestion\r\n      This attribute is a positive indicator of context compaction. Instrumentations\r\n      SHOULD set it to `true` only when they can reliably determine that context\r\n      compaction was applied. Instrumentations SHOULD NOT set it to `false`; they\r\n      SHOULD leave it unset otherwise.\r\n```",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3424428045"
+        },
+        {
+          "at": "2026-06-17T01:28:08Z",
+          "body": "@trask I like your suggestion. I used it. Thanks for the help.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3425020980"
+        }
+      ],
+      "reviewed": "fdab12cca0e0ed95a34239b92f2dac7d32c4344a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/162#discussion_r3424108755"
+    }
+  ]
+}

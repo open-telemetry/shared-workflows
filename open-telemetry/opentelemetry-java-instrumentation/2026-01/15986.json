@@ -1,0 +1,52 @@
+{
+  "head": "0cb543d397394b0078a78c4f1fc31b43848685a0",
+  "merge": "77eaa8c0444dc43ca717d6eff2262d252ab380a4",
+  "merged": "2026-01-27T11:13:18Z",
+  "missing_roots": 0,
+  "number": 15986,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think you could have something like\n```\nselect\nid,\n(select max(foo) from (\n  select foo from foos\n  union all\n  select foo from bars)\n)) as foo\nfrom main_table\n```\nwill we loose `main_table` because of resetting the operation?",
+      "created": "2026-01-26T15:22:25Z",
+      "hunk": "@@ -678,18 +676,26 @@ WHITESPACE           = [ \\t\\r\\n]+\n             // Append semicolon to summary to separate statements\n             querySummaryBuilder.append(';');\n             // Reset operation state for next statement\n-            operation = null;\n+            operation = none;\n             parenLevel = 0;\n           }\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n+  \"UNION\" | \"INTERSECT\" | \"EXCEPT\" | \"MINUS\" {",
+      "id": "PRRT_kwDODJKVX85rDSag",
+      "opened": "2026-01-26T15:22:25Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-01-26T20:34:49Z",
+          "body": "this test case works, but agree it's a little mysterious\r\n\r\nuncovered this issue https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16007\r\n\r\nwill come back here after that is merged and see if I can find a breaking test case, and/or make the behavior clearer",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15986#discussion_r2729158233"
+        }
+      ],
+      "reviewed": "db36ed6e168f6b942f519168c51d4f5febba487f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15986#discussion_r2728048280"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "can `VALUES` appear without a `SELECT` or `INSERT` so that the operation would be `none`?",
+      "created": "2026-01-26T15:27:25Z",
+      "hunk": "@@ -514,98 +518,92 @@ WHITESPACE           = [ \\t\\r\\n]+\n \n   \"SELECT\" {\n           if (!insideComment) {\n-            if (operation == null) {\n+            if (operation == none) {\n               setOperation(new Select());\n               appendOperationToSummary(\"SELECT\");\n             } else if (operation instanceof Select) {\n               // nested SELECT (subquery) - append SELECT to summary\n               appendOperationToSummary(\"SELECT\");\n             }\n-            if (operation != null) {\n-              operation.handleSelect();\n-            }\n+            operation.handleSelect();\n           }\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n   \"INSERT\" {\n-          if (!insideComment) {\n+          if (shouldStartNewOperation()) {\n             setOperation(new Insert());\n             appendOperationToSummary(\"INSERT\");\n           }\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n   \"DELETE\" {\n-          if (!insideComment) {\n+          if (shouldStartNewOperation()) {\n             setOperation(new Delete());\n             appendOperationToSummary(\"DELETE\");\n           }\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n   \"UPDATE\" {\n-          if (!insideComment) {\n+          if (shouldStartNewOperation()) {\n             setOperation(new Update());\n             appendOperationToSummary(\"UPDATE\");\n           }\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n   \"CALL\" {\n-          if (!insideComment) {\n+          if (shouldStartNewOperation()) {\n             setOperation(new Call());\n             appendOperationToSummary(\"CALL\");\n           }\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n   \"MERGE\" {\n-          if (!insideComment) {\n+          if (shouldStartNewOperation()) {\n             setOperation(new Merge());\n             appendOperationToSummary(\"MERGE\");\n           }\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n   \"CREATE\" {\n-          if (!insideComment) {\n+          if (shouldStartNewOperation()) {\n             setOperation(new Create());\n             appendOperationToSummary(\"CREATE\");\n           }\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n   \"DROP\" {\n-          if (!insideComment) {\n+          if (shouldStartNewOperation()) {\n             setOperation(new Drop());\n             appendOperationToSummary(\"DROP\");\n           }\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n   \"ALTER\" {\n-          if (!insideComment) {\n+          if (shouldStartNewOperation()) {\n             setOperation(new Alter());\n             appendOperationToSummary(\"ALTER\");\n           }\n           appendCurrentFragment();\n           if (isOverLimit()) return YYEOF;\n       }\n   \"VALUES\" {\n-          if (!insideComment) {\n-            // Only set VALUES as the operation if no operation is already set\n-            // (VALUES can appear inside INSERT statements or SELECT FROM clauses)\n-            if (operation == null) {\n-              setOperation(new Values());\n-              appendOperationToSummary(\"VALUES\");\n-            }\n+          if (shouldStartNewOperation()) {",
+      "id": "PRRT_kwDODJKVX85rDWIZ",
+      "opened": "2026-01-26T15:27:24Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-01-26T20:38:35Z",
+          "body": "yeah, see this test case\r\n\r\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5262e50c0af9f9991f8963bb029e989e73cea61a/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlStatementSanitizerTest.java#L640-L643",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15986#discussion_r2729169276"
+        }
+      ],
+      "reviewed": "db36ed6e168f6b942f519168c51d4f5febba487f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15986#discussion_r2728069137"
+    }
+  ]
+}

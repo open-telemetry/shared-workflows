@@ -1,0 +1,82 @@
+{
+  "head": "ccc0500b796991a89280381290d2a343637a5ad1",
+  "merge": "3656ecdadf886e562472ca74d812c95151d212fb",
+  "merged": "2026-02-20T15:56:34Z",
+  "missing_roots": 0,
+  "number": 16232,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "breedx-splk"
+      },
+      "body": "😎 cool method name `$minus$greater` .... `<>`",
+      "created": "2026-02-19T19:01:42Z",
+      "hunk": "@@ -0,0 +1,44 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.ziohttp.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import zio.http.Handler;\n+import zio.http.RoutePattern;\n+\n+public class RoutePatternInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"zio.http.RoutePattern\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isMethod().and(named(\"$minus$greater\")), getClass().getName() + \"$TestAdvice\");",
+      "id": "PRRT_kwDODJKVX85vn1Ee",
+      "opened": "2026-02-19T19:07:20Z",
+      "path": "instrumentation/zio/zio-http-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/ziohttp/v3_0/RoutePatternInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-02-20T08:02:37Z",
+          "body": "in scala the method name is `->`",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16232#discussion_r2831916829"
+        }
+      ],
+      "reviewed": "4421283da7890033041b220aaf756530d02ba3cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16232#discussion_r2829641588"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "breedx-splk"
+      },
+      "body": "👍🏻 ",
+      "created": "2026-02-19T19:03:36Z",
+      "hunk": "@@ -0,0 +1,113 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.ziohttp.v3_0\n+\n+import io.opentelemetry.api.trace.SpanKind\n+import io.opentelemetry.instrumentation.test.utils.PortUtils\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension\n+import io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.{\n+  LongAssertConsumer,\n+  StringAssertConsumer,\n+  equalTo,\n+  satisfies\n+}\n+import io.opentelemetry.sdk.testing.assertj.{SpanDataAssert, TraceAssert}\n+import io.opentelemetry.semconv.ClientAttributes.CLIENT_ADDRESS\n+import io.opentelemetry.semconv.HttpAttributes.{\n+  HTTP_REQUEST_METHOD,\n+  HTTP_RESPONSE_STATUS_CODE,\n+  HTTP_ROUTE\n+}\n+import io.opentelemetry.semconv.NetworkAttributes.{\n+  NETWORK_PEER_ADDRESS,\n+  NETWORK_PEER_PORT,\n+  NETWORK_PROTOCOL_VERSION\n+}\n+import io.opentelemetry.semconv.ServerAttributes.{SERVER_ADDRESS, SERVER_PORT}\n+import io.opentelemetry.semconv.UrlAttributes.{URL_PATH, URL_SCHEME}\n+import io.opentelemetry.semconv.UserAgentAttributes.USER_AGENT_ORIGINAL\n+import io.opentelemetry.testing.internal.armeria.client.WebClient\n+import org.assertj.core.api.Assertions.assertThat\n+import org.assertj.core.api.{AbstractLongAssert, AbstractStringAssert}\n+import org.junit.jupiter.api.extension.RegisterExtension\n+import org.junit.jupiter.api.{AfterAll, BeforeAll, Test, TestInstance}\n+import zio.ExitCode\n+\n+import java.util.concurrent.TimeUnit\n+import java.util.function.Consumer\n+\n+@TestInstance(TestInstance.Lifecycle.PER_CLASS)\n+class ZioHttpTest {\n+  @RegisterExtension private val testing = AgentInstrumentationExtension.create\n+\n+  var port = 0\n+  var client: WebClient = null\n+\n+  @BeforeAll\n+  def setup(): Unit = {\n+    port = PortUtils.findOpenPort\n+    ZioHttpTestApplication.port = port\n+    val t = new Thread(() => {\n+      ZioHttpTestApplication.main(Array())\n+    })\n+    t.start()\n+    ZioHttpTestApplication.started.await(10, TimeUnit.SECONDS)\n+    client = WebClient.of(\"h1c://localhost:\" + port)\n+  }\n+\n+  @AfterAll\n+  def cleanup(): Unit = {\n+    ZioHttpTestApplication.exit(ExitCode.success)\n+  }\n+\n+  @Test\n+  def spanName(): Unit = {\n+    val response = client.get(\"/greet/test\").aggregate.join\n+    val content = response.contentUtf8\n+    assertThat(port).isNotEqualTo(0)\n+    assertThat(content).isEqualTo(\"Hello test\")\n+\n+    testing.waitAndAssertTraces(new Consumer[TraceAssert] {\n+      override def accept(trace: TraceAssert): Unit =\n+        trace.hasSpansSatisfyingExactly(new Consumer[SpanDataAssert] {\n+          override def accept(span: SpanDataAssert): Unit = {\n+            span\n+              .hasName(\"GET /greet/{name}\")",
+      "id": "PRRT_kwDODJKVX85vn2sB",
+      "opened": "2026-02-19T19:07:20Z",
+      "path": "instrumentation/zio/zio-http-3.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/ziohttp/v3_0/ZioHttpTest.scala",
+      "replies": [],
+      "reviewed": "4421283da7890033041b220aaf756530d02ba3cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16232#discussion_r2829650654"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "breedx-splk"
+      },
+      "body": "👍🏻 ",
+      "created": "2026-02-19T19:03:53Z",
+      "hunk": "@@ -0,0 +1,113 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.ziohttp.v3_0\n+\n+import io.opentelemetry.api.trace.SpanKind\n+import io.opentelemetry.instrumentation.test.utils.PortUtils\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension\n+import io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.{\n+  LongAssertConsumer,\n+  StringAssertConsumer,\n+  equalTo,\n+  satisfies\n+}\n+import io.opentelemetry.sdk.testing.assertj.{SpanDataAssert, TraceAssert}\n+import io.opentelemetry.semconv.ClientAttributes.CLIENT_ADDRESS\n+import io.opentelemetry.semconv.HttpAttributes.{\n+  HTTP_REQUEST_METHOD,\n+  HTTP_RESPONSE_STATUS_CODE,\n+  HTTP_ROUTE\n+}\n+import io.opentelemetry.semconv.NetworkAttributes.{\n+  NETWORK_PEER_ADDRESS,\n+  NETWORK_PEER_PORT,\n+  NETWORK_PROTOCOL_VERSION\n+}\n+import io.opentelemetry.semconv.ServerAttributes.{SERVER_ADDRESS, SERVER_PORT}\n+import io.opentelemetry.semconv.UrlAttributes.{URL_PATH, URL_SCHEME}\n+import io.opentelemetry.semconv.UserAgentAttributes.USER_AGENT_ORIGINAL\n+import io.opentelemetry.testing.internal.armeria.client.WebClient\n+import org.assertj.core.api.Assertions.assertThat\n+import org.assertj.core.api.{AbstractLongAssert, AbstractStringAssert}\n+import org.junit.jupiter.api.extension.RegisterExtension\n+import org.junit.jupiter.api.{AfterAll, BeforeAll, Test, TestInstance}\n+import zio.ExitCode\n+\n+import java.util.concurrent.TimeUnit\n+import java.util.function.Consumer\n+\n+@TestInstance(TestInstance.Lifecycle.PER_CLASS)\n+class ZioHttpTest {\n+  @RegisterExtension private val testing = AgentInstrumentationExtension.create\n+\n+  var port = 0\n+  var client: WebClient = null\n+\n+  @BeforeAll\n+  def setup(): Unit = {\n+    port = PortUtils.findOpenPort\n+    ZioHttpTestApplication.port = port\n+    val t = new Thread(() => {\n+      ZioHttpTestApplication.main(Array())\n+    })\n+    t.start()\n+    ZioHttpTestApplication.started.await(10, TimeUnit.SECONDS)\n+    client = WebClient.of(\"h1c://localhost:\" + port)\n+  }\n+\n+  @AfterAll\n+  def cleanup(): Unit = {\n+    ZioHttpTestApplication.exit(ExitCode.success)\n+  }\n+\n+  @Test\n+  def spanName(): Unit = {\n+    val response = client.get(\"/greet/test\").aggregate.join\n+    val content = response.contentUtf8\n+    assertThat(port).isNotEqualTo(0)\n+    assertThat(content).isEqualTo(\"Hello test\")\n+\n+    testing.waitAndAssertTraces(new Consumer[TraceAssert] {\n+      override def accept(trace: TraceAssert): Unit =\n+        trace.hasSpansSatisfyingExactly(new Consumer[SpanDataAssert] {\n+          override def accept(span: SpanDataAssert): Unit = {\n+            span\n+              .hasName(\"GET /greet/{name}\")\n+              .hasKind(SpanKind.SERVER)\n+              .hasNoParent\n+              .hasAttributesSatisfyingExactly(\n+                equalTo(URL_SCHEME, \"http\"),\n+                equalTo(URL_PATH, \"/greet/test\"),\n+                equalTo(HTTP_REQUEST_METHOD, \"GET\"),\n+                equalTo(HTTP_RESPONSE_STATUS_CODE, 200),\n+                satisfies(\n+                  USER_AGENT_ORIGINAL,\n+                  new StringAssertConsumer {\n+                    override def accept(t: AbstractStringAssert[_]): Unit =\n+                      t.isInstanceOf(classOf[String])\n+                  }\n+                ),\n+                equalTo(HTTP_ROUTE, \"/greet/{name}\"),",
+      "id": "PRRT_kwDODJKVX85vn25_",
+      "opened": "2026-02-19T19:07:20Z",
+      "path": "instrumentation/zio/zio-http-3.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/ziohttp/v3_0/ZioHttpTest.scala",
+      "replies": [],
+      "reviewed": "4421283da7890033041b220aaf756530d02ba3cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16232#discussion_r2829651864"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "breedx-splk"
+      },
+      "body": "These skip version seem so much lower than the actual zio version `3.0.0`....I must be missing something.",
+      "created": "2026-02-19T19:06:45Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+plugins {\n+  id(\"otel.javaagent-instrumentation\")\n+  id(\"otel.nullaway-conventions\")\n+  id(\"otel.scala-conventions\")\n+}\n+\n+val zioVersion = \"3.0.0\"\n+val scalaVersion = \"2.12\"\n+\n+muzzle {\n+  pass {\n+    group.set(\"dev.zio\")\n+    module.set(\"zio-http_2.12\")\n+    versions.set(\"[$zioVersion,)\")\n+    // don't care about these versions\n+    skip(\"0.0.1\", \"0.0.2\", \"0.0.3\", \"0.0.4\", \"0.0.5\")",
+      "id": "PRRT_kwDODJKVX85vn5PG",
+      "opened": "2026-02-19T19:07:20Z",
+      "path": "instrumentation/zio/zio-http-3.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-02-20T08:04:52Z",
+          "body": "Due to `assertInverse.set(true)` muzzle checks all versions. There are no `1.x` or `2.x` versions only the `0.x` and `3.x`. At least one of the `0.x` versions has missing dependencies.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16232#discussion_r2831925730"
+        }
+      ],
+      "reviewed": "4421283da7890033041b220aaf756530d02ba3cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16232#discussion_r2829664696"
+    }
+  ]
+}

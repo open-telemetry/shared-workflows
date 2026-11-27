@@ -1,0 +1,25 @@
+{
+  "head": "5f90fd4355e543a4b02238e00fda23a58f430c87",
+  "merge": "3d356ac5f169700ef91d2aca2feb6e26d4da70e2",
+  "merged": "2026-03-19T11:38:46Z",
+  "missing_roots": 0,
+  "number": 16715,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "we haven't been consistently adding this one, but it's fine to include it.",
+      "created": "2026-03-19T10:08:20Z",
+      "hunk": "@@ -0,0 +1,15 @@\n+display_name: Tomcat JDBC\n+description: This instrumentation enables database connection pool metrics for Tomcat JDBC.\n+library_link: https://tomcat.apache.org/tomcat-8.5-doc/jdbc-pool.html\n+semantic_conventions:\n+  - DATABASE_POOL_METRICS\n+configurations:\n+  - name: otel.semconv-stability.opt-in",
+      "id": "PRRT_kwDODJKVX851aWz_",
+      "opened": "2026-03-19T10:22:39Z",
+      "path": "instrumentation/tomcat/tomcat-jdbc/metadata.yaml",
+      "replies": [],
+      "reviewed": "5f90fd4355e543a4b02238e00fda23a58f430c87",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16715#discussion_r2959017866"
+    }
+  ]
+}

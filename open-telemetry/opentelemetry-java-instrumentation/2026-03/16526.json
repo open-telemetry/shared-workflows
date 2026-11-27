@@ -1,0 +1,25 @@
+{
+  "head": "bf969161795a146ae8b9d6683d0928288bba6762",
+  "merge": "7f179cea246354ace8798017a155b2e36ca54d8b",
+  "merged": "2026-03-14T21:52:14Z",
+  "missing_roots": 0,
+  "number": 16526,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "🤷‍♂️\n\nnice to see it's reasons now on the PR description page:\n\n> Fixed annotation ordering: `@Nullable` was placed before `@Override` on `getNetworkPeerInetSocketAddress`; all other overriding methods in the same class use `@Override` then `@Nullable`",
+      "created": "2026-03-14T21:52:02Z",
+      "hunk": "@@ -69,8 +69,8 @@ public Integer getServerPort(ApacheHttpClientRequest request) {\n     return HttpConstants.portOrDefaultFromScheme(request.getServerPort(), request.getScheme());\n   }\n \n-  @Nullable\n   @Override\n+  @Nullable",
+      "id": "PRRT_kwDODJKVX850XsvQ",
+      "opened": "2026-03-14T21:52:06Z",
+      "path": "instrumentation/apache-httpclient/apache-httpclient-4.3/library/src/main/java/io/opentelemetry/instrumentation/apachehttpclient/v4_3/ApacheHttpClientHttpAttributesGetter.java",
+      "replies": [],
+      "reviewed": "bf969161795a146ae8b9d6683d0928288bba6762",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16526#discussion_r2935876570"
+    }
+  ]
+}

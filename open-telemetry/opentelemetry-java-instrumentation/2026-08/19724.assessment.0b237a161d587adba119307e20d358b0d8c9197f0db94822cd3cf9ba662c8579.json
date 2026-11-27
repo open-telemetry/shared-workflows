@@ -1,0 +1,37 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "689e7c5e07b7e6716ac2aa2aeb39a29b54e8232332763e7979e1f170eefdca5e",
+  "input_digest": "0b237a161d587adba119307e20d358b0d8c9197f0db94822cd3cf9ba662c8579",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ad6077f6c7357829eec48d0e0a64cdb1f3ab0d5/instrumentation/jmx-metrics/model/kafka-connect.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ad6077f6c7357829eec48d0e0a64cdb1f3ab0d5/instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/experimental-kafka-connect.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ed163b8fc2f460348fa324932b0a3b34cc85c8b/instrumentation/jmx-metrics/model/kafka-connect.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ed163b8fc2f460348fa324932b0a3b34cc85c8b/instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/experimental-kafka-connect.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9043cf6ef05734b9ed11916c02b992197c84e934"
+      ],
+      "id": "PRRT_kwDODJKVX86cBif_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2272d6458bf43bde726e77bd40ec4c1599648900/instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/experimental-kafka-connect.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2272d6458bf43bde726e77bd40ec4c1599648900/instrumentation/jmx-metrics/library/kafka-connect.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ed163b8fc2f460348fa324932b0a3b34cc85c8b/instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/experimental-kafka-connect.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ed163b8fc2f460348fa324932b0a3b34cc85c8b/instrumentation/jmx-metrics/library/kafka-connect.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e692903f3121f8a70865f062b50d1d0f3010bdf5"
+      ],
+      "id": "PRRT_kwDODJKVX86cgkm9",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

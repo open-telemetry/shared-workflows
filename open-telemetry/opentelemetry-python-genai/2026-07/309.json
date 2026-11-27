@@ -1,0 +1,76 @@
+{
+  "head": "0b502bc285c5e2215a1bcef8d590c022da0bb490",
+  "merge": "3b86f51593cf1a58169d6d76d08865c7082f2f44",
+  "merged": "2026-07-29T04:20:01Z",
+  "missing_roots": 0,
+  "number": 309,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "needed? ",
+      "created": "2026-07-25T18:53:06Z",
+      "hunk": "@@ -0,0 +1,69 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"\n+OpenTelemetry LlamaIndex Instrumentation\n+========================================\n+\n+Instrument LlamaIndex applications by enabling ``LlamaIndexInstrumentor``.\n+\n+Usage\n+-----\n+\n+.. code-block:: python\n+\n+    from opentelemetry.instrumentation.genai.llama_index import (\n+        LlamaIndexInstrumentor,\n+    )\n+\n+    LlamaIndexInstrumentor().instrument()\n+\n+Configuration\n+-------------\n+\n+Content capture is controlled through\n+``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT``. Supported values are\n+``NO_CONTENT``, ``SPAN_ONLY``, ``EVENT_ONLY``, and ``SPAN_AND_EVENT``.\n+Completion hook configuration is forwarded from\n+``OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK`` or\n+``instrument(completion_hook=...)``.\n+\n+API",
+      "id": "PRRT_kwDOSbspP86Tx6ez",
+      "opened": "2026-07-25T18:53:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/__init__.py",
+      "replies": [
+        {
+          "at": "2026-07-29T02:42:22Z",
+          "body": "This is not needed. Removed it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/309#discussion_r3670584231"
+        }
+      ],
+      "reviewed": "771b2dea48a49a29d88bee1edd4379e2208c1f20",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/309#discussion_r3650816759"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The llama-index test env is the only instrumentation test command that doesn’t force VCR to never record. For consistency with the other instrumentation packages (and to avoid accidentally creating/depending on live network interactions when tests are added later), pass `--vcr-record=none` and ignore a potential `test_conformance.py` like the other packages do.",
+      "created": "2026-07-25T18:56:40Z",
+      "hunk": "@@ -212,6 +224,9 @@ commands =\n   test-instrumentation-genai-langchain-conformance: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_conformance.py --vcr-record=none {posargs}\n   lint-instrumentation-genai-langchain: sh -c \"cd instrumentation && ruff check opentelemetry-instrumentation-genai-langchain\"\n \n+  test-instrumentation-genai-llama_index-{oldest,latest}: pytest {toxinidir}/instrumentation/opentelemetry-instrumentation-genai-llama-index/tests {posargs}",
+      "id": "PRRT_kwDOSbspP86Tx7ap",
+      "opened": "2026-07-25T18:56:41Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "771b2dea48a49a29d88bee1edd4379e2208c1f20",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/309#discussion_r3650822070"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This repo’s instrumentation guidelines require new instrumentation packages to ship minimal runnable examples under `examples/manual/` and `examples/zero-code/` (and, when documenting completion hooks, a `custom_hook.py` example mirroring the OpenAI package). This package README documents usage/completion hooks but no examples are included yet.",
+      "created": "2026-07-25T18:56:41Z",
+      "hunk": "@@ -0,0 +1,48 @@\n+OpenTelemetry LlamaIndex Instrumentation\n+========================================\n+\n+|pypi|\n+\n+.. |pypi| image:: https://badge.fury.io/py/opentelemetry-instrumentation-genai-llama-index.svg\n+   :target: https://pypi.org/project/opentelemetry-instrumentation-genai-llama-index/\n+\n+This package contains the OpenTelemetry instrumentor scaffold for\n+`LlamaIndex <https://github.com/run-llama/llama_index>`_.\n+\n+Installation\n+------------\n+\n+::\n+\n+    pip install opentelemetry-instrumentation-genai-llama-index\n+\n+Usage\n+-----\n+\n+.. code-block:: python\n+\n+    from opentelemetry.instrumentation.genai.llama_index import (\n+        LlamaIndexInstrumentor,\n+    )\n+\n+    LlamaIndexInstrumentor().instrument()\n+\n+Configuration\n+-------------\n+\n+Content capture is controlled through the\n+``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`` environment variable.\n+Supported values are ``NO_CONTENT``, ``SPAN_ONLY``, ``EVENT_ONLY``, and\n+``SPAN_AND_EVENT``.\n+\n+Prompts and completions can also be redirected via a completion hook by\n+setting ``OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK`` or by passing\n+``instrument(completion_hook=...)``.",
+      "id": "PRRT_kwDOSbspP86Tx7a5",
+      "opened": "2026-07-25T18:56:41Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/README.rst",
+      "replies": [],
+      "reviewed": "771b2dea48a49a29d88bee1edd4379e2208c1f20",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/309#discussion_r3650822089"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The module docstring currently says it will “Instrument LlamaIndex applications”, but this scaffold only constructs a TelemetryHandler and does not wrap/patch any LlamaIndex APIs yet, so enabling the instrumentor won’t actually produce telemetry. Please reword this to avoid implying functionality that isn’t implemented.",
+      "created": "2026-07-25T18:56:41Z",
+      "hunk": "@@ -0,0 +1,69 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"\n+OpenTelemetry LlamaIndex Instrumentation\n+========================================\n+\n+Instrument LlamaIndex applications by enabling ``LlamaIndexInstrumentor``.",
+      "id": "PRRT_kwDOSbspP86Tx7bJ",
+      "opened": "2026-07-25T18:56:41Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/__init__.py",
+      "replies": [],
+      "reviewed": "771b2dea48a49a29d88bee1edd4379e2208c1f20",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/309#discussion_r3650822106"
+    }
+  ]
+}

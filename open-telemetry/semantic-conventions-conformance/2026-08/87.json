@@ -1,0 +1,70 @@
+{
+  "head": "bd58dd1d3e7a6a9bd36032c2780987522c07e884",
+  "merge": "69648d4993b8ce29cc84a0e5469528378388f939",
+  "merged": "2026-08-25T04:21:20Z",
+  "missing_roots": 0,
+  "number": 87,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This says every implementation runs the same programs, but `opentelemetry-langchain-openai/conformance.yaml:20-35` runs its own local scenarios while the direct OpenAI implementations run `../scenarios` (the exception is already explained at README lines 41-45). Describe equivalent exchanges and shared programs only where the client package is the same; otherwise the table's comparability model is inaccurate.",
+      "created": "2026-08-25T01:36:51Z",
+      "hunk": "@@ -102,27 +102,46 @@ and the gap lands in `data.json`.\n \n ## What is covered\n \n-| Directory | Instrumentation | Classes |\n+Each row is one library and the classes its programs exercise; the\n+implementations beside them all run those same programs, which is what makes\n+their `data.json` files comparable.",
+      "id": "PRRT_kwDOTuzK5c6b6KM0",
+      "opened": "2026-08-25T01:36:51Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "1e1a52df2bf374287ebcc1331e4197992f159775",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/87#discussion_r3848873808"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This row overstates `opentelemetry-langchain-anthropic` coverage: its conformance file declares only inference, streaming, tool_calling, and multimodal, while automatic_tool_calling exists only in `opentelemetry-anthropic` (`conformance.yaml:26-27`). Preserve that exception in the consolidated table.",
+      "created": "2026-08-25T01:36:51Z",
+      "hunk": "@@ -102,27 +102,46 @@ and the gap lands in `data.json`.\n \n ## What is covered\n \n-| Directory | Instrumentation | Classes |\n+Each row is one library and the classes its programs exercise; the\n+implementations beside them all run those same programs, which is what makes\n+their `data.json` files comparable.\n+\n+| Library | Classes | Implementations |\n | --- | --- | --- |\n-| `openai/opentelemetry-openai` | `…-genai-openai` | inference, streaming, tool_calling, structured_output, multimodal, embeddings |\n-| `openai/opentelemetry-langchain-openai` | `…-genai-langchain` | the same, through `langchain-openai` |\n-| `anthropic/opentelemetry-anthropic` | `…-genai-anthropic` | inference, streaming, tool_calling, automatic_tool_calling, multimodal |\n-| `anthropic/opentelemetry-langchain-anthropic` | `…-genai-langchain` | the same, through `langchain-anthropic`, minus automatic_tool_calling: langchain binds tools but does not run them outside an agent |\n-| `google-genai/opentelemetry-google-genai` | `…-google-genai` | every client class, plus automatic_tool_calling |\n-| `bedrock/opentelemetry-botocore` | `…-botocore` | Bedrock Converse: inference, streaming, tool_calling |\n-| `langchain/opentelemetry-langchain` | `…-genai-langchain` | workflow, invoke_agent, automatic_tool_calling |\n-| `openai-agents/opentelemetry-openai-agents` | `…-genai-openai-agents` | invoke_agent, automatic_tool_calling. The Agents SDK wraps every run in a trace, so the workflow span comes with each of those rather than from a scenario of its own |\n+| `anthropic` | inference, streaming, tool_calling, automatic_tool_calling, multimodal | `opentelemetry-anthropic`, `opentelemetry-langchain-anthropic` |",
+      "id": "PRRT_kwDOTuzK5c6b6KM8",
+      "opened": "2026-08-25T01:36:51Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "1e1a52df2bf374287ebcc1331e4197992f159775",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/87#discussion_r3848873824"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This permits enabling instrumentation from a scenario program, which conflicts with the canonical rule in `AGENTS.md:28-30` that programs never name instrumentation and instrumentation remains zero-code. It would also make implementation-specific source responsible for setup rather than keeping comparable exchanges instrumentation-neutral. Activation must remain outside the scenario source.",
+      "created": "2026-08-25T01:36:51Z",
+      "hunk": "@@ -102,27 +102,46 @@ and the gap lands in `data.json`.\n \n ## What is covered\n \n-| Directory | Instrumentation | Classes |\n+Each row is one library and the classes its programs exercise; the\n+implementations beside them all run those same programs, which is what makes\n+their `data.json` files comparable.\n+\n+| Library | Classes | Implementations |\n | --- | --- | --- |\n-| `openai/opentelemetry-openai` | `…-genai-openai` | inference, streaming, tool_calling, structured_output, multimodal, embeddings |\n-| `openai/opentelemetry-langchain-openai` | `…-genai-langchain` | the same, through `langchain-openai` |\n-| `anthropic/opentelemetry-anthropic` | `…-genai-anthropic` | inference, streaming, tool_calling, automatic_tool_calling, multimodal |\n-| `anthropic/opentelemetry-langchain-anthropic` | `…-genai-langchain` | the same, through `langchain-anthropic`, minus automatic_tool_calling: langchain binds tools but does not run them outside an agent |\n-| `google-genai/opentelemetry-google-genai` | `…-google-genai` | every client class, plus automatic_tool_calling |\n-| `bedrock/opentelemetry-botocore` | `…-botocore` | Bedrock Converse: inference, streaming, tool_calling |\n-| `langchain/opentelemetry-langchain` | `…-genai-langchain` | workflow, invoke_agent, automatic_tool_calling |\n-| `openai-agents/opentelemetry-openai-agents` | `…-genai-openai-agents` | invoke_agent, automatic_tool_calling. The Agents SDK wraps every run in a trace, so the workflow span comes with each of those rather than from a scenario of its own |\n+| `anthropic` | inference, streaming, tool_calling, automatic_tool_calling, multimodal | `opentelemetry-anthropic`, `opentelemetry-langchain-anthropic` |\n+| `bedrock` | Bedrock Converse: inference, streaming, tool_calling | `opentelemetry-botocore` |\n+| `google-genai` | every client class, plus automatic_tool_calling | `opentelemetry-google-genai` |\n+| `langchain` | workflow, invoke_agent, automatic_tool_calling | `opentelemetry-langchain` |\n+| `openai` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `opentelemetry-openai`, `opentelemetry-langchain-openai`, `openinference`, `openllmetry` |\n+| `openai-agents` | invoke_agent, automatic_tool_calling | `opentelemetry-openai-agents` |\n \n The conventions also cover retrieval, memory and planning. No instrumentation\n here emits them, so there is no class for them yet.\n \n Each class is one file, and each file gets its own weaver report.\n \n+## Third-party and native instrumentations\n+\n+An implementation directory is named after whatever produced the telemetry:\n+\n+- `opentelemetry-…` for an OpenTelemetry instrumentation, after its package\n+  with the `instrumentation` and `genai` parts dropped.\n+- `openinference` or `openllmetry` for a third-party suite, after the project\n+  rather than its package.\n+- `native` for the library itself.\n+\n+Where an implementation has to be turned on from the program rather than from\n+the environment, that program cannot be shared with one that instruments the\n+same library from the outside, so it lives in the implementation's own\n+`scenarios/` rather than in the library's.",
+      "id": "PRRT_kwDOTuzK5c6b6KNB",
+      "opened": "2026-08-25T01:36:51Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "1e1a52df2bf374287ebcc1331e4197992f159775",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/87#discussion_r3848873835"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This rule turns `opentelemetry-instrumentation-genai-langchain` into `opentelemetry-langchain`, but that is the langchain library's own directory; the ones for this instrumentation are `opentelemetry-langchain-openai` and `opentelemetry-langchain-anthropic`. AGENTS.md carries the missing clause, and this section is where its link lands.\n\n```suggestion\n- `opentelemetry-…` for an OpenTelemetry instrumentation, after its package\n  with the `instrumentation` and `genai` parts dropped, plus the provider when\n  it is reached through another package: `opentelemetry-langchain-openai`.\n```",
+      "created": "2026-08-25T03:02:58Z",
+      "hunk": "@@ -102,29 +102,45 @@ and the gap lands in `data.json`.\n \n ## What is covered\n \n-| Directory | Instrumentation | Classes |\n+Each row is one library and the classes it covers. Implementations that call\n+the same client package run the same programs; one that reaches the library\n+through a different package runs its own, making the same exchanges. Either\n+way the `data.json` files compare. Where an implementation covers fewer\n+classes than the row, the row says so.\n+\n+| Library | Classes | Implementations |\n | --- | --- | --- |\n-| `openai/opentelemetry-openai` | `…-genai-openai` | inference, streaming, tool_calling, structured_output, multimodal, embeddings |\n-| `openai/opentelemetry-langchain-openai` | `…-genai-langchain` | the same, through `langchain-openai` |\n-| `anthropic/opentelemetry-anthropic` | `…-genai-anthropic` | inference, streaming, tool_calling, automatic_tool_calling, multimodal |\n-| `anthropic/opentelemetry-langchain-anthropic` | `…-genai-langchain` | the same, through `langchain-anthropic`, minus automatic_tool_calling: langchain binds tools but does not run them outside an agent |\n-| `google-genai/opentelemetry-google-genai` | `…-google-genai` | every client class, plus automatic_tool_calling |\n-| `bedrock/opentelemetry-botocore` | `…-botocore` | Bedrock Converse: inference, streaming, tool_calling |\n-| `langchain/opentelemetry-langchain` | `…-genai-langchain` | workflow, invoke_agent, automatic_tool_calling |\n-| `openai-agents/opentelemetry-openai-agents` | `…-genai-openai-agents` | invoke_agent, automatic_tool_calling. The Agents SDK wraps every run in a trace, so the workflow span comes with each of those rather than from a scenario of its own |\n-| `agno/opentelemetry-agno` | `…-genai-agno` | invoke_agent, automatic_tool_calling |\n-| `qwen-agent/opentelemetry-qwen-agent` | `…-genai-qwen-agent` | invoke_agent, automatic_tool_calling. Assistant runs its Memory sub-agent, so each run carries a second agent span |\n+| `agno` | invoke_agent, automatic_tool_calling | `opentelemetry-agno` |\n+| `anthropic` | inference, streaming, tool_calling, automatic_tool_calling, multimodal | `opentelemetry-anthropic`, `opentelemetry-langchain-anthropic`<br>no automatic_tool_calling in `opentelemetry-langchain-anthropic`: langchain binds tools but does not run them outside an agent |\n+| `bedrock` | Bedrock Converse: inference, streaming, tool_calling | `opentelemetry-botocore` |\n+| `google-genai` | every client class, plus automatic_tool_calling | `opentelemetry-google-genai` |\n+| `langchain` | workflow, invoke_agent, automatic_tool_calling | `opentelemetry-langchain` |\n+| `openai` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `opentelemetry-openai`, `opentelemetry-langchain-openai`, `openinference`, `openllmetry` |\n+| `openai-agents` | invoke_agent, automatic_tool_calling. The Agents SDK wraps every run in a trace, so the workflow span comes with each of those rather than from a scenario of its own | `opentelemetry-openai-agents` |\n+| `qwen-agent` | invoke_agent, automatic_tool_calling. Assistant runs its Memory sub-agent, so each run carries a second agent span | `opentelemetry-qwen-agent` |\n \n The conventions also cover retrieval, memory and planning. No instrumentation\n here emits them, so there is no class for them yet.\n \n Each class is one file, and each file gets its own weaver report.\n \n+## Third-party and native instrumentations\n+\n+An implementation directory is named after whatever produced the telemetry:\n+\n+- `opentelemetry-…` for an OpenTelemetry instrumentation, after its package\n+  with the `instrumentation` and `genai` parts dropped.",
+      "id": "PRRT_kwDOTuzK5c6b7DgR",
+      "opened": "2026-08-25T03:10:09Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "cdbd1cf4dbc29cac14bf61750bbd8d38f2db725c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/87#discussion_r3849232777"
+    }
+  ]
+}

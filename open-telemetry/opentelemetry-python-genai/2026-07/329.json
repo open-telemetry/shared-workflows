@@ -1,0 +1,115 @@
+{
+  "head": "3a719ef5ef03c92104296b99c428f8fa0f5b3ed3",
+  "merge": "4e521b4ad5a7ecbf80bcdafbd9ffdbc684cc3f26",
+  "merged": "2026-07-30T02:46:55Z",
+  "missing_roots": 0,
+  "number": 329,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Wording here is internally inconsistent: “native instrumentation” (per the linked OTel glossary) implies using the OpenTelemetry API, but the examples that follow describe telemetry/instrumentation that is *not* based on the OTel API. Reword to avoid implying that “native instrumentation” can be non-OTel.",
+      "created": "2026-07-28T20:56:03Z",
+      "hunk": "@@ -144,6 +144,56 @@ you start one of these tasks:\n \n Please contribute back anything you learn while using the skills that could help improve them!\n \n+## When to add an instrumentation here\n+\n+We encourage libraries to emit GenAI telemetry themselves, following the\n+[GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai),\n+either with [native instrumentation](https://opentelemetry.io/docs/specs/otel/glossary/#natively-instrumented)\n+(using the OpenTelemetry API directly) or through a plugin maintained by the\n+same authors. Telemetry is best owned and maintained closest to the library it\n+describes; re-instrumenting such a library here duplicates ownership and\n+fragments the ecosystem.\n+\n+Some existing native instrumentations are not compatible with OpenTelemetry — for\n+example, they may use tracing primitives not based on the OpenTelemetry API,\n+export via OTLP only without interacting with OpenTelemetry context and SDK\n+configuration, or not follow the GenAI semantic conventions.",
+      "id": "PRRT_kwDOSbspP86Ui-Qr",
+      "opened": "2026-07-28T20:56:04Z",
+      "path": "CONTRIBUTING.md",
+      "replies": [],
+      "reviewed": "4dbaab3358842523743ff904b69324be2027fa26",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/329#discussion_r3669124834"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This heuristic is likely too strong: a dependency on `opentelemetry-api` can also mean context propagation helpers or optional integration points, not necessarily that the library “ships native instrumentation”. Tightening the wording will reduce false positives while keeping the intent.",
+      "created": "2026-07-28T20:56:04Z",
+      "hunk": "@@ -58,6 +58,26 @@ own `pyproject.toml` and `tests/`. The util package follows the equivalent layou\n - For OpenTelemetry-owned beta/pre-release packages (e.g., `opentelemetry-instrumentation`, `opentelemetry-semantic-conventions`, `opentelemetry-util-genai`), use `>=` specifiers and pin the upper boundary to the next major version (e.g., `>= 0.64b0, <1` for `0.x` packages, or `>= 1.0b0, <2` for `1.x` packages) rather than using `~=`.\n \n \n+## Before adding a new instrumentation\n+\n+Before scaffolding a new instrumentation package, check whether the target library already\n+provides its own GenAI telemetry, and get the user's acknowledgement before proceeding. Follow the\n+[When to add an instrumentation here](CONTRIBUTING.md#when-to-add-an-instrumentation-here) policy.\n+\n+- **Check the library's dependencies.** A dependency on `opentelemetry-api` (or other\n+  `opentelemetry-*` packages) in the library's metadata (`pyproject.toml` / `setup.py` /\n+  `setup.cfg` / lockfile) usually means it ships native instrumentation — research it before\n+  writing any code.",
+      "id": "PRRT_kwDOSbspP86Ui-RB",
+      "opened": "2026-07-28T20:56:04Z",
+      "path": "AGENTS.md",
+      "replies": [],
+      "reviewed": "4dbaab3358842523743ff904b69324be2027fa26",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/329#discussion_r3669124872"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This guidance would be more accurate if it distinguished runtime deps from dev/test deps: many repos include `opentelemetry-*` as development dependencies for examples/tests without shipping native instrumentation. Consider clarifying “runtime dependency” / “install requirements” to reduce noise for reviewers.",
+      "created": "2026-07-28T20:56:04Z",
+      "hunk": "@@ -14,6 +14,13 @@ For new instrumentations, consult upstream library docs and judge:\n - Is the library used widely enough to warrant a package in this repo?\n - Does it avoid unbounded in-memory accumulation or other side-effects?\n \n+For a new instrumentation, check whether the instrumented library depends on `opentelemetry-api`\n+(or other `opentelemetry-*` packages) in its `pyproject.toml` / lockfile, or documents a\n+first-party OpenTelemetry plugin. If so, flag the PR and link to the\n+[When to add an instrumentation here](../../CONTRIBUTING.md#when-to-add-an-instrumentation-here)",
+      "id": "PRRT_kwDOSbspP86Ui-RZ",
+      "opened": "2026-07-28T20:56:04Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [],
+      "reviewed": "4dbaab3358842523743ff904b69324be2027fa26",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/329#discussion_r3669124909"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "TODO: add a caveat that there could be additional criterias like popularity or active maintanence",
+      "created": "2026-07-28T20:56:07Z",
+      "hunk": "@@ -144,6 +144,56 @@ you start one of these tasks:\n \n Please contribute back anything you learn while using the skills that could help improve them!\n \n+## When to add an instrumentation here\n+\n+We encourage libraries to emit GenAI telemetry themselves, following the\n+[GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai),\n+either with [native instrumentation](https://opentelemetry.io/docs/specs/otel/glossary/#natively-instrumented)\n+(using the OpenTelemetry API directly) or through a plugin maintained by the\n+same authors. Telemetry is best owned and maintained closest to the library it\n+describes; re-instrumenting such a library here duplicates ownership and\n+fragments the ecosystem.\n+\n+Some existing native instrumentations are not compatible with OpenTelemetry — for\n+example, they may use tracing primitives not based on the OpenTelemetry API,\n+export via OTLP only without interacting with OpenTelemetry context and SDK\n+configuration, or not follow the GenAI semantic conventions.\n+\n+Before adding a new instrumentation, check whether the target library is already\n+natively instrumented or has a first-party plugin, and how closely it follows the\n+GenAI semantic conventions:\n+\n+- **None exists, or it isn't based on the OpenTelemetry API** (alternative\n+  tracing primitives, OTLP-only, no OTel context) — proceed with instrumentation\n+  in this repo.\n+- **It exists and is reasonably compliant** — don't re-instrument here. Record\n+  any gaps and open an issue in the corresponding repo, and work with the authors\n+  to contribute fixes there if they're open to it.\n+- **It's based on the OpenTelemetry API but doesn't follow the GenAI semantic\n+  conventions** — record the gaps and open an issue in the corresponding repo.\n+  If the authors are open to contributions, help align it there. If not, note in\n+  the issue that we intend to host an alternative instrumentation in\n+  OpenTelemetry, that we're happy to collaborate, and that we'll be happy to\n+  retire ours once it aligns.\n+\n+```mermaid\n+flowchart TD\n+    A[Want to instrument a library] --> B{Natively instrumented<br/>or has a first-party plugin?}\n+    B -->|No| P[Instrument in this repo]",
+      "id": "PRRT_kwDOSbspP86Ui-Uj",
+      "opened": "2026-07-28T20:56:07Z",
+      "path": "CONTRIBUTING.md",
+      "replies": [],
+      "reviewed": "4dbaab3358842523743ff904b69324be2027fa26",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/329#discussion_r3669125204"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-07-28T21:10:34Z",
+      "hunk": "@@ -144,6 +144,62 @@ you start one of these tasks:\n \n Please contribute back anything you learn while using the skills that could help improve them!\n \n+## When to add an instrumentation here\n+\n+> [!IMPORTANT]\n+> We encourage libraries to emit GenAI telemetry themselves, following the\n+> [GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai),\n+> either with [native instrumentation](https://opentelemetry.io/docs/specs/otel/glossary/#natively-instrumented)\n+> (using the OpenTelemetry API directly) or through a first-party plugin. \n+",
+      "id": "PRRT_kwDOSbspP86UjM2f",
+      "opened": "2026-07-28T21:10:34Z",
+      "path": "CONTRIBUTING.md",
+      "replies": [],
+      "reviewed": "dcce68ef3c2ddd365846ce88b37856ef08bf2921",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/329#discussion_r3669210233"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "\"natively instrumented or has a first-party plugin\" already implies the OpenTelemetry API (that's the glossary definition linked in the callout), but the first bullet right below branches on it *not* being based on the OTel API. Suggest splitting the two questions so the bullets and the flowchart line up:\n\n```suggestion\nBefore adding a new instrumentation, check whether the target library already\nemits first-party GenAI telemetry (built in, or through a first-party plugin),\nwhether it's based on the OpenTelemetry API, and how closely it follows the\nGenAI semantic conventions:\n```",
+      "created": "2026-07-29T21:35:50Z",
+      "hunk": "@@ -144,6 +144,61 @@ you start one of these tasks:\n \n Please contribute back anything you learn while using the skills that could help improve them!\n \n+## When to add an instrumentation here\n+\n+> [!IMPORTANT]\n+> We encourage libraries to emit GenAI telemetry themselves, following the\n+> [GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai),\n+> either with [native instrumentation](https://opentelemetry.io/docs/specs/otel/glossary/#natively-instrumented)\n+> (using the OpenTelemetry API directly) or through a first-party plugin. \n+> Telemetry is best owned and maintained closest to the library it\n+> describes; When native instrumentation is available, re-instrumenting here \n+> fragments the ecosystem.\n+\n+Some existing first-party telemetry is not compatible with OpenTelemetry - for\n+example, it may use tracing primitives not based on the OpenTelemetry API,\n+export via OTLP only without interacting with OpenTelemetry context and SDK\n+configuration, or not follow the GenAI semantic conventions.\n+\n+Before adding a new instrumentation, check whether the target library is already\n+natively instrumented or has a first-party plugin, and how closely it follows the\n+GenAI semantic conventions:",
+      "id": "PRRT_kwDOSbspP86U6cVe",
+      "opened": "2026-07-29T21:41:14Z",
+      "path": "CONTRIBUTING.md",
+      "replies": [],
+      "reviewed": "f4861a5e66dff494ae2af01ca280e04c7d47adf7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/329#discussion_r3678190192"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Same in the flowchart: reaching this node via \"natively instrumented\" means it's OTel-API based by definition, so the `No` branch out of the next node is unreachable for that half. Using \"first-party telemetry\" (the umbrella term from the paragraph above) makes both branches meaningful:\n\n```suggestion\n    A[Want to instrument a library] --> B{Has first-party<br/>GenAI telemetry?}\n```",
+      "created": "2026-07-29T21:35:50Z",
+      "hunk": "@@ -144,6 +144,61 @@ you start one of these tasks:\n \n Please contribute back anything you learn while using the skills that could help improve them!\n \n+## When to add an instrumentation here\n+\n+> [!IMPORTANT]\n+> We encourage libraries to emit GenAI telemetry themselves, following the\n+> [GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai),\n+> either with [native instrumentation](https://opentelemetry.io/docs/specs/otel/glossary/#natively-instrumented)\n+> (using the OpenTelemetry API directly) or through a first-party plugin. \n+> Telemetry is best owned and maintained closest to the library it\n+> describes; When native instrumentation is available, re-instrumenting here \n+> fragments the ecosystem.\n+\n+Some existing first-party telemetry is not compatible with OpenTelemetry - for\n+example, it may use tracing primitives not based on the OpenTelemetry API,\n+export via OTLP only without interacting with OpenTelemetry context and SDK\n+configuration, or not follow the GenAI semantic conventions.\n+\n+Before adding a new instrumentation, check whether the target library is already\n+natively instrumented or has a first-party plugin, and how closely it follows the\n+GenAI semantic conventions:\n+\n+- **None exists, or it isn't based on the OpenTelemetry API** (alternative\n+  tracing primitives, OTLP-only, no OTel context) - proceed with instrumentation\n+  in this repo.\n+- **It exists and is reasonably compliant** - don't re-instrument here. Record\n+  any gaps and open an issue in the corresponding repo, and work with the authors\n+  to contribute fixes there if they're open to it.\n+- **It's based on the OpenTelemetry API but doesn't follow the GenAI semantic\n+  conventions** - record the gaps and open an issue in the corresponding repo.\n+  If the authors are open to contributions, help align it there. If not, note in\n+  the issue that we intend to host an alternative instrumentation in\n+  OpenTelemetry, that we're happy to collaborate, and that we'll be happy to\n+  retire ours once it aligns.\n+\n+```mermaid\n+flowchart TD\n+    A[Want to instrument a library] --> B{Natively instrumented<br/>or has a first-party plugin?}",
+      "id": "PRRT_kwDOSbspP86U6cVj",
+      "opened": "2026-07-29T21:41:14Z",
+      "path": "CONTRIBUTING.md",
+      "replies": [],
+      "reviewed": "f4861a5e66dff494ae2af01ca280e04c7d47adf7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/329#discussion_r3678190198"
+    }
+  ]
+}

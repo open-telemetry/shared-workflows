@@ -1,0 +1,31 @@
+{
+  "head": "acf26a316f65be5cd3f6a8ef79391d5acf00441a",
+  "merge": "0ab09855439d041d7a2460c0ecdb5f089d7c0914",
+  "merged": "2026-08-25T15:56:19Z",
+  "missing_roots": 0,
+  "number": 473,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`MATRIX_TOX_ENV` is expanded unquoted in the shell command. If the matrix value ever contains shell metacharacters (e.g., `;`), this can become command injection and undermines the intent of moving `${{ ... }}` expressions into `env:` for zizmor hardening. Quote the variable so it is always treated as a single argument.",
+      "created": "2026-08-25T05:14:23Z",
+      "hunk": "@@ -68,4 +70,6 @@ jobs:\n           weaver --version\n \n       - name: Run tests\n-        run: uvx --with tox-uv tox -e ${{ matrix.tox_env }} -- -ra\n+        run: uvx --with tox-uv tox -e ${MATRIX_TOX_ENV} -- -ra\n+        env:\n+          MATRIX_TOX_ENV: ${{ matrix.tox_env }}",
+      "id": "PRRT_kwDOSbspP86b8Y3R",
+      "opened": "2026-08-25T05:14:23Z",
+      "path": ".github/workflows/test.yml",
+      "replies": [
+        {
+          "at": "2026-08-25T13:30:58Z",
+          "body": "Addressed by quoting MATRIX_TOX_ENV in the tox invocation, so the matrix value is passed as a single shell argument.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/473#discussion_r3853474996"
+        }
+      ],
+      "reviewed": "7d7daa16b023e6105f2c0ca230c7445752a16762",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/473#discussion_r3849759313"
+    }
+  ]
+}

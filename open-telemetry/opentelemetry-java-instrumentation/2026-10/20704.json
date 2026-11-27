@@ -1,0 +1,214 @@
+{
+  "head": "deffbe6827101e4fb54ca9ae743cdf72718f3113",
+  "merge": "520e0ca6ac1850a3777058440e38ffd29ca32ea1",
+  "merged": "2026-10-20T18:51:41Z",
+  "missing_roots": 0,
+  "number": 20704,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Reduce the testing added by this PR to basic integration coverage of terminal Couchbase error classification. This is a test-scope reduction, not a request to change production behavior.\n\nKeep CouchbaseErrorsTest.upsertOutcome() with both existing parameter rows. The oversized upsert must exercise the real SDK and Couchbase server, fail with ValueTooLargeException, and emit an ERROR span with error.type equal to that exception's fully qualified class name. The small-value upsert is the simple successful control. Keep the SDK 3.6 version360Test execution because the baseline SDK lacks the required RequestSpan exception-recording API. Couchbase remains span-only; do not add metrics coverage.\n\nRemove recoveredExceptionDoesNotReportErrorType() and terminalFailureReplacesIntermediateException(), which manually drive RequestSpan instead of exercising database operations. Retain the inexpensive error.type assertions added to the pre-existing CouchbaseClient32Test and CouchbaseExceptionSignalTest integration tests. Preserve existing tests, configuration/experimental coverage, and dependency-version coverage.\n\nPreserve exact emitted-telemetry assertions and the production fix. Remove imports, helpers, dependencies, or wiring made unused by these deletions. Use the repository's narrow formatting and relevant validation commands, without adding test permutations or unrelated fixes. Keep this deliverable scoped to this existing PR and preserve its draft/ready state. Update the PR description only where the reduced coverage makes it stale, while preserving its repository template. Report exactly what was retained and removed.",
+      "created": "2026-10-19T03:33:43Z",
+      "hunk": "@@ -0,0 +1,188 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_2;\n+\n+import static io.opentelemetry.api.common.AttributeKey.longKey;\n+import static io.opentelemetry.api.common.AttributeKey.stringKey;\n+import static io.opentelemetry.api.trace.SpanKind.CLIENT;\n+import static io.opentelemetry.api.trace.SpanKind.INTERNAL;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.DbAttributes.DB_COLLECTION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static org.assertj.core.api.Assertions.assertThatThrownBy;\n+\n+import com.couchbase.client.core.cnc.RequestSpan;\n+import com.couchbase.client.core.error.ValueTooLargeException;\n+import com.couchbase.client.core.util.ConnectionString;\n+import com.couchbase.client.java.Bucket;\n+import com.couchbase.client.java.Cluster;\n+import com.couchbase.client.java.Collection;\n+import com.couchbase.client.java.codec.RawBinaryTranscoder;\n+import com.couchbase.client.java.kv.UpsertOptions;\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.testing.assertj.SpanDataAssert;\n+import io.opentelemetry.sdk.trace.data.StatusData;\n+import java.time.Duration;\n+import java.util.concurrent.CompletionException;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.EnumSource;\n+import org.junit.jupiter.params.provider.ValueSource;\n+import org.testcontainers.couchbase.BucketDefinition;\n+import org.testcontainers.couchbase.CouchbaseContainer;\n+import org.testcontainers.couchbase.CouchbaseService;\n+\n+class CouchbaseErrorsTest {\n+  private static final boolean EXPERIMENTAL_TELEMETRY =\n+      Boolean.getBoolean(\"otel.instrumentation.couchbase.emit-experimental-telemetry\");\n+\n+  @RegisterExtension\n+  private static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension\n+  private static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  private static Cluster cluster;\n+  private static Collection collection;\n+  private static String seedAddress;\n+  private static int seedPort;\n+\n+  @BeforeAll\n+  static void setup() {\n+    CouchbaseContainer couchbase =\n+        new CouchbaseContainer(\"couchbase/server:7.6.0\")\n+            .withExposedPorts(8091)\n+            .withEnabledServices(CouchbaseService.KV)\n+            .withBucket(new BucketDefinition(\"test\"))\n+            .withStartupTimeout(Duration.ofMinutes(2));\n+    couchbase.start();\n+    cleanup.deferAfterAll(couchbase::stop);\n+    String connectionString = couchbase.getConnectionString();\n+    ConnectionString.UnresolvedSocket seed =\n+        ConnectionString.create(connectionString).hosts().get(0);\n+    seedAddress = seed.host();\n+    seedPort = seed.port();\n+    cluster = Cluster.connect(connectionString, couchbase.getUsername(), couchbase.getPassword());\n+    cleanup.deferAfterAll(cluster::disconnect);\n+    Bucket bucket = cluster.bucket(\"test\");\n+    collection = bucket.defaultCollection();\n+    bucket.waitUntilReady(Duration.ofSeconds(30));\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  void upsertOutcome(boolean oversized) {",
+      "id": "PRRT_kwDODJKVX86txvHk",
+      "opened": "2026-10-19T03:33:43Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/version334Test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseErrorsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T03:43:34Z",
+          "body": "Retained `upsertOutcome()` with both rows: the real SDK 3.6/server oversized upsert expecting `ValueTooLargeException` and exact `error.type`, plus the small successful control. Kept SDK 3.6 default/experimental execution and existing integration `error.type` assertions. Removed `recoveredExceptionDoesNotReportErrorType()` and `terminalFailureReplacesIntermediateException()` and their unused imports. Commit: `75b746c3`. The PR body still says “successful and recovered controls”; I could not edit PR metadata with the available tools.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4310138463"
+        }
+      ],
+      "reviewed": "ff28ac76d58b8dacb466fa722c92381f989d9e35",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4310101664"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot In CouchbaseRequestTracer.AgentRequestSpan.end(), replace the comment `// An exception can be recovered; the SDK reports the logical outcome separately.` with this clearer wording:\n\n```java\n// A recorded exception does not necessarily mean the operation failed.\n// Only set error.type if the SDK reports a failed operation.\n```\n\nThis is a comment-only clarification. Keep all executable code, tests, and behavior unchanged. Limit this assignment to this existing PR and preserve its draft/ready state. The requested outcome is exactly the two-line comment above immediately before the existing statusCode == RequestSpan.StatusCode.ERROR condition.",
+      "created": "2026-10-19T04:36:08Z",
+      "hunk": "@@ -156,6 +165,10 @@ public void end() {\n       if (spanName.isDatabaseRequest()) {\n         delegate.updateName(spanName.spanName());\n       }\n+      // An exception can be recovered; the SDK reports the logical outcome separately.",
+      "id": "PRRT_kwDODJKVX86tyW1n",
+      "opened": "2026-10-19T04:36:08Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-10-19T04:38:16Z",
+          "body": "Updated the comment exactly as requested; executable code and tests are unchanged. Commit: `560da52b`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4310369794"
+        }
+      ],
+      "reviewed": "75b746c33bf1a856da50367ee2cd2f6b193cfc4a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4310361060"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Align this PR's Couchbase error regression coverage with the repository's baseline-plus-version-specific test pattern. Keep this assignment scoped to existing PR #20704 and preserve its draft/ready state.\n\nRequestSpan.recordException first appears in Couchbase Java SDK 3.3.4 through core-io 2.3.4, not SDK 3.6.0. It is present in https://github.com/couchbase/couchbase-jvm-clients/blob/java-client-3.3.4/core-io/src/main/java/com/couchbase/client/core/cnc/RequestSpan.java and absent in the 3.3.3 tag. First confirm that the existing real-SDK/server oversized-upsert regression produces the expected terminal ValueTooLargeException on SDK 3.3.4. If it does, rename version360Test to version334Test, move CouchbaseErrorsTest to src/version334Test, and use implementation(\"com.couchbase.client:java-client:${baseVersion(\"3.3.4\").orLatest()}\") inside that suite. This follows the existing Mongo version37Test and Reactor version34Test pattern and exercises the minimum relevant version in normal runs and the latest version in latest-dependency runs. If the actual oversized-upsert behavior requires a later SDK, retain the appropriate minimum suite/version and explain that concrete limitation instead of claiming the recordException API requires 3.6. Adapt test-only API usage to the selected minimum version where necessary.\n\nKeep the baseline library dependency at 3.2.0 and baseline-compatible tests in src/test. Retain the existing testLatestDeps() conditional error.type expectations in CouchbaseClient32Test and the latest-dependencies guard in CouchbaseExceptionSignalTest. Do not upgrade the default runtime or remove baseline coverage.\n\nPreserve both existing upsertOutcome parameter rows, the real Couchbase server, and exact emitted-telemetry assertions. Keep a separate Experimental execution for the version-specific suite, wired into check. error.type must be identical with otel.instrumentation.couchbase.emit-experimental-telemetry off and on; only the extra Couchbase attributes and internal spans depend on that flag. Preserve the production error-classification fix and exception event/log behavior. Do not reintroduce manually driven RequestSpan tests, add test permutations, or make unrelated changes.\n\nRun the narrowest applicable spotlessApply before relevant validation. Verify the regression with the selected minimum SDK and latest dependencies, in default and experimental modes where feasible. Report any blocked validation explicitly. Update only stale or misleading PR metadata, preserving the repository template. Report the SDK version selected, what justified it, and the delivered changes.",
+      "created": "2026-10-19T04:52:23Z",
+      "hunk": "@@ -75,6 +77,19 @@ testing {\n         implementation(\"com.couchbase.client:java-client:3.4.4\")\n       }\n     }\n+\n+    register<JvmTestSuite>(\"version360Test\") {",
+      "id": "PRRT_kwDODJKVX86tyhaa",
+      "opened": "2026-10-19T04:52:23Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-19T05:09:36Z",
+          "body": "Confirmed SDK 3.3.4 against the real Couchbase server: the oversized upsert throws `ValueTooLargeException` and emits its fully qualified `error.type` in both default and experimental runs; the small upsert succeeds. Renamed the suite/source set to `version334Test`, used `baseVersion(\"3.3.4\").orLatest()`, and retained both executions. Minimum SDK 3.3.4 and latest SDK 3.13.0 runs passed in default and experimental modes. Commit: `06355602`. The PR body still says SDK 3.6; the available PR metadata tool is read-only, so I could not update that text.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4310506074"
+        }
+      ],
+      "reviewed": "560da52b10e0433ebf7de92fd154f46c8b664fe8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4310430554"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the new Couchbase error regression in existing PR #20704 to default-mode coverage only. This user-directed change supersedes the earlier request to retain the version-specific suite's Experimental execution. error.type is independent of otel.instrumentation.couchbase.emit-experimental-telemetry, and the existing testExperimental task already exercises the updated error assertions.\n\nIn instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts, remove the executions { register(\"Experimental\") { ... } } block from version334Test and remove the io.opentelemetry.instrumentation.gradle.executions import if it becomes unused. Keep version334Test, its baseVersion(\"3.3.4\").orLatest() dependency, its Testcontainers dependency, and its check wiring. Keep the baseline SDK 3.2 runtime and the existing testExperimental and exception-signal tasks unchanged.\n\nIn instrumentation/couchbase/couchbase-3.2/javaagent/src/version334Test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseErrorsTest.java, remove the EXPERIMENTAL_TELEMETRY flag and experimental-only branches and assertions, along with imports made unused. Assert exactly the default-mode operation span and its supported attributes. Preserve both upsertOutcome parameter rows, the real SDK/server oversized-upsert ValueTooLargeException failure with ERROR status and its fully qualified error.type, the successful small-upsert control with no error.type, and exact emitted-telemetry assertions.\n\nDo not change production code, exception event/log behavior, existing src/test error.type assertions or version guards, or experimental coverage outside this new version-specific regression. Do not add test permutations or manually driven RequestSpan tests. Run the narrowest applicable spotlessApply before relevant validation, and exercise version334Test with SDK 3.3.4 and latest dependencies where feasible; report blockers explicitly. Preserve this PR's draft/ready state and keep the work scoped to this existing PR. Update only stale or misleading description text, such as references to SDK 3.6 or the new regression running in both flag modes, preserving the repository template. Report what was delivered and any remaining blocker.",
+      "created": "2026-10-19T14:45:00Z",
+      "hunk": "@@ -75,6 +77,18 @@ testing {\n         implementation(\"com.couchbase.client:java-client:3.4.4\")\n       }\n     }\n+\n+    register<JvmTestSuite>(\"version334Test\") {\n+      dependencies {\n+        implementation(\"com.couchbase.client:java-client:${baseVersion(\"3.3.4\").orLatest()}\")\n+        implementation(\"org.testcontainers:testcontainers-couchbase\")\n+      }\n+      executions {\n+        register(\"Experimental\") {",
+      "id": "PRRT_kwDODJKVX86t-CdP",
+      "opened": "2026-10-19T14:45:00Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-19T14:54:25Z",
+          "body": "Removed the `version334Test` Experimental execution and its unused Gradle import, and simplified `CouchbaseErrorsTest` to default-mode exact span assertions while retaining both real SDK/server upsert cases. `version334Test` passed with SDK 3.3.4 and latest dependencies. Commit: `f52002fe`. The PR body still mentions SDK 3.6 and both flag modes; I can read but not edit PR metadata with the available tools.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4315303337"
+        }
+      ],
+      "reviewed": "06355602244c7544ea1388c0a9f6ceafa2ad1aff",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4315202187"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `testExperimental` uses only `sourceSets.test`, so it never runs the new `CouchbaseErrorsTest` suite. The oversized-upsert regression therefore does not verify classification with `otel.instrumentation.couchbase.emit-experimental-telemetry=true`, as intended by the PR. Add a flag-on variant using this suite's classes and runtime classpath, preserve its JVM settings, wire it into `check`, and adapt the trace assertions for experimental attributes and child spans.",
+      "created": "2026-10-19T15:07:08Z",
+      "hunk": "@@ -75,6 +75,13 @@ testing {\n         implementation(\"com.couchbase.client:java-client:3.4.4\")\n       }\n     }\n+\n+    register<JvmTestSuite>(\"version334Test\") {\n+      dependencies {\n+        implementation(\"com.couchbase.client:java-client:${baseVersion(\"3.3.4\").orLatest()}\")\n+        implementation(\"org.testcontainers:testcontainers-couchbase\")\n+      }",
+      "id": "PRRT_kwDODJKVX86t-nBb",
+      "opened": "2026-10-19T15:07:09Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-19T23:01:13Z",
+          "body": "Keeping the new version-specific upsert regression default-mode only. `error.type` is set through `setRawAttribute`, independently of the experimental telemetry flag, and the existing `testExperimental` task already exercises the updated error assertions. The additional flag-on execution would mainly duplicate coverage while adding container startup and SDK-specific child-span assertions. Corrected the PR description to say SDK 3.3.4/latest and default-mode upsert coverage, rather than promising both modes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4319732841"
+        }
+      ],
+      "reviewed": "f52002fe5b5f8345d35cc3c827902163c9f56be5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4315440589"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The small upsert succeeds without recording an exception, so it does not exercise this recovery guard. Removing the status check would still pass the added upsert assertions. Add a focused test through the agent-installed RequestTracer that records an exception, ends with a non-error status, and verifies that the exported span has no `error.type`. Include an ERROR-to-OK transition to protect the new status tracking.",
+      "created": "2026-10-19T15:07:09Z",
+      "hunk": "@@ -156,6 +165,11 @@ public void end() {\n       if (spanName.isDatabaseRequest()) {\n         delegate.updateName(spanName.spanName());\n       }\n+      // A recorded exception does not necessarily mean the operation failed.\n+      // Only set error.type if the SDK reports a failed operation.\n+      if (statusCode == RequestSpan.StatusCode.ERROR) {\n+        delegate.setRawAttribute(ERROR_TYPE.getKey(), errorType);",
+      "id": "PRRT_kwDODJKVX86t-nCd",
+      "opened": "2026-10-19T15:07:09Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseRequestTracer.java",
+      "replies": [
+        {
+          "at": "2026-10-19T23:01:22Z",
+          "body": "Added `recoveredExceptionDoesNotReportErrorType` in 16d3ab195b2f41d87416d90edcd61fc2106b64ff. It uses the agent-installed tracer from the existing cluster fixture and covers both a recorded exception ending with UNSET status and a recorded exception followed by ERROR then OK. Both cases assert the complete exported trace, the final status, the exception event, and absence of `error.type`. The tests live in `version334Test` because the baseline SDK 3.2.0 lacks `RequestSpan.recordException`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4319733820"
+        }
+      ],
+      "reviewed": "f52002fe5b5f8345d35cc3c827902163c9f56be5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4315440688"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Add focused regression coverage for recovered exceptions to existing PR #20704, updating this PR directly and preserving its draft/ready state. This user-directed request supersedes earlier instructions not to add manually driven RequestSpan tests, but does not reinstate the version-specific experimental execution that was deliberately removed.\n\nIn instrumentation/couchbase/couchbase-3.2/javaagent/src/version334Test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseErrorsTest.java, reuse the existing cluster fixture and obtain its agent-installed RequestTracer through cluster.core().coreResources().requestTracer(). Add two focused cases, sharing a parameterized test if that stays clearer: record an exception and end without setting an error status; and record an exception, set ERROR, then set OK before ending. Assert the complete exported trace, absence of error.type in both cases, and final UNSET and OK span statuses respectively. These tests must fail if the error.type status guard is removed or if the new tracking incorrectly retains ERROR after OK.\n\nUse the SDK 3.3.4+ source suite because RequestSpan.recordException is unavailable in the baseline SDK 3.2.0. Aim for roughly 30-50 additional Java lines for both cases by reusing the fixture, not by weakening assertions. Keep this a small test-only change with no production changes, duplicate fixtures, new Gradle tasks, new test permutations, or experimental variant of version334Test. Preserve both real-server upsertOutcome rows, their exact telemetry assertions, the baseline runtime, existing experimental and exception-signal coverage, and the baseVersion(\"3.3.4\").orLatest() dependency.\n\nRun the narrowest applicable spotlessApply before relevant targeted validation, exercising the recovery cases on SDK 3.3.4 and latest dependencies where feasible. Report any validation blocker explicitly. Do not edit the PR title or description; those are being updated separately. Do not post replies to reviewers or resolve review threads.",
+      "created": "2026-10-19T22:09:35Z",
+      "hunk": "@@ -0,0 +1,111 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v3_2;\n+\n+import static io.opentelemetry.api.trace.SpanKind.CLIENT;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.DbAttributes.DB_COLLECTION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_NAMESPACE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static org.assertj.core.api.Assertions.assertThatThrownBy;\n+\n+import com.couchbase.client.core.error.ValueTooLargeException;\n+import com.couchbase.client.core.util.ConnectionString;\n+import com.couchbase.client.java.Bucket;\n+import com.couchbase.client.java.Cluster;\n+import com.couchbase.client.java.Collection;\n+import com.couchbase.client.java.codec.RawBinaryTranscoder;\n+import com.couchbase.client.java.kv.UpsertOptions;\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.testing.assertj.SpanDataAssert;\n+import io.opentelemetry.sdk.trace.data.StatusData;\n+import java.time.Duration;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n+import org.testcontainers.couchbase.BucketDefinition;\n+import org.testcontainers.couchbase.CouchbaseContainer;\n+import org.testcontainers.couchbase.CouchbaseService;\n+\n+class CouchbaseErrorsTest {\n+  @RegisterExtension\n+  private static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension\n+  private static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  private static Cluster cluster;\n+  private static Collection collection;\n+  private static String seedAddress;\n+  private static int seedPort;\n+\n+  @BeforeAll\n+  static void setup() {\n+    CouchbaseContainer couchbase =\n+        new CouchbaseContainer(\"couchbase/server:7.6.0\")\n+            .withExposedPorts(8091)\n+            .withEnabledServices(CouchbaseService.KV)\n+            .withBucket(new BucketDefinition(\"test\"))\n+            .withStartupTimeout(Duration.ofMinutes(2));\n+    couchbase.start();\n+    cleanup.deferAfterAll(couchbase::stop);\n+    String connectionString = couchbase.getConnectionString();\n+    ConnectionString.UnresolvedSocket seed =\n+        ConnectionString.create(connectionString).hosts().get(0);\n+    seedAddress = seed.hostname();\n+    seedPort = seed.port();\n+    cluster = Cluster.connect(connectionString, couchbase.getUsername(), couchbase.getPassword());\n+    cleanup.deferAfterAll(cluster::disconnect);\n+    Bucket bucket = cluster.bucket(\"test\");\n+    collection = bucket.defaultCollection();\n+    bucket.waitUntilReady(Duration.ofSeconds(30));\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  void upsertOutcome(boolean oversized) {",
+      "id": "PRRT_kwDODJKVX86uH5bW",
+      "opened": "2026-10-19T22:09:35Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/version334Test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseErrorsTest.java",
+      "replies": [],
+      "reviewed": "f52002fe5b5f8345d35cc3c827902163c9f56be5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4319381682"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Other suites explicitly add the sources dirs. It is unclear why this particular version is being tested.",
+      "created": "2026-10-20T06:43:48Z",
+      "hunk": "@@ -75,6 +75,13 @@ testing {\n         implementation(\"com.couchbase.client:java-client:3.4.4\")\n       }\n     }\n+\n+    register<JvmTestSuite>(\"version334Test\") {",
+      "id": "PRRT_kwDODJKVX86uOYnZ",
+      "opened": "2026-10-20T06:43:48Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-20T18:00:30Z",
+          "body": "> Other suites explicitly add the sources dirs\n\nthose weren't needed\n\n> It is unclear why this particular version is being tested.\n\nadded comment\n\n28fca0f88f6b380d7206703659721cf152f75068\ndeffbe6827101e4fb54ca9ae743cdf72718f3113",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4328413283"
+        }
+      ],
+      "reviewed": "16d3ab195b2f41d87416d90edcd61fc2106b64ff",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4322178732"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the test-suite declarations in existing PR #20704. Update this PR directly and preserve its current ready-for-review state.\n\nIn instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts, remove only the redundant sources { java { setSrcDirs(listOf(\"src/version343Test/java\")) } } and sources { java { setSrcDirs(listOf(\"src/version344Test/java\")) } } blocks from version343Test and version344Test. Gradle already selects these conventional directories from the suite names. Leave version334Test using its conventional source directory without adding an explicit sources block. Immediately above register<JvmTestSuite>(\"version334Test\"), add this one-line comment: // RequestSpan.recordException is available in SDK 3.3.4+.\n\nKeep all suite names, source files, dependency versions and declarations, baseline SDK 3.2.0 coverage, version334Test's baseVersion(\"3.3.4\").orLatest() dependency, check wiring, existing experimental and exception-signal executions, tests, and production behavior unchanged. Preserve the existing comment explaining the SDK 3.4.3 Protostellar constructor boundary. Do not add test variants, move tests, change other modules, or edit PR metadata for this small cleanup. Do not reply to reviewers or resolve review threads.\n\nRun the narrowest applicable spotlessApply directly before relevant validation. Verify that all three version-specific suites still discover their existing sources and that check still includes them. Report any validation blocker explicitly.",
+      "created": "2026-10-20T17:11:21Z",
+      "hunk": "@@ -75,6 +75,13 @@ testing {\n         implementation(\"com.couchbase.client:java-client:3.4.4\")\n       }\n     }\n+\n+    register<JvmTestSuite>(\"version334Test\") {",
+      "id": "PRRT_kwDODJKVX86ub_OY",
+      "opened": "2026-10-20T17:11:21Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-20T17:19:53Z",
+          "body": "Removed the redundant source-directory blocks, added the SDK 3.3.4 API boundary comment, and verified all three version suites run and remain included in `check`. Commit: `28fca0f8`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4328004947"
+        }
+      ],
+      "reviewed": "16d3ab195b2f41d87416d90edcd61fc2106b64ff",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4327919611"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Clarify and consistently position the three version-suite comments in existing PR #20704. Update this PR directly and preserve its current ready-for-review state. This is a comment-only change in instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts.\n\nPlace each of these exact one-line comments immediately above its corresponding register<JvmTestSuite>(...) declaration, at the same indentation as that declaration:\n\nFor version343Test: // SDK 3.4.3 covers the ProtostellarRequest constructor taking Core as its first argument.\n\nFor version344Test: // SDK 3.4.4 covers the eight-argument ProtostellarRequest constructor taking CoreProtostellar.\n\nFor version334Test: // RequestSpan.recordException is available in SDK 3.3.4+.\n\nReplace and move the existing SDK 3.4.3 comment from inside its suite block to immediately above the declaration. Add the SDK 3.4.4 comment above that declaration. Retain the existing SDK 3.3.4 comment above its declaration without duplication. These constructor-specific suites intentionally remain pinned to SDK 3.4.3 and 3.4.4; do not add orLatest() to them. Preserve baseVersion(\"3.3.4\").orLatest() for version334Test.\n\nKeep all executable Gradle configuration, suite names and order, dependencies, source-directory conventions, check wiring, tests, production code, and PR metadata unchanged. Do not restore the redundant sources blocks removed by the preceding cleanup, add variants, move tests, or make unrelated changes. Do not reply to reviewers or resolve review threads.\n\nUse the narrowest applicable spotlessApply and confirm the resulting change is limited to the requested comments and placement. No behavior test runs are needed for this comment-only change. Report any blocker explicitly.",
+      "created": "2026-10-20T17:47:22Z",
+      "hunk": "@@ -55,26 +55,24 @@ testing {\n \n     register<JvmTestSuite>(\"version343Test\") {\n       // SDK 3.4.3 covers the legacy Core-based ProtostellarRequest constructor; newer SDKs use different constructors.\n-      sources {\n-        java {\n-          setSrcDirs(listOf(\"src/version343Test/java\"))\n-        }\n-      }\n       dependencies {\n         implementation(\"com.couchbase.client:java-client:3.4.3\")\n       }\n     }\n \n     register<JvmTestSuite>(\"version344Test\") {\n-      sources {\n-        java {\n-          setSrcDirs(listOf(\"src/version344Test/java\"))\n-        }\n-      }\n       dependencies {\n         implementation(\"com.couchbase.client:java-client:3.4.4\")\n       }\n     }\n+\n+    // RequestSpan.recordException is available in SDK 3.3.4+.",
+      "id": "PRRT_kwDODJKVX86uc1KS",
+      "opened": "2026-10-20T17:47:21Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-20T17:55:47Z",
+          "body": "Updated the three suite comments exactly as requested, with all executable configuration unchanged. `spotlessApply` succeeded. Commit: `COMMIT_HASH_PENDING`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4328360275"
+        }
+      ],
+      "reviewed": "28fca0f88f6b380d7206703659721cf152f75068",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20704#discussion_r4328277434"
+    }
+  ]
+}

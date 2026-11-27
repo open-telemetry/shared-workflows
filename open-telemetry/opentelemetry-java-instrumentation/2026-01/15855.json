@@ -1,0 +1,52 @@
+{
+  "head": "b6bcd8b5d9ef78e658a6c9984373ef107423fe45",
+  "merge": "e707b8d091c75d07da6eccc4ddb297cc034827e5",
+  "merged": "2026-01-17T02:46:00Z",
+  "missing_roots": 0,
+  "number": 15855,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Can we do this right now or should this be done along with switching to the stable semconv? Maybe\n`statementSanitizationEnabled && (!SemconvStability.emitStableDatabaseSemconv() || !parameterizedQuery)`? Or maybe we should introduce a flag for future defaults so we could implement the planned changes for 3.0 straight away but have them disabled for now.",
+      "created": "2026-01-13T08:14:50Z",
+      "hunk": "@@ -88,6 +88,8 @@ public void onStart(AttributesBuilder attributes, Context parentContext, REQUEST\n \n     Long batchSize = getter.getBatchSize(request);\n     boolean isBatch = batchSize != null && batchSize > 1;\n+    boolean parameterizedQuery = getter.isParameterizedQuery(request);\n+    boolean shouldSanitize = statementSanitizationEnabled && !parameterizedQuery;",
+      "id": "PRRT_kwDODJKVX85pH2eJ",
+      "opened": "2026-01-13T08:14:50Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-01-13T15:04:42Z",
+          "body": "oh, it's only used in the experimental semconv block, I moved it down inside that block make it more clear now",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15855#discussion_r2686824922"
+        }
+      ],
+      "reviewed": "1a86acdbb9c5f283b79e8a4bba55141796992845",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15855#discussion_r2685328430"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wondering whether it would be better to name this method based on what it is used for e.g. `IsQuerySanitizationNeeded`",
+      "created": "2026-01-16T12:23:14Z",
+      "hunk": "@@ -92,4 +92,17 @@ default Map<String, String> getQueryParameters(REQUEST request) {\n   default Map<String, String> getDbQueryParameters(REQUEST request) {\n     return getQueryParameters(request);\n   }\n+\n+  /**\n+   * Returns whether the query is parameterized. Prepared statements are always considered\n+   * parameterized even if no parameters are bound. By using a parameterized query the user is\n+   * giving a strong signal that any sensitive data will be passed as parameter values, and so the\n+   * query does not need to be sanitized. See <a\n+   * href=\"https://github.com/open-telemetry/semantic-conventions/blob/main/docs/db/database-spans.md#sanitization-of-dbquerytext\">sanitization\n+   * of db.query.text</a>.\n+   */\n+  // TODO: make this required to implement\n+  default boolean isParameterizedQuery(REQUEST request) {",
+      "id": "PRRT_kwDODJKVX85ptBYL",
+      "opened": "2026-01-16T12:23:13Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-01-17T02:45:55Z",
+          "body": "I think it makes sense, I'll send a follow-up PR to consider",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15855#discussion_r2700567590"
+        }
+      ],
+      "reviewed": "b6bcd8b5d9ef78e658a6c9984373ef107423fe45",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15855#discussion_r2698322530"
+    }
+  ]
+}

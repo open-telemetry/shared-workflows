@@ -1,0 +1,114 @@
+{
+  "head": "e84955efdfb18e37a3f337820fac95e3890cc7ac",
+  "merge": "441d0ea0fd74a5f51a51812c3ac493e9802ba08b",
+  "merged": "2026-06-10T07:42:01Z",
+  "missing_roots": 0,
+  "number": 18922,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`%ignorecase` means `yytext()` may preserve the caller’s original casing. In `DdlOperation.handleOperationTarget`, storing the raw `target` can lead to inconsistent `operationName` values (e.g., \"CREATE table\") and can break later equality checks against uppercase constants (e.g., the `TABLE` check that gates `recordCollectionName()`), causing `db.collection.name` to be missing for statements like `create table ...`.\n\nNormalizing the operation target once (e.g., to uppercase) keeps operation/collection extraction stable and makes the subsequent comparisons reliable.",
+      "created": "2026-06-07T04:10:05Z",
+      "hunk": "@@ -225,6 +245,7 @@ WHITESPACE           = [ \\t\\r\\n]+\n       operationTarget = target;\n       expectingOperationTarget = false;\n       appendOperationToSummary(operationTarget);\n+      refineOperationName(operationTarget);",
+      "id": "PRRT_kwDODJKVX86HoEcm",
+      "opened": "2026-06-07T04:10:05Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-06-07T04:53:22Z",
+          "body": "operation name needs to retain existing case (according to db semconv)\n\nfixing existing comparisons in #18927 and the new comparison in this PR in 859b391aa5ecd5dd75ccd448093a87e6bb8a9329",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18922#discussion_r3368774794"
+        }
+      ],
+      "reviewed": "d834b9510b39371ea30ac1e1ced21b1dfbba3a8e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18922#discussion_r3368725699"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`DdlOperation.hasSafeDdlTarget()` compares `operationTarget` using case-sensitive `equals(...)`, but `operationTarget` intentionally preserves the original query casing (because of `%ignorecase` + `yytext()`/`target`). For statements like `create table ...`, this makes `hasSafeDdlTarget()` return false, so PASSWORD/IDENTIFIED BY handling is applied as if the target were unsafe, leading to incorrect sanitization behavior for safe DDL targets.",
+      "created": "2026-06-07T04:58:36Z",
+      "hunk": "@@ -225,6 +245,7 @@ WHITESPACE           = [ \\t\\r\\n]+\n       operationTarget = target;\n       expectingOperationTarget = false;\n       appendOperationToSummary(operationTarget);\n+      refineOperationName(operationTarget);\n     }",
+      "id": "PRRT_kwDODJKVX86HoO65",
+      "opened": "2026-06-07T04:58:37Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-06-07T05:34:44Z",
+          "body": "pending https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18930",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18922#discussion_r3368811193"
+        },
+        {
+          "at": "2026-06-09T13:55:25Z",
+          "body": "Fixed in edecfeaed7. `hasSafeDdlTarget()` now uses case-insensitive target matching in both SQL sanitizers, and there is a lowercase `create table users (password VARCHAR(255))` regression test covering this. While touching the summary sanitizer, the real operation keyword paths now record the matched token text via `yytext()` as well.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18922#discussion_r3381178461"
+        }
+      ],
+      "reviewed": "859b391aa5ecd5dd75ccd448093a87e6bb8a9329",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18922#discussion_r3368779252"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`operationTarget` is captured from `yytext()` under `%ignorecase`, so it preserves the query’s original casing (e.g., `table`). But `hasSafeDdlTarget()` does case-sensitive comparisons against uppercase literals (\"TABLE\", ...), so for statements like `create table users (password ...)` it will treat PASSWORD as a secret clause and truncate/sanitize the remainder incorrectly. Make `hasSafeDdlTarget()` case-insensitive (or normalize `operationTarget` for comparisons).",
+      "created": "2026-06-09T18:49:35Z",
+      "hunk": "@@ -233,6 +253,7 @@ WHITESPACE           = [ \\t\\r\\n]+\n       operationTarget = target;\n       expectingOperationTarget = false;\n       appendOperationToSummary(operationTarget);\n+      refineOperationName(operationTarget);",
+      "id": "PRRT_kwDODJKVX86IQT0m",
+      "opened": "2026-06-09T18:49:35Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-06-09T19:52:19Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4d933f0d7b360087c37aaee379c29d5f68c0e936.\n\nMade DDL target matching case-insensitive while preserving the original query casing, and added a lowercase CREATE TABLE regression case.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18922#discussion_r3383437907"
+        }
+      ],
+      "reviewed": "d7daa9a2fcc0683b40b4c77c73d42d47283fcd46",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18922#discussion_r3383071113"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`TRUNCATE` currently never records the table identifier into `collectionName`. With `setSingleOperationAndCollection(true)`, this means `db.collection.name` will be missing for `TRUNCATE TABLE <table>` even though the statement has a single clear target.",
+      "created": "2026-06-10T01:06:23Z",
+      "hunk": "@@ -580,6 +611,7 @@ WHITESPACE           = [ \\t\\r\\n]+\n       if (text.equalsIgnoreCase(\"TABLE\")) {\n         if (!tableCaptured) {\n           appendTargetToSummary();\n+          refineOperationName(\"TABLE\");\n           tableCaptured = true;\n         }\n         return;",
+      "id": "PRRT_kwDODJKVX86IVH7a",
+      "opened": "2026-06-10T01:06:24Z",
+      "path": "instrumentation-api-incubator/src/main/jflex/SqlSanitizerWithSummary.jflex",
+      "replies": [
+        {
+          "at": "2026-06-10T02:03:33Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/36de074b40fe0253527212abfec87f41204f0dec.\n\n`TRUNCATE TABLE <name>` now records `<name>` as the stable collection name while keeping `TRUNCATE users` unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18922#discussion_r3384995319"
+        }
+      ],
+      "reviewed": "41c4ba080211a8bdb97a6ce9e6a7d40e1206aa80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18922#discussion_r3384808496"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the stable-semconv branch, `DB_QUERY_TEXT` and `DB_QUERY_SUMMARY` assertions expect a lowercase `select ...`, which matches the actual query casing. But `DB_OPERATION_NAME` is asserted as uppercase `\"SELECT\"`, which is inconsistent with the sanitizer behavior (it preserves original casing via `yytext()` under `%ignorecase`) and with the query summary assertion just below. This will make the test fail when `db.operation.name` is emitted as `\"select\"`.",
+      "created": "2026-06-10T04:04:12Z",
+      "hunk": "@@ -145,6 +147,8 @@ void testCassandra() {\n                               equalTo(NETWORK_PEER_PORT, cassandraPort),\n                               equalTo(DB_SYSTEM_NAME, CASSANDRA),\n                               equalTo(DB_NAMESPACE, \"test\"),\n+                              equalTo(DB_OPERATION_NAME, \"SELECT\"),",
+      "id": "PRRT_kwDODJKVX86IWwVE",
+      "opened": "2026-06-10T04:04:13Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/decorators/CassandraTest.java",
+      "replies": [],
+      "reviewed": "119cc902bcb416bd9d435e73e02be5ec7451e6d3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18922#discussion_r3385412317"
+    }
+  ]
+}

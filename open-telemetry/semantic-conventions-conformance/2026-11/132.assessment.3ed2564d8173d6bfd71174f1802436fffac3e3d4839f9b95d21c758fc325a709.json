@@ -1,0 +1,71 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "cb809e9c5ba64660807ea56574477f855f25158b61c4ef1300f601cc9a0649f1",
+  "input_digest": "3ed2564d8173d6bfd71174f1802436fffac3e3d4839f9b95d21c758fc325a709",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/f4f0863250303eb0c42481ca4fc4ae754229a78c/tools/database/runner/src/database_conformance/_elasticsearch.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e331f1496e5373640658253089077dcd849da296/tools/database/runner/src/database_conformance/_elasticsearch.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6db4cu",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e6ce5d3b9776dc288944f7ec342ee553bbfaac06/scenarios/database/java/elasticsearch/transport/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e6ce5d3b9776dc288944f7ec342ee553bbfaac06/scenarios/database/java/elasticsearch/transport/opentelemetry-javaagent/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e331f1496e5373640658253089077dcd849da296/scenarios/database/java/elasticsearch/transport/opentelemetry-javaagent/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e331f1496e5373640658253089077dcd849da296/scenarios/database/java/elasticsearch/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dcp3U",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1bbed93475d54400121cdbb292fe52b589c2302f/.github/renovate.json5",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1bbed93475d54400121cdbb292fe52b589c2302f/scenarios/database/java/gradle/libs.versions.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e331f1496e5373640658253089077dcd849da296/scenarios/database/java/gradle/libs.versions.toml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dlcMJ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2eed0734fc0ff9ffa9d11d01ec722db7307ab625/scenarios/database/java/elasticsearch/api-client/native-instrumentation/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e331f1496e5373640658253089077dcd849da296/scenarios/database/java/elasticsearch/api-client/native-instrumentation/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e331f1496e5373640658253089077dcd849da296/scenarios/database/java/elasticsearch/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/607cffbfd6af606933beb51919151b240f450782"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zADp3",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/2eed0734fc0ff9ffa9d11d01ec722db7307ab625/scenarios/database/contracts/elasticsearch-api-client.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e331f1496e5373640658253089077dcd849da296/scenarios/database/java/elasticsearch/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e331f1496e5373640658253089077dcd849da296/tools/database/runner/tests/test_database_session.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/c7adc1ab0a68ba458c2281a43bb82a4a7d4ea9ab"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zADpy",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

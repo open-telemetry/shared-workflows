@@ -1,0 +1,73 @@
+{
+  "head": "4e6207ce0a24093e268c78518814bdbc453fb491",
+  "merge": "72c15390ea96d438ab0127f06fa03e6296dc4b47",
+  "merged": "2026-06-25T17:36:47Z",
+  "missing_roots": 0,
+  "number": 19056,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "apply new BatchScenario(this) pattern",
+      "created": "2026-06-22T18:28:00Z",
+      "hunk": "@@ -195,4 +202,137 @@ class RediscalaClientTest {\n         )\n     })\n   }\n+\n+  @ParameterizedTest\n+  @MethodSource(Array(\"transactionScenarios\"))\n+  def testTransaction(scenario: BatchScenario): Unit = {\n+    val result = testing.runWithSpan(\n+      \"parent\",\n+      new ThrowingSupplier[Future[_], Exception] {\n+        override def get(): Future[_] = {\n+          val transaction = redisClient.multi()\n+          scenario.commands.forEach(new Consumer[TransactionBuilder => Unit] {\n+            override def accept(command: TransactionBuilder => Unit): Unit = {\n+              command(transaction)\n+            }\n+          })\n+          transaction.exec()\n+        }\n+      }\n+    )\n+\n+    Await.result(result, Duration.apply(\"3 second\"))\n+\n+    testing.waitAndAssertTraces(new Consumer[TraceAssert] {\n+      override def accept(trace: TraceAssert): Unit =\n+        trace.hasSpansSatisfyingExactly(\n+          new Consumer[SpanDataAssert] {\n+            override def accept(span: SpanDataAssert): Unit = {\n+              span.hasName(\"parent\").hasNoParent\n+            }\n+          },\n+          new Consumer[SpanDataAssert] {\n+            override def accept(span: SpanDataAssert): Unit = {\n+              span\n+                .hasName(scenario.operationName)\n+                .hasKind(CLIENT)\n+                .hasParent(trace.getSpan(0))\n+                .hasAttributesSatisfyingExactly(\n+                  equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                  equalTo(maybeStable(DB_OPERATION), scenario.operationName),\n+                  equalTo(\n+                    DB_OPERATION_BATCH_SIZE,\n+                    if (emitStableDatabaseSemconv()) scenario.batchSize\n+                    else null\n+                  )\n+                )\n+            }\n+          }\n+        )\n+    })\n+  }\n+\n+  private def transactionScenarios(): Stream[Arguments] = {\n+    Stream.of(\n+      Arguments.argumentSet(\n+        \"empty\",\n+        BatchScenario\n+          .builder()\n+          .operationName(\"MULTI\")\n+          .build()\n+      ),\n+      Arguments.argumentSet(\n+        \"single\",\n+        BatchScenario\n+          .builder()\n+          .addCommand(transaction =>\n+            transaction.set(\"transaction-single\", \"value\")\n+          )\n+          .operationName(\"MULTI SET\")\n+          .build()\n+      ),\n+      Arguments.argumentSet(\n+        \"twoSameOperation\",\n+        BatchScenario\n+          .builder()\n+          .addCommand(transaction =>\n+            transaction.set(\"transaction-same-1\", \"value\")\n+          )\n+          .addCommand(transaction =>\n+            transaction.set(\"transaction-same-2\", \"value\")\n+          )\n+          .operationName(\"MULTI SET\")\n+          .batchSize(2)\n+          .build()\n+      ),\n+      Arguments.argumentSet(\n+        \"twoDifferentOperations\",\n+        BatchScenario\n+          .builder()\n+          .addCommand(transaction =>\n+            transaction.set(\"transaction-different\", \"value\")\n+          )\n+          .addCommand(transaction =>\n+            transaction.get[String](\"transaction-different\")\n+          )\n+          .operationName(\"MULTI\")\n+          .batchSize(2)\n+          .build()\n+      )\n+    )\n+  }\n+\n+  private class BatchScenario private (\n+      val commands: List[TransactionBuilder => Unit],\n+      val operationName: String,\n+      val batchSize: java.lang.Long\n+  )\n+\n+  private object BatchScenario {\n+    def builder(): Builder = new Builder()\n+\n+    class Builder private[BatchScenario] () {\n+      private val commands = new ArrayList[TransactionBuilder => Unit]()\n+      private var operationName: String = _\n+      private var batchSize: java.lang.Long = _\n+\n+      def addCommand(command: TransactionBuilder => Unit): Builder = {\n+        commands.add(command)\n+        this\n+      }\n+\n+      def operationName(operationName: String): Builder = {\n+        this.operationName = operationName\n+        this\n+      }\n+\n+      def batchSize(batchSize: Long): Builder = {\n+        this.batchSize = batchSize\n+        this\n+      }\n+\n+      def build(): BatchScenario =\n+        new BatchScenario(commands, operationName, batchSize)",
+      "id": "PRRT_kwDODJKVX86LXBFp",
+      "opened": "2026-06-22T18:28:20Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+      "replies": [
+        {
+          "at": "2026-06-22T18:35:35Z",
+          "body": "I tried the `new BatchScenario(this)` pattern here but it reads worse in Scala: the constructor has to take the Builder and manually copy each field, and the Builder fields need widening to `private[BatchScenario]` so the outer class can read them. The current direct-field constructor is more idiomatic for Scala, so I left it as-is. Happy to switch if you feel strongly.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19056#discussion_r3454611597"
+        }
+      ],
+      "reviewed": "b708ade11702e89e0bac94bd4058144ca71a192b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19056#discussion_r3454562092"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "import here and elsewhere",
+      "created": "2026-06-22T18:28:11Z",
+      "hunk": "@@ -195,4 +202,137 @@ class RediscalaClientTest {\n         )\n     })\n   }\n+\n+  @ParameterizedTest\n+  @MethodSource(Array(\"transactionScenarios\"))\n+  def testTransaction(scenario: BatchScenario): Unit = {\n+    val result = testing.runWithSpan(\n+      \"parent\",\n+      new ThrowingSupplier[Future[_], Exception] {\n+        override def get(): Future[_] = {\n+          val transaction = redisClient.multi()\n+          scenario.commands.forEach(new Consumer[TransactionBuilder => Unit] {\n+            override def accept(command: TransactionBuilder => Unit): Unit = {\n+              command(transaction)\n+            }\n+          })\n+          transaction.exec()\n+        }\n+      }\n+    )\n+\n+    Await.result(result, Duration.apply(\"3 second\"))\n+\n+    testing.waitAndAssertTraces(new Consumer[TraceAssert] {\n+      override def accept(trace: TraceAssert): Unit =\n+        trace.hasSpansSatisfyingExactly(\n+          new Consumer[SpanDataAssert] {\n+            override def accept(span: SpanDataAssert): Unit = {\n+              span.hasName(\"parent\").hasNoParent\n+            }\n+          },\n+          new Consumer[SpanDataAssert] {\n+            override def accept(span: SpanDataAssert): Unit = {\n+              span\n+                .hasName(scenario.operationName)\n+                .hasKind(CLIENT)\n+                .hasParent(trace.getSpan(0))\n+                .hasAttributesSatisfyingExactly(\n+                  equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                  equalTo(maybeStable(DB_OPERATION), scenario.operationName),\n+                  equalTo(\n+                    DB_OPERATION_BATCH_SIZE,\n+                    if (emitStableDatabaseSemconv()) scenario.batchSize\n+                    else null\n+                  )\n+                )\n+            }\n+          }\n+        )\n+    })\n+  }\n+\n+  private def transactionScenarios(): Stream[Arguments] = {\n+    Stream.of(\n+      Arguments.argumentSet(\n+        \"empty\",\n+        BatchScenario\n+          .builder()\n+          .operationName(\"MULTI\")\n+          .build()\n+      ),\n+      Arguments.argumentSet(\n+        \"single\",\n+        BatchScenario\n+          .builder()\n+          .addCommand(transaction =>\n+            transaction.set(\"transaction-single\", \"value\")\n+          )\n+          .operationName(\"MULTI SET\")\n+          .build()\n+      ),\n+      Arguments.argumentSet(\n+        \"twoSameOperation\",\n+        BatchScenario\n+          .builder()\n+          .addCommand(transaction =>\n+            transaction.set(\"transaction-same-1\", \"value\")\n+          )\n+          .addCommand(transaction =>\n+            transaction.set(\"transaction-same-2\", \"value\")\n+          )\n+          .operationName(\"MULTI SET\")\n+          .batchSize(2)\n+          .build()\n+      ),\n+      Arguments.argumentSet(\n+        \"twoDifferentOperations\",\n+        BatchScenario\n+          .builder()\n+          .addCommand(transaction =>\n+            transaction.set(\"transaction-different\", \"value\")\n+          )\n+          .addCommand(transaction =>\n+            transaction.get[String](\"transaction-different\")\n+          )\n+          .operationName(\"MULTI\")\n+          .batchSize(2)\n+          .build()\n+      )\n+    )\n+  }\n+\n+  private class BatchScenario private (\n+      val commands: List[TransactionBuilder => Unit],\n+      val operationName: String,\n+      val batchSize: java.lang.Long",
+      "id": "PRRT_kwDODJKVX86LXBRz",
+      "opened": "2026-06-22T18:28:20Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+      "replies": [
+        {
+          "at": "2026-06-22T18:35:27Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/46cb449157d493ed901fec203f05dd6e885f0ad3.\n\nImported `java.lang.Long` as `JLong` and used it for both batchSize fields.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19056#discussion_r3454610700"
+        }
+      ],
+      "reviewed": "b708ade11702e89e0bac94bd4058144ca71a192b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19056#discussion_r3454563127"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`batchSize` returns `(long) size` for every size except `1`, so an empty transaction (size `0`) yields a batch size of `0L` instead of `null`. This is currently harmless because `DbClientAttributesExtractor` only emits `db.operation.batch.size` when the value is `> 1`, but returning `0` for an empty transaction is semantically misleading. Using `size > 1` expresses the intent directly and matches the condition used downstream.",
+      "created": "2026-06-22T22:10:48Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rediscala.v1_8;\n+\n+import java.util.Locale;\n+import javax.annotation.Nullable;\n+import redis.Operation;\n+import redis.RedisCommand;\n+import scala.collection.Iterator;\n+import scala.collection.immutable.Queue;\n+\n+class RediscalaRequest {\n+  private final String operationName;\n+  @Nullable private final Long batchSize;\n+\n+  static RediscalaRequest create(RedisCommand<?, ?> command) {\n+    return new RediscalaRequest(operationName(command), null);\n+  }\n+\n+  static RediscalaRequest createTransaction(Queue<Operation<?, ?>> operations) {\n+    return new RediscalaRequest(transactionOperationName(operations), batchSize(operations));\n+  }\n+\n+  private RediscalaRequest(String operationName, @Nullable Long batchSize) {\n+    this.operationName = operationName;\n+    this.batchSize = batchSize;\n+  }\n+\n+  String getOperationName() {\n+    return operationName;\n+  }\n+\n+  @Nullable\n+  Long getBatchSize() {\n+    return batchSize;\n+  }\n+\n+  private static String transactionOperationName(Queue<Operation<?, ?>> operations) {\n+    if (operations.isEmpty()) {\n+      return \"MULTI\";\n+    }\n+\n+    Iterator<Operation<?, ?>> iterator = operations.iterator();\n+    String operationName = operationName(iterator.next().redisCommand());\n+    while (iterator.hasNext()) {\n+      if (!operationName.equals(operationName(iterator.next().redisCommand()))) {\n+        return \"MULTI\";\n+      }\n+    }\n+    return \"MULTI \" + operationName;\n+  }\n+\n+  @Nullable\n+  private static Long batchSize(Queue<Operation<?, ?>> operations) {\n+    int size = operations.size();\n+    return size != 1 ? (long) size : null;",
+      "id": "PRRT_kwDODJKVX86LaSho",
+      "opened": "2026-06-22T22:10:48Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaRequest.java",
+      "replies": [
+        {
+          "at": "2026-06-22T22:45:15Z",
+          "body": "0 is correct for empty batch",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19056#discussion_r3455898394"
+        }
+      ],
+      "reviewed": "4e6207ce0a24093e268c78518814bdbc453fb491",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19056#discussion_r3455742231"
+    }
+  ]
+}

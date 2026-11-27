@@ -1,0 +1,31 @@
+{
+  "head": "290a2db076f8340ad4c25ddd7b22d68e79f22e4a",
+  "merge": "8d4fb5f4dff08a24191ee68d85188502b20ad4fe",
+  "merged": "2026-09-26T04:45:06Z",
+  "missing_roots": 0,
+  "number": 20246,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Both test methods require the same deprecation suppression. Move `@SuppressWarnings(\"deprecation\")` to the test class and remove the two method-level annotations so the suppression follows the repository's required class-level scoping for multiple affected members.",
+      "created": "2026-09-25T17:25:24Z",
+      "hunk": "@@ -0,0 +1,61 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.db.internal;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.verifyNoInteractions;\n+import static org.mockito.Mockito.when;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesGetter;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.ExtendWith;\n+import org.mockito.Mock;\n+import org.mockito.junit.jupiter.MockitoExtension;\n+\n+@ExtendWith(MockitoExtension.class)\n+class RedisSpanNameDbAttributesGetterTest {\n+\n+  private final Object request = new Object();\n+\n+  @Mock DbClientAttributesGetter<Object, Void> delegate;\n+\n+  private RedisSpanNameDbAttributesGetter<Object> getter;\n+\n+  @BeforeEach\n+  void setUp() {\n+    getter = new RedisSpanNameDbAttributesGetter<>(delegate);\n+  }\n+\n+  @SuppressWarnings(\"deprecation\") // getDbName is used for old semconv span names",
+      "id": "PRRT_kwDODJKVX86mF-Tj",
+      "opened": "2026-09-25T17:25:24Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/RedisSpanNameDbAttributesGetterTest.java",
+      "replies": [
+        {
+          "at": "2026-09-25T17:42:44Z",
+          "body": "Addressed in e4584ac6eeabdae22c050e50b2750fa6e64e0f71.\n\nFixed in the verified source changes e4584ac6eeabdae22c050e50b2750fa6e64e0f71.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20246#discussion_r4107109985"
+        }
+      ],
+      "reviewed": "bd8968aa29c2920d51fcc82882c8fdb6babd7dfa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20246#discussion_r4106982798"
+    }
+  ]
+}

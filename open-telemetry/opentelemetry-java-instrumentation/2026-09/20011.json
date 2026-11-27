@@ -1,0 +1,262 @@
+{
+  "head": "75ccbf66394a51caddff1c5d5703fc29f8d073c2",
+  "merge": "d337983415487a421c9023e8123b6a7425d8225f",
+  "merged": "2026-09-10T15:37:37Z",
+  "missing_roots": 0,
+  "number": 20011,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] In CurrentServerInfo.of(), building the initial peer with DbServerTarget.builder(extracted.defaultPort()) can drop the port when the endpoint uses its default port (e.g., http/https without an explicit port). Since this peer feeds network.peer.port, it can end up unset even though the effective port is known; consider always storing an explicit peer port here (or leaving peer null when the port can’t be determined).",
+      "created": "2026-09-07T02:04:18Z",
+      "hunk": "@@ -67,21 +75,61 @@ static DbServerTarget parseConfiguredServerTarget(Set<String> endpoints) {\n     return builder.build();\n   }\n \n-  @Nullable\n-  public static AddressAndPort getAddressAndPort(Client client) {\n-    return ADDRESS_AND_PORT.get(client);\n+  public static void capturePeer(ClickHouseDbRequest request, Object selectedNode)\n+      throws Exception {\n+    Class<?> selectedNodeClass = selectedNode.getClass();\n+    String host = (String) selectedNodeClass.getMethod(\"getHost\").invoke(selectedNode);\n+    int port = (Integer) selectedNodeClass.getMethod(\"getPort\").invoke(selectedNode);\n+    EndpointTarget extracted = EndpointTarget.parse(host);\n+    request.setPeer(\n+        extracted == null\n+            ? null\n+            : DbServerTarget.builder(-1).addEndpoint(extracted.address, port).build());\n   }\n \n-  public static AddressAndPort setAddressAndPort(Client client, @Nullable String endpoint) {\n-    AddressAndPort addressAndPort = new AddressAndPort();\n+  public static class CurrentServerInfo {\n+    private static final CurrentServerInfo EMPTY = new CurrentServerInfo(null, null, null);\n+\n+    @Nullable private final String address;\n+    @Nullable private final Integer port;\n+    @Nullable private final DbServerTarget peer;\n+\n+    private CurrentServerInfo(\n+        @Nullable String address, @Nullable Integer port, @Nullable DbServerTarget peer) {\n+      this.address = address;\n+      this.port = port;\n+      this.peer = peer;\n+    }\n+\n+    private static CurrentServerInfo of(Set<String> endpoints) {\n+      if (endpoints.isEmpty()) {\n+        return EMPTY;\n+      }\n+      String endpoint = endpoints.iterator().next();\n+      EndpointTarget extracted = EndpointTarget.parse(endpoint);\n+      DbServerTarget peer =\n+          extracted == null\n+              ? null\n+              : DbServerTarget.builder(extracted.defaultPort())\n+                  .addEndpoint(extracted.address, extracted.port == null ? -1 : extracted.port)\n+                  .build();",
+      "id": "PRRT_kwDODJKVX86fw86E",
+      "opened": "2026-09-07T02:04:19Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-07T19:44:45Z",
+          "body": "Addressed in 900ccc45b1caf054f356265f46976674e531783c.\n\nAnalysis: CurrentServerInfo treated the effective port as a DbServerTarget default. DbServerTarget omits default ports, so network.peer.port was absent for an endpoint such as http://single.example. The code now passes the effective port as an explicit port and omits the peer when neither the endpoint nor its scheme supplies a valid port.\n\nUpsides: network.peer.port now reports known default ports, while unknown ports do not create an incomplete peer.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3952280558"
+        }
+      ],
+      "reviewed": "1e34717b3d218a8478b24f61469c79fe85124314",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3946042150"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The ContextKey name \"clickhouse-db-request\" is very generic; using a more namespaced key string (matching the common \"opentelemetry-…\" pattern used elsewhere) reduces the chance of cross-instrumentation collisions when multiple libraries use ContextKey.named(...).",
+      "created": "2026-09-07T02:04:19Z",
+      "hunk": "@@ -6,12 +6,17 @@\n package io.opentelemetry.javaagent.instrumentation.clickhouse.client.common.v0_5;\n \n import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n import io.opentelemetry.context.Scope;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import java.util.concurrent.CompletableFuture;\n import javax.annotation.Nullable;\n \n /** Container used to carry state between enter and exit advices */\n public class ClickHouseScope {\n+  private static final ContextKey<ClickHouseDbRequest> REQUEST_KEY =\n+      ContextKey.named(\"clickhouse-db-request\");",
+      "id": "PRRT_kwDODJKVX86fw86U",
+      "opened": "2026-09-07T02:04:19Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseScope.java",
+      "replies": [
+        {
+          "at": "2026-09-07T19:44:46Z",
+          "body": "Addressed in f09e02fdd43a9b848ec5587019ee15f325ce4bef.\n\nAnalysis: ContextKey equality uses the key name. Prefixing this instrumentation-owned key with \"opentelemetry-\" follows the existing repository convention and distinguishes it from application or library keys.\n\nUpsides: The renamed key is less likely to collide with another ContextKey in the same context.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3952280664"
+        }
+      ],
+      "reviewed": "1e34717b3d218a8478b24f61469c79fe85124314",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3946042171"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `selectedNode.getHost()` is already a bare host, but parsing it as an endpoint corrupts unbracketed IPv6 values: for example, `2001:db8::1` is interpreted as address `2001:db8::` with an embedded port of `1`. The separately obtained selected-node port remains correct, so this emits the wrong stable `network.peer.address`. Pass the host directly to `DbServerTargetBuilder`, which already validates IPv6 hosts.",
+      "created": "2026-09-08T01:22:00Z",
+      "hunk": "@@ -70,21 +78,63 @@ static DbServerTarget parseConfiguredServerTarget(Set<String> endpoints) {\n     return builder.build();\n   }\n \n-  @Nullable\n-  public static AddressAndPort getAddressAndPort(Client client) {\n-    return ADDRESS_AND_PORT.get(client);\n+  public static void capturePeer(ClickHouseDbRequest request, Object selectedNode)\n+      throws Exception {\n+    Class<?> selectedNodeClass = selectedNode.getClass();\n+    String host = (String) selectedNodeClass.getMethod(\"getHost\").invoke(selectedNode);\n+    int port = (Integer) selectedNodeClass.getMethod(\"getPort\").invoke(selectedNode);\n+    EndpointTarget extracted = EndpointTarget.parse(host);\n+    request.setPeer(\n+        extracted == null\n+            ? null\n+            : DbServerTarget.builder(-1).addEndpoint(extracted.address, port).build());",
+      "id": "PRRT_kwDODJKVX86gEEuW",
+      "opened": "2026-09-08T01:22:00Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T01:27:02Z",
+          "body": "Addressed in c0b362827d936f9a737895458fdc6820971a3b4f.\n\nAnalysis: The selected node exposes the host and port separately. Endpoint parsing can treat the last IPv6 segment as a port, while DbServerTargetBuilder accepts and validates the bare IPv6 host directly.\n\nUpsides: Stable network peer attributes preserve the full selected IPv6 address and its separately reported port.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3953561847"
+        }
+      ],
+      "reviewed": "7131454b4e5f9101c0d5d8e12bc866b2b241eed3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3953544031"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This snapshots the initial server, but ClickHouse v1 failover changes the request's shared server reference to the next node while the operation is running. The stored peer is never refreshed, so a failover span reports the first node rather than the final contacted endpoint promised by the PR description (and direct async `execute` ends before failover completes). Please update the peer from the actual attempt/final server and keep async spans open until completion as needed.",
+      "created": "2026-09-08T04:03:07Z",
+      "hunk": "@@ -60,10 +60,13 @@ public static ClickHouseScope onEnter(\n       }\n \n       ClickHouseNode server = clickHouseRequest.getServer();\n+      String host = server.getHost();\n+      int port = server.getPort();\n       ClickHouseDbRequest request =\n           ClickHouseDbRequest.create(\n-              server.getHost(),\n-              server.getPort(),\n+              host,\n+              port,\n+              ClickHouseClientV1Singletons.peerServerTarget(host, port),",
+      "id": "PRRT_kwDODJKVX86gFuvn",
+      "opened": "2026-09-08T04:03:07Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Instrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-08T04:24:28Z",
+          "body": "Addressed in 0c52e6313c02eebe8c0e856d398c76f09a2937f3.\n\nAnalysis: ClickHouse seals requests before execution but shares their atomic server reference across copies. The v1 advice captured the first selected node and ended direct asynchronous spans as soon as execute returned. Refreshing the peer from that shared reference immediately before span completion records the node selected by failover. Completing stable-semconv asynchronous spans from the returned CompletableFuture ensures that refresh runs after ClickHouse finishes its failure handler.\n\nUpsides: Failover spans report the final contacted peer, asynchronous span duration and errors cover the full operation, and a focused fake-client test verifies both the shared sealed-request reference and the completion timing.\n\nDownsides: Stable-semconv asynchronous spans remain open until their returned future completes, and the completion callback retains the request and scope for that same period.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3954302022"
+        }
+      ],
+      "reviewed": "fcab268186d6470015ab7eb9807a7614459b1a3c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3954203460"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Binding `@Advice.Return` as `CompletableFuture<?>` is brittle: if the instrumented method’s return type changes or differs across supported versions/overloads, ByteBuddy can fail to apply the advice (or fail at runtime) due to type mismatch. Safer pattern is to bind `@Advice.Return(typing = Assigner.Typing.DYNAMIC) Object result` and then `instanceof CompletableFuture` check before calling `endOnCompletion`.",
+      "created": "2026-09-08T18:12:17Z",
+      "hunk": "@@ -86,13 +87,18 @@ public static ClickHouseScope onEnter(\n     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n     public static void onExit(\n         @Advice.Thrown @Nullable Throwable throwable,\n+        @Advice.Return @Nullable CompletableFuture<?> future,\n         @Advice.Enter @Nullable ClickHouseScope scope) {\n       CallDepth callDepth = CallDepth.forClass(Client.class);\n       if (callDepth.decrementAndGet() > 0 || scope == null) {\n         return;\n       }\n \n-      scope.end(throwable);\n+      if (!emitStableDatabaseSemconv() || throwable != null || future == null) {\n+        scope.end(throwable);\n+      } else {\n+        scope.endOnCompletion(future);\n+      }",
+      "id": "PRRT_kwDODJKVX86gW2bn",
+      "opened": "2026-09-08T18:12:19Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2Instrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:42:56Z",
+          "body": "Addressed in 0f9b7984b8831c757c04690965ff72280f54d119.\n\nAnalysis: The matcher identifies the query overload by its arguments but does not constrain its return type. A dynamic Object binding lets the advice remain applicable if a supported ClickHouse version changes that return type. The exit advice now defers completion only when the returned value is a CompletableFuture.\n\nUpsides: ByteBuddy can apply the advice across return-type changes, while current CompletableFuture behavior stays unchanged.\n\nDownsides: A future ClickHouse return type that is not a CompletableFuture will end the span when the method returns rather than when asynchronous work completes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3961135733"
+        }
+      ],
+      "reviewed": "0d2fa646ac1b9adbf307ae0adaec06505d6e2247",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3960890252"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This relies on `ClickHouseScope.currentRequest()` (i.e., `Context.current()`) being active when the HTTP helper methods run. But in the v2 client advice, stable semconv async paths call `scope.endOnCompletion(future)` which closes the scope immediately; any retries/redirects that happen after the client method returns may execute without the span context being current, and peer updates will be missed (preventing the 'final endpoint after retries' behavior). Consider associating the `ClickHouseDbRequest` with a library object that is available to the helper methods regardless of `Context.current()` (e.g., store it in a `VirtualField` keyed by the request/operation object, or attach it to the returned future and retrieve it from helper advice via an argument/field), so peer capture works during later async retry attempts too.",
+      "created": "2026-09-08T18:12:17Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.clickhouse.clientv2.v0_8;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.clickhouse.client.common.v0_5.ClickHouseDbRequest;\n+import io.opentelemetry.javaagent.instrumentation.clickhouse.client.common.v0_5.ClickHouseScope;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class ClickHouseClientV2RequestInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"com.clickhouse.client.api.internal.HttpAPIClientHelper\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"executeRequest\", \"executeMultiPartRequest\", \"createRequest\")\n+            .and(\n+                takesArgument(\n+                    0,\n+                    namedOneOf(\n+                        \"com.clickhouse.client.ClickHouseNode\",\n+                        \"com.clickhouse.client.api.transport.Endpoint\"))),\n+        getClass().getName() + \"$RequestAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class RequestAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static void onEnter(@Advice.Argument(0) Object endpoint) throws Exception {\n+      ClickHouseDbRequest request = ClickHouseScope.currentRequest();\n+      if (request != null) {\n+        ClickHouseClientV2Singletons.capturePeer(request, endpoint);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86gW2cr",
+      "opened": "2026-09-08T18:12:19Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2RequestInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:42:57Z",
+          "body": "No code change.\n\nAnalysis: Closing the scope on the calling thread does not discard the request context captured for asynchronous work. ClickHouse client-v2 0.8.0 and 0.10.0 both submit the operation with `CompletableFuture.supplyAsync` while the query advice context is current. The Java executor instrumentation propagates that context to the supplier, as covered by `CompletableFutureTest.supplyAsync`, and ClickHouse performs each attempt inside that supplier. The helper advice therefore reads the propagated `ClickHouseDbRequest` during asynchronous attempts. The node and endpoint arguments are shared client configuration objects rather than per-operation carriers, so attaching request state to them would mix concurrent queries.\n\nUpsides: The existing context propagation keeps peer state isolated per operation and avoids adding state to reused library objects.\n\nDownsides: Peer refinement depends on the Java executor instrumentation that provides normal `CompletableFuture` context propagation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3961135903"
+        }
+      ],
+      "reviewed": "0d2fa646ac1b9adbf307ae0adaec06505d6e2247",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3960890349"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ClickHouseDbRequest` is an `@AutoValue` but now contains additional mutable state (`volatile peer`) that is not part of AutoValue’s generated `equals/hashCode/toString`. This can be surprising and error-prone if the object is ever used as a key or logged/compared in tests. Prefer modeling `peer` as part of the AutoValue state (e.g., add it as a constructor property / abstract getter) or introduce a separate mutable holder specifically for per-operation peer updates (with a clear contract). If keeping this approach, add a brief comment documenting that `peer` is intentionally mutable and excluded from value semantics.",
+      "created": "2026-09-08T18:12:18Z",
+      "hunk": "@@ -11,14 +11,19 @@\n \n @AutoValue\n public abstract class ClickHouseDbRequest {",
+      "id": "PRRT_kwDODJKVX86gW2dL",
+      "opened": "2026-09-08T18:12:19Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseDbRequest.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:42:59Z",
+          "body": "Addressed in 0c2300cd01930451275b74fdda191a8be1aa4639.\n\nAnalysis: The selected peer is per-operation state that can change after request creation when the client retries. Making it an immutable AutoValue property would prevent later attempts from updating the span attributes. The request is used as an instrumenter request rather than as a map key. A focused comment now states that the mutable peer does not participate in AutoValue value semantics.\n\nUpsides: Readers can see the peer's lifecycle and understand why equality, hash code, and string output do not include it without adding a separate holder for one mutable field.\n\nDownsides: Code that treats ClickHouseDbRequest as a complete immutable value still will not observe peer changes through AutoValue's generated value methods.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3961136077"
+        }
+      ],
+      "reviewed": "0d2fa646ac1b9adbf307ae0adaec06505d6e2247",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3960890391"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ClickHouseDbRequest` is an `@AutoValue` but now contains additional mutable state (`volatile peer`) that is not part of AutoValue’s generated `equals/hashCode/toString`. This can be surprising and error-prone if the object is ever used as a key or logged/compared in tests. Prefer modeling `peer` as part of the AutoValue state (e.g., add it as a constructor property / abstract getter) or introduce a separate mutable holder specifically for per-operation peer updates (with a clear contract). If keeping this approach, add a brief comment documenting that `peer` is intentionally mutable and excluded from value semantics.",
+      "created": "2026-09-08T18:12:18Z",
+      "hunk": "@@ -11,14 +11,19 @@\n \n @AutoValue\n public abstract class ClickHouseDbRequest {\n+  @Nullable private volatile DbServerTarget peer;\n \n   public static ClickHouseDbRequest create(\n       @Nullable String host,\n       @Nullable Integer port,\n+      @Nullable DbServerTarget peer,\n       @Nullable DbServerTarget serverTarget,\n       @Nullable String namespace,\n       String sql) {\n-    return new AutoValue_ClickHouseDbRequest(host, port, serverTarget, namespace, sql);\n+    ClickHouseDbRequest request =\n+        new AutoValue_ClickHouseDbRequest(host, port, serverTarget, namespace, sql);\n+    request.peer = peer;\n+    return request;",
+      "id": "PRRT_kwDODJKVX86gW2dz",
+      "opened": "2026-09-08T18:12:19Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseDbRequest.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:43:00Z",
+          "body": "Addressed in 0c2300cd01930451275b74fdda191a8be1aa4639.\n\nAnalysis: The selected peer is per-operation state that can change after request creation when the client retries. Making it an immutable AutoValue property would prevent later attempts from updating the span attributes. The request is used as an instrumenter request rather than as a map key. A focused comment now states that the mutable peer does not participate in AutoValue value semantics.\n\nUpsides: Readers can see the peer's lifecycle and understand why equality, hash code, and string output do not include it without adding a separate holder for one mutable field.\n\nDownsides: Code that treats ClickHouseDbRequest as a complete immutable value still will not observe peer changes through AutoValue's generated value methods.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3961136312"
+        }
+      ],
+      "reviewed": "0d2fa646ac1b9adbf307ae0adaec06505d6e2247",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3960890444"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ClickHouseDbRequest` is an `@AutoValue` but now contains additional mutable state (`volatile peer`) that is not part of AutoValue’s generated `equals/hashCode/toString`. This can be surprising and error-prone if the object is ever used as a key or logged/compared in tests. Prefer modeling `peer` as part of the AutoValue state (e.g., add it as a constructor property / abstract getter) or introduce a separate mutable holder specifically for per-operation peer updates (with a clear contract). If keeping this approach, add a brief comment documenting that `peer` is intentionally mutable and excluded from value semantics.",
+      "created": "2026-09-08T18:12:18Z",
+      "hunk": "@@ -27,6 +32,22 @@ public static ClickHouseDbRequest create(\n   @Nullable\n   public abstract Integer getPort();\n \n+  @Nullable\n+  public final String getPeerAddress() {\n+    DbServerTarget peer = this.peer;\n+    return peer == null ? null : peer.getAddress();\n+  }\n+\n+  @Nullable\n+  public final Integer getPeerPort() {\n+    DbServerTarget peer = this.peer;\n+    return peer == null ? null : peer.getPort();\n+  }\n+\n+  public final void setPeer(@Nullable DbServerTarget peer) {\n+    this.peer = peer;\n+  }",
+      "id": "PRRT_kwDODJKVX86gW2eR",
+      "opened": "2026-09-08T18:12:19Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseDbRequest.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:43:02Z",
+          "body": "Addressed in 0c2300cd01930451275b74fdda191a8be1aa4639.\n\nAnalysis: The selected peer is per-operation state that can change after request creation when the client retries. Making it an immutable AutoValue property would prevent later attempts from updating the span attributes. The request is used as an instrumenter request rather than as a map key. A focused comment now states that the mutable peer does not participate in AutoValue value semantics.\n\nUpsides: Readers can see the peer's lifecycle and understand why equality, hash code, and string output do not include it without adding a separate holder for one mutable field.\n\nDownsides: Code that treats ClickHouseDbRequest as a complete immutable value still will not observe peer changes through AutoValue's generated value methods.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3961136532"
+        }
+      ],
+      "reviewed": "0d2fa646ac1b9adbf307ae0adaec06505d6e2247",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3960890488"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`peerServerTarget` is annotated `@Nullable` but always returns a non-null `DbServerTarget` (given current code). Either remove `@Nullable` to keep the API contract accurate, or (if invalid endpoints can be rejected in `addEndpoint/build`) catch that failure and return null explicitly.",
+      "created": "2026-09-08T18:12:19Z",
+      "hunk": "@@ -60,6 +60,11 @@ public static DbServerTarget serverTarget(ClickHouseRequest<?> request) {\n     return uncapturedServerTarget(request);\n   }\n \n+  @Nullable",
+      "id": "PRRT_kwDODJKVX86gW2e3",
+      "opened": "2026-09-08T18:12:19Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java",
+      "replies": [
+        {
+          "at": "2026-09-08T18:43:04Z",
+          "body": "No code change.\n\nAnalysis: `DbServerTargetBuilder.addEndpoint` marks the builder incomplete when the host is unsafe or the effective port is outside 1 through 65535. Its `@Nullable build()` method then returns null. `peerServerTarget` passes that result through, so its nullable contract is accurate and no exception needs to be caught.\n\nUpsides: Keeping `@Nullable` preserves the safety path that omits invalid peer attributes.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3961136816"
+        }
+      ],
+      "reviewed": "0d2fa646ac1b9adbf307ae0adaec06505d6e2247",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3960890537"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This test invokes `capturePeer` directly, so it bypasses the new `HttpAPIClientHelper` advice, its version-sensitive method matcher, and asynchronous context lookup. The existing query tests cannot detect that omission because the request is pre-populated with the same single endpoint they ultimately contact. Please add a v2 integration test where the configured/initial endpoint differs from the retry or failover endpoint and assert that the exported stable span contains the final endpoint.",
+      "created": "2026-09-09T23:21:23Z",
+      "hunk": "@@ -141,10 +148,24 @@ void testConnectionStringWithoutDatabaseSpecifiedStillGeneratesSpans() throws Ex\n         DB_SYSTEM_NAME,\n         DB_QUERY_SUMMARY,\n         DB_NAMESPACE,\n+        NETWORK_PEER_ADDRESS,\n+        NETWORK_PEER_PORT,\n         SERVER_ADDRESS,\n         SERVER_PORT);\n   }\n \n+  @Test\n+  void testCapturedPeerFollowsEachContactedEndpoint() throws Exception {\n+    Object request = createDbRequest();\n+    assertCapturedPeer(request, null, null);\n+\n+    capturePeer(request, new TestEndpoint(\"first.example\", 9123));",
+      "id": "PRRT_kwDODJKVX86g3l1J",
+      "opened": "2026-09-09T23:21:23Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2Test.java",
+      "replies": [
+        {
+          "at": "2026-09-09T23:51:40Z",
+          "body": "No code change.\n\nAnalysis: Released `client-v2` versions do not rotate endpoints between attempts. This exact limitation was already checked on this branch against 0.8.0 and the released versions through 0.10.0. The requested integration setup therefore cannot make the configured endpoint differ from a retry or failover endpoint. The direct test drives two contacted endpoints through `capturePeer` and verifies that the last one wins.\n\nUpsides: The test runs on every supported library version and both semconv modes. It avoids an always-skipped test or a test built around private fields and types that no released client has.\n\nDownsides: The direct test does not independently prove the `HttpAPIClientHelper` matcher or asynchronous context lookup.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3974068267"
+        }
+      ],
+      "reviewed": "75ccbf66394a51caddff1c5d5703fc29f8d073c2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3973895693"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could this reflection be avoided if this was converted to a unit test?",
+      "created": "2026-09-10T12:25:48Z",
+      "hunk": "@@ -552,12 +635,80 @@ private static void assertServerTarget(Set<String> endpoints, String address, In\n       assertThat(serverTarget).isNull();\n       return;\n     }\n+\n     assertThat(serverTarget).isNotNull();\n     Class<?> serverTargetType = serverTarget.getClass().getSuperclass();\n     assertThat(serverTargetType.getMethod(\"getAddress\").invoke(serverTarget)).isEqualTo(address);\n     assertThat(serverTargetType.getMethod(\"getPort\").invoke(serverTarget)).isEqualTo(port);\n   }\n \n+  private static void assertCurrentPeer(Set<String> endpoints, String address, Integer port)",
+      "id": "PRRT_kwDODJKVX86hEaey",
+      "opened": "2026-09-10T12:25:47Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2Test.java",
+      "replies": [
+        {
+          "at": "2026-09-10T15:36:07Z",
+          "body": "I'll follow-up on this: https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20095",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3980795305"
+        }
+      ],
+      "reviewed": "75ccbf66394a51caddff1c5d5703fc29f8d073c2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20011#discussion_r3979013437"
+    }
+  ]
+}

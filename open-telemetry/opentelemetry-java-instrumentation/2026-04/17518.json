@@ -1,0 +1,40 @@
+{
+  "head": "42bc7a55d19c0c4925df88083fc3163a39d37ed9",
+  "merge": "7668239e62d11969a05caa0695d175156527981b",
+  "merged": "2026-04-05T00:37:29Z",
+  "missing_roots": 0,
+  "number": 17518,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    if (level != null) {\n      builder.setSeverity(levelToSeverity(level));\n      builder.setSeverityText(level.toString());\n    }\n```",
+      "created": "2026-04-05T00:10:02Z",
+      "hunk": "@@ -112,10 +117,8 @@ public void capture(\n     }\n \n     // level\n-    if (level != null) {\n-      builder.setSeverity(levelToSeverity(level));\n-      builder.setSeverityText(level.toString());\n-    }\n+    builder.setSeverity(levelToSeverity(level));\n+    builder.setSeverityText(level.toString());",
+      "id": "PRRT_kwDODJKVX85437YK",
+      "opened": "2026-04-05T00:10:02Z",
+      "path": "instrumentation/log4j/log4j-appender-1.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/log4j/appender/v1_2/LogEventMapper.java",
+      "replies": [],
+      "reviewed": "b2f885e66590cfd4d915b88a460181e300f74102",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17518#discussion_r3036207259"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-05T00:10:35Z",
+      "hunk": "@@ -112,6 +117,7 @@ public void capture(\n     }\n \n     // level\n+    builder.setSeverity(levelToSeverity(level));",
+      "id": "PRRT_kwDODJKVX85437dY",
+      "opened": "2026-04-05T00:10:35Z",
+      "path": "instrumentation/log4j/log4j-appender-1.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/log4j/appender/v1_2/LogEventMapper.java",
+      "replies": [],
+      "reviewed": "8be48d924c480ab054e6f702ad01578098071579",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17518#discussion_r3036207672"
+    }
+  ]
+}

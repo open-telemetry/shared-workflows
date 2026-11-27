@@ -1,0 +1,36 @@
+{
+  "head": "d9d4f99374af28aeb871998731fb3b7f4e73149e",
+  "merge": "6fd0d763a092db245a54104fc1124031eb3c51d2",
+  "merged": "2026-10-09T19:23:22Z",
+  "missing_roots": 0,
+  "number": 579,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changes the default for sensitive message content, not just for the event. The table below still marks `gen_ai.input.messages` and `gen_ai.output.messages` as Opt-In, and `gen-ai-spans.md:1240-1248` says instrumentations SHOULD NOT capture this content by default because of storage and regulatory risks. Recommend emitting the event while preserving explicit opt-in for its content attributes.",
+      "created": "2026-10-07T15:22:36Z",
+      "hunk": "@@ -13,7 +13,7 @@ linkTitle: Events\n \n <!-- tocstop -->\n \n-GenAI instrumentations MAY capture user inputs sent to the model and responses received from it as [events](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.55.0/specification/logs/data-model.md#events).\n+GenAI instrumentations SHOULD capture user inputs sent to the model and responses received from it as [events](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.55.0/specification/logs/data-model.md#events).",
+      "id": "PRRT_kwDOSUeMrM6p-GzX",
+      "opened": "2026-10-07T15:22:37Z",
+      "path": "docs/gen-ai/gen-ai-events.md",
+      "replies": [
+        {
+          "at": "2026-10-07T16:02:50Z",
+          "body": "maybe we should just drop it? there is nothing in this sentence that's not repeated in the formal generated definition below",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/579#discussion_r4209103658"
+        },
+        {
+          "at": "2026-10-07T16:25:05Z",
+          "body": "yeah agreed.. removed",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/579#discussion_r4209323624"
+        }
+      ],
+      "reviewed": "dc293bd2940b677d99213bdbdf438fb0048cbac6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/579#discussion_r4208663073"
+    }
+  ]
+}

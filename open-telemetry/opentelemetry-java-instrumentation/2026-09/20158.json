@@ -1,0 +1,40 @@
+{
+  "head": "99c510301fb5d088c561bce88e9aea858ec5e64f",
+  "merge": "9c2e76bb64fc26723aa03f0e62e7c5ff2dde3ed5",
+  "merged": "2026-09-20T04:00:44Z",
+  "missing_roots": 0,
+  "number": 20158,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Dropping `/tmp/gh-aw/agent/` also drops both `cleanup.patch` and `cleanup.noop`. `finalize.sh` requires one of those files from the downloaded `agent` artifact and records a successful agent run as a failure when neither exists, so module cleanup can no longer retain any agent work. Please explicitly package these two known files from `module-cleanup.md` and regenerate the lockfile.",
+      "created": "2026-09-15T00:27:32Z",
+      "hunk": "@@ -1119,7 +1119,6 @@ jobs:\n             /tmp/gh-aw/agent_usage.json\n             /tmp/gh-aw/agent-stdio.log\n             /tmp/gh-aw/pre-agent-audit.txt\n-            /tmp/gh-aw/agent/\n             /tmp/gh-aw/github_rate_limits.jsonl",
+      "id": "PRRT_kwDODJKVX86iVELd",
+      "opened": "2026-09-15T00:27:33Z",
+      "path": ".github/workflows/module-cleanup.lock.yml",
+      "replies": [],
+      "reviewed": "99c510301fb5d088c561bce88e9aea858ec5e64f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20158#discussion_r4010824242"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The regenerated artifact allowlist no longer uploads `/tmp/gh-aw/agent/findings.json`, but the `finalize` job still unconditionally passes `./agent-artifact/agent/findings.json` to `post.py` when the agent succeeds. Every successful `/review` run will therefore fail while posting its review. Please explicitly include the findings file in a permitted artifact from `pr-review.md` and regenerate the lockfile.",
+      "created": "2026-09-15T00:27:32Z",
+      "hunk": "@@ -1160,7 +1160,6 @@ jobs:\n             /tmp/gh-aw/agent_usage.json\n             /tmp/gh-aw/agent-stdio.log\n             /tmp/gh-aw/pre-agent-audit.txt",
+      "id": "PRRT_kwDODJKVX86iVELy",
+      "opened": "2026-09-15T00:27:33Z",
+      "path": ".github/workflows/pr-review.lock.yml",
+      "replies": [],
+      "reviewed": "99c510301fb5d088c561bce88e9aea858ec5e64f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20158#discussion_r4010824276"
+    }
+  ]
+}

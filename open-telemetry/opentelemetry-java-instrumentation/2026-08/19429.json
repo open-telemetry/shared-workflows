@@ -1,0 +1,40 @@
+{
+  "head": "6107eb0da13135331be1646e9609826d635f8a09",
+  "merge": "6be271516d177ca56709ec2fec03c0b6d342e4a0",
+  "merged": "2026-08-07T19:00:50Z",
+  "missing_roots": 0,
+  "number": 19429,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please double-check that `distributionSha256Sum` exactly matches the published SHA-256 for the `gradle-9.7.0-bin.zip` referenced by `distributionUrl`. A mismatch will break wrapper downloads (or weaken supply-chain integrity if the checksum is copied from an unofficial source); the safest approach is to regenerate the wrapper metadata using the Gradle wrapper task and commit the resulting properties.",
+      "created": "2026-08-06T14:55:45Z",
+      "hunk": "@@ -1,7 +1,7 @@\n distributionBase=GRADLE_USER_HOME\n distributionPath=wrapper/dists\n-distributionSha256Sum=9c0f7faeeb306cb14e4279a3e084ca6b596894089a0638e68a07c945a32c9e14\n-distributionUrl=https\\://services.gradle.org/distributions/gradle-9.6.1-bin.zip\n+distributionSha256Sum=84fbba45c7f4c64abc77460e1c00f541e9f960e3c7ed2538f1ede19eacd873ae\n+distributionUrl=https\\://services.gradle.org/distributions/gradle-9.7.0-bin.zip",
+      "id": "PRRT_kwDODJKVX86XB3dp",
+      "opened": "2026-08-06T14:55:46Z",
+      "path": "gradle/wrapper/gradle-wrapper.properties",
+      "replies": [],
+      "reviewed": "ae748419ac237cf9f0b2a1e8da40cba136d0a594",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19429#discussion_r3729880757"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If these values were edited manually, consider updating via the Gradle Wrapper task instead (so the wrapper configuration is generated consistently). This reduces the risk of drift between wrapper metadata across subprojects, and helps keep wrapper updates reproducible.",
+      "created": "2026-08-06T14:55:46Z",
+      "hunk": "@@ -1,7 +1,7 @@\n distributionBase=GRADLE_USER_HOME\n distributionPath=wrapper/dists\n-distributionSha256Sum=9c0f7faeeb306cb14e4279a3e084ca6b596894089a0638e68a07c945a32c9e14\n-distributionUrl=https\\://services.gradle.org/distributions/gradle-9.6.1-bin.zip\n+distributionSha256Sum=84fbba45c7f4c64abc77460e1c00f541e9f960e3c7ed2538f1ede19eacd873ae\n+distributionUrl=https\\://services.gradle.org/distributions/gradle-9.7.0-bin.zip",
+      "id": "PRRT_kwDODJKVX86XB3eZ",
+      "opened": "2026-08-06T14:55:46Z",
+      "path": "gradle-plugins/gradle/wrapper/gradle-wrapper.properties",
+      "replies": [],
+      "reviewed": "ae748419ac237cf9f0b2a1e8da40cba136d0a594",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19429#discussion_r3729880824"
+    }
+  ]
+}

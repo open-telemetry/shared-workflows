@@ -1,0 +1,70 @@
+{
+  "head": "71ee0e4b6c6867a22822912ee93d57cc07ada341",
+  "merge": "3039b2baaf5814a0694f0d6f6563a6f34782a187",
+  "merged": "2026-04-04T14:55:49Z",
+  "missing_roots": 0,
+  "number": 17501,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Not needed",
+      "created": "2026-04-04T07:03:00Z",
+      "hunk": "@@ -47,6 +47,11 @@ dependencies {\n \n   testLibrary(\"io.ktor:ktor-server-netty:$ktorVersion\")\n   testLibrary(\"io.ktor:ktor-client-cio:$ktorVersion\")\n+\n+  latestDepTestLibrary(\"io.ktor:ktor-client-core:3.+\")",
+      "id": "PRRT_kwDODJKVX85409n6",
+      "opened": "2026-04-04T07:03:00Z",
+      "path": "instrumentation/ktor/ktor-3.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "f8a10827cf4ca0883d08df8ed20d78cc7971a72e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17501#discussion_r3035255950"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n    val testing InstrumentationExtension = HttpServerInstrumentationExtension.forAgent()\n```",
+      "created": "2026-04-04T11:05:43Z",
+      "hunk": "@@ -16,10 +16,10 @@ class KtorHttpServerTest : AbstractKtorHttpServerTest() {\n   companion object {\n     @JvmStatic\n     @RegisterExtension\n-    val TESTING: InstrumentationExtension = HttpServerInstrumentationExtension.forAgent()\n+    val testingExtension: InstrumentationExtension = HttpServerInstrumentationExtension.forAgent()",
+      "id": "PRRT_kwDODJKVX8541m5e",
+      "opened": "2026-04-04T11:05:43Z",
+      "path": "instrumentation/ktor/ktor-3.0/javaagent/src/test/java/io/opentelemetry/instrumentation/ktor/v3_0/KtorHttpServerTest.kt",
+      "replies": [],
+      "reviewed": "f8a10827cf4ca0883d08df8ed20d78cc7971a72e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17501#discussion_r3035464101"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n  override fun getTesting(): InstrumentationExtension = testing\n```",
+      "created": "2026-04-04T11:05:53Z",
+      "hunk": "@@ -16,10 +16,10 @@ class KtorHttpServerTest : AbstractKtorHttpServerTest() {\n   companion object {\n     @JvmStatic\n     @RegisterExtension\n-    val TESTING: InstrumentationExtension = HttpServerInstrumentationExtension.forAgent()\n+    val testingExtension: InstrumentationExtension = HttpServerInstrumentationExtension.forAgent()\n   }\n \n-  override fun getTesting(): InstrumentationExtension = TESTING\n+  override fun getTesting(): InstrumentationExtension = testingExtension",
+      "id": "PRRT_kwDODJKVX8541m6o",
+      "opened": "2026-04-04T11:05:53Z",
+      "path": "instrumentation/ktor/ktor-3.0/javaagent/src/test/java/io/opentelemetry/instrumentation/ktor/v3_0/KtorHttpServerTest.kt",
+      "replies": [],
+      "reviewed": "f8a10827cf4ca0883d08df8ed20d78cc7971a72e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17501#discussion_r3035464198"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-04T11:06:11Z",
+      "hunk": "@@ -47,6 +47,11 @@ dependencies {\n \n   testLibrary(\"io.ktor:ktor-server-netty:$ktorVersion\")\n   testLibrary(\"io.ktor:ktor-client-cio:$ktorVersion\")\n+\n+  latestDepTestLibrary(\"io.ktor:ktor-client-core:3.+\")\n+  latestDepTestLibrary(\"io.ktor:ktor-server-core:3.+\")\n+  latestDepTestLibrary(\"io.ktor:ktor-server-netty:3.+\")\n+  latestDepTestLibrary(\"io.ktor:ktor-client-cio:3.+\")",
+      "id": "PRRT_kwDODJKVX8541m9_",
+      "opened": "2026-04-04T11:06:11Z",
+      "path": "instrumentation/ktor/ktor-3.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "f8a10827cf4ca0883d08df8ed20d78cc7971a72e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17501#discussion_r3035464457"
+    }
+  ]
+}

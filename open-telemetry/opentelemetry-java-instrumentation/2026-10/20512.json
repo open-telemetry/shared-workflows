@@ -1,0 +1,25 @@
+{
+  "head": "399be9f6a5a8e35ad5e8db265cb731a450a69a88",
+  "merge": "f2d5d28477cd004f1946aa70cbaed97a466a4b41",
+  "merged": "2026-10-12T05:51:36Z",
+  "missing_roots": 0,
+  "number": 20512,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- Apache Wicket resource requests now always use the resource reference class name for `http.route`\n  and the HTTP server span name, instead of the servlet wildcard route.\n```",
+      "created": "2026-10-11T23:10:57Z",
+      "hunk": "@@ -4,6 +4,9 @@\n \n ### ⚠️ Breaking changes\n \n+- Apache Wicket resource requests now always use the resource reference class name for `http.route`\n+  and the HTTP server span name, instead of the servlet wildcard route. This no longer requires\n+  `otel.instrumentation.common.v3-preview=true`. Page routes and route precedence are unchanged.",
+      "id": "PRRT_kwDODJKVX86rSgfE",
+      "opened": "2026-10-11T23:10:57Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "97c52bba880f9e8ca2cedc4a3cc7d5841c6215d8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20512#discussion_r4243642705"
+    }
+  ]
+}

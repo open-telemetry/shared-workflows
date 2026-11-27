@@ -1,0 +1,52 @@
+{
+  "head": "ceb74cba47bb9e9db5400fb03af03d2aebdb5d54",
+  "merge": "2acaa614fe3b20d61bc0a5c5b3bababab3587875",
+  "merged": "2026-09-09T16:46:40Z",
+  "missing_roots": 0,
+  "number": 20043,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The \"Scope Trigger\" text reads like this rule applies to startup/initialization/registration code as well, but the rule itself says not to flag inline regex usage on bounded cold paths. Rewording the trigger to explicitly mark startup/init/registration as an exclusion reduces the chance of false positives.",
+      "created": "2026-09-08T20:25:05Z",
+      "hunk": "@@ -14,6 +14,7 @@ When a \"Knowledge File\" is listed, load it from `knowledge/` before reviewing th\n | Category     | Rule                                                                                                                                                                                                                                                                                                                                                                                                          | Scope Trigger                                                                                                                                                   | Knowledge File                     |\n | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |\n | General      | Logic, correctness, reliability, safety, copy/paste mistakes, incorrect comments                                                                                                                                                                                                                                                                                                                              | Always                                                                                                                                                          | —                                  |\n+| Performance  | Precompile reusable regular expressions when compilation repeats on a runtime hot path; do not flag inline regex use on a bounded cold path                                                                                                                                                                                                                                                                   | Regex use in per-request, per-message, or per-operation code and in startup, initialization, or registration code                                               | —                                  |",
+      "id": "PRRT_kwDODJKVX86gZhW5",
+      "opened": "2026-09-08T20:25:05Z",
+      "path": ".github/agents/knowledge/general-rules.md",
+      "replies": [
+        {
+          "at": "2026-09-08T22:48:42Z",
+          "body": "No code change.\n\nAnalysis: This comment describes the first draft of the guidance. The current head intentionally requires precompilation on cold paths. The checklist says \"including on cold paths,\" and the detailed rule says \"even during startup, client initialization, registration, or another cold path.\" Changing the trigger to exclude those paths would contradict both statements and reverse the current policy.\n\nUpsides: Keeping the current trigger preserves one consistent rule and avoids an exclusion that conflicts with the intended scope.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20043#discussion_r3962958142"
+        }
+      ],
+      "reviewed": "23bb301ff6993e504a538fb0ca4ed1685c5b803e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20043#discussion_r3961946145"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The inline-code metacharacter list ends with a lone backslash (``...*+\\``), which is easy to misread and can render oddly in some Markdown viewers. Consider spelling out backslash explicitly (e.g., `\\\\`) so the fast-path criteria are unambiguous.",
+      "created": "2026-09-09T00:43:27Z",
+      "hunk": "@@ -64,6 +65,19 @@ Flag real defects, including:\n \n Only flag substantive problems, not stylistic preference.\n \n+## [Performance] Precompile Regular Expressions\n+\n+Flag production Java regular-expression literals passed directly to regex-compiling APIs such as\n+`String.replaceAll` or `String.matches`. Require them to be precompiled in reusable\n+`static final Pattern` fields, even during startup, client initialization, registration, or\n+another cold path. Do not apply this rule to test code.\n+\n+`String.split` compiles a `Pattern` only when its argument misses the JDK fast path, so flag it\n+only then. That fast path covers a one-character literal that is neither a surrogate nor one of\n+`.$|()[{^?*+\\`, and a backslash followed by one character that is neither a surrogate nor an\n+ASCII letter or digit. Calls such as `value.split(\",\")` and `version.split(\"\\\\.\")` already run",
+      "id": "PRRT_kwDODJKVX86gdkVV",
+      "opened": "2026-09-09T00:43:27Z",
+      "path": ".github/agents/knowledge/general-rules.md",
+      "replies": [
+        {
+          "at": "2026-09-09T01:19:02Z",
+          "body": "Addressed in 27ebdfb90ce6d047f5d9f9597eaf2d136150b765.\n\nAnalysis: The list names individual metacharacters, so writing `\\\\` would appear to name two characters. Naming backslash in prose removes the Markdown ambiguity while preserving the exact JDK fast-path criteria.\n\nUpsides: The guidance renders consistently, and readers can distinguish the excluded backslash character from the following two-character escape case.\n\nDownsides: The sentence is slightly longer.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20043#discussion_r3963750476"
+        }
+      ],
+      "reviewed": "5c2c6c244cb2ea118ab52f969ef1406c91911d5c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20043#discussion_r3963579203"
+    }
+  ]
+}

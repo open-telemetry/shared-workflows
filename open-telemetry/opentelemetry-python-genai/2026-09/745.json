@@ -1,0 +1,25 @@
+{
+  "head": "f7c2f53cf4b659094c9ed0d6e805a7a3cc71e204",
+  "merge": "ede28ba0212c8e394a3068ae576322079ef7a94c",
+  "merged": "2026-09-21T04:44:13Z",
+  "missing_roots": 0,
+  "number": 745,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please add a regression test with an invocation that implements only `_on_stream_chunk` and has no `_request_stream`. The new protocol is intentionally narrower than `GenAIInvocation`, but the current seam fake still defines `_request_stream` (`tests/test_stream.py:448-455`), so these tests would pass even if this conditional were removed or if the wrapper still required the private attribute; the sync path's protocol-only decoupling is otherwise unverified.\n\nThis issue also appears on line 237 of the same file.",
+      "created": "2026-09-19T07:19:28Z",
+      "hunk": "@@ -115,15 +124,13 @@ class SyncStreamWrapper(\n     def __init__(\n         self,\n         stream: _SyncStream[ChunkT],\n-        invocation: GenAIInvocation | None = None,\n+        invocation: _StreamTimingInvocation | None = None,\n     ):\n         super().__init__(stream)\n         self._self_finalized = False\n-        # Marks the request as streamed (gen_ai.request.stream) and receives\n-        # per-chunk timing via _on_stream_chunk.\n         self._self_invocation = invocation\n-        if invocation is not None:\n-            invocation._request_stream = True\n+        if invocation is not None and hasattr(invocation, \"_request_stream\"):\n+            setattr(invocation, \"_request_stream\", True)",
+      "id": "PRRT_kwDOSbspP86j92ko",
+      "opened": "2026-09-19T07:19:28Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "4c20cbf2cdef3a2f4ed0d8fc35544af07a385471",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/745#discussion_r4052535325"
+    }
+  ]
+}

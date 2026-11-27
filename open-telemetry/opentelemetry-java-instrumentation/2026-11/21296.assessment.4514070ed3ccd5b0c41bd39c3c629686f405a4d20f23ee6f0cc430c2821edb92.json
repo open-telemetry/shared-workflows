@@ -1,0 +1,37 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "eac66fc59e1bee7adef78523e0d3d9d37647a9b3fcdc8c22b1394149b7aad490",
+  "input_digest": "4514070ed3ccd5b0c41bd39c3c629686f405a4d20f23ee6f0cc430c2821edb92",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bca8fbf9e321da8de2bc0dfb71d07f6c4e825b4/instrumentation/log4j/log4j-appender-2.17/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7bca8fbf9e321da8de2bc0dfb71d07f6c4e825b4/instrumentation/log4j/log4j-appender-2.17/javaagent/src/mapMessageCompatibilityTest/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/MapMessageCompatibilityTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb7812617fd81e33a614525c52fc24c678cd2b54/instrumentation/log4j/log4j-appender-2.17/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb7812617fd81e33a614525c52fc24c678cd2b54/instrumentation/log4j/log4j-appender-2.17/javaagent/src/mapMessageCompatibilityTest/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/MapMessageCompatibilityTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb7812617fd81e33a614525c52fc24c678cd2b54/instrumentation/log4j/log4j-appender-2.17/library/src/test/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/internal/LogEventMapperTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX863GI3d",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d06f639a38cb86974c864399083c3212a32f682d/instrumentation/log4j/log4j-appender-2.17/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d06f639a38cb86974c864399083c3212a32f682d/instrumentation/log4j/log4j-appender-2.17/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb7812617fd81e33a614525c52fc24c678cd2b54/instrumentation/log4j/log4j-appender-2.17/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb7812617fd81e33a614525c52fc24c678cd2b54/instrumentation/log4j/log4j-appender-2.17/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/21e621b5471945a557234ef8027110effb67e2d6"
+      ],
+      "id": "PRRT_kwDODJKVX864P3uD",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

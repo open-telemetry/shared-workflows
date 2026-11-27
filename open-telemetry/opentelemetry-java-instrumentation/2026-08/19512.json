@@ -1,0 +1,67 @@
+{
+  "head": "0c343b245ea60e4c227ef47cae73d1a92bf9eefd",
+  "merge": "ba8458d42e15ba53dc6b4fb091d228584dc2e25f",
+  "merged": "2026-08-11T21:22:10Z",
+  "missing_roots": 0,
+  "number": 19512,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `desc` still says “percentage”, but the metric is now normalized to a unitless fraction (`unit: \\\"1\\\"`). Update the description to reflect the new semantics (e.g., “The fraction (0..1) of non-persistent storage used by this destination”) to avoid misleading metric consumers.",
+      "created": "2026-08-11T15:05:56Z",
+      "hunk": "@@ -37,6 +37,7 @@ rules:\n       # activemq.destination.temp.utilization\n       TempUsagePercentUsage:\n         metric: destination.temp.utilization\n+        sourceUnit: \"%\"\n         unit: \"1\"\n         type: gauge\n         desc: The percentage of non-persistent storage used by this destination",
+      "id": "PRRT_kwDODJKVX86YRe0p",
+      "opened": "2026-08-11T15:05:57Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/activemq.yaml",
+      "replies": [
+        {
+          "at": "2026-08-11T15:14:24Z",
+          "body": "fixed in 2c889bd, changing metric descriptions is not considered to be a breaking change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19512#discussion_r3759216653"
+        }
+      ],
+      "reviewed": "917ab2948cf858ef5442749acbacc5b3a2fe9fa8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19512#discussion_r3759146573"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The changelog entry says the new range is “between 0 and 1”, while the PR description/migration notes specify “between 0 and 1.0 (inclusive)”. Consider aligning the wording (and explicitly stating inclusivity) to avoid ambiguity. Also remove the trailing whitespace at the end of line 7.",
+      "created": "2026-08-11T15:05:57Z",
+      "hunk": "@@ -2,6 +2,10 @@\n \n ## Unreleased\n \n+### ⚠️ Breaking changes to non-stable APIs\n+\n+- Normalize the value of `activemq.destination.temp.utilization` JMX Metric for ActiveMQ to be between 0 and 1 instead of between 0 and 100. \n+",
+      "id": "PRRT_kwDODJKVX86YRe1S",
+      "opened": "2026-08-11T15:05:57Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-08-11T15:14:45Z",
+          "body": "fixed in 503e0c0",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19512#discussion_r3759219523"
+        }
+      ],
+      "reviewed": "917ab2948cf858ef5442749acbacc5b3a2fe9fa8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19512#discussion_r3759146637"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "this keeps the description consistent with the captured value, there are other changes to description (like adding an extra dot) in #19247, so the goal here is just to keep things consistent, further improvements will be done separately.",
+      "created": "2026-08-11T15:23:30Z",
+      "hunk": "@@ -147,7 +147,7 @@ private static MetricsVerifier createMetricsVerifier() {\n                     .hasUnit(\"1\")\n                     .hasDataPointsWithAttributes(topicAttributes)\n                     .hasDescription(\n-                        \"The percentage of non-persistent storage used by this destination\"))\n+                        \"The fraction of non-persistent storage used by this destination\"))",
+      "id": "PRRT_kwDODJKVX86YR2lE",
+      "opened": "2026-08-11T15:23:30Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/ActiveMqTest.java",
+      "replies": [],
+      "reviewed": "503e0c0cde1f426fa697d04d190da2394d0d6216",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19512#discussion_r3759287607"
+    }
+  ]
+}

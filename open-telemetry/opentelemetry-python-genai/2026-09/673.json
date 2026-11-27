@@ -1,0 +1,401 @@
+{
+  "head": "ae5e7a3a835aa693da504d66d36b8b6f6a40527e",
+  "merge": "174d079b2b46a07fe5656f1b7180068e059c555b",
+  "merged": "2026-09-23T18:36:43Z",
+  "missing_roots": 0,
+  "number": 673,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`register_post_import_hook` is used to defer wrapping, but the hook is never removed/disabled on `uninstrument()`. If Agno submodules (e.g. `agno.workflow.workflow`, `agno.knowledge.knowledge`) are imported after `AgnoInstrumentor().uninstrument()`, the post-import hook will still run and re-patch methods, effectively re-enabling instrumentation unexpectedly (and can also stack multiple wrappers across instrument/uninstrument cycles).",
+      "created": "2026-09-10T20:19:47Z",
+      "hunk": "@@ -58,6 +77,34 @@\n _FUNCTION_CALL_CLASS = \"FunctionCall\"\n _AGNO_WORKFLOW_MODULE = \"agno.workflow.workflow\"\n _WORKFLOW_CLASS = \"Workflow\"\n+_AGNO_KNOWLEDGE_MODULE = \"agno.knowledge.knowledge\"\n+_KNOWLEDGE_CLASS = \"Knowledge\"\n+\n+\n+def _safe_wrap_function(\n+    target_module: str,\n+    target_name: str,\n+    wrapper: Callable[..., Any],\n+) -> None:\n+    \"\"\"Safely wrap a method if it exists, deferring if module is not yet imported.\"\"\"\n+\n+    def _apply(mod: Any) -> None:\n+        try:\n+            parts = target_name.split(\".\")\n+            curr = mod\n+            for part in parts:\n+                curr = getattr(curr, part)\n+        except AttributeError:\n+            # Target class or method may not exist across all supported Agno versions.\n+            return\n+        wrap_function_wrapper(mod, target_name, wrapper)\n+\n+    if target_module in sys.modules:\n+        _apply(sys.modules[target_module])\n+        return\n+\n+    # Defer wrapping to avoid eagerly importing submodules with heavy or optional dependencies.\n+    register_post_import_hook(_apply, target_module)",
+      "id": "PRRT_kwDOSbspP86hO2MB",
+      "opened": "2026-09-10T20:19:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [],
+      "reviewed": "7d5d26afff7bac9f615be9470c3f08e07a276d71",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r3983135018"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This code mutates the private `AgentInvocation._request_model` field from `opentelemetry-util-genai`. That attribute is not part of the public API and could change without notice; relying on it from an instrumentation package increases the risk of breakage on util upgrades. Consider adding a supported setter/property on `AgentInvocation` (or a helper on `TelemetryHandler`) for updating the request model after span start, and use that instead.",
+      "created": "2026-09-10T20:19:48Z",
+      "hunk": "@@ -241,6 +308,12 @@ def _set_invocation_output(\n     session_id = getattr(result, \"session_id\", None)\n     if session_id:\n         invocation.conversation_id = str(session_id)\n+    if isinstance(invocation, AgentInvocation):\n+        if not invocation._request_model:\n+            model = getattr(result, \"model\", None)\n+            if model:\n+                invocation._request_model = str(model)\n+                invocation.attributes[GenAI.GEN_AI_REQUEST_MODEL] = str(model)",
+      "id": "PRRT_kwDOSbspP86hO2M5",
+      "opened": "2026-09-10T20:19:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [],
+      "reviewed": "7d5d26afff7bac9f615be9470c3f08e07a276d71",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r3983135105"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Catching `Exception` leaves cancelled tool invocations open and leaks their context. Catch `BaseException`, finalize the invocation, and re-raise unchanged in both tool wrappers and both retrieval wrappers.\n\nThis test fails on the PR and passes on its base (Agno 2.9):\n\n```python\ndef test_cancelled_tool_finishes(instrument_agno, span_exporter):\n    error = asyncio.CancelledError('cancelled')\n    async def cancelled():\n        raise error\n    async def run():\n        call = FunctionCall(function=Function.from_callable(cancelled), arguments={})\n        with pytest.raises(asyncio.CancelledError) as caught:\n            await call.aexecute()\n        assert caught.value is error\n        spans = span_exporter.get_finished_spans()\n        assert len(spans) == 1\n        assert spans[0].attributes['error.type'] == 'asyncio.exceptions.CancelledError'\n    asyncio.run(run())\n```",
+      "created": "2026-09-11T17:20:21Z",
+      "hunk": "@@ -374,23 +492,57 @@ async def _await_result() -> object:\n     return traced_method\n \n \n+def _handle_tool_result(\n+    invocation: ToolInvocation,\n+    instance: FunctionCall,\n+    result: FunctionExecutionResult,\n+    capture_content: bool,\n+) -> FunctionExecutionResult:\n+    if result.status == \"failure\":\n+        _fail_tool_invocation(invocation, result)\n+        return result\n+\n+    tool_res = result.result\n+    wrapped_stream: Any = None\n+    if isinstance(tool_res, AsyncIterator):\n+        wrapped_stream = AsyncAgnoToolStreamWrapper(\n+            cast(Any, tool_res), invocation, capture_content\n+        )\n+    elif isinstance(tool_res, Iterator):\n+        wrapped_stream = AgnoToolStreamWrapper(\n+            cast(Any, tool_res), invocation, capture_content\n+        )\n+\n+    if wrapped_stream is not None:\n+        result.result = wrapped_stream\n+        instance.result = wrapped_stream\n+        return result\n+\n+    _set_tool_invocation_output(invocation, result, capture_content)\n+    invocation.stop()\n+    return result\n+\n+\n def _tool_call_execute(\n     handler: TelemetryHandler,\n ) -> Callable[..., Any]:\n     capture_content = handler.should_capture_content()\n \n     def traced_method(\n-        wrapped: Callable[..., Any],\n-        instance: Any,\n+        wrapped: Callable[..., FunctionExecutionResult],\n+        instance: FunctionCall,\n         args: tuple[Any, ...],\n         kwargs: dict[str, Any],\n-    ) -> Any:\n-        with _start_tool_invocation(\n-            handler, instance, capture_content\n-        ) as invocation:\n+    ) -> FunctionExecutionResult:\n+        invocation = _start_tool_invocation(handler, instance, capture_content)\n+        try:\n             result = wrapped(*args, **kwargs)\n-            _set_tool_invocation_output(invocation, result, capture_content)\n-            return result\n+        except Exception as error:",
+      "id": "PRRT_kwDOSbspP86hkiLi",
+      "opened": "2026-09-12T22:48:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-14T14:25:42Z",
+          "body": "Ack.. switched to BaseException",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4006183687"
+        }
+      ],
+      "reviewed": "70490d277144e3e40d5b014560f54c79d31709cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r3991714778"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `invoke_local_agent(request_model=...)` already records this attribute. Remove the redundant assignment.",
+      "created": "2026-09-11T17:20:21Z",
+      "hunk": "@@ -251,7 +353,23 @@ def _start_agent_invocation(\n     capture_content: bool,\n ) -> AgentInvocation:\n     agent_name = getattr(instance, \"name\", None)\n-    invocation = handler.invoke_local_agent(agent_name=agent_name)\n+    model_obj = getattr(instance, \"model\", None)\n+    request_model = None\n+    if model_obj is not None:\n+        request_model = getattr(model_obj, \"id\", None) or (\n+            model_obj if isinstance(model_obj, str) else None\n+        )\n+\n+    invocation = handler.invoke_local_agent(\n+        agent_name=str(agent_name) if agent_name else None,\n+        request_model=str(request_model) if request_model else None,\n+    )\n+    if request_model:\n+        invocation.attributes[GenAI.GEN_AI_REQUEST_MODEL] = str(request_model)",
+      "id": "PRRT_kwDOSbspP86hkiMO",
+      "opened": "2026-09-12T22:48:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-14T14:31:44Z",
+          "body": "Ack",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4006239547"
+        }
+      ],
+      "reviewed": "70490d277144e3e40d5b014560f54c79d31709cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r3991714830"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Missing test coverage for `FunctionCall`:\n- `FunctionCall.aexecute` in non-streaming mode (only sync `FunctionCall.execute` is tested).\n- Tool execution with content capture disabled for both sync and async (verifying `gen_ai.tool.call.result` and `arguments` are suppressed).",
+      "created": "2026-09-11T17:20:22Z",
+      "hunk": "@@ -256,3 +257,226 @@ def test_agent_run_without_tools(\n     span = spans[0]\n     assert span.name == \"invoke_agent test-no-tools-agent\"\n     assert GenAIAttributes.GEN_AI_TOOL_DEFINITIONS not in span.attributes\n+\n+\n+def test_tool_call_execute_sync(",
+      "id": "PRRT_kwDOSbspP86hkiMm",
+      "opened": "2026-09-12T22:48:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_tools.py",
+      "replies": [
+        {
+          "at": "2026-09-14T14:38:01Z",
+          "body": "Ack added tests",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4006298824"
+        }
+      ],
+      "reviewed": "70490d277144e3e40d5b014560f54c79d31709cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r3991714862"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Missing test coverage for `Knowledge`:\n- `Knowledge.asearch` with content capture disabled (only sync `Knowledge.search` is tested without content capture).\n- `Knowledge.asearch` on error (only sync `Knowledge.search` error is tested).",
+      "created": "2026-09-11T17:20:22Z",
+      "hunk": "@@ -0,0 +1,225 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for Agno Knowledge instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+import json\n+from unittest.mock import AsyncMock, MagicMock\n+\n+import pytest\n+from agno.knowledge.knowledge import Document, Knowledge\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.trace import SpanKind\n+\n+\n+def test_knowledge_search_content_capture(\n+    instrument_agno_content_capture,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test Knowledge.search with content capture enabled.\"\"\"\n+    kb = Knowledge(name=\"test_kb\", max_results=5)\n+    kb.vector_db = MagicMock()\n+    kb.vector_db.name = \"pgvector_instance\"\n+    kb.vector_db.provider = \"pgvector\"\n+    kb.vector_db.search.return_value = [\n+        Document(\n+            content=\"OpenTelemetry is an observability framework.\",\n+            id=\"doc_1\",\n+            meta_data={\"source\": \"docs\"},\n+            reranking_score=0.95,\n+        ),\n+        Document(\n+            content=\"Agno is an agent framework.\",\n+            id=\"doc_2\",\n+            reranking_score=0.88,\n+        ),\n+    ]\n+\n+    docs = kb.search(query=\"what is OpenTelemetry?\", max_results=5)\n+    assert len(docs) == 2\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"retrieval test_kb\"\n+    assert span.kind == SpanKind.CLIENT\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME)\n+        == \"retrieval\"\n+    )\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_DATA_SOURCE_ID) == \"test_kb\"\n+    )\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_PROVIDER_NAME) == \"pgvector\"\n+    )\n+    assert span.attributes.get(\"gen_ai.retrieval.top_k\") == 5\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_RETRIEVAL_QUERY_TEXT)\n+        == \"what is OpenTelemetry?\"\n+    )\n+\n+    raw_docs = span.attributes.get(GenAIAttributes.GEN_AI_RETRIEVAL_DOCUMENTS)\n+    assert isinstance(raw_docs, str)\n+    parsed_docs = json.loads(raw_docs)\n+    assert len(parsed_docs) == 2\n+    assert (\n+        parsed_docs[0][\"content\"]\n+        == \"OpenTelemetry is an observability framework.\"\n+    )\n+    assert parsed_docs[0][\"id\"] == \"doc_1\"\n+    assert parsed_docs[0][\"score\"] == 0.95\n+    assert parsed_docs[0][\"metadata\"] == {\"source\": \"docs\"}\n+    assert parsed_docs[1][\"content\"] == \"Agno is an agent framework.\"\n+    assert parsed_docs[1][\"id\"] == \"doc_2\"\n+    assert parsed_docs[1][\"score\"] == 0.88\n+\n+\n+def test_knowledge_search_no_content_capture(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test Knowledge.search with content capture disabled.\"\"\"\n+    kb = Knowledge(name=\"private_kb\", max_results=3)\n+    kb.vector_db = MagicMock()\n+    kb.vector_db.search.return_value = [\n+        Document(content=\"Secret content\", id=\"secret_1\")\n+    ]\n+\n+    docs = kb.search(query=\"secret query\")\n+    assert len(docs) == 1\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"retrieval private_kb\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME)\n+        == \"retrieval\"\n+    )\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_DATA_SOURCE_ID)\n+        == \"private_kb\"\n+    )\n+    assert span.attributes.get(\"gen_ai.retrieval.top_k\") == 3\n+    assert GenAIAttributes.GEN_AI_RETRIEVAL_QUERY_TEXT not in span.attributes\n+    assert GenAIAttributes.GEN_AI_RETRIEVAL_DOCUMENTS not in span.attributes\n+\n+\n+def test_knowledge_asearch_content_capture(",
+      "id": "PRRT_kwDOSbspP86hkiMq",
+      "opened": "2026-09-12T22:48:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_knowledge.py",
+      "replies": [
+        {
+          "at": "2026-09-14T14:41:10Z",
+          "body": "Ack added tests",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4006327946"
+        }
+      ],
+      "reviewed": "70490d277144e3e40d5b014560f54c79d31709cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r3991714872"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Returning a tool stream leaves its span active in the caller context, so unrelated work before the stream is drained becomes its child. Restore the caller context before returning, and activate the tool context while consuming the stream.\n\nAdd this test to `tests/test_tools.py`. It fails on the PR and passes on its base (Agno 2.9):\n\n```python\ndef test_tool_stream_restores_caller_context(instrument_agno) -> None:\n    from collections.abc import Iterator\n    from opentelemetry.trace import get_current_span\n\n    def streaming_tool() -> Iterator[str]:\n        yield \"chunk\"\n\n    caller = get_current_span()\n    call = FunctionCall(\n        function=Function.from_callable(streaming_tool), arguments={}\n    )\n    result = call.execute()\n    current_after_return = get_current_span()\n    assert list(result.result) == [\"chunk\"]\n    assert current_after_return is caller\n```",
+      "created": "2026-09-12T22:31:05Z",
+      "hunk": "@@ -374,23 +492,57 @@ async def _await_result() -> object:\n     return traced_method\n \n \n+def _handle_tool_result(\n+    invocation: ToolInvocation,\n+    instance: FunctionCall,\n+    result: FunctionExecutionResult,\n+    capture_content: bool,\n+) -> FunctionExecutionResult:\n+    if result.status == \"failure\":\n+        _fail_tool_invocation(invocation, result)\n+        return result\n+\n+    tool_res = result.result\n+    wrapped_stream: Any = None\n+    if isinstance(tool_res, AsyncIterator):\n+        wrapped_stream = AsyncAgnoToolStreamWrapper(\n+            cast(Any, tool_res), invocation, capture_content\n+        )\n+    elif isinstance(tool_res, Iterator):\n+        wrapped_stream = AgnoToolStreamWrapper(\n+            cast(Any, tool_res), invocation, capture_content\n+        )\n+\n+    if wrapped_stream is not None:\n+        result.result = wrapped_stream\n+        instance.result = wrapped_stream\n+        return result",
+      "id": "PRRT_kwDOSbspP86h0RfX",
+      "opened": "2026-09-12T22:48:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-14T16:51:12Z",
+          "body": "Great point.. I ended up creating new classes `SyncToolStreamWrapper` and `AsyncToolStreamWrapper` in utils to handle this case but it is tricky. \r\n\r\nCheck out commit [8a15a66](https://github.com/open-telemetry/opentelemetry-python-genai/pull/673/commits/8a15a66161fc1cd95ba93170e07a25881b14c8d6)\r\n\r\nIn Agno, synchronous streaming tools execute sequentially and are iterated to completion on the same thread. In async runs, tools execute concurrently in separate tasks/threads; because context is copied upon creation, each tool correctly inherits the parent context and is recorded as a sibling span.\r\n\r\nBut these classes don't work well if someone calls `next` just once on the iterator/generator and then leaves the stream for a while and comes back later (be cause the tool call will be the parent span in the context).. It's hard to design this without knowing exactly what the use case is though.. Agno is the only one doing this right now..\r\n\r\nI also directly access `GenAiInvocation._context_token` inside the stream wrapper classes, maybe theres a better way to do that..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4007488460"
+        },
+        {
+          "at": "2026-09-16T04:28:20Z",
+          "body": "Maybe we should not attach context at all for streaming tools? Yes, correlation with child spans created inside the generator might be lost, but leaking context is not great.\r\n\r\n`_activate_context()` leaks the tool span into the caller thread during iteration, between chunks, or if iteration breaks early. Here is a test showing the leak:\r\n\r\n```python\r\ndef test_tool_stream_partial_iteration_restores_caller_context(instrument_agno) -> None:\r\n    from collections.abc import Iterator\r\n    from opentelemetry.trace import get_current_span\r\n\r\n    def streaming_tool() -> Iterator[str]:\r\n        yield \"chunk1\"\r\n        yield \"chunk2\"\r\n\r\n    caller = get_current_span()\r\n    call = FunctionCall(\r\n        function=Function.from_callable(streaming_tool), arguments={}\r\n    )\r\n    result = call.execute()\r\n    it = iter(result.result)\r\n    assert next(it) == \"chunk1\"\r\n    assert get_current_span() is caller\r\n```\r\n\r\nIf you want to try to prevent leaks, you can use the `.context` property on the invocation instead of private `_context_token` - just added in one of the recent PRs.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4022477094"
+        },
+        {
+          "at": "2026-09-16T17:12:21Z",
+          "body": "I added a `suspend` method and `activate` contextmanager to the base GenAIInvocation  so that we can wrap all the streaming tool methods and toggle the context on and off.. let me know what you think",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4028724593"
+        }
+      ],
+      "reviewed": "70490d277144e3e40d5b014560f54c79d31709cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r3997859473"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Agno sets `RunOutput.model` from `agent.model.id` before execution, so this is configured-model metadata, not a provider response model ([source](https://github.com/agno-agi/agno/blob/v2.9.0/libs/agno/agno/agent/_run.py#L1313)). Capture it at invocation start when applicable; remove this fallback rather than rename it to `gen_ai.response.model`, which is not defined for [internal agent spans](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md#invoke-agent-internal-span).\n\n```suggestion\n```",
+      "created": "2026-09-12T22:33:47Z",
+      "hunk": "@@ -241,6 +337,12 @@ def _set_invocation_output(\n     session_id = getattr(result, \"session_id\", None)\n     if session_id:\n         invocation.conversation_id = str(session_id)\n+    if isinstance(invocation, AgentInvocation):\n+        model = getattr(result, \"model\", None)\n+        if model:\n+            invocation.attributes.setdefault(\n+                GenAI.GEN_AI_REQUEST_MODEL, str(model)\n+            )",
+      "id": "PRRT_kwDOSbspP86h0SZs",
+      "opened": "2026-09-12T22:48:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-14T17:33:49Z",
+          "body": "Ack good catch. fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4007834092"
+        }
+      ],
+      "reviewed": "70490d277144e3e40d5b014560f54c79d31709cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r3997865364"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please remove the stream fallback too. The run model comes from Agno's configured `agent.model.id`, not a provider response. Keep configured-model capture at invocation start; do not replace this with `gen_ai.response.model`.\r\n\r\n```suggestion\r\n```",
+      "created": "2026-09-12T22:33:48Z",
+      "hunk": "@@ -48,6 +52,12 @@ def _process_chunk(self, chunk: Any) -> None:\n         if session_id and not self._self_agent_invocation.conversation_id:\n             self._self_agent_invocation.conversation_id = str(session_id)\n \n+        model = getattr(chunk, \"model\", None)\n+        if model:\n+            self._self_agent_invocation.attributes.setdefault(\n+                GenAI.GEN_AI_REQUEST_MODEL, str(model)\n+            )",
+      "id": "PRRT_kwDOSbspP86h0SZ5",
+      "opened": "2026-09-12T22:48:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/stream.py",
+      "replies": [
+        {
+          "at": "2026-09-14T17:34:14Z",
+          "body": "yep removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4007837539"
+        }
+      ],
+      "reviewed": "70490d277144e3e40d5b014560f54c79d31709cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r3997865390"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n        if self._finished:\n            yield\n            return\n        token = attach(self.context)\n        try:\n            yield\n        finally:\n            detach(token)\n```\nWe can use the public `self.context` property here instead of `self._span_context`.\n\nAlso, using a local `token` inside `activate()` instead of mutating `self._context_token` keeps context activation safe across concurrent async tasks or threads (avoiding token detachment conflicts or `ValueError`).",
+      "created": "2026-09-19T03:57:36Z",
+      "hunk": "@@ -151,6 +152,35 @@ def _start(\n         self._monotonic_start_s = timeit.default_timer()\n         self._context_token = attach(self._span_context)\n \n+    def suspend(self) -> None:\n+        \"\"\"Restore the context that was current before this invocation started.\n+\n+        Call this when handing control back to the caller while the invocation\n+        is still running -- returning a stream the caller has not drained yet,\n+        for example -- so unrelated caller work is not parented under this\n+        invocation's span. Idempotent, and pairs with ``activate``.\n+        \"\"\"\n+        token, self._context_token = self._context_token, None\n+        if token is not None:\n+            detach(token)\n+\n+    @contextmanager\n+    def activate(self) -> Iterator[None]:\n+        \"\"\"Make this invocation's span the current span inside the block.\n+\n+        Restores the previous context on exit. A no-op when the span is\n+        already current, so a nested block leaves the outermost one to restore\n+        it, and a no-op once the invocation has finished.\n+        \"\"\"\n+        if self._finished or self._context_token is not None:\n+            yield\n+            return\n+        self._context_token = attach(self._span_context)\n+        try:\n+            yield\n+        finally:\n+            self.suspend()",
+      "id": "PRRT_kwDOSbspP86j81ge",
+      "opened": "2026-09-19T04:05:43Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-21T18:07:57Z",
+          "body": "Good idea.. done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4065012550"
+        }
+      ],
+      "reviewed": "7fb48b6d9758b67606b1bf0c9c8b0d1d06067c05",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4052136174"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    if isinstance(tool_res, AsyncIterator):\n        wrapped_stream = AsyncToolStreamWrapper(cast(Any, tool_res), invocation)\n    elif isinstance(tool_res, Iterator):\n        wrapped_stream = SyncToolStreamWrapper(cast(Any, tool_res), invocation)\n```\n`SyncToolStreamWrapper` and `AsyncToolStreamWrapper` in util already handle chunk accumulation and check `invocation.should_capture_content`. Can we use them directly here rather than maintaining `AgnoToolStreamWrapper` and `AsyncAgnoToolStreamWrapper` with redundant `capture_content` parameters?",
+      "created": "2026-09-19T03:57:36Z",
+      "hunk": "@@ -374,23 +483,57 @@ async def _await_result() -> object:\n     return traced_method\n \n \n+def _handle_tool_result(\n+    invocation: ToolInvocation,\n+    instance: FunctionCall,\n+    result: FunctionExecutionResult,\n+    capture_content: bool,\n+) -> FunctionExecutionResult:\n+    if result.status == \"failure\":\n+        _fail_tool_invocation(invocation, result)\n+        return result\n+\n+    tool_res = result.result\n+    wrapped_stream: Any = None\n+    if isinstance(tool_res, AsyncIterator):\n+        wrapped_stream = AsyncAgnoToolStreamWrapper(\n+            cast(Any, tool_res), invocation, capture_content\n+        )\n+    elif isinstance(tool_res, Iterator):\n+        wrapped_stream = AgnoToolStreamWrapper(\n+            cast(Any, tool_res), invocation, capture_content\n+        )",
+      "id": "PRRT_kwDOSbspP86j81gk",
+      "opened": "2026-09-19T04:05:43Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-21T18:10:37Z",
+          "body": "good point.. done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4065032492"
+        }
+      ],
+      "reviewed": "7fb48b6d9758b67606b1bf0c9c8b0d1d06067c05",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4052136181"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n        if invocation.should_capture_content and result is not None:\n            invocation.documents = [\n                format_retrieval_document(doc) for doc in result\n            ]\n```\nCheck `invocation.should_capture_content` directly rather than snapshotting `capture_content = handler.should_capture_content()` at patch time (and similarly in `_knowledge_asearch`).",
+      "created": "2026-09-19T03:57:36Z",
+      "hunk": "@@ -522,3 +668,133 @@ async def _await_result() -> object:\n         return result\n \n     return traced_method\n+\n+\n+def _start_retrieval_invocation(\n+    handler: TelemetryHandler,\n+    instance: Knowledge,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+) -> RetrievalInvocation:\n+    vector_db = instance.vector_db\n+    data_source_id = (\n+        instance.name\n+        or (\n+            getattr(vector_db, \"name\", None) if vector_db is not None else None\n+        )\n+        or (\n+            getattr(vector_db, \"collection\", None)\n+            if vector_db is not None\n+            else None\n+        )\n+        or (\n+            getattr(vector_db, \"table_name\", None)\n+            if vector_db is not None\n+            else None\n+        )\n+    )\n+    provider = None\n+    if vector_db is not None:\n+        provider = (\n+            getattr(vector_db, \"provider\", None)\n+            or vector_db.__class__.__name__.lower()\n+        )\n+\n+    embedder = (\n+        getattr(vector_db, \"embedder\", None) if vector_db is not None else None\n+    )\n+    request_model = None\n+    if embedder is not None:\n+        request_model = getattr(embedder, \"id\", None) or getattr(\n+            embedder, \"model\", None\n+        )\n+\n+    invocation = handler.retrieval(\n+        data_source_id=str(data_source_id)\n+        if data_source_id is not None\n+        else None,\n+        provider=str(provider).lower() if provider is not None else None,\n+        request_model=str(request_model)\n+        if request_model is not None\n+        else None,\n+    )\n+\n+    query = args[0] if args else kwargs.get(\"query\")\n+    if query is not None:\n+        invocation.query_text = str(query)\n+\n+    max_results = None\n+    if len(args) > 1 and args[1] is not None:\n+        max_results = args[1]\n+    elif kwargs.get(\"max_results\") is not None:\n+        max_results = kwargs.get(\"max_results\")\n+    else:\n+        max_results = instance.max_results\n+\n+    if max_results is not None:\n+        try:\n+            invocation.top_k = int(max_results)\n+        except (ValueError, TypeError):\n+            pass\n+\n+    return invocation\n+\n+\n+def _knowledge_search(\n+    handler: TelemetryHandler,\n+) -> Callable[..., Any]:\n+    capture_content = handler.should_capture_content()\n+\n+    def traced_method(\n+        wrapped: Callable[..., Sequence[Document] | None],\n+        instance: Knowledge,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Any:\n+        invocation = _start_retrieval_invocation(\n+            handler, instance, args, kwargs\n+        )\n+        try:\n+            result = wrapped(*args, **kwargs)\n+        except BaseException as error:\n+            invocation.fail(error)\n+            raise\n+\n+        if capture_content and result is not None:\n+            invocation.documents = [\n+                format_retrieval_document(doc) for doc in result\n+            ]",
+      "id": "PRRT_kwDOSbspP86j81go",
+      "opened": "2026-09-19T04:05:43Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-21T18:10:44Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4065033480"
+        }
+      ],
+      "reviewed": "7fb48b6d9758b67606b1bf0c9c8b0d1d06067c05",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4052136185"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "let's use util's model here too?",
+      "created": "2026-09-19T04:03:01Z",
+      "hunk": "@@ -8,14 +8,32 @@\n import dataclasses\n import json\n from collections.abc import Iterable\n-from typing import Any, Protocol, cast, runtime_checkable\n+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable\n+\n+if TYPE_CHECKING:\n+    from agno.knowledge.document.base import Document\n \n from opentelemetry.util.genai.types import (\n     FunctionToolDefinition,\n     ToolDefinition,\n )\n \n \n+def format_retrieval_document(doc: Document) -> dict[str, Any]:\n+    \"\"\"Format an Agno Document into a retrieval document dict.\"\"\"\n+    doc_dict: dict[str, Any] = {\"content\": doc.content}",
+      "id": "PRRT_kwDOSbspP86j83kE",
+      "opened": "2026-09-19T04:05:43Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-21T18:13:59Z",
+          "body": "Ack.. getting rid of content / metadata and using utils model.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4065057812"
+        }
+      ],
+      "reviewed": "7fb48b6d9758b67606b1bf0c9c8b0d1d06067c05",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4052149085"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Serializing non-string chunks into strings in `_process_chunk` causes them to be concatenated into malformed JSON (e.g. `{\"k1\": \"v1\"}{\"k2\": \"v2\"}`) instead of preserving a list of items.\n\nHere is a test showing the issue:\n\n```python\ndef test_sync_tool_stream_wrapper_non_string_chunks():\n    invocation, span_exporter = _started_tool_invocation()\n    chunks = [{\"k1\": \"v1\"}, {\"k2\": \"v2\"}]\n    stream = _FakeSyncStream(chunks=chunks)\n    wrapper = SyncToolStreamWrapper(stream, invocation)\n\n    assert list(wrapper) == chunks\n\n    assert invocation.tool_result == chunks\n    spans = span_exporter.get_finished_spans()\n    assert len(spans) == 1\n    assert spans[0].attributes[\"gen_ai.tool.call.result\"] == json.dumps(chunks)\n```",
+      "created": "2026-09-22T04:55:39Z",
+      "hunk": "@@ -365,6 +368,126 @@ async def __anext__(self) -> ChunkT:\n         return chunk\n \n \n+class SyncToolStreamWrapper(SyncStreamWrapper[ChunkT]):\n+    \"\"\"Stream wrapper for synchronous tool executions that return iterators/generators.\n+\n+    Tool executions return an iterator or generator to the caller before it is\n+    drained. This wrapper restores the caller's context before returning, and\n+    makes the tool span current only while tool code runs -- producing a chunk,\n+    closing, or finalizing -- so caller work between chunks is not parented\n+    under the tool. Per-chunk content is accumulated and set on\n+    ``invocation.tool_result`` upon completion.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        stream: _SyncStream[ChunkT],\n+        invocation: ToolInvocation,\n+    ) -> None:\n+        super().__init__(stream)\n+        self._self_tool_invocation = invocation\n+        invocation.suspend()\n+        self._self_chunks: list[Any] = []\n+\n+    def __next__(self) -> ChunkT:\n+        with self._self_tool_invocation.activate():\n+            return super().__next__()\n+\n+    def close(self) -> None:\n+        with self._self_tool_invocation.activate():\n+            super().close()\n+\n+    def __exit__(\n+        self,\n+        exc_type: type[BaseException] | None,\n+        exc_val: BaseException | None,\n+        exc_tb: TracebackType | None,\n+    ) -> Literal[False]:\n+        with self._self_tool_invocation.activate():\n+            return super().__exit__(exc_type, exc_val, exc_tb)\n+\n+    def _process_chunk(self, chunk: ChunkT) -> None:\n+        if self._self_tool_invocation.should_capture_content:\n+            if isinstance(chunk, str):\n+                self._self_chunks.append(chunk)\n+            else:\n+                try:\n+                    self._self_chunks.append(gen_ai_json_dumps(chunk))\n+                except Exception:\n+                    self._self_chunks.append(str(chunk))\n+\n+    def _on_stream_end(self) -> None:\n+        if self._self_tool_invocation.should_capture_content:\n+            if all(isinstance(c, str) for c in self._self_chunks):",
+      "id": "PRRT_kwDOSbspP86kmmj6",
+      "opened": "2026-09-22T04:57:02Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [
+        {
+          "at": "2026-09-22T19:41:01Z",
+          "body": "Ack, fixed this",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4075703462"
+        }
+      ],
+      "reviewed": "2ab29de658530469d1bb6d1c54ec032b2bdb6ff6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4068552074"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please add tests for Agno streaming tools with content capture enabled, as well as mid-iteration error and early break scenarios.",
+      "created": "2026-09-22T04:55:39Z",
+      "hunk": "@@ -287,3 +289,471 @@ def sample_tool(location: str) -> str:\n     span = spans[0]\n     assert span.name == \"invoke_agent test-tools-no-capture-agent\"\n     assert GenAIAttributes.GEN_AI_TOOL_DEFINITIONS not in span.attributes\n+\n+\n+def test_tool_call_execute_sync(\n+    instrument_agno_content_capture,\n+    span_exporter,\n+) -> None:\n+    def multiply(a: int, b: int) -> int:\n+        \"\"\"Multiply two numbers.\"\"\"\n+        return a * b\n+\n+    call = FunctionCall(\n+        function=Function.from_callable(multiply),\n+        arguments={\"a\": 3, \"b\": 4},\n+        call_id=\"call_sync_1\",\n+    )\n+    result = call.execute()\n+    assert result.status == \"success\"\n+    assert result.result == 12\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"execute_tool multiply\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME)\n+        == \"execute_tool\"\n+    )\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_TOOL_NAME) == \"multiply\"\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_TOOL_TYPE) == \"function\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_ID)\n+        == \"call_sync_1\"\n+    )\n+    assert span.attributes.get(\n+        GenAIAttributes.GEN_AI_TOOL_CALL_ARGUMENTS\n+    ) == json.dumps({\"a\": 3, \"b\": 4})\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_RESULT) == \"12\"\n+\n+\n+def test_tool_call_aexecute_async(\n+    instrument_agno_content_capture,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test FunctionCall.aexecute in non-streaming mode with content capture enabled.\"\"\"\n+\n+    async def multiply(a: int, b: int) -> int:\n+        \"\"\"Multiply two numbers.\"\"\"\n+        return a * b\n+\n+    call = FunctionCall(\n+        function=Function.from_callable(multiply),\n+        arguments={\"a\": 3, \"b\": 4},\n+        call_id=\"call_async_1\",\n+    )\n+\n+    async def _test() -> None:\n+        result = await call.aexecute()\n+        assert result.status == \"success\"\n+        assert result.result == 12\n+\n+    asyncio.run(_test())\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"execute_tool multiply\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME)\n+        == \"execute_tool\"\n+    )\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_TOOL_NAME) == \"multiply\"\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_TOOL_TYPE) == \"function\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_ID)\n+        == \"call_async_1\"\n+    )\n+    assert span.attributes.get(\n+        GenAIAttributes.GEN_AI_TOOL_CALL_ARGUMENTS\n+    ) == json.dumps({\"a\": 3, \"b\": 4})\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_RESULT) == \"12\"\n+\n+\n+def test_tool_call_execute_sync_content_capture_disabled(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test FunctionCall.execute suppresses arguments and result when content capture is disabled.\"\"\"\n+\n+    def multiply(a: int, b: int) -> int:\n+        \"\"\"Multiply two numbers.\"\"\"\n+        return a * b\n+\n+    call = FunctionCall(\n+        function=Function.from_callable(multiply),\n+        arguments={\"a\": 3, \"b\": 4},\n+        call_id=\"call_sync_no_content\",\n+    )\n+    result = call.execute()\n+    assert result.status == \"success\"\n+    assert result.result == 12\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"execute_tool multiply\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME)\n+        == \"execute_tool\"\n+    )\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_TOOL_NAME) == \"multiply\"\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_TOOL_TYPE) == \"function\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_ID)\n+        == \"call_sync_no_content\"\n+    )\n+    assert GenAIAttributes.GEN_AI_TOOL_CALL_ARGUMENTS not in span.attributes\n+    assert GenAIAttributes.GEN_AI_TOOL_CALL_RESULT not in span.attributes\n+\n+\n+def test_tool_call_aexecute_async_content_capture_disabled(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test FunctionCall.aexecute suppresses arguments and result when content capture is disabled.\"\"\"\n+\n+    async def multiply(a: int, b: int) -> int:\n+        \"\"\"Multiply two numbers.\"\"\"\n+        return a * b\n+\n+    call = FunctionCall(\n+        function=Function.from_callable(multiply),\n+        arguments={\"a\": 3, \"b\": 4},\n+        call_id=\"call_async_no_content\",\n+    )\n+\n+    async def _test() -> None:\n+        result = await call.aexecute()\n+        assert result.status == \"success\"\n+        assert result.result == 12\n+\n+    asyncio.run(_test())\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"execute_tool multiply\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME)\n+        == \"execute_tool\"\n+    )\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_TOOL_NAME) == \"multiply\"\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_TOOL_TYPE) == \"function\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_ID)\n+        == \"call_async_no_content\"\n+    )\n+    assert GenAIAttributes.GEN_AI_TOOL_CALL_ARGUMENTS not in span.attributes\n+    assert GenAIAttributes.GEN_AI_TOOL_CALL_RESULT not in span.attributes\n+\n+\n+def test_tool_call_execute_streaming_success(\n+    instrument_agno_content_capture,\n+    span_exporter,\n+) -> None:\n+    def stream_gen(prefix: str):\n+        \"\"\"Yield chunks.\"\"\"\n+        yield f\"{prefix}_1\"\n+        yield f\"{prefix}_2\"\n+\n+    call = FunctionCall(\n+        function=Function.from_callable(stream_gen),\n+        arguments={\"prefix\": \"part\"},\n+        call_id=\"call_stream_1\",\n+    )\n+    result = call.execute()\n+    assert result.status == \"success\"\n+\n+    # Span must not be closed yet before draining\n+    assert len(span_exporter.get_finished_spans()) == 0\n+\n+    items = list(result.result)\n+    assert items == [\"part_1\", \"part_2\"]\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"execute_tool stream_gen\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_ID)\n+        == \"call_stream_1\"\n+    )\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_RESULT)\n+        == \"part_1part_2\"\n+    )\n+\n+\n+def test_tool_call_execute_streaming_error(\n+    instrument_agno_content_capture,\n+    span_exporter,\n+) -> None:\n+    def failing_stream():\n+        \"\"\"Yield then raise.\"\"\"\n+        yield \"first\"\n+        raise ValueError(\"stream-side error\")\n+\n+    call = FunctionCall(\n+        function=Function.from_callable(failing_stream),\n+        arguments={},\n+        call_id=\"call_err_1\",\n+    )\n+    result = call.execute()\n+    assert result.status == \"success\"\n+\n+    with pytest.raises(ValueError, match=\"stream-side error\"):\n+        list(result.result)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.attributes.get(\"error.type\") == \"ValueError\"\n+\n+\n+def test_tool_call_execute_streaming_caller_error(\n+    instrument_agno_content_capture,\n+    span_exporter,\n+) -> None:\n+    def good_stream():\n+        \"\"\"Yield chunks.\"\"\"\n+        yield \"chunk_a\"\n+        yield \"chunk_b\"\n+\n+    call = FunctionCall(\n+        function=Function.from_callable(good_stream),\n+        arguments={},\n+        call_id=\"call_caller_err\",\n+    )\n+    result = call.execute()\n+    assert result.status == \"success\"\n+\n+    with pytest.raises(RuntimeError, match=\"caller-side failure\"):\n+        with result.result as stream:\n+            for item in stream:\n+                if item == \"chunk_a\":\n+                    raise RuntimeError(\"caller-side failure\")\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.attributes.get(\"error.type\") == \"RuntimeError\"\n+\n+\n+def test_tool_call_aexecute_streaming_success(\n+    instrument_agno_content_capture,\n+    span_exporter,\n+) -> None:\n+    async def async_stream_gen(prefix: str):\n+        \"\"\"Yield async chunks.\"\"\"\n+        yield f\"{prefix}_async_1\"\n+        yield f\"{prefix}_async_2\"\n+\n+    call = FunctionCall(\n+        function=Function.from_callable(async_stream_gen),\n+        arguments={\"prefix\": \"async_part\"},\n+        call_id=\"call_astream_1\",\n+    )\n+\n+    async def _test() -> None:\n+        result = await call.aexecute()\n+        assert result.status == \"success\"\n+        assert len(span_exporter.get_finished_spans()) == 0\n+\n+        chunks = [chunk async for chunk in result.result]\n+        assert chunks == [\"async_part_async_1\", \"async_part_async_2\"]\n+\n+    asyncio.run(_test())\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"execute_tool async_stream_gen\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_ID)\n+        == \"call_astream_1\"\n+    )\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_RESULT)\n+        == \"async_part_async_1async_part_async_2\"\n+    )\n+\n+\n+def test_tool_call_aexecute_streaming_error(\n+    instrument_agno_content_capture,\n+    span_exporter,\n+) -> None:\n+    async def failing_async_stream():\n+        \"\"\"Yield then raise.\"\"\"\n+        yield \"first_async\"\n+        raise ValueError(\"async stream failure\")\n+\n+    call = FunctionCall(\n+        function=Function.from_callable(failing_async_stream),\n+        arguments={},\n+        call_id=\"call_aerr_1\",\n+    )\n+\n+    async def _test() -> None:\n+        result = await call.aexecute()\n+        with pytest.raises(ValueError, match=\"async stream failure\"):\n+            _ = [c async for c in result.result]\n+\n+    asyncio.run(_test())\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.attributes.get(\"error.type\") == \"ValueError\"\n+\n+\n+def test_tool_call_aexecute_streaming_caller_error(\n+    instrument_agno_content_capture,\n+    span_exporter,\n+) -> None:\n+    async def good_async_stream():\n+        yield \"a\"\n+        yield \"b\"\n+\n+    call = FunctionCall(\n+        function=Function.from_callable(good_async_stream),\n+        arguments={},\n+        call_id=\"call_acaller_err\",\n+    )\n+\n+    async def _test() -> None:\n+        result = await call.aexecute()\n+        with pytest.raises(RuntimeError, match=\"caller async error\"):\n+            async with result.result as stream:\n+                async for chunk in stream:\n+                    if chunk == \"a\":\n+                        raise RuntimeError(\"caller async error\")\n+\n+    asyncio.run(_test())\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.attributes.get(\"error.type\") == \"RuntimeError\"\n+\n+\n+def test_cancelled_tool_finishes(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    error = asyncio.CancelledError(\"cancelled\")\n+\n+    async def cancelled():\n+        raise error\n+\n+    async def run():\n+        call = FunctionCall(\n+            function=Function.from_callable(cancelled), arguments={}\n+        )\n+        with pytest.raises(asyncio.CancelledError) as caught:\n+            await call.aexecute()\n+        assert caught.value is error\n+        spans = span_exporter.get_finished_spans()\n+        assert len(spans) == 1\n+        assert (\n+            spans[0].attributes[\"error.type\"]\n+            == \"asyncio.exceptions.CancelledError\"\n+        )\n+\n+    asyncio.run(run())\n+\n+\n+def test_base_exception_tool_finishes(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    error = KeyboardInterrupt(\"interrupted\")\n+\n+    def interrupted():\n+        raise error\n+\n+    call = FunctionCall(\n+        function=Function.from_callable(interrupted), arguments={}\n+    )\n+    with pytest.raises(KeyboardInterrupt) as caught:\n+        call.execute()\n+    assert caught.value is error\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    assert spans[0].attributes[\"error.type\"] == \"KeyboardInterrupt\"\n+\n+\n+def test_tool_stream_restores_caller_context(",
+      "id": "PRRT_kwDOSbspP86kmmkA",
+      "opened": "2026-09-22T04:57:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_tools.py",
+      "replies": [
+        {
+          "at": "2026-09-22T19:41:08Z",
+          "body": "Added tests",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4075704524"
+        }
+      ],
+      "reviewed": "2ab29de658530469d1bb6d1c54ec032b2bdb6ff6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4068552083"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "I think we discussed somewhere that we should treat those as failures rather than success?\r\n",
+      "created": "2026-09-23T15:54:44Z",
+      "hunk": "@@ -402,6 +404,126 @@ async def __anext__(self) -> ChunkT:\n         return chunk\n \n \n+class SyncToolStreamWrapper(SyncStreamWrapper[ChunkT]):\n+    \"\"\"Stream wrapper for synchronous tool executions that return iterators/generators.\n+\n+    Tool executions return an iterator or generator to the caller before it is\n+    drained. This wrapper restores the caller's context before returning, and\n+    makes the tool span current only while tool code runs -- producing a chunk,\n+    closing, or finalizing -- so caller work between chunks is not parented\n+    under the tool. Per-chunk content is accumulated and set on\n+    ``invocation.tool_result`` upon completion.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        stream: _SyncStream[ChunkT],\n+        invocation: ToolInvocation,\n+    ) -> None:\n+        super().__init__(stream)\n+        self._self_tool_invocation = invocation\n+        invocation.suspend()\n+        self._self_chunks: list[Any] = []\n+\n+    def __next__(self) -> ChunkT:\n+        with self._self_tool_invocation.activate():\n+            return super().__next__()\n+\n+    def close(self) -> None:\n+        with self._self_tool_invocation.activate():\n+            super().close()\n+\n+    def __exit__(\n+        self,\n+        exc_type: type[BaseException] | None,\n+        exc_val: BaseException | None,\n+        exc_tb: TracebackType | None,\n+    ) -> Literal[False]:\n+        with self._self_tool_invocation.activate():\n+            return super().__exit__(exc_type, exc_val, exc_tb)\n+\n+    def __del__(self) -> None:\n+        try:\n+            self._finalize_success()\n+        except BaseException:  # pylint: disable=broad-exception-caught",
+      "id": "PRRT_kwDOSbspP86lOob1",
+      "opened": "2026-09-23T15:56:51Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [
+        {
+          "at": "2026-09-23T17:21:30Z",
+          "body": "yes thats right.. I think that was the bedrock instrumentation which was merged into the wrong branch -- https://github.com/open-telemetry/opentelemetry-python-genai/pull/776 can u take a look when u have a chance.. changed this to finalize with a failure",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4085279409"
+        }
+      ],
+      "reviewed": "ff4cc3972a34092c1d1404fb0c0b7449fa9e5526",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4084457376"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    def __del__(self) -> None:\n        try:\n            self._finalize_failure(\n                GeneratorExit(\"Stream garbage collected before completion\")\n            )\n        except BaseException:  # pylint: disable=broad-exception-caught\n            pass\n```\nSame here; finalize with failure on `__del__`.",
+      "created": "2026-09-23T15:54:44Z",
+      "hunk": "@@ -402,6 +404,126 @@ async def __anext__(self) -> ChunkT:\n         return chunk\n \n \n+class SyncToolStreamWrapper(SyncStreamWrapper[ChunkT]):\n+    \"\"\"Stream wrapper for synchronous tool executions that return iterators/generators.\n+\n+    Tool executions return an iterator or generator to the caller before it is\n+    drained. This wrapper restores the caller's context before returning, and\n+    makes the tool span current only while tool code runs -- producing a chunk,\n+    closing, or finalizing -- so caller work between chunks is not parented\n+    under the tool. Per-chunk content is accumulated and set on\n+    ``invocation.tool_result`` upon completion.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        stream: _SyncStream[ChunkT],\n+        invocation: ToolInvocation,\n+    ) -> None:\n+        super().__init__(stream)\n+        self._self_tool_invocation = invocation\n+        invocation.suspend()\n+        self._self_chunks: list[Any] = []\n+\n+    def __next__(self) -> ChunkT:\n+        with self._self_tool_invocation.activate():\n+            return super().__next__()\n+\n+    def close(self) -> None:\n+        with self._self_tool_invocation.activate():\n+            super().close()\n+\n+    def __exit__(\n+        self,\n+        exc_type: type[BaseException] | None,\n+        exc_val: BaseException | None,\n+        exc_tb: TracebackType | None,\n+    ) -> Literal[False]:\n+        with self._self_tool_invocation.activate():\n+            return super().__exit__(exc_type, exc_val, exc_tb)\n+\n+    def __del__(self) -> None:\n+        try:\n+            self._finalize_success()\n+        except BaseException:  # pylint: disable=broad-exception-caught\n+            pass\n+\n+    def _process_chunk(self, chunk: ChunkT) -> None:\n+        if self._self_tool_invocation.should_capture_content:\n+            self._self_chunks.append(chunk)\n+\n+    def _on_stream_end(self) -> None:\n+        if self._self_tool_invocation.should_capture_content:\n+            if all(isinstance(c, str) for c in self._self_chunks):\n+                self._self_tool_invocation.tool_result = \"\".join(\n+                    self._self_chunks\n+                )\n+            else:\n+                self._self_tool_invocation.tool_result = self._self_chunks\n+        self._self_tool_invocation.stop()\n+\n+    def _on_stream_error(self, error: BaseException) -> None:\n+        self._self_tool_invocation.fail(error)\n+\n+\n+class AsyncToolStreamWrapper(AsyncStreamWrapper[ChunkT]):\n+    \"\"\"Stream wrapper for asynchronous tool executions that return async iterators/generators.\n+\n+    Async counterpart of ``SyncToolStreamWrapper``; the same context scoping\n+    applies.\n+    \"\"\"\n+\n+    def __init__(\n+        self,\n+        stream: _AsyncStream[ChunkT],\n+        invocation: ToolInvocation,\n+    ) -> None:\n+        super().__init__(stream)\n+        self._self_tool_invocation = invocation\n+        invocation.suspend()\n+        self._self_chunks: list[Any] = []\n+\n+    def __del__(self) -> None:\n+        try:\n+            self._finalize_success()",
+      "id": "PRRT_kwDOSbspP86lOocD",
+      "opened": "2026-09-23T15:56:51Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "ff4cc3972a34092c1d1404fb0c0b7449fa9e5526",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4084457395"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\r\n    if invocation.should_capture_content:\r\n        query = get_argument(\"query\", wrapped, args, kwargs)\r\n        if query is not None:\r\n            invocation.query_text = str(query)\r\n```\r\nPlease extract and set `query_text` only when `invocation.should_capture_content` is enabled, matching document capture.",
+      "created": "2026-09-23T15:54:45Z",
+      "hunk": "@@ -560,3 +696,126 @@ async def _await_result() -> object:\n         return result\n \n     return traced_method\n+\n+\n+def _start_retrieval_invocation(\n+    handler: TelemetryHandler,\n+    instance: Knowledge,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    wrapped: Callable[..., Any],\n+) -> RetrievalInvocation:\n+    vector_db = instance.vector_db\n+    data_source_id = (\n+        instance.name\n+        or (\n+            getattr(vector_db, \"name\", None) if vector_db is not None else None\n+        )\n+        or (\n+            getattr(vector_db, \"collection\", None)\n+            if vector_db is not None\n+            else None\n+        )\n+        or (\n+            getattr(vector_db, \"table_name\", None)\n+            if vector_db is not None\n+            else None\n+        )\n+    )\n+    provider = None\n+    if vector_db is not None:\n+        provider = (\n+            getattr(vector_db, \"provider\", None)\n+            or vector_db.__class__.__name__.lower()\n+        )\n+\n+    embedder = (\n+        getattr(vector_db, \"embedder\", None) if vector_db is not None else None\n+    )\n+    request_model = None\n+    if embedder is not None:\n+        request_model = getattr(embedder, \"id\", None) or getattr(\n+            embedder, \"model\", None\n+        )\n+\n+    invocation = handler.retrieval(\n+        data_source_id=str(data_source_id)\n+        if data_source_id is not None\n+        else None,\n+        provider=str(provider).lower() if provider is not None else None,\n+        request_model=str(request_model)\n+        if request_model is not None\n+        else None,\n+    )\n+\n+    query = get_argument(\"query\", wrapped, args, kwargs)\n+    if query is not None:\n+        invocation.query_text = str(query)",
+      "id": "PRRT_kwDOSbspP86lOocO",
+      "opened": "2026-09-23T15:56:51Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-23T17:21:46Z",
+          "body": "Ack, fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4085282065"
+        }
+      ],
+      "reviewed": "ff4cc3972a34092c1d1404fb0c0b7449fa9e5526",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4084457407"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    assert span.attributes.get(GEN_AI_RETRIEVAL_TOP_K) == 5\n```\nnit: use `GEN_AI_RETRIEVAL_TOP_K` (from `opentelemetry.util.genai.semconv.gen_ai`) instead of literal strings here and across lines 103, 146, 190.",
+      "created": "2026-09-23T15:54:45Z",
+      "hunk": "@@ -0,0 +1,326 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Tests for Agno Knowledge instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+import json\n+from unittest.mock import AsyncMock, MagicMock\n+\n+import pytest\n+from agno.knowledge.knowledge import Document, Knowledge\n+\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.trace import SpanKind\n+\n+\n+def test_knowledge_search_content_capture(\n+    instrument_agno_content_capture,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test Knowledge.search with content capture enabled.\"\"\"\n+    kb = Knowledge(name=\"test_kb\", max_results=5)\n+    kb.vector_db = MagicMock()\n+    kb.vector_db.name = \"pgvector_instance\"\n+    kb.vector_db.provider = \"pgvector\"\n+    kb.vector_db.search.return_value = [\n+        Document(\n+            content=\"OpenTelemetry is an observability framework.\",\n+            id=\"doc_1\",\n+            meta_data={\"source\": \"docs\"},\n+            reranking_score=0.95,\n+        ),\n+        Document(\n+            content=\"Agno is an agent framework.\",\n+            id=\"doc_2\",\n+            reranking_score=0.88,\n+        ),\n+    ]\n+\n+    docs = kb.search(query=\"what is OpenTelemetry?\", max_results=5)\n+    assert len(docs) == 2\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"retrieval test_kb\"\n+    assert span.kind == SpanKind.CLIENT\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME)\n+        == \"retrieval\"\n+    )\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_DATA_SOURCE_ID) == \"test_kb\"\n+    )\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_PROVIDER_NAME) == \"pgvector\"\n+    )\n+    assert span.attributes.get(\"gen_ai.retrieval.top_k\") == 5",
+      "id": "PRRT_kwDOSbspP86lOocW",
+      "opened": "2026-09-23T15:56:51Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_knowledge.py",
+      "replies": [
+        {
+          "at": "2026-09-23T17:21:54Z",
+          "body": "Ack, fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4085283166"
+        }
+      ],
+      "reviewed": "ff4cc3972a34092c1d1404fb0c0b7449fa9e5526",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/673#discussion_r4084457415"
+    }
+  ]
+}

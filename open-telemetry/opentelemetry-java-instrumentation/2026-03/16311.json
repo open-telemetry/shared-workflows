@@ -1,0 +1,52 @@
+{
+  "head": "12209b9bd3583e5430dea0c45e579674c10f2646",
+  "merge": "af832da512e81fcf6dff95265fbb0365759cc3f7",
+  "merged": "2026-03-03T00:38:52Z",
+  "missing_roots": 0,
+  "number": 16311,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "delete this file",
+      "created": "2026-02-27T13:22:34Z",
+      "hunk": "@@ -0,0 +1,23 @@\n+^[[1mdiff --git a/instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/OsResource.java b/instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/OsResource.java^[[m",
+      "id": "PRRT_kwDODJKVX85xLmI3",
+      "opened": "2026-02-27T13:22:34Z",
+      "path": "dads",
+      "replies": [
+        {
+          "at": "2026-03-01T18:37:05Z",
+          "body": "Done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16311#discussion_r2864394064"
+        }
+      ],
+      "reviewed": "2320e61cbeba2c051f38bd37bdb70af9cdb51249",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16311#discussion_r2864324412"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Verify in https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/OsResourceTest.java that the version attribute is set. It should be enough if you modify one of the test cases (e.g. `linux`).",
+      "created": "2026-02-27T13:26:21Z",
+      "hunk": "@@ -59,6 +60,9 @@ static Resource buildResource() {\n     } catch (SecurityException e) {\n       // Ignore\n     }\n+    if (version != null) {\n+      attributes.put(OS_VERSION, version);",
+      "id": "PRRT_kwDODJKVX85xLpJu",
+      "opened": "2026-02-27T13:26:21Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/OsResource.java",
+      "replies": [
+        {
+          "at": "2026-03-01T18:37:05Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16311#discussion_r2864451442"
+        }
+      ],
+      "reviewed": "2320e61cbeba2c051f38bd37bdb70af9cdb51249",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16311#discussion_r2864340324"
+    }
+  ]
+}

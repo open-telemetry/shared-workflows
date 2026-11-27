@@ -1,0 +1,115 @@
+{
+  "head": "59865b6d02c20e73faba2e096e9de480f0972a67",
+  "merge": "1f1a5fe58b66a2aa90041a24cc662c0a4ee74bde",
+  "merged": "2026-09-18T22:41:05Z",
+  "missing_roots": 0,
+  "number": 20070,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This constructor path eagerly initializes the first connection before it returns: Redisson 3.0–3.16 calls `initSingleEntry()`, which invokes `createClient`, while this target is captured only on method exit. Consequently `CreateClientAdvice` copies no target to the initial `RedisClient`, so normal stable spans have no configured `server.*` attributes or target-based names. Capture the target before initialization or backfill clients created during initialization.",
+      "created": "2026-09-11T03:32:58Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.redisson.v3_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.redisson.common.v3_0.RedissonServerTargets;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.redisson.client.RedisClient;\n+import org.redisson.config.Config;\n+import org.redisson.config.ConfigServerTargetBefore317;\n+import org.redisson.connection.MasterSlaveConnectionManager;\n+\n+class MasterSlaveConnectionManagerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.redisson.connection.MasterSlaveConnectionManager\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // Config is mutable, so capture an immutable target when the manager is constructed.\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArgument(0, named(\"org.redisson.config.Config\"))),\n+        getClass().getName() + \"$ConfigArgument0ConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArgument(1, named(\"org.redisson.config.Config\"))),\n+        getClass().getName() + \"$ConfigArgument1ConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"createClient\").and(returns(named(\"org.redisson.client.RedisClient\"))),\n+        getClass().getName() + \"$CreateClientAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConfigArgument0ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This MasterSlaveConnectionManager manager,\n+        @Advice.Argument(0) @Nullable Config config) {\n+      RedissonServerTargets.capture(manager, ConfigServerTargetBefore317.of(config));\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConfigArgument1ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This MasterSlaveConnectionManager manager,\n+        @Advice.Argument(1) @Nullable Config config) {\n+      RedissonServerTargets.capture(manager, ConfigServerTargetBefore317.of(config));",
+      "id": "PRRT_kwDODJKVX86hVKIz",
+      "opened": "2026-09-11T03:32:59Z",
+      "path": "instrumentation/redisson/redisson-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_0/MasterSlaveConnectionManagerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-12T01:27:33Z",
+          "body": "No code change.\n\nAnalysis: The constructor delegation stores the target before Redisson initializes the first connection. In Redisson 3.0.0, the `(MasterSlaveServersConfig, Config)` constructor first calls the `(Config)` constructor. Its exit advice captures the target before the outer constructor calls `init`. Redisson 3.17.0 follows the same order: the `(MasterSlaveServersConfig, Config, UUID)` constructor first calls `(Config, UUID)`, whose exit advice captures the target before `initSingleEntry()`. The stable-semconv tests for configured single-server and master/slave targets pass on both modules.\n\nUpsides: Keeping the current code avoids adding thread-local construction state or client backfill logic for behavior the existing integration tests already cover.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20070#discussion_r3994585726"
+        }
+      ],
+      "reviewed": "f60e037089449c263f5cef07056f2cc3f63e2f5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20070#discussion_r3985693504"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This constructor path has the same eager-initialization ordering problem on Redisson 3.17.0: `initSingleEntry()` creates the initial client before the constructor exits, so this exit-time capture happens after `CreateClientAdvice` has already attempted to copy the target. The client used by normal operations therefore has no configured target and stable `server.*` attributes and target-based names are omitted. Capture before initialization or backfill clients created during it.",
+      "created": "2026-09-11T03:32:59Z",
+      "hunk": "@@ -0,0 +1,94 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.redisson.v3_17;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.redisson.common.v3_0.RedissonServerTargets;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.redisson.client.RedisClient;\n+import org.redisson.config.Config;\n+import org.redisson.config.ConfigServerTargetSince317;\n+import org.redisson.connection.MasterSlaveConnectionManager;\n+\n+class MasterSlaveConnectionManagerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.redisson.connection.MasterSlaveConnectionManager\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // Config is mutable, so capture an immutable target when the manager is constructed.\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArgument(0, named(\"org.redisson.config.Config\"))),\n+        getClass().getName() + \"$ConfigArgument0ConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArgument(1, named(\"org.redisson.config.Config\"))),\n+        getClass().getName() + \"$ConfigArgument1ConstructorAdvice\");\n+    // redisson 3.20 through 3.27 hand the manager the service manager the configuration lives in\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArgument(1, named(\"org.redisson.connection.ServiceManager\"))),\n+        getClass().getName() + \"$ServiceManagerConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"createClient\").and(returns(named(\"org.redisson.client.RedisClient\"))),\n+        getClass().getName() + \"$CreateClientAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConfigArgument0ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This MasterSlaveConnectionManager manager,\n+        @Advice.Argument(0) @Nullable Config config) {\n+      RedissonServerTargets.capture(manager, ConfigServerTargetSince317.of(config));\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConfigArgument1ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This MasterSlaveConnectionManager manager,\n+        @Advice.Argument(1) @Nullable Config config) {\n+      RedissonServerTargets.capture(manager, ConfigServerTargetSince317.of(config));",
+      "id": "PRRT_kwDODJKVX86hVKJU",
+      "opened": "2026-09-11T03:32:59Z",
+      "path": "instrumentation/redisson/redisson-3.17/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_17/MasterSlaveConnectionManagerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-12T01:27:35Z",
+          "body": "No code change.\n\nAnalysis: The constructor delegation stores the target before Redisson initializes the first connection. In Redisson 3.0.0, the `(MasterSlaveServersConfig, Config)` constructor first calls the `(Config)` constructor. Its exit advice captures the target before the outer constructor calls `init`. Redisson 3.17.0 follows the same order: the `(MasterSlaveServersConfig, Config, UUID)` constructor first calls `(Config, UUID)`, whose exit advice captures the target before `initSingleEntry()`. The stable-semconv tests for configured single-server and master/slave targets pass on both modules.\n\nUpsides: Keeping the current code avoids adding thread-local construction state or client backfill logic for behavior the existing integration tests already cover.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20070#discussion_r3994585809"
+        }
+      ],
+      "reviewed": "f60e037089449c263f5cef07056f2cc3f63e2f5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20070#discussion_r3985693543"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] In Redisson versions before 3.17, the manager constructor initializes the first connection before this `createClient` hook can see a manager target: the constructor calls `initSingleEntry()`, which creates the initial `RedisClient`, while `capture` only runs from constructor-exit advice. `copy` therefore skips that client, and normal operations keep emitting stable spans without the configured `server.*` target. Capture the target before connection initialization or propagate it to clients created during construction.",
+      "created": "2026-09-11T03:32:59Z",
+      "hunk": "@@ -0,0 +1,49 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.redisson.common.v3_0;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import javax.annotation.Nullable;\n+import org.redisson.client.RedisClient;\n+import org.redisson.client.RedisConnection;\n+import org.redisson.connection.MasterSlaveConnectionManager;\n+\n+public class RedissonServerTargets {\n+\n+  private static final VirtualField<MasterSlaveConnectionManager, RedisServerTarget>\n+      MANAGER_TARGET =\n+          VirtualField.find(MasterSlaveConnectionManager.class, RedisServerTarget.class);\n+\n+  private static final VirtualField<RedisClient, RedisServerTarget> CLIENT_TARGET =\n+      VirtualField.find(RedisClient.class, RedisServerTarget.class);\n+\n+  public static void capture(\n+      MasterSlaveConnectionManager manager, @Nullable RedisServerTarget target) {\n+    if (target == null) {\n+      return;\n+    }\n+    MANAGER_TARGET.set(manager, target);\n+  }\n+\n+  public static void copy(MasterSlaveConnectionManager manager, @Nullable RedisClient client) {\n+    if (client == null) {\n+      return;\n+    }\n+    RedisServerTarget target = MANAGER_TARGET.get(manager);\n+    if (target != null) {\n+      CLIENT_TARGET.set(client, target);",
+      "id": "PRRT_kwDODJKVX86hVKJo",
+      "opened": "2026-09-11T03:32:59Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonServerTargets.java",
+      "replies": [
+        {
+          "at": "2026-09-12T01:27:36Z",
+          "body": "No code change.\n\nAnalysis: The constructor delegation stores the target before Redisson initializes the first connection. In Redisson 3.0.0, the `(MasterSlaveServersConfig, Config)` constructor first calls the `(Config)` constructor. Its exit advice captures the target before the outer constructor calls `init`. Redisson 3.17.0 follows the same order: the `(MasterSlaveServersConfig, Config, UUID)` constructor first calls `(Config, UUID)`, whose exit advice captures the target before `initSingleEntry()`. The stable-semconv tests for configured single-server and master/slave targets pass on both modules.\n\nUpsides: Keeping the current code avoids adding thread-local construction state or client backfill logic for behavior the existing integration tests already cover.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20070#discussion_r3994585867"
+        }
+      ],
+      "reviewed": "f60e037089449c263f5cef07056f2cc3f63e2f5e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20070#discussion_r3985693572"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this comment is true for `ConfigServerTargetUtil30` but not for this module. `SingleServerConfig.getAddress()` returns `java.lang.String` in every version in `[3.17.0,)`. The `URI` -> `String` change happened between 3.0.0 and 3.15.6, so below this module's floor.\n\nI think we could call call `singleServerConfig.getAddress()` directly",
+      "created": "2026-09-18T18:28:22Z",
+      "hunk": "@@ -0,0 +1,122 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package org.redisson.config;\n+\n+import static java.util.logging.Level.FINE;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import java.lang.invoke.MethodHandle;\n+import java.lang.invoke.MethodHandles;\n+import java.lang.invoke.MethodType;\n+import java.util.ArrayList;\n+import java.util.Collection;\n+import java.util.List;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+// This helper is in the Redisson package to access non-public configuration methods.\n+public class ConfigServerTargetUtil317 {\n+\n+  private static final Logger logger = Logger.getLogger(ConfigServerTargetUtil317.class.getName());\n+\n+  @Nullable private static final MethodHandle SERVICE_MANAGER_GET_CFG = findServiceManagerGetCfg();\n+\n+  @Nullable\n+  private static final MethodHandle SINGLE_SERVER_CONFIG_GET_ADDRESS =\n+      findSingleServerConfigGetAddress();\n+\n+  @Nullable\n+  private static MethodHandle findServiceManagerGetCfg() {\n+    try {\n+      Class<?> serviceManagerClass =\n+          Class.forName(\n+              \"org.redisson.connection.ServiceManager\",\n+              false,\n+              ConfigServerTargetUtil317.class.getClassLoader());\n+      return MethodHandles.publicLookup()\n+          .findVirtual(serviceManagerClass, \"getCfg\", MethodType.methodType(Config.class));\n+    } catch (ReflectiveOperationException ignored) {\n+      // redisson only routes the configuration through a service manager between 3.20 and 3.27\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  private static MethodHandle findSingleServerConfigGetAddress() {\n+    try {\n+      return MethodHandles.publicLookup()\n+          .unreflect(SingleServerConfig.class.getMethod(\"getAddress\"));\n+    } catch (ReflectiveOperationException ignored) {\n+      return null;\n+    }\n+  }\n+\n+  @Nullable\n+  public static RedisServerTarget of(@Nullable Config config) {\n+    if (config == null) {\n+      return null;\n+    }\n+    SingleServerConfig singleServerConfig = config.getSingleServerConfig();\n+    if (singleServerConfig != null) {\n+      return RedisServerTarget.ofEndpoint(getAddress(singleServerConfig));\n+    }\n+    SentinelServersConfig sentinelConfig = config.getSentinelServersConfig();\n+    if (sentinelConfig != null) {\n+      return RedisServerTarget.ofUnorderedEndpointsAndLogicalName(\n+          addressList(sentinelConfig.getSentinelAddresses()), sentinelConfig.getMasterName());\n+    }\n+    ClusterServersConfig clusterConfig = config.getClusterServersConfig();\n+    if (clusterConfig != null) {\n+      return RedisServerTarget.ofUnorderedEndpoints(addressList(clusterConfig.getNodeAddresses()));\n+    }\n+    ReplicatedServersConfig replicatedConfig = config.getReplicatedServersConfig();\n+    if (replicatedConfig != null) {\n+      return RedisServerTarget.ofUnorderedEndpoints(\n+          addressList(replicatedConfig.getNodeAddresses()));\n+    }\n+    MasterSlaveServersConfig masterSlaveConfig = config.getMasterSlaveServersConfig();\n+    if (masterSlaveConfig != null) {\n+      return RedisServerTarget.ofEndpointAndUnorderedEndpoints(\n+          masterSlaveConfig.getMasterAddress(), addressList(masterSlaveConfig.getSlaveAddresses()));\n+    }\n+    return null;\n+  }\n+\n+  @Nullable\n+  public static RedisServerTarget ofServiceManager(@Nullable Object serviceManager) {\n+    if (serviceManager == null || SERVICE_MANAGER_GET_CFG == null) {\n+      return null;\n+    }\n+    try {\n+      return of((Config) SERVICE_MANAGER_GET_CFG.invoke(serviceManager));\n+    } catch (Throwable t) {\n+      logger.log(FINE, \"Failed to read the Redisson configuration from the service manager\", t);\n+      return null;\n+    }\n+  }\n+\n+  // Redisson changes the single server address return type across supported versions.",
+      "id": "PRRT_kwDODJKVX86j2bH-",
+      "opened": "2026-09-18T18:34:39Z",
+      "path": "instrumentation/redisson/redisson-3.17/javaagent/src/main/java/org/redisson/config/ConfigServerTargetUtil317.java",
+      "replies": [
+        {
+          "at": "2026-09-18T20:14:31Z",
+          "body": "d51fb7c139ce2e3ff343b9b1f0db5619ea46fafe",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20070#discussion_r4050362392"
+        }
+      ],
+      "reviewed": "737354d8edf3ca4566a91c89dcd65e83d474de67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20070#discussion_r4049554234"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "`parseConfiguredEndpoints` enforces \"don't mix a Unix socket with network endpoints\" (`parsed.size() > 1 && hasSocket`), but `first` never goes through it as it's parsed by `Endpoint.parse` and handed straight to `networkTarget`, which only sees a host string. So the rule applies to `otherEndpoints` and not to the first member.\n\nThe test for this passes for a different reason than it looks: `ofEndpointAndUnorderedEndpoints(\"unix:///var/run/redis.sock\", [\"node1:6379\"])` returns `null` because `DbServerTargetBuilder.sanitizeHost` rejects the slashes, not because of the socket check. A socket path that's also a valid hostname takes the other route:\n\n```java\n// renders \"redis.sock,node1:6379\"\nofEndpointAndUnorderedEndpoints(\"unix://redis.sock\", singletonList(\"node1:6379\"));\n// returns null\nofUnorderedEndpoints(asList(\"unix://redis.sock\", \"node1:6379\"));\n```\n\nIt doesn't look like this is actually reachable from Redisson, which has no Unix-socket support, but since this is the shared helper for the whole Redis series, running `first` through the same `sharedTarget(first) == null` and `hasSocket` checks might be good to incorporate",
+      "created": "2026-09-18T18:31:21Z",
+      "hunk": "@@ -63,6 +64,32 @@ public static RedisServerTarget ofUnorderedEndpoints(@Nullable List<String> endp\n     return createFromEndpoints(endpoints, true);\n   }\n \n+  /**\n+   * Returns a target that keeps {@code endpoint} in front, such as the master of a master and\n+   * replicas deployment, and sorts {@code otherEndpoints} so that permutations of the same\n+   * deployment render identically.\n+   */\n+  @Nullable\n+  public static RedisServerTarget ofEndpointAndUnorderedEndpoints(\n+      @Nullable String endpoint, @Nullable List<String> otherEndpoints) {\n+    Endpoint first = Endpoint.parse(endpoint);\n+    if (first == null) {\n+      return null;\n+    }\n+    List<Endpoint> others = parseConfiguredEndpoints(otherEndpoints, false);",
+      "id": "PRRT_kwDODJKVX86j2fcN",
+      "opened": "2026-09-18T18:34:39Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/RedisServerTarget.java",
+      "replies": [
+        {
+          "at": "2026-09-18T20:14:31Z",
+          "body": "59865b6d02c20e73faba2e096e9de480f0972a67",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20070#discussion_r4050362408"
+        }
+      ],
+      "reviewed": "737354d8edf3ca4566a91c89dcd65e83d474de67",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20070#discussion_r4049579253"
+    }
+  ]
+}

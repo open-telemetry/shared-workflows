@@ -1,0 +1,70 @@
+{
+  "head": "35b1273197036f269b0158fd5dd2d6bd4f421967",
+  "merge": "afbc5413708fcdbee3ecce3c09cf10f1fcc82f7f",
+  "merged": "2026-09-13T23:59:33Z",
+  "missing_roots": 0,
+  "number": 707,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Bedrock tests still compare these values with float literals (`40.0`, `250.0`, etc.). Because Python considers `40 == 40.0`, those assertions pass both before and after this change and do not verify the intended telemetry type. Please update the converse and invoke-model coverage to assert that every changed `top_k` extraction path yields an `int`, including the exported span attribute.",
+      "created": "2026-09-13T21:27:03Z",
+      "hunk": "@@ -307,7 +307,7 @@ def extract_converse_request(\n         invocation.top_p = inf_config.get(\"topP\")\n         invocation.max_tokens = inf_config.get(\"maxTokens\")\n         invocation.stop_sequences = inf_config.get(\"stopSequences\")\n-        invocation.top_k = _safe_float(\n+        invocation.top_k = _safe_int(\n             _first_not_none(inf_config.get(\"topK\"), inf_config.get(\"top_k\"))\n         )",
+      "id": "PRRT_kwDOSbspP86h8Kwk",
+      "opened": "2026-09-13T21:27:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [],
+      "reviewed": "2514992ed6e2ed11bf29bc3080cfd597cc7729c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/707#discussion_r4000951079"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There is no Portkey test that supplies or asserts `top_k`, so this conversion and its required integer attribute type are currently unprotected. Add request-parameter coverage that passes `top_k` and checks both the emitted value and `isinstance(value, int)`.",
+      "created": "2026-09-13T21:27:04Z",
+      "hunk": "@@ -250,7 +250,7 @@ def _apply_request_parameters(\n     elif (p := get_value(kwargs.get(\"p\"))) is not None:\n         invocation.top_p = float(p)\n     if (top_k := get_value(kwargs.get(\"top_k\"))) is not None:\n-        invocation.top_k = float(top_k)\n+        invocation.top_k = int(top_k)",
+      "id": "PRRT_kwDOSbspP86h8Kwo",
+      "opened": "2026-09-13T21:27:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/utils.py",
+      "replies": [],
+      "reviewed": "2514992ed6e2ed11bf29bc3080cfd597cc7729c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/707#discussion_r4000951090"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The shared public `InferenceInvocation.top_k` field is still declared as `float | None` (`util/opentelemetry-util-genai/.../_inference_invocation.py:144`), while the pinned GenAI convention defines `gen_ai.request.top_k` as `int`. These new integer assignments therefore leave the util API contract inconsistent with both the emitted value and the convention; please change the shared field annotation to `int | None` and cover its emitted attribute type in the util tests.",
+      "created": "2026-09-13T21:27:04Z",
+      "hunk": "@@ -224,7 +224,7 @@ def _apply_request_parameters(\n \n     invocation.temperature = _coerce_float(merged.get(\"temperature\"))\n     invocation.top_p = _coerce_float(merged.get(\"top_p\"))\n-    invocation.top_k = _coerce_float(merged.get(\"top_k\"))\n+    invocation.top_k = _coerce_int(merged.get(\"top_k\"))",
+      "id": "PRRT_kwDOSbspP86h8Kws",
+      "opened": "2026-09-13T21:27:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/patch.py",
+      "replies": [],
+      "reviewed": "2514992ed6e2ed11bf29bc3080cfd597cc7729c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/707#discussion_r4000951101"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "praise(non-blocking): Great catch!!",
+      "created": "2026-09-13T22:51:39Z",
+      "hunk": "@@ -141,7 +141,7 @@ def __init__(\n         self.prompt_version: str | None = None\n         self.prompt_variables: Mapping[str, object] | None = None\n         self.tool_definitions: list[ToolDefinition] | None = None\n-        self.top_k: float | None = None\n+        self.top_k: int | None = None",
+      "id": "PRRT_kwDOSbspP86h8sZg",
+      "opened": "2026-09-13T22:51:45Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "35b1273197036f269b0158fd5dd2d6bd4f421967",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/707#discussion_r4001156470"
+    }
+  ]
+}

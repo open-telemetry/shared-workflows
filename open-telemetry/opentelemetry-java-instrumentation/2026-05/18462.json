@@ -1,0 +1,31 @@
+{
+  "head": "8c596ad2696f1e51f6c57cb3d8e5babbfd93c1b3",
+  "merge": "6985c81c4925eb99370aebf23a00b1cdd957e5b1",
+  "merged": "2026-05-02T17:06:18Z",
+  "missing_roots": 0,
+  "number": 18462,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Guard against null route paths when prefixing mount points**\n\nWhen a handler is registered on a pathless route (e.g., `router.route().handler(...)`), `currentRoute().getPath()` can be null, but this new branch concatenates `mountPoint + route` (or calls `route.substring(1)`), producing an invalid `http.route` like `\"/apinull\"` (or throwing if the mount point ends with `/`). In sub-routers this is common for middleware, and because `HttpServerRouteSource.NESTED_CONTROLLER` keeps the “best” (longest) route at the same priority, the bogus value can block later concrete route updates, leaving incorrect route attributes on spans/metrics.\n\nUseful? React with 👍 / 👎.",
+      "created": "2026-04-30T22:43:55Z",
+      "hunk": "@@ -51,6 +51,10 @@ public void handle(RoutingContext context) {\n \n   private static String getRoute(Context otelContext, RoutingContext routingContext) {\n     String route = routingContext.currentRoute().getPath();\n+    String mountPoint = routingContext.mountPoint();\n+    if (mountPoint != null) {\n+      return mountPoint.endsWith(\"/\") ? mountPoint + route.substring(1) : mountPoint + route;",
+      "id": "PRRT_kwDODJKVX85-4RaF",
+      "opened": "2026-04-30T22:43:55Z",
+      "path": "instrumentation/vertx/vertx-web-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/web/v3_0/RoutingContextHandlerWrapper.java",
+      "replies": [
+        {
+          "at": "2026-05-01T06:46:39Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18462#discussion_r3172373330"
+        }
+      ],
+      "reviewed": "3f402c27bf5bee227a09ae3b8b1434e12a356d8f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18462#discussion_r3171224807"
+    }
+  ]
+}

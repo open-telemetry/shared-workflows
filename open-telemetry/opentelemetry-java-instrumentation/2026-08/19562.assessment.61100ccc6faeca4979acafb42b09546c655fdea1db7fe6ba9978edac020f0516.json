@@ -1,0 +1,57 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "07a80668d0ade2a1fde1bb8ce5e7d8b14558096fb776e84d4eb75ed51b317e27",
+  "input_digest": "61100ccc6faeca4979acafb42b09546c655fdea1db7fe6ba9978edac020f0516",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c14d0a9904a2c9411be5b50df5e94e7b9ad163e7/smoke-tests/src/test/java/io/opentelemetry/smoketest/DeclarativeConfigurationExampleSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48c77355267536acfe3e606f79f5a78297c423fb/smoke-tests/src/test/java/io/opentelemetry/smoketest/DeclarativeConfigurationExampleSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a2b6b7ec59336c964d3b002e579ff45abe9984ba"
+      ],
+      "id": "PRRT_kwDODJKVX86ZO-U4",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a2b6b7ec59336c964d3b002e579ff45abe9984ba/.github/agents/knowledge/metadata-yaml-format.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48c77355267536acfe3e606f79f5a78297c423fb/.github/agents/knowledge/metadata-yaml-format.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0db02ae30834e267993df68638116a7bdec0dd5f"
+      ],
+      "id": "PRRT_kwDODJKVX86Zn2jQ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a2b6b7ec59336c964d3b002e579ff45abe9984ba/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/utils/DeclarativeConfigYamlGeneratorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48c77355267536acfe3e606f79f5a78297c423fb/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/utils/DeclarativeConfigYamlGeneratorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0db02ae30834e267993df68638116a7bdec0dd5f"
+      ],
+      "id": "PRRT_kwDODJKVX86Zn2jR",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a2b6b7ec59336c964d3b002e579ff45abe9984ba/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/DeclarativeConfigYamlGenerator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/48c77355267536acfe3e606f79f5a78297c423fb/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/DeclarativeConfigYamlGenerator.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0db02ae30834e267993df68638116a7bdec0dd5f"
+      ],
+      "id": "PRRT_kwDODJKVX86Zn2jY",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

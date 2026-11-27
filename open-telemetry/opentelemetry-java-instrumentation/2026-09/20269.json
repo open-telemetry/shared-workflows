@@ -1,0 +1,76 @@
+{
+  "head": "395d4f0b3e04601f629fdc71d3ba827a3a44727d",
+  "merge": "10d82092e7be791cf0d3fba5793cbdb59cbb2ab5",
+  "merged": "2026-09-30T17:58:44Z",
+  "missing_roots": 0,
+  "number": 20269,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-27T03:03:51Z",
+      "hunk": "@@ -5,40 +5,93 @@ plugins {\n \n muzzle {\n   pass {\n+    name.set(\"mongo-3.1\")\n     group.set(\"org.mongodb\")\n     module.set(\"mongo-java-driver\")\n     versions.set(\"[3.1,)\")\n     assertInverse.set(true)\n+    // Both modules accept mongo-3.1; their unique selectors keep the Muzzle ranges separate.",
+      "id": "PRRT_kwDODJKVX86mW5Tq",
+      "opened": "2026-09-27T03:03:51Z",
+      "path": "instrumentation/mongo/mongo-3.1/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "2d6a44acce3d72f22a404d1bc405efa639ec179d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20269#discussion_r4113903184"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // To be removed in 3.0\n    // The non-preview 3.7 scope needs its own version resource.\n```",
+      "created": "2026-09-27T04:57:44Z",
+      "hunk": "@@ -5,40 +5,92 @@ plugins {\n \n muzzle {\n   pass {\n+    name.set(\"mongo-3.1\")\n     group.set(\"org.mongodb\")\n     module.set(\"mongo-java-driver\")\n     versions.set(\"[3.1,)\")\n     assertInverse.set(true)\n+    excludeInstrumentationName(\"mongo-3.1-core-3.7\")\n+  }\n+  pass {\n+    // instrumentation-docs:ignore - verification only, the directive above is the range we document\n+    name.set(\"mongo-3.7\")\n+    group.set(\"org.mongodb\")\n+    module.set(\"mongo-java-driver\")\n+    versions.set(\"[3.7,4.0)\")\n+    assertInverse.set(true)\n+    excludeInstrumentationName(\"mongo-3.1-core\")\n+  }\n+  pass {\n+    name.set(\"mongo-3.1-core-3.7\")\n+    group.set(\"org.mongodb\")\n+    module.set(\"mongodb-driver-core\")\n+    versions.set(\"[3.7,4.0)\")\n+    assertInverse.set(true)\n+    excludeInstrumentationName(\"mongo-3.1-core\")\n   }\n }\n \n dependencies {\n   implementation(project(\":instrumentation:mongo:mongo-3.1:library\"))\n \n   library(\"org.mongodb:mongo-java-driver:3.1.0\")\n+  compileOnly(\"org.mongodb:mongo-java-driver:3.7.0\")\n \n   testImplementation(project(\":instrumentation:mongo:mongo-3.1:testing\"))\n \n   testInstrumentation(project(\":instrumentation:mongo:mongo-async-3.3:javaagent\"))\n-  testInstrumentation(project(\":instrumentation:mongo:mongo-3.7:javaagent\"))\n   testInstrumentation(project(\":instrumentation:mongo:mongo-4.0:javaagent\"))\n }\n \n+testing {\n+  suites {\n+    register<JvmTestSuite>(\"version37Test\") {\n+      dependencies {\n+        implementation(\"org.mongodb:mongo-java-driver:${baseVersion(\"3.7.0\").orLatest(\"3.+\")}\")\n+        implementation(project(\":instrumentation:mongo:mongo-3.1:testing\"))\n+        implementation(\"com.github.jnr:jnr-unixsocket:0.18\")\n+      }\n+    }\n+  }\n+}\n+\n tasks {\n+  processResources {\n+    // The non-preview 3.7 scope needs its own version resource.",
+      "id": "PRRT_kwDODJKVX86mXezI",
+      "opened": "2026-09-27T04:57:44Z",
+      "path": "instrumentation/mongo/mongo-3.1/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "1f635f98a08bf6d3ba4e633c8f98322371a5da06",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20269#discussion_r4114141430"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The PR title and description describe only Mongo 3.x consolidation, but this settings change also starts consolidating Akka, Kotlin Coroutines Flow, and Ratpack modules. Those changes alter user-facing v3-preview selectors (and Ratpack scope behavior) without being disclosed, so reviewers and users cannot evaluate the actual compatibility surface. Please split the unrelated families into separate PRs as requested by #20189, or update the title and description with each family's selector and telemetry migration details.",
+      "created": "2026-09-28T17:24:02Z",
+      "hunk": "@@ -195,7 +195,7 @@ include(\":smoke-tests-otel-starter:spring-boot-reactive-common\")\n \n include(\":instrumentation:activej-http-6.0:javaagent\")\n include(\":instrumentation:akka:akka-actor-2.3:javaagent\")\n-include(\":instrumentation:akka:akka-actor-forkjoin-2.5:javaagent\")\n+include(\":instrumentation:akka:akka-actor-2.3:javaagent-unit-tests\")",
+      "id": "PRRT_kwDODJKVX86myfxe",
+      "opened": "2026-09-28T17:24:03Z",
+      "path": "settings.gradle.kts",
+      "replies": [],
+      "reviewed": "98e1b584b7e739162af05f569140bb7d563dda4d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20269#discussion_r4125100292"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`mongo-3.1-core-3.7` is weird, hard to see the logic behind this name. The same for the `v3_1.core.v3_7` package. I guess it is fine since the package name is an internal implementation detail.",
+      "created": "2026-09-30T11:00:04Z",
+      "hunk": "@@ -18,7 +19,11 @@\n public class MongoClientInstrumentationModule extends InstrumentationModule {\n \n   public MongoClientInstrumentationModule() {\n-    super(\"mongo\", \"mongo-3.7\");\n+    super(\n+        \"mongo\",\n+        AgentCommonConfig.get().isV3Preview()\n+            ? new String[] {\"mongo-3.1\", \"mongo-3.1-core-3.7\"}",
+      "id": "PRRT_kwDODJKVX86nf_HG",
+      "opened": "2026-09-30T11:00:04Z",
+      "path": "instrumentation/mongo/mongo-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_1/core/v3_7/MongoClientInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-30T16:01:18Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20269/commits/082b6409e0dca5216a8d350d641198bdb074ee8a\r\n\r\nwill follow-up with similar for the other related PRs",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20269#discussion_r4146662801"
+        }
+      ],
+      "reviewed": "8c3fbd0224d5b0ed2c4406410bb6b588af9b49aa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20269#discussion_r4143826342"
+    }
+  ]
+}

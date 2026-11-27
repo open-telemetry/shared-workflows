@@ -1,0 +1,159 @@
+{
+  "head": "8f7f20fc9575555ebc4209f7d6c8ce7bd519a9d5",
+  "merge": "0e159253d8cbda54f7bcfc1327f28e934552c557",
+  "merged": "2026-10-15T22:21:00Z",
+  "missing_roots": 0,
+  "number": 681,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "OpenAI Chat Completions does not expose `text_tokens` or `image_tokens` in `prompt_tokens_details` or `completion_tokens_details`. Only `cache_write_tokens` and `audio_tokens` exist on `PromptTokensDetails`, and `audio_tokens` on `CompletionTokensDetails`. Please remove the non-existent modality mappings.",
+      "created": "2026-09-11T22:00:50Z",
+      "hunk": "@@ -65,6 +66,33 @@ def get_property_value(obj, property_name):\n     return getattr(obj, property_name, None)\n \n \n+def set_chat_usage_details(\n+    invocation: InferenceInvocation, usage: CompletionUsage\n+) -> None:\n+    prompt_details: object = get_property_value(usage, \"prompt_tokens_details\")\n+    completion_details: object = get_property_value(\n+        usage, \"completion_tokens_details\"\n+    )\n+    invocation.cache_write_input_tokens = get_property_value(\n+        prompt_details, \"cache_write_tokens\"\n+    )\n+    invocation.text_input_tokens = get_property_value(\n+        prompt_details, \"text_tokens\"\n+    )",
+      "id": "PRRT_kwDOSbspP86hprkY",
+      "opened": "2026-09-11T22:02:32Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-12T00:46:01Z",
+          "body": "https://github.com/openai/openai-python/blob/10ee3f0da2ac6f93345c1204bd7bb1a2faa79ff2/src/openai/types/completion_usage.py#L33-L53",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r3994464795"
+        },
+        {
+          "at": "2026-10-07T22:30:28Z",
+          "body": "Done in https://github.com/open-telemetry/opentelemetry-python-genai/commit/b549cb9a2265b1e215f292c1ec3460bcf96fc93b. Both normal and streamed Chat Completions now extract only audio modality counts; text and image mappings are removed.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r4212692980"
+        }
+      ],
+      "reviewed": "dd9d211f72cb41bcdc810c825dd8736465ca3483",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r3993735941"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Do not mutate `invocation` directly during chunk processing. Buffer the token details on the wrapper instance with a `_self_` prefix and assign them to `self._self_invocation` in `_cleanup()`.",
+      "created": "2026-09-11T22:00:50Z",
+      "hunk": "@@ -105,6 +109,9 @@ def _set_usage(self, chunk: ChatCompletionChunk) -> None:\n                 self._self_cached_prompt_tokens = get_property_value(\n                     prompt_tokens_details, \"cached_tokens\"\n                 )\n+            set_chat_usage_details(",
+      "id": "PRRT_kwDOSbspP86hprkb",
+      "opened": "2026-09-11T22:02:32Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/chat_wrappers.py",
+      "replies": [
+        {
+          "at": "2026-09-12T00:46:02Z",
+          "body": "Done in https://github.com/open-telemetry/opentelemetry-python-genai/commit/7ff833ef2bd8f3674aa382cc8e42acc93d68b526.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r3994464811"
+        }
+      ],
+      "reviewed": "dd9d211f72cb41bcdc810c825dd8736465ca3483",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r3993735945"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Do not spin up a custom `ThreadingHTTPServer` with synthetic responses. Use standard VCR cassettes or client unit mocks consistent with the rest of the test suite.",
+      "created": "2026-09-11T22:00:50Z",
+      "hunk": "@@ -0,0 +1,282 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import json\n+from collections.abc import Iterator\n+from http import HTTPStatus\n+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer\n+from threading import Thread\n+\n+import pytest\n+from openai import AsyncOpenAI, OpenAI\n+\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+\n+\n+@pytest.fixture(autouse=True)\n+def fixture_vcr() -> Iterator[None]:\n+    yield\n+\n+\n+@pytest.fixture(\n+    params=[\"instrument_no_content\", \"instrument_with_content\"],\n+    autouse=True,\n+)\n+def instrumentation(\n+    request: pytest.FixtureRequest, content_mode: tuple[bool, str]\n+) -> None:\n+    request.getfixturevalue(request.param)\n+\n+\n+@pytest.fixture(\n+    params=[\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": {\n+                    \"cached_tokens\": 5,\n+                    \"cache_write_tokens\": 10,\n+                    \"text_tokens\": 70,\n+                    \"image_tokens\": 20,\n+                    \"audio_tokens\": 10,\n+                },\n+                \"completion_tokens_details\": {\n+                    \"text_tokens\": 18,\n+                    \"audio_tokens\": 2,\n+                },\n+            },\n+            id=\"all-details\",\n+        ),\n+        pytest.param(\n+            {\"prompt_tokens_details\": {\"audio_tokens\": 10}},\n+            id=\"partial-details\",\n+        ),\n+        pytest.param({}, id=\"absent-details\"),\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": None,\n+                \"completion_tokens_details\": None,\n+            },\n+            id=\"null-details\",\n+        ),\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": {\n+                    \"cached_tokens\": 0,\n+                    \"cache_write_tokens\": 0,\n+                    \"text_tokens\": 0,\n+                    \"image_tokens\": 0,\n+                    \"audio_tokens\": 0,\n+                },\n+                \"completion_tokens_details\": {\n+                    \"text_tokens\": 0,\n+                    \"audio_tokens\": 0,\n+                },\n+            },\n+            id=\"zero-details\",\n+        ),\n+    ],\n+)\n+def usage(request: pytest.FixtureRequest) -> dict[str, object]:\n+    return {\n+        \"prompt_tokens\": 100,\n+        \"completion_tokens\": 20,\n+        \"total_tokens\": 120,\n+        **request.param,\n+    }\n+\n+\n+@pytest.fixture\n+def api_url(usage: dict[str, object]) -> Iterator[str]:\n+    class Handler(BaseHTTPRequestHandler):\n+        def do_POST(self) -> None:\n+            body = json.loads(\n+                self.rfile.read(int(self.headers[\"Content-Length\"]))\n+            )\n+            response: dict[str, object] = {\n+                \"id\": \"chatcmpl-usage\",\n+                \"created\": 1,\n+                \"model\": \"gpt-4\",\n+            }\n+            if body[\"stream\"]:\n+                response[\"object\"] = \"chat.completion.chunk\"\n+                chunks = [\n+                    {\n+                        **response,\n+                        \"choices\": [\n+                            {\n+                                \"index\": 0,\n+                                \"delta\": {",
+      "id": "PRRT_kwDOSbspP86hprke",
+      "opened": "2026-09-11T22:02:32Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_token_usage.py",
+      "replies": [
+        {
+          "at": "2026-09-12T00:46:02Z",
+          "body": "Done in https://github.com/open-telemetry/opentelemetry-python-genai/commit/7ff833ef2bd8f3674aa382cc8e42acc93d68b526.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r3994464806"
+        }
+      ],
+      "reviewed": "dd9d211f72cb41bcdc810c825dd8736465ca3483",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r3993735949"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The token-detail extraction is duplicated between this helper and the stream wrapper. Please share extraction across both paths, buffering the values until stream cleanup.\r\n\r\nPlease also wait for #674 to land, then reuse its `set_input_tokens()` and `set_output_tokens()` helpers for modality breakdowns. Keep the aggregate cache-write count separate.",
+      "created": "2026-09-12T23:39:57Z",
+      "hunk": "@@ -65,6 +66,33 @@ def get_property_value(obj, property_name):\n     return getattr(obj, property_name, None)\n \n \n+def set_chat_usage_details(",
+      "id": "PRRT_kwDOSbspP86h0qao",
+      "opened": "2026-09-12T23:46:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [],
+      "reviewed": "7ff833ef2bd8f3674aa382cc8e42acc93d68b526",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r3998012477"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "OpenAI Chat Completions does not expose `text_tokens` or `image_tokens` in `prompt_tokens_details` or `completion_tokens_details`. Only `audio_tokens` exists. Please remove `text` and `image` from the modality extractions and only pass `audio`.",
+      "created": "2026-09-19T07:26:46Z",
+      "hunk": "@@ -66,6 +67,52 @@ def get_property_value(obj, property_name):\n     return getattr(obj, property_name, None)\n \n \n+def set_chat_usage(\n+    invocation: InferenceInvocation, usage: CompletionUsage\n+) -> None:\n+    invocation.input_tokens = usage.prompt_tokens\n+    invocation.output_tokens = usage.completion_tokens\n+    prompt_details: object = get_property_value(\n+        obj=usage, property_name=\"prompt_tokens_details\"\n+    )\n+    completion_details: object = get_property_value(\n+        obj=usage, property_name=\"completion_tokens_details\"\n+    )\n+    invocation.cache_read_input_tokens = get_property_value(\n+        obj=prompt_details, property_name=\"cached_tokens\"\n+    )\n+    invocation.cache_write_input_tokens = get_property_value(\n+        obj=prompt_details, property_name=\"cache_write_tokens\"\n+    )\n+    invocation.thinking_tokens = get_property_value(\n+        obj=completion_details, property_name=\"reasoning_tokens\"\n+    )\n+    invocation.set_input_tokens(",
+      "id": "PRRT_kwDOSbspP86j94fs",
+      "opened": "2026-09-19T07:26:46Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-07T22:30:31Z",
+          "body": "Done in https://github.com/open-telemetry/opentelemetry-python-genai/commit/b549cb9a2265b1e215f292c1ec3460bcf96fc93b. Both normal and streamed Chat Completions now extract only audio modality counts; text and image mappings are removed.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r4212693419"
+        }
+      ],
+      "reviewed": "9df8fe4086e2db05a10cec0d0c527ce6d9013cab",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r4052547088"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Please remove the leftover `print` statement.",
+      "created": "2026-09-19T07:26:47Z",
+      "hunk": "@@ -0,0 +1,338 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import json\n+from collections.abc import Iterator\n+from typing import Any\n+from unittest.mock import AsyncMock, MagicMock, Mock\n+\n+import pytest\n+from openai import AsyncOpenAI, AsyncStream, OpenAI, Stream\n+from openai.types.chat import ChatCompletion, ChatCompletionChunk\n+from openai.types.chat.chat_completion_chunk import Choice, ChoiceDelta\n+\n+from opentelemetry.instrumentation.genai.openai.chat_wrappers import (\n+    AsyncChatStreamWrapper,\n+    ChatStreamWrapper,\n+)\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+\n+\n+@pytest.fixture(autouse=True)\n+def fixture_vcr() -> Iterator[None]:\n+    yield\n+\n+\n+@pytest.fixture(\n+    params=[\"instrument_no_content\", \"instrument_with_content\"],\n+    autouse=True,\n+)\n+def instrumentation(\n+    request: pytest.FixtureRequest, content_mode: tuple[bool, str]\n+) -> None:\n+    request.getfixturevalue(request.param)\n+\n+\n+@pytest.fixture(\n+    params=[\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": {\n+                    \"cached_tokens\": 5,\n+                    \"cache_write_tokens\": 10,\n+                    \"text_tokens\": 70,\n+                    \"image_tokens\": 20,\n+                    \"audio_tokens\": 10,\n+                },\n+                \"completion_tokens_details\": {\n+                    \"text_tokens\": 18,\n+                    \"audio_tokens\": 2,\n+                    \"reasoning_tokens\": 3,\n+                },\n+            },\n+            id=\"all-details\",\n+        ),\n+        pytest.param(\n+            {\"prompt_tokens_details\": {\"audio_tokens\": 10}},\n+            id=\"partial-details\",\n+        ),\n+        pytest.param(\n+            {\"prompt_tokens_details\": {\"cache_write_tokens\": 10}},\n+            id=\"cache-write-only\",\n+        ),\n+        pytest.param({}, id=\"absent-details\"),\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": {},\n+                \"completion_tokens_details\": {},\n+            },\n+            id=\"empty-details\",\n+        ),\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": None,\n+                \"completion_tokens_details\": None,\n+            },\n+            id=\"null-details\",\n+        ),\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": {\n+                    \"cached_tokens\": 0,\n+                    \"cache_write_tokens\": 0,\n+                    \"text_tokens\": 0,\n+                    \"image_tokens\": 0,\n+                    \"audio_tokens\": 0,\n+                },\n+                \"completion_tokens_details\": {\n+                    \"text_tokens\": 0,\n+                    \"audio_tokens\": 0,\n+                    \"reasoning_tokens\": 0,\n+                },\n+            },\n+            id=\"zero-details\",\n+        ),\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": {\n+                    \"cache_write_tokens\": 10,\n+                    \"text_tokens\": -1,\n+                    \"image_tokens\": -2,\n+                    \"audio_tokens\": -3,\n+                },\n+                \"completion_tokens_details\": {\n+                    \"text_tokens\": -1,\n+                    \"audio_tokens\": -2,\n+                },\n+            },\n+            id=\"negative-modalities\",\n+        ),\n+    ],\n+)\n+def usage(request: pytest.FixtureRequest) -> dict[str, Any]:\n+    return {\n+        \"prompt_tokens\": 100,\n+        \"completion_tokens\": 20,\n+        \"total_tokens\": 120,\n+        **request.param,\n+    }\n+\n+\n+@pytest.fixture\n+def chat_completion(usage: dict[str, Any]) -> ChatCompletion:\n+    response: dict[str, Any] = {\n+        \"id\": \"chatcmpl-usage\",\n+        \"created\": 1,\n+        \"model\": \"gpt-4\",\n+        \"object\": \"chat.completion\",\n+        \"usage\": usage,\n+        \"choices\": [\n+            {\n+                \"index\": 0,\n+                \"message\": {\"role\": \"assistant\", \"content\": \"hello\"},\n+                \"finish_reason\": \"stop\",\n+            }\n+        ],\n+    }\n+    return ChatCompletion(**response)\n+\n+\n+@pytest.fixture\n+def chat_chunks(chat_completion: ChatCompletion) -> list[ChatCompletionChunk]:\n+    common: dict[str, Any] = {\n+        \"id\": chat_completion.id,\n+        \"created\": chat_completion.created,\n+        \"model\": chat_completion.model,\n+        \"object\": \"chat.completion.chunk\",\n+    }\n+    return [\n+        ChatCompletionChunk(\n+            **common,\n+            choices=[\n+                Choice(\n+                    index=0,\n+                    delta=ChoiceDelta(role=\"assistant\", content=\"hello\"),\n+                    finish_reason=None,\n+                )\n+            ],\n+        ),\n+        ChatCompletionChunk(\n+            **common,\n+            choices=[\n+                Choice(\n+                    index=0,\n+                    delta=ChoiceDelta(),\n+                    finish_reason=\"stop\",\n+                )\n+            ],\n+        ),\n+        ChatCompletionChunk(**common, choices=[], usage=chat_completion.usage),\n+    ]\n+\n+\n+def assert_usage_is_buffered(invocation: InferenceInvocation) -> None:\n+    assert invocation.input_tokens is None\n+    assert invocation.output_tokens is None\n+    assert invocation.cache_read_input_tokens is None\n+    assert invocation.cache_write_input_tokens is None\n+    assert invocation.text_input_tokens is None\n+    assert invocation.image_input_tokens is None\n+    assert invocation.audio_input_tokens is None\n+    assert invocation.text_output_tokens is None\n+    assert invocation.audio_output_tokens is None\n+    assert invocation.thinking_tokens is None\n+\n+\n+def assert_usage(\n+    span_exporter: InMemorySpanExporter, usage: dict[str, Any]\n+) -> None:\n+    (span,) = span_exporter.get_finished_spans()\n+    assert span.attributes is not None\n+    assert span.attributes[GenAIAttributes.GEN_AI_USAGE_INPUT_TOKENS] == 100\n+    assert span.attributes[GenAIAttributes.GEN_AI_USAGE_OUTPUT_TOKENS] == 20\n+    assert span.attributes[GenAIAttributes.GEN_AI_RESPONSE_FINISH_REASONS] == (\n+        \"stop\",\n+    )\n+    expected: dict[str, int] = {\n+        GenAIAttributes.GEN_AI_USAGE_INPUT_TOKENS: 100,\n+        GenAIAttributes.GEN_AI_USAGE_OUTPUT_TOKENS: 20,\n+    }\n+    for field, suffix, mapping in (\n+        (\n+            \"prompt_tokens_details\",\n+            \"input_tokens\",\n+            {\n+                \"cached_tokens\": \"cache_read\",\n+                \"cache_write_tokens\": \"cache_write\",\n+                \"text_tokens\": \"text\",\n+                \"image_tokens\": \"image\",\n+                \"audio_tokens\": \"audio\",\n+            },\n+        ),\n+        (\n+            \"completion_tokens_details\",\n+            \"output_tokens\",\n+            {\n+                \"text_tokens\": \"text\",\n+                \"audio_tokens\": \"audio\",\n+                \"reasoning_tokens\": \"reasoning\",\n+            },\n+        ),\n+    ):\n+        details = usage.get(field)\n+        if isinstance(details, dict):\n+            for name, attribute in mapping.items():\n+                value: object = details.get(name)\n+                if type(value) is int and value > 0:\n+                    expected[f\"gen_ai.usage.{attribute}.{suffix}\"] = value\n+    actual = {\n+        key: value\n+        for key, value in span.attributes.items()\n+        if key.startswith(\"gen_ai.usage.\")\n+    }\n+    print(json.dumps({\"exported_usage\": actual}, sort_keys=True))",
+      "id": "PRRT_kwDOSbspP86j94fu",
+      "opened": "2026-09-19T07:26:46Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_token_usage.py",
+      "replies": [],
+      "reviewed": "9df8fe4086e2db05a10cec0d0c527ce6d9013cab",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r4052547090"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This re-derives the expected attributes with the same field mapping the code under test uses, so a wrong mapping in `set_chat_usage` would be mirrored here and still pass. Could each fixture param carry its expected attributes explicitly instead? e.g.\n\n```python\npytest.param(\n    {\n        \"prompt_tokens_details\": {\"cached_tokens\": 5, \"cache_write_tokens\": 10, \"audio_tokens\": 10},\n        \"completion_tokens_details\": {\"audio_tokens\": 2, \"reasoning_tokens\": 3},\n    },\n    {\n        GenAIAttributes.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS: 5,\n        \"gen_ai.usage.cache_write.input_tokens\": 10,\n        \"gen_ai.usage.audio.input_tokens\": 10,\n        \"gen_ai.usage.audio.output_tokens\": 2,\n        GenAIAttributes.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS: 3,\n    },\n    id=\"all-details\",\n),\n```\n\nand then `assert actual == {INPUT: 100, OUTPUT: 20, **expected}`.",
+      "created": "2026-10-08T01:10:58Z",
+      "hunk": "@@ -0,0 +1,338 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+from collections.abc import Iterator\n+from typing import Any\n+from unittest.mock import AsyncMock, MagicMock, Mock\n+\n+import pytest\n+from openai import AsyncOpenAI, AsyncStream, OpenAI, Stream\n+from openai.types.chat import ChatCompletion, ChatCompletionChunk\n+from openai.types.chat.chat_completion_chunk import Choice, ChoiceDelta\n+\n+from opentelemetry.instrumentation.genai.openai.chat_wrappers import (\n+    AsyncChatStreamWrapper,\n+    ChatStreamWrapper,\n+)\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+\n+\n+@pytest.fixture(autouse=True)\n+def fixture_vcr() -> Iterator[None]:\n+    yield\n+\n+\n+@pytest.fixture(\n+    params=[\"instrument_no_content\", \"instrument_with_content\"],\n+    autouse=True,\n+)\n+def instrumentation(\n+    request: pytest.FixtureRequest, content_mode: tuple[bool, str]\n+) -> None:\n+    request.getfixturevalue(request.param)\n+\n+\n+@pytest.fixture(\n+    params=[\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": {\n+                    \"cached_tokens\": 5,\n+                    \"cache_write_tokens\": 10,\n+                    \"audio_tokens\": 10,\n+                },\n+                \"completion_tokens_details\": {\n+                    \"audio_tokens\": 2,\n+                    \"reasoning_tokens\": 3,\n+                },\n+            },\n+            id=\"all-details\",\n+        ),\n+        pytest.param(\n+            {\"prompt_tokens_details\": {\"audio_tokens\": 10}},\n+            id=\"partial-details\",\n+        ),\n+        pytest.param(\n+            {\"prompt_tokens_details\": {\"cache_write_tokens\": 10}},\n+            id=\"cache-write-only\",\n+        ),\n+        pytest.param({}, id=\"absent-details\"),\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": {},\n+                \"completion_tokens_details\": {},\n+            },\n+            id=\"empty-details\",\n+        ),\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": None,\n+                \"completion_tokens_details\": None,\n+            },\n+            id=\"null-details\",\n+        ),\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": {\n+                    \"cached_tokens\": 0,\n+                    \"cache_write_tokens\": 0,\n+                    \"audio_tokens\": 0,\n+                },\n+                \"completion_tokens_details\": {\n+                    \"audio_tokens\": 0,\n+                    \"reasoning_tokens\": 0,\n+                },\n+            },\n+            id=\"zero-details\",\n+        ),\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": {\n+                    \"cache_write_tokens\": 10,\n+                    \"audio_tokens\": -3,\n+                },\n+                \"completion_tokens_details\": {\n+                    \"audio_tokens\": -2,\n+                },\n+            },\n+            id=\"negative-modalities\",\n+        ),\n+        pytest.param(\n+            {\n+                \"prompt_tokens_details\": {\n+                    \"text_tokens\": 70,\n+                    \"image_tokens\": 20,\n+                    \"audio_tokens\": 10,\n+                },\n+                \"completion_tokens_details\": {\n+                    \"text_tokens\": 18,\n+                    \"audio_tokens\": 2,\n+                },\n+            },\n+            id=\"unsupported-modalities-ignored\",\n+        ),\n+    ],\n+)\n+def usage(request: pytest.FixtureRequest) -> dict[str, Any]:\n+    return {\n+        \"prompt_tokens\": 100,\n+        \"completion_tokens\": 20,\n+        \"total_tokens\": 120,\n+        **request.param,\n+    }\n+\n+\n+@pytest.fixture\n+def chat_completion(usage: dict[str, Any]) -> ChatCompletion:\n+    response: dict[str, Any] = {\n+        \"id\": \"chatcmpl-usage\",\n+        \"created\": 1,\n+        \"model\": \"gpt-4\",\n+        \"object\": \"chat.completion\",\n+        \"usage\": usage,\n+        \"choices\": [\n+            {\n+                \"index\": 0,\n+                \"message\": {\"role\": \"assistant\", \"content\": \"hello\"},\n+                \"finish_reason\": \"stop\",\n+            }\n+        ],\n+    }\n+    return ChatCompletion(**response)\n+\n+\n+@pytest.fixture\n+def chat_chunks(chat_completion: ChatCompletion) -> list[ChatCompletionChunk]:\n+    common: dict[str, Any] = {\n+        \"id\": chat_completion.id,\n+        \"created\": chat_completion.created,\n+        \"model\": chat_completion.model,\n+        \"object\": \"chat.completion.chunk\",\n+    }\n+    return [\n+        ChatCompletionChunk(\n+            **common,\n+            choices=[\n+                Choice(\n+                    index=0,\n+                    delta=ChoiceDelta(role=\"assistant\", content=\"hello\"),\n+                    finish_reason=None,\n+                )\n+            ],\n+        ),\n+        ChatCompletionChunk(\n+            **common,\n+            choices=[\n+                Choice(\n+                    index=0,\n+                    delta=ChoiceDelta(),\n+                    finish_reason=\"stop\",\n+                )\n+            ],\n+        ),\n+        ChatCompletionChunk(**common, choices=[], usage=chat_completion.usage),\n+    ]\n+\n+\n+def assert_usage_is_buffered(invocation: InferenceInvocation) -> None:\n+    assert invocation.input_tokens is None\n+    assert invocation.output_tokens is None\n+    assert invocation.cache_read_input_tokens is None\n+    assert invocation.cache_write_input_tokens is None\n+    assert invocation.text_input_tokens is None\n+    assert invocation.image_input_tokens is None\n+    assert invocation.audio_input_tokens is None\n+    assert invocation.text_output_tokens is None\n+    assert invocation.audio_output_tokens is None\n+    assert invocation.thinking_tokens is None\n+\n+\n+def assert_usage(\n+    span_exporter: InMemorySpanExporter, usage: dict[str, Any]\n+) -> None:\n+    (span,) = span_exporter.get_finished_spans()\n+    assert span.attributes is not None\n+    assert span.attributes[GenAIAttributes.GEN_AI_USAGE_INPUT_TOKENS] == 100\n+    assert span.attributes[GenAIAttributes.GEN_AI_USAGE_OUTPUT_TOKENS] == 20\n+    assert span.attributes[GenAIAttributes.GEN_AI_RESPONSE_FINISH_REASONS] == (\n+        \"stop\",\n+    )\n+    expected: dict[str, int] = {\n+        GenAIAttributes.GEN_AI_USAGE_INPUT_TOKENS: 100,\n+        GenAIAttributes.GEN_AI_USAGE_OUTPUT_TOKENS: 20,\n+    }\n+    for field, suffix, mapping in (\n+        (\n+            \"prompt_tokens_details\",\n+            \"input_tokens\",\n+            {\n+                \"cached_tokens\": \"cache_read\",\n+                \"cache_write_tokens\": \"cache_write\",\n+                \"audio_tokens\": \"audio\",\n+            },\n+        ),\n+        (\n+            \"completion_tokens_details\",\n+            \"output_tokens\",\n+            {\n+                \"audio_tokens\": \"audio\",\n+                \"reasoning_tokens\": \"reasoning\",\n+            },\n+        ),\n+    ):\n+        details = usage.get(field)\n+        if isinstance(details, dict):\n+            for name, attribute in mapping.items():\n+                value: object = details.get(name)\n+                if type(value) is int and value > 0:\n+                    expected[f\"gen_ai.usage.{attribute}.{suffix}\"] = value",
+      "id": "PRRT_kwDOSbspP86qKBUB",
+      "opened": "2026-10-08T01:16:08Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_chat_token_usage.py",
+      "replies": [],
+      "reviewed": "b549cb9a2265b1e215f292c1ec3460bcf96fc93b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r4213619291"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "does it need to be get_attr? can we just do `chunk.usage` ? ",
+      "created": "2026-10-08T01:15:29Z",
+      "hunk": "@@ -127,7 +108,9 @@ def _process_chunk(self, chunk: ChatCompletionChunk) -> None:\n         self._set_response_model(chunk)\n         self._set_response_service_tier(chunk)\n         self._build_streaming_response(chunk)\n-        self._set_usage(chunk)\n+        usage: CompletionUsage | None = getattr(chunk, \"usage\", None)",
+      "id": "PRRT_kwDOSbspP86qKE23",
+      "opened": "2026-10-08T01:16:08Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/chat_wrappers.py",
+      "replies": [],
+      "reviewed": "b549cb9a2265b1e215f292c1ec3460bcf96fc93b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/681#discussion_r4213642124"
+    }
+  ]
+}

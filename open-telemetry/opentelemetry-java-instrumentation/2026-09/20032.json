@@ -1,0 +1,55 @@
+{
+  "head": "6e401d78e13c38a7ff4c46589cf71cc89ba36e04",
+  "merge": "04707e0a62bf7d549ba6ef24470f35edebbe4d67",
+  "merged": "2026-09-10T06:20:18Z",
+  "missing_roots": 0,
+  "number": 20032,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `otel/weaver` container is referenced by a mutable tag without a digest pin, which reduces build reproducibility and increases supply-chain risk (a tag can be republished). Consider pinning this image to a specific sha256 digest (as is already done for most other container references in this PR) and keep the tag as an inline comment for readability.",
+      "created": "2026-09-08T07:15:59Z",
+      "hunk": "@@ -43,7 +43,7 @@ public class WeaverContainer extends GenericContainer<WeaverContainer> {\n   @Nullable private JsonNode result = null;\n \n   WeaverContainer(Path registryRoot, String... registryFiles) {\n-    super(\"otel/weaver:v0.25.1\");\n+    super(\"otel/weaver:v0.26.1\");\n \n     super.withExposedPorts(OTLP_PORT, ADMIN_PORT);",
+      "id": "PRRT_kwDODJKVX86gIiGB",
+      "opened": "2026-09-08T07:16:00Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [],
+      "reviewed": "b225b507010f0ce44c74686a674d8b04c8eac24b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20032#discussion_r3955296473"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Upstream notes indicate `actions/attest-build-provenance` is a wrapper around `actions/attest` and recommends new implementations use `actions/attest`. Optional: consider switching to `actions/attest` to reduce indirection and potential future deprecation churn, while keeping the workflow behavior equivalent.",
+      "created": "2026-09-08T07:16:00Z",
+      "hunk": "@@ -172,7 +172,7 @@ jobs:\n                     opentelemetry-java-instrumentation-SBOM.zip \\\n                     > checksums.txt\n \n-      - uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1\n+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2\n         with:",
+      "id": "PRRT_kwDODJKVX86gIiGm",
+      "opened": "2026-09-08T07:16:00Z",
+      "path": ".github/workflows/release.yml",
+      "replies": [],
+      "reviewed": "b225b507010f0ce44c74686a674d8b04c8eac24b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20032#discussion_r3955296523"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Weaver 0.26 changed `registry live-check` to bind both the OTLP and admin listeners to `127.0.0.1` by default. Because this container exposes those ports and accesses them through Docker's mapped host ports, the listeners will no longer be reachable: the listening-port wait can time out, and metric forwarding plus `/stop` cannot connect. Explicitly bind the live-check listener to all container interfaces.",
+      "created": "2026-09-09T16:03:21Z",
+      "hunk": "@@ -43,7 +43,7 @@ public class WeaverContainer extends GenericContainer<WeaverContainer> {\n   @Nullable private JsonNode result = null;\n \n   WeaverContainer(Path registryRoot, String... registryFiles) {\n-    super(\"otel/weaver:v0.25.1\");\n+    super(\"otel/weaver:v0.26.1\");",
+      "id": "PRRT_kwDODJKVX86gvEr_",
+      "opened": "2026-09-09T16:03:21Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [],
+      "reviewed": "c6062fb2192964648e089a1720965110599d74fc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20032#discussion_r3970520193"
+    }
+  ]
+}

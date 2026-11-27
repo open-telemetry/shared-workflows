@@ -1,0 +1,322 @@
+{
+  "head": "e56e8a3c619f2e44ae962166500aec536f4462d1",
+  "merge": "a3207070ae4abc38dffb109ce83fd5a2a917e089",
+  "merged": "2026-09-17T21:23:46Z",
+  "missing_roots": 0,
+  "number": 589,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same VCR issue as the sync variant: the multimodal request is recorded/replayed under `test_async_messages_create_captures_content.yaml`, which suggests it’s shared with a different test case. To avoid VCR mismatches and test interdependence, use a multimodal-specific cassette name and re-record it for this request.",
+      "created": "2026-09-09T21:42:52Z",
+      "hunk": "@@ -221,6 +333,25 @@ async def test_async_messages_create_captures_content(\n     assert output_messages[0][\"parts\"][0][\"type\"] == \"text\"\n \n \n+@pytest.mark.asyncio\n+async def test_async_messages_create_captures_multimodal_content(\n+    span_exporter,\n+    async_anthropic_client,\n+    instrument_with_content,\n+    vcr,\n+):\n+    with vcr.use_cassette(\"test_async_messages_create_captures_content.yaml\"):\n+        await async_anthropic_client.messages.create(\n+            model=\"claude-sonnet-4-20250514\",\n+            max_tokens=100,\n+            messages=[_multimodal_input_message()],\n+        )",
+      "id": "PRRT_kwDOSbspP86g2DBA",
+      "opened": "2026-09-09T21:42:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py",
+      "replies": [],
+      "reviewed": "ad6177c14db6c0e4dfd6750c735b2daecf0d7b38",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3973279870"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The multimodal helpers added here are duplicated in `tests/test_async_messages.py` with the same structure and assertions. Consider factoring them into a shared test helper module (or importing from one test file) to reduce duplication and keep expected-part definitions consistent across sync/async tests.",
+      "created": "2026-09-09T21:42:53Z",
+      "hunk": "@@ -163,6 +163,118 @@ def _load_span_messages(span, attribute):\n     return parsed\n \n \n+def _multimodal_input_message():\n+    return {\n+        \"role\": \"user\",\n+        \"content\": [\n+            {\"type\": \"text\", \"text\": \"Describe these images.\"},\n+            {\n+                \"type\": \"image\",\n+                \"source\": {\n+                    \"type\": \"base64\",\n+                    \"media_type\": \"image/png\",\n+                    \"data\": \"QUJD\",\n+                },\n+            },\n+            {\n+                \"type\": \"image\",\n+                \"source\": {\n+                    \"type\": \"url\",\n+                    \"url\": \"https://example.com/image.png\",\n+                },\n+            },\n+            {\n+                \"type\": \"document\",\n+                \"source\": {\n+                    \"type\": \"base64\",\n+                    \"media_type\": \"application/pdf\",\n+                    \"data\": \"QUJD\",\n+                },\n+            },\n+            {\n+                \"type\": \"document\",\n+                \"source\": {\n+                    \"type\": \"url\",\n+                    \"url\": \"https://example.com/document.pdf\",\n+                },\n+            },\n+            {\n+                \"type\": \"document\",\n+                \"source\": {\n+                    \"type\": \"text\",\n+                    \"media_type\": \"text/plain\",\n+                    \"data\": \"Document text\",\n+                },\n+            },\n+            {\n+                \"type\": \"document\",\n+                \"title\": \"Reference\",\n+                \"context\": \"Use the nested content.\",\n+                \"citations\": {\"enabled\": True},\n+                \"source\": {\n+                    \"type\": \"content\",\n+                    \"content\": [\n+                        {\"type\": \"text\", \"text\": \"Nested text\"},\n+                        {\n+                            \"type\": \"image\",\n+                            \"source\": {\n+                                \"type\": \"url\",\n+                                \"url\": \"https://example.com/nested.png\",\n+                            },\n+                        },\n+                    ],\n+                },\n+            },\n+        ],\n+    }",
+      "id": "PRRT_kwDOSbspP86g2DB8",
+      "opened": "2026-09-09T21:42:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+      "replies": [],
+      "reviewed": "ad6177c14db6c0e4dfd6750c735b2daecf0d7b38",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3973279979"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test uses the cassette `test_sync_messages_create_captures_content.yaml`, which (based on naming) is shared with the non-multimodal content test. With VCR, reusing a cassette across different request bodies commonly causes mismatches or cross-test coupling/order dependence. Record a dedicated cassette for this multimodal request (e.g., `test_sync_messages_create_captures_multimodal_content.yaml`) and update the `use_cassette(...)` value accordingly.",
+      "created": "2026-09-09T21:42:53Z",
+      "hunk": "@@ -426,6 +538,81 @@ def test_sync_messages_create_captures_content(\n     assert output_messages[0][\"parts\"][0][\"type\"] == \"text\"\n \n \n+def test_sync_messages_create_captures_multimodal_content(\n+    span_exporter,\n+    anthropic_client,\n+    instrument_with_content,\n+    vcr,\n+):\n+    with vcr.use_cassette(\"test_sync_messages_create_captures_content.yaml\"):\n+        anthropic_client.messages.create(\n+            model=\"claude-sonnet-4-20250514\",\n+            max_tokens=100,\n+            messages=[_multimodal_input_message()],\n+        )",
+      "id": "PRRT_kwDOSbspP86g2DBS",
+      "opened": "2026-09-09T21:42:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+      "replies": [],
+      "reviewed": "ad6177c14db6c0e4dfd6750c735b2daecf0d7b38",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3973279905"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The document URL and text branches hardcode `mime_type` (`application/pdf` and `text/plain`) instead of using any `media_type` provided by the source. This can produce incorrect telemetry for non-PDF URLs or non-plain-text document types. Prefer `mime_type=source_dict.get(\\\"media_type\\\")` when it's a non-empty string, and otherwise fall back to `None` (or a conservative default only if the Anthropic API guarantees it).",
+      "created": "2026-09-09T21:42:53Z",
+      "hunk": "@@ -92,33 +94,121 @@ def normalize_finish_reason(stop_reason: str | None) -> str | None:\n     return normalized or stop_reason\n \n \n-def _decode_base64(data: str) -> bytes | None:\n-    try:\n-        return base64.b64decode(data)\n-    except Exception:  # pylint: disable=broad-exception-caught\n-        return None\n-\n-\n-def _extract_base64_blob(source: object, modality: str) -> BlobPart | None:\n+def _extract_base64_blob(source: object, modality: str) -> MessagePart | None:\n     \"\"\"Extract a BlobPart from a base64-encoded source dict.\"\"\"\n     if not isinstance(source, dict):\n         return None\n-    # source is a TypedDict (e.g. Base64ImageSourceParam) narrowed to dict;\n-    # pyright cannot infer value types from isinstance-narrowed dicts.\n-    data: object = source.get(\"data\")  # type: ignore[reportUnknownMemberType]\n+    source_dict = cast(dict[str, object], source)\n+    data = source_dict.get(\"data\")\n     if not isinstance(data, str):\n+        if isinstance(data, PathLike) or callable(getattr(data, \"read\", None)):\n+            return GenericPart(type=modality)\n         return None\n-    decoded = _decode_base64(data)\n+    decoded = decode_base64(data)\n     if decoded is None:\n         return None\n-    media_type: object = source.get(\"media_type\")  # type: ignore[reportUnknownMemberType]\n+    media_type = source_dict.get(\"media_type\")\n     return BlobPart(\n         mime_type=media_type if isinstance(media_type, str) else None,\n         modality=modality,\n         content=decoded,\n     )\n \n \n+def _extract_image_source(source: object) -> MessagePart | None:\n+    \"\"\"Convert an Anthropic image source into a GenAI message part.\"\"\"\n+    if not isinstance(source, dict):\n+        return None\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        return _extract_base64_blob(source_dict, \"image\")\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            return image_from_url(url)\n+    if source_type == \"file\":\n+        return _extract_file_source(source_dict, \"image\")\n+    return None\n+\n+\n+def _extract_file_source(\n+    source: Mapping[str, object], modality: str\n+) -> FilePart | None:\n+    file_id = source.get(\"file_id\")\n+    if not isinstance(file_id, str) or not file_id:\n+        return None\n+    return FilePart(mime_type=None, modality=modality, file_id=file_id)\n+\n+\n+def _extract_document_source(source: object) -> list[MessagePart]:\n+    \"\"\"Convert an Anthropic document source into GenAI message parts.\"\"\"\n+    if not isinstance(source, dict):\n+        return []\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        part = _extract_base64_blob(source_dict, \"document\")\n+        return [part] if part is not None else []\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            return [\n+                UriPart(\n+                    mime_type=\"application/pdf\",\n+                    modality=\"document\",\n+                    uri=url,\n+                )\n+            ]\n+        return []\n+    if source_type == \"text\":\n+        data = source_dict.get(\"data\")\n+        if isinstance(data, str):\n+            return [\n+                BlobPart(\n+                    mime_type=\"text/plain\",\n+                    modality=\"document\",\n+                    content=data.encode(),\n+                )\n+            ]",
+      "id": "PRRT_kwDOSbspP86g2DBk",
+      "opened": "2026-09-09T21:42:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/utils.py",
+      "replies": [],
+      "reviewed": "ad6177c14db6c0e4dfd6750c735b2daecf0d7b38",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3973279933"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Shipping a VCR cassette flagged as AI-generated risks drifting from real API behavior and can make failures hard to diagnose. Re-record this cassette from an actual Anthropic interaction (or remove the TODO line if it is already verified correct) so conformance tests reflect the real wire format.",
+      "created": "2026-09-09T21:42:53Z",
+      "hunk": "@@ -0,0 +1,138 @@\n+# TODO: this is generated by AI, re-record",
+      "id": "PRRT_kwDOSbspP86g2DBz",
+      "opened": "2026-09-09T21:42:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/cassettes/test_chat_anthropic_multimodal_image_llm_call.yaml",
+      "replies": [],
+      "reviewed": "ad6177c14db6c0e4dfd6750c735b2daecf0d7b38",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3973279960"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test reuses the existing streaming-content cassette, but the request body here is multimodal and likely won't match that cassette. Add a dedicated VCR cassette for the multimodal streaming request and reference it here (otherwise VCR will fail on request mismatch in CI).",
+      "created": "2026-09-10T19:48:59Z",
+      "hunk": "@@ -745,6 +934,29 @@ def test_sync_messages_create_streaming_captures_content(\n     ]\n \n \n+def test_sync_messages_create_streaming_captures_multimodal_content(\n+    span_exporter,\n+    anthropic_client,\n+    instrument_with_content,\n+    vcr,\n+):\n+    with vcr.use_cassette(\n+        \"test_sync_messages_create_streaming_captures_content.yaml\"\n+    ):",
+      "id": "PRRT_kwDOSbspP86hOP-T",
+      "opened": "2026-09-10T19:49:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+      "replies": [],
+      "reviewed": "5ba834affb03bca41e5408d2fba51011224d6044",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3982895651"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This async streaming multimodal test reuses the existing streaming-content cassette, but the request body here is multimodal and likely won't match. Add a dedicated cassette for this request and reference it to avoid VCR request-mismatch failures.",
+      "created": "2026-09-10T19:48:59Z",
+      "hunk": "@@ -430,6 +563,31 @@ async def test_async_messages_create_streaming_captures_content(\n     assert output_messages[0][\"parts\"]\n \n \n+@pytest.mark.asyncio\n+async def test_async_messages_create_streaming_captures_multimodal_content(\n+    span_exporter,\n+    async_anthropic_client,\n+    instrument_with_content,\n+    vcr,\n+):\n+    with vcr.use_cassette(\n+        \"test_async_messages_create_streaming_captures_content.yaml\"\n+    ):",
+      "id": "PRRT_kwDOSbspP86hOP90",
+      "opened": "2026-09-10T19:49:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py",
+      "replies": [],
+      "reviewed": "5ba834affb03bca41e5408d2fba51011224d6044",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3982895603"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says it fixes issue #348 (OpenAI parity) and lists test commands for the LangChain package, but this PR changes the Anthropic instrumentation. Please update the PR description and/or issue linkage so the scope and verification steps match the actual changes.",
+      "created": "2026-09-10T19:49:00Z",
+      "hunk": "@@ -0,0 +1 @@\n+Capture Anthropic image and document inputs as GenAI ``BlobPart``, ``UriPart``, ``FilePart``, and ``GenericPart`` message parts",
+      "id": "PRRT_kwDOSbspP86hOP-_",
+      "opened": "2026-09-10T19:49:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/.changelog/589.added",
+      "replies": [],
+      "reviewed": "5ba834affb03bca41e5408d2fba51011224d6044",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3982895720"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When document source type is \"content\" and the content is an Iterator (e.g., a generator), this returns [] and the document block is dropped from captured message parts entirely. To avoid consuming the iterator but still represent that a document was provided, emit a GenericPart(type=\"document\") here (similar to file-backed base64 handling).",
+      "created": "2026-09-10T19:49:00Z",
+      "hunk": "@@ -92,33 +94,121 @@ def normalize_finish_reason(stop_reason: str | None) -> str | None:\n     return normalized or stop_reason\n \n \n-def _decode_base64(data: str) -> bytes | None:\n-    try:\n-        return base64.b64decode(data)\n-    except Exception:  # pylint: disable=broad-exception-caught\n-        return None\n-\n-\n-def _extract_base64_blob(source: object, modality: str) -> BlobPart | None:\n+def _extract_base64_blob(source: object, modality: str) -> MessagePart | None:\n     \"\"\"Extract a BlobPart from a base64-encoded source dict.\"\"\"\n     if not isinstance(source, dict):\n         return None\n-    # source is a TypedDict (e.g. Base64ImageSourceParam) narrowed to dict;\n-    # pyright cannot infer value types from isinstance-narrowed dicts.\n-    data: object = source.get(\"data\")  # type: ignore[reportUnknownMemberType]\n+    source_dict = cast(dict[str, object], source)\n+    data = source_dict.get(\"data\")\n     if not isinstance(data, str):\n+        if isinstance(data, PathLike) or callable(getattr(data, \"read\", None)):\n+            return GenericPart(type=modality)\n         return None\n-    decoded = _decode_base64(data)\n+    decoded = decode_base64(data)\n     if decoded is None:\n         return None\n-    media_type: object = source.get(\"media_type\")  # type: ignore[reportUnknownMemberType]\n+    media_type = source_dict.get(\"media_type\")\n     return BlobPart(\n         mime_type=media_type if isinstance(media_type, str) else None,\n         modality=modality,\n         content=decoded,\n     )\n \n \n+def _extract_image_source(source: object) -> MessagePart | None:\n+    \"\"\"Convert an Anthropic image source into a GenAI message part.\"\"\"\n+    if not isinstance(source, dict):\n+        return None\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        return _extract_base64_blob(source_dict, \"image\")\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            return image_from_url(url)\n+    if source_type == \"file\":\n+        return _extract_file_source(source_dict, \"image\")\n+    return None\n+\n+\n+def _extract_file_source(\n+    source: Mapping[str, object], modality: str\n+) -> FilePart | None:\n+    file_id = source.get(\"file_id\")\n+    if not isinstance(file_id, str) or not file_id:\n+        return None\n+    return FilePart(mime_type=None, modality=modality, file_id=file_id)\n+\n+\n+def _extract_document_source(source: object) -> list[MessagePart]:\n+    \"\"\"Convert an Anthropic document source into GenAI message parts.\"\"\"\n+    if not isinstance(source, dict):\n+        return []\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        part = _extract_base64_blob(source_dict, \"document\")\n+        return [part] if part is not None else []\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            return [\n+                UriPart(\n+                    mime_type=\"application/pdf\",\n+                    modality=\"document\",\n+                    uri=url,\n+                )\n+            ]\n+        return []\n+    if source_type == \"text\":\n+        data = source_dict.get(\"data\")\n+        if isinstance(data, str):\n+            return [\n+                BlobPart(\n+                    mime_type=\"text/plain\",\n+                    modality=\"document\",\n+                    content=data.encode(),\n+                )\n+            ]\n+        return []\n+    if source_type == \"content\":\n+        content = source_dict.get(\"content\")\n+        if isinstance(content, str):\n+            return [TextPart(content=content)]\n+        if isinstance(content, Iterator):\n+            return []",
+      "id": "PRRT_kwDOSbspP86hOP-n",
+      "opened": "2026-09-10T19:49:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/utils.py",
+      "replies": [],
+      "reviewed": "5ba834affb03bca41e5408d2fba51011224d6044",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3982895680"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The docstring says this helper always returns a BlobPart, but the function now also returns GenericPart when the base64 data is file-backed/stream-backed (to avoid reading). Update the docstring so it matches the actual behavior.",
+      "created": "2026-09-10T19:49:00Z",
+      "hunk": "@@ -92,33 +94,121 @@ def normalize_finish_reason(stop_reason: str | None) -> str | None:\n     return normalized or stop_reason\n \n \n-def _decode_base64(data: str) -> bytes | None:\n-    try:\n-        return base64.b64decode(data)\n-    except Exception:  # pylint: disable=broad-exception-caught\n-        return None\n-\n-\n-def _extract_base64_blob(source: object, modality: str) -> BlobPart | None:\n+def _extract_base64_blob(source: object, modality: str) -> MessagePart | None:\n     \"\"\"Extract a BlobPart from a base64-encoded source dict.\"\"\"\n     if not isinstance(source, dict):",
+      "id": "PRRT_kwDOSbspP86hOP_i",
+      "opened": "2026-09-10T19:49:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/utils.py",
+      "replies": [],
+      "reviewed": "5ba834affb03bca41e5408d2fba51011224d6044",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3982895781"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A document block with `source.type == \"content\"` and a generator/iterator `content` is currently dropped from captured input messages: `_extract_document_source` returns `[]` for `Iterator` to avoid consuming it, and `_convert_document_block` then returns `None` when there is no metadata. This means the span may omit that a document was provided at all; consider emitting a placeholder `GenericPart(type=\"document\")` whenever the source is nested-content, even if the nested parts can't be materialized.",
+      "created": "2026-09-10T21:12:19Z",
+      "hunk": "@@ -92,33 +94,125 @@ def normalize_finish_reason(stop_reason: str | None) -> str | None:\n     return normalized or stop_reason\n \n \n-def _decode_base64(data: str) -> bytes | None:\n-    try:\n-        return base64.b64decode(data)\n-    except Exception:  # pylint: disable=broad-exception-caught\n-        return None\n-\n+def _extract_base64_blob(source: object, modality: str) -> MessagePart | None:\n+    \"\"\"Convert an Anthropic base64 source to a GenAI message part.\n \n-def _extract_base64_blob(source: object, modality: str) -> BlobPart | None:\n-    \"\"\"Extract a BlobPart from a base64-encoded source dict.\"\"\"\n+    String data becomes a ``BlobPart``; file-backed data is represented as a\n+    ``GenericPart`` without being read.\n+    \"\"\"\n     if not isinstance(source, dict):\n         return None\n-    # source is a TypedDict (e.g. Base64ImageSourceParam) narrowed to dict;\n-    # pyright cannot infer value types from isinstance-narrowed dicts.\n-    data: object = source.get(\"data\")  # type: ignore[reportUnknownMemberType]\n+    source_dict = cast(dict[str, object], source)\n+    data = source_dict.get(\"data\")\n     if not isinstance(data, str):\n+        if isinstance(data, PathLike) or callable(getattr(data, \"read\", None)):\n+            return GenericPart(type=modality)\n         return None\n-    decoded = _decode_base64(data)\n+    decoded = decode_base64(data)\n     if decoded is None:\n         return None\n-    media_type: object = source.get(\"media_type\")  # type: ignore[reportUnknownMemberType]\n+    media_type = source_dict.get(\"media_type\")\n     return BlobPart(\n         mime_type=media_type if isinstance(media_type, str) else None,\n         modality=modality,\n         content=decoded,\n     )\n \n \n+def _extract_image_source(source: object) -> MessagePart | None:\n+    \"\"\"Convert an Anthropic image source into a GenAI message part.\"\"\"\n+    if not isinstance(source, dict):\n+        return None\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        return _extract_base64_blob(source_dict, \"image\")\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            return image_from_url(url)\n+    if source_type == \"file\":\n+        return _extract_file_source(source_dict, \"image\")\n+    return None\n+\n+\n+def _extract_file_source(\n+    source: Mapping[str, object], modality: str\n+) -> FilePart | None:\n+    file_id = source.get(\"file_id\")\n+    if not isinstance(file_id, str) or not file_id:\n+        return None\n+    return FilePart(mime_type=None, modality=modality, file_id=file_id)\n+\n+\n+def _extract_document_source(source: object) -> list[MessagePart]:\n+    \"\"\"Convert an Anthropic document source into GenAI message parts.\"\"\"\n+    if not isinstance(source, dict):\n+        return []\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        part = _extract_base64_blob(source_dict, \"document\")\n+        return [part] if part is not None else []\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            return [\n+                UriPart(\n+                    mime_type=\"application/pdf\",\n+                    modality=\"document\",\n+                    uri=url,\n+                )\n+            ]\n+        return []\n+    if source_type == \"text\":\n+        data = source_dict.get(\"data\")\n+        if isinstance(data, str):\n+            return [\n+                BlobPart(\n+                    mime_type=\"text/plain\",\n+                    modality=\"document\",\n+                    content=data.encode(),\n+                )\n+            ]\n+        return []\n+    if source_type == \"content\":\n+        content = source_dict.get(\"content\")\n+        if isinstance(content, str):\n+            return [TextPart(content=content)]\n+        if isinstance(content, Iterator):\n+            return []\n+        if isinstance(content, Iterable):\n+            return convert_content_to_parts(\n+                cast(\"Iterable[ContentBlock | ContentBlockParam]\", content)\n+            )\n+    if source_type == \"file\":\n+        part = _extract_file_source(source_dict, \"document\")\n+        return [part] if part is not None else []\n+    return []\n+\n+\n+def _convert_document_block(block: Mapping[str, Any]) -> MessagePart | None:\n+    parts = _extract_document_source(block.get(\"source\"))\n+    metadata = {\n+        key: block[key]\n+        for key in (\"title\", \"context\", \"citations\")\n+        if block.get(key) is not None\n+    }\n+    source = block.get(\"source\")\n+    source_mapping = (\n+        cast(Mapping[str, object], source)\n+        if isinstance(source, Mapping)\n+        else None\n+    )\n+    is_nested = (\n+        source_mapping is not None and source_mapping.get(\"type\") == \"content\"\n+    )\n+    if metadata or (is_nested and parts):\n+        return GenericPart(type=\"document\")\n+    return parts[0] if parts else None",
+      "id": "PRRT_kwDOSbspP86hP3Tt",
+      "opened": "2026-09-10T21:12:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/utils.py",
+      "replies": [],
+      "reviewed": "d3f947bbd139f6eea560088e56441f7584cc0b2b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3983538724"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n        if isinstance(data, PathLike) or callable(getattr(data, \"read\", None)):\n            return GenericPart(type=\"blob\")\n```\nIn GenAI semconv message parts, `type` is `\"blob\"` (with `modality` indicating `\"image\"` or `\"document\"`). `\"image\"` and `\"document\"` are not valid part types.",
+      "created": "2026-09-11T22:24:12Z",
+      "hunk": "@@ -92,33 +94,125 @@ def normalize_finish_reason(stop_reason: str | None) -> str | None:\n     return normalized or stop_reason\n \n \n-def _decode_base64(data: str) -> bytes | None:\n-    try:\n-        return base64.b64decode(data)\n-    except Exception:  # pylint: disable=broad-exception-caught\n-        return None\n-\n+def _extract_base64_blob(source: object, modality: str) -> MessagePart | None:\n+    \"\"\"Convert an Anthropic base64 source to a GenAI message part.\n \n-def _extract_base64_blob(source: object, modality: str) -> BlobPart | None:\n-    \"\"\"Extract a BlobPart from a base64-encoded source dict.\"\"\"\n+    String data becomes a ``BlobPart``; file-backed data is represented as a\n+    ``GenericPart`` without being read.\n+    \"\"\"\n     if not isinstance(source, dict):\n         return None\n-    # source is a TypedDict (e.g. Base64ImageSourceParam) narrowed to dict;\n-    # pyright cannot infer value types from isinstance-narrowed dicts.\n-    data: object = source.get(\"data\")  # type: ignore[reportUnknownMemberType]\n+    source_dict = cast(dict[str, object], source)\n+    data = source_dict.get(\"data\")\n     if not isinstance(data, str):\n+        if isinstance(data, PathLike) or callable(getattr(data, \"read\", None)):\n+            return GenericPart(type=modality)",
+      "id": "PRRT_kwDOSbspP86hp_q1",
+      "opened": "2026-09-11T22:25:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-14T19:22:26Z",
+          "body": "Addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r4008723409"
+        }
+      ],
+      "reviewed": "8499a68c66de002efba9b41f8185a46554dbebb8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3993859618"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n            media_type = source_dict.get(\"media_type\")\n            return [\n                UriPart(\n                    mime_type=media_type if isinstance(media_type, str) else None,\n                    modality=\"document\",\n                    uri=url,\n                )\n            ]\n```\nAnthropic document URL sources can specify a `media_type`. Hardcoding `\"application/pdf\"` overrides the actual media type when non-PDF documents (or unknown types) are supplied.",
+      "created": "2026-09-11T22:24:13Z",
+      "hunk": "@@ -92,33 +94,125 @@ def normalize_finish_reason(stop_reason: str | None) -> str | None:\n     return normalized or stop_reason\n \n \n-def _decode_base64(data: str) -> bytes | None:\n-    try:\n-        return base64.b64decode(data)\n-    except Exception:  # pylint: disable=broad-exception-caught\n-        return None\n-\n+def _extract_base64_blob(source: object, modality: str) -> MessagePart | None:\n+    \"\"\"Convert an Anthropic base64 source to a GenAI message part.\n \n-def _extract_base64_blob(source: object, modality: str) -> BlobPart | None:\n-    \"\"\"Extract a BlobPart from a base64-encoded source dict.\"\"\"\n+    String data becomes a ``BlobPart``; file-backed data is represented as a\n+    ``GenericPart`` without being read.\n+    \"\"\"\n     if not isinstance(source, dict):\n         return None\n-    # source is a TypedDict (e.g. Base64ImageSourceParam) narrowed to dict;\n-    # pyright cannot infer value types from isinstance-narrowed dicts.\n-    data: object = source.get(\"data\")  # type: ignore[reportUnknownMemberType]\n+    source_dict = cast(dict[str, object], source)\n+    data = source_dict.get(\"data\")\n     if not isinstance(data, str):\n+        if isinstance(data, PathLike) or callable(getattr(data, \"read\", None)):\n+            return GenericPart(type=modality)\n         return None\n-    decoded = _decode_base64(data)\n+    decoded = decode_base64(data)\n     if decoded is None:\n         return None\n-    media_type: object = source.get(\"media_type\")  # type: ignore[reportUnknownMemberType]\n+    media_type = source_dict.get(\"media_type\")\n     return BlobPart(\n         mime_type=media_type if isinstance(media_type, str) else None,\n         modality=modality,\n         content=decoded,\n     )\n \n \n+def _extract_image_source(source: object) -> MessagePart | None:\n+    \"\"\"Convert an Anthropic image source into a GenAI message part.\"\"\"\n+    if not isinstance(source, dict):\n+        return None\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        return _extract_base64_blob(source_dict, \"image\")\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            return image_from_url(url)\n+    if source_type == \"file\":\n+        return _extract_file_source(source_dict, \"image\")\n+    return None\n+\n+\n+def _extract_file_source(\n+    source: Mapping[str, object], modality: str\n+) -> FilePart | None:\n+    file_id = source.get(\"file_id\")\n+    if not isinstance(file_id, str) or not file_id:\n+        return None\n+    return FilePart(mime_type=None, modality=modality, file_id=file_id)\n+\n+\n+def _extract_document_source(source: object) -> list[MessagePart]:\n+    \"\"\"Convert an Anthropic document source into GenAI message parts.\"\"\"\n+    if not isinstance(source, dict):\n+        return []\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        part = _extract_base64_blob(source_dict, \"document\")\n+        return [part] if part is not None else []\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            return [\n+                UriPart(\n+                    mime_type=\"application/pdf\",\n+                    modality=\"document\",\n+                    uri=url,\n+                )\n+            ]",
+      "id": "PRRT_kwDOSbspP86hp_rJ",
+      "opened": "2026-09-11T22:25:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-14T19:22:35Z",
+          "body": "Addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r4008724401"
+        }
+      ],
+      "reviewed": "8499a68c66de002efba9b41f8185a46554dbebb8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3993859645"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "When document metadata like `title`, `context`, or `citations` is present, returning `GenericPart(type=\"document\")` discards the extracted `BlobPart` or `UriPart` (and `\"document\"` is not a valid semconv part type). We should preserve the extracted content part regardless of metadata.\n\nAlso, if `source.type == \"content\"` has multiple nested parts (e.g. text + image), returning a single `MessagePart` forces dropping them. If `convert_content_to_parts` extends a list of parts per block, we can preserve all nested parts without collapsing them into `GenericPart`:\n\n```python\n# Test showing the issue:\ncontent = [{\n    \"type\": \"document\",\n    \"title\": \"Report\",\n    \"source\": {\"type\": \"base64\", \"media_type\": \"application/pdf\", \"data\": \"QUJD\"},\n}]\n# Expecting BlobPart(mime_type=\"application/pdf\", modality=\"document\", content=b\"ABC\")\n# Currently returns GenericPart(type=\"document\")\n```",
+      "created": "2026-09-11T22:24:13Z",
+      "hunk": "@@ -92,33 +94,125 @@ def normalize_finish_reason(stop_reason: str | None) -> str | None:\n     return normalized or stop_reason\n \n \n-def _decode_base64(data: str) -> bytes | None:\n-    try:\n-        return base64.b64decode(data)\n-    except Exception:  # pylint: disable=broad-exception-caught\n-        return None\n-\n+def _extract_base64_blob(source: object, modality: str) -> MessagePart | None:\n+    \"\"\"Convert an Anthropic base64 source to a GenAI message part.\n \n-def _extract_base64_blob(source: object, modality: str) -> BlobPart | None:\n-    \"\"\"Extract a BlobPart from a base64-encoded source dict.\"\"\"\n+    String data becomes a ``BlobPart``; file-backed data is represented as a\n+    ``GenericPart`` without being read.\n+    \"\"\"\n     if not isinstance(source, dict):\n         return None\n-    # source is a TypedDict (e.g. Base64ImageSourceParam) narrowed to dict;\n-    # pyright cannot infer value types from isinstance-narrowed dicts.\n-    data: object = source.get(\"data\")  # type: ignore[reportUnknownMemberType]\n+    source_dict = cast(dict[str, object], source)\n+    data = source_dict.get(\"data\")\n     if not isinstance(data, str):\n+        if isinstance(data, PathLike) or callable(getattr(data, \"read\", None)):\n+            return GenericPart(type=modality)\n         return None\n-    decoded = _decode_base64(data)\n+    decoded = decode_base64(data)\n     if decoded is None:\n         return None\n-    media_type: object = source.get(\"media_type\")  # type: ignore[reportUnknownMemberType]\n+    media_type = source_dict.get(\"media_type\")\n     return BlobPart(\n         mime_type=media_type if isinstance(media_type, str) else None,\n         modality=modality,\n         content=decoded,\n     )\n \n \n+def _extract_image_source(source: object) -> MessagePart | None:\n+    \"\"\"Convert an Anthropic image source into a GenAI message part.\"\"\"\n+    if not isinstance(source, dict):\n+        return None\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        return _extract_base64_blob(source_dict, \"image\")\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            return image_from_url(url)\n+    if source_type == \"file\":\n+        return _extract_file_source(source_dict, \"image\")\n+    return None\n+\n+\n+def _extract_file_source(\n+    source: Mapping[str, object], modality: str\n+) -> FilePart | None:\n+    file_id = source.get(\"file_id\")\n+    if not isinstance(file_id, str) or not file_id:\n+        return None\n+    return FilePart(mime_type=None, modality=modality, file_id=file_id)\n+\n+\n+def _extract_document_source(source: object) -> list[MessagePart]:\n+    \"\"\"Convert an Anthropic document source into GenAI message parts.\"\"\"\n+    if not isinstance(source, dict):\n+        return []\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        part = _extract_base64_blob(source_dict, \"document\")\n+        return [part] if part is not None else []\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            return [\n+                UriPart(\n+                    mime_type=\"application/pdf\",\n+                    modality=\"document\",\n+                    uri=url,\n+                )\n+            ]\n+        return []\n+    if source_type == \"text\":\n+        data = source_dict.get(\"data\")\n+        if isinstance(data, str):\n+            return [\n+                BlobPart(\n+                    mime_type=\"text/plain\",\n+                    modality=\"document\",\n+                    content=data.encode(),\n+                )\n+            ]\n+        return []\n+    if source_type == \"content\":\n+        content = source_dict.get(\"content\")\n+        if isinstance(content, str):\n+            return [TextPart(content=content)]\n+        if isinstance(content, Iterator):\n+            return [GenericPart(type=\"document\")]\n+        if isinstance(content, Iterable):\n+            return convert_content_to_parts(\n+                cast(\"Iterable[ContentBlock | ContentBlockParam]\", content)\n+            )\n+    if source_type == \"file\":\n+        part = _extract_file_source(source_dict, \"document\")\n+        return [part] if part is not None else []\n+    return []\n+\n+\n+def _convert_document_block(block: Mapping[str, Any]) -> MessagePart | None:\n+    parts = _extract_document_source(block.get(\"source\"))\n+    metadata = {\n+        key: block[key]\n+        for key in (\"title\", \"context\", \"citations\")\n+        if block.get(key) is not None\n+    }\n+    source = block.get(\"source\")\n+    source_mapping = (\n+        cast(Mapping[str, object], source)\n+        if isinstance(source, Mapping)\n+        else None\n+    )\n+    is_nested = (\n+        source_mapping is not None and source_mapping.get(\"type\") == \"content\"\n+    )\n+    if metadata or (is_nested and parts):\n+        return GenericPart(type=\"document\")\n+    return parts[0] if parts else None",
+      "id": "PRRT_kwDOSbspP86hp_rP",
+      "opened": "2026-09-11T22:25:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-14T19:22:47Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r4008726086"
+        }
+      ],
+      "reviewed": "8499a68c66de002efba9b41f8185a46554dbebb8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3993859652"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `_multimodal_input_message` and `_assert_multimodal_input` are duplicated identically in `tests/test_async_messages.py`. Consider moving them to a shared helper or conftest to keep them in sync.",
+      "created": "2026-09-11T22:24:13Z",
+      "hunk": "@@ -163,6 +163,118 @@ def _load_span_messages(span, attribute):\n     return parsed\n \n \n+def _multimodal_input_message():",
+      "id": "PRRT_kwDOSbspP86hp_rW",
+      "opened": "2026-09-11T22:25:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+      "replies": [
+        {
+          "at": "2026-09-14T19:22:54Z",
+          "body": "Fixed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r4008727083"
+        }
+      ],
+      "reviewed": "8499a68c66de002efba9b41f8185a46554dbebb8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3993859660"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The PR description mentions `Fixes #348` and lists LangChain tox environments. Issue #348 was for OpenAI parity (already resolved in #540). Could you update the PR description to decouple from #348 and list the Anthropic test commands?",
+      "created": "2026-09-11T22:24:13Z",
+      "hunk": "@@ -0,0 +1 @@\n+Capture Anthropic image and document inputs as GenAI ``BlobPart``, ``UriPart``, ``FilePart``, and ``GenericPart`` message parts",
+      "id": "PRRT_kwDOSbspP86hp_rd",
+      "opened": "2026-09-11T22:25:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/.changelog/589.added",
+      "replies": [
+        {
+          "at": "2026-09-14T19:23:13Z",
+          "body": "Thanks for catching that. Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r4008729655"
+        }
+      ],
+      "reviewed": "8499a68c66de002efba9b41f8185a46554dbebb8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r3993859667"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit:\n\n```suggestion\n        if isinstance(item, Mapping):\n```",
+      "created": "2026-09-16T02:06:50Z",
+      "hunk": "@@ -236,6 +323,11 @@ def convert_content_to_parts(\n         return [TextPart(content=content)]\n     parts: list[MessagePart] = []\n     for item in content:\n+        if hasattr(item, \"get\"):",
+      "id": "PRRT_kwDOSbspP86iwwL8",
+      "opened": "2026-09-16T02:18:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-16T16:07:34Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r4028151805"
+        }
+      ],
+      "reviewed": "f88a9df53cf7f58abad0f15783ca186853425f9d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r4021863918"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: Respect `source_dict.get(\"media_type\")` when provided:\r\n\r\n```suggestion\r\n            media_type = source_dict.get(\"media_type\")\r\n            return [\r\n                BlobPart(\r\n                    mime_type=media_type\r\n                    if isinstance(media_type, str)\r\n                    else \"text/plain\",\r\n                    modality=\"document\",\r\n                    content=data.encode(),\r\n                )\r\n            ]\r\n```\r\n\r\nit seems it at least sometimes should be available via PlainTextSourceParam source in [DocumentBlockParam](https://github.com/anthropics/anthropic-sdk-python/blob/main/src/anthropic/types/document_block_param.py)",
+      "created": "2026-09-16T02:06:50Z",
+      "hunk": "@@ -102,33 +104,111 @@ def normalize_finish_reason(stop_reason: str | None) -> str | None:\n     return normalized or stop_reason\n \n \n-def _decode_base64(data: str) -> bytes | None:\n-    try:\n-        return base64.b64decode(data)\n-    except Exception:  # pylint: disable=broad-exception-caught\n-        return None\n-\n+def _extract_base64_blob(source: object, modality: str) -> MessagePart | None:\n+    \"\"\"Convert an Anthropic base64 source to a GenAI message part.\n \n-def _extract_base64_blob(source: object, modality: str) -> BlobPart | None:\n-    \"\"\"Extract a BlobPart from a base64-encoded source dict.\"\"\"\n+    String data becomes a ``BlobPart``; file-backed data is represented as a\n+    ``GenericPart`` without being read.\n+    \"\"\"\n     if not isinstance(source, dict):\n         return None\n-    # source is a TypedDict (e.g. Base64ImageSourceParam) narrowed to dict;\n-    # pyright cannot infer value types from isinstance-narrowed dicts.\n-    data: object = source.get(\"data\")  # type: ignore[reportUnknownMemberType]\n+    source_dict = cast(dict[str, object], source)\n+    data = source_dict.get(\"data\")\n     if not isinstance(data, str):\n+        if isinstance(data, PathLike) or callable(getattr(data, \"read\", None)):\n+            return GenericPart(type=\"blob\")\n         return None\n-    decoded = _decode_base64(data)\n+    decoded = decode_base64(data)\n     if decoded is None:\n         return None\n-    media_type: object = source.get(\"media_type\")  # type: ignore[reportUnknownMemberType]\n+    media_type = source_dict.get(\"media_type\")\n     return BlobPart(\n         mime_type=media_type if isinstance(media_type, str) else None,\n         modality=modality,\n         content=decoded,\n     )\n \n \n+def _extract_image_source(source: object) -> MessagePart | None:\n+    \"\"\"Convert an Anthropic image source into a GenAI message part.\"\"\"\n+    if not isinstance(source, dict):\n+        return None\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        return _extract_base64_blob(source_dict, \"image\")\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            return image_from_url(url)\n+    if source_type == \"file\":\n+        return _extract_file_source(source_dict, \"image\")\n+    return None\n+\n+\n+def _extract_file_source(\n+    source: Mapping[str, object], modality: str\n+) -> FilePart | None:\n+    file_id = source.get(\"file_id\")\n+    if not isinstance(file_id, str) or not file_id:\n+        return None\n+    return FilePart(mime_type=None, modality=modality, file_id=file_id)\n+\n+\n+def _extract_document_source(source: object) -> list[MessagePart]:\n+    \"\"\"Convert an Anthropic document source into GenAI message parts.\"\"\"\n+    if not isinstance(source, dict):\n+        return []\n+    source_dict = cast(dict[str, object], source)\n+    source_type = source_dict.get(\"type\")\n+    if source_type == \"base64\":\n+        part = _extract_base64_blob(source_dict, \"document\")\n+        return [part] if part is not None else []\n+    if source_type == \"url\":\n+        url = source_dict.get(\"url\")\n+        if isinstance(url, str) and url:\n+            media_type = source_dict.get(\"media_type\")\n+            return [\n+                UriPart(\n+                    mime_type=media_type\n+                    if isinstance(media_type, str)\n+                    else None,\n+                    modality=\"document\",\n+                    uri=url,\n+                )\n+            ]\n+        return []\n+    if source_type == \"text\":\n+        data = source_dict.get(\"data\")\n+        if isinstance(data, str):\n+            return [\n+                BlobPart(\n+                    mime_type=\"text/plain\",\n+                    modality=\"document\",\n+                    content=data.encode(),\n+                )\n+            ]",
+      "id": "PRRT_kwDOSbspP86iwwLx",
+      "opened": "2026-09-16T02:18:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-16T16:07:01Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r4028146515"
+        }
+      ],
+      "reviewed": "f88a9df53cf7f58abad0f15783ca186853425f9d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/589#discussion_r4021863905"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "8c714f71e6bc586fcec5c533074ae301fb819a9b",
+  "merge": "3aa5586e486c073cc747a2fe0849bb779260bf6c",
+  "merged": "2026-08-30T18:03:33Z",
+  "missing_roots": 0,
+  "number": 123,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The pinned Together 2.32 API also accepts `video_url`, `audio_url`, and `input_audio` message parts, so this scenario does not satisfy the multimodal contract's “one call per non-text content kind the API takes” rule and the claim that this route has no audio is inaccurate. Add deterministic calls for the supported video/audio inputs (using suitable models), then regenerate `data.json`; if the service rejects any SDK-declared type, document that concrete limitation instead.",
+      "created": "2026-08-28T23:55:22Z",
+      "hunk": "@@ -0,0 +1,36 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Conformance scenario: a Together chat completion carrying non-text content.\n+\n+One exchange, for the one non-text content kind the chat API takes: an image,\n+on the way in. Together has no audio on this route. Coverage records attribute",
+      "id": "PRRT_kwDOTuzK5c6dVTYq",
+      "opened": "2026-08-28T23:55:22Z",
+      "path": "scenarios/gen-ai/python/together/scenarios/multimodal.py",
+      "replies": [],
+      "reviewed": "57c6f719ef698d7e2fdea65bd90301361bc3630e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/123#discussion_r3884773550"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n| `together` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `openinference`<br>no `openllmetry`: not compatible with together 2 |\n```",
+      "created": "2026-08-29T00:24:27Z",
+      "hunk": "@@ -126,6 +126,7 @@ classes than the row, the row says so.\n | `pydantic-ai` | invoke_agent, automatic_tool_calling | `native`<br>no `openinference`: the package is a span processor over the library's own spans, not an instrumentation of it, so it adds no coverage<br>no `openllmetry` for this library |\n | `qwen-agent` | invoke_agent, automatic_tool_calling. Assistant runs its Memory sub-agent, so each run carries a second agent span | `opentelemetry-qwen-agent`<br>no `openinference` or `openllmetry` for this library |\n | `strands-agents` | invoke_agent, automatic_tool_calling | `native`<br>no `openinference`: the package is a span processor over the library's own spans, not an instrumentation of it, so it adds no coverage<br>no `openllmetry` for this library |\n+| `together` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `openinference`<br>no `openllmetry`: it wraps `together.resources.chat.completions.ChatCompletions`, renamed in together 2, so it records nothing |",
+      "id": "PRRT_kwDOTuzK5c6dViMj",
+      "opened": "2026-08-29T00:24:27Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "57c6f719ef698d7e2fdea65bd90301361bc3630e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/123#discussion_r3884865074"
+    }
+  ]
+}

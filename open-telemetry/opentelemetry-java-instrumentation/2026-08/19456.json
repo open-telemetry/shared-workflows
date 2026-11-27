@@ -1,0 +1,190 @@
+{
+  "head": "765d1b70e0cdb637ca798b706466461fc12f7515",
+  "merge": "7bcb704461f1d11a70df3da6320645b4c0fb2798",
+  "merged": "2026-08-12T16:48:41Z",
+  "missing_roots": 0,
+  "number": 19456,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This does not actually create the agent-side bound counter. The returned wrapper calls the ordinary `add(value, attributes)` path on every recording, so it still performs the attribute processing and timeseries lookup that the 1.65 `bind` contract explicitly eliminates. Bind the agent `ExtendedLongCounter` once and have the application wrapper delegate to its `BoundLongCounter` (retaining a fallback only if an agent implementation lacks the incubator API).",
+      "created": "2026-08-09T18:49:39Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_65.incubator.metrics;\n+\n+import io.opentelemetry.api.metrics.LongCounter;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_0.trace.Bridging;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_10.metrics.ApplicationLongCounter;\n+\n+// extends the plain (non-incubator) bridge directly instead of the 1.40 incubator marker class,\n+// since the 1.40 incubator marker class does not implement ExtendedLongCounter#bind(Attributes)\n+// (added in 1.65) and would otherwise make this class fail muzzle validation\n+final class ApplicationLongCounter165Incubator extends ApplicationLongCounter\n+    implements application.io.opentelemetry.api.incubator.metrics.ExtendedLongCounter {\n+\n+  private final LongCounter agentCounter;\n+\n+  ApplicationLongCounter165Incubator(LongCounter agentCounter) {\n+    super(agentCounter);\n+    this.agentCounter = agentCounter;\n+  }\n+\n+  @Override\n+  public application.io.opentelemetry.api.incubator.metrics.BoundLongCounter bind(\n+      application.io.opentelemetry.api.common.Attributes applicationAttributes) {\n+    return new ApplicationBoundLongCounter165Incubator(\n+        agentCounter, Bridging.toAgent(applicationAttributes));",
+      "id": "PRRT_kwDODJKVX86XqX2B",
+      "opened": "2026-08-09T18:49:42Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationLongCounter165Incubator.java",
+      "replies": [],
+      "reviewed": "28de05e1608cf2e7ccee6a35e071eea16935ee14",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3744861559"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This emulates binding by retaining attributes and then using the unbound `add(value, attributes)` path for every update. That forfeits the cached-timeseries behavior promised by the 1.65 bound-instrument API. Bind the agent `ExtendedDoubleCounter` here and delegate through its `BoundDoubleCounter`, with a fallback only when the agent implementation does not expose the incubator interface.",
+      "created": "2026-08-09T18:49:39Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_65.incubator.metrics;\n+\n+import io.opentelemetry.api.metrics.DoubleCounter;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_0.trace.Bridging;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_10.metrics.ApplicationDoubleCounter;\n+\n+// extends the plain (non-incubator) bridge directly instead of the 1.40 incubator marker class,\n+// since the 1.40 incubator marker class does not implement ExtendedDoubleCounter#bind(Attributes)\n+// (added in 1.65) and would otherwise make this class fail muzzle validation\n+final class ApplicationDoubleCounter165Incubator extends ApplicationDoubleCounter\n+    implements application.io.opentelemetry.api.incubator.metrics.ExtendedDoubleCounter {\n+\n+  private final DoubleCounter agentCounter;\n+\n+  ApplicationDoubleCounter165Incubator(DoubleCounter agentCounter) {\n+    super(agentCounter);\n+    this.agentCounter = agentCounter;\n+  }\n+\n+  @Override\n+  public application.io.opentelemetry.api.incubator.metrics.BoundDoubleCounter bind(\n+      application.io.opentelemetry.api.common.Attributes applicationAttributes) {\n+    return new ApplicationBoundDoubleCounter165Incubator(\n+        agentCounter, Bridging.toAgent(applicationAttributes));",
+      "id": "PRRT_kwDODJKVX86XqX2f",
+      "opened": "2026-08-09T18:49:42Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleCounter165Incubator.java",
+      "replies": [
+        {
+          "at": "2026-08-10T14:57:53Z",
+          "body": "Addressed in daf6b7c5ecf7a13a6e1b2972e0b479c245ad2202.\n\nAnalysis: All eight application-side bind implementations converted attributes once but retained an unbound agent instrument, so every update still repeated attribute processing and timeseries lookup. The bound wrapper factories now detect the corresponding agent Extended interface, invoke bind once, and retain primitive delegates to the agent Bound instrument for both implicit and explicit context updates. Plain agent instruments retain the previous unbound path as a compatibility fallback.\n\nUpsides: Restores the cached-timeseries semantics of the 1.65 bound metric API across counters, up/down counters, histograms, and gauges; preserves explicit context bridging; and remains compatible with agent instrument implementations that do not expose incubator interfaces.\n\nDownsides: Each bind allocates two primitive delegate objects, and implementations without the agent incubator API continue to use the less efficient fallback path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3750662196"
+        }
+      ],
+      "reviewed": "28de05e1608cf2e7ccee6a35e071eea16935ee14",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3744861596"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The agent up/down counter is never bound here; the wrapper re-runs the regular attribute lookup on every `add`. This loses the core performance guarantee of the new 1.65 API. Bind the agent `ExtendedLongUpDownCounter` once and wrap its `BoundLongUpDownCounter` instead, preserving a fallback only for non-incubator agent implementations.",
+      "created": "2026-08-09T18:49:40Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_65.incubator.metrics;\n+\n+import io.opentelemetry.api.metrics.LongUpDownCounter;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_0.trace.Bridging;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_10.metrics.ApplicationLongUpDownCounter;\n+\n+// extends the plain (non-incubator) bridge directly instead of the 1.40 incubator marker class,\n+// since the 1.40 incubator marker class does not implement\n+// ExtendedLongUpDownCounter#bind(Attributes) (added in 1.65) and would otherwise make this class\n+// fail muzzle validation\n+final class ApplicationLongUpDownCounter165Incubator extends ApplicationLongUpDownCounter\n+    implements application.io.opentelemetry.api.incubator.metrics.ExtendedLongUpDownCounter {\n+\n+  private final LongUpDownCounter agentCounter;\n+\n+  ApplicationLongUpDownCounter165Incubator(LongUpDownCounter agentCounter) {\n+    super(agentCounter);\n+    this.agentCounter = agentCounter;\n+  }\n+\n+  @Override\n+  public application.io.opentelemetry.api.incubator.metrics.BoundLongUpDownCounter bind(\n+      application.io.opentelemetry.api.common.Attributes applicationAttributes) {\n+    return new ApplicationBoundLongUpDownCounter165Incubator(\n+        agentCounter, Bridging.toAgent(applicationAttributes));",
+      "id": "PRRT_kwDODJKVX86XqX20",
+      "opened": "2026-08-09T18:49:42Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationLongUpDownCounter165Incubator.java",
+      "replies": [],
+      "reviewed": "28de05e1608cf2e7ccee6a35e071eea16935ee14",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3744861619"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This wrapper keeps the attributes but delegates each update to the unbound counter API, causing the per-recording processing and timeseries lookup that `bind` is intended to avoid. Bind the agent `ExtendedDoubleUpDownCounter` once and delegate to its `BoundDoubleUpDownCounter` (with a fallback only if necessary).",
+      "created": "2026-08-09T18:49:40Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_65.incubator.metrics;\n+\n+import io.opentelemetry.api.metrics.DoubleUpDownCounter;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_0.trace.Bridging;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_10.metrics.ApplicationDoubleUpDownCounter;\n+\n+// extends the plain (non-incubator) bridge directly instead of the 1.40 incubator marker class,\n+// since the 1.40 incubator marker class does not implement\n+// ExtendedDoubleUpDownCounter#bind(Attributes) (added in 1.65) and would otherwise make this\n+// class fail muzzle validation\n+final class ApplicationDoubleUpDownCounter165Incubator extends ApplicationDoubleUpDownCounter\n+    implements application.io.opentelemetry.api.incubator.metrics.ExtendedDoubleUpDownCounter {\n+\n+  private final DoubleUpDownCounter agentCounter;\n+\n+  ApplicationDoubleUpDownCounter165Incubator(DoubleUpDownCounter agentCounter) {\n+    super(agentCounter);\n+    this.agentCounter = agentCounter;\n+  }\n+\n+  @Override\n+  public application.io.opentelemetry.api.incubator.metrics.BoundDoubleUpDownCounter bind(\n+      application.io.opentelemetry.api.common.Attributes applicationAttributes) {\n+    return new ApplicationBoundDoubleUpDownCounter165Incubator(\n+        agentCounter, Bridging.toAgent(applicationAttributes));",
+      "id": "PRRT_kwDODJKVX86XqX3Q",
+      "opened": "2026-08-09T18:49:42Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleUpDownCounter165Incubator.java",
+      "replies": [
+        {
+          "at": "2026-08-10T14:20:07Z",
+          "body": "Addressed in daf6b7c5ecf7a13a6e1b2972e0b479c245ad2202.\n\nAnalysis: All eight application-side bind implementations converted attributes once but retained an unbound agent instrument, so every update still repeated attribute processing and timeseries lookup. The bound wrapper factories now detect the corresponding agent Extended interface, invoke bind once, and retain primitive delegates to the agent Bound instrument for both implicit and explicit context updates. Plain agent instruments retain the previous unbound path as a compatibility fallback.\n\nUpsides: Restores the cached-timeseries semantics of the 1.65 bound metric API across counters, up/down counters, histograms, and gauges; preserves explicit context bridging; and remains compatible with agent instrument implementations that do not expose incubator interfaces.\n\nDownsides: Each bind allocates two primitive delegate objects, and implementations without the agent incubator API continue to use the less efficient fallback path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3750336832"
+        }
+      ],
+      "reviewed": "28de05e1608cf2e7ccee6a35e071eea16935ee14",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3744861648"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The returned object is not backed by an agent-side bound histogram; it invokes the ordinary `record(value, attributes)` path each time. Consequently the bridge discards the cached-timeseries optimization specified by the 1.65 bound API. Bind the agent `ExtendedLongHistogram` and wrap its `BoundLongHistogram`, retaining a fallback only for non-incubator implementations.",
+      "created": "2026-08-09T18:49:41Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_65.incubator.metrics;\n+\n+import io.opentelemetry.api.metrics.LongHistogram;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_0.trace.Bridging;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_10.metrics.ApplicationLongHistogram;\n+\n+// extends the plain (non-incubator) bridge directly instead of the 1.40 incubator marker class,\n+// since the 1.40 incubator marker class does not implement ExtendedLongHistogram#bind(Attributes)\n+// (added in 1.65) and would otherwise make this class fail muzzle validation\n+final class ApplicationLongHistogram165Incubator extends ApplicationLongHistogram\n+    implements application.io.opentelemetry.api.incubator.metrics.ExtendedLongHistogram {\n+\n+  private final LongHistogram agentHistogram;\n+\n+  ApplicationLongHistogram165Incubator(LongHistogram agentHistogram) {\n+    super(agentHistogram);\n+    this.agentHistogram = agentHistogram;\n+  }\n+\n+  @Override\n+  public application.io.opentelemetry.api.incubator.metrics.BoundLongHistogram bind(\n+      application.io.opentelemetry.api.common.Attributes applicationAttributes) {\n+    return new ApplicationBoundLongHistogram165Incubator(\n+        agentHistogram, Bridging.toAgent(applicationAttributes));",
+      "id": "PRRT_kwDODJKVX86XqX3w",
+      "opened": "2026-08-09T18:49:42Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationLongHistogram165Incubator.java",
+      "replies": [],
+      "reviewed": "28de05e1608cf2e7ccee6a35e071eea16935ee14",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3744861686"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This retains attributes but never calls the agent's `bind`, so every `record` still takes the unbound attribute-processing and map-lookup path. That defeats the purpose and documented behavior of the 1.65 bound API. Bind the agent `ExtendedDoubleHistogram` once and delegate through its `BoundDoubleHistogram`, with a fallback only where required.",
+      "created": "2026-08-09T18:49:41Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_65.incubator.metrics;\n+\n+import io.opentelemetry.api.metrics.DoubleHistogram;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_0.trace.Bridging;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_10.metrics.ApplicationDoubleHistogram;\n+\n+// extends the plain (non-incubator) bridge directly instead of the 1.40 incubator marker class,\n+// since the 1.40 incubator marker class does not implement\n+// ExtendedDoubleHistogram#bind(Attributes) (added in 1.65) and would otherwise make this class\n+// fail muzzle validation\n+final class ApplicationDoubleHistogram165Incubator extends ApplicationDoubleHistogram\n+    implements application.io.opentelemetry.api.incubator.metrics.ExtendedDoubleHistogram {\n+\n+  private final DoubleHistogram agentHistogram;\n+\n+  ApplicationDoubleHistogram165Incubator(DoubleHistogram agentHistogram) {\n+    super(agentHistogram);\n+    this.agentHistogram = agentHistogram;\n+  }\n+\n+  @Override\n+  public application.io.opentelemetry.api.incubator.metrics.BoundDoubleHistogram bind(\n+      application.io.opentelemetry.api.common.Attributes applicationAttributes) {\n+    return new ApplicationBoundDoubleHistogram165Incubator(\n+        agentHistogram, Bridging.toAgent(applicationAttributes));",
+      "id": "PRRT_kwDODJKVX86XqX4R",
+      "opened": "2026-08-09T18:49:42Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleHistogram165Incubator.java",
+      "replies": [
+        {
+          "at": "2026-08-10T16:20:11Z",
+          "body": "Addressed in daf6b7c5ecf7a13a6e1b2972e0b479c245ad2202.\n\nAnalysis: All eight application-side bind implementations converted attributes once but retained an unbound agent instrument, so every update still repeated attribute processing and timeseries lookup. The bound wrapper factories now detect the corresponding agent Extended interface, invoke bind once, and retain primitive delegates to the agent Bound instrument for both implicit and explicit context updates. Plain agent instruments retain the previous unbound path as a compatibility fallback.\n\nUpsides: Restores the cached-timeseries semantics of the 1.65 bound metric API across counters, up/down counters, histograms, and gauges; preserves explicit context bridging; and remains compatible with agent instrument implementations that do not expose incubator interfaces.\n\nDownsides: Each bind allocates two primitive delegate objects, and implementations without the agent incubator API continue to use the less efficient fallback path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3751322550"
+        }
+      ],
+      "reviewed": "28de05e1608cf2e7ccee6a35e071eea16935ee14",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3744861719"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This does not bind the agent gauge; the returned wrapper repeatedly calls `set(value, attributes)`, including the per-recording lookup that the 1.65 bound API is designed to remove. Bind the agent `ExtendedLongGauge` once and wrap its `BoundLongGauge`, retaining a fallback only if the agent implementation lacks the incubator interface.",
+      "created": "2026-08-09T18:49:42Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_65.incubator.metrics;\n+\n+import io.opentelemetry.api.metrics.LongGauge;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_0.trace.Bridging;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_38.metrics.ApplicationLongGauge138;\n+\n+// extends the plain (non-incubator) bridge directly instead of the 1.40 incubator marker class,\n+// since the 1.40 incubator marker class does not implement ExtendedLongGauge#bind(Attributes)\n+// (added in 1.65) and would otherwise make this class fail muzzle validation\n+final class ApplicationLongGauge165Incubator extends ApplicationLongGauge138\n+    implements application.io.opentelemetry.api.incubator.metrics.ExtendedLongGauge {\n+\n+  private final LongGauge agentLongGauge;\n+\n+  ApplicationLongGauge165Incubator(LongGauge agentLongGauge) {\n+    super(agentLongGauge);\n+    this.agentLongGauge = agentLongGauge;\n+  }\n+\n+  @Override\n+  public application.io.opentelemetry.api.incubator.metrics.BoundLongGauge bind(\n+      application.io.opentelemetry.api.common.Attributes applicationAttributes) {\n+    return new ApplicationBoundLongGauge165Incubator(\n+        agentLongGauge, Bridging.toAgent(applicationAttributes));",
+      "id": "PRRT_kwDODJKVX86XqX4z",
+      "opened": "2026-08-09T18:49:42Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationLongGauge165Incubator.java",
+      "replies": [
+        {
+          "at": "2026-08-10T14:57:54Z",
+          "body": "Addressed in daf6b7c5ecf7a13a6e1b2972e0b479c245ad2202.\n\nAnalysis: All eight application-side bind implementations converted attributes once but retained an unbound agent instrument, so every update still repeated attribute processing and timeseries lookup. The bound wrapper factories now detect the corresponding agent Extended interface, invoke bind once, and retain primitive delegates to the agent Bound instrument for both implicit and explicit context updates. Plain agent instruments retain the previous unbound path as a compatibility fallback.\n\nUpsides: Restores the cached-timeseries semantics of the 1.65 bound metric API across counters, up/down counters, histograms, and gauges; preserves explicit context bridging; and remains compatible with agent instrument implementations that do not expose incubator interfaces.\n\nDownsides: Each bind allocates two primitive delegate objects, and implementations without the agent incubator API continue to use the less efficient fallback path.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3750662420"
+        }
+      ],
+      "reviewed": "28de05e1608cf2e7ccee6a35e071eea16935ee14",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3744861754"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The application object is only syntactically bound: its updates still use the regular `set(value, attributes)` API and pay the attribute processing/timeseries lookup on every call. Preserve the new API's cached-timeseries semantics by binding the agent `ExtendedDoubleGauge` once and delegating to its `BoundDoubleGauge`, with a fallback only if needed.",
+      "created": "2026-08-09T18:49:42Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_65.incubator.metrics;\n+\n+import io.opentelemetry.api.metrics.DoubleGauge;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_0.trace.Bridging;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_38.metrics.ApplicationDoubleGauge138;\n+\n+// extends the plain (non-incubator) bridge directly instead of the 1.40 incubator marker class,\n+// since the 1.40 incubator marker class does not implement ExtendedDoubleGauge#bind(Attributes)\n+// (added in 1.65) and would otherwise make this class fail muzzle validation\n+final class ApplicationDoubleGauge165Incubator extends ApplicationDoubleGauge138\n+    implements application.io.opentelemetry.api.incubator.metrics.ExtendedDoubleGauge {\n+\n+  private final DoubleGauge agentDoubleGauge;\n+\n+  ApplicationDoubleGauge165Incubator(DoubleGauge agentDoubleGauge) {\n+    super(agentDoubleGauge);\n+    this.agentDoubleGauge = agentDoubleGauge;\n+  }\n+\n+  @Override\n+  public application.io.opentelemetry.api.incubator.metrics.BoundDoubleGauge bind(\n+      application.io.opentelemetry.api.common.Attributes applicationAttributes) {\n+    return new ApplicationBoundDoubleGauge165Incubator(\n+        agentDoubleGauge, Bridging.toAgent(applicationAttributes));",
+      "id": "PRRT_kwDODJKVX86XqX5Q",
+      "opened": "2026-08-09T18:49:42Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleGauge165Incubator.java",
+      "replies": [],
+      "reviewed": "28de05e1608cf2e7ccee6a35e071eea16935ee14",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3744861788"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think that elsewhere we don't do these instanceof checks and assume that we can cast to extended type.",
+      "created": "2026-08-11T13:36:25Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_65.incubator.metrics;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.incubator.metrics.BoundDoubleCounter;\n+import io.opentelemetry.api.incubator.metrics.ExtendedDoubleCounter;\n+import io.opentelemetry.api.metrics.DoubleCounter;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_0.context.AgentContextStorage;\n+import java.util.function.DoubleConsumer;\n+import java.util.function.ObjDoubleConsumer;\n+\n+final class ApplicationBoundDoubleCounter165Incubator\n+    implements application.io.opentelemetry.api.incubator.metrics.BoundDoubleCounter {\n+\n+  private final DoubleConsumer add;\n+  private final ObjDoubleConsumer<Context> addWithContext;\n+\n+  static ApplicationBoundDoubleCounter165Incubator create(\n+      DoubleCounter agentCounter, Attributes attributes) {\n+    if (agentCounter instanceof ExtendedDoubleCounter) {",
+      "id": "PRRT_kwDODJKVX86YPkyF",
+      "opened": "2026-08-11T13:36:25Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationBoundDoubleCounter165Incubator.java",
+      "replies": [
+        {
+          "at": "2026-08-11T21:48:24Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456/commits/765d1b70e0cdb637ca798b706466461fc12f7515",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3761963472"
+        }
+      ],
+      "reviewed": "eb2b0d47a3c83ce768ba089a2df37ca783e395e4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3758421343"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think we need to come up with a different strategy for the api instrumentation so we wouldn't need to copy classes like this. Maybe replacing these classes with jdk proxies would let us handle this in a more flexible manner.",
+      "created": "2026-08-11T13:39:18Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_65.incubator.metrics;\n+\n+import io.opentelemetry.api.metrics.DoubleCounter;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_0.trace.Bridging;\n+import io.opentelemetry.javaagent.instrumentation.opentelemetryapi.v1_10.metrics.ApplicationDoubleCounter;\n+\n+// extends the plain (non-incubator) bridge directly instead of the 1.40 incubator marker class,",
+      "id": "PRRT_kwDODJKVX86YPoYb",
+      "opened": "2026-08-11T13:39:18Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.65/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_65/incubator/metrics/ApplicationDoubleCounter165Incubator.java",
+      "replies": [],
+      "reviewed": "eb2b0d47a3c83ce768ba089a2df37ca783e395e4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19456#discussion_r3758443302"
+    }
+  ]
+}

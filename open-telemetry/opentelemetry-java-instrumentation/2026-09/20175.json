@@ -1,0 +1,52 @@
+{
+  "head": "964169782d962d12cc91a608b42364add5bdf5a1",
+  "merge": "5334cc1654069cac1a40bf726bee3a93a1e56c41",
+  "merged": "2026-09-22T15:57:50Z",
+  "missing_roots": 0,
+  "number": 20175,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Performance] This path now filters the merged attributes a second time after the duration metric already filtered them above. For receive operations that record both stable metrics and have a template/temporary/anonymous destination, each `filterAttributes` call rebuilds `Attributes`, doubling the hot-path allocation compared with the previous shared `filteredAttributes`. Please preserve one filtered instance for both recordings (for example, via an internal recorder entry point that accepts already-filtered attributes).",
+      "created": "2026-09-20T21:25:01Z",
+      "hunk": "@@ -220,11 +219,12 @@ public void onEnd(Context context, Attributes endAttributes, long endNanos) {\n         receiveMessageCount.add(receiveMessagesCount, attributes, context);\n       }\n     }\n-    if (consumedMessagesCounter != null && state.recordConsumedMessages()) {\n+    if (consumedMessagesRecorder != null && state.recordConsumedMessages()) {\n       long consumedMessagesCount =\n           getConsumedMessagesCount(attributes, batchMessageCount, consumedMessagesOnly);\n       if (consumedMessagesCount > 0) {\n-        consumedMessagesCounter.add(consumedMessagesCount, filteredAttributes, context);\n+        consumedMessagesRecorder.record(\n+            consumedMessagesCount, attributes, Attributes.empty(), context);",
+      "id": "PRRT_kwDODJKVX86kMJRW",
+      "opened": "2026-09-20T21:25:01Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumerMetrics.java",
+      "replies": [
+        {
+          "at": "2026-09-22T15:54:46Z",
+          "body": "The messaging refactor that introduced the duplicate filtering has been removed from this PR. The current diff no longer changes `MessagingConsumerMetrics`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20175#discussion_r4073638197"
+        }
+      ],
+      "reviewed": "99d08354f3397d950b836ca23dee31c57ba6a706",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20175#discussion_r4058131574"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This new public messaging recorder and the related metric refactor are unrelated to the scoped-thread-suppression change stated in the title and description. Please split this feature into a separate PR or update the PR metadata to describe the added public API and messaging metric behavior so it can be reviewed and surfaced accurately.",
+      "created": "2026-09-20T21:25:01Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.messaging;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static java.util.Objects.requireNonNull;\n+\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.metrics.LongCounter;\n+import io.opentelemetry.api.metrics.LongCounterBuilder;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.internal.OperationMetricsUtil;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Records explicit delivery counts in {@code messaging.client.consumed.messages}.\n+ *\n+ * <p>Callers determine which deliveries to count and prevent duplicate recording. This recorder\n+ * keeps no per-delivery state and does not record operation durations.\n+ */\n+public final class MessagingConsumedMessagesRecorder {",
+      "id": "PRRT_kwDODJKVX86kMJRq",
+      "opened": "2026-09-20T21:25:01Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingConsumedMessagesRecorder.java",
+      "replies": [
+        {
+          "at": "2026-09-22T15:54:46Z",
+          "body": "The unrelated messaging recorder and metric changes have been removed from this PR. The current diff and PR metadata are now scoped to thread suppression.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20175#discussion_r4073638190"
+        }
+      ],
+      "reviewed": "99d08354f3397d950b836ca23dee31c57ba6a706",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20175#discussion_r4058131599"
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "head": "ac8db487f441af06fd5d5ae3b26a204d44740a15",
+  "merge": "ad3bcc2b431d4f4aa9150d8d09dcbc32cdbabe59",
+  "merged": "2026-03-20T17:10:32Z",
+  "missing_roots": 0,
+  "number": 16644,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we change here too?",
+      "created": "2026-03-17T17:48:11Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX8508aiD",
+      "opened": "2026-03-17T17:48:10Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.3/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-03-17T18:00:47Z",
+          "body": "yes thanks, updated",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16644#discussion_r2948601044"
+        }
+      ],
+      "reviewed": "af18f4093a9157ccacd1018bf2c18311be9a67e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16644#discussion_r2948525734"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "these too?",
+      "created": "2026-03-17T20:09:50Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX850-paj",
+      "opened": "2026-03-17T20:09:50Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.3/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-03-17T20:29:33Z",
+          "body": "changing these breaks some of the test code. \r\n\r\n0.4.0 breaks with:\r\n\r\n```\r\nerror: cannot find symbol\r\n        client.read(server).format(ClickHouseFormat.RowBinaryWithNamesAndTypes);\r\n              ^\r\n  symbol:   method read(ClickHouseNode)\r\n  location: variable client of type ClickHouseClient\r\n/Users/jay/code/projects/opentelemetry-java-instrumentation/instrumentation/clickhouse/clickhouse-client-v1-0.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Test.java:435: error: cannot find symbol\r\n                  .write(server)\r\n```\r\n\r\n0.3.2 breaks with:\r\n\r\n```\r\nExecution failed for task ':instrumentation:clickhouse:clickhouse-client-v1-0.3:javaagent:compileTestJava'.\r\n> Compilation failed; see the compiler output below.\r\n  /Users/jay/code/projects/opentelemetry-java-instrumentation/instrumentation/clickhouse/clickhouse-client-v1-0.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Test.java:33: error: package com.clickhouse.data does not exist\r\n  import com.clickhouse.data.ClickHouseFormat;\r\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16644#discussion_r2949400310"
+        },
+        {
+          "at": "2026-03-17T20:56:56Z",
+          "body": "maybe we should just leave the base version as 0.5 if that's the minimum version we test against\r\n\r\nany idea if 0.3/0.4 would work for users in the wild? if not we could try to find a class that's only available in 0.5 and restrict muzzle",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16644#discussion_r2949527527"
+        },
+        {
+          "at": "2026-03-17T21:01:56Z",
+          "body": "i'll take a closer look",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16644#discussion_r2949553705"
+        },
+        {
+          "at": "2026-03-20T14:04:11Z",
+          "body": "> if not we could try to find a class that's only available in 0.5 and restrict muzzle\r\n\r\nended up going this route",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16644#discussion_r2965959606"
+        }
+      ],
+      "reviewed": "c66e6de447ef2fe2fa373434b2654cf8b1fef71e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16644#discussion_r2949308716"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // Unrelated class which was added in 0.5.0, the minimum version where tests pass\n```",
+      "created": "2026-03-20T16:43:09Z",
+      "hunk": "@@ -26,6 +28,12 @@ public boolean isHelperClass(String className) {\n     return \"com.clickhouse.client.ClickHouseRequestAccess\".equals(className);\n   }\n \n+  @Override\n+  public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n+    // Unrelated class which was added in 0.5.0, the minimum version we support.",
+      "id": "PRRT_kwDODJKVX851w0Rm",
+      "opened": "2026-03-20T16:43:17Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1InstrumentationModule.java",
+      "replies": [],
+      "reviewed": "42c006795282f14b852370115ed984861eee92e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16644#discussion_r2966817974"
+    }
+  ]
+}

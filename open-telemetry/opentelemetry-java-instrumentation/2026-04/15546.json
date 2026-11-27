@@ -1,0 +1,185 @@
+{
+  "head": "392b5ccc6d01c3a2cf153189b3f2ecc3345059f9",
+  "merge": "77a26cda98b422b9c69030af1c101dd76d70fe48",
+  "merged": "2026-04-17T00:22:01Z",
+  "missing_roots": 0,
+  "number": 15546,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could you import `java.util.List`",
+      "created": "2025-12-10T12:36:26Z",
+      "hunk": "@@ -40,18 +41,26 @@ private static RestClient addRestClientInterceptorIfNotPresent(\n       RestClient restClient, OpenTelemetry openTelemetry, InstrumentationConfig config) {\n     ClientHttpRequestInterceptor instrumentationInterceptor = getInterceptor(openTelemetry, config);\n \n-    return restClient\n-        .mutate()\n-        .requestInterceptors(\n-            interceptors -> {\n-              if (interceptors.stream()\n-                  .noneMatch(\n-                      interceptor ->\n-                          interceptor.getClass() == instrumentationInterceptor.getClass())) {\n-                interceptors.add(0, instrumentationInterceptor);\n-              }\n-            })\n-        .build();\n+    AtomicBoolean shouldAddInterceptor = new AtomicBoolean(false);\n+    RestClient.Builder result =\n+        restClient\n+            .mutate()\n+            .requestInterceptors(\n+                interceptors -> {\n+                  if (isInterceptorNotPresent(interceptors, instrumentationInterceptor)) {\n+                    interceptors.add(0, instrumentationInterceptor);\n+                    shouldAddInterceptor.set(true);\n+                  }\n+                });\n+\n+    return shouldAddInterceptor.get() ? result.build() : restClient;\n+  }\n+\n+  private static boolean isInterceptorNotPresent(\n+      java.util.List<ClientHttpRequestInterceptor> interceptors,",
+      "id": "PRRT_kwDODJKVX85lf3rQ",
+      "opened": "2025-12-10T12:36:26Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/javaSpring3/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/web/RestClientBeanPostProcessor.java",
+      "replies": [
+        {
+          "at": "2025-12-10T12:38:47Z",
+          "body": "Yes, will also do some cleanups improvements once the approach is agreed upon. Created this for discussion, as the issue notes Webclient also suffers from same issue.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2606508552"
+        },
+        {
+          "at": "2025-12-19T01:56:14Z",
+          "body": "I applied this pattern to my PR adding the RestClient for spring boot 4 #15684 , it seems like a fine approach to me. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2633291017"
+        },
+        {
+          "at": "2025-12-19T18:56:43Z",
+          "body": "@lenin-jaganathan i think we can consider this approach \"agreed upon\", in case you were waiting for that to continue. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2635993809"
+        },
+        {
+          "at": "2025-12-19T19:00:35Z",
+          "body": "I see this is added as part of another PR. What do you want me to do with this PR, I am make changes to polish this a bit further.\n\nOne more thing is We have to consider WebClient as well.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2636003182"
+        },
+        {
+          "at": "2025-12-19T19:15:06Z",
+          "body": "my PR didn't touch the class you are updating here (for spring boot 3), so your PR is still valid. One thing you can do however, is move the test to an abstract class (do the opposite of this [commit](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15684/commits/4c631ab7d92ede88c9ffce61b0f1bb5a504f35ce)). and yea i'd say go ahead and do the same for webclient",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2636034060"
+        },
+        {
+          "at": "2025-12-19T19:21:01Z",
+          "body": "Okay then. I will update this PR and let you guys know.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2636046900"
+        },
+        {
+          "at": "2025-12-22T06:35:16Z",
+          "body": "I have committed the changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2638828922"
+        }
+      ],
+      "reviewed": "c5285164d6a1af4c3a852a66d304d3113381e515",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2606501491"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lenin-jaganathan"
+      },
+      "body": "This is the cleaner approach to add instrumentation and is also consistent with what is being done in RestClient.\n\nBut doing so would mean we have to add different modules for spring4 where the customizer is moved to the `spring-boot-webclient` module. What are the thoughts here?",
+      "created": "2025-12-21T08:12:31Z",
+      "hunk": "@@ -38,6 +42,15 @@ static WebClientBeanPostProcessor otelWebClientBeanPostProcessor(\n     return new WebClientBeanPostProcessor(openTelemetryProvider, configProvider);\n   }\n \n+  @Bean\n+  @Order(Ordered.HIGHEST_PRECEDENCE + 10)\n+  WebClientCustomizer otelWebClientCustomizer(",
+      "id": "PRRT_kwDODJKVX85m526h",
+      "opened": "2025-12-21T08:12:31Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/SpringWebfluxInstrumentationAutoConfiguration.java",
+      "replies": [],
+      "reviewed": "c7b9736c3c81166b73db1b7228223f024c677884",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2637669433"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps it would be better to call this variable `interceptorAdded`",
+      "created": "2026-01-06T14:19:13Z",
+      "hunk": "@@ -34,18 +36,26 @@ private static RestClient addRestClientInterceptorIfNotPresent(\n       RestClient restClient, OpenTelemetry openTelemetry) {\n     ClientHttpRequestInterceptor instrumentationInterceptor = getInterceptor(openTelemetry);\n \n-    return restClient\n-        .mutate()\n-        .requestInterceptors(\n-            interceptors -> {\n-              if (interceptors.stream()\n-                  .noneMatch(\n-                      interceptor ->\n-                          interceptor.getClass() == instrumentationInterceptor.getClass())) {\n-                interceptors.add(0, instrumentationInterceptor);\n-              }\n-            })\n-        .build();\n+    AtomicBoolean shouldAddInterceptor = new AtomicBoolean(false);",
+      "id": "PRRT_kwDODJKVX85oMqiI",
+      "opened": "2026-01-06T14:19:12Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/javaSpring3/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/web/RestClientBeanPostProcessor.java",
+      "replies": [
+        {
+          "at": "2026-01-06T15:33:15Z",
+          "body": "I like that too. Will update.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2665329497"
+        }
+      ],
+      "reviewed": "69a6c452d56dcd57687102e6cd056eb2d5d4d48a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2665081042"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could parameterize this class \n```\n  AbstractWebClientCustomizerAutoConfigurationTest<T>\n  protected abstract Class<T> webClientCustomizerClass();\n  protected abstract void customizeWebClient(T customizer, WebClient.Builder builder);\n```\nsubclasses could then use\n```\nextends AbstractWebClientCustomizerAutoConfigurationTest<WebClientCustomizer>\nprotected Class<WebClientCustomizer> webClientCustomizerClass()\nprotected void customizeWebClient(WebClientCustomizer customizer, WebClient.Builder builder)\n```",
+      "created": "2026-01-06T16:16:12Z",
+      "hunk": "@@ -0,0 +1,108 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.autoconfigure.internal;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import java.util.concurrent.atomic.AtomicLong;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.springframework.boot.autoconfigure.AutoConfigurations;\n+import org.springframework.boot.test.context.FilteredClassLoader;\n+import org.springframework.boot.test.context.runner.ApplicationContextRunner;\n+import org.springframework.web.reactive.function.client.WebClient;\n+\n+/**\n+ * Abstract base test for WebClient customizer auto-configurations. Subclasses must provide the\n+ * auto-configuration class and WebClientCustomizer class for their Spring Boot version.\n+ */\n+public abstract class AbstractWebClientCustomizerAutoConfigurationTest {",
+      "id": "PRRT_kwDODJKVX85oNzhj",
+      "opened": "2026-01-06T16:16:11Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/testing/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/AbstractWebClientCustomizerAutoConfigurationTest.java",
+      "replies": [
+        {
+          "at": "2026-01-07T08:53:46Z",
+          "body": "Addressed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2667574435"
+        }
+      ],
+      "reviewed": "69a6c452d56dcd57687102e6cd056eb2d5d4d48a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2665470836"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "nitpick: `expectedCount` isn't necessary since it's always 1",
+      "created": "2026-01-08T20:45:44Z",
+      "hunk": "@@ -22,82 +24,59 @@ class WebClientBeanPostProcessorTest {\n     beanFactory.registerSingleton(\"openTelemetry\", OpenTelemetry.noop());\n   }\n \n-  @Test\n-  @DisplayName(\n-      \"when processed bean is NOT of type WebClient or WebClientBuilder should return Object\")\n-  void returnsObject() {\n-    BeanPostProcessor underTest =\n-        new WebClientBeanPostProcessor(beanFactory.getBeanProvider(OpenTelemetry.class));\n+  private BeanPostProcessor underTest;\n \n-    assertThat(underTest.postProcessAfterInitialization(new Object(), \"testObject\"))\n-        .isExactlyInstanceOf(Object.class);\n+  @BeforeEach\n+  void setUp() {\n+    underTest = new WebClientBeanPostProcessor(beanFactory.getBeanProvider(OpenTelemetry.class));\n   }\n \n   @Test\n-  @DisplayName(\"when processed bean is of type WebClient should return WebClient\")\n-  void returnsWebClient() {\n-    BeanPostProcessor underTest =\n-        new WebClientBeanPostProcessor(beanFactory.getBeanProvider(OpenTelemetry.class));\n-\n-    assertThat(underTest.postProcessAfterInitialization(WebClient.create(), \"testWebClient\"))\n-        .isInstanceOf(WebClient.class);\n-  }\n-\n-  @Test\n-  @DisplayName(\"when processed bean is of type WebClientBuilder should return WebClientBuilder\")\n-  void returnsWebClientBuilder() {\n-    BeanPostProcessor underTest =\n-        new WebClientBeanPostProcessor(beanFactory.getBeanProvider(OpenTelemetry.class));\n+  @DisplayName(\"when processed bean is NOT of type WebClient should return same Object\")\n+  void returnsObject() {\n+    Object original = new Object();\n \n-    assertThat(\n-            underTest.postProcessAfterInitialization(WebClient.builder(), \"testWebClientBuilder\"))\n-        .isInstanceOf(WebClient.Builder.class);\n+    assertThat(underTest.postProcessAfterInitialization(original, \"testObject\")).isSameAs(original);\n   }\n \n   @Test\n-  @DisplayName(\"when processed bean is of type WebClient should add exchange filter to WebClient\")\n-  void addsExchangeFilterWebClient() {\n-    BeanPostProcessor underTest =\n-        new WebClientBeanPostProcessor(beanFactory.getBeanProvider(OpenTelemetry.class));\n-\n+  @DisplayName(\"when processed bean is of type WebClient should return WebClient with filter\")\n+  void returnsWebClientWithFilter() {\n     WebClient webClient = WebClient.create();\n     Object processedWebClient =\n         underTest.postProcessAfterInitialization(webClient, \"testWebClient\");\n \n-    assertThat(processedWebClient).isInstanceOf(WebClient.class);\n-    ((WebClient) processedWebClient)\n-        .mutate()\n-        .filters(\n-            functions ->\n-                assertThat(\n-                        functions.stream()\n-                            .filter(WebClientBeanPostProcessorTest::isOtelExchangeFilter)\n-                            .count())\n-                    .isEqualTo(1));\n+    assertThat(processedWebClient).isInstanceOf(WebClient.class).isNotSameAs(webClient);\n+    assertFilterCount((WebClient) processedWebClient, 1);\n   }\n \n   @Test\n-  @DisplayName(\n-      \"when processed bean is of type WebClientBuilder should add ONE exchange filter to WebClientBuilder\")\n-  void addsExchangeFilterWebClientBuilder() {\n-    BeanPostProcessor underTest =\n-        new WebClientBeanPostProcessor(beanFactory.getBeanProvider(OpenTelemetry.class));\n+  @DisplayName(\"when WebClient already has filter should return same instance\")\n+  void doesNotAddDuplicateFilter() {\n+    WebClient webClient = WebClient.create();\n+    WebClient firstProcessed =\n+        (WebClient) underTest.postProcessAfterInitialization(webClient, \"testWebClient\");\n+    WebClient secondProcessed =\n+        (WebClient) underTest.postProcessAfterInitialization(firstProcessed, \"testWebClient\");\n \n-    WebClient.Builder webClientBuilder = WebClient.builder();\n-    underTest.postProcessAfterInitialization(webClientBuilder, \"testWebClientBuilder\");\n-    underTest.postProcessAfterInitialization(webClientBuilder, \"testWebClientBuilder\");\n-    underTest.postProcessAfterInitialization(webClientBuilder, \"testWebClientBuilder\");\n+    assertThat(secondProcessed).isSameAs(firstProcessed);\n+    assertFilterCount(secondProcessed, 1);\n+  }\n \n-    webClientBuilder.filters(\n-        functions ->\n-            assertThat(\n-                    functions.stream()\n+  private static void assertFilterCount(WebClient webClient, long expectedCount) {",
+      "id": "PRRT_kwDODJKVX85omI_H",
+      "opened": "2026-01-08T20:45:54Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/WebClientBeanPostProcessorTest.java",
+      "replies": [],
+      "reviewed": "79ec6d86d88841486bf0ff8391277b1cb0f2a1cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2673842978"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Do I understand correctly that the intention here is that the interceptor will be added here when the `WebClient` wasn't created by spring. For example when there is something like\n```java\n@Bean\nWebClient webClient() {\n  return WebClient.create();\n}\n```\nI'd guess the `WebClientCustomizer` won't run then. What if there is \n```java\n@Bean\nWebClient.Builder webClientBuilder() {\n  return WebClient.builder();\n}\n```\nI'd guess the `WebClientCustomizer` won't run then either. Should we handle that? Should this be aligned with `RestClientBeanPostProcessor` (cc @zeitlinger, do you remember why you wrote `RestClientBeanPostProcessor` the way it is).\nAssuming that the intent is to add the interceptor in post processor when the customizer didn't run do we have any tests for this?",
+      "created": "2026-01-09T12:44:02Z",
+      "hunk": "@@ -46,18 +50,29 @@ static SpringWebfluxServerTelemetry getWebfluxServerTelemetry(OpenTelemetry open\n   @Override\n   public Object postProcessAfterInitialization(Object bean, String beanName) {\n     if (bean instanceof WebClient) {\n-      WebClient webClient = (WebClient) bean;",
+      "id": "PRRT_kwDODJKVX85oskTd",
+      "opened": "2026-01-09T12:44:02Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/WebClientBeanPostProcessor.java",
+      "replies": [
+        {
+          "at": "2026-01-30T15:57:28Z",
+          "body": "My goal was to make sure that we add the interceptor in every possible way that you can do it - either by creating a builder or the client bean directly.\r\n\r\nI did add unit and smoke tests - but maybe I missed a case: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/11038",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2746916354"
+        },
+        {
+          "at": "2026-04-08T15:15:44Z",
+          "body": "Sorry for not getting back here. \r\n\r\n> I'd guess the WebClientCustomizer won't run then either. Should we handle that? Should this be aligned with RestClientBeanPostProcessor\r\n\r\nThe existing behaviour was RestClient.Builder was not processed by a BPP but by WebClient.Builder was. The current state was that neither builder was handled in that case. I think this is an expected pattern in Spring Boot when a Builder bean is created; the choice to apply customizer beans lies with the creator, consistent with how other customizers would be treated in the Spring Boot world.\r\n\r\nOpen to discuss otherwise, too.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r3052339869"
+        }
+      ],
+      "reviewed": "79ec6d86d88841486bf0ff8391277b1cb0f2a1cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r2676061118"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Any reason you chose to use `addFilter` instead of `addFilterAndRegisterReactorHook`?",
+      "created": "2026-04-16T10:29:08Z",
+      "hunk": "@@ -41,4 +45,17 @@ WebFilter telemetryFilter(OpenTelemetry openTelemetry) {\n     return WebClientBeanPostProcessor.getWebfluxServerTelemetry(openTelemetry)\n         .createWebFilterAndRegisterReactorHook();\n   }\n+\n+  @Configuration\n+  @ConditionalOnClass(WebClientCustomizer.class)\n+  static class OpentelemetryWebClientCustomizerConfiguration {\n+\n+    @Bean\n+    @Order(Ordered.HIGHEST_PRECEDENCE + 10)\n+    WebClientCustomizer otelWebClientCustomizer(OpenTelemetry openTelemetry) {\n+      SpringWebfluxClientTelemetry webfluxClientTelemetry =\n+          WebClientBeanPostProcessor.getWebfluxClientTelemetry(openTelemetry);\n+      return builder -> builder.filters(webfluxClientTelemetry::addFilter);",
+      "id": "PRRT_kwDODJKVX857YzsB",
+      "opened": "2026-04-16T10:29:08Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/SpringWebfluxInstrumentationAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-04-16T12:26:37Z",
+          "body": "Hmm. I haven't noticed it. But, I don't see it outside of tests in main too?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r3093147974"
+        },
+        {
+          "at": "2026-04-16T12:45:20Z",
+          "body": "Lets leave it as `addFilter` for now as it used that before. Created https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/17858",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r3093256431"
+        }
+      ],
+      "reviewed": "047841e8d146924c618ee0640999fe68fabf8a27",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15546#discussion_r3092508455"
+    }
+  ]
+}

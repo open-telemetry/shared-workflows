@@ -1,0 +1,36 @@
+{
+  "head": "a561b26b67f9e490674fd911fc7c6342aaa77582",
+  "merge": "6a21dfb7d92d32d33633e51399f6a92b223f703a",
+  "merged": "2026-03-15T18:13:09Z",
+  "missing_roots": 0,
+  "number": 16515,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "im not actually sure which PR caused this update",
+      "created": "2026-03-14T20:17:05Z",
+      "hunk": "@@ -12964,6 +12964,7 @@ libraries:\n     source_path: instrumentation/servlet/servlet-2.2\n     scope:\n       name: io.opentelemetry.servlet-2.2\n+      schema_url: https://opentelemetry.io/schemas/1.37.0",
+      "id": "PRRT_kwDODJKVX850XY_H",
+      "opened": "2026-03-14T20:17:12Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-03-15T01:53:54Z",
+          "body": "Oh, interesting, from AI, but sounds legit:\r\n\r\nThe root cause was latent non-determinism from PR #15144 (Nov 2025) adding [`setSchemaUrl()`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpServerInstrumenterBuilder.java#L233) only to the HTTP server instrumenter but not the [response instrumenter](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/response/ResponseInstrumenterFactory.java#L17-L25), combined with [`findFirst()`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/EmittedScopeParser.java#L50-L57) over a `HashSet` in the analysis code. Since [`EmittedScope.Scope.hashCode()`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/internal/EmittedScope.java#L112-L115) includes `schemaUrl` and `version`, the version bump from `2.26.0-alpha-SNAPSHOT` to `2.27.0-alpha-SNAPSHOT` changed the hash codes of both scope entries, which altered `HashSet` iteration order and flipped which scope `findFirst()` returned.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16515#discussion_r2936112128"
+        },
+        {
+          "at": "2026-03-15T10:38:52Z",
+          "body": "Fixed the determinism of the parsing here: #16546 \r\n\r\nShould we also add the schemaUrl to the response instrumenter?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16515#discussion_r2936571310"
+        }
+      ],
+      "reviewed": "e92373de0d4349dc829f6981c7c353f55fdbe3d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16515#discussion_r2935777271"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "0184b4737f72dc7d8b364cdba3d227c35ea1c1f2",
+  "merge": "baf4fbd0d8da699947717124255bb44132e3e89c",
+  "merged": "2026-08-28T05:45:47Z",
+  "missing_roots": 0,
+  "number": 92,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Every other multi-rule rego policy here builds its findings through one helper (`_span_finding`, `_http_span_finding`, `_otel_span_finding`). This rule instead repeats the attribute prologue and the whole PolicyFinding literal, so the `genai_content_schema` id and the finding shape now live in two places.",
+      "created": "2026-08-25T14:54:45Z",
+      "hunk": "@@ -52,3 +55,31 @@ deny contains result if {\n \t\t),\n \t}\n }\n+\n+# An implementation that puts something other than JSON in a content attribute\n+# fails the same check, one step earlier: the schema cannot be applied to a\n+# value that never parsed.\n+deny contains result if {",
+      "id": "PRRT_kwDOTuzK5c6cH1hT",
+      "opened": "2026-08-25T16:40:43Z",
+      "path": "tools/gen-ai/runner/src/genai_conformance/policies/genai_content_validation.rego",
+      "replies": [],
+      "reviewed": "9ff73fa9ef742dfa568428e548a20e797178b356",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/92#discussion_r3854257431"
+    }
+  ]
+}

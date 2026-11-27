@@ -1,0 +1,156 @@
+{
+  "head": "d5bcd50245b10ebee8e2b5ecb6729d640378b9ed",
+  "merge": "da8cfccf439696b0693bf9b83e99882c54892ca3",
+  "merged": "2026-11-03T23:54:54Z",
+  "missing_roots": 0,
+  "number": 138,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The surrounding handler catches `BaseException`, so this new wrapping also converts `KeyboardInterrupt` and `SystemExit` into `DatabaseBackendError`. The previous bare `raise` preserved those control-flow exceptions after cleanup; retain that behavior so an interrupted startup remains interruptible.",
+      "created": "2026-08-29T19:48:23Z",
+      "hunk": "@@ -97,28 +99,59 @@ def start(self: _DatabaseContainerT) -> _DatabaseContainerT:\n         container = self._container_factory(self._spec.image)\n         for key, value in self._spec.environment:\n             container.with_env(key, value)\n+        if self._spec.hostname is not None:\n+            container.with_kwargs(hostname=self._spec.hostname)\n         container.with_copy_into_container(schema, self._spec.schema_path)\n         container.waiting_for(ready)\n \n         port_bindings = cast(dict[str, _PortBinding], container.ports)\n-        port_bindings[f\"{self._spec.port}/tcp\"] = (DATABASE_HOST, 0)\n+        if self._spec.fixed_ports:\n+            for port in self._spec.fixed_ports:\n+                port_bindings[f\"{port}/tcp\"] = (DATABASE_HOST, port)\n+        else:\n+            port_bindings[f\"{self._spec.port}/tcp\"] = (DATABASE_HOST, 0)\n \n         self._container = container\n         try:\n             container.start()\n             self._published_port = container.get_exposed_port(self._spec.port)\n             self._apply_schema(container)\n         except BaseException as error:\n+            failure = self._failure_message(container, error)\n             try:\n                 self.close()\n             except DockerException as cleanup_error:\n                 raise DatabaseBackendError(\n-                    f\"{error}\\n{self._spec.name} cleanup also failed: \"\n+                    f\"{failure}\\n{self._spec.name} cleanup also failed: \"\n                     f\"{cleanup_error}\"\n                 ) from error\n-            raise\n+            if isinstance(error, DatabaseBackendError):\n+                raise\n+            raise DatabaseBackendError(failure) from error",
+      "id": "PRRT_kwDOTuzK5c6dcPZP",
+      "opened": "2026-08-29T19:48:24Z",
+      "path": "tools/database/runner/src/database_conformance/_container.py",
+      "replies": [
+        {
+          "at": "2026-08-29T20:58:20Z",
+          "body": "Addressed in 9927e8d03012c3798609100df803e340f382690a.\n\nAnalysis: The handler now builds diagnostics only for ordinary exceptions and re-raises control-flow exceptions after cleanup. Log collection catches ordinary exceptions because it is best-effort and must not replace the startup failure.\n\nUpsides: Interrupted startup remains interruptible. An unavailable log stream no longer masks the startup failure or skips cleanup.\n\nDownsides: Log collection reports ordinary helper errors as diagnostic text instead of propagating them.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r3887664892"
+        }
+      ],
+      "reviewed": "b1af80a30a8e9b10575ec43d5a8137b420fb5749",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r3887506938"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`get_logs()` is not guaranteed to raise `DockerException`: when `container.start()` fails before Testcontainers has created a wrapped container, `get_logs()` raises a runtime \"not started\" error. That exception then escapes `_failure_message`, masks the real startup failure, and skips `close()`. Make this best-effort diagnostic helper catch ordinary exceptions so the original failure is still reported and cleanup still runs.",
+      "created": "2026-08-29T19:48:24Z",
+      "hunk": "@@ -97,28 +99,59 @@ def start(self: _DatabaseContainerT) -> _DatabaseContainerT:\n         container = self._container_factory(self._spec.image)\n         for key, value in self._spec.environment:\n             container.with_env(key, value)\n+        if self._spec.hostname is not None:\n+            container.with_kwargs(hostname=self._spec.hostname)\n         container.with_copy_into_container(schema, self._spec.schema_path)\n         container.waiting_for(ready)\n \n         port_bindings = cast(dict[str, _PortBinding], container.ports)\n-        port_bindings[f\"{self._spec.port}/tcp\"] = (DATABASE_HOST, 0)\n+        if self._spec.fixed_ports:\n+            for port in self._spec.fixed_ports:\n+                port_bindings[f\"{port}/tcp\"] = (DATABASE_HOST, port)\n+        else:\n+            port_bindings[f\"{self._spec.port}/tcp\"] = (DATABASE_HOST, 0)\n \n         self._container = container\n         try:\n             container.start()\n             self._published_port = container.get_exposed_port(self._spec.port)\n             self._apply_schema(container)\n         except BaseException as error:\n+            failure = self._failure_message(container, error)\n             try:\n                 self.close()\n             except DockerException as cleanup_error:\n                 raise DatabaseBackendError(\n-                    f\"{error}\\n{self._spec.name} cleanup also failed: \"\n+                    f\"{failure}\\n{self._spec.name} cleanup also failed: \"\n                     f\"{cleanup_error}\"\n                 ) from error\n-            raise\n+            if isinstance(error, DatabaseBackendError):\n+                raise\n+            raise DatabaseBackendError(failure) from error\n         return self\n \n+    def _failure_message(\n+        self, container: DockerContainer, error: BaseException\n+    ) -> str:\n+        if isinstance(error, DatabaseBackendError):\n+            return str(error)\n+        logs = self._container_logs(container)\n+        return (\n+            f\"Could not start {self._spec.name}: {error}\\n\"\n+            f\"--- {self._spec.name} logs ---\\n{logs}\"\n+        )\n+\n+    def _container_logs(self, container: DockerContainer) -> str:\n+        try:\n+            stdout, stderr = container.get_logs()\n+            return (\n+                (stdout + stderr)\n+                .decode(encoding=\"utf-8\", errors=\"replace\")\n+                .strip()\n+            )\n+        except DockerException as log_error:\n+            return f\"Could not read {self._spec.name} logs: {log_error}\"",
+      "id": "PRRT_kwDOTuzK5c6dcPZg",
+      "opened": "2026-08-29T19:48:24Z",
+      "path": "tools/database/runner/src/database_conformance/_container.py",
+      "replies": [
+        {
+          "at": "2026-08-29T20:58:22Z",
+          "body": "Addressed in 9927e8d03012c3798609100df803e340f382690a.\n\nAnalysis: The handler now builds diagnostics only for ordinary exceptions and re-raises control-flow exceptions after cleanup. Log collection catches ordinary exceptions because it is best-effort and must not replace the startup failure.\n\nUpsides: Interrupted startup remains interruptible. An unavailable log stream no longer masks the startup failure or skips cleanup.\n\nDownsides: Log collection reports ordinary helper errors as diagnostic text instead of propagating them.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r3887664934"
+        }
+      ],
+      "reviewed": "b1af80a30a8e9b10575ec43d5a8137b420fb5749",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r3887506962"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This fixture binds ZooKeeper to host port 2181, so the exported `DATABASE_PORT` is 2181, not 32768. The generic stub currently hard-codes 32768 from the dynamic-port backends, which makes this assertion contradict the HBase contract and leaves the fixed-port variable behavior untested. Please make `StubContainer.get_exposed_port()` model the configured binding (or accept a published-port value) and assert `\"2181\"` here.",
+      "created": "2026-08-31T01:48:16Z",
+      "hunk": "@@ -148,13 +166,137 @@ def test_starts_initializes_publishes_and_removes_database(\n     assert container.exec_config is not None\n \n \n+class StubImage:\n+    def __init__(self, *, build_error: DockerException | None = None) -> None:\n+        self.build_error = build_error\n+        self.built = False\n+        self.removed = False\n+\n+    def build(self) -> StubImage:\n+        if self.build_error is not None:\n+            raise self.build_error\n+        self.built = True\n+        return self\n+\n+    def remove(self) -> None:\n+        self.removed = True\n+\n+\n+def test_hbase_builds_initializes_and_removes_the_upstream_fixture(\n+    monkeypatch: pytest.MonkeyPatch,\n+) -> None:\n+    container = StubContainer(port=HBASE_ZOOKEEPER_PORT)\n+    image = StubImage()\n+    image_arguments: dict[str, Any] = {}\n+\n+    def image_factory(**kwargs: Any) -> StubImage:\n+        image_arguments.update(kwargs)\n+        return image\n+\n+    install_stub(monkeypatch, _hbase, container)\n+    monkeypatch.setattr(_hbase, \"DockerImage\", image_factory)\n+    with HBase1() as database:\n+        assert database.variables == {\n+            \"DATABASE_HOST\": \"127.0.0.1\",\n+            \"DATABASE_PORT\": \"32768\",",
+      "id": "PRRT_kwDOTuzK5c6dlxAD",
+      "opened": "2026-08-31T01:48:16Z",
+      "path": "tools/database/runner/tests/test_database_backends.py",
+      "replies": [
+        {
+          "at": "2026-08-31T01:51:33Z",
+          "body": "Addressed in 9752156611692c31ab2fe3693e2811a7637411c2.\n\nAnalysis: `StubContainer.get_exposed_port()` should return the published host port configured for each test. The default keeps the dynamic PostgreSQL and MariaDB behavior at 32768. The HBase fixture sets the published port to its fixed ZooKeeper port, 2181.\n\nUpsides: The HBase test now verifies the fixed-port contract, while the dynamic-port tests keep their existing coverage.\n\nDownsides: The test stub gains one constructor argument. Production behavior does not change.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r3891210906"
+        }
+      ],
+      "reviewed": "4b53f8783faf4d8361d92f3bc9d84ec31ca87903",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r3891201002"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If container construction fails after the image builds, this call raises without removing the image: `DatabaseContainer.start()` constructs the container before entering its cleanup handler. A pre-start factory failure leaves the image built but not removed. Please cover superclass setup failures with image cleanup as well, while preserving the cleanup already performed for failures after container startup.",
+      "created": "2026-11-01T00:25:59Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Apache HBase local backend definitions.\"\"\"\n+\n+from __future__ import annotations\n+\n+from importlib import resources\n+from pathlib import Path\n+\n+from docker.errors import DockerException\n+from testcontainers.core.container import DockerContainer\n+from testcontainers.core.image import DockerImage\n+\n+from ._container import BackendSpec, DatabaseBackendError, DatabaseContainer\n+\n+HBASE_DATABASE = \"conformance\"\n+HBASE_ZOOKEEPER_PORT = 2181\n+HBASE_MASTER_PORT = 16000\n+HBASE_REGIONSERVER_PORT = 16020\n+HBASE_1_VERSION = \"1.7.2\"\n+HBASE_2_VERSION = \"2.4.18\"\n+_HBASE_1_SHA512 = (\n+    \"43c633606f4316319d0e872862bfee935a191308239ca42ad9545402fb9a83f9\"\n+    \"399845123bdcda60c315bcb09bd7555375b73afcb3d668453d56e3985bf284fa\"\n+)\n+_HBASE_2_SHA512 = (\n+    \"1d90aa46271d262abbebc6b807778353a71743be5c30491bec7ccafd05f2ecf8\"\n+    \"b3ff5c193addf28efd8d0cae4e1748ee74fdefd97fc8499cb1c163f5a2eed48d\"\n+)\n+\n+\n+def _image_name(version: str) -> str:\n+    \"\"\"The local tag of the fixture built from Apache HBase ``version``.\"\"\"\n+    return f\"otel-conformance-hbase:{version}\"\n+\n+\n+HBASE_1_IMAGE = _image_name(HBASE_1_VERSION)\n+HBASE_2_IMAGE = _image_name(HBASE_2_VERSION)\n+\n+\n+class HBase(DatabaseContainer):\n+    \"\"\"Own an HBase fixture built from an Apache distribution.\"\"\"\n+\n+    def __init__(self, version: str, checksum: str) -> None:\n+        image_name = _image_name(version)\n+        image_context = Path(\n+            str(\n+                resources.files(\"database_conformance\").joinpath(\"hbase-image\")\n+            )\n+        )\n+        self._image = DockerImage(\n+            path=image_context,\n+            tag=image_name,\n+            clean_up=True,\n+            buildargs={\n+                \"HBASE_VERSION\": version,\n+                \"HBASE_SHA512\": checksum,\n+            },\n+        )\n+        super().__init__(\n+            BackendSpec(\n+                name=f\"HBase {version}\",\n+                image=image_name,\n+                port=HBASE_ZOOKEEPER_PORT,\n+                database=HBASE_DATABASE,\n+                user=\"\",\n+                password=\"\",\n+                environment=(),\n+                ready_command=(\n+                    \"bash\",\n+                    \"-c\",\n+                    \"echo \\\"status 'simple'\\\" | hbase shell -n\",\n+                ),\n+                schema_copy=(\"hbase.rb\", \"/tmp/otel-conformance-hbase.rb\"),\n+                initialize_command=(\n+                    \"hbase\",\n+                    \"shell\",\n+                    \"-n\",\n+                    \"/tmp/otel-conformance-hbase.rb\",\n+                ),\n+                hostname=\"localhost\",\n+                fixed_ports=(\n+                    HBASE_ZOOKEEPER_PORT,\n+                    HBASE_MASTER_PORT,\n+                    HBASE_REGIONSERVER_PORT,\n+                ),\n+            ),\n+            container_factory=DockerContainer,\n+        )\n+\n+    def start(self) -> HBase:\n+        try:\n+            self._image.build()\n+        except DockerException as error:\n+            self._image.remove()\n+            raise DatabaseBackendError(\n+                \"Could not build the HBase fixture from the Apache HBase \"\n+                f\"distribution: {error}\"\n+            ) from error\n+        return super().start()",
+      "id": "PRRT_kwDOTuzK5c6yV4WL",
+      "opened": "2026-11-01T00:25:59Z",
+      "path": "tools/database/runner/src/database_conformance/_hbase.py",
+      "replies": [],
+      "reviewed": "6824b0cc9b7bef6e683d0ba12793380daa328e76",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r4433824519"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Other database packages have an `error` scenario; without one `error.type`, `db.response.status_code` and error status on HBase spans aren't measured. Maybe add one, e.g. a `Get` on a missing table:\n\n```suggestion\n  batch:\n    run: otel-conformance-java run hbase:native HbaseNativeScenario batch\n\n  error:\n    run: otel-conformance-java run hbase:native HbaseNativeScenario error\n```\n\n```java\ncase \"error\":\n  error(connection);\n  break;\n\nprivate static void error(Connection connection) throws IOException {\n  try (Table missing = connection.getTable(TableName.valueOf(\"conformance:missing\"))) {\n    missing.get(new Get(Bytes.toBytes(\"seed\")));\n    throw new IllegalStateException(\"expected TableNotFoundException\");\n  } catch (TableNotFoundException expected) {\n    // expected\n  }\n}\n```\n\n(plus a matching `error` entry in `contracts/hbase.yaml`)",
+      "created": "2026-11-03T06:18:30Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: database-conformance\n+runner_config:\n+  backend: hbase\n+instrumented_library: hbase-client\n+instrumentation_library: org.apache.hbase:hbase-client\n+scenario_contract: ../../../contracts/hbase.yaml\n+\n+env:\n+  HBASE_BOOTSTRAP_SERVERS: ${DATABASE_HOST}:${DATABASE_PORT}\n+  OTEL_LOGS_EXPORTER: none\n+\n+weaver:\n+  config: ../../../../../tools/java/weaver.toml\n+\n+setup: otel-conformance-java prepare hbase:native\n+\n+scenarios:\n+  get:\n+    run: otel-conformance-java run hbase:native HbaseNativeScenario get\n+\n+  put:\n+    run: otel-conformance-java run hbase:native HbaseNativeScenario put\n+\n+  scan:\n+    run: otel-conformance-java run hbase:native HbaseNativeScenario scan\n+\n+  batch:\n+    run: otel-conformance-java run hbase:native HbaseNativeScenario batch",
+      "id": "PRRT_kwDOTuzK5c6zADwA",
+      "opened": "2026-11-03T06:27:35Z",
+      "path": "scenarios/database/java/hbase/native/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T17:20:04Z",
+          "body": "8db29ff2bef1e24661b3465ab8e6331f2c64f0ce",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r4458122771"
+        }
+      ],
+      "reviewed": "95fbe25f6d8ab779f8c320e80025ef60bb4c2d17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r4451497110"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Layout differs from the other Java database packages: they are `<db>/<client>/<instrumentation>/conformance.yaml` with launchers under `shared/` (per `java/README.md`), while here the launcher lives in the package dir and there's no client level. Consider `hbase/hbase-client/native/conformance.yaml` with the launcher at `shared/hbase/hbase-client/native` and the workload at `shared/hbase/hbase-client/scenarios`.",
+      "created": "2026-11-03T06:18:30Z",
+      "hunk": "@@ -0,0 +1,31 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: database-conformance\n+runner_config:\n+  backend: hbase\n+instrumented_library: hbase-client\n+instrumentation_library: org.apache.hbase:hbase-client\n+scenario_contract: ../../../contracts/hbase.yaml\n+\n+env:\n+  HBASE_BOOTSTRAP_SERVERS: ${DATABASE_HOST}:${DATABASE_PORT}\n+  OTEL_LOGS_EXPORTER: none\n+\n+weaver:\n+  config: ../../../../../tools/java/weaver.toml\n+\n+setup: otel-conformance-java prepare hbase:native",
+      "id": "PRRT_kwDOTuzK5c6zADwN",
+      "opened": "2026-11-03T06:27:35Z",
+      "path": "scenarios/database/java/hbase/native/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T17:29:26Z",
+          "body": "60e4ec581e7069b0c1335412a7b41db87acd0dae",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r4458228309"
+        }
+      ],
+      "reviewed": "95fbe25f6d8ab779f8c320e80025ef60bb4c2d17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r4451497130"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the gap list misses the batch shape - semconv expects `db.operation.name=BATCH PUT` and `db.operation.batch.size=2` for this workload.\n\n```suggestion\n- The native scope has no schema URL. Weaver also reports deprecated RPC/network\n  attributes, unregistered `db.hbase.table`, `db.hbase.regions`, and\n  `db.hbase.container_operations`, and instrumentation setting status OK on\n  successful spans.\n- BATCH spans use `db.operation=BATCH` with `db.hbase.container_operations`\n  instead of `db.operation.name=BATCH PUT` and `db.operation.batch.size`.\n```",
+      "created": "2026-11-03T06:18:30Z",
+      "hunk": "@@ -0,0 +1,124 @@\n+# HBase conformance scenarios\n+\n+The latest stable `org.apache.hbase:hbase-client` runs the shared workload with\n+HBase's own OpenTelemetry instrumentation against a matching fixture. No Java\n+agent or external HBase instrumentation is attached. The client and\n+fixture are pinned to 3.0.0, the highest stable release in\n+[Maven Central](https://repo.maven.apache.org/maven2/org/apache/hbase/hbase-client/maven-metadata.xml)\n+and an [official Apache distribution](https://downloads.apache.org/hbase/3.0.0/).\n+Fixture versions and Apache SHA-512 checksums in the\n+[backend](../../../../tools/database/runner/src/database_conformance/_hbase.py)\n+are updated together with the client.\n+\n+Run the package from the repository root:\n+\n+```sh\n+pip install -e tools/runner -e tools/database/runner -e tools/java\n+otel-conformance scenarios/database/java/hbase/native\n+```\n+\n+For the repository's CI reporting mode, add `--report-only`. Semantic violations\n+remain visible as warnings, while workload crashes and telemetry expectation\n+mismatches still fail the run.\n+\n+## Native SDK integration\n+\n+The [native launcher](native/src/main/java/HbaseNativeScenario.java) initializes\n+the repository's `ScenarioSdk` before opening an HBase connection. SDK\n+autoconfiguration registers its result as `GlobalOpenTelemetry`, which HBase's\n+`TraceUtil.getGlobalTracer()` uses with scope `org.apache.hbase` and client version\n+`3.0.0`. The runner supplies a fresh OTLP endpoint for each measured process.\n+\n+The workload closes its table and connection before the SDK flushes traces,\n+logs, then metrics and shuts down. Log export is disabled. The prepared\n+application classpath contains HBase 3.0.0, the OpenTelemetry SDK and OTLP exporter,\n+but no agent or external HBase instrumentation. The shared launcher plugin copies\n+an unused agent-control support jar outside that classpath; native commands never\n+attach it.\n+\n+## Java toolchains\n+\n+CI uses Java 25 for the Gradle build. The HBase workload, launcher, and shared\n+`scenario-support` and `scenario-sdk` projects select Java 21 toolchains.\n+Gradle provisions that JDK when needed, and prepared HBase runtimes record\n+Java 21. Other database projects retain the Java 25 default.\n+\n+HBase 3 requires Java 17 or later. Its Hadoop 3.4 dependencies run on the\n+Java 21 toolchain used by the conformance package.\n+\n+## Fixtures and workload\n+\n+Docker must be running. Each session builds a local image from a SHA-512-verified\n+Apache HBase binary distribution and a digest-pinned Eclipse Temurin Java 17 base.\n+It starts the matching server, waits for readiness, then applies the\n+[initialization script](../../../../tools/database/runner/src/database_conformance/hbase.rb).\n+The script creates namespace `conformance`, table `items`, column family `data`,\n+and one row with key `seed` and `data:name=seed`. The session removes both its\n+container and local image on close. Startup failures include container logs.\n+\n+The fixture publishes fixed loopback ports 16000 for the master and 16020 for\n+the region server. ZooKeeper uses port 2181 only inside the container.\n+Only one HBase conformance package can run on a host at a time.\n+The runner supplies `DATABASE_HOST` and `DATABASE_PORT` as\n+`HBASE_BOOTSTRAP_SERVERS` for the client's RPC connection registry on port 16000.\n+These fixtures use no client authentication.\n+\n+The [shared workload](../shared/hbase/scenarios) imports no OpenTelemetry code.\n+Each operation runs in a separate process:\n+\n+| Scenario | HBase client call | Workload |\n+| --- | --- | --- |\n+| `get` | `Table.get` | Verify the seeded row's value |\n+| `put` | `Table.put` | Write `put-row` with `data:name=put-value` |\n+| `scan` | `Table.getScanner` | Require at least one row |\n+| `batch` | `Table.batch` | Write two rows and reject per-row errors |\n+\n+## Contracts and coverage\n+\n+The [HBase telemetry contract](../../contracts/hbase.yaml) checks that the\n+workload emits native telemetry. Weaver independently checks that telemetry\n+against the semantic conventions. The runner's registry\n+maps backend selector `hbase` to system `hbase` and client span type\n+`db.hbase.client`.\n+\n+Each scenario requires exactly one native CLIENT span for GET, PUT, SCAN, or\n+BATCH on `conformance:items`. It checks the native `db.name=conformance` and\n+`db.connection_string=127.0.0.1:16000`, plus scope `org.apache.hbase` with a\n+version. The BATCH span must identify PUT operations. The workload itself writes\n+two rows and rejects per-row errors.\n+\n+Metadata-table scans, native RPC CLIENT spans, and INTERNAL connection and\n+region-lookup spans are recognized without fixed counts because initialization\n+can perform additional lookups. The contract declares no metrics or events.\n+SDK self-metrics such as `queueSize` are not workload telemetry and are not\n+required. Matching native attributes does not waive their semantic\n+violations or classify them as stable database coverage.\n+\n+## Observed native gaps\n+\n+All four workloads complete successfully and emit their corresponding native\n+CLIENT span under `org.apache.hbase` version `3.0.0`. Strict conformance fails:\n+\n+- The native table spans use legacy `db.system`, `db.name`, `db.operation`,\n+  `db.connection_string`, and `db.user`, not stable `db.system.name`,\n+  `db.namespace`, `db.collection.name`, `db.operation.name`, and server attributes.\n+  They do not qualify for stable database client coverage.\n+- HBase emits no `db.client.operation.duration`. The captured metrics describe\n+  SDK/exporter health, not database operations.\n+- The native scope has no schema URL. Weaver also reports deprecated RPC/network\n+  attributes, unregistered `db.hbase.table`, `db.hbase.regions`, and\n+  `db.hbase.container_operations`, and instrumentation setting status OK on\n+  successful spans.",
+      "id": "PRRT_kwDOTuzK5c6zADwQ",
+      "opened": "2026-11-03T06:27:35Z",
+      "path": "scenarios/database/java/hbase/README.md",
+      "replies": [
+        {
+          "at": "2026-11-03T17:31:04Z",
+          "body": "5943b3128ae39682f817de4d8215348f9b031131",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r4458245852"
+        },
+        {
+          "at": "2026-11-03T21:33:51Z",
+          "body": "also https://github.com/open-telemetry/semantic-conventions-conformance/issues/384#issuecomment-6615954491",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r4460700235"
+        }
+      ],
+      "reviewed": "95fbe25f6d8ab779f8c320e80025ef60bb4c2d17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/138#discussion_r4451497134"
+    }
+  ]
+}

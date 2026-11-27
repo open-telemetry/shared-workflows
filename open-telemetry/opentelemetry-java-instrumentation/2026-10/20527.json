@@ -1,0 +1,31 @@
+{
+  "head": "9f490654fb68ac938e3cf288b0bc5510da888f7d",
+  "merge": "d14330912636c04eaae8fae5b7004de7ee2afc32",
+  "merged": "2026-10-13T01:05:09Z",
+  "missing_roots": 0,
+  "number": 20527,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Just use `Context.current()`. `Java8BytecodeBridge.currentContext()` is only intended for use inside advice. With inline advice advice code is copied into instrumented method. This means that the advice bytecode must be compatible with the target class. `Context.current()` happens to be an interface static method, invoking it is not legal in pre java8 bytecode. That is why we have `Java8BytecodeBridge.currentContext()`, which is a class static method, that can be invoked from any class.",
+      "created": "2026-10-12T12:32:09Z",
+      "hunk": "@@ -0,0 +1,141 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0\n+\n+import org.apache.pekko.actor.typed.{\n+  ActorRef,\n+  ActorSystem,\n+  Behavior,\n+  Props,\n+  SpawnProtocol\n+}\n+import org.apache.pekko.actor.typed.scaladsl.AskPattern._\n+import org.apache.pekko.actor.typed.scaladsl.Behaviors\n+import org.apache.pekko.util.Timeout\n+import io.opentelemetry.api.GlobalOpenTelemetry\n+import io.opentelemetry.api.trace.Tracer\n+import io.opentelemetry.javaagent.testing.common.Java8BytecodeBridge\n+\n+import scala.concurrent.Await\n+import scala.concurrent.duration._\n+\n+object PekkoTypedActors {\n+  val tracer: Tracer = GlobalOpenTelemetry.getTracer(\"test\")\n+\n+  implicit val timeout: Timeout = 10.seconds\n+\n+  val system: ActorSystem[SpawnProtocol.Command] =\n+    ActorSystem(SpawnProtocol(), \"helloPekkoTyped\")\n+\n+  val greeter: ActorRef[TypedGreeter.Command] =\n+    spawn(TypedGreeter(), \"typedGreeter\")\n+\n+  val delegator: ActorRef[TypedDelegator.Delegate] =\n+    spawn(TypedDelegator(), \"typedDelegator\")\n+\n+  private def spawn[T](behavior: Behavior[T], name: String): ActorRef[T] = {\n+    implicit val actorSystem: ActorSystem[SpawnProtocol.Command] = system\n+    Await.result(\n+      system.ask[ActorRef[T]](replyTo =>\n+        SpawnProtocol.Spawn(behavior, name, Props.empty, replyTo)\n+      ),\n+      10.seconds\n+    )\n+  }\n+\n+  def tracedChild(opName: String): Unit = {\n+    tracer.spanBuilder(opName).startSpan().end()\n+  }\n+}\n+\n+class PekkoTypedActors {\n+\n+  import PekkoTypedActors._\n+  import TypedGreeter._\n+\n+  def basicTell(): Unit = {\n+    val parentSpan = tracer.spanBuilder(\"parent\").startSpan()\n+    val parentScope =\n+      Java8BytecodeBridge.currentContext().`with`(parentSpan).makeCurrent()",
+      "id": "PRRT_kwDODJKVX86rdUYi",
+      "opened": "2026-10-12T12:32:09Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoTypedActors.scala",
+      "replies": [
+        {
+          "at": "2026-10-12T16:10:56Z",
+          "body": "Thanks for the explanation, switched to `Context.current()` in 9f490654fb (and in the follow-up #20528).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20527#discussion_r4250091810"
+        }
+      ],
+      "reviewed": "f1b1fa0b3c4e2db5c00a0ef4ab33f6a1235cdd3e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20527#discussion_r4248027940"
+    }
+  ]
+}

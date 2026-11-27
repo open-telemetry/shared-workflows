@@ -1,0 +1,277 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9b0ea57a6a75845e2f3980dee1dda2c4c6c4b83480a43fa006fca5d78d3276cd",
+  "input_digest": "7291cfa5c959268be24ae56aace4d7f2c6e9fdf7e30c8154b7464d4eff560e9a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/adcf13631d880b433b591795df7852c57c2f38cc/conventions/src/main/kotlin/otel.osgi-conventions.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/conventions/src/main/kotlin/otel.osgi-conventions.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86JayLu",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/adcf13631d880b433b591795df7852c57c2f38cc/osgi-test/src/testLogbackAppender/java/io/opentelemetry/instrumentation/osgi/LogbackAppenderOsgiTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/src/testLogbackAppender/java/io/opentelemetry/instrumentation/osgi/LogbackAppenderOsgiTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86JayLw",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ada7affa55fa325034748376c626f2cfe16da792/settings.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/settings.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86NSb16",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ada7affa55fa325034748376c626f2cfe16da792/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/OtelJavaExtension.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ada7affa55fa325034748376c626f2cfe16da792/conventions/src/main/kotlin/otel.library-instrumentation.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ada7affa55fa325034748376c626f2cfe16da792/conventions/src/main/kotlin/otel.osgi-conventions.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/conventions/src/main/kotlin/otel.library-instrumentation.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/conventions/src/main/kotlin/otel.osgi-conventions.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86NShVS",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50968cb0ac3abbbcf6a7f5c4c0815d96ebbb7f1d/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50968cb0ac3abbbcf6a7f5c4c0815d96ebbb7f1d/smoke-tests-osgi/src/testApi/java/io/opentelemetry/instrumentation/osgi/ApiOsgiTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86STMP6",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50968cb0ac3abbbcf6a7f5c4c0815d96ebbb7f1d/conventions/src/main/kotlin/otel.osgi-conventions.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/conventions/src/main/kotlin/otel.osgi-conventions.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50968cb0ac3abbbcf6a7f5c4c0815d96ebbb7f1d/conventions/src/main/kotlin/otel.library-instrumentation.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/conventions/src/main/kotlin/otel.library-instrumentation.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50968cb0ac3abbbcf6a7f5c4c0815d96ebbb7f1d/conventions/src/main/kotlin/otel.sdk-extension.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/conventions/src/main/kotlin/otel.sdk-extension.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50968cb0ac3abbbcf6a7f5c4c0815d96ebbb7f1d/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/OtelJavaExtension.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/OtelJavaExtension.kt"
+      ],
+      "id": "PRRT_kwDODJKVX86STMPb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50968cb0ac3abbbcf6a7f5c4c0815d96ebbb7f1d/instrumentation-annotations-support/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50968cb0ac3abbbcf6a7f5c4c0815d96ebbb7f1d/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86STMQN",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50968cb0ac3abbbcf6a7f5c4c0815d96ebbb7f1d/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/CHANGELOG.md"
+      ],
+      "id": "PRRT_kwDODJKVX86STMQ_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/50968cb0ac3abbbcf6a7f5c4c0815d96ebbb7f1d/smoke-tests-osgi/src/testApacheHttpClient/java/io/opentelemetry/instrumentation/osgi/ApacheHttpClientOsgiTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/src/testApacheHttpClient/java/io/opentelemetry/instrumentation/osgi/ApacheHttpClientOsgiTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86STMQo",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2bf643542fc00072d2feaaa053bd4db79e836e21/instrumentation/logback/logback-appender-1.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/instrumentation/logback/logback-appender-1.0/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86SacTE",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2bf643542fc00072d2feaaa053bd4db79e836e21/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86SacTQ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0c864cfec6e55b90b596167803987120fdbc92dc/instrumentation/resources/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/instrumentation/resources/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86Sq8tL",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b6d99955c6e9e8a8724f916218f69aeb1cb4ab45/instrumentation-api/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/instrumentation-api/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86SyQAb",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b6d99955c6e9e8a8724f916218f69aeb1cb4ab45/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b6d99955c6e9e8a8724f916218f69aeb1cb4ab45/dependencyManagement/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/dependencyManagement/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86SyQAd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b6d99955c6e9e8a8724f916218f69aeb1cb4ab45/conventions/src/main/kotlin/otel.osgi-conventions.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/conventions/src/main/kotlin/otel.osgi-conventions.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b6d99955c6e9e8a8724f916218f69aeb1cb4ab45/instrumentation-api/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/instrumentation-api/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b6d99955c6e9e8a8724f916218f69aeb1cb4ab45/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/ServiceLoaderUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/ServiceLoaderUtil.java"
+      ],
+      "id": "PRRT_kwDODJKVX86SyQAe",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c26496d6b2d21ac0f08a348193baa58937c77c10/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86WLRkF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c26496d6b2d21ac0f08a348193baa58937c77c10/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86WLRkI",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86WLRkL",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86JayLw",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/941b1b4bc594855e2de10ac68d0ebd8783c4578a/dependencyManagement/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/dependencyManagement/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86WcFJh",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/941b1b4bc594855e2de10ac68d0ebd8783c4578a/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86WcFJs",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/941b1b4bc594855e2de10ac68d0ebd8783c4578a/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/OtelJavaExtension.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/OtelJavaExtension.kt"
+      ],
+      "id": "PRRT_kwDODJKVX86WcFJv",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/60bd2fd28f41e813bac3529a40f48782b1ffb363/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86YiULJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/60bd2fd28f41e813bac3529a40f48782b1ffb363/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02c7b3f45454f7ce44ff620294f71a3c56112e8b/smoke-tests-osgi/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/742cb19723136a307de1ff48d801174306edd264"
+      ],
+      "id": "PRRT_kwDODJKVX86YifQi",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

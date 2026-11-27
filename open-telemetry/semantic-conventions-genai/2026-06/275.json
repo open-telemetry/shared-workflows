@@ -1,0 +1,67 @@
+{
+  "head": "d12f7b2c07264dfbced65d06561e8b2056ba9979",
+  "merge": "df4a3c10398b14841f6922c712c42dc31618acaf",
+  "merged": "2026-06-10T15:43:16Z",
+  "missing_roots": 0,
+  "number": 275,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Towncrier is configured to manage `CHANGELOG.md`, but the config does not set `extension`/`template` for Markdown fragments. Towncrier defaults to `extension = \"rst\"` (and its built-in template is RST-oriented), so `*.md` fragments like `217.breaking.md` may be ignored and/or `towncrier build` may fail with a missing template for `md`.\n\nTo make the documented workflow work, either (a) add a Markdown template + `extension = \"md\"`, or (b) switch fragments to the default `.rst` extension and update the docs accordingly.",
+      "created": "2026-06-10T02:34:40Z",
+      "hunk": "@@ -0,0 +1,37 @@\n+[tool.towncrier]\n+filename = \"../CHANGELOG.md\"\n+directory = \".\"\n+start_string = \"<!-- towncrier release notes start -->\\n\"\n+title_format = \"## {version}\"\n+issue_format = \"[#{issue}](https://github.com/open-telemetry/semantic-conventions-genai/pull/{issue})\"\n+wrap = true\n+",
+      "id": "PRRT_kwDOSUeMrM6IV7S0",
+      "opened": "2026-06-10T02:34:40Z",
+      "path": "changelog.d/towncrier.toml",
+      "replies": [
+        {
+          "at": "2026-06-10T03:37:03Z",
+          "body": "No code change needed. The pinned Towncrier 24.8.0 configuration already selects the Markdown default template for CHANGELOG.md, and the documented draft build successfully renders the existing .md fragments. Also, `extension` is not a supported Towncrier 24.8 config option, so adding it would be misleading.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/275#discussion_r3385316213"
+        }
+      ],
+      "reviewed": "70b066ef8f91a6d0f787226adfd1dbb104a4e8e2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/275#discussion_r3385106954"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can you please document valid types (bugfix | enhancement | etc) and add to instructions here ?",
+      "created": "2026-06-10T04:04:10Z",
+      "hunk": "@@ -0,0 +1,11 @@\n+---\n+description: \"Review guidance for Towncrier changelog fragments.\"\n+applyTo: \"changelog.d/*.md\"\n+---\n+\n+# Changelog fragments\n+\n+Towncrier is configured with `wrap = true`, so generated `CHANGELOG.md` output\n+is wrapped during release note generation. Changelog fragments should use one\n+logical line per fragment entry; when reviewing, ask contributors to remove\n+manual hard wrapping from fragment text.",
+      "id": "PRRT_kwDOSUeMrM6IWwSk",
+      "opened": "2026-06-10T04:04:56Z",
+      "path": ".github/instructions/changelog-fragments.instructions.md",
+      "replies": [
+        {
+          "at": "2026-06-10T14:54:20Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/5f5836983d530a7cd3170d1fe199f15fc6704e14.\n\nDocumented the valid Towncrier fragment types in the changelog fragment instructions.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/275#discussion_r3389326095"
+        }
+      ],
+      "reviewed": "7f8f22dd641a8af6bcc43bafa6000bd2a752886b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/275#discussion_r3385412111"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`applyTo: \"changelog.d/*.md\"` will also apply these fragment-review instructions to non-fragment Markdown files in that directory (e.g. `changelog.d/README.md`). Since fragment files here follow `<pr>.<type>.md` (two dots), narrowing the glob avoids unintentionally scoping guidance to the README and any future docs under `changelog.d/`.",
+      "created": "2026-06-10T15:00:38Z",
+      "hunk": "@@ -0,0 +1,20 @@\n+---\n+description: \"Review guidance for Towncrier changelog fragments.\"\n+applyTo: \"changelog.d/*.md\"\n+---",
+      "id": "PRRT_kwDOSUeMrM6Ihs04",
+      "opened": "2026-06-10T15:00:39Z",
+      "path": ".github/instructions/changelog-fragments.instructions.md",
+      "replies": [],
+      "reviewed": "5f5836983d530a7cd3170d1fe199f15fc6704e14",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/275#discussion_r3389374468"
+    }
+  ]
+}

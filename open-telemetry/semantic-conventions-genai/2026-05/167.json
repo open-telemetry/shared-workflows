@@ -1,0 +1,36 @@
+{
+  "head": "9c63855a0fe64a85cc021ec84d8b93fc90be5646",
+  "merge": "0bcb478696640451ab799f718298cf79a2d9a598",
+  "merged": "2026-05-18T20:43:05Z",
+  "missing_roots": 0,
+  "number": 167,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "intentional? ",
+      "created": "2026-05-18T18:26:30Z",
+      "hunk": "@@ -104,12 +104,14 @@ $(SC_UPSTREAM_STAMP): $(VERSION_PINS_FILE)\n filter-upstream: $(SC_UPSTREAM_STAMP)\n \n # Validate the model and run shared policies\n+# After the first release from this repository establishes the new schema URL\n+# baseline, enable baseline compatibility checking by adding a trailing `\\` to\n+# the --policy line and appending `--baseline-registry '$(BASELINE_REGISTRY)'`.\n check-policies: $(LOCAL_POLICY_STAMP) $(SC_UPSTREAM_STAMP)\n \t$(WEAVER) registry check \\\n \t\t-r ./model \\\n \t\t--v2 \\\n \t\t--policy $(LOCAL_POLICIES)/policies/check\n-\t\t# --baseline-registry '$(BASELINE_REGISTRY)' \\ uncomment after removing deprecated entries",
+      "id": "PRRT_kwDOSUeMrM6C7dWT",
+      "opened": "2026-05-18T18:26:35Z",
+      "path": "Makefile",
+      "replies": [
+        {
+          "at": "2026-05-18T20:38:37Z",
+          "body": "sort of? it's now in the comment above, but the change does seem unnecessary, will revert this file",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/167#discussion_r3261971620"
+        },
+        {
+          "at": "2026-05-18T20:39:19Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/167/commits/ccd2dd121e123fdf2c34472a318165e2d974528f",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/167#discussion_r3261976460"
+        }
+      ],
+      "reviewed": "776df8d114cea03a30d3b69dc6a9fce1879c0700",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/167#discussion_r3261129865"
+    }
+  ]
+}

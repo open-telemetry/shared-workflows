@@ -1,0 +1,61 @@
+{
+  "head": "2c9dadb1f0328c6b1369d605315ccbb15b5f1c8a",
+  "merge": "cba863f484770ddd0ed67105bcbb4c0f882d1179",
+  "merged": "2026-09-16T04:57:08Z",
+  "missing_roots": 0,
+  "number": 674,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This adds user-visible span attributes, but the PR does not add a towncrier fragment under this package's `.changelog/`. The package changelog is explicitly generated from those fragments, so the changelog gate will reject the PR; please add a `564.added`/`564.fixed` fragment describing the new modality token attributes.",
+      "created": "2026-09-10T22:44:11Z",
+      "hunk": "@@ -423,6 +468,27 @@ def _apply_response_attributes(\n         invocation.output_tokens = (\n             invocation.output_tokens or 0\n         ) + thinking_tokens\n+    _set_modality_tokens(\n+        invocation,\n+        _get_response_property(\n+            response, \"usage_metadata.prompt_tokens_details\"\n+        ),",
+      "id": "PRRT_kwDOSbspP86hRaUC",
+      "opened": "2026-09-10T22:44:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "cb50b61871881d1eb985077d5783ef35879d0dd3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/674#discussion_r3984147381"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This is the third copy of this mapping - `interactions.py` has one and langchain got one in #671. Let's move this onto `InferenceInvocation` in `opentelemetry-util-genai` instead of duplicating and trying to unify later.\r\n\r\nRough sketch (not final, needs details sorted out):\r\n\r\n```python\r\nclass InferenceInvocation(...):\r\n    def set_input_tokens(self, modality: Modality | str, tokens: int | None) -> None:\r\n        self._set_modality_tokens(_INPUT, modality, tokens)\r\n\r\n    def set_output_tokens(...) -> None: ...\r\n    def set_cache_read_input_tokens(...) -> None: ...\r\n\r\n    def _set_modality_tokens(self, bucket, modality, tokens) -> None:\r\n        if not isinstance(tokens, int) or isinstance(tokens, bool) or tokens < 0:\r\n            return\r\n        name = str(getattr(modality, \"value\", modality)).lower()\r\n        # drop unsupported modalities (video, doc) centrally\r\n        ...\r\n```\r\n\r\nCall site here simplifies to:\r\n\r\n```python\r\nfor entry in _get_response_property(response, \"usage_metadata.prompt_tokens_details\") or []:\r\n    invocation.set_input_tokens(entry.modality, entry.token_count)\r\n```\r\n\r\nThis removes the local dicts, enum/string normalization, and int checks. It also centralizes handling unmapped modalities and future token types across all instrumentations.\r\n\r\nNote: `Modality` in `types.py` currently lacks `text`, need to add it.\r\n\r\nIt's a small change - let's add the util method and update `interactions.py` and langchain right away\r\n",
+      "created": "2026-09-11T00:29:38Z",
+      "hunk": "@@ -346,6 +347,50 @@ def _apply_request_attributes(\n     )\n \n \n+_INPUT_MODALITY_FIELDS = {\n+    \"text\": \"text_input_tokens\",\n+    \"image\": \"image_input_tokens\",\n+    \"audio\": \"audio_input_tokens\",\n+}\n+_OUTPUT_MODALITY_FIELDS = {\n+    \"text\": \"text_output_tokens\",\n+    \"image\": \"image_output_tokens\",\n+    \"audio\": \"audio_output_tokens\",\n+}\n+_CACHE_READ_MODALITY_FIELDS = {\n+    \"text\": \"text_cache_read_input_tokens\",\n+    \"image\": \"image_cache_read_input_tokens\",\n+    \"audio\": \"audio_cache_read_input_tokens\",\n+}\n+\n+\n+def _set_modality_tokens(\n+    invocation: InferenceInvocation,\n+    entries: list[ModalityTokenCount] | None,\n+    fields: Mapping[str, str],\n+) -> None:\n+    if entries is None:\n+        return\n+    # A streaming chunk redelivers the whole breakdown, so an arriving one has\n+    # to replace the previous values: a modality that drops out of a later\n+    # chunk would otherwise keep a stale count and push the breakdown over the\n+    # total reported alongside it.\n+    for field_name in fields.values():\n+        setattr(invocation, field_name, None)\n+    for entry in entries:\n+        modality = entry.modality\n+        token_count = entry.token_count\n+        if modality is None or not isinstance(token_count, int):\n+            continue\n+        # modality is a MediaModality enum, so str() would yield\n+        # \"MediaModality.AUDIO\" rather than the bare modality name.\n+        field_name = fields.get(\n+            str(getattr(modality, \"value\", modality)).lower()\n+        )\n+        if field_name is not None:\n+            setattr(invocation, field_name, token_count)\n+\n+",
+      "id": "PRRT_kwDOSbspP86hS-B9",
+      "opened": "2026-09-11T00:31:51Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [
+        {
+          "at": "2026-09-11T01:38:18Z",
+          "body": "Makes sense, pushed in d1a3a1a. Went with the whole iterable rather than per entry, so an arriving breakdown replaces rather than merges. Happy to switch.\r\n\r\n`interactions.py` is in there, which #616 also touches.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/674#discussion_r3985172671"
+        }
+      ],
+      "reviewed": "16803978a0674117c73ffa90399ae6fb567eb88d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/674#discussion_r3984794739"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    if response.usage_metadata is not None:\n        invocation.set_input_tokens(\n            _modality_tokens(response, \"usage_metadata.prompt_tokens_details\")\n        )\n        invocation.set_output_tokens(\n            _modality_tokens(response, \"usage_metadata.candidates_tokens_details\")\n        )\n        invocation.set_cache_read_input_tokens(\n            _modality_tokens(response, \"usage_metadata.cache_tokens_details\")\n        )\n```\nAvoids walking property paths on every intermediate streaming chunk that carries no usage.",
+      "created": "2026-09-11T16:45:07Z",
+      "hunk": "@@ -423,6 +436,15 @@ def _apply_response_attributes(\n         invocation.output_tokens = (\n             invocation.output_tokens or 0\n         ) + thinking_tokens\n+    invocation.set_input_tokens(\n+        _modality_tokens(response, \"usage_metadata.prompt_tokens_details\")\n+    )\n+    invocation.set_output_tokens(\n+        _modality_tokens(response, \"usage_metadata.candidates_tokens_details\")\n+    )\n+    invocation.set_cache_read_input_tokens(\n+        _modality_tokens(response, \"usage_metadata.cache_tokens_details\")\n+    )",
+      "id": "PRRT_kwDOSbspP86hjsca",
+      "opened": "2026-09-11T16:45:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "72c44f9a350dc0a7787946e167eec49860f55dce",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/674#discussion_r3991401905"
+    }
+  ]
+}

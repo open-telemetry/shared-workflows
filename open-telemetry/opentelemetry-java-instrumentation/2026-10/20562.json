@@ -1,0 +1,31 @@
+{
+  "head": "15fd1b998a27b8b11459faf286a60445abba136d",
+  "merge": "22f908c83159daa5c82f407a76bb57ade8fa84b6",
+  "merged": "2026-10-13T05:35:19Z",
+  "missing_roots": 0,
+  "number": 20562,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This reorder changes the result when a deployment sets conflicting versioned and versionless selectors: the versioned key now wins, whereas the versionless key won previously. Because this is an intentional 3.0 breaking configuration change, CONTRIBUTING.md requires an Unreleased breaking-change entry; please document the new precedence and the migration for configurations that set both aliases.",
+      "created": "2026-10-13T02:13:44Z",
+      "hunk": "@@ -19,11 +18,7 @@\n public class ActivejHttpServerInstrumentationModule extends InstrumentationModule {\n \n   public ActivejHttpServerInstrumentationModule() {\n-    super(\n-        AgentCommonConfig.get().isV3Preview() ? \"activej-http-6.0\" : \"activej-http\",\n-        AgentCommonConfig.get().isV3Preview()\n-            ? new String[] {\"activej-http\"}\n-            : new String[] {\"activej-http-6.0\"});\n+    super(\"activej-http-6.0\", \"activej-http\");",
+      "id": "PRRT_kwDODJKVX86rrx81",
+      "opened": "2026-10-13T02:13:44Z",
+      "path": "instrumentation/activej-http-6.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/activejhttp/v6_0/ActivejHttpServerInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-10-13T02:16:56Z",
+          "body": "going to ignore this, very unlikely to be issue in practice",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20562#discussion_r4254057787"
+        }
+      ],
+      "reviewed": "15fd1b998a27b8b11459faf286a60445abba136d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20562#discussion_r4254043500"
+    }
+  ]
+}

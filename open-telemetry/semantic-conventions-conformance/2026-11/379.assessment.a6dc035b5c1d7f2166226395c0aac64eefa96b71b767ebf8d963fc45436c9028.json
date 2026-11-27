@@ -1,0 +1,65 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "85c49d06a47462efbdf838a74ef0f1e57a240feee222bb762a8c7b16fb447233",
+  "input_digest": "a6dc035b5c1d7f2166226395c0aac64eefa96b71b767ebf8d963fc45436c9028",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/794bd61b8bcc26c7c13b0734eb20bce235127d9b/scenarios/gen-ai/js/openai/opentelemetry-openai/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/794bd61b8bcc26c7c13b0734eb20bce235127d9b/scenarios/gen-ai/js/openai/scenarios/automatic_tool_calling.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d18a0eb7a338e38f1189f577efe8764f94ac4f4a/scenarios/gen-ai/js/openai/opentelemetry-openai/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d18a0eb7a338e38f1189f577efe8764f94ac4f4a/scenarios/gen-ai/js/openai/opentelemetry-openai/automatic_tool_calling.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d18a0eb7a338e38f1189f577efe8764f94ac4f4a/scenarios/gen-ai/js/openai/scenarios/automatic_tool_calling.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/475b54d012aaea0e41b83109e385c985561012d4"
+      ],
+      "id": "PRRT_kwDOTuzK5c6vgnAq",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ae9fa9166e6082cc88c37f34c74aabb02590d60e/scenarios/gen-ai/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d18a0eb7a338e38f1189f577efe8764f94ac4f4a/scenarios/gen-ai/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ae9fa9166e6082cc88c37f34c74aabb02590d60e/scenarios/gen-ai/js/openai/scenarios/server_tool_calling.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d18a0eb7a338e38f1189f577efe8764f94ac4f4a/scenarios/gen-ai/js/openai/scenarios/server_tool_calling.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ae9fa9166e6082cc88c37f34c74aabb02590d60e/scenarios/gen-ai/js/vercel-ai/scenarios/server_tool_calling.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d18a0eb7a338e38f1189f577efe8764f94ac4f4a/scenarios/gen-ai/js/vercel-ai/scenarios/server_tool_calling.js"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zAVSg",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ae9fa9166e6082cc88c37f34c74aabb02590d60e/scenarios/gen-ai/AGENTS.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d18a0eb7a338e38f1189f577efe8764f94ac4f4a/scenarios/gen-ai/AGENTS.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/3cee5abd61a0ca836b456705926779152cbba3d4"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zAVSl",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ae9fa9166e6082cc88c37f34c74aabb02590d60e/tools/gen-ai/runner/src/genai_conformance/weaver.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/ae9fa9166e6082cc88c37f34c74aabb02590d60e/tools/js/scenario-sdk/index.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d18a0eb7a338e38f1189f577efe8764f94ac4f4a/tools/gen-ai/runner/src/genai_conformance/weaver.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d18a0eb7a338e38f1189f577efe8764f94ac4f4a/tools/js/scenario-sdk/index.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/7979ddb621c7b16dfb5de922f7dc945be4b495ba"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zAkJG",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

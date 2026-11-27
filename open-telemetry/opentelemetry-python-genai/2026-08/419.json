@@ -1,0 +1,115 @@
+{
+  "head": "e750612a552306f8e47d7fff990ef0e0242358b4",
+  "merge": "8476682703b0b72f107bc3b58998a77dacc0d1d3",
+  "merged": "2026-08-20T17:15:52Z",
+  "missing_roots": 0,
+  "number": 419,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This PR bumps several already-released instrumentations to 1.1b0, but the “Released Instrumentations” table still shows 1.0b0/1.0b1. Once 1.1b0 is released, this section will be stale and misleading; update the table versions to 1.1b0 as part of the release prep.",
+      "created": "2026-08-20T16:42:16Z",
+      "hunk": "@@ -23,12 +23,12 @@ All instrumentations use [opentelemetry-util-genai](./util/opentelemetry-util-ge\n \n | Instrumentation | Supported Package | Version | Status |\n | --------------- | ----------------- | ------- | ------ |\n-| [opentelemetry-instrumentation-genai-agno](./instrumentation/opentelemetry-instrumentation-genai-agno) | agno >= 2.0.0 | 1.1b0.dev | to be released |\n+| [opentelemetry-instrumentation-genai-agno](./instrumentation/opentelemetry-instrumentation-genai-agno) | agno >= 2.0.0 | 1.1b0 | to be released |\n | [opentelemetry-instrumentation-genai-claude-agent-sdk](./instrumentation/opentelemetry-instrumentation-genai-claude-agent-sdk) | claude-agent-sdk >= 0.1.14 | 1.1b0.dev | skeleton |\n | [opentelemetry-instrumentation-genai-crewai](./instrumentation/opentelemetry-instrumentation-genai-crewai) | crewai >= 1.10.1 | 1.1b0.dev | skeleton |\n | [opentelemetry-instrumentation-genai-llama-index](./instrumentation/opentelemetry-instrumentation-genai-llama-index) | llama-index-core >= 0.14.19 | 1.1b0.dev | skeleton |\n-| [opentelemetry-instrumentation-genai-qwen-agent](./instrumentation/opentelemetry-instrumentation-genai-qwen-agent) | qwen-agent >= 0.0.20 | 1.1b0.dev | to be released |\n-| [opentelemetry-instrumentation-genai-smolagents](./instrumentation/opentelemetry-instrumentation-genai-smolagents) | smolagents >= 1.24.0 | 1.1b0.dev | to be released |\n+| [opentelemetry-instrumentation-genai-qwen-agent](./instrumentation/opentelemetry-instrumentation-genai-qwen-agent) | qwen-agent >= 0.0.20 | 1.1b0 | to be released |\n+| [opentelemetry-instrumentation-genai-smolagents](./instrumentation/opentelemetry-instrumentation-genai-smolagents) | smolagents >= 1.24.0 | 1.1b0 | to be released |",
+      "id": "PRRT_kwDOSbspP86a4vpG",
+      "opened": "2026-08-20T16:42:18Z",
+      "path": "README.md",
+      "replies": [
+        {
+          "at": "2026-08-20T17:01:33Z",
+          "body": "The table is generated from PyPI (`tox -e generate`), so it will update after 1.1b0 is published.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/419#discussion_r3823664736"
+        }
+      ],
+      "reviewed": "e750612a552306f8e47d7fff990ef0e0242358b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/419#discussion_r3823530084"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This package is being released as 1.1b0, but its pyproject.toml still declares a dependency on `opentelemetry-util-genai >= 1.1b0.dev, <2`. For a release, it’s better for the lower bound to match the minimum released util version (`>= 1.1b0`) so the requirement doesn’t allow older 1.1b0.dev builds that may not include the finalized 1.1b0 API/behavior.",
+      "created": "2026-08-20T16:42:16Z",
+      "hunk": "@@ -1,4 +1,4 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n-__version__ = \"1.1b0.dev\"\n+__version__ = \"1.1b0\"",
+      "id": "PRRT_kwDOSbspP86a4vpu",
+      "opened": "2026-08-20T16:42:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/version.py",
+      "replies": [
+        {
+          "at": "2026-08-20T17:01:44Z",
+          "body": "`util-genai` 1.1b0 is shipping in this same release, and `.dev` isn't on PyPI, so pip will resolve 1.1b0 anyway. The prepare script doesn't edit `pyproject.toml`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/419#discussion_r3823666047"
+        }
+      ],
+      "reviewed": "e750612a552306f8e47d7fff990ef0e0242358b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/419#discussion_r3823530153"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This package is being released as 1.1b0, but its pyproject.toml still declares a dependency on `opentelemetry-util-genai >= 1.1b0.dev, <2`. For a release, update the lower bound to `>= 1.1b0` to reflect the minimum released util version and avoid allowing pre-release 1.1b0.dev builds that may not include the finalized 1.1b0 API/behavior.",
+      "created": "2026-08-20T16:42:17Z",
+      "hunk": "@@ -1,4 +1,4 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n-__version__ = \"1.1b0.dev\"\n+__version__ = \"1.1b0\"",
+      "id": "PRRT_kwDOSbspP86a4vqZ",
+      "opened": "2026-08-20T16:42:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/version.py",
+      "replies": [
+        {
+          "at": "2026-08-20T17:01:49Z",
+          "body": "`util-genai` 1.1b0 is shipping in this same release, and `.dev` isn't on PyPI, so pip will resolve 1.1b0 anyway. The prepare script doesn't edit `pyproject.toml`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/419#discussion_r3823666576"
+        }
+      ],
+      "reviewed": "e750612a552306f8e47d7fff990ef0e0242358b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/419#discussion_r3823530208"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This package is being released as 1.1b0, but its pyproject.toml still declares a dependency on `opentelemetry-util-genai >= 1.1b0.dev, <2`. For a release, update the lower bound to `>= 1.1b0` to reflect the minimum released util version and avoid allowing pre-release 1.1b0.dev builds that may not include the finalized 1.1b0 API/behavior.",
+      "created": "2026-08-20T16:42:17Z",
+      "hunk": "@@ -1,4 +1,4 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n-__version__ = \"1.1b0.dev\"\n+__version__ = \"1.1b0\"",
+      "id": "PRRT_kwDOSbspP86a4vrN",
+      "opened": "2026-08-20T16:42:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/src/opentelemetry/instrumentation/genai/qwen_agent/version.py",
+      "replies": [
+        {
+          "at": "2026-08-20T17:01:53Z",
+          "body": "`util-genai` 1.1b0 is shipping in this same release, and `.dev` isn't on PyPI, so pip will resolve 1.1b0 anyway. The prepare script doesn't edit `pyproject.toml`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/419#discussion_r3823667014"
+        }
+      ],
+      "reviewed": "e750612a552306f8e47d7fff990ef0e0242358b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/419#discussion_r3823530279"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This package is being released as 1.1b0, but its pyproject.toml still declares a dependency on `opentelemetry-util-genai >= 1.1b0.dev, <2`. For a release, update the lower bound to `>= 1.1b0` to reflect the minimum released util version and avoid allowing pre-release 1.1b0.dev builds that may not include the finalized 1.1b0 API/behavior.",
+      "created": "2026-08-20T16:42:17Z",
+      "hunk": "@@ -1,4 +1,4 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n-__version__ = \"1.1b0.dev\"\n+__version__ = \"1.1b0\"",
+      "id": "PRRT_kwDOSbspP86a4vre",
+      "opened": "2026-08-20T16:42:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/version.py",
+      "replies": [
+        {
+          "at": "2026-08-20T17:01:57Z",
+          "body": "`util-genai` 1.1b0 is shipping in this same release, and `.dev` isn't on PyPI, so pip will resolve 1.1b0 anyway. The prepare script doesn't edit `pyproject.toml`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/419#discussion_r3823667468"
+        }
+      ],
+      "reviewed": "e750612a552306f8e47d7fff990ef0e0242358b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/419#discussion_r3823530313"
+    }
+  ]
+}

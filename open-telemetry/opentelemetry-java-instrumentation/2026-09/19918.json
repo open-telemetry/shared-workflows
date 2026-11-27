@@ -1,0 +1,40 @@
+{
+  "head": "6bdf28cc557b5faf5532a8195c7d5c488ee046b3",
+  "merge": "c8422a4080eb833534390c128bffdeeba004b5aa",
+  "merged": "2026-09-01T07:24:45Z",
+  "missing_roots": 0,
+  "number": 19918,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The updated description still implies that `capture-search-query=false` disables capture throughout the period before 3.0. In v3-preview, however, `OpenSearchSingletons.getCaptureSearchQuery()` skips this setting and returns `true`, so query bodies cannot be disabled. Please scope this guidance to outside v3-preview (as the Elasticsearch description does) in the source metadata and regenerate this file; this is especially important because the setting controls potentially sensitive query content.",
+      "created": "2026-08-30T03:04:43Z",
+      "hunk": "@@ -1075,7 +1082,14 @@ definitions:\n       name: otel.instrumentation.opensearch.capture-search-query\n       declarative_name: java.opensearch.capture_search_query\n       description: |\n-        Deprecated and will be removed in 3.0, when sanitized search query bodies are always captured. There is no replacement. Until then, set this to false to disable capture. Search queries may contain personal or sensitive information.\n+        Deprecated and will be removed in 3.0, when search query bodies are always captured. There is no replacement. Until then, set this to false to disable capture. Search queries may contain personal or sensitive information.",
+      "id": "PRRT_kwDODJKVX86deV8P",
+      "opened": "2026-08-30T03:04:43Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "4449cc7c801da8fa33e194eb1e04e5cb9082ea60",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19918#discussion_r3888320599"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This generated example says `capture_search_query: false` disables capture until 3.0, but v3-preview ignores that setting and always captures query bodies. Please update the source metadata to state that disabling only works outside v3-preview, then regenerate the example so users are not given ineffective guidance for sensitive query data.",
+      "created": "2026-08-30T03:04:43Z",
+      "hunk": "@@ -680,10 +686,15 @@ instrumentation/development:\n         # Enable SSL telemetry.\n         enabled: false\n     opensearch:\n-      # Deprecated and will be removed in 3.0, when sanitized search query bodies are always\n-      # captured. There is no replacement. Until then, set this to false to disable capture. Search\n-      # queries may contain personal or sensitive information.\n+      # Deprecated and will be removed in 3.0, when search query bodies are always captured. There\n+      # is no replacement. Until then, set this to false to disable capture. Search queries may\n+      # contain personal or sensitive information.",
+      "id": "PRRT_kwDODJKVX86deV8b",
+      "opened": "2026-08-30T03:04:43Z",
+      "path": "docs/declarative-configuration-example.yaml",
+      "replies": [],
+      "reviewed": "4449cc7c801da8fa33e194eb1e04e5cb9082ea60",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19918#discussion_r3888320614"
+    }
+  ]
+}

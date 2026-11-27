@@ -1,0 +1,76 @@
+{
+  "head": "c6d17b1547cd10a19969c0e415666638b608f994",
+  "merge": "1531c073a1889387f2704b6899ec9ffc79ed4b8a",
+  "merged": "2026-11-03T18:12:24Z",
+  "missing_roots": 0,
+  "number": 21144,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix the semantic-conventions 1.45.0 CI regressions below. Keep the 1.45.0 upgrade and existing migration behavior. Do not create another PR or modify the OSHI and RPC child PRs #21151 and #21153 or native stack #21152.\n\nThe coordinator downloaded the deterministic CI bundle with .github/scripts/pr-triage/fix_ci.py 21144 --download-only and inspected its nine representative logs. At head c2edb370189a7edff7115cacb6506393361af1fc, the build, test0 through test3, smoke-test, examples, and muzzle representatives fail compiling instrumentation:rocketmq:rocketmq-client-5.0:javaagent. RocketMqProducerAttributeExtractor.java lines 47, 50, 54, and 57 trigger OtelDeprecatedApiUsage for MessagingIncubatingAttributes.MessagingRocketmqMessageTypeIncubatingValues. Migrate to RocketmqIncubatingAttributes.RocketmqMessageTypeIncubatingValues, which provides the same normal, fifo, delay, and transaction strings in semconv-java 1.45.0. Update the old enum references in the related test imports too. Do not add a deprecation suppression or alter emitted values.\n\nThe testLatestDeps2 representative also fails instrumentation:jmx-metrics:library:testJvm. Both JvmTest.testJvmMetrics container variants fail WeaverContainer.WeaverValidationResult.checkRegistered because the 1.45.0 registry adds seven jvm.executor.* metric definitions. These are registry entries, not unexpected emitted JMX telemetry.\n\nThe user explicitly chose to relax registry completeness rather than add every new upstream definition to optional expectations. In instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java, change the shared registry-name equality assertion in checkRegistered to require the expected names as a subset, for example containsAll(expectedKeys), allowing additional registry definitions. Apply the same semantics consistently for metric and attribute registry checks through this shared helper. Preserve disjoint required/optional lists, required observation counts greater than zero, optional counts greater than or equal to zero, unregistered-telemetry checks, and Weaver's remaining semantic validation. Keep MetricsVerifier strict so genuinely unexpected emitted JMX metrics still fail. Do not add jvm.executor.* to an ever-growing optional list, change the jvm.* import, suppress validation, or require JMX to emit executor metrics.\n\nAdd focused regression coverage using existing test patterns to demonstrate that extra unused metric and attribute registry definitions are accepted while missing expected definitions and missing required observations still fail.\n\nThe logs also show CamelPropagationUtilTest.initializationError: GlobalOpenTelemetry.set has already been called. Its setup calls GlobalOpenTelemetry.set after CamelMessagingAttributesGetterTest initializes BaseSpanDecorator through DecoratorRegistry and calls GlobalOpenTelemetry.get. Determine whether this is caused by the current PR before changing it. Fix only a demonstrated regression caused by this PR; leave pre-existing, flaky, or unrelated problems unchanged and report the evidence instead.\n\nFollow CONTRIBUTING.md and applicable repository instructions. Run the narrowest relevant spotlessApply directly before targeted validation, not spotlessCheck. Validate the RocketMQ change and shared JMX registry assertion with focused checks, including latest-dependency mode where relevant and feasible. Keep changes surgical, do not edit the generated docs/instrumentation-list.yaml, and do not wait for hosted CI.",
+      "created": "2026-11-02T19:50:16Z",
+      "hunk": "@@ -3,5 +3,5 @@ description: This registry contains the semantic conventions for the JMX metrics\n schema_url: https://github.com/open-telemetry/opentelemetry-java-instrumentation/instrumentation/jmx-metrics/\n dependencies:\n   - name: otel\n-    registry_path: https://github.com/open-telemetry/semantic-conventions@v1.44.0[model]\n-    schema_url: https://opentelemetry.io/schemas/1.44.0\n+    registry_path: https://github.com/open-telemetry/semantic-conventions@v1.45.0[model]",
+      "id": "PRRT_kwDODJKVX86y1huR",
+      "opened": "2026-11-02T19:50:15Z",
+      "path": "instrumentation/jmx-metrics/model/manifest.yaml",
+      "replies": [],
+      "reviewed": "c2edb370189a7edff7115cacb6506393361af1fc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21144#discussion_r4447001378"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this was because there are new `jvm.*` metrics now in semconv",
+      "created": "2026-11-03T00:43:38Z",
+      "hunk": "@@ -239,7 +240,7 @@ private WeaverValidationResult checkRegistered(\n       assertThat(map.keySet())\n           .filteredOn(item -> item.startsWith(prefix))\n           .describedAs(\"expected registered %s to contain all keys\", type)\n-          .containsExactlyInAnyOrderElementsOf(expectedKeys);\n+          .containsAll(expectedKeys);",
+      "id": "PRRT_kwDODJKVX86y7XBv",
+      "opened": "2026-11-03T00:43:38Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainer.java",
+      "replies": [],
+      "reviewed": "06d22519856aac41ab7731c50ed4e17cd650f740",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21144#discussion_r4449508014"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is addressed in follow-up stacked PR",
+      "created": "2026-11-03T00:44:31Z",
+      "hunk": "@@ -24,6 +24,7 @@\n import java.util.Collection;\n import org.junit.jupiter.api.Test;\n \n+@SuppressWarnings(\"deprecation\") // system.device belongs to the retained 1.44.0 schema.",
+      "id": "PRRT_kwDODJKVX86y7X1G",
+      "opened": "2026-11-03T00:44:31Z",
+      "path": "instrumentation/oshi-5.0/testing/src/main/java/io/opentelemetry/instrumentation/oshi/v5_0/AbstractSystemMetricsTest.java",
+      "replies": [],
+      "reviewed": "06d22519856aac41ab7731c50ed4e17cd650f740",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21144#discussion_r4449513240"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. The user explicitly requested: \"Never mind, let's just remove the test from this PR cloud\". Remove instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainerTest.java from this PR. This supersedes the earlier request for focused regression tests of the Weaver validation helper.\n\nRevert the constructor visibility change made solely for that test: restore the private WeaverValidationResult constructor in WeaverContainer.java and remove its now-unnecessary visible-for-testing comment, provided no remaining callers require package access. Preserve the containsAll(expectedKeys) registry-subset assertion and all other current semantic-conventions upgrade changes and JMX validation behavior. Do not add replacement tests of test helpers, create an agent-instructions PR, or change other PRs. Keep this removal surgical and update this existing PR rather than creating a separate PR. Follow repository instructions and run the narrowest relevant checks when feasible; do not wait for hosted CI.",
+      "created": "2026-11-03T00:53:46Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.emptySet;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThatThrownBy;\n+\n+import java.util.HashMap;\n+import java.util.Map;\n+import org.junit.jupiter.api.Test;\n+\n+class WeaverContainerTest {",
+      "id": "PRRT_kwDODJKVX86y7hAw",
+      "opened": "2026-11-03T00:53:46Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainerTest.java",
+      "replies": [
+        {
+          "at": "2026-11-03T01:02:47Z",
+          "body": "Removed `WeaverContainerTest` and restored the constructor to private, while preserving the shared `containsAll(expectedKeys)` assertion. Committed as `367b0a12`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21144#discussion_r4449639712"
+        }
+      ],
+      "reviewed": "06d22519856aac41ab7731c50ed4e17cd650f740",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21144#discussion_r4449574581"
+    }
+  ]
+}

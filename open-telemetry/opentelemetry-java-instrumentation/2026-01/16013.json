@@ -1,0 +1,41 @@
+{
+  "head": "e806c7cb0c1e4df81bf4e19ffd50d6748dab35ed",
+  "merge": "444dc0af8993e84e11cf87ec981b03fd1bc5165e",
+  "merged": "2026-01-29T07:47:38Z",
+  "missing_roots": 0,
+  "number": 16013,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "this would be a binary incompatible change, is that ok?",
+      "created": "2026-01-27T14:22:59Z",
+      "hunk": "@@ -46,31 +46,41 @@ public static RatpackServerTelemetryBuilder builder(OpenTelemetry openTelemetry)\n     return new RatpackServerTelemetryBuilder(openTelemetry);\n   }\n \n-  private final OpenTelemetryServerHandler serverHandler;\n+  private final Instrumenter<Request, Response> instrumenter;\n \n-  RatpackServerTelemetry(Instrumenter<Request, Response> serverInstrumenter) {\n-    serverHandler = new OpenTelemetryServerHandler(serverInstrumenter);\n+  RatpackServerTelemetry(Instrumenter<Request, Response> instrumenter) {\n+    this.instrumenter = instrumenter;\n   }\n \n-  /** Returns a {@link Handler} to support Ratpack Registry binding. */\n+  /**\n+   * Returns a {@link Handler} to support Ratpack Registry binding.\n+   *\n+   * @deprecated Use {@link #createHandler()} instead.\n+   */\n+  @Deprecated\n   public Handler getHandler() {\n-    return serverHandler;\n+    return createHandler();\n+  }\n+\n+  /** Creates a new {@link Handler} to support Ratpack Registry binding. */\n+  public Handler createHandler() {\n+    return new OpenTelemetryServerHandler(instrumenter);\n   }\n \n   /** Returns {@link ExecInterceptor} instance to support Ratpack Registry binding. */\n-  public ExecInterceptor getExecInterceptor() {\n+  public static ExecInterceptor getExecInterceptor() {",
+      "id": "PRRT_kwDODJKVX85rPcSk",
+      "opened": "2026-01-27T14:22:58Z",
+      "path": "instrumentation/ratpack/ratpack-1.7/library/src/main/java/io/opentelemetry/instrumentation/ratpack/v1_7/RatpackServerTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-01-27T20:13:35Z",
+          "body": "yeah, it's not ideal to not have deprecation cycle, but we don't make any guarantees about non-stable artifacts\r\n\r\nthat said, I don't love these method names, I have now renamed them to `createExec*`, since they're stateless empty objects anyways and so having a single shared instance isn't important",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16013#discussion_r2733659389"
+        },
+        {
+          "at": "2026-01-28T07:14:26Z",
+          "body": "Wondering whether leaving these as non-static would look nicer. It could help if we needed to change them to non-singletons and configure them in some way.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16013#discussion_r2735169964"
+        },
+        {
+          "at": "2026-01-29T00:52:15Z",
+          "body": "makes sense to me, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16013#discussion_r2739265857"
+        }
+      ],
+      "reviewed": "883e9aa61be9711a2fc9c9c5b67e28d617102eab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16013#discussion_r2732254998"
+    }
+  ]
+}

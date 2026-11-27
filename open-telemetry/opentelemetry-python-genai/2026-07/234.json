@@ -1,0 +1,275 @@
+{
+  "head": "ff2c860cdcc1ec54ddb183e20887a02023b1fc4a",
+  "merge": "8b655e5a5085b1a139f3ee040b15b91d37121634",
+  "merged": "2026-07-09T21:01:16Z",
+  "missing_roots": 0,
+  "number": 234,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "I believe you can run this action once to upload many build wheel/sdists in the `packages-dir`. I guess you could theoretically gather all the artifacts together and run once instead of in a matrix.\n\nMaybe this was has some benefits though.",
+      "created": "2026-07-09T18:41:30Z",
+      "hunk": "@@ -67,21 +67,52 @@ jobs:\n           json=$(printf '%s\\n' \"${packages[@]}\" | jq -R . | jq -s -c .)\n           echo \"packages=${json}\" >> \"$GITHUB_OUTPUT\"\n \n-  publish:\n+  build:\n     needs: enumerate\n+    strategy:\n+      fail-fast: false\n+      matrix:\n+        package: ${{ fromJson(needs.enumerate.outputs.packages) }}\n+    uses: ./.github/workflows/_release-build.yml\n+    with:\n+      package: ${{ matrix.package }}\n+      ref: ${{ needs.enumerate.outputs.ref }}\n+      on_main: true\n+\n+  publish:\n+    needs: [enumerate, build]\n+    runs-on: ubuntu-latest\n+    strategy:\n+      fail-fast: false\n+      matrix:\n+        package: ${{ fromJson(needs.enumerate.outputs.packages) }}\n+    environment: pypi\n     permissions:\n-      contents: write\n       id-token: write\n+    steps:\n+      - uses: actions/download-artifact@v4\n+        with:\n+          name: dist-${{ matrix.package }}\n+          path: dist/\n+\n+      - name: Publish to PyPI\n+        uses: pypa/gh-action-pypi-publish@release/v1\n+        with:\n+          packages-dir: dist/\n+          skip-existing: true",
+      "id": "PRRT_kwDOSbspP86Pq4yz",
+      "opened": "2026-07-09T18:43:54Z",
+      "path": ".github/workflows/release-all.yml",
+      "replies": [
+        {
+          "at": "2026-07-09T19:13:02Z",
+          "body": "Nice, we can look at doing that optimisation later 👍🏻",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554183316"
+        },
+        {
+          "at": "2026-07-09T19:17:30Z",
+          "body": "Open this issue to track:\r\n- #235",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554211084"
+        }
+      ],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3553980947"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Is there a way to do a patch release for the whole repo?",
+      "created": "2026-07-09T18:43:50Z",
+      "hunk": "@@ -0,0 +1,36 @@\n+name: \"Prepare package patch release\"\n+on:\n+  workflow_dispatch:\n+    inputs:\n+      package:\n+        type: choice\n+        options:\n+        - opentelemetry-instrumentation-genai-anthropic\n+        - opentelemetry-instrumentation-google-genai\n+        - opentelemetry-instrumentation-genai-langchain\n+        - opentelemetry-instrumentation-genai-openai-agents\n+        - opentelemetry-instrumentation-genai-openai\n+        - opentelemetry-util-genai\n+        description: 'Package to prepare for patch release'\n+        required: true",
+      "id": "PRRT_kwDOSbspP86Pq7F_",
+      "opened": "2026-07-09T18:43:54Z",
+      "path": ".github/workflows/prepare-package-patch.yml",
+      "replies": [
+        {
+          "at": "2026-07-09T19:12:34Z",
+          "body": "No, I didn't add a patch-all workflow. I assumed patches were more likely to be critical bug rather than bump everything. \n\nWe can look to add more variants, I think a release major might be useful in the future too.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554180392"
+        },
+        {
+          "at": "2026-07-09T19:18:43Z",
+          "body": "Open tracking issue:\r\n- https://github.com/open-telemetry/opentelemetry-python-genai/issues/236",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554218088"
+        }
+      ],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3553993925"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The build reusable workflow uploads an artifact (actions/upload-artifact), but the workflow-level permissions only grant `contents: read`. When a workflow sets an explicit `permissions` block, all other scopes default to `none`, which can prevent artifact upload. Add `actions: write` to the reusable workflow permissions so callers can grant it.",
+      "created": "2026-07-09T19:23:44Z",
+      "hunk": "@@ -0,0 +1,119 @@\n+name: _Release build\n+on:\n+  workflow_call:\n+    inputs:\n+      package:\n+        required: true\n+        type: string\n+      ref:\n+        required: false\n+        type: string\n+        default: \"\"\n+      on_main:\n+        required: false\n+        type: boolean\n+        default: false\n+\n+permissions:\n+  contents: read",
+      "id": "PRRT_kwDOSbspP86PrnJJ",
+      "opened": "2026-07-09T19:23:47Z",
+      "path": ".github/workflows/_release-build.yml",
+      "replies": [
+        {
+          "at": "2026-07-09T19:40:20Z",
+          "body": "actions/upload-artifact@v4 doesn't use GITHUB_TOKEN scopes for same-workflow artifacts. It uses the runner's ACTIONS_RUNTIME_TOKEN, which the runner provisions independently of the permissions block. No actions: write needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554334541"
+        }
+      ],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554246570"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The build job calls `_release-build.yml`, which uploads an artifact. Add job-level `permissions` to allow `actions: write`; otherwise the reusable workflow may be unable to upload `dist-*` artifacts under the restricted default permissions.",
+      "created": "2026-07-09T19:23:45Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+name: \"Release package\"\n+on:\n+  workflow_dispatch:\n+    inputs:\n+      package:\n+        type: choice\n+        options:\n+        - opentelemetry-instrumentation-genai-anthropic\n+        - opentelemetry-instrumentation-google-genai\n+        - opentelemetry-instrumentation-genai-langchain\n+        - opentelemetry-instrumentation-genai-openai-agents\n+        - opentelemetry-instrumentation-genai-openai\n+        - opentelemetry-util-genai\n+        description: 'Package to release'\n+        required: true\n+\n+permissions:\n+  contents: read\n+\n+run-name: \"Release: ${{ inputs.package }}\"\n+\n+jobs:\n+  build:\n+    uses: ./.github/workflows/_release-build.yml\n+    with:\n+      package: ${{ inputs.package }}\n+",
+      "id": "PRRT_kwDOSbspP86PrnJ8",
+      "opened": "2026-07-09T19:23:47Z",
+      "path": ".github/workflows/release-package.yml",
+      "replies": [
+        {
+          "at": "2026-07-09T19:41:30Z",
+          "body": "Job-level permissions on a uses: call to a reusable workflow are ignored, the reusable workflow declares its own permissions. That's why I dropped the equivalent block on the matrix build in release-all.yml in a follow-up commit.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554340329"
+        }
+      ],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554246636"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This repo pins GitHub Actions to full commit SHAs (e.g. `.github/workflows/ci.yml:33-35`, `.github/workflows/test.yml:45-47`). Using `actions/setup-python@v5` here breaks that convention and weakens supply-chain hardening.",
+      "created": "2026-07-09T19:23:45Z",
+      "hunk": "@@ -0,0 +1,119 @@\n+name: _Release build\n+on:\n+  workflow_call:\n+    inputs:\n+      package:\n+        required: true\n+        type: string\n+      ref:\n+        required: false\n+        type: string\n+        default: \"\"\n+      on_main:\n+        required: false\n+        type: boolean\n+        default: false\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  build:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - name: Resolve release target\n+        id: target\n+        run: |\n+          if [[ \"${{ inputs.on_main }}\" == \"true\" || \"$GITHUB_REF_NAME\" == \"main\" ]]; then\n+            echo \"on_main=true\" >> \"$GITHUB_OUTPUT\"\n+          elif [[ \"$GITHUB_REF_NAME\" == package-release/${{ inputs.package }}/v* ]]; then\n+            echo \"on_main=false\" >> \"$GITHUB_OUTPUT\"\n+          else\n+            echo \"Run on main or package-release/${{ inputs.package }}/v*\"\n+            exit 1\n+          fi\n+\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}\n+\n+      - name: Set environment variables\n+        run: |\n+          version=$(./scripts/eachdist.py version --package ${{ inputs.package }})\n+          if [[ $version =~ ^([0-9]+)\\.([0-9]+)\\.([0-9]+) ]]; then\n+            major=\"${BASH_REMATCH[1]}\"\n+            minor=\"${BASH_REMATCH[2]}\"\n+            patch=\"${BASH_REMATCH[3]}\"\n+            if [[ $patch != 0 ]]; then\n+              prior_version_when_patch=\"${major}.${minor}.$((patch - 1))\"\n+            fi\n+          elif [[ $version =~ ^([0-9]+)\\.([0-9]+)b([0-9]+)$ ]]; then\n+            major=\"${BASH_REMATCH[1]}\"\n+            minor=\"${BASH_REMATCH[2]}\"\n+            patch=\"${BASH_REMATCH[3]}\"\n+            if [[ $patch != 0 ]]; then\n+              prior_version_when_patch=\"${major}.${minor}b$((patch - 1))\"\n+            fi\n+          else\n+            echo \"unexpected version: $version\"\n+            exit 1\n+          fi\n+\n+          if [[ \"${{ steps.target.outputs.on_main }}\" == \"true\" && \"$version\" == *.dev ]]; then\n+            echo \"version on main still has a .dev suffix; merge the prepare PR first\"\n+            exit 1\n+          fi\n+\n+          path=$(./scripts/eachdist.py find-package --package ${{ inputs.package }})\n+          echo \"CHANGELOG=./$path/CHANGELOG.md\" >> $GITHUB_ENV\n+          echo \"PACKAGE_NAME=${{ inputs.package }}\" >> $GITHUB_ENV\n+          echo \"VERSION=$version\" >> $GITHUB_ENV\n+          echo \"PRIOR_VERSION_WHEN_PATCH=$prior_version_when_patch\" >> $GITHUB_ENV\n+\n+      - name: Check that changelog update was merged to main\n+        if: steps.target.outputs.on_main == 'true'\n+        run: |\n+          if [[ -z $PRIOR_VERSION_WHEN_PATCH ]]; then\n+            if ! grep --quiet \"^## Version ${VERSION}\" ${CHANGELOG}; then\n+              echo \"The prepare-release PR needs to be merged first\"\n+              exit 1\n+            fi\n+          fi\n+\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        if: steps.target.outputs.on_main != 'true'\n+        with:\n+          ref: main\n+\n+      - name: Check that changelog update was merged to main (backport branch)\n+        if: steps.target.outputs.on_main != 'true'\n+        run: |\n+          if [[ -z $PRIOR_VERSION_WHEN_PATCH ]]; then\n+            if ! grep --quiet \"^## Version ${VERSION}\" ${CHANGELOG}; then\n+              echo \"The prepare-release PR needs to be merged first\"\n+              exit 1\n+            fi\n+          fi\n+\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        if: steps.target.outputs.on_main != 'true'\n+        with:\n+          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}\n+\n+      - uses: actions/setup-python@v5",
+      "id": "PRRT_kwDOSbspP86PrnJn",
+      "opened": "2026-07-09T19:23:47Z",
+      "path": ".github/workflows/_release-build.yml",
+      "replies": [],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554246609"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This job overrides permissions to only `id-token: write`, which can remove the `actions: read` permission needed by `actions/download-artifact` to fetch build artifacts from the workflow run. Include `actions: read` here.",
+      "created": "2026-07-09T19:23:45Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+name: \"Release package\"\n+on:\n+  workflow_dispatch:\n+    inputs:\n+      package:\n+        type: choice\n+        options:\n+        - opentelemetry-instrumentation-genai-anthropic\n+        - opentelemetry-instrumentation-google-genai\n+        - opentelemetry-instrumentation-genai-langchain\n+        - opentelemetry-instrumentation-genai-openai-agents\n+        - opentelemetry-instrumentation-genai-openai\n+        - opentelemetry-util-genai\n+        description: 'Package to release'\n+        required: true\n+\n+permissions:\n+  contents: read\n+\n+run-name: \"Release: ${{ inputs.package }}\"\n+\n+jobs:\n+  build:\n+    uses: ./.github/workflows/_release-build.yml\n+    with:\n+      package: ${{ inputs.package }}\n+\n+  publish:\n+    needs: build\n+    runs-on: ubuntu-latest\n+    environment: pypi\n+    permissions:\n+      id-token: write",
+      "id": "PRRT_kwDOSbspP86PrnKP",
+      "opened": "2026-07-09T19:23:47Z",
+      "path": ".github/workflows/release-package.yml",
+      "replies": [
+        {
+          "at": "2026-07-09T19:42:21Z",
+          "body": "actions: read is only required for downloading artifacts from a different workflow run. Same-run downloads (build and publish are in the same run here) work with just id-token: write.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554344881"
+        }
+      ],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554246661"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The matrix build job uses the reusable `_release-build.yml` workflow, which uploads artifacts. Add job-level `permissions` granting `actions: write` so artifact upload can succeed under explicit permission defaults.",
+      "created": "2026-07-09T19:23:46Z",
+      "hunk": "@@ -67,21 +67,52 @@ jobs:\n           json=$(printf '%s\\n' \"${packages[@]}\" | jq -R . | jq -s -c .)\n           echo \"packages=${json}\" >> \"$GITHUB_OUTPUT\"\n \n-  publish:\n+  build:\n     needs: enumerate\n+    strategy:\n+      fail-fast: false\n+      matrix:\n+        package: ${{ fromJson(needs.enumerate.outputs.packages) }}\n+    uses: ./.github/workflows/_release-build.yml\n+    with:\n+      package: ${{ matrix.package }}\n+      ref: ${{ needs.enumerate.outputs.ref }}\n+      on_main: true\n+",
+      "id": "PRRT_kwDOSbspP86PrnK6",
+      "opened": "2026-07-09T19:23:47Z",
+      "path": ".github/workflows/release-all.yml",
+      "replies": [
+        {
+          "at": "2026-07-09T19:43:17Z",
+          "body": "actions/upload-artifact@v4 doesn't use GITHUB_TOKEN scopes for same-workflow artifacts. It uses the runner's ACTIONS_RUNTIME_TOKEN, which the runner provisions independently of the permissions block. No actions: write needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554349746"
+        }
+      ],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554246716"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Previous release logic pinned `pypa/gh-action-pypi-publish` to a specific commit SHA; switching to `@release/v1` weakens supply-chain protection. Pin this action to a full SHA to match the repo’s workflow convention.",
+      "created": "2026-07-09T19:23:46Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+name: \"Release package\"\n+on:\n+  workflow_dispatch:\n+    inputs:\n+      package:\n+        type: choice\n+        options:\n+        - opentelemetry-instrumentation-genai-anthropic\n+        - opentelemetry-instrumentation-google-genai\n+        - opentelemetry-instrumentation-genai-langchain\n+        - opentelemetry-instrumentation-genai-openai-agents\n+        - opentelemetry-instrumentation-genai-openai\n+        - opentelemetry-util-genai\n+        description: 'Package to release'\n+        required: true\n+\n+permissions:\n+  contents: read\n+\n+run-name: \"Release: ${{ inputs.package }}\"\n+\n+jobs:\n+  build:\n+    uses: ./.github/workflows/_release-build.yml\n+    with:\n+      package: ${{ inputs.package }}\n+\n+  publish:\n+    needs: build\n+    runs-on: ubuntu-latest\n+    environment: pypi\n+    permissions:\n+      id-token: write\n+    steps:\n+      - uses: actions/download-artifact@v4\n+        with:\n+          name: dist-${{ inputs.package }}\n+          path: dist/\n+\n+      - name: Publish to PyPI\n+        uses: pypa/gh-action-pypi-publish@release/v1\n+        with:\n+          packages-dir: dist/\n+          skip-existing: true",
+      "id": "PRRT_kwDOSbspP86PrnKo",
+      "opened": "2026-07-09T19:23:47Z",
+      "path": ".github/workflows/release-package.yml",
+      "replies": [
+        {
+          "at": "2026-07-09T19:42:57Z",
+          "body": "@release/v1 is what PyPA officially recommends for this action. It's a moving tag they update to push security fixes to all consumers. The workflow this PR replaces used the same tag.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554348082"
+        }
+      ],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554246695"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This publish job sets permissions to only `id-token: write`, which can drop the `actions: read` permission required by `actions/download-artifact`. Add `actions: read` so the dist artifacts can be downloaded before publishing.",
+      "created": "2026-07-09T19:23:46Z",
+      "hunk": "@@ -67,21 +67,52 @@ jobs:\n           json=$(printf '%s\\n' \"${packages[@]}\" | jq -R . | jq -s -c .)\n           echo \"packages=${json}\" >> \"$GITHUB_OUTPUT\"\n \n-  publish:\n+  build:\n     needs: enumerate\n+    strategy:\n+      fail-fast: false\n+      matrix:\n+        package: ${{ fromJson(needs.enumerate.outputs.packages) }}\n+    uses: ./.github/workflows/_release-build.yml\n+    with:\n+      package: ${{ matrix.package }}\n+      ref: ${{ needs.enumerate.outputs.ref }}\n+      on_main: true\n+\n+  publish:\n+    needs: [enumerate, build]\n+    runs-on: ubuntu-latest\n+    strategy:\n+      fail-fast: false\n+      matrix:\n+        package: ${{ fromJson(needs.enumerate.outputs.packages) }}\n+    environment: pypi\n     permissions:\n-      contents: write\n       id-token: write\n+    steps:\n+      - uses: actions/download-artifact@v4\n+        with:\n+          name: dist-${{ matrix.package }}\n+          path: dist/",
+      "id": "PRRT_kwDOSbspP86PrnLP",
+      "opened": "2026-07-09T19:23:47Z",
+      "path": ".github/workflows/release-all.yml",
+      "replies": [
+        {
+          "at": "2026-07-09T19:43:50Z",
+          "body": " actions: read is only required for downloading artifacts from a different workflow run. Same-run downloads (build and publish are in the same run here) work with just id-token: write.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554352625"
+        }
+      ],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554246741"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "To match the repo’s action pinning convention, pin `pypa/gh-action-pypi-publish` to a full commit SHA (it was previously pinned in the old release workflow) instead of `@release/v1`.",
+      "created": "2026-07-09T19:23:46Z",
+      "hunk": "@@ -67,21 +67,52 @@ jobs:\n           json=$(printf '%s\\n' \"${packages[@]}\" | jq -R . | jq -s -c .)\n           echo \"packages=${json}\" >> \"$GITHUB_OUTPUT\"\n \n-  publish:\n+  build:\n     needs: enumerate\n+    strategy:\n+      fail-fast: false\n+      matrix:\n+        package: ${{ fromJson(needs.enumerate.outputs.packages) }}\n+    uses: ./.github/workflows/_release-build.yml\n+    with:\n+      package: ${{ matrix.package }}\n+      ref: ${{ needs.enumerate.outputs.ref }}\n+      on_main: true\n+\n+  publish:\n+    needs: [enumerate, build]\n+    runs-on: ubuntu-latest\n+    strategy:\n+      fail-fast: false\n+      matrix:\n+        package: ${{ fromJson(needs.enumerate.outputs.packages) }}\n+    environment: pypi\n     permissions:\n-      contents: write\n       id-token: write\n+    steps:\n+      - uses: actions/download-artifact@v4\n+        with:\n+          name: dist-${{ matrix.package }}\n+          path: dist/\n+\n+      - name: Publish to PyPI\n+        uses: pypa/gh-action-pypi-publish@release/v1\n+        with:\n+          packages-dir: dist/\n+          skip-existing: true",
+      "id": "PRRT_kwDOSbspP86PrnLg",
+      "opened": "2026-07-09T19:23:47Z",
+      "path": ".github/workflows/release-all.yml",
+      "replies": [
+        {
+          "at": "2026-07-09T19:44:16Z",
+          "body": "@release/v1 is what PyPA officially recommends for this action. It's a moving tag they update to push security fixes to all consumers. The workflow this PR replaces used the same tag.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554354886"
+        }
+      ],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554246760"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This workflow uses `actions/setup-python@v5` without pinning to a commit SHA. The repo consistently pins actions (e.g. `.github/workflows/ci.yml:33-35`, `.github/workflows/test.yml:45-47`), so this should be pinned as well.",
+      "created": "2026-07-09T19:23:47Z",
+      "hunk": "@@ -0,0 +1,126 @@\n+name: \"Prepare minor release\"\n+on:\n+  workflow_dispatch:\n+    inputs:\n+      package:\n+        type: choice\n+        options:\n+        - ''\n+        - opentelemetry-instrumentation-genai-anthropic\n+        - opentelemetry-instrumentation-google-genai\n+        - opentelemetry-instrumentation-genai-langchain\n+        - opentelemetry-instrumentation-genai-openai-agents\n+        - opentelemetry-instrumentation-genai-openai\n+        - opentelemetry-util-genai\n+        description: >\n+          Restrict to a single package. Leave empty to prepare every package\n+          with pending changelog fragments.\n+        required: false\n+        default: ''\n+\n+permissions:\n+  contents: read\n+\n+run-name: \"Prepare minor release${{ inputs.package && format(': {0}', inputs.package) || ' (all)' }}\"\n+\n+jobs:\n+  prepare:\n+    permissions:\n+      contents: write\n+      pull-requests: write\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+\n+      - name: Verify branch\n+        run: |\n+          if [[ \"$GITHUB_REF_NAME\" != \"main\" ]]; then\n+            echo \"This workflow should only be run against main\"\n+            exit 1\n+          fi\n+\n+      - name: Select packages with changelog fragments\n+        id: packages\n+        run: |\n+          set -e\n+          mapfile -t candidates < <(./scripts/eachdist.py packages-with-changelog-fragments)\n+          if [[ ${#candidates[@]} -eq 0 ]]; then\n+            echo \"No packages with changelog fragments found\"\n+            exit 1\n+          fi\n+\n+          selected=()\n+          filter='${{ inputs.package }}'\n+          if [[ -n \"$filter\" ]]; then\n+            for package in \"${candidates[@]}\"; do\n+              if [[ \"$package\" == \"$filter\" ]]; then\n+                selected+=(\"$package\")\n+              fi\n+            done\n+            if [[ ${#selected[@]} -eq 0 ]]; then\n+              echo \"Package '$filter' has no changelog fragments to release\"\n+              exit 1\n+            fi\n+          else\n+            selected=(\"${candidates[@]}\")\n+          fi\n+\n+          printf 'Preparing: %s\\n' \"${selected[@]}\"\n+          {\n+            echo \"packages<<EOF\"\n+            printf '%s\\n' \"${selected[@]}\"\n+            echo \"EOF\"\n+            echo \"count=${#selected[@]}\"\n+          } >> \"$GITHUB_OUTPUT\"\n+\n+      - name: Set up Python 3.10\n+        uses: actions/setup-python@v5\n+        with:\n+          python-version: '3.10'",
+      "id": "PRRT_kwDOSbspP86PrnLy",
+      "opened": "2026-07-09T19:23:47Z",
+      "path": ".github/workflows/prepare-minor.yml",
+      "replies": [],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554246782"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The composite action uses `actions/setup-python@v5` unpinned. Since the repo pins actions to SHAs in workflows, pin this to a full commit SHA here too for consistency and supply-chain hardening.",
+      "created": "2026-07-09T19:23:47Z",
+      "hunk": "@@ -0,0 +1,116 @@\n+name: Prepare package for release\n+description: >\n+  Bump a package's version and build its changelog for release, then open a\n+  pull request. Handles both minor and patch release types, and both main\n+  and backport branches for patches.\n+\n+inputs:\n+  package:\n+    description: Package name (e.g. opentelemetry-instrumentation-genai-openai)\n+    required: true\n+  release_type:\n+    description: Type of release to prepare - \"minor\" or \"patch\"\n+    required: true\n+  otelbot-app-id:\n+    description: OTELBOT app id used to open the pull request\n+    required: true\n+  otelbot-private-key:\n+    description: OTELBOT app private key used to open the pull request\n+    required: true\n+\n+runs:\n+  using: composite\n+  steps:\n+    - name: Verify inputs\n+      shell: bash\n+      run: |\n+        case \"${{ inputs.release_type }}\" in\n+          minor|patch) ;;\n+          *)\n+            echo \"release_type must be 'minor' or 'patch', got '${{ inputs.release_type }}'\"\n+            exit 1\n+            ;;\n+        esac\n+\n+    - name: Verify branch and version state\n+      id: verify\n+      shell: bash\n+      run: |\n+        on_main=false\n+        on_backport=false\n+        case \"$GITHUB_REF_NAME\" in\n+          main)\n+            on_main=true\n+            ;;\n+          package-release/${{ inputs.package }}/v*)\n+            on_backport=true\n+            ;;\n+          *)\n+            echo \"Run on main (current minor line) or package-release/${{ inputs.package }}/v* (backport)\"\n+            exit 1\n+            ;;\n+        esac\n+\n+        if [[ \"${{ inputs.release_type }}\" == \"minor\" && \"$on_backport\" == \"true\" ]]; then\n+          echo \"Minor release preparation must run on main, not on a backport branch\"\n+          exit 1\n+        fi\n+\n+        echo \"on_main=${on_main}\" >> \"$GITHUB_OUTPUT\"\n+        echo \"on_backport=${on_backport}\" >> \"$GITHUB_OUTPUT\"\n+\n+    - name: Set up Python 3.10\n+      uses: actions/setup-python@v5\n+      with:\n+        python-version: '3.10'",
+      "id": "PRRT_kwDOSbspP86PrnMA",
+      "opened": "2026-07-09T19:23:47Z",
+      "path": ".github/actions/prepare-package/action.yml",
+      "replies": [],
+      "reviewed": "56837a3b7b91573918402c24d8fa00e251e395d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554246804"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Did you mean to change this? I sent the update yesterday in #231 ",
+      "created": "2026-07-09T19:45:17Z",
+      "hunk": "@@ -112,42 +119,37 @@ When a new package is ready to ship:\n 1. Add its name to the `packages=` list under `[release_packages]` in\n    `eachdist.ini`. Packages not listed here are skipped by the release\n    workflows.\n-2. Add the package to the dropdown options in the per-package workflow files\n-   (`package-prepare-release.yml`, `package-release.yml`,\n-   `package-prepare-patch-release.yml`).\n-3. Create the PyPI project and register a trusted publisher (*Manage* →\n-   *Publishing* → *Add a new pending publisher*). For detailed instructions, refer to PyPI's documentation on [Creating a PyPI project with a Trusted Publisher](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/) or [Adding a Trusted Publisher to an existing PyPI project](https://docs.pypi.org/trusted-publishers/adding-a-publisher/). Note that [creating a pending publisher does not reserve the project name on PyPI](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/):\n-\n-| Field | Value |\n-|-------|-------|\n-| PyPI project name | e.g. `opentelemetry-util-genai` |\n-| Owner | `open-telemetry` |\n-| Repository name | `opentelemetry-python-genai` |\n-| Workflow name | `release-all.yml` |\n-| Environment name | `pypi` |\n-\n-Register a publisher entry for each release workflow (`release-all.yml` and\n-`package-release.yml`).\n-\n-4. Optionally reserve the package name to prevent name-squatting shortly after\n-   the introductory PR lands on `main` by navigating to\n-   <https://pypi.org/manage/organization/opentelemetry/projects/>, scrolling to the\n-   bottom (**Add project to organization**), and using the form.",
+      "id": "PRRT_kwDOSbspP86Pr7PQ",
+      "opened": "2026-07-09T19:45:30Z",
+      "path": "RELEASING.md",
+      "replies": [
+        {
+          "at": "2026-07-09T19:49:56Z",
+          "body": "Oops - no, I didn't meant to remove that. I've put it back in e9c34cf 👍🏻 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554385096"
+        }
+      ],
+      "reviewed": "e48fe1dec6205d536631cfc140599ae4ad51f5b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/234#discussion_r3554360594"
+    }
+  ]
+}

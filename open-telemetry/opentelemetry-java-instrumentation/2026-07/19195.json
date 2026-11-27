@@ -1,0 +1,61 @@
+{
+  "head": "db006f3204c4d2c0d5ee4d988df0a1b682c71398",
+  "merge": "48358a05fbfd5d665082ad38d758ebe525654590",
+  "merged": "2026-07-15T03:07:53Z",
+  "missing_roots": 0,
+  "number": 19195,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This gate blocks the documented `/breaking-change` and `/deprecation` path for external contributors. `CONTRIBUTING.md:14-16` and `CONTRIBUTING.md:31-33` specifically direct users who cannot apply labels themselves to post these commands, but those users normally have `NONE`, `CONTRIBUTOR`, or `FIRST_TIME_CONTRIBUTOR` association and will no longer trigger this job. Preserve the prior all-PR-commenter behavior, or update the contributor guidance if these commands are intentionally becoming maintainer-only.",
+      "created": "2026-07-12T04:09:34Z",
+      "hunk": "@@ -4,14 +4,15 @@ on:\n     types: [created]\n \n permissions:\n-  contents: read\n-  issues: write\n-  pull-requests: write\n+  pull-requests: write # zizmor: ignore[excessive-permissions]\n \n jobs:\n   auto-label:\n     # Only run on pull request comments\n-    if: github.event.issue.pull_request != null\n+    if: >-\n+      github.event.issue.pull_request != null &&\n+      contains(fromJSON('[\"OWNER\",\"MEMBER\",\"COLLABORATOR\"]'),\n+      github.event.comment.author_association)",
+      "id": "PRRT_kwDODJKVX86QK1uK",
+      "opened": "2026-07-12T04:09:34Z",
+      "path": ".github/workflows/pr-label-automation.yml",
+      "replies": [],
+      "reviewed": "eeb5179d381116625a8536ff29dbdf8378b7a9c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19195#discussion_r3565637838"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description reports “Findings fixed in this pull request: none,” but this new suppression, the other `zizmor: ignore` annotations, and the newly scoped app-token permissions are precisely finding remediations or accepted suppressions (the PR also contains a commit titled “Fix blocking zizmor findings”). Please enumerate what was fixed versus suppressed so reviewers can audit the security exceptions accurately.",
+      "created": "2026-07-12T04:09:34Z",
+      "hunk": "@@ -56,7 +56,8 @@ jobs:\n           # and so it uses more parallelism which uses more memory\n           sed -i \"s/org.gradle.jvmargs=/org.gradle.jvmargs=-Xmx8g /\" gradle.properties\n \n-      - name: Set up Gradle\n+      # This analyzes release branches but does not build or publish release artifacts.\n+      - name: Set up Gradle # zizmor: ignore[cache-poisoning]",
+      "id": "PRRT_kwDODJKVX86QK1uL",
+      "opened": "2026-07-12T04:09:34Z",
+      "path": ".github/workflows/codeql.yml",
+      "replies": [
+        {
+          "at": "2026-07-12T05:13:13Z",
+          "body": "PR description updated",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19195#discussion_r3565713352"
+        }
+      ],
+      "reviewed": "eeb5179d381116625a8536ff29dbdf8378b7a9c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19195#discussion_r3565637839"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "maryliag"
+      },
+      "body": "```suggestion\n    uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@62d5939b47144252763c5ff9fffe8c20d76cd806 # v0.4.0\n```\n\nto use regular persona",
+      "created": "2026-07-13T12:46:47Z",
+      "hunk": "@@ -0,0 +1,20 @@\n+name: Zizmor\n+\n+on:\n+  push:\n+    branches:\n+      - main\n+      - release/*\n+  pull_request:\n+  schedule:\n+    - cron: '42 9 * * 3' # weekly at 09:42 UTC on Wednesday\n+  workflow_dispatch:\n+\n+permissions: {}\n+\n+jobs:\n+  zizmor:\n+    permissions:\n+      contents: read # for actions/checkout\n+      security-events: write # for zizmor to upload SARIF results\n+    uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@7c49790392da7de86fdb4bb968446f9cb8461eb8 # v0.3.1",
+      "id": "PRRT_kwDODJKVX86QZHjR",
+      "opened": "2026-07-13T12:48:50Z",
+      "path": ".github/workflows/zizmor.yml",
+      "replies": [],
+      "reviewed": "0e4875d53259b8fec295c9d4b757db6cdde8612b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19195#discussion_r3570725659"
+    }
+  ]
+}

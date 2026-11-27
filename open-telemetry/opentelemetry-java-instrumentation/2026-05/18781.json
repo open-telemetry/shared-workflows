@@ -1,0 +1,199 @@
+{
+  "head": "bf75f7e37b69fa38a0478667a7126c34dac54eb5",
+  "merge": "3f1fd397af2d3f3d760602ffd6c2f8013b16f37f",
+  "merged": "2026-05-26T18:25:20Z",
+  "missing_roots": 0,
+  "number": 18781,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This moves the instrumentation's `library(...)` compile/test dependency from the supported floor (3.0.0) to 3.5.0 while the Ktor 3 module still targets the whole 3.x line. The build conventions document that `library(old)` is used to keep instrumentation compiling against the old API while latest-dependency overrides exercise newer versions (`conventions/src/main/kotlin/io.opentelemetry.instrumentation.base.gradle.kts:13-21,173-177`). Keeping this at 3.0.0 and adding a 3.5-specific test/runtime override would avoid accidentally relying on APIs unavailable to 3.0.x users.",
+      "created": "2026-05-18T13:29:23Z",
+      "hunk": "@@ -7,7 +7,7 @@ plugins {\n   id(\"org.jetbrains.kotlin.jvm\")\n }\n \n-val ktorVersion = \"3.0.0\"\n+val ktorVersion = \"3.5.0\"",
+      "id": "PRRT_kwDODJKVX86C2OQZ",
+      "opened": "2026-05-18T13:29:25Z",
+      "path": "instrumentation/ktor/ktor-3.0/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "990ffb4b635bca2993c5a006d47e07ec9ff06f63",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3259270844"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This updates the javaagent module's `library(...)` dependency to 3.5.0, but the muzzle range above still advertises support for Ktor `[3.0.0,)`. The build conventions use the `library(...)` version as the compile baseline so the instrumentation does not accidentally reference newer APIs (`conventions/src/main/kotlin/io.opentelemetry.instrumentation.base.gradle.kts:13-21,173-177`). Please keep the compile baseline at 3.0.0 or narrow the supported range if 3.5.0 is now required.",
+      "created": "2026-05-18T13:29:24Z",
+      "hunk": "@@ -22,7 +22,7 @@ muzzle {\n   }\n }\n \n-val ktorVersion = \"3.0.0\"\n+val ktorVersion = \"3.5.0\"",
+      "id": "PRRT_kwDODJKVX86C2ORd",
+      "opened": "2026-05-18T13:29:25Z",
+      "path": "instrumentation/ktor/ktor-3.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "990ffb4b635bca2993c5a006d47e07ec9ff06f63",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3259270930"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Because this testing project is pulled into the Ktor 3 library/javaagent tests, raising its Ktor dependencies to 3.5.0 makes the regular test runtime resolve to 3.5.0 even if the instrumentation compile baseline stays at 3.0.0. That removes coverage for the supported 3.0.x floor; use a dedicated 3.5-specific test configuration instead of upgrading the shared testing module.\n",
+      "created": "2026-05-18T13:29:24Z",
+      "hunk": "@@ -6,7 +6,7 @@ plugins {\n   id(\"org.jetbrains.kotlin.jvm\")\n }\n \n-val ktorVersion = \"3.0.0\"\n+val ktorVersion = \"3.5.0\"",
+      "id": "PRRT_kwDODJKVX86C2OSS",
+      "opened": "2026-05-18T13:29:25Z",
+      "path": "instrumentation/ktor/ktor-3.0/testing/build.gradle.kts",
+      "replies": [],
+      "reviewed": "990ffb4b635bca2993c5a006d47e07ec9ff06f63",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3259271000"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If this regression test times out or the request throws, the `client.close()` below is skipped, leaving the CIO client/threads running after a failed test. Ensure the client is closed from cleanup (for example via a `finally`) so failures do not leak resources and mask the original timeout.\n\nThis issue also appears on line 73 of the same file.\n",
+      "created": "2026-05-18T13:29:25Z",
+      "hunk": "@@ -0,0 +1,82 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.ktor.v3_0\n+\n+import io.ktor.client.*\n+import io.ktor.client.engine.cio.*\n+import io.ktor.client.plugins.*\n+import io.ktor.client.request.*\n+import io.ktor.client.statement.*\n+import io.ktor.server.engine.*\n+import io.ktor.server.netty.*\n+import io.ktor.server.response.*\n+import io.ktor.server.routing.*\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension\n+import kotlinx.coroutines.runBlocking\n+import kotlinx.coroutines.withTimeout\n+import org.junit.jupiter.api.AfterAll\n+import org.junit.jupiter.api.BeforeAll\n+import org.junit.jupiter.api.Test\n+import org.junit.jupiter.api.extension.RegisterExtension\n+import java.net.ServerSocket\n+import kotlin.time.Duration.Companion.seconds\n+\n+class KtorHttpClientStreamingTest {\n+\n+  companion object {\n+    @JvmStatic\n+    @RegisterExtension\n+    private val testing: InstrumentationExtension = LibraryInstrumentationExtension.create()\n+\n+    private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>\n+    private var serverPort: Int = 0\n+\n+    @JvmStatic\n+    @BeforeAll\n+    fun setupServer() {\n+      serverPort = ServerSocket(0).use { it.localPort }\n+      server = embeddedServer(Netty, port = serverPort) {\n+        routing {\n+          get(\"/success\") {\n+            call.respondText(\"ok\")\n+          }\n+        }\n+      }.start(wait = false)\n+      Thread.sleep(1000)\n+    }\n+\n+    @JvmStatic\n+    @AfterAll\n+    fun stopServer() {\n+      server.stop(1000, 2000)\n+    }\n+  }\n+\n+  @Test\n+  fun `prepareGet execute completes promptly with telemetry installed`() {\n+    val client = HttpClient(CIO) {\n+      install(HttpTimeout) {\n+        requestTimeoutMillis = 30_000\n+      }\n+      install(KtorClientTelemetry) {\n+        setOpenTelemetry(testing.openTelemetry)\n+      }\n+    }\n+\n+    runBlocking {\n+      withTimeout(5.seconds) {\n+        repeat(3) {\n+          client.prepareGet(\"http://localhost:$serverPort/success\").execute { response ->\n+            response.bodyAsText()\n+          }\n+        }\n+      }\n+    }\n+\n+    client.close()",
+      "id": "PRRT_kwDODJKVX86C2OTA",
+      "opened": "2026-05-18T13:29:25Z",
+      "path": "instrumentation/ktor/ktor-3.0/library/src/test/kotlin/io/opentelemetry/instrumentation/ktor/v3_0/KtorHttpClientStreamingTest.kt",
+      "replies": [],
+      "reviewed": "990ffb4b635bca2993c5a006d47e07ec9ff06f63",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3259271052"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This uses Kotlin's `assert`, which is disabled unless the test JVM is started with assertions enabled. The repository's Gradle test configuration does not enable `-ea`, so this span-duration check can silently be skipped; use an always-on test assertion instead.",
+      "created": "2026-05-18T14:05:23Z",
+      "hunk": "@@ -0,0 +1,91 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.ktor.v3_0\n+\n+import io.ktor.client.*\n+import io.ktor.client.engine.cio.*\n+import io.ktor.client.plugins.*\n+import io.ktor.client.request.*\n+import io.ktor.client.statement.*\n+import io.ktor.server.engine.*\n+import io.ktor.server.netty.*\n+import io.ktor.server.response.*\n+import io.ktor.server.routing.*\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension\n+import kotlinx.coroutines.runBlocking\n+import kotlinx.coroutines.withTimeout\n+import org.junit.jupiter.api.AfterAll\n+import org.junit.jupiter.api.BeforeAll\n+import org.junit.jupiter.api.Test\n+import org.junit.jupiter.api.extension.RegisterExtension\n+import java.net.ServerSocket\n+import java.util.concurrent.TimeUnit\n+import kotlin.time.Duration.Companion.nanoseconds\n+import kotlin.time.Duration.Companion.seconds\n+\n+class KtorHttpClientStreamingTest {\n+\n+  companion object {\n+    @JvmStatic\n+    @RegisterExtension\n+    private val testing: InstrumentationExtension = LibraryInstrumentationExtension.create()\n+\n+    private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>\n+    private val serverPort = ServerSocket(0).use { it.localPort }\n+\n+    @JvmStatic\n+    @BeforeAll\n+    fun setupServer() {\n+      server = embeddedServer(Netty, port = serverPort) {\n+        routing {\n+          get(\"/success\") {\n+            call.respondText(\"ok\")\n+          }\n+        }\n+      }.start()\n+    }\n+\n+    @JvmStatic\n+    @AfterAll\n+    fun stopServer() {\n+      server.stop(0, 10, TimeUnit.SECONDS)\n+    }\n+  }\n+\n+  @Test\n+  fun `prepareGet execute completes promptly with telemetry installed`() {\n+    HttpClient(CIO) {\n+      install(HttpTimeout) {\n+        requestTimeoutMillis = 30_000\n+      }\n+      install(KtorClientTelemetry) {\n+        setOpenTelemetry(testing.openTelemetry)\n+      }\n+    }.use { client ->\n+      runBlocking {\n+        withTimeout(5.seconds) {\n+          repeat(3) {\n+            client.prepareGet(\"http://localhost:$serverPort/success\").execute { response ->\n+              response.bodyAsText()\n+            }\n+          }\n+        }\n+      }\n+    }\n+\n+    val maxSpanDuration = 5.seconds\n+    val traces = testing.waitForTraces(3)\n+    traces.forEach { trace ->\n+      trace.forEach { span ->\n+        val spanDuration = (span.endEpochNanos - span.startEpochNanos).nanoseconds\n+        assert(spanDuration < maxSpanDuration) {\n+          \"Span duration $spanDuration exceeded $maxSpanDuration — likely waiting for request timeout\"\n+        }",
+      "id": "PRRT_kwDODJKVX86C26-y",
+      "opened": "2026-05-18T14:05:25Z",
+      "path": "instrumentation/ktor/ktor-3.0/library/src/test/kotlin/io/opentelemetry/instrumentation/ktor/v3_0/KtorHttpClientStreamingTest.kt",
+      "replies": [],
+      "reviewed": "09264728efd08ba23516724bb9f031738873b1ea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3259515219"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This chooses an available port and closes the socket before Netty binds it, leaving a race where another process can claim the port and make the test fail intermittently. Prefer binding the embedded server to port 0 and reading the assigned connector port, or using the existing HTTP test server utilities that own the port reservation.",
+      "created": "2026-05-18T14:05:25Z",
+      "hunk": "@@ -0,0 +1,91 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.ktor.v3_0\n+\n+import io.ktor.client.*\n+import io.ktor.client.engine.cio.*\n+import io.ktor.client.plugins.*\n+import io.ktor.client.request.*\n+import io.ktor.client.statement.*\n+import io.ktor.server.engine.*\n+import io.ktor.server.netty.*\n+import io.ktor.server.response.*\n+import io.ktor.server.routing.*\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension\n+import kotlinx.coroutines.runBlocking\n+import kotlinx.coroutines.withTimeout\n+import org.junit.jupiter.api.AfterAll\n+import org.junit.jupiter.api.BeforeAll\n+import org.junit.jupiter.api.Test\n+import org.junit.jupiter.api.extension.RegisterExtension\n+import java.net.ServerSocket\n+import java.util.concurrent.TimeUnit\n+import kotlin.time.Duration.Companion.nanoseconds\n+import kotlin.time.Duration.Companion.seconds\n+\n+class KtorHttpClientStreamingTest {\n+\n+  companion object {\n+    @JvmStatic\n+    @RegisterExtension\n+    private val testing: InstrumentationExtension = LibraryInstrumentationExtension.create()\n+\n+    private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>\n+    private val serverPort = ServerSocket(0).use { it.localPort }",
+      "id": "PRRT_kwDODJKVX86C27Ag",
+      "opened": "2026-05-18T14:05:25Z",
+      "path": "instrumentation/ktor/ktor-3.0/library/src/test/kotlin/io/opentelemetry/instrumentation/ktor/v3_0/KtorHttpClientStreamingTest.kt",
+      "replies": [],
+      "reviewed": "09264728efd08ba23516724bb9f031738873b1ea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3259515383"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`latestDepTestLibrary` dependencies are using the unbounded dynamic version `+`, which can pull in a future incompatible major (or a non-release) and make latest-deps CI flaky. Elsewhere in the repo these are typically constrained to the supported major line (e.g., `2.+` in `instrumentation/ktor/ktor-2.0/*`). Consider changing these to `3.+` (or another bounded range consistent with the intended support window).\n",
+      "created": "2026-05-19T13:13:54Z",
+      "hunk": "@@ -23,6 +23,11 @@ dependencies {\n \n   testLibrary(\"io.ktor:ktor-server-netty:$ktorVersion\")\n   testLibrary(\"io.ktor:ktor-client-cio:$ktorVersion\")\n+\n+  latestDepTestLibrary(\"io.ktor:ktor-client-core:+\")\n+  latestDepTestLibrary(\"io.ktor:ktor-server-core:+\")\n+  latestDepTestLibrary(\"io.ktor:ktor-server-netty:+\")\n+  latestDepTestLibrary(\"io.ktor:ktor-client-cio:+\")",
+      "id": "PRRT_kwDODJKVX86DKV81",
+      "opened": "2026-05-19T13:13:55Z",
+      "path": "instrumentation/ktor/ktor-3.0/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-05-19T13:34:18Z",
+          "body": "Disregard this suggestion and just delete them. `library` and `testLibrary` dependencies are automatically bumped when testing with `-PtestLatestDeps=true` we don't add constraints unless necessary.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3266696023"
+        },
+        {
+          "at": "2026-05-19T15:19:36Z",
+          "body": "Removed again.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3267459231"
+        }
+      ],
+      "reviewed": "2e95e418f9faec14ac8a527405995a673592d398",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3266547055"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we just assert that the trace has expected structure with something like\n```\n    testing.waitAndAssertTraces(\n      { trace ->\n        trace.hasSpansSatisfyingExactly({ span ->\n          span.hasName(\"GET\")\n            .hasKind(SpanKind.CLIENT)\n            .hasNoParent()\n        })\n      },\n      { trace ->\n        trace.hasSpansSatisfyingExactly({ span ->\n          span.hasName(\"GET\")\n            .hasKind(SpanKind.CLIENT)\n            .hasNoParent()\n        })\n      },\n      { trace ->\n        trace.hasSpansSatisfyingExactly({ span ->\n          span.hasName(\"GET\")\n            .hasKind(SpanKind.CLIENT)\n            .hasNoParent()\n        })\n      }\n    )\n```\nas far as I can tell if there is a timeout from `withTimeout` the trace assertion won't be executed anyway",
+      "created": "2026-05-20T11:23:38Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.ktor.v3_0\n+\n+import io.ktor.client.*\n+import io.ktor.client.engine.cio.*\n+import io.ktor.client.plugins.*\n+import io.ktor.client.request.*\n+import io.ktor.client.statement.*\n+import io.ktor.server.engine.*\n+import io.ktor.server.netty.*\n+import io.ktor.server.response.*\n+import io.ktor.server.routing.*\n+import io.opentelemetry.instrumentation.test.utils.PortUtils\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension\n+import kotlinx.coroutines.runBlocking\n+import kotlinx.coroutines.withTimeout\n+import org.junit.jupiter.api.AfterAll\n+import org.junit.jupiter.api.Assertions.assertTrue\n+import org.junit.jupiter.api.BeforeAll\n+import org.junit.jupiter.api.Test\n+import org.junit.jupiter.api.extension.RegisterExtension\n+import java.util.concurrent.TimeUnit\n+import kotlin.time.Duration.Companion.nanoseconds\n+import kotlin.time.Duration.Companion.seconds\n+\n+class KtorHttpClientStreamingTest {\n+\n+  companion object {\n+    @JvmStatic\n+    @RegisterExtension\n+    private val testing: InstrumentationExtension = LibraryInstrumentationExtension.create()\n+\n+    private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>\n+    private val serverPort = PortUtils.findOpenPort()\n+\n+    @JvmStatic\n+    @BeforeAll\n+    fun setupServer() {\n+      server = embeddedServer(Netty, port = serverPort) {\n+        routing {\n+          get(\"/success\") {\n+            call.respondText(\"ok\")\n+          }\n+        }\n+      }.start()\n+    }\n+\n+    @JvmStatic\n+    @AfterAll\n+    fun stopServer() {\n+      server.stop(0, 10, TimeUnit.SECONDS)\n+    }\n+  }\n+\n+  @Test\n+  fun `prepareGet execute completes promptly with telemetry installed`() {\n+    HttpClient(CIO) {\n+      install(HttpTimeout) {\n+        requestTimeoutMillis = 30_000\n+      }\n+      install(KtorClientTelemetry) {\n+        setOpenTelemetry(testing.openTelemetry)\n+      }\n+    }.use { client ->\n+      runBlocking {\n+        withTimeout(5.seconds) {\n+          repeat(3) {\n+            client.prepareGet(\"http://localhost:$serverPort/success\").execute { response ->\n+              response.bodyAsText()\n+            }\n+          }\n+        }\n+      }\n+    }\n+\n+    val maxSpanDuration = 5.seconds\n+    val traces = testing.waitForTraces(3)\n+    traces.forEach { trace ->\n+      trace.forEach { span ->\n+        val spanDuration = (span.endEpochNanos - span.startEpochNanos).nanoseconds\n+        assertTrue(spanDuration < maxSpanDuration) {\n+          \"Span duration $spanDuration exceeded $maxSpanDuration, span end may have waited for request timeout\"\n+        }\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86DdbLP",
+      "opened": "2026-05-20T11:23:38Z",
+      "path": "instrumentation/ktor/ktor-3.0/library/src/test/kotlin/io/opentelemetry/instrumentation/ktor/v3_0/KtorHttpClientStreamingTest.kt",
+      "replies": [
+        {
+          "at": "2026-05-20T16:03:05Z",
+          "body": "I'll make the `withTimeout` a more explicit assertion and indeed, clean out the no-op assertion on the length in the main assertion.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3275383952"
+        }
+      ],
+      "reviewed": "12f402ee9f73906d01c96dd361a372e16ad74309",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3273490876"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "did you consider adding this test to `AbstractKtorHttpClientTest`?",
+      "created": "2026-05-20T11:25:44Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.ktor.v3_0\n+\n+import io.ktor.client.*\n+import io.ktor.client.engine.cio.*\n+import io.ktor.client.plugins.*\n+import io.ktor.client.request.*\n+import io.ktor.client.statement.*\n+import io.ktor.server.engine.*\n+import io.ktor.server.netty.*\n+import io.ktor.server.response.*\n+import io.ktor.server.routing.*\n+import io.opentelemetry.instrumentation.test.utils.PortUtils\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension\n+import kotlinx.coroutines.runBlocking\n+import kotlinx.coroutines.withTimeout\n+import org.junit.jupiter.api.AfterAll\n+import org.junit.jupiter.api.Assertions.assertTrue\n+import org.junit.jupiter.api.BeforeAll\n+import org.junit.jupiter.api.Test\n+import org.junit.jupiter.api.extension.RegisterExtension\n+import java.util.concurrent.TimeUnit\n+import kotlin.time.Duration.Companion.nanoseconds\n+import kotlin.time.Duration.Companion.seconds\n+\n+class KtorHttpClientStreamingTest {",
+      "id": "PRRT_kwDODJKVX86Dddlv",
+      "opened": "2026-05-20T11:25:44Z",
+      "path": "instrumentation/ktor/ktor-3.0/library/src/test/kotlin/io/opentelemetry/instrumentation/ktor/v3_0/KtorHttpClientStreamingTest.kt",
+      "replies": [
+        {
+          "at": "2026-05-20T20:02:44Z",
+          "body": "I've done this, I prefer it a bit more self-contained because of the pre-requisites but have a look at what I've done with comments to explain themselves.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3276815241"
+        }
+      ],
+      "reviewed": "12f402ee9f73906d01c96dd361a372e16ad74309",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3273504080"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wondering whether it would be better to not create the span when parent context attribute is missing, won't `Context.current()` return empty context here anyway?",
+      "created": "2026-05-20T11:36:20Z",
+      "hunk": "@@ -37,15 +36,18 @@ object KtorClientTelemetryUtil {\n \n     scope.requestPipeline.intercept(initializeRequestPhase) {\n       val openTelemetryContext = HttpClientRequestResendCount.initialize(Context.current())\n-      withContext(openTelemetryContext.asContextElement()) { proceed() }\n+      context.attributes.put(OPEN_TELEMETRY_PARENT_CONTEXT_KEY, openTelemetryContext)\n+      proceed()\n     }\n \n     val createSpanPhase = PipelinePhase(\"OpenTelemetryCreateSpan\")\n     scope.sendPipeline.insertPhaseAfter(HttpSendPipeline.State, createSpanPhase)\n \n     scope.sendPipeline.intercept(createSpanPhase) {\n       val requestBuilder = context\n-      val openTelemetryContext = plugin.createSpan(requestBuilder)\n+      val parentContext = requestBuilder.attributes.getOrNull(OPEN_TELEMETRY_PARENT_CONTEXT_KEY)\n+        ?: Context.current()",
+      "id": "PRRT_kwDODJKVX86Ddp8_",
+      "opened": "2026-05-20T11:36:20Z",
+      "path": "instrumentation/ktor/ktor-common-2.0/library/src/main/kotlin/io/opentelemetry/instrumentation/ktor/common/v2_0/internal/KtorClientTelemetryUtil.kt",
+      "replies": [
+        {
+          "at": "2026-05-20T16:02:14Z",
+          "body": "It's desirable to start a new trace if there's no existing context from the client, even if it's not a typically desirable root of a trace. In my view.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3275378676"
+        },
+        {
+          "at": "2026-05-20T17:11:43Z",
+          "body": "Shouldn't the attribute be always set? Doesn't this attribute being null already indicate that something is wrong and the instrumentation isn't functioning as expected?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3275772722"
+        },
+        {
+          "at": "2026-05-20T20:03:05Z",
+          "body": "Ah I follow you, done.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3276817251"
+        }
+      ],
+      "reviewed": "12f402ee9f73906d01c96dd361a372e16ad74309",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18781#discussion_r3273571400"
+    }
+  ]
+}

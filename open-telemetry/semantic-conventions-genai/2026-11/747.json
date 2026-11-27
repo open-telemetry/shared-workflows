@@ -1,0 +1,31 @@
+{
+  "head": "08eac50658bd3e0958da76fc9451c509a07b86b1",
+  "merge": "373ff5fdee9cee1a2325f319c09d3ed9abc9904f",
+  "merged": "2026-11-25T20:16:46Z",
+  "missing_roots": 0,
+  "number": 747,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This clarifies how to record provider-executed tool outcomes, but no reference scenario demonstrates that mapping as required for convention changes. The OpenAI scenario only supplies `web_search` as a tool definition, and the Anthropic scenario records text output only. Please extend either scenario to read a built-in tool outcome from an SDK response and emit it as `server_tool_call_response`.",
+      "created": "2026-11-22T02:29:03Z",
+      "hunk": "@@ -74,7 +74,7 @@ class ToolCallRequestPart(BaseModel):\n \n class ToolCallResponsePart(BaseModel):\n     \"\"\"\n-    Represents a tool call result sent to the model or a built-in tool call outcome and details.\n+    Represents a tool call result sent to the model.",
+      "id": "PRRT_kwDOSUeMrM66fOc3",
+      "opened": "2026-11-22T02:29:03Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-22T02:34:15Z",
+          "body": "This PR changes no field, attribute or signal. It removes \"or a built-in tool call outcome and details\" from `ToolCallResponsePart`'s description, and validation is unchanged. The guidance to use `server_tool_call_response` for built-in tools already exists, from open-telemetry/semantic-conventions#3038.\n\nNo scenario emits the server tool parts today, so that gap predates this PR. I'd cover it separately.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/747#discussion_r4656219952"
+        }
+      ],
+      "reviewed": "d8652b969c43171cc923d59d1c4721fac86ad923",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/747#discussion_r4656206508"
+    }
+  ]
+}

@@ -1,0 +1,178 @@
+{
+  "head": "af8e5c87143d231b4fa725691ebc5f9c1c657922",
+  "merge": "20e9f756304b0ccafd18fd8140ca52c85df10ed6",
+  "merged": "2026-06-05T15:06:52Z",
+  "missing_roots": 0,
+  "number": 251,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assignment is hard to read as a single long line; nearby code generally formats comprehensions across multiple lines. Splitting it improves maintainability and keeps diffs clearer when adding more fallback sources later.",
+      "created": "2026-06-05T00:38:54Z",
+      "hunk": "@@ -80,9 +80,55 @@ def age_cell(facts: dict[str, Any]) -> str:\n     return activity_age(_age_ts(facts))\n \n \n-def approval_marks(facts: dict[str, Any]) -> str:\n-    count = facts.get(\"approval_count\", 0)\n-    return \"\" if count <= 0 else \" \" + \"✅\" * count\n+def reviewer_icon(reviewer: dict[str, Any]) -> str:\n+    if reviewer.get(\"changes_requested\"):\n+        return \"🔴\"\n+    if reviewer.get(\"approved\"):\n+        # Word joiner (U+2060) keeps the two emoji on the same line.\n+        return \"💬⁠✅\" if reviewer.get(\"open_thread\") else \"✅\"\n+    if reviewer.get(\"approved_non_team\"):\n+        # A black/gray check distinguishes a non-code-owner approval from a\n+        # code-owner approval; only code-owner approvals count toward merge.\n+        return \"💬⁠✔️\" if reviewer.get(\"open_thread\") else \"✔️\"\n+    if reviewer.get(\"open_thread\"):\n+        return \"💬\"\n+    return \"\"\n+\n+\n+# Friendlier display names for bot reviewers whose login is verbose.\n+REVIEWER_DISPLAY_NAMES = {\n+    \"copilot-pull-request-reviewer\": \"Copilot\",\n+}\n+\n+\n+def reviewer_display_name(login: str) -> str:\n+    return REVIEWER_DISPLAY_NAMES.get(login, login)\n+\n+\n+def reviewers_cell_text(facts: dict[str, Any], pr: dict[str, Any]) -> str:\n+    reviewers = facts.get(\"reviewers\")\n+    if reviewers is None:\n+        # Failed builds have no classifications; fall back to bare assignees.\n+        assignees = facts.get(\"assignees\") or [actor_login(a) for a in (pr.get(\"assignees\") or [])]",
+      "id": "PRRT_kwDOSUeMrM6HOzFr",
+      "opened": "2026-06-05T00:38:55Z",
+      "path": ".github/scripts/pull-request-dashboard/render.py",
+      "replies": [
+        {
+          "at": "2026-06-05T01:37:34Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/cec4a0e0948197237bf43aa2a2a54bf73dcba1ec.\n\nRemoved the assignee fallback entirely so the Reviewers cell only uses reviewer facts.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3359829937"
+        }
+      ],
+      "reviewed": "d615e56731a1fac12e283337862296e73760770c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3359671101"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This set comprehension is currently formatted as a single long line, but the surrounding functions format comprehensions across multiple lines for readability. Reformatting it makes the logic easier to scan and aligns with the local style in this file.",
+      "created": "2026-06-05T00:38:54Z",
+      "hunk": "@@ -364,9 +379,22 @@ def latest_substantive_activity(events: list[dict[str, Any]], actor_roles: set[s\n \n \n def current_approval_count(events: list[dict[str, Any]]) -> int:\n+    approvers = approver_logins(events)\n+    return sum(\n+        1\n+        for reviewer, state in latest_review_states(events).items()\n+        if state == \"APPROVED\" and reviewer in approvers\n+    )\n+\n+\n+def approver_logins(events: list[dict[str, Any]]) -> set[str]:\n+    return {event[\"actor\"] for event in events if event.get(\"actor_role\") == \"approver\" and event.get(\"actor\")}",
+      "id": "PRRT_kwDOSUeMrM6HOzGB",
+      "opened": "2026-06-05T00:38:55Z",
+      "path": ".github/scripts/pull-request-dashboard/dashboard.py",
+      "replies": [
+        {
+          "at": "2026-06-05T01:37:35Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/f5bdc9571698b7041a738a96c47d0782b8bb1567.\n\nReformatted the approver login set comprehension across multiple lines.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3359830026"
+        }
+      ],
+      "reviewed": "d615e56731a1fac12e283337862296e73760770c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3359671130"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This string includes an invisible Word Joiner character directly in the source, which is easy to lose or accidentally change when editing/copying. Using an explicit `\\u2060` escape makes the intent unambiguous and more maintainable.",
+      "created": "2026-06-05T00:38:54Z",
+      "hunk": "@@ -80,9 +80,55 @@ def age_cell(facts: dict[str, Any]) -> str:\n     return activity_age(_age_ts(facts))\n \n \n-def approval_marks(facts: dict[str, Any]) -> str:\n-    count = facts.get(\"approval_count\", 0)\n-    return \"\" if count <= 0 else \" \" + \"✅\" * count\n+def reviewer_icon(reviewer: dict[str, Any]) -> str:\n+    if reviewer.get(\"changes_requested\"):\n+        return \"🔴\"\n+    if reviewer.get(\"approved\"):\n+        # Word joiner (U+2060) keeps the two emoji on the same line.\n+        return \"💬⁠✅\" if reviewer.get(\"open_thread\") else \"✅\"",
+      "id": "PRRT_kwDOSUeMrM6HOzGK",
+      "opened": "2026-06-05T00:38:55Z",
+      "path": ".github/scripts/pull-request-dashboard/render.py",
+      "replies": [
+        {
+          "at": "2026-06-05T01:37:37Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/d07f00c4fc9ab03513ef406b68a9593ea6cf5a90.\n\nAdded an explicit WORD_JOINER constant for the approved-with-open-thread icon.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3359830071"
+        }
+      ],
+      "reviewed": "d615e56731a1fac12e283337862296e73760770c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3359671141"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This string also embeds an invisible Word Joiner character directly in the source. Using an explicit `\\u2060` escape avoids “mystery characters” and makes it clearer why wrapping is prevented.",
+      "created": "2026-06-05T00:38:54Z",
+      "hunk": "@@ -80,9 +80,55 @@ def age_cell(facts: dict[str, Any]) -> str:\n     return activity_age(_age_ts(facts))\n \n \n-def approval_marks(facts: dict[str, Any]) -> str:\n-    count = facts.get(\"approval_count\", 0)\n-    return \"\" if count <= 0 else \" \" + \"✅\" * count\n+def reviewer_icon(reviewer: dict[str, Any]) -> str:\n+    if reviewer.get(\"changes_requested\"):\n+        return \"🔴\"\n+    if reviewer.get(\"approved\"):\n+        # Word joiner (U+2060) keeps the two emoji on the same line.\n+        return \"💬⁠✅\" if reviewer.get(\"open_thread\") else \"✅\"\n+    if reviewer.get(\"approved_non_team\"):\n+        # A black/gray check distinguishes a non-code-owner approval from a\n+        # code-owner approval; only code-owner approvals count toward merge.\n+        return \"💬⁠✔️\" if reviewer.get(\"open_thread\") else \"✔️\"",
+      "id": "PRRT_kwDOSUeMrM6HOzGR",
+      "opened": "2026-06-05T00:38:55Z",
+      "path": ".github/scripts/pull-request-dashboard/render.py",
+      "replies": [
+        {
+          "at": "2026-06-05T01:37:38Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/8bae2dfc058bab6051a6aaa452d5651de64baaa6.\n\nReused the explicit WORD_JOINER constant for the non-code-owner approved-with-open-thread icon.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3359830172"
+        }
+      ],
+      "reviewed": "d615e56731a1fac12e283337862296e73760770c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3359671154"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says the Reviewers column should use *leading* status icons, but the renderer currently puts the icon after the login. Swapping the order matches the stated dashboard UI behavior.",
+      "created": "2026-06-05T00:38:55Z",
+      "hunk": "@@ -80,9 +80,55 @@ def age_cell(facts: dict[str, Any]) -> str:\n     return activity_age(_age_ts(facts))\n \n \n-def approval_marks(facts: dict[str, Any]) -> str:\n-    count = facts.get(\"approval_count\", 0)\n-    return \"\" if count <= 0 else \" \" + \"✅\" * count\n+def reviewer_icon(reviewer: dict[str, Any]) -> str:\n+    if reviewer.get(\"changes_requested\"):\n+        return \"🔴\"\n+    if reviewer.get(\"approved\"):\n+        # Word joiner (U+2060) keeps the two emoji on the same line.\n+        return \"💬⁠✅\" if reviewer.get(\"open_thread\") else \"✅\"\n+    if reviewer.get(\"approved_non_team\"):\n+        # A black/gray check distinguishes a non-code-owner approval from a\n+        # code-owner approval; only code-owner approvals count toward merge.\n+        return \"💬⁠✔️\" if reviewer.get(\"open_thread\") else \"✔️\"\n+    if reviewer.get(\"open_thread\"):\n+        return \"💬\"\n+    return \"\"\n+\n+\n+# Friendlier display names for bot reviewers whose login is verbose.\n+REVIEWER_DISPLAY_NAMES = {\n+    \"copilot-pull-request-reviewer\": \"Copilot\",\n+}\n+\n+\n+def reviewer_display_name(login: str) -> str:\n+    return REVIEWER_DISPLAY_NAMES.get(login, login)\n+\n+\n+def reviewers_cell_text(facts: dict[str, Any], pr: dict[str, Any]) -> str:\n+    reviewers = facts.get(\"reviewers\")\n+    if reviewers is None:\n+        # Failed builds have no classifications; fall back to bare assignees.\n+        assignees = facts.get(\"assignees\") or [actor_login(a) for a in (pr.get(\"assignees\") or [])]\n+        reviewers = [\n+            {\n+                \"login\": a,\n+                \"approved\": False,\n+                \"approved_non_team\": False,\n+                \"changes_requested\": False,\n+                \"open_thread\": False,\n+            }\n+            for a in assignees\n+        ]\n+    parts = []\n+    for reviewer in reviewers:\n+        login = _md_escape(reviewer_display_name(reviewer.get(\"login\") or \"\"))\n+        if not login:\n+            continue\n+        icon = reviewer_icon(reviewer)\n+        # Join name and icon with a non-breaking space so they never wrap apart.\n+        parts.append(f\"{login}&nbsp;{icon}\" if icon else login)",
+      "id": "PRRT_kwDOSUeMrM6HOzGd",
+      "opened": "2026-06-05T00:38:55Z",
+      "path": ".github/scripts/pull-request-dashboard/render.py",
+      "replies": [
+        {
+          "at": "2026-06-05T01:37:39Z",
+          "body": "No code change needed. The PR body no longer says \"leading icons\", and the name-first icon layout is intentional.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3359830253"
+        }
+      ],
+      "reviewed": "d615e56731a1fac12e283337862296e73760770c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3359671169"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The \"Reviewers column\" note is split across two list entries, but the second line is missing the leading `>` blockquote marker. This breaks the intended `[!NOTE]` formatting by ending the blockquote early.",
+      "created": "2026-06-05T01:41:00Z",
+      "hunk": "@@ -126,6 +161,9 @@ def render_pr_tables(prs: list[dict[str, Any]], results: dict[int, dict[str, Any\n         \"> Open non-draft PRs grouped by who is expected to act next. Draft PRs are \"\n         \"listed separately. The grouping is \"\n         f\"partly performed by an LLM ([source]({source_url})) and could contain mistakes.\",\n+        \">\",\n+        \"> Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · \"\n+        \"💬 open thread · 🔴 changes requested.\",",
+      "id": "PRRT_kwDOSUeMrM6HPRUd",
+      "opened": "2026-06-05T01:41:00Z",
+      "path": ".github/scripts/pull-request-dashboard/render.py",
+      "replies": [
+        {
+          "at": "2026-06-05T02:51:21Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/cf4c37be47bdba9178f05bc8d61278dd8046e065.\n\nAdded the missing blockquote marker so the Reviewers column legend stays inside the note.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3360052003"
+        }
+      ],
+      "reviewed": "8bae2dfc058bab6051a6aaa452d5651de64baaa6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3359839012"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This job doesn’t check out the repository, so calling `python3 .github/scripts/pull-request-dashboard/publish_dashboard.py ...` will fail because the script file won’t exist in the runner workspace. Either add a checkout step or compute the dashboard URL using `gh` directly so the guidance post doesn’t break.",
+      "created": "2026-06-05T02:55:40Z",
+      "hunk": "@@ -187,17 +187,20 @@ jobs:\n             exit 0\n           fi\n \n+          dashboard_url=$(python3 .github/scripts/pull-request-dashboard/publish_dashboard.py --print-dashboard-url)",
+      "id": "PRRT_kwDOSUeMrM6HP56I",
+      "opened": "2026-06-05T02:55:41Z",
+      "path": ".github/workflows/pull-request-dashboard.yml",
+      "replies": [
+        {
+          "at": "2026-06-05T14:56:39Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/69c56c01077c0141a8232fb4ab8356f87498fa88.\n\nAdded a checkout step to the guidance job so it can use the existing dashboard URL helper.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3363486113"
+        }
+      ],
+      "reviewed": "cf4c37be47bdba9178f05bc8d61278dd8046e065",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3360070157"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Slack notifications now mention every login in `facts[\"reviewers\"]`, but that list intentionally includes anyone who reviewed/commented (and even non-team approvers). This can spam people who already approved (and may ping non-team users if they’re in the Slack map). Prefer notifying explicit PR assignees (the expected reviewers) and only fall back to reviewer statuses that actually indicate action is needed (e.g., changes requested / open thread).",
+      "created": "2026-06-05T02:55:41Z",
+      "hunk": "@@ -101,29 +101,37 @@ def pending_notification_kind(\n         return \"initial\"\n     if current_waiting_since > last_notified:\n         return \"initial\"\n-    if now.weekday() < 5 and (now - last_notified).total_seconds() >= APPROVER_FOLLOW_UP_SECONDS:\n+    if now.weekday() < 5 and (now - last_notified).total_seconds() >= REVIEWER_FOLLOW_UP_SECONDS:\n         return \"follow-up\"\n     return None\n \n \n+def reviewer_logins_for_notification(facts: dict[str, Any]) -> list[str]:\n+    return [\n+        str(reviewer.get(\"login\") or \"\")\n+        for reviewer in (facts.get(\"reviewers\") or [])\n+        if isinstance(reviewer, dict) and reviewer.get(\"login\")\n+    ]",
+      "id": "PRRT_kwDOSUeMrM6HP56O",
+      "opened": "2026-06-05T02:55:41Z",
+      "path": ".github/scripts/pull-request-dashboard/notifications.py",
+      "replies": [
+        {
+          "at": "2026-06-05T14:56:41Z",
+          "body": "Addressed in https://github.com/open-telemetry/semantic-conventions-genai/commit/af8e5c87143d231b4fa725691ebc5f9c1c657922.\n\nKeeping all displayed reviewers intentionally, and added a code comment explaining that one reviewer’s comment may be relevant context for the others.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3363486303"
+        }
+      ],
+      "reviewed": "cf4c37be47bdba9178f05bc8d61278dd8046e065",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/251#discussion_r3360070169"
+    }
+  ]
+}

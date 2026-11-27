@@ -1,0 +1,40 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "bb393bb1cb629036ce56df20bf46552e5116b83015f84be82953f39c1f34aabe",
+  "input_digest": "b7ba6ccf7eb331760a1ec81bf2768629bb96183429910936a09e47e8fbf60ce9",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/73c4d10c5aa9f2ed453edf659aba1a7e920cc839/.github/scripts/pull-request-dashboard/notifications.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/7bbfc3bd4ce94f20c065d1102b07b391d62442b6/.github/scripts/pull-request-dashboard/notifications.py"
+      ],
+      "id": "PRRT_kwDOSUeMrM6IP3_8",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/73c4d10c5aa9f2ed453edf659aba1a7e920cc839/.github/scripts/pull-request-dashboard/notifications.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/73c4d10c5aa9f2ed453edf659aba1a7e920cc839/.github/scripts/pull-request-dashboard/notify_slack.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/7bbfc3bd4ce94f20c065d1102b07b391d62442b6/.github/scripts/pull-request-dashboard/notifications.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/7bbfc3bd4ce94f20c065d1102b07b391d62442b6/.github/scripts/pull-request-dashboard/notify_slack.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/4160c73b1458d695f570186efd75bd863e0f8ab4"
+      ],
+      "id": "PRRT_kwDOSUeMrM6IP4Ae",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOSUeMrM6IQJap",
+      "kind": null,
+      "original": "PRRT_kwDOSUeMrM6IP3_8",
+      "status": "duplicate"
+    }
+  ]
+}

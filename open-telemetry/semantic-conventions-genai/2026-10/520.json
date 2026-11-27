@@ -1,0 +1,55 @@
+{
+  "head": "01b5a912c6c5a603f9716596c3db3e768ceca2b7",
+  "merge": "81e7e4359065a42183a507be96fe4b832e22503e",
+  "merged": "2026-10-05T19:10:18Z",
+  "missing_roots": 0,
+  "number": 520,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Grammar: 'Instrumentations' is uncommon in this context and can read awkwardly. Consider changing to 'Instrumentation' or 'Instrumentation libraries/implementations' for clarity and consistency.",
+      "created": "2026-09-15T18:07:27Z",
+      "hunk": "@@ -32,6 +32,7 @@ The event name MUST be `gen_ai.client.inference.operation.details`.\n Describes the details of a GenAI completion request including chat history and parameters.\n \n This event could be used to store input and output details independently from traces.\n+Instrumentations SHOULD set the severity to DEBUG (severity number 5) when recording this event.",
+      "id": "PRRT_kwDOSUeMrM6io-l5",
+      "opened": "2026-09-15T18:07:27Z",
+      "path": "docs/gen-ai/gen-ai-events.md",
+      "replies": [],
+      "reviewed": "bfb5b37b2ceb9a21dfde01d26a50e73f1549f3d7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/520#discussion_r4018730600"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The guidance is ambiguous about *where/how* to set severity (e.g., which field/attribute names to use). To make this implementable and consistent across SDKs/exporters, explicitly name the expected fields (for example, `severity_text` = `DEBUG` and `severity_number` = 5, or the specific semantic convention attributes if this project defines them) and clarify whether this applies to log records vs span events.",
+      "created": "2026-09-15T18:07:27Z",
+      "hunk": "@@ -8,6 +8,8 @@ events:\n     note: >\n       This event could be used to store input and output details\n       independently from traces.\n+\n+      Instrumentations SHOULD set the severity to DEBUG (severity number 5) when recording this event.",
+      "id": "PRRT_kwDOSUeMrM6io-lX",
+      "opened": "2026-09-15T18:07:27Z",
+      "path": "model/gen-ai/events.yaml",
+      "replies": [],
+      "reviewed": "bfb5b37b2ceb9a21dfde01d26a50e73f1549f3d7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/520#discussion_r4018730556"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Too bad there is no place to put this in the YAML. Maybe we can stick it in an annotation for now, similar to what we do for JSON schemas?\nhttps://github.com/open-telemetry/semantic-conventions-genai/blob/b31e9e8ea26ac1c086d3313d474e31d7c3f391ae/model/gen-ai/registry.yaml#L876-L878",
+      "created": "2026-10-02T00:45:11Z",
+      "hunk": "@@ -8,6 +8,8 @@ events:\n     note: >\n       This event could be used to store input and output details\n       independently from traces.\n+\n+      Instrumentations SHOULD set the severity to DEBUG (severity number 5) when recording this event.",
+      "id": "PRRT_kwDOSUeMrM6oMMeo",
+      "opened": "2026-10-02T00:50:43Z",
+      "path": "model/gen-ai/events.yaml",
+      "replies": [],
+      "reviewed": "01b5a912c6c5a603f9716596c3db3e768ceca2b7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/520#discussion_r4161878479"
+    }
+  ]
+}

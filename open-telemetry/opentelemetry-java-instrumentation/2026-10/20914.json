@@ -1,0 +1,88 @@
+{
+  "head": "c166cd0263be8c83fe8e9ac6d401afefa18d9d29",
+  "merge": "fee6ea871378d4c042ff966dc06796914e7318ec",
+  "merged": "2026-10-28T02:07:18Z",
+  "missing_roots": 0,
+  "number": 20914,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. The user requested: \"Okay, convert into a smoke test that fails without the fix and then add the fix\". Convert the standalone Spring WAR investigation in this PR into a repository-native Tomcat smoke regression test and fix the demonstrated instrumentation defect. Do not create a separate requested PR or work on unrelated failures. Preserve the existing PR's draft state. Do not change PR titles or descriptions; the coordinating session handles metadata.\n\nThe current PR adds examples/spring-war-compatibility with a real Spring MVC WAR, Dockerfile, Python runner, and results. Replace the standalone experiment and released-agent matrix with maintained smoke-test fixtures and Gradle/JUnit wiring using the repository-built agent and existing smoke-test/container conventions. Reuse the real application where useful; do not retain a redundant Python harness or investigation-only files without a concrete ongoing need. Inspect smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/TomcatSmokeTest.java, AppServerTest.java, the servlet image/build setup, and existing Spring MVC shared-library integration tests for conventions. A dedicated Tomcat smoke test is preferred because real common/webapp loaders and deployment order are essential. Keep changes scoped to this regression test, its fixture/build wiring and usage documentation where needed, and the production fix.\n\nVerified reproducer on Java 8, external Tomcat 9.0.68: put released Spring 5.3.39 dependencies in Tomcat's common lib directory, deploy /probe with Spring 5.2.25.RELEASE inside WEB-INF/lib under default child-first delegation, and wait for /probe/hello to return HTTP 200 with \"hello from Spring MVC\\n\". Then deploy /shared, another real MVC WAR containing the application but no Spring JARs, using the common-loader Spring 5.3.39 dependencies. The existing Dockerfile builds /opt/shared.war with path-patterns.xml, and run.py --shared-after copies it into webapps only AFTER the first application serves a request. The second context fails during ContextLoaderListener initialization while creating otelAutoDispatcherFilter. With no agent both applications return HTTP 200. With parent-first delegation both also work, but changing delegation is a control, not the requested instrumentation fix. Single-WAR deployments did not reproduce the startup failure; do not replace the ordered two-WAR scenario with a proxy.\n\nThe exact failure also reproduces with current main 35ab7b529721850466396736905973039f41bc01, using its CI artifact from Build run 40010479807, artifact name opentelemetry-javaagent.jar, version 3.0.0-SNAPSHOT, SHA-256 35515d45a66162384f7928ef0712b4390fb926bf7667a7548c1e5d77ee0f95e4. The helper is now defined by io.opentelemetry.javaagent.tooling.instrumentation.indy.InstrumentationModuleClassLoader, and that loader appears in the failing stack. Global indy does not fix it. Released agents 1.33.0, 2.10.0, 2.10.0 with historical indy=true, and 2.33.0 all reproduced it, but the maintained regression test should exercise the repository-built agent, not download that release matrix.\n\nThe root cause under investigation is instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/main/java/org/springframework/web/servlet/v3_1/OpenTelemetryHandlerMappingFilter.java, parseAndCacheMh(). Its static initializer loads ServletRequestPathUtils and RequestPath independently with one-argument Class.forName and then supplies the separately resolved RequestPath as the return type for MethodHandles.lookup().findStatic. ServletRequestPathUtils exists only in Spring 5.3 and resolves to the common loader in the older WAR, while RequestPath exists in 5.2 and resolves locally. The first lookup establishes the conflicting constraint; a later common-loader helper initialization fails resolving RequestPath with java.lang.LinkageError: loader constraint violation: loader (instance of java/net/URLClassLoader) previously initiated loading for a different type with name \"org/springframework/http/server/RequestPath\". The startup stack contains OpenTelemetryHandlerMappingFilter.parseAndCacheMh, OpenTelemetryHandlerMappingFilter.<clinit>, otelAutoDispatcherFilter bean creation, and ContextLoaderListener.contextInitialized.\n\nA proposed fix, not yet validated, is to resolve parseAndCache(HttpServletRequest) from its declaring utility class's actual signature, rather than independently loading RequestPath to construct the method type. For example, resolve the public method reflectively and cache its method handle. The result is ignored. Investigate and choose the smallest correct implementation; this is a suggestion, not a requirement to use reflection or broaden error suppression. Preserve compatibility with older Spring versions where the optional utility is absent, and retain normal path-pattern behavior. Inspect relevant callers and any equivalent helper before changing them; do not fix unrelated modules or merely catch LinkageError to hide the conflict.\n\nAcceptance criteria: use released real framework classes and standard Tomcat classloading, no custom classloaders, fake framework classes, or application-thrown errors. Keep a no-agent control. Establish ordered deployment deterministically using actual readiness, not arbitrary sleeps. The regression expects BOTH endpoints to work and server telemetry from the agent, not an expected LinkageError or a test that passes by disabling instrumentation. Capture startup/container logs on failure and distinguish the specific regression from unrelated setup failures. Do not preload framework classes or inspect utility method signatures for diagnostics before the second deployment; an early diagnostic in the original investigation caused a separate HTTP-time failure and was discarded. Demonstrate the smoke test failing on the unmodified production implementation with the exact startup failure, then passing with the fix, and run the narrowest directly relevant existing Spring MVC coverage. Record exact commands and outcomes in your completion evidence, including any blocked validation. Follow repository formatting and test conventions. All application experiments must remain in disposable local Docker containers. Do not weaken dependency-security checks or add policy exceptions for historical test artifacts. Do not wait for unrelated CI or expand into unrelated CI repairs.",
+      "created": "2026-10-23T21:46:34Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+FROM maven:3.9.9-eclipse-temurin-8@sha256:e20e4fc05fb5480c884a1f750c362ed0e91aca15cec5736e12796713710ec9b3 AS build",
+      "id": "PRRT_kwDODJKVX86vyJb5",
+      "opened": "2026-10-23T21:46:34Z",
+      "path": "examples/spring-war-compatibility/Dockerfile",
+      "replies": [
+        {
+          "at": "2026-10-23T22:26:38Z",
+          "body": "Implemented in 22e841df. The ordered Tomcat smoke regression and no-agent control replace the standalone harness; the original helper reproduces the `RequestPath` loader-constraint failure, and the fixed agent test passes with server spans. Dependency Review policy remains unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20914#discussion_r4364740133"
+        }
+      ],
+      "reviewed": "89df90ef39fbbc5e61c3bcbc5096c297208a399f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20914#discussion_r4364506489"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The description says this is a Docker-only investigation with “No production instrumentation changes,” but this changes the agent’s Spring MVC method-handle lookup, and the added reproducer is a Gradle smoke test rather than the documented `examples/spring-war-compatibility` project. Please update the title and description to identify the production fix and provide commands and links for the actual regression test, so reviewers and users are not directed to a different scope or nonexistent example.",
+      "created": "2026-10-23T22:37:05Z",
+      "hunk": "@@ -191,12 +191,8 @@ private static MethodHandle parseAndCacheMh() {\n     try {\n       Class<?> pathUtilsClass =\n           Class.forName(\"org.springframework.web.util.ServletRequestPathUtils\");\n-      Class<?> requestPathClass = Class.forName(\"org.springframework.http.server.RequestPath\");\n       return MethodHandles.lookup()\n-          .findStatic(\n-              pathUtilsClass,\n-              \"parseAndCache\",\n-              MethodType.methodType(requestPathClass, HttpServletRequest.class));\n+          .unreflect(pathUtilsClass.getMethod(\"parseAndCache\", HttpServletRequest.class));",
+      "id": "PRRT_kwDODJKVX86vy0PF",
+      "opened": "2026-10-23T22:37:06Z",
+      "path": "instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/main/java/org/springframework/web/servlet/v3_1/OpenTelemetryHandlerMappingFilter.java",
+      "replies": [
+        {
+          "at": "2026-10-23T22:39:15Z",
+          "body": "Updated the title and description to cover the production method-handle fix and ordered Tomcat smoke regression. Removed the obsolete standalone-example instructions and added links to the WAR fixture and regression test, plus the command to run the agent and no-agent cases.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20914#discussion_r4364805795"
+        }
+      ],
+      "reviewed": "22e841df989ed3930fc288bc9efe0c32b954e4fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20914#discussion_r4364794707"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@laurit I could go either way on keeping the test 🤷‍♂️ ",
+      "created": "2026-10-23T22:51:50Z",
+      "hunk": "@@ -177,6 +177,7 @@ include(\":smoke-tests:images:security-manager\")\n include(\":smoke-tests:images:servlet\")\n include(\":smoke-tests:images:servlet:servlet-3.0\")\n include(\":smoke-tests:images:servlet:servlet-5.0\")\n+include(\":smoke-tests:images:servlet:spring-war\")",
+      "id": "PRRT_kwDODJKVX86vy_oo",
+      "opened": "2026-10-23T22:51:50Z",
+      "path": "settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-27T09:07:14Z",
+          "body": "Yeah, since the test is quite complicated we could do without it. Imo applications like this are pushing the luck. Could say that if an app that otherwise works fails with our agent then it is our bug but in situations like this could also say that the bug is in the app and they have just been lucky to get away with it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20914#discussion_r4386828466"
+        }
+      ],
+      "reviewed": "22e841df989ed3930fc288bc9efe0c32b954e4fb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20914#discussion_r4364871824"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The referenced `TomcatSpringWarTest` and `spring-war` fixture are absent from this tree, leaving the mixed-version startup failure without regression coverage. Add an installed-agent test that deploys a Spring 5.2 WAR before a second WAR using common-loader Spring 5.3, verifies both endpoints and server spans, and fails with the original lookup. Include the no-agent control described in the PR.",
+      "created": "2026-10-27T23:54:59Z",
+      "hunk": "@@ -191,12 +191,12 @@ private static MethodHandle parseAndCacheMh() {\n     try {\n       Class<?> pathUtilsClass =\n           Class.forName(\"org.springframework.web.util.ServletRequestPathUtils\");\n-      Class<?> requestPathClass = Class.forName(\"org.springframework.http.server.RequestPath\");\n+      // Resolve the method's actual return type through its declaring class. With mixed Spring\n+      // versions in parent and child class loaders, independently loading RequestPath can select\n+      // a different class. A findStatic lookup with that type can establish conflicting loader\n+      // constraints and cause a later application startup to fail.\n       return MethodHandles.lookup()\n-          .findStatic(\n-              pathUtilsClass,\n-              \"parseAndCache\",\n-              MethodType.methodType(requestPathClass, HttpServletRequest.class));\n+          .unreflect(pathUtilsClass.getMethod(\"parseAndCache\", HttpServletRequest.class));",
+      "id": "PRRT_kwDODJKVX86w7p0a",
+      "opened": "2026-10-27T23:54:59Z",
+      "path": "instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/main/java/org/springframework/web/servlet/v3_1/OpenTelemetryHandlerMappingFilter.java",
+      "replies": [],
+      "reviewed": "de9e7ff59205ed701c253ce9cb2cdf341d602284",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20914#discussion_r4395509659"
+    }
+  ]
+}

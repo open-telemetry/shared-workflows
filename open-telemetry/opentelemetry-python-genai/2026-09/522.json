@@ -1,0 +1,99 @@
+{
+  "head": "156457d43e1f855f04c7f96738aa91fec03c1291",
+  "merge": "f37a43dcce55c713489c9f961a67cb8511699486",
+  "merged": "2026-09-20T04:45:22Z",
+  "missing_roots": 0,
+  "number": 522,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_is_text_part(content)` can partially consume single-pass iterables (e.g., generators) because it calls `all(...)` over `content`; if it returns `False`, the subsequent `_extract_content_parts(content)` iterates the *remaining* items, silently dropping whatever was consumed during `_is_text_part`. It also treats any `Mapping` as an iterable of keys, which is unlikely to be intended for content-part arrays. Consider materializing non-string, non-mapping iterables once and branching on the materialized sequence to avoid data loss and unintended iteration.",
+      "created": "2026-09-01T08:27:20Z",
+      "hunk": "@@ -206,6 +242,8 @@ def _prepare_input_messages(messages) -> list[InputMessage]:\n                 chat_message.parts += extract_tool_calls_new(tool_calls)\n             if _is_text_part(content):\n                 chat_message.parts.append(TextPart(content=str(content)))\n+            elif content is not None and isinstance(content, Iterable):\n+                chat_message.parts += _extract_content_parts(content)",
+      "id": "PRRT_kwDOSbspP86eBwvG",
+      "opened": "2026-09-01T08:27:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-01T08:31:12Z",
+          "body": "Good catch — addressed in the latest commit. `content` is now routed through a single `_content_to_parts` helper that materializes non-string, non-mapping iterables exactly once before branching, so single-pass iterables are no longer partially consumed, and mappings keep the previous `_is_text_part` behavior (string-keyed mappings captured as `str(mapping)`) instead of being iterated as content-part arrays. Added unit tests for both cases (generator content and mapping content).",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/522#discussion_r3902265378"
+        },
+        {
+          "at": "2026-09-02T01:12:54Z",
+          "body": "Correction to my earlier reply here: \"materialize once\" was the wrong fix. The SDK accepts any iterable for `content` and materializes it itself, so consuming a generator inside the instrumentation (which runs before `wrapped()`) drained the caller's input and the SDK sent `content: []`. As of 7d339a8 only `Sequence` content is walked; other iterables are left untouched and simply not captured, and the unit test now asserts the generator is still unconsumed afterwards.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/522#discussion_r3909858336"
+        }
+      ],
+      "reviewed": "a1fa5dabbaf60605fe34114d7a6b248e7ce3858b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/522#discussion_r3902231496"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`image_url` parts should map to semconv standard media parts (`UriPart` or `BlobPart`) rather than `GenericPart`.\n\n`opentelemetry-util-genai` provides the `image_from_url` helper in `opentelemetry.util.genai.utils` for this exact purpose (it handles external URLs as `UriPart` and base64 data URLs as `BlobPart`). Please reuse `image_from_url(url)` here. `GenericPart` should only be used for provider-specific parts that have no standard semconv representation.",
+      "created": "2026-09-01T21:27:34Z",
+      "hunk": "@@ -191,6 +192,68 @@ def _is_text_part(content: Any) -> bool:\n     )\n \n \n+def _as_plain_value(item: Any) -> Any:\n+    \"\"\"Return a JSON-serializable representation of a content part.\"\"\"\n+    if isinstance(item, Mapping):\n+        return dict(item)\n+    model_dump = getattr(item, \"model_dump\", None)\n+    if callable(model_dump):\n+        return model_dump()\n+    return str(item)\n+\n+\n+def _extract_content_parts(content: Iterable[Any]) -> list[Any]:\n+    \"\"\"Map an OpenAI content-part array (multimodal content) to message parts.\n+\n+    ``text`` parts map to ``TextPart``. Any other part type (``image_url``,\n+    ``input_audio``, ...) is preserved as a ``GenericPart`` carrying the\n+    provider-specific type discriminator and payload, so opted-in content\n+    capture does not silently drop the message.\n+    \"\"\"\n+    parts: list[Any] = []\n+    for item in content:\n+        if isinstance(item, str):\n+            parts.append(TextPart(content=item))\n+            continue\n+        item_type = get_property_value(item, \"type\")\n+        if item_type == \"text\":\n+            parts.append(\n+                TextPart(content=str(get_property_value(item, \"text\") or \"\"))\n+            )\n+        else:\n+            parts.append(\n+                GenericPart(type=str(item_type), value=_as_plain_value(item))",
+      "id": "PRRT_kwDOSbspP86eSF50",
+      "opened": "2026-09-02T00:28:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-02T00:47:46Z",
+          "body": "Done in d7e6b9a — `image_url` parts now go through `image_from_url(url)`: an external URL becomes a `UriPart` and a `data:` URL becomes a `BlobPart`.\n\nWhile at it I mapped the other standard OpenAI parts too, so `GenericPart` is only used for typed parts that have no semconv representation:\n- `input_audio` → audio `BlobPart` (mime type derived from `format`)\n- `file` → `FilePart` for `file_id`, or a document `BlobPart` for inline `file_data`\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/522#discussion_r3909750452"
+        }
+      ],
+      "reviewed": "c6030bb9278a6a91d9516183ecfead2480775318",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/522#discussion_r3908593412"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Stringifying mappings as `TextPart(content=str(content))` turns arbitrary dicts into malformed text parts like `TextPart(content=\"{'unexpected': 'shape'}\")`.\n\nSimilarly, `all(isinstance(item, str) for item in items): return [TextPart(content=str(items))]` produces stringified Python list syntax (`TextPart(content=\"['a', 'b']\")`). Iterables should route through `_extract_content_parts` so string items become individual `TextPart` instances.",
+      "created": "2026-09-01T21:27:34Z",
+      "hunk": "@@ -191,6 +192,68 @@ def _is_text_part(content: Any) -> bool:\n     )\n \n \n+def _as_plain_value(item: Any) -> Any:\n+    \"\"\"Return a JSON-serializable representation of a content part.\"\"\"\n+    if isinstance(item, Mapping):\n+        return dict(item)\n+    model_dump = getattr(item, \"model_dump\", None)\n+    if callable(model_dump):\n+        return model_dump()\n+    return str(item)\n+\n+\n+def _extract_content_parts(content: Iterable[Any]) -> list[Any]:\n+    \"\"\"Map an OpenAI content-part array (multimodal content) to message parts.\n+\n+    ``text`` parts map to ``TextPart``. Any other part type (``image_url``,\n+    ``input_audio``, ...) is preserved as a ``GenericPart`` carrying the\n+    provider-specific type discriminator and payload, so opted-in content\n+    capture does not silently drop the message.\n+    \"\"\"\n+    parts: list[Any] = []\n+    for item in content:\n+        if isinstance(item, str):\n+            parts.append(TextPart(content=item))\n+            continue\n+        item_type = get_property_value(item, \"type\")\n+        if item_type == \"text\":\n+            parts.append(\n+                TextPart(content=str(get_property_value(item, \"text\") or \"\"))\n+            )\n+        else:\n+            parts.append(\n+                GenericPart(type=str(item_type), value=_as_plain_value(item))\n+            )\n+    return parts\n+\n+\n+def _content_to_parts(content: Any) -> list[Any]:\n+    \"\"\"Map message ``content`` to message parts.\n+\n+    Strings map to a single ``TextPart``. Mappings keep the previous\n+    ``_is_text_part`` behavior (string-keyed mappings are captured as\n+    ``str(mapping)``) and are never treated as content-part arrays. Other\n+    iterables are materialized exactly once — ``content`` may be a\n+    single-pass iterable, and type-checking then re-iterating would silently\n+    drop the items already consumed — then map to a ``TextPart`` when\n+    string-only, or through ``_extract_content_parts`` otherwise.\n+    \"\"\"\n+    if isinstance(content, str):\n+        return [TextPart(content=content)]\n+    if content is None:\n+        return []\n+    if isinstance(content, Mapping):",
+      "id": "PRRT_kwDOSbspP86eSF55",
+      "opened": "2026-09-02T00:28:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-02T00:47:48Z",
+          "body": "Agreed — that was a bad carry-over from the old `_is_text_part` behaviour. Both stringifications are gone in d7e6b9a:\n- a bare mapping is treated as a single content part, so `{\"type\": \"text\", \"text\": ...}` becomes a `TextPart` and an untyped dict is dropped instead of becoming a bogus text part;\n- string items in a list each become their own `TextPart`.\n\nEverything now routes through one `_convert_content_part` and the iterable is consumed exactly once.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/522#discussion_r3909750598"
+        }
+      ],
+      "reviewed": "c6030bb9278a6a91d9516183ecfead2480775318",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/522#discussion_r3908593419"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "I don't think we should put audio into telemetry.. it's going to be potentially huge right ? ",
+      "created": "2026-09-02T14:51:48Z",
+      "hunk": "@@ -191,6 +200,135 @@ def _is_text_part(content: Any) -> bool:\n     )\n \n \n+_AUDIO_MIME_TYPES: Mapping[str, str] = {\n+    \"mp3\": \"audio/mpeg\",\n+    \"wav\": \"audio/wav\",\n+}\n+\n+\n+def _as_plain_value(item: Any) -> Any:\n+    \"\"\"Return a JSON-safe representation of a content part.\n+\n+    Never raises: pydantic models are dumped in JSON mode, the result is\n+    round-tripped through ``json`` so only JSON-native values remain, and any\n+    failure falls back to ``str(item)``.\n+    \"\"\"\n+    try:\n+        model_dump = getattr(item, \"model_dump\", None)\n+        if callable(model_dump):\n+            try:\n+                value = model_dump(mode=\"json\")\n+            except Exception:  # pylint: disable=broad-exception-caught\n+                value = model_dump()  # pydantic v1 has no ``mode``\n+        elif isinstance(item, Mapping):\n+            value = dict(item)\n+        else:\n+            value = item\n+        return json.loads(json.dumps(value, default=str))\n+    except Exception:  # pylint: disable=broad-exception-caught\n+        return str(item)\n+\n+\n+def _image_url_part(item: Any) -> MessagePart | None:\n+    \"\"\"Map an ``image_url`` content part to a ``UriPart`` or ``BlobPart``.\"\"\"\n+    image_url = get_property_value(item, \"image_url\")\n+    url = (\n+        image_url\n+        if isinstance(image_url, str)\n+        else get_property_value(image_url, \"url\")\n+    )\n+    if not isinstance(url, str) or not url:\n+        return None\n+    return image_from_url(url)\n+\n+\n+def _input_audio_part(item: Any) -> MessagePart | None:\n+    \"\"\"Map an ``input_audio`` content part to an audio ``BlobPart``.\"\"\"\n+    input_audio = get_property_value(item, \"input_audio\")",
+      "id": "PRRT_kwDOSbspP86ejaSu",
+      "opened": "2026-09-02T14:51:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/utils.py",
+      "replies": [
+        {
+          "at": "2026-09-03T00:46:16Z",
+          "body": "Agreed. There is no size guard anywhere in util-genai and a single clip would be base64-inlined into `gen_ai.input.messages` (a span that large can fail the whole OTLP export batch), so inline audio is no longer captured as of 4f9f343: `input_audio` parts are explicitly skipped, rather than falling through to a `GenericPart` that would have embedded the base64 in `value`, while the text/image parts around them are still captured.\n\nThe same argument applies to inline `file_data` documents, so 4b0748a gives them the same treatment: `file` parts are captured only when they carry a `file_id` (as a `FilePart`), and inline `file_data` is skipped. For what it's worth, the anthropic instrumentation is the one place that inlines document bytes today; google-genai records documents as a `UriPart` reference only. @lmolkova, if \"and others\" in your review was meant to include inline audio and documents as a `BlobPart`, just say so and I'll restore those mappings.\n\nThe remaining inline case is data-URL images, which come from util-genai's `image_from_url` (as @lmolkova asked for above). I left that as-is since it's shared util behaviour rather than something this PR decides; if those shouldn't be inlined either, that seems like a util-genai-level call.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/522#discussion_r3920011416"
+        }
+      ],
+      "reviewed": "7d339a8baf23aecf5126041d1fa65002d09f6d7a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/522#discussion_r3915415727"
+    }
+  ]
+}

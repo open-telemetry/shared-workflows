@@ -1,0 +1,31 @@
+{
+  "head": "37578323006d1503a23e31a5040a204be4f702bd",
+  "merge": "cba3f4c31393d3f665123ea6271c08dc4de7c77f",
+  "merged": "2026-11-21T17:56:56Z",
+  "missing_roots": 0,
+  "number": 21395,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the Couchbase Common 3.0 test wiring in `instrumentation/couchbase/couchbase-common-3.0/javaagent/build.gradle.kts` on this PR. Drop the `unitTests` dependency block: the javaagent testing convention supplies `testing-common`, which exports `:instrumentation-api-incubator` and `opentelemetry-sdk-testing`, and neither moved test nor the helpers they exercise uses `:javaagent-extension-api`. Register the two variants directly on `unitTests().executions { ... }` instead of looking up the suite by name.\n\nKeep the default, `logs`, and `logs/dup` modes, their existing task names, the shared classpath, agent-free execution, and `check` wiring. Leave the shared variant classifier, tests, and docs unchanged. Run the three focused Couchbase Common tasks: `unitTests`, `unitTestsExceptionSignalLogs`, and `unitTestsExceptionSignalLogsDup`.\n\nUpdate this existing draft PR directly on `open-telemetry/opentelemetry-java-instrumentation` branch `copilot/copilotmigrate-jodd-http-test`. Keep the cloud-assigned branch name and don't create or request a new PR or replacement branch. If GitHub creates a follow-up branch itself, keep its assigned name.",
+      "created": "2026-11-21T01:32:12Z",
+      "hunk": "@@ -1,7 +1,29 @@\n+import io.opentelemetry.instrumentation.gradle.executions\n+import io.opentelemetry.instrumentation.gradle.unitTests\n+\n /*\n  * Classes shared by the Couchbase 3.x tracing SPI adapters.\n  */\n plugins {\n   id(\"otel.javaagent-instrumentation\")\n   id(\"otel.nullaway-conventions\")\n }\n+\n+testing.suites {\n+  unitTests {\n+    dependencies {",
+      "id": "PRRT_kwDODJKVX866PoCk",
+      "opened": "2026-11-21T01:32:12Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-21T01:41:49Z",
+          "body": "Updated and pushed as `5307017c`. The suite helper now supplies dependencies, and both variants are registered directly on `unitTests()`; all three requested Couchbase tasks passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21395#discussion_r4649744379"
+        }
+      ],
+      "reviewed": "fffa798188984a804e2c624871b127efcc385c4a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21395#discussion_r4649672398"
+    }
+  ]
+}

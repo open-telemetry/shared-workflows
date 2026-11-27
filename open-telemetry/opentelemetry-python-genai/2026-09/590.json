@@ -1,0 +1,109 @@
+{
+  "head": "ac4b1bc37dc26a2637f53af4509700697b38be39",
+  "merge": "a2f5eee57b57c5211583976d7ab97bf96f6c422e",
+  "merged": "2026-09-09T23:00:56Z",
+  "missing_roots": 0,
+  "number": 590,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "format_content() relies on _json_default() when serializing dict/list values. _json_default currently supports Pydantic v2 via model_dump(), but not Pydantic v1 (BaseModel.dict()). In the oldest env (fastapi>=0.100 resolves to Pydantic v1), nested BaseModel objects inside dict/list will be stringified instead of producing JSON, which will break the new test expecting nested structured serialization.",
+      "created": "2026-09-03T17:30:33Z",
+      "hunk": "@@ -5,15 +5,79 @@\n \n from __future__ import annotations\n \n+import dataclasses\n+import json\n from collections.abc import Iterable\n-from typing import Any, cast\n+from typing import Any, Protocol, cast, runtime_checkable\n \n from opentelemetry.util.genai.types import (\n     FunctionToolDefinition,\n     ToolDefinition,\n )\n \n \n+@runtime_checkable\n+class _ModelDumpJson(Protocol):\n+    def model_dump_json(self) -> str: ...\n+\n+\n+@runtime_checkable\n+class _JsonDump(Protocol):\n+    def json(self) -> str: ...\n+\n+\n+@runtime_checkable\n+class _ModelDump(Protocol):\n+    def model_dump(self) -> Any: ...\n+\n+\n+def _json_default(obj: object) -> object:\n+    if isinstance(obj, _ModelDump):\n+        try:\n+            return obj.model_dump()\n+        except Exception:\n+            pass\n+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):\n+        try:\n+            return dataclasses.asdict(obj)\n+        except Exception:\n+            pass\n+    return str(obj)",
+      "id": "PRRT_kwDOSbspP86fA2J4",
+      "opened": "2026-09-03T17:30:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/utils.py",
+      "replies": [],
+      "reviewed": "46227305859836bb7b126bd72b7a1e32b65642b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/590#discussion_r3927031785"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Starting the invocation synchronously attaches the span before the coroutine is awaited. When concurrent calls are made (e.g. `asyncio.gather(agent.arun(...), agent.arun(...))`), the spans nest and detaching raises `ValueError: was created in a different Context`.\n\nFor `Awaitable` returns, start and stop the invocation inside `_await_result` instead.\n\n```python\ndef test_agent_arun_concurrent(instrument_agno, span_exporter):\n    agent = Agent(name=\"test-agent\", model=MockModel(id=\"mock-model\"))\n\n    async def _run():\n        coro1 = agent.arun(\"input 1\")\n        coro2 = agent.arun(\"input 2\")\n        await asyncio.gather(coro1, coro2)\n\n    asyncio.run(_run())\n\n    spans = span_exporter.get_finished_spans()\n    assert len(spans) == 2\n    assert spans[0].parent is None\n    assert spans[1].parent is None\n```",
+      "created": "2026-09-03T22:31:53Z",
+      "hunk": "@@ -294,20 +302,53 @@ def _agent_arun(\n ) -> Callable[..., Any]:\n     capture_content = handler.should_capture_content()\n \n-    async def traced_method(\n-        wrapped: Callable[..., Awaitable[Any]],\n+    def traced_method(\n+        wrapped: Callable[..., Any],\n         instance: Any,\n         args: tuple[Any, ...],\n         kwargs: dict[str, Any],\n     ) -> Any:\n-        with _start_agent_invocation(\n+        invocation = _start_agent_invocation(",
+      "id": "PRRT_kwDOSbspP86fGgda",
+      "opened": "2026-09-04T21:25:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-08T18:08:20Z",
+          "body": "moved the invocation start into an awaitable, except for when simply calling the wrapped awaitable triggers an exception.. for that case i put it into the except block",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/590#discussion_r3960859917"
+        }
+      ],
+      "reviewed": "780d06cfa44d7221bfac395d153d9222ab05331b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/590#discussion_r3929270233"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`\"completed\" in event_name.lower()` matches intermediate events like `ToolCallCompleted` and `ReasoningCompleted`. Since they carry `content`, `_self_completed_content` is set to tool or reasoning results and the final output is lost.\n\nMatch terminal event names explicitly (e.g. `event_name in (\"RunCompleted\", \"TeamRunCompleted\")`). The same applies to `_WorkflowStreamMixin` (`WorkflowCompleted`).\n\n```python\ndef test_agent_stream_tool_completed_event_preserves_final_content(\n    instrument_agno_content_capture, span_exporter\n):\n    agent = Agent(name=\"test-agent\", model=MockModel(id=\"mock-model\"))\n\n    def fake_stream(*args, **kwargs):\n        yield ToolCallCompletedEvent(content=\"tool output\")\n        yield RunContentEvent(content=\"final answer\")\n        yield RunCompletedEvent()\n\n    with _patch_agent_stream(fake_stream):\n        list(agent.run(\"hello\", stream=True))\n\n    span = span_exporter.get_finished_spans()[0]\n    output_messages = span.attributes.get(GenAIAttributes.GEN_AI_OUTPUT_MESSAGES)\n    assert \"final answer\" in output_messages\n    assert \"tool output\" not in output_messages\n```",
+      "created": "2026-09-03T22:31:53Z",
+      "hunk": "@@ -0,0 +1,261 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Stream wrappers for Agno instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+from opentelemetry.instrumentation.genai.agno.utils import (\n+    _get_property_value,\n+    format_content,\n+)\n+from opentelemetry.util.genai.invocation import (\n+    AgentInvocation,\n+    WorkflowInvocation,\n+)\n+from opentelemetry.util.genai.stream import (\n+    AsyncStreamWrapper,\n+    SyncStreamWrapper,\n+)\n+from opentelemetry.util.genai.types import (\n+    OutputMessage,\n+    TextPart,\n+)\n+\n+\n+def _extract_chunk_content(chunk: Any) -> str | None:\n+    if chunk is None:\n+        return None\n+    if isinstance(chunk, str):\n+        return chunk\n+    content = _get_property_value(chunk, \"content\")\n+    if content is not None:\n+        return format_content(content)\n+    return None\n+\n+\n+class _AgentStreamMixin:\n+    _self_invocation: AgentInvocation\n+    _self_capture_content: bool\n+    _self_content_parts: list[str]\n+    _self_completed_content: str | None\n+    _self_finish_reason: str\n+\n+    def _process_chunk(self, chunk: Any) -> None:\n+        session_id = getattr(chunk, \"session_id\", None)\n+        if session_id and not self._self_invocation.conversation_id:\n+            self._self_invocation.conversation_id = str(session_id)\n+\n+        metrics = getattr(chunk, \"metrics\", None)\n+        if metrics is not None:\n+            if getattr(metrics, \"input_tokens\", None) is not None:\n+                self._self_invocation.input_tokens = metrics.input_tokens\n+            if getattr(metrics, \"output_tokens\", None) is not None:\n+                self._self_invocation.output_tokens = metrics.output_tokens\n+            if getattr(metrics, \"cache_read_tokens\", None) is not None:\n+                self._self_invocation.cache_read_input_tokens = (\n+                    metrics.cache_read_tokens\n+                )\n+            if getattr(metrics, \"cache_write_tokens\", None) is not None:\n+                self._self_invocation.cache_creation_input_tokens = (\n+                    metrics.cache_write_tokens\n+                )\n+\n+        event_name = str(getattr(chunk, \"event\", \"\"))\n+        chunk_type = type(chunk).__name__\n+        is_completed = \"completed\" in event_name.lower() or chunk_type in (",
+      "id": "PRRT_kwDOSbspP86fGgdg",
+      "opened": "2026-09-04T21:25:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/stream.py",
+      "replies": [
+        {
+          "at": "2026-09-08T18:05:31Z",
+          "body": "good catch.. fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/590#discussion_r3960838589"
+        }
+      ],
+      "reviewed": "780d06cfa44d7221bfac395d153d9222ab05331b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/590#discussion_r3929270241"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Passing `invocation=invocation` to `super().__init__` causes `SyncStreamWrapper` / `AsyncStreamWrapper` to record `gen_ai.client.operation.time_to_first_chunk` and `time_per_output_chunk` metrics. These metrics are only defined for client LLM calls (e.g. `chat`), not `invoke_agent` or `invoke_workflow`.\n\nCall `super().__init__(stream)` without `invocation` (similar to `qwen_agent`).\n\n```python\ndef test_agent_stream_no_llm_client_metrics(\n    instrument_agno, metric_reader\n):\n    agent = Agent(name=\"test-agent\", model=MockModel(id=\"mock-model\"))\n\n    def fake_stream(*args, **kwargs):\n        yield ModelResponse(content=\"chunk 1\")\n        yield ModelResponse(content=\"chunk 2\")\n\n    with patch(\"agno.models.base.Model.response_stream\", side_effect=fake_stream):\n        list(agent.run(\"hello\", stream=True))\n\n    metric_names = [\n        m.name\n        for rm in metric_reader.get_metrics_data().resource_metrics\n        for sm in rm.scope_metrics\n        for m in sm.metrics\n    ]\n    assert \"gen_ai.client.operation.time_to_first_chunk\" not in metric_names\n    assert \"gen_ai.client.operation.time_per_output_chunk\" not in metric_names\n```",
+      "created": "2026-09-03T22:31:53Z",
+      "hunk": "@@ -0,0 +1,261 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Stream wrappers for Agno instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+from opentelemetry.instrumentation.genai.agno.utils import (\n+    _get_property_value,\n+    format_content,\n+)\n+from opentelemetry.util.genai.invocation import (\n+    AgentInvocation,\n+    WorkflowInvocation,\n+)\n+from opentelemetry.util.genai.stream import (\n+    AsyncStreamWrapper,\n+    SyncStreamWrapper,\n+)\n+from opentelemetry.util.genai.types import (\n+    OutputMessage,\n+    TextPart,\n+)\n+\n+\n+def _extract_chunk_content(chunk: Any) -> str | None:\n+    if chunk is None:\n+        return None\n+    if isinstance(chunk, str):\n+        return chunk\n+    content = _get_property_value(chunk, \"content\")\n+    if content is not None:\n+        return format_content(content)\n+    return None\n+\n+\n+class _AgentStreamMixin:\n+    _self_invocation: AgentInvocation\n+    _self_capture_content: bool\n+    _self_content_parts: list[str]\n+    _self_completed_content: str | None\n+    _self_finish_reason: str\n+\n+    def _process_chunk(self, chunk: Any) -> None:\n+        session_id = getattr(chunk, \"session_id\", None)\n+        if session_id and not self._self_invocation.conversation_id:\n+            self._self_invocation.conversation_id = str(session_id)\n+\n+        metrics = getattr(chunk, \"metrics\", None)\n+        if metrics is not None:\n+            if getattr(metrics, \"input_tokens\", None) is not None:\n+                self._self_invocation.input_tokens = metrics.input_tokens\n+            if getattr(metrics, \"output_tokens\", None) is not None:\n+                self._self_invocation.output_tokens = metrics.output_tokens\n+            if getattr(metrics, \"cache_read_tokens\", None) is not None:\n+                self._self_invocation.cache_read_input_tokens = (\n+                    metrics.cache_read_tokens\n+                )\n+            if getattr(metrics, \"cache_write_tokens\", None) is not None:\n+                self._self_invocation.cache_creation_input_tokens = (\n+                    metrics.cache_write_tokens\n+                )\n+\n+        event_name = str(getattr(chunk, \"event\", \"\"))\n+        chunk_type = type(chunk).__name__\n+        is_completed = \"completed\" in event_name.lower() or chunk_type in (\n+            \"RunOutput\",\n+            \"TeamRunOutput\",\n+            \"RunCompletedEvent\",\n+            \"TeamRunCompletedEvent\",\n+        )\n+        is_error = (\n+            \"error\" in event_name.lower() or \"error\" in chunk_type.lower()\n+        )\n+        if is_error:\n+            self._self_finish_reason = \"error\"\n+\n+        if is_completed:\n+            content = _extract_chunk_content(chunk)\n+            if content is not None:\n+                self._self_completed_content = content\n+        elif self._self_capture_content:\n+            content = _extract_chunk_content(chunk)\n+            if content is not None:\n+                self._self_content_parts.append(content)\n+\n+    def _finalize(self, error: BaseException | None = None) -> None:\n+        if self._self_capture_content:\n+            if self._self_completed_content is not None:\n+                final_content = self._self_completed_content\n+            else:\n+                final_content = \"\".join(self._self_content_parts)\n+\n+            if final_content:\n+                finish_reason = (\n+                    \"error\" if error is not None else self._self_finish_reason\n+                )\n+                self._self_invocation.output_messages = [\n+                    OutputMessage(\n+                        role=\"assistant\",\n+                        parts=[TextPart(content=final_content)],\n+                        finish_reason=finish_reason,\n+                    )\n+                ]\n+\n+        if error is not None:\n+            self._self_invocation.fail(error)\n+        else:\n+            self._self_invocation.stop()\n+\n+    def _on_stream_end(self) -> None:\n+        self._finalize()\n+\n+    def _on_stream_error(self, error: BaseException) -> None:\n+        self._finalize(error)\n+\n+\n+class AgnoAgentStreamWrapper(_AgentStreamMixin, SyncStreamWrapper[Any]):\n+    \"\"\"Synchronous stream wrapper for Agno Agent and Team runs.\"\"\"\n+\n+    def __init__(\n+        self,\n+        stream: Any,\n+        invocation: AgentInvocation,\n+        capture_content: bool,\n+    ) -> None:\n+        super().__init__(stream, invocation=invocation)",
+      "id": "PRRT_kwDOSbspP86fGgdm",
+      "opened": "2026-09-04T21:25:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/stream.py",
+      "replies": [
+        {
+          "at": "2026-09-08T18:04:30Z",
+          "body": "Fixed!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/590#discussion_r3960830704"
+        }
+      ],
+      "reviewed": "780d06cfa44d7221bfac395d153d9222ab05331b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/590#discussion_r3929270250"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "mind adding a conformance test for streaming workflow? Thanks!",
+      "created": "2026-09-08T20:37:25Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86gZwD6",
+      "opened": "2026-09-08T20:37:30Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_stream.py",
+      "replies": [
+        {
+          "at": "2026-09-09T13:48:36Z",
+          "body": "Ack, added",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/590#discussion_r3969170187"
+        }
+      ],
+      "reviewed": "5404db533587cdeae68405fc6a24cd88c5ef207a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/590#discussion_r3962037509"
+    }
+  ]
+}

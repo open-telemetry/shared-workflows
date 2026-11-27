@@ -1,0 +1,25 @@
+{
+  "head": "737e22891a1178f47f0dc4a45aa576d0c417907b",
+  "merge": "40365777f6f470789c74f09d1c28392389e5f927",
+  "merged": "2026-11-11T21:34:00Z",
+  "missing_roots": 0,
+  "number": 1071,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changes LlamaIndex's cassette-matching behavior, which is unrelated to the CodeQL action version update described by this PR. Please move the matcher, its registration fixture, and associated imports into a separate PR so the dependency update can be reviewed and reverted independently of the test-infrastructure change.",
+      "created": "2026-11-11T21:14:59Z",
+      "hunk": "@@ -70,10 +73,21 @@ def vcr_config():\n                 \"Set-Cookie\": \"test_set_cookie\",\n             }\n         ),\n-        \"match_on\": [\"method\", \"scheme\", \"host\", \"port\", \"path\", \"body\"],\n+        \"match_on\": [\"method\", \"scheme\", \"host\", \"port\", \"path\", \"json_body\"],",
+      "id": "PRRT_kwDOSbspP862XDfZ",
+      "opened": "2026-11-11T21:15:00Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/conftest.py",
+      "replies": [],
+      "reviewed": "737e22891a1178f47f0dc4a45aa576d0c417907b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1071#discussion_r4543270857"
+    }
+  ]
+}

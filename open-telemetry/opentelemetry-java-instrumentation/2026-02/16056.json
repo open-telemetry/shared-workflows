@@ -1,0 +1,25 @@
+{
+  "head": "855249e208561dc53ddba9a0177fdfd28339c175",
+  "merge": "8fe1ab11341af146cd2aa14d92c57394d8ea7a59",
+  "merged": "2026-02-03T15:50:36Z",
+  "missing_roots": 0,
+  "number": 16056,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n            // too early on early jdk8 causes jvm to crash. See CrashEarlyJdk8Test.\n```",
+      "created": "2026-01-30T15:37:22Z",
+      "hunk": "@@ -139,6 +139,21 @@ public AgentClassLoader(\n       throw new IllegalStateException(\"Unable to open agent jar\", e);\n     }\n \n+    bootstrapProxy =\n+        new BootstrapClassLoaderProxy(\n+            // this call deliberately uses anonymous class instead of lambda because using lambdas\n+            // too\n+            // early on early jdk8 causes jvm to crash. See CrashEarlyJdk8Test.",
+      "id": "PRRT_kwDODJKVX85r5F1s",
+      "opened": "2026-01-30T15:37:26Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/AgentClassLoader.java",
+      "replies": [],
+      "reviewed": "27d950d3555b8871bb124e6b96ab9b9d8c81593b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16056#discussion_r2746842943"
+    }
+  ]
+}

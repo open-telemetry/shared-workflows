@@ -1,0 +1,31 @@
+{
+  "head": "de0f733535b5e0544666dcb4959e82fbda3b7859",
+  "merge": "42f8313f8fd213cfc1e68c87e7ffa73e0237bdb9",
+  "merged": "2026-07-17T20:43:37Z",
+  "missing_roots": 0,
+  "number": 19251,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Undeprecating this overload leaves the TODO on line 25 stale: it still says this method is deprecated and will be deleted in the next major release. Please remove or revise that TODO so future API cleanup does not follow a plan this PR is explicitly reversing.",
+      "created": "2026-07-17T02:39:19Z",
+      "hunk": "@@ -28,10 +28,7 @@ default void configure(IgnoredTypesBuilder builder) {}\n   /**\n    * Configure the passed {@code builder} and define which classes should be ignored when\n    * instrumenting.\n-   *\n-   * @deprecated Use {@link #configure(IgnoredTypesBuilder)} instead. Will be removed in 3.0.\n    */\n-  @Deprecated // to be removed in 3.0\n   default void configure(IgnoredTypesBuilder builder, ConfigProperties config) {",
+      "id": "PRRT_kwDODJKVX86Ropxa",
+      "opened": "2026-07-17T02:39:19Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/extension/ignore/IgnoredTypesConfigurer.java",
+      "replies": [
+        {
+          "at": "2026-07-17T03:00:07Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19251/commits/926e12d27e0970dddc021499c38d6eeeb1925f09",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19251#discussion_r3600093605"
+        }
+      ],
+      "reviewed": "7da0dae4f80325ed56f2032a4fb9c5b3def6eba2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19251#discussion_r3600027141"
+    }
+  ]
+}

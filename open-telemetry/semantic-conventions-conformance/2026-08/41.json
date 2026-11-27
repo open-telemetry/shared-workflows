@@ -1,0 +1,36 @@
+{
+  "head": "00ab27d464d5a0c33c459db98648bf158c4323cc",
+  "merge": "f5e12cfbd2096efadca1c6ffbeb447b2cfe52788",
+  "merged": "2026-08-19T15:51:28Z",
+  "missing_roots": 0,
+  "number": 41,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we need it as a separate file from scenarios/http/python/flask/opentelemetry-flask/server/scenario.py ?\n\nI might over-optimized README for GenAI scenarios where there are multiple instrumentations against one lib, it doesn't make that much sense outside of GenAI",
+      "created": "2026-08-16T18:08:45Z",
+      "hunk": "",
+      "id": "PRRT_kwDOTuzK5c6ZorfR",
+      "opened": "2026-08-16T18:11:42Z",
+      "path": "scenarios/http/python/flask/scenarios/server.py",
+      "replies": [
+        {
+          "at": "2026-08-16T18:48:51Z",
+          "body": "sorry, AI replied and resolve this without my permission 😞\r\n\r\n> I might over-optimized README for GenAI scenarios where there are multiple instrumentations against one lib, it doesn't make that much sense outside of GenAI\r\n\r\nJava uses it to test both agent and library instrumentation. Not sure if we want to do similar with autoinstrumentation in other languages too",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/41#discussion_r3792558309"
+        },
+        {
+          "at": "2026-08-17T02:38:01Z",
+          "body": "you'll like this, when I interrupted the orchestrator agent for these 4 PRs and asked it what it was still doing:\r\n\r\n> The four child sessions and I got into a long peer-review loop over measurement details — shell exit codes, conflict-marker placement, message timestamps. Most recently it's been re-adjudicating who said what when.\r\n\r\n😭",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/41#discussion_r3793503624"
+        }
+      ],
+      "reviewed": "519974749d2cceaae6803ffbb5dea1d66920be2a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/41#discussion_r3792480154"
+    }
+  ]
+}

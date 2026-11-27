@@ -1,0 +1,25 @@
+{
+  "head": "5c4663a6e6d379a6f923dcf9f65cd556a5a7ddc8",
+  "merge": "362694e3ed50a4a83661f935286a3d9546c6a4e4",
+  "merged": "2026-04-27T20:15:18Z",
+  "missing_roots": 0,
+  "number": 18339,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-04-27T19:35:37Z",
+      "hunk": "@@ -203,6 +203,13 @@ void testGetInt() {\n \n     assertThat(config.getStructured(\"java\").getStructured(\"aws_lambda\").getInt(\"flush_timeout\"))\n         .isEqualTo(5000);\n+    assertThat(\n+            createConfig(\"otel.jmx.discovery.delay\", \"42\")\n+                .getStructured(\"java\")\n+                .getStructured(\"jmx\")\n+                .getStructured(\"discovery\")\n+                .getInt(\"delay\"))\n+        .isEqualTo(42);",
+      "id": "PRRT_kwDODJKVX8597-po",
+      "opened": "2026-04-27T19:35:37Z",
+      "path": "declarative-config-bridge/src/test/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigPropertiesTest.java",
+      "replies": [],
+      "reviewed": "4119be32251e4474f085d347b9e7196023ac1031",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18339#discussion_r3149723988"
+    }
+  ]
+}

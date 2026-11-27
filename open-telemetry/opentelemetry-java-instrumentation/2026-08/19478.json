@@ -1,0 +1,52 @@
+{
+  "head": "5504c838d8f75139151fc695b20c368838bd9ab7",
+  "merge": "08285299902ff6f26c7a659ddab1169db5e129f4",
+  "merged": "2026-08-14T15:24:24Z",
+  "missing_roots": 0,
+  "number": 19478,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `MessagingAttributesExtractor` is also a `SpanKeyProvider`, so this newly assigns `CONSUMER_PROCESS` suppression to the per-message instrumenter even when stable messaging semconv is disabled. With the default semconv suppression strategy, an ambient process span (for example, one from a custom batch instrumenter passed to `TracingSqsMessageHandler`) now suppresses every per-message span; the previous extractor had no span key. To preserve the promised legacy topology, omit the span key in legacy mode and retain it only for the new mode, with a nested-process regression test.",
+      "created": "2026-08-12T02:03:08Z",
+      "hunk": "@@ -5,55 +5,63 @@\n \n package io.opentelemetry.instrumentation.awslambdaevents.common.v2_2.internal;\n \n+import static io.opentelemetry.instrumentation.api.incubator.semconv.messaging.internal.MessagingExceptionEventExtractors.setMessagingProcessExceptionEventExtractor;\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+\n import com.amazonaws.services.lambda.runtime.events.SQSEvent;\n import com.amazonaws.services.lambda.runtime.events.SQSEvent.SQSMessage;\n import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.contrib.awsxray.propagator.AwsXrayPropagator;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesExtractor;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingOperationType;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingSpanNameExtractor;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.internal.MessagingProcessInstrumenterFactory;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n-import java.util.List;\n \n /**\n  * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n  * any time.\n  */\n public final class AwsLambdaSqsInstrumenterFactory {\n+  private static final String PROCESS_OPERATION_NAME = \"process\";\n \n   public static Instrumenter<SQSEvent, Void> forEvent(\n       OpenTelemetry openTelemetry, String instrumentationName) {\n-    return Instrumenter.<SQSEvent, Void>builder(\n-            openTelemetry, instrumentationName, AwsLambdaSqsInstrumenterFactory::spanName)\n-        .addAttributesExtractor(new SqsEventAttributesExtractor())\n-        .addSpanLinksExtractor(new SqsEventSpanLinksExtractor())\n-        .buildInstrumenter(SpanKindExtractor.alwaysConsumer());\n+    SqsEventAttributesGetter getter = new SqsEventAttributesGetter();\n+    InstrumenterBuilder<SQSEvent, Void> builder =\n+        Instrumenter.<SQSEvent, Void>builder(\n+                openTelemetry,\n+                instrumentationName,\n+                emitStableMessagingSemconv()\n+                    ? MessagingSpanNameExtractor.create(\n+                        getter, MessagingOperationType.PROCESS, PROCESS_OPERATION_NAME)\n+                    : event -> SqsEventAttributesGetter.source(event) + \" process\")\n+            .addAttributesExtractor(\n+                new SpanKeyOmittingAttributesExtractor<>(\n+                    MessagingAttributesExtractor.create(\n+                        getter, MessagingOperationType.PROCESS, PROCESS_OPERATION_NAME)))\n+            .addSpanLinksExtractor(new SqsEventSpanLinksExtractor());\n+    setMessagingProcessExceptionEventExtractor(builder);\n+    return builder.buildInstrumenter(SpanKindExtractor.alwaysConsumer());\n   }\n \n   public static Instrumenter<SQSMessage, Void> forMessage(\n       OpenTelemetry openTelemetry, String instrumentationName) {\n-    return Instrumenter.<SQSMessage, Void>builder(\n-            openTelemetry, instrumentationName, message -> message.getEventSource() + \" process\")\n-        .addAttributesExtractor(new SqsMessageAttributesExtractor())\n-        .addSpanLinksExtractor(new SqsMessageSpanLinksExtractor())\n-        .buildInstrumenter(SpanKindExtractor.alwaysConsumer());\n-  }\n-\n-  private static String spanName(SQSEvent event) {\n-    String source = \"multiple_sources\";\n-    List<SQSMessage> records = event.getRecords();\n-    if (records != null && !records.isEmpty()) {\n-      String messageSource = records.get(0).getEventSource();\n-      for (int i = 1; i < records.size(); i++) {\n-        SQSMessage message = records.get(i);\n-        if (!message.getEventSource().equals(messageSource)) {\n-          messageSource = null;\n-          break;\n-        }\n-      }\n-      if (messageSource != null) {\n-        source = messageSource;\n-      }\n-    }\n-\n-    return source + \" process\";\n+    SqsMessageAttributesGetter getter = new SqsMessageAttributesGetter();\n+    InstrumenterBuilder<SQSMessage, Void> builder =\n+        Instrumenter.<SQSMessage, Void>builder(\n+                openTelemetry,\n+                instrumentationName,\n+                MessagingSpanNameExtractor.create(\n+                    getter, MessagingOperationType.PROCESS, PROCESS_OPERATION_NAME))\n+            .addAttributesExtractor(\n+                MessagingAttributesExtractor.create(\n+                    getter, MessagingOperationType.PROCESS, PROCESS_OPERATION_NAME));",
+      "id": "PRRT_kwDODJKVX86YbnvE",
+      "opened": "2026-08-12T02:03:09Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/AwsLambdaSqsInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-08-12T02:22:31Z",
+          "body": "Addressed in 430deafb17dbbc94c3245ba3d46452b8165e1c0f.\n\nAnalysis: The migrated per-message extractor exposes the consumer-process span key in every semconv mode, unlike the legacy extractor. Wrapping it only in legacy mode preserves prior span creation while keeping semantic-convention suppression in messaging preview mode. The regression test exercises a custom ambient consumer-process event instrumenter in both modes.\n\nUpsides: Preserves legacy per-message span topology and verifies preview-mode suppression remains enabled.\n\nDownsides: Adds a small mode-dependent wrapper branch and test-only span-key extractor.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19478#discussion_r3763146866"
+        }
+      ],
+      "reviewed": "622ccc7a33fbf6115a1e03fb932646ed28447690",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19478#discussion_r3763077189"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess this is for backwards compatibility? I think that since spec doesn't suggest using `multiple_sources` we could consider just returning null and calling it a bug fix.",
+      "created": "2026-08-14T13:27:30Z",
+      "hunk": "@@ -0,0 +1,53 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awslambdaevents.common.v2_2.internal;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+\n+import com.amazonaws.services.lambda.runtime.events.SQSEvent;\n+import com.amazonaws.services.lambda.runtime.events.SQSEvent.SQSMessage;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+final class SqsEventAttributesGetter extends SqsAttributesGetter<SQSEvent> {\n+\n+  @Nullable\n+  @Override\n+  public String getDestination(SQSEvent event) {\n+    return emitStableMessagingSemconv()\n+        ? SqsEventRecordAttributes.create(event).getCommonDestination()\n+        : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public Long getBatchMessageCount(SQSEvent event, @Nullable Void unused) {\n+    if (!emitStableMessagingSemconv()) {\n+      return null;\n+    }\n+    List<SQSMessage> records = event.getRecords();\n+    return records == null ? null : (long) records.size();\n+  }\n+\n+  static String source(SQSEvent event) {\n+    String source = \"multiple_sources\";",
+      "id": "PRRT_kwDODJKVX86ZSO5_",
+      "opened": "2026-08-14T13:27:29Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/SqsEventAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-14T15:24:07Z",
+          "body": "Will send follow-up",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19478#discussion_r3785056916"
+        }
+      ],
+      "reviewed": "5504c838d8f75139151fc695b20c368838bd9ab7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19478#discussion_r3784019223"
+    }
+  ]
+}

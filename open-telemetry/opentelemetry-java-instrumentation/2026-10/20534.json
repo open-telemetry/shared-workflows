@@ -1,0 +1,169 @@
+{
+  "head": "bc928f8315cc2759bda9e07ea30f3c97fdab18c6",
+  "merge": "f73ed7eae0fbedb05326398c47d59cb19c4f9a9f",
+  "merged": "2026-10-13T05:21:23Z",
+  "missing_roots": 0,
+  "number": 20534,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please make `otel.instrumentation.couchbase.emit-experimental-telemetry` the single umbrella setting for Couchbase experimental telemetry, defaulting to `false`. It should enable experimental span attributes for both Couchbase 2.x and 3.x, and also enable the SDK detail spans for Couchbase 3.x. This matches the existing HTTP convention, where `emit-experimental-telemetry` includes experimental attributes as well as other telemetry.\n\nThe next release is 3.0, so breaking changes are allowed. Remove `otel.instrumentation.couchbase.experimental-span-attributes` and its declarative equivalent, `java.couchbase.experimental_span_attributes/development`, across Couchbase 2.x and 3.x. Remove the deprecated-property fallback and warnings rather than retaining compatibility support. Keep `java.couchbase.emit_experimental_telemetry/development` as the corresponding declarative setting.\n\nUse one effective primitive boolean, with no separate attributes flag, nullable override, or `EXPERIMENTAL_TELEMETRY_CONFIGURED` presence check. Update the tests and test variants to cover disabled and enabled umbrella behavior, and update the README, configuration metadata/generated docs, changelog migration note, and PR description accordingly. Preserve the PR's span-kind and instrumentation-scope corrections.",
+      "created": "2026-10-12T17:48:40Z",
+      "hunk": "@@ -36,12 +35,13 @@ public final class CouchbaseSpan {\n   private static final String NET_PEER_NAME = \"net.peer.name\";\n   private static final String NET_PEER_PORT = \"net.peer.port\";\n \n-  private static final boolean v3Preview = v3Preview();\n+  private static final boolean captureExperimentalAttributes;",
+      "id": "PRRT_kwDODJKVX86rkOIK",
+      "opened": "2026-10-12T17:48:40Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_0/CouchbaseSpan.java",
+      "replies": [
+        {
+          "at": "2026-10-12T18:06:40Z",
+          "body": "Implemented in `1c9c2388`. The PR now uses only `emit-experimental-telemetry` for Couchbase 2.x/3.x, removes the deprecated setting and fallback, and documents the migration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4250989976"
+        }
+      ],
+      "reviewed": "9d1f6eb097e8421f58b3870b99cc1129b1334eb8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4250855659"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "use more std getBoolean(\"\", false)",
+      "created": "2026-10-12T18:27:02Z",
+      "hunk": "@@ -56,24 +54,7 @@ public static Instrumenter<CouchbaseRequestInfo, Void> instrumenter() {\n   }\n \n   private static boolean captureExperimentalTelemetry(DeclarativeConfigProperties config) {\n-    Boolean configured = config.getBoolean(\"emit_experimental_telemetry/development\");\n-    if (configured != null) {\n-      return configured;\n-    }\n-\n-    // Deprecated; remains active until the next minor release.\n-    Boolean deprecated = config.getBoolean(\"experimental_span_attributes/development\");\n-    if (deprecated == null) {\n-      return false;\n-    }\n-\n-    logger.warning(\n-        \"The otel.instrumentation.couchbase.experimental-span-attributes setting and the\"\n-            + \" equivalent declarative configuration property are deprecated and will be removed\"\n-            + \" in the next minor release. Use\"\n-            + \" otel.instrumentation.couchbase.emit-experimental-telemetry or the equivalent\"\n-            + \" declarative configuration instead.\");\n-    return deprecated;\n+    return Boolean.TRUE.equals(config.getBoolean(\"emit_experimental_telemetry/development\"));",
+      "id": "PRRT_kwDODJKVX86rk668",
+      "opened": "2026-10-12T18:31:06Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseSingletons.java",
+      "replies": [],
+      "reviewed": "1c9c2388f8476df48d2f3fb4ca32590a6eb1507a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4251144276"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "more std way?\n\n- inline\n- ternaries\n- experimental()",
+      "created": "2026-10-12T18:28:50Z",
+      "hunk": "@@ -136,35 +118,28 @@ void testAsyncErrorEmitsSpans() {\n \n     testing.waitAndAssertTracesWithoutScopeVersionVerification(\n         trace -> {\n-          if (emitSdkDetailSpans()) {\n+          if (EXPERIMENTAL_TELEMETRY) {\n             trace.hasSpansSatisfyingExactly(\n-                span ->\n-                    span.hasKind(v3Preview() ? CLIENT : INTERNAL)\n-                        .hasName(\"get\")\n-                        .hasStatus(StatusData.unset())\n-                        .hasNoParent()\n-                        .hasAttributesSatisfyingExactly(\n-                            equalTo(PEER_SERVICE, \"kv\"),\n-                            satisfies(\n-                                stringKey(\"couchbase.operation_id\"), val -> val.startsWith(\"0x\")),\n-                            equalTo(stringKey(\"couchbase.document_id\"), \"async-id\")),\n+                span -> assertGetSpan(span, \"async-id\"),\n                 span ->\n                     span.hasKind(INTERNAL)\n                         .hasName(\"dispatch_to_server\")\n                         .hasParent(trace.getSpan(0)));\n           } else {\n-            trace.hasSpansSatisfyingExactly(\n-                span ->\n-                    span.hasKind(CLIENT)\n-                        .hasName(\"get\")\n-                        .hasStatus(StatusData.unset())\n-                        .hasNoParent()\n-                        .hasTotalAttributeCount(0));\n+            trace.hasSpansSatisfyingExactly(span -> assertGetSpan(span, \"async-id\"));\n           }\n         });\n   }\n \n-  private static boolean emitSdkDetailSpans() {\n-    return !v3Preview() || EXPERIMENTAL_TELEMETRY;\n+  private static void assertGetSpan(SpanDataAssert span, String documentId) {\n+    span.hasKind(CLIENT).hasName(\"get\").hasStatus(StatusData.unset()).hasNoParent();\n+    if (EXPERIMENTAL_TELEMETRY) {\n+      span.hasAttributesSatisfyingExactly(\n+          equalTo(PEER_SERVICE, \"kv\"),\n+          satisfies(stringKey(\"couchbase.operation_id\"), val -> val.startsWith(\"0x\")),\n+          equalTo(stringKey(\"couchbase.document_id\"), documentId));\n+    } else {\n+      span.hasTotalAttributeCount(0);\n+    }",
+      "id": "PRRT_kwDODJKVX86rk9HF",
+      "opened": "2026-10-12T18:31:06Z",
+      "path": "instrumentation/couchbase/couchbase-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_0/CouchbaseClient30Test.java",
+      "replies": [],
+      "reviewed": "1c9c2388f8476df48d2f3fb4ca32590a6eb1507a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4251158125"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "more std getBoolean(\"\", false)",
+      "created": "2026-10-12T18:30:33Z",
+      "hunk": "@@ -160,32 +155,15 @@ private String stableKey(String key) {\n   }\n \n   private static boolean captureExperimentalAttribute(String key) {\n-    return captureExperimentalTelemetry && key.startsWith(\"db.couchbase.\");\n+    return EMIT_EXPERIMENTAL_TELEMETRY && key.startsWith(\"db.couchbase.\");\n   }\n \n   static boolean emitExperimentalTelemetry() {\n-    return captureExperimentalTelemetry;\n+    return EMIT_EXPERIMENTAL_TELEMETRY;\n   }\n \n   // visible for testing\n-  static boolean captureExperimentalTelemetry(DeclarativeConfigProperties config) {\n-    Boolean configured = config.getBoolean(\"emit_experimental_telemetry/development\");\n-    if (configured != null) {\n-      return configured;\n-    }\n-\n-    // Deprecated for Couchbase 3.x; remains active until the next minor release.\n-    Boolean deprecated = config.getBoolean(\"experimental_span_attributes/development\");\n-    if (deprecated == null) {\n-      return false;\n-    }\n-\n-    logger.warning(\n-        \"The otel.instrumentation.couchbase.experimental-span-attributes setting and the\"\n-            + \" equivalent declarative configuration property are deprecated and will be removed\"\n-            + \" in the next minor release. Use\"\n-            + \" otel.instrumentation.couchbase.emit-experimental-telemetry or the equivalent\"\n-            + \" declarative configuration instead.\");\n-    return deprecated;\n+  static boolean emitExperimentalTelemetry(DeclarativeConfigProperties config) {\n+    return Boolean.TRUE.equals(config.getBoolean(\"emit_experimental_telemetry/development\"));",
+      "id": "PRRT_kwDODJKVX86rk_EN",
+      "opened": "2026-10-12T18:31:06Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_0/CouchbaseSpan.java",
+      "replies": [],
+      "reviewed": "1c9c2388f8476df48d2f3fb4ca32590a6eb1507a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4251170786"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please address the three unresolved cleanup comments on this PR.\n\n1. In `CouchbaseSingletons.java` and `CouchbaseSpan.java`, replace `Boolean.TRUE.equals(config.getBoolean(\"emit_experimental_telemetry/development\"))` with `config.getBoolean(\"emit_experimental_telemetry/development\", false)`. Inline the private single-line helper in `CouchbaseSingletons` at its caller. In `CouchbaseSpan`, preserve any helper needed by existing tests.\n2. In `CouchbaseClient30Test.java`, inline the short `assertGetSpan` assertion chains and use the conventional `experimental(value)` helper for attributes absent when experimental telemetry is disabled. Keep exact attribute assertions, the operation-ID prefix assertion when enabled, and its absence when disabled. Retain the outer enabled/disabled trace branches because enabling the flag changes the number of spans. Follow the nearby Couchbase 3.1/3.2 `experimental(value)` pattern rather than introducing another expected-value abstraction.\n\nKeep the single primitive umbrella flag, its default of false, the removal of the old experimental-span-attributes setting and fallback, and the span-kind and instrumentation-scope corrections. Do not expand this into an unrelated cleanup of other tests. Validate the affected behavior in the existing default and experimental variants.\n\nI am updating the PR description separately; leave that description intact.",
+      "created": "2026-10-12T18:52:00Z",
+      "hunk": "@@ -56,24 +54,7 @@ public static Instrumenter<CouchbaseRequestInfo, Void> instrumenter() {\n   }\n \n   private static boolean captureExperimentalTelemetry(DeclarativeConfigProperties config) {\n-    Boolean configured = config.getBoolean(\"emit_experimental_telemetry/development\");\n-    if (configured != null) {\n-      return configured;\n-    }\n-\n-    // Deprecated; remains active until the next minor release.\n-    Boolean deprecated = config.getBoolean(\"experimental_span_attributes/development\");\n-    if (deprecated == null) {\n-      return false;\n-    }\n-\n-    logger.warning(\n-        \"The otel.instrumentation.couchbase.experimental-span-attributes setting and the\"\n-            + \" equivalent declarative configuration property are deprecated and will be removed\"\n-            + \" in the next minor release. Use\"\n-            + \" otel.instrumentation.couchbase.emit-experimental-telemetry or the equivalent\"\n-            + \" declarative configuration instead.\");\n-    return deprecated;\n+    return Boolean.TRUE.equals(config.getBoolean(\"emit_experimental_telemetry/development\"));",
+      "id": "PRRT_kwDODJKVX86rlZfJ",
+      "opened": "2026-10-12T18:52:00Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-12T19:02:26Z",
+          "body": "Addressed in commit `27d93f42`; the config getters now use explicit false defaults, and the Couchbase 3.0 assertions follow the existing experimental(value) pattern.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4251425275"
+        }
+      ],
+      "reviewed": "2ba7fc4e87611a59a8b5b7dbf2d3e35244594e05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4251346694"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This user-visible scope rename for the legacy bridge is not covered by any Couchbase 3.1 assertion. `CouchbaseClient31Test` uses `waitAndAssertTracesWithoutScopeVersionVerification` and never inspects the scope name, so a regression back to `io.opentelemetry.javaagent.couchbase-3.1` would pass. Please assert `io.opentelemetry.couchbase-3.1` in an integration-test runtime that takes the `legacyBridge` branch, analogous to the new Couchbase 3.0 scope assertion.",
+      "created": "2026-10-12T19:07:54Z",
+      "hunk": "@@ -40,10 +39,7 @@ public static void onExit(@Advice.This CoreEnvironment.Builder<?> builder) {\n       boolean legacyBridge = isLegacyBridge(builder.getClass().getClassLoader());\n       String instrumentationName;\n       if (legacyBridge) {\n-        instrumentationName =\n-            SemconvStability.v3Preview()\n-                ? \"io.opentelemetry.couchbase-3.1\"\n-                : \"io.opentelemetry.javaagent.couchbase-3.1\";\n+        instrumentationName = \"io.opentelemetry.couchbase-3.1\";",
+      "id": "PRRT_kwDODJKVX86rlr-p",
+      "opened": "2026-10-12T19:07:54Z",
+      "path": "instrumentation/couchbase/couchbase-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseEnvironmentInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-12T19:10:47Z",
+          "body": "this is consistent with general testing approach already",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4251486198"
+        }
+      ],
+      "reviewed": "27d93f420b29c1b1133bbb3ebc1d5c18f82d7124",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4251465796"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n| `otel.instrumentation.couchbase.emit-experimental-telemetry` | Boolean | `false` | Enables experimental span attributes for Couchbase 2.x. For Couchbase 3.x, also enables the Couchbase Java SDK's internal `request_encoding` and `dispatch_to_server` internal spans. |\n```",
+      "created": "2026-10-12T20:21:50Z",
+      "hunk": "@@ -1,6 +1,5 @@\n # Settings for the Couchbase instrumentation\n \n-| System property                                               | Type    | Default | Description                                                                                                                                                                                                     |\n-| ------------------------------------------------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.couchbase.emit-experimental-telemetry`  | Boolean | `false` | Enables experimental span attributes emitted from the underlying Couchbase library. For Couchbase 3.x, when v3 preview is enabled, also enables the `request_encoding` and `dispatch_to_server` internal spans. |\n-| `otel.instrumentation.couchbase.experimental-span-attributes` | Boolean | `false` | Deprecated and will be removed in the next minor release. Use `otel.instrumentation.couchbase.emit-experimental-telemetry` instead.                                                                             |\n+| System property                                              | Type    | Default | Description                                                                                                                                                   |\n+| ------------------------------------------------------------ | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n+| `otel.instrumentation.couchbase.emit-experimental-telemetry` | Boolean | `false` | Enables experimental span attributes for Couchbase 2.x. For Couchbase 3.x, also enables the SDK's `request_encoding` and `dispatch_to_server` internal spans. |",
+      "id": "PRRT_kwDODJKVX86rm-ZL",
+      "opened": "2026-10-12T20:21:50Z",
+      "path": "instrumentation/couchbase/README.md",
+      "replies": [],
+      "reviewed": "67e9d1dd731a73072aee281b442798ad884c520f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4252003606"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- Removed `otel.instrumentation.couchbase.experimental-span-attributes`. Use `otel.instrumentation.couchbase.emit-experimental-telemetry=true` to enable experimental span attributes for Couchbase 2.x and 3.x. For Couchbase 3.x, this also enables the Couchbase Java SDK's internal `request_encoding` and `dispatch_to_server` spans.\n- Couchbase 3.x operation spans now use the `CLIENT` span kind. Couchbase 3.0 and legacy-bridge 3.1 spans now use the `io.opentelemetry.couchbase-3.0` and `io.opentelemetry.couchbase-3.1` instrumentation scopes, respectively.\n```",
+      "created": "2026-10-12T20:24:18Z",
+      "hunk": "@@ -4,6 +4,14 @@\n \n ### ⚠️ Breaking changes\n \n+- Couchbase experimental telemetry is now controlled by\n+  `otel.instrumentation.couchbase.emit-experimental-telemetry=true`, which enables experimental span\n+  attributes for Couchbase 2.x and 3.x and the SDK's known detail spans for Couchbase 3.x. Remove\n+  `otel.instrumentation.couchbase.experimental-span-attributes` and its declarative equivalent\n+  `java.couchbase.experimental_span_attributes/development`; use\n+  `java.couchbase.emit_experimental_telemetry/development` or the flat property instead. Couchbase\n+  3.x operation spans now have `CLIENT` kind, and Couchbase 3.0 and legacy-bridge 3.1 spans use the\n+  `io.opentelemetry.couchbase-3.0` and `io.opentelemetry.couchbase-3.1` instrumentation scopes.",
+      "id": "PRRT_kwDODJKVX86rnBNZ",
+      "opened": "2026-10-12T20:24:18Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "e086ef98dde5313c4e959230e626e7a28571df0e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4252021935"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] “internal” is repeated in this description, which makes the sentence read awkwardly.",
+      "created": "2026-10-12T20:28:18Z",
+      "hunk": "@@ -1,6 +1,5 @@\n # Settings for the Couchbase instrumentation\n \n-| System property                                               | Type    | Default | Description                                                                                                                                                                                                     |\n-| ------------------------------------------------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.couchbase.emit-experimental-telemetry`  | Boolean | `false` | Enables experimental span attributes emitted from the underlying Couchbase library. For Couchbase 3.x, when v3 preview is enabled, also enables the `request_encoding` and `dispatch_to_server` internal spans. |\n-| `otel.instrumentation.couchbase.experimental-span-attributes` | Boolean | `false` | Deprecated and will be removed in the next minor release. Use `otel.instrumentation.couchbase.emit-experimental-telemetry` instead.                                                                             |\n+| System property                                              | Type    | Default | Description                                                                                                                                                   |\n+| ------------------------------------------------------------ | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n+| `otel.instrumentation.couchbase.emit-experimental-telemetry` | Boolean | `false` | Enables experimental span attributes for Couchbase 2.x. For Couchbase 3.x, also enables the Couchbase Java SDK's internal `request_encoding` and `dispatch_to_server` internal spans. |",
+      "id": "PRRT_kwDODJKVX86rnFjR",
+      "opened": "2026-10-12T20:28:19Z",
+      "path": "instrumentation/couchbase/README.md",
+      "replies": [
+        {
+          "at": "2026-10-12T20:45:42Z",
+          "body": "```suggestion\r\n| `otel.instrumentation.couchbase.emit-experimental-telemetry` | Boolean | `false` | Enables experimental span attributes for Couchbase 2.x. For Couchbase 3.x, also enables the Couchbase Java SDK's internal `request_encoding` and `dispatch_to_server` spans. |\r\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4252174054"
+        }
+      ],
+      "reviewed": "782a27442ffc88a8929ef003ddef6b55c436a61e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20534#discussion_r4252050519"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "head": "a80da9fb20a6493d1bc0be58cd27cf9f4c2eafab",
+  "merge": "299e61d5fdbd7654f6aa6ab8ad198a960428a37f",
+  "merged": "2026-10-16T05:28:24Z",
+  "missing_roots": 0,
+  "number": 20624,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // connectStateful overloads declare the concrete connection types; helpers declare\n    // RedisChannelHandler directly or use a type variable that erases to it.\n    transformer.applyAdviceToMethod(\n```",
+      "created": "2026-10-15T18:59:15Z",
+      "hunk": "@@ -48,7 +48,12 @@ public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(",
+      "id": "PRRT_kwDODJKVX86s7GCJ",
+      "opened": "2026-10-15T19:00:03Z",
+      "path": "instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceClusterClientInstrumentation.java",
+      "replies": [],
+      "reviewed": "6d0cf97f8ffc837bf777fa4c5ff96b61c936d455",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20624#discussion_r4287098719"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // enqueue declares RealCall.AsyncCall, which lives in okhttp3 or\n    // okhttp3.internal.connection depending on the OkHttp version.\n    transformer.applyAdviceToMethod(\n```",
+      "created": "2026-10-15T18:59:15Z",
+      "hunk": "@@ -32,7 +31,12 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(",
+      "id": "PRRT_kwDODJKVX86s7GCa",
+      "opened": "2026-10-15T19:00:03Z",
+      "path": "instrumentation/okhttp/okhttp-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/okhttp/v3_0/OkHttp3DispatcherInstrumentation.java",
+      "replies": [],
+      "reviewed": "6d0cf97f8ffc837bf777fa4c5ff96b61c936d455",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20624#discussion_r4287098743"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // Both OptimizedGetImpl classes declare addOperation(GetOperation), while\n    // OptimizedSetImpl declares addOperation(CASOperation).\n    transformer.applyAdviceToMethod(\n```",
+      "created": "2026-10-15T18:59:15Z",
+      "hunk": "@@ -33,7 +32,12 @@ public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(",
+      "id": "PRRT_kwDODJKVX86s7GCf",
+      "opened": "2026-10-15T19:00:03Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/OptimizedOperationInstrumentation.java",
+      "replies": [],
+      "reviewed": "6d0cf97f8ffc837bf777fa4c5ff96b61c936d455",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20624#discussion_r4287098749"
+    }
+  ]
+}

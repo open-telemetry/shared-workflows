@@ -1,0 +1,176 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "403fa8241bbdb9de83afc096c4eeb2fb6e84b4bb16a9fe64e8de0889deaefbce",
+  "input_digest": "753020969b6fe19b917ec4c7d8b9d57f8541abb029bdfe98627f51fe56833d3d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX86EyMUH",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3fe18aa809466f367dfbc2a970e09a5ffe742e8d/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/60d2bc62b2c7396bb8e19e609ab1bc90732ff275"
+      ],
+      "id": "PRRT_kwDODJKVX86E32XT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3fe18aa809466f367dfbc2a970e09a5ffe742e8d/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/60d2bc62b2c7396bb8e19e609ab1bc90732ff275"
+      ],
+      "id": "PRRT_kwDODJKVX86E32X-",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/84263f4ad83b840dcbe4151f581e604de2cf3796/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/18d9f421c73337994d0e850eb049ab44bc147eb4"
+      ],
+      "id": "PRRT_kwDODJKVX86HnHVP",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18d9f421c73337994d0e850eb049ab44bc147eb4/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/69e74ca8c5fc8301814aab3b9966bd26210ba03c"
+      ],
+      "id": "PRRT_kwDODJKVX86HnLE0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2231fe064b9e3b438bb8d5822baba869cc2595c8/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/94706b7a6548394a9be70cba1e7335c22640cf85"
+      ],
+      "id": "PRRT_kwDODJKVX86HsuIA",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2231fe064b9e3b438bb8d5822baba869cc2595c8/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/785c1ecff9a5f338b7b575ddb3aea9de46be85b4"
+      ],
+      "id": "PRRT_kwDODJKVX86HsuIH",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9f536275f41c4b6c41df10990b76e38588494f5d/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9f536275f41c4b6c41df10990b76e38588494f5d/instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppender.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppender.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Hs0xB",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/785c1ecff9a5f338b7b575ddb3aea9de46be85b4/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c0ffb4878c496003025c3327b7fd562af843d622"
+      ],
+      "id": "PRRT_kwDODJKVX86HtobS",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/785c1ecff9a5f338b7b575ddb3aea9de46be85b4/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c0ffb4878c496003025c3327b7fd562af843d622"
+      ],
+      "id": "PRRT_kwDODJKVX86HtobZ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/785c1ecff9a5f338b7b575ddb3aea9de46be85b4/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/785c1ecff9a5f338b7b575ddb3aea9de46be85b4/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/OpenTelemetryContextDataProvider.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/OpenTelemetryContextDataProvider.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Htobd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0ffb4878c496003025c3327b7fd562af843d622/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/69e74ca8c5fc8301814aab3b9966bd26210ba03c",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1afd9c9083cfa78303125bb1e9d7c099f47b0bb6"
+      ],
+      "id": "PRRT_kwDODJKVX86HtsdI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0ffb4878c496003025c3327b7fd562af843d622/instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppender.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0ffb4878c496003025c3327b7fd562af843d622/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppender.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java"
+      ],
+      "id": "PRRT_kwDODJKVX86HtsdW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/becb15fbef09d36289a261e7a51842b2214b4569/instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/becb15fbef09d36289a261e7a51842b2214b4569/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69e74ca8c5fc8301814aab3b9966bd26210ba03c/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/69e74ca8c5fc8301814aab3b9966bd26210ba03c"
+      ],
+      "id": "PRRT_kwDODJKVX86I__4c",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

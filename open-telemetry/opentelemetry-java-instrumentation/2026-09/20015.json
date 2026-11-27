@@ -1,0 +1,46 @@
+{
+  "head": "2459c4bde510b6b09c74f9df971d48cf6b2677d0",
+  "merge": "5d8624a1f70acad5de7dac451cd59700195bf15b",
+  "merged": "2026-09-08T05:45:37Z",
+  "missing_roots": 0,
+  "number": 20015,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This duplicates `DbServerTargetBuilder.isIpv4Literal` (lines 232–254). Keeping two copies means a future validation fix can make standalone IPv4 endpoints and IPv4-embedded IPv6 endpoints disagree; move the shared IPv4 parser here and have the builder delegate to it as well.",
+      "created": "2026-09-07T19:56:51Z",
+      "hunk": "@@ -0,0 +1,101 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.db.internal;\n+\n+import java.net.URI;\n+import java.net.URISyntaxException;\n+\n+/**\n+ * Utilities for validating textual database server endpoints.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class DbServerEndpointUtil {\n+\n+  /**\n+   * Returns whether {@code host} is an IPv6 literal.\n+   *\n+   * <p>The value is validated as text and is never resolved as a host name.\n+   */\n+  public static boolean isIpv6Literal(String host) {\n+    int zoneStart = host.indexOf('%');\n+    String literal = zoneStart < 0 ? host : host.substring(0, zoneStart);\n+    if (zoneStart >= 0 && !isZoneId(host.substring(zoneStart + 1))) {\n+      return false;\n+    }\n+    for (int i = 0; i < literal.length(); i++) {\n+      char c = literal.charAt(i);\n+      if (c != ':' && c != '.' && !isAsciiHexDigit(c)) {\n+        return false;\n+      }\n+    }\n+    int ipv4Start = literal.lastIndexOf(':') + 1;\n+    if (literal.indexOf('.') >= 0 && !isIpv4Literal(literal.substring(ipv4Start))) {\n+      return false;\n+    }\n+    try {\n+      // URI parses a bracketed literal without resolving any name\n+      return new URI(\"db://[\" + literal + \"]\").getHost() != null;\n+    } catch (URISyntaxException ignored) {\n+      return false;\n+    }\n+  }\n+\n+  private static boolean isZoneId(String zoneId) {\n+    if (zoneId.isEmpty()) {\n+      return false;\n+    }\n+    for (int i = 0; i < zoneId.length(); i++) {\n+      if (!isUnreserved(zoneId.charAt(i))) {\n+        return false;\n+      }\n+    }\n+    return true;\n+  }\n+\n+  private static boolean isIpv4Literal(String host) {",
+      "id": "PRRT_kwDODJKVX86gBB3Z",
+      "opened": "2026-09-07T19:56:51Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbServerEndpointUtil.java",
+      "replies": [],
+      "reviewed": "1158d57488b380ebca813bb6a717079c6e05613a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20015#discussion_r3952332029"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This blacklist omits several URI reserved delimiters. For example, `isIpv6Literal(\"fe80::1%5Devil\")` currently returns true even though `5D` encodes `]`, which can terminate the bracketed host after percent-decoding; `5B`, `21`, and `3B` are likewise accepted. Reject the complete RFC 3986 reserved set (while retaining the existing `\\` and `%` safeguards) so the new validation fulfills its encoded-delimiter safety goal.",
+      "created": "2026-09-07T21:53:47Z",
+      "hunk": "@@ -0,0 +1,124 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.db.internal;\n+\n+import java.net.URI;\n+import java.net.URISyntaxException;\n+\n+/**\n+ * Utilities for validating textual database server endpoints.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class DbServerEndpointUtil {\n+\n+  /**\n+   * Returns whether {@code host} is an IPv6 literal.\n+   *\n+   * <p>The value is validated as text and is never resolved as a host name.\n+   */\n+  public static boolean isIpv6Literal(String host) {\n+    int zoneStart = host.indexOf('%');\n+    String literal = zoneStart < 0 ? host : host.substring(0, zoneStart);\n+    if (zoneStart >= 0 && !isZoneId(host.substring(zoneStart + 1))) {\n+      return false;\n+    }\n+    for (int i = 0; i < literal.length(); i++) {\n+      char c = literal.charAt(i);\n+      if (c != ':' && c != '.' && !isAsciiHexDigit(c)) {\n+        return false;\n+      }\n+    }\n+    int ipv4Start = literal.lastIndexOf(':') + 1;\n+    if (literal.indexOf('.') >= 0 && !isIpv4Literal(literal.substring(ipv4Start))) {\n+      return false;\n+    }\n+    try {\n+      // URI parses a bracketed literal without resolving any name\n+      return new URI(\"db://[\" + literal + \"]\").getHost() != null;\n+    } catch (URISyntaxException ignored) {\n+      return false;\n+    }\n+  }\n+\n+  private static boolean isZoneId(String zoneId) {\n+    if (zoneId.isEmpty() || startsWithEncodedDelimiter(zoneId)) {\n+      return false;\n+    }\n+    for (int i = 0; i < zoneId.length(); i++) {\n+      if (!isUnreserved(zoneId.charAt(i))) {\n+        return false;\n+      }\n+    }\n+    return true;\n+  }\n+\n+  private static boolean startsWithEncodedDelimiter(String value) {\n+    if (value.length() < 2) {\n+      return false;\n+    }\n+    int high = Character.digit(value.charAt(0), 16);\n+    int low = Character.digit(value.charAt(1), 16);\n+    if (high < 0 || low < 0) {\n+      return false;\n+    }\n+    char decoded = (char) ((high << 4) + low);\n+    return decoded == ':'\n+        || decoded == '@'\n+        || decoded == '/'\n+        || decoded == '?'\n+        || decoded == '#'\n+        || decoded == '\\\\'\n+        || decoded == '%'\n+        || decoded == '=';",
+      "id": "PRRT_kwDODJKVX86gCITz",
+      "opened": "2026-09-07T21:53:47Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbServerEndpointUtil.java",
+      "replies": [
+        {
+          "at": "2026-09-07T22:00:13Z",
+          "body": "Addressed in a6f8aa730f4c47c75d1678eaf0d8522dc4a17dea.\n\nAnalysis: The existing check covered only part of the RFC 3986 reserved set. Decode the leading hexadecimal pair and reject every general delimiter and sub-delimiter, plus backslash and percent.\n\nUpsides: Encoded zone identifiers can no longer introduce any URI reserved delimiter after decoding. Tests cover each newly rejected character.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20015#discussion_r3952785724"
+        }
+      ],
+      "reviewed": "ddea64a5eac09ba17946448b03446b794d868d26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20015#discussion_r3952763279"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "head": "579e65a21ba5e3d2d5567906ba29f13645a149a1",
+  "merge": "3669d6f8bed187efcb08cd1f278b43955b226d88",
+  "merged": "2026-09-21T02:42:50Z",
+  "missing_roots": 0,
+  "number": 20105,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `built()` only reads this thread-local target; it does not remove it. After the outer SRV settings are built, a callback that reenters with a non-SRV `MongoClientURI` (for which this method returns `null`) or builds `ClusterSettings` directly before the outer advice exits will therefore still have its settings overwritten with the stale outer SRV target. Consume and remove the target when `built()` reads it, while retaining `close()` cleanup for paths that fail before a build, and cover the non-SRV nested case.",
+      "created": "2026-09-11T03:20:57Z",
+      "hunk": "@@ -112,9 +112,10 @@ public static LegacySrvTargetScope openLegacySrvTargetScope(@Nullable String con\n     if (target == null) {\n       return null;\n     }\n-    MongoServerTarget previous = legacySrvTarget.get();\n+    // The legacy driver builds ClusterSettings before it can invoke user callbacks, so this target\n+    // is consumed before a reentrant MongoClient construction can replace it.\n     legacySrvTarget.set(target);\n-    return new LegacySrvTargetScope(previous);\n+    return new LegacySrvTargetScope();",
+      "id": "PRRT_kwDODJKVX86hVCZF",
+      "opened": "2026-09-11T03:20:58Z",
+      "path": "instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoClusterSettings.java",
+      "replies": [
+        {
+          "at": "2026-09-11T04:30:35Z",
+          "body": "Addressed in 0d53d5b52a4186cf4af91e1d5e766ce595522946.\n\nAnalysis: `built()` now removes the thread-local target immediately after reading it. `LegacySrvTargetScope.close()` still removes an unconsumed target when construction fails before a build. The regression test confirms that a nested non-SRV construction uses its own direct target after the outer SRV settings are built.\n\nUpsides: Reentrant non-SRV or direct settings builds cannot inherit a stale SRV target.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20105#discussion_r3985937251"
+        }
+      ],
+      "reviewed": "e968b5d2385d3368c7c89e46c0b2ecda9ce4b3e8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20105#discussion_r3985645222"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] On MongoDB 3.7, both the mongo-3.1 and mongo-3.7 modules advise the same `ClusterSettings.Builder#build()` and call `built()` for the same settings instance. The first call consumes the legacy SRV handoff and records it, but the second sees no handoff and overwrites that configuration with the builder's resolved-host configuration. This can make a legacy `MongoClientURI` SRV client report resolved hosts instead of its SRV target. Make `built()` idempotent for each `ClusterSettings` instance so later advice calls preserve the first result.",
+      "created": "2026-09-20T03:59:39Z",
+      "hunk": "@@ -75,6 +78,7 @@ public static void applySettings(\n \n   public static void built(ClusterSettings.Builder builder, ClusterSettings settings) {\n     MongoServerTarget scopedSrvTarget = legacySrvTarget.get();\n+    legacySrvTarget.remove();",
+      "id": "PRRT_kwDODJKVX86kGypM",
+      "opened": "2026-09-20T03:59:40Z",
+      "path": "instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoClusterSettings.java",
+      "replies": [
+        {
+          "at": "2026-09-20T05:31:57Z",
+          "body": "Addressed in 579e65a21ba5e3d2d5567906ba29f13645a149a1.\n\nFixed in the verified source changes 579e65a21ba5e3d2d5567906ba29f13645a149a1.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20105#discussion_r4056217187"
+        }
+      ],
+      "reviewed": "e2558ea38a43aa654f82bca0df4cfaf8d46bb7ad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20105#discussion_r4056048231"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This handoff is not safe if legacy `createCluster` is reentered before the outer builder reaches `build()` (for example, through an overridden `MongoClientURI` getter). A nested non-SRV call returns `false` without masking the outer target, so its builder consumes the outer target; a nested SRV call overwrites the outer target instead. Carry a scoped previous value through `@Advice.Enter`, install the current operation's target even when it is null, consume the current value in `built()`, and restore the previous value on exit. This preserves an unconsumed outer handoff without restoring one that was already consumed.",
+      "created": "2026-09-20T03:59:39Z",
+      "hunk": "@@ -106,15 +110,17 @@ public static MongoServerTarget configuredTarget(ClusterSettings settings) {\n     return MongoServerTarget.seeds(settings.getHosts());\n   }\n \n-  @Nullable\n-  public static LegacySrvTargetScope openLegacySrvTargetScope(@Nullable String connectionString) {\n+  public static boolean setLegacySrvTarget(@Nullable String connectionString) {\n     MongoServerTarget target = srvConnectionString(connectionString);\n     if (target == null) {\n-      return null;\n+      return false;\n     }\n-    MongoServerTarget previous = legacySrvTarget.get();\n     legacySrvTarget.set(target);\n-    return new LegacySrvTargetScope(previous);\n+    return true;",
+      "id": "PRRT_kwDODJKVX86kGypP",
+      "opened": "2026-09-20T03:59:40Z",
+      "path": "instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoClusterSettings.java",
+      "replies": [
+        {
+          "at": "2026-09-20T05:31:58Z",
+          "body": "Addressed in 579e65a21ba5e3d2d5567906ba29f13645a149a1.\n\nFixed in the verified source changes 579e65a21ba5e3d2d5567906ba29f13645a149a1.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20105#discussion_r4056217244"
+        }
+      ],
+      "reviewed": "e2558ea38a43aa654f82bca0df4cfaf8d46bb7ad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20105#discussion_r4056048234"
+    }
+  ]
+}

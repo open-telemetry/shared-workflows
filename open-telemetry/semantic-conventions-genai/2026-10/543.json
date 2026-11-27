@@ -1,0 +1,503 @@
+{
+  "head": "204041ae5bb509500cec8bd34782bbe3a467bd8b",
+  "merge": "24a1bd1e729ac4f99f9a3bd1fa98e87b2dbcfe2c",
+  "merged": "2026-10-26T18:25:37Z",
+  "missing_roots": 0,
+  "number": 543,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Define the configuration's exact scope in terms of semantic-convention fields. This sentence includes memory records but omits `gen_ai.memory.query.text`, even though its registry note now points here, and it does not say whether other opt-in content such as `gen_ai.tool.definitions` is governed. As written, implementations can expose different sensitive fields for the same `NO_CONTENT` setting.\n\nThis issue also appears in the following locations of the same file:\n- line 1348\n- line 1351\n- line 1356\n- line 1412\n- line 1415\n- ...and 1 more",
+      "created": "2026-09-25T18:54:43Z",
+      "hunk": "@@ -1333,6 +1335,42 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.\n+Instrumentations that support capturing content MUST provide a configuration option to control\n+whether content is captured and which telemetry signals receive it.",
+      "id": "PRRT_kwDOSUeMrM6mHshz",
+      "opened": "2026-09-25T18:54:44Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [],
+      "reviewed": "f6578c532e2635ccd4738b4001ff1c1b6ed94f17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4107691035"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new configuration requirement is not demonstrated for this field. Both `reference/scenarios/aws-bedrock-agentcore/scenario.py:183` and `reference/scenarios/google-adk/scenario.py:361` emit `gen_ai.memory.query.text` without exercising `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`, so they do not establish that the query is suppressed by default or follows the selected sink. Update a library scenario to prove the new gating behavior.",
+      "created": "2026-09-25T18:54:43Z",
+      "hunk": "@@ -802,7 +802,8 @@ attributes:\n     brief: The search query used to retrieve memories.\n     note: |\n       Instrumentations SHOULD NOT capture this attribute by default. Capture SHOULD be gated\n-      by an explicit user opt-in, for example `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`.\n+      by an explicit user opt-in via [content capture configuration](/docs/gen-ai/gen-ai-spans.md#content-capture-configuration),\n+      for example `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`.",
+      "id": "PRRT_kwDOSUeMrM6mHsiY",
+      "opened": "2026-09-25T18:54:44Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "f6578c532e2635ccd4738b4001ff1c1b6ed94f17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4107691099"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new configuration requirement is not demonstrated for this field. The AWS Bedrock AgentCore and Google ADK scenarios emit `gen_ai.memory.records` directly, but neither scenario uses the documented content-capture configuration, so they do not prove default suppression or signal selection. Add reference coverage for this behavior.",
+      "created": "2026-09-25T18:54:44Z",
+      "hunk": "@@ -816,7 +817,8 @@ attributes:\n         json_schema: model/gen-ai/gen-ai-memory-records.json\n     note: |\n       Instrumentations SHOULD NOT capture this attribute by default. Capture SHOULD be gated\n-      by an explicit user opt-in, for example `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`.\n+      by an explicit user opt-in via [content capture configuration](/docs/gen-ai/gen-ai-spans.md#content-capture-configuration),\n+      for example `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`.",
+      "id": "PRRT_kwDOSUeMrM6mHsit",
+      "opened": "2026-09-25T18:54:44Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "f6578c532e2635ccd4738b4001ff1c1b6ed94f17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4107691140"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why for example? Can we document it as the only option ?",
+      "created": "2026-09-29T21:45:13Z",
+      "hunk": "@@ -802,7 +802,8 @@ attributes:\n     brief: The search query used to retrieve memories.\n     note: |\n       Instrumentations SHOULD NOT capture this attribute by default. Capture SHOULD be gated\n-      by an explicit user opt-in, for example `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`.\n+      by an explicit user opt-in via [content capture configuration](/docs/gen-ai/gen-ai-spans.md#content-capture-configuration),\n+      for example `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`.",
+      "id": "PRRT_kwDOSUeMrM6nTgZj",
+      "opened": "2026-09-29T22:08:38Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-13T14:22:17Z",
+          "body": "yes.. done",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4259855061"
+        }
+      ],
+      "reviewed": "f6578c532e2635ccd4738b4001ff1c1b6ed94f17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4138652751"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nInstrumentations that support content uploading via completion hooks SHOULD support the following\n```",
+      "created": "2026-09-29T21:47:15Z",
+      "hunk": "@@ -1369,6 +1407,27 @@ in the telemetry processing pipeline (in-process or via a collector), based on t\n attributes. Given the potential data volume, it is RECOMMENDED to tune batching\n and export settings accordingly in the OpenTelemetry SDK pipeline.\n \n+##### Content upload configuration\n+\n+Instrumentations that support content uploading or completion hooks SHOULD support the following",
+      "id": "PRRT_kwDOSUeMrM6nTjCG",
+      "opened": "2026-09-29T22:08:38Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [],
+      "reviewed": "f6578c532e2635ccd4738b4001ff1c1b6ed94f17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4138670601"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can we describe what the value points to? It's language-specific, but we can be more specific \n\n\n```suggestion\n- **Completion hook**: Specifies the qualified method or component name to be called when inference call completes. \n```",
+      "created": "2026-09-29T21:50:48Z",
+      "hunk": "@@ -1369,6 +1407,27 @@ in the telemetry processing pipeline (in-process or via a collector), based on t\n attributes. Given the potential data volume, it is RECOMMENDED to tune batching\n and export settings accordingly in the OpenTelemetry SDK pipeline.\n \n+##### Content upload configuration\n+\n+Instrumentations that support content uploading or completion hooks SHOULD support the following\n+standard configuration options:\n+\n+- **Completion hook**: Specifies the in-process completion hook to load and enable.",
+      "id": "PRRT_kwDOSUeMrM6nTnkM",
+      "opened": "2026-09-29T22:08:38Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [],
+      "reviewed": "f6578c532e2635ccd4738b4001ff1c1b6ed94f17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4138700915"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "don't we need corresponding declarative configuration option to specify which component should be called?",
+      "created": "2026-09-29T21:51:41Z",
+      "hunk": "@@ -1369,6 +1407,27 @@ in the telemetry processing pipeline (in-process or via a collector), based on t\n attributes. Given the potential data volume, it is RECOMMENDED to tune batching\n and export settings accordingly in the OpenTelemetry SDK pipeline.\n \n+##### Content upload configuration\n+\n+Instrumentations that support content uploading or completion hooks SHOULD support the following\n+standard configuration options:\n+\n+- **Completion hook**: Specifies the in-process completion hook to load and enable.",
+      "id": "PRRT_kwDOSUeMrM6nTotd",
+      "opened": "2026-09-29T22:08:38Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-13T15:01:55Z",
+          "body": "Ack.. added those to this PR",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4260318819"
+        }
+      ],
+      "reviewed": "f6578c532e2635ccd4738b4001ff1c1b6ed94f17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4138708284"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nitpicking on the env var name (MESSAGE part):\n\nwe use it in python for everything:\n\ninput and output messages (good), `gen_ai.system_instructions`, tool arguments and responses, memory records. \n\nCan we do this?\n\n- keep supporting this env var in python\n- additionally document + support a more accurate name like `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT`\n- In declarative config support more options (maybe start with one and add more later)\n\n```yaml\ninstrumentation/development:\n  general:\n    gen_ai:\n      capture_content: span_and_event # enables it all\n      capture_system_instructions: span_and_event  # alternatively, enable them one by one\n      capture_input_messages: span_and_event \n      ...\n```\n\nor \n\n```yaml\ninstrumentation/development:\n  general:\n    gen_ai:\n      capture_content: \n        mode: span_and_event\n        attributes: [\"gen_ai.system_instructions\", \"gen_ai.input.messages\", ...] # any combination, defaults to all\n```\n\nor nest all content options under one node:\n\n```yaml\ninstrumentation/development:\n  general:\n    gen_ai:\n      content:\n        capture: \n          mode: span_and_event\n          attributes: [\"gen_ai.system_instructions\", \"gen_ai.input.messages\", ...] # any combination, defaults to all\n        upload:\n          base_path: ...\n          ....\n```\n\n\n------\n\nalso we might want (in the future) to provide per-operation control (e.g. capture on inference level, but not agent or vice versa), so we'd add levels of nesting like \n\n\n```yaml\ninstrumentation/development:\n  general:\n    gen_ai:\n      inference:\n        capture_content: \n          mode: span_and_event\n          attributes: [\"gen_ai.system_instructions\", \"gen_ai.input.messages\", ...] # any combination, defaults to all\n      invoke_agent:\n        capture_content: \n          mode: no_content\n```\n\nThis seems like easy to do later no matter which approach we take now\n",
+      "created": "2026-09-29T21:58:39Z",
+      "hunk": "@@ -1333,6 +1335,42 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.\n+Instrumentations that support capturing content MUST provide a configuration option to control\n+whether content is captured and which telemetry signals receive it.\n+\n+If this configuration is provided via an environment variable, the environment variable MUST be\n+named `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`.",
+      "id": "PRRT_kwDOSUeMrM6nTxq5",
+      "opened": "2026-09-29T22:08:38Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-13T15:29:28Z",
+          "body": "The fact that we have an event for inference complicates this schema.. otherwise we could get rid of the mode field entirely and users could just list out which attributes they want per-span-type\r\n\r\nI feel like the best schema is something like:\r\n\r\n\r\n```\r\ninstrumentation/development:\r\n  general:\r\n    gen_ai:\r\n      content:\r\n        capture:\r\n          # Signal sink selector (default: NO_CONTENT)\r\n          mode: span_and_event\r\n          # Optional global attribute filter (defaults to all content attributes if omitted)\r\n          attributes:\r\n            - gen_ai.input.messages\r\n            - gen_ai.output.messages\r\n          # Optional per-span attribute overrides\r\n          spans:\r\n            # Empty list disables all content capture on this span type\r\n            execute_tool: []\r\n            # Specific list overrides the global list for this span type\r\n            memory:\r\n              - gen_ai.memory.query.text\r\n```\r\n\r\nWe could start off without the `spans` block for now.. maybe add that later if people ask for that.. WDYT ??\r\n\r\nI have an open PR updating the declarative config (https://github.com/open-telemetry/opentelemetry-configuration/pull/764/changes) but was asked to get stuff submitted to sem conv repo first..\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4260640232"
+        },
+        {
+          "at": "2026-10-13T15:55:05Z",
+          "body": "Also given we have a growing number of events / spans, we should probably have a `SpanTypeEnum` an `EventTypeEnum` and a . Per-Span & Per-Event Attribute Enums ... something like:\r\n\r\n```\r\n# In the JSON Schema backing declarative config\r\n$defs:\r\n  # 1. Global master enum (union of all content attributes)\r\n  GlobalContentAttribute:\r\n    type: string\r\n    enum:\r\n      - gen_ai.input.messages\r\n      - gen_ai.output.messages\r\n      - gen_ai.system_instructions\r\n      - gen_ai.tool.definitions\r\n      - gen_ai.tool.call.arguments\r\n      - gen_ai.tool.call.result\r\n      - gen_ai.retrieval.query.text\r\n      - gen_ai.retrieval.documents\r\n      - gen_ai.memory.query.text\r\n      - gen_ai.memory.records\r\n      - gen_ai.embeddings.input.text\r\nproperties:\r\n  attributes:\r\n    type: array\r\n    items:\r\n      $ref: \"#/$defs/GlobalContentAttribute\"\r\n  spans:\r\n    type: object\r\n    additionalProperties: false\r\n    properties:\r\n      # Inference span: accepts ONLY inference content attributes\r\n      inference:\r\n        type: array\r\n        items:\r\n          type: string\r\n          enum:\r\n            - gen_ai.input.messages\r\n            - gen_ai.output.messages\r\n            - gen_ai.system_instructions\r\n ```\r\n\r\n\r\nWDYT ?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4260925443"
+        },
+        {
+          "at": "2026-10-13T16:00:20Z",
+          "body": "Also we could add an env var for the global attributes setting (OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT_ATTRIBUTES) .. I dont think we want env vars for the per-operation settings.. thats an anti-pattern",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4260982795"
+        },
+        {
+          "at": "2026-10-13T16:31:45Z",
+          "body": "WIll open discussion in a separate issue.. resolving this for now",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4261309193"
+        }
+      ],
+      "reviewed": "f6578c532e2635ccd4738b4001ff1c1b6ed94f17",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4138768353"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "felixfbecker"
+      },
+      "body": "How would you imagine the instrumentation authenticates against a cloud storage bucket?",
+      "created": "2026-10-13T16:15:41Z",
+      "hunk": "@@ -1004,6 +1050,28 @@ in the telemetry processing pipeline (in-process or via a collector), based on t\n attributes. Given the potential data volume, it is RECOMMENDED to tune batching\n and export settings accordingly in the OpenTelemetry SDK pipeline.\n \n+##### Content upload configuration\n+\n+Instrumentations that support content uploading via completion hooks SHOULD support the following\n+standard configuration options:\n+\n+- **Completion hook**: Specifies the qualified method or component name to be called when an operation completes.\n+  - Environment variable: `OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK` (e.g. `upload`).\n+  - Declarative configuration: `completion_hook` under `.instrumentation/development.general.gen_ai.upload`\n+- **Upload base path**: Specifies the destination path or URI for uploaded prompt and response content.\n+  It MAY be a local filesystem directory (e.g. `/var/log/genai/prompts`) or a cloud storage URI\n+  (e.g. `s3://my-bucket/prompts`, `gs://my-bucket/prompts`, `az://my-container/prompts`).",
+      "id": "PRRT_kwDOSUeMrM6r9ClJ",
+      "opened": "2026-10-13T16:15:40Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-13T18:43:05Z",
+          "body": "For GCP its just a matter of granting the user running the program some IAM permissions: https://docs.cloud.google.com/stackdriver/docs/instrumentation/collect-view-multimodal-prompts-responses#collect\r\n\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4262622433"
+        },
+        {
+          "at": "2026-10-13T18:44:04Z",
+          "body": "The instrumentation doesnt do anything, it just makes the API call, and handles it gracefully if it fails // logs something to the user..",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4262631999"
+        },
+        {
+          "at": "2026-10-21T17:52:53Z",
+          "body": "We could add a new feature to use pre-signed URLs: https://docs.cloud.google.com/storage/docs/access-control/signed-urls actually..\r\n\r\nThey are doing that here for the upload hook feature: https://github.com/alibaba/loongsuite-pilot/blob/main/docs/configuration.md might be worth generalizing configuration options in sem conv..",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4340120505"
+        }
+      ],
+      "reviewed": "0b8646f9c148befe731f00c0b7ac07724c4769db",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4261145315"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nnamed `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT`.\n```\n\nI believe it's instrumentations business to support backward compatibility - nothing prevents instrumentations from supporting old configuration without this phrase.. ",
+      "created": "2026-10-16T04:40:45Z",
+      "hunk": "@@ -965,6 +965,52 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.\n+Instrumentations that support capturing content MUST provide a configuration option to control\n+whether content is captured and which telemetry signals receive it.\n+\n+The content capture configuration governs the following attributes and their representation on spans and events:\n+\n+- `gen_ai.input.messages`\n+- `gen_ai.output.messages`\n+- `gen_ai.system_instructions`\n+- `gen_ai.tool.call.arguments`\n+- `gen_ai.tool.call.result`\n+- `gen_ai.memory.query.text`\n+- `gen_ai.memory.records`\n+\n+Attributes providing schemas or operational metadata rather than user/model payload content (such as `gen_ai.tool.definitions` or `gen_ai.memory.record.count`) are not governed by this configuration.\n+\n+If this configuration is provided via an environment variable, the environment variable MUST be\n+named `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT`. For backward compatibility with existing implementations,\n+instrumentations MAY also accept `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` as an alias.\n+If both are set, `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT` MUST take precedence.",
+      "id": "PRRT_kwDOSUeMrM6tEQcD",
+      "opened": "2026-10-16T04:52:12Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-19T14:24:16Z",
+          "body": "Ack, removed",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4314973715"
+        }
+      ],
+      "reviewed": "472f5f80a0019686ce107ccdc193f19f3a3981a9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4290986875"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nEnvironment variable value SHOULD be parsed case-insensitively.\n```\n\n?",
+      "created": "2026-10-16T04:41:07Z",
+      "hunk": "@@ -965,6 +965,52 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.\n+Instrumentations that support capturing content MUST provide a configuration option to control\n+whether content is captured and which telemetry signals receive it.\n+\n+The content capture configuration governs the following attributes and their representation on spans and events:\n+\n+- `gen_ai.input.messages`\n+- `gen_ai.output.messages`\n+- `gen_ai.system_instructions`\n+- `gen_ai.tool.call.arguments`\n+- `gen_ai.tool.call.result`\n+- `gen_ai.memory.query.text`\n+- `gen_ai.memory.records`\n+\n+Attributes providing schemas or operational metadata rather than user/model payload content (such as `gen_ai.tool.definitions` or `gen_ai.memory.record.count`) are not governed by this configuration.\n+\n+If this configuration is provided via an environment variable, the environment variable MUST be\n+named `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT`. For backward compatibility with existing implementations,\n+instrumentations MAY also accept `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` as an alias.\n+If both are set, `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT` MUST take precedence.\n+\n+The configuration MUST support the following values:\n+\n+| Value | Behavior |\n+| --- | --- |\n+| `NO_CONTENT` | Do not capture content on spans or events. (Default) |\n+| `SPAN_ONLY` | Capture content on spans only. |\n+| `EVENT_ONLY` | Capture content on events only. |\n+| `SPAN_AND_EVENT` | Capture content on both spans and events. |\n+\n+Configuration values SHOULD be parsed case-insensitively.",
+      "id": "PRRT_kwDOSUeMrM6tEQvv",
+      "opened": "2026-10-16T04:52:12Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-19T14:24:27Z",
+          "body": "Ack sure",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4314976322"
+        }
+      ],
+      "reviewed": "472f5f80a0019686ce107ccdc193f19f3a3981a9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4290988729"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nIf an unrecognized or invalid value is provided instrumentations SHOULD default to `NO_CONTENT`.\n```\n\nno need to mention old boolean values. The way that instrumentations report issues is language-specific and it the way failed config is handled should not be specific for this env var.",
+      "created": "2026-10-16T04:43:10Z",
+      "hunk": "@@ -965,6 +965,52 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.\n+Instrumentations that support capturing content MUST provide a configuration option to control\n+whether content is captured and which telemetry signals receive it.\n+\n+The content capture configuration governs the following attributes and their representation on spans and events:\n+\n+- `gen_ai.input.messages`\n+- `gen_ai.output.messages`\n+- `gen_ai.system_instructions`\n+- `gen_ai.tool.call.arguments`\n+- `gen_ai.tool.call.result`\n+- `gen_ai.memory.query.text`\n+- `gen_ai.memory.records`\n+\n+Attributes providing schemas or operational metadata rather than user/model payload content (such as `gen_ai.tool.definitions` or `gen_ai.memory.record.count`) are not governed by this configuration.\n+\n+If this configuration is provided via an environment variable, the environment variable MUST be\n+named `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT`. For backward compatibility with existing implementations,\n+instrumentations MAY also accept `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` as an alias.\n+If both are set, `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT` MUST take precedence.\n+\n+The configuration MUST support the following values:\n+\n+| Value | Behavior |\n+| --- | --- |\n+| `NO_CONTENT` | Do not capture content on spans or events. (Default) |\n+| `SPAN_ONLY` | Capture content on spans only. |\n+| `EVENT_ONLY` | Capture content on events only. |\n+| `SPAN_AND_EVENT` | Capture content on both spans and events. |\n+\n+Configuration values SHOULD be parsed case-insensitively.\n+\n+If an unrecognized or invalid value is provided (including legacy boolean values such as `true` or `false`),\n+instrumentations MUST fail closed by defaulting to `NO_CONTENT` and SHOULD log a warning. Boolean values\n+are not accepted.",
+      "id": "PRRT_kwDOSUeMrM6tESK6",
+      "opened": "2026-10-16T04:52:12Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-19T14:24:40Z",
+          "body": "Ack, removed",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4314979478"
+        }
+      ],
+      "reviewed": "472f5f80a0019686ce107ccdc193f19f3a3981a9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4290998161"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nIs there something in this text that's not captured in the table above?",
+      "created": "2026-10-16T04:43:57Z",
+      "hunk": "@@ -965,6 +965,52 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.\n+Instrumentations that support capturing content MUST provide a configuration option to control\n+whether content is captured and which telemetry signals receive it.\n+\n+The content capture configuration governs the following attributes and their representation on spans and events:\n+\n+- `gen_ai.input.messages`\n+- `gen_ai.output.messages`\n+- `gen_ai.system_instructions`\n+- `gen_ai.tool.call.arguments`\n+- `gen_ai.tool.call.result`\n+- `gen_ai.memory.query.text`\n+- `gen_ai.memory.records`\n+\n+Attributes providing schemas or operational metadata rather than user/model payload content (such as `gen_ai.tool.definitions` or `gen_ai.memory.record.count`) are not governed by this configuration.\n+\n+If this configuration is provided via an environment variable, the environment variable MUST be\n+named `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT`. For backward compatibility with existing implementations,\n+instrumentations MAY also accept `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` as an alias.\n+If both are set, `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT` MUST take precedence.\n+\n+The configuration MUST support the following values:\n+\n+| Value | Behavior |\n+| --- | --- |\n+| `NO_CONTENT` | Do not capture content on spans or events. (Default) |\n+| `SPAN_ONLY` | Capture content on spans only. |\n+| `EVENT_ONLY` | Capture content on events only. |\n+| `SPAN_AND_EVENT` | Capture content on both spans and events. |\n+\n+Configuration values SHOULD be parsed case-insensitively.\n+\n+If an unrecognized or invalid value is provided (including legacy boolean values such as `true` or `false`),\n+instrumentations MUST fail closed by defaulting to `NO_CONTENT` and SHOULD log a warning. Boolean values\n+are not accepted.\n+\n+When an instrumentation supports only a single content sink or a subset of signals:\n+\n+- If an instrumentation does not support emitting events and `EVENT_ONLY` is configured, it MUST NOT\n+  record content on spans (failing closed rather than recording sensitive data to a signal the operator excluded).\n+- If an instrumentation does not support capturing content on spans and `SPAN_ONLY` is configured, it MUST NOT\n+  record content on events.\n+- If `SPAN_AND_EVENT` is configured, the instrumentation records content to all signals it supports.",
+      "id": "PRRT_kwDOSUeMrM6tESsr",
+      "opened": "2026-10-16T04:52:12Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-19T14:25:20Z",
+          "body": "No.. removed",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4314987723"
+        }
+      ],
+      "reviewed": "472f5f80a0019686ce107ccdc193f19f3a3981a9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4291001789"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Maybe clarify that attribute usage is limited to signals that reference them?\n\n\n```suggestion\nInstrumentations SHOULD report content attributes only on the signals (spans and events) that explicitly reference them. If content attribute is not referenced on a signal, is MUST NOT be reported regardless of content configuration.\n```\n",
+      "created": "2026-10-16T04:47:33Z",
+      "hunk": "@@ -965,6 +965,52 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.\n+Instrumentations that support capturing content MUST provide a configuration option to control\n+whether content is captured and which telemetry signals receive it.\n+\n+The content capture configuration governs the following attributes and their representation on spans and events:\n+\n+- `gen_ai.input.messages`\n+- `gen_ai.output.messages`\n+- `gen_ai.system_instructions`\n+- `gen_ai.tool.call.arguments`\n+- `gen_ai.tool.call.result`\n+- `gen_ai.memory.query.text`\n+- `gen_ai.memory.records`\n+\n+Attributes providing schemas or operational metadata rather than user/model payload content (such as `gen_ai.tool.definitions` or `gen_ai.memory.record.count`) are not governed by this configuration.\n+\n+If this configuration is provided via an environment variable, the environment variable MUST be",
+      "id": "PRRT_kwDOSUeMrM6tEVQd",
+      "opened": "2026-10-16T04:52:12Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-19T14:23:27Z",
+          "body": "Sure. added",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4314963699"
+        }
+      ],
+      "reviewed": "472f5f80a0019686ce107ccdc193f19f3a3981a9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4291018619"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Consider adding links to the corresponding attributes\n```suggestion\n- [`gen_ai.input.messages`](/docs/registry/attributes/gen-ai.md#gen-ai-input-messages)\n```",
+      "created": "2026-10-16T04:48:29Z",
+      "hunk": "@@ -965,6 +965,52 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.\n+Instrumentations that support capturing content MUST provide a configuration option to control\n+whether content is captured and which telemetry signals receive it.\n+\n+The content capture configuration governs the following attributes and their representation on spans and events:\n+\n+- `gen_ai.input.messages`",
+      "id": "PRRT_kwDOSUeMrM6tEV5g",
+      "opened": "2026-10-16T04:52:12Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-19T14:21:46Z",
+          "body": "Ack done",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4314945144"
+        }
+      ],
+      "reviewed": "472f5f80a0019686ce107ccdc193f19f3a3981a9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4291023010"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "non-blocking: do we want to stabilize this part of the doc? ",
+      "created": "2026-10-16T04:49:11Z",
+      "hunk": "@@ -1004,6 +1050,28 @@ in the telemetry processing pipeline (in-process or via a collector), based on t\n attributes. Given the potential data volume, it is RECOMMENDED to tune batching\n and export settings accordingly in the OpenTelemetry SDK pipeline.\n \n+##### Content upload configuration",
+      "id": "PRRT_kwDOSUeMrM6tEWX_",
+      "opened": "2026-10-16T04:52:12Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-19T14:26:18Z",
+          "body": "Yeah sure may as well",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4314998602"
+        },
+        {
+          "at": "2026-10-19T17:55:00Z",
+          "body": "then let's separate env vars and declarative config - the latter can't be stabilized yet because overall instrumentation config and corresponding otel API are not stable yet - https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/api.md",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4317051865"
+        },
+        {
+          "at": "2026-10-19T18:03:58Z",
+          "body": "Well what in your mind is needed to stabilize this (or is it nothing other than just marking it stable) ?\r\n\r\nIt seems like none of the `_ref` attributes exists in `registry.yaml` yet.. so that is one minor thing .. https://github.com/open-telemetry/semantic-conventions-genai/pull/490 handles that it looks like..\r\n\r\nTangentially related, we could probably still stabilize what we have, I looked how alibaba did their upload, and they do 2 things differently: \r\n\r\nThey do it only for individual parts, and then puts the refs as a UriPart, if the part is <= 30MB.. They do that for all Blob parts (image, video, and audio), local files, inline data urIs, remote web URLs (if user opts in to it).. They also have logic that translates audio / video formats to standard formats.. And a md5 hash to deduplicate...\r\n\r\nThey also rely on util-genai's upload hook directly..\r\n\r\nThey also support presigned auth, and they have a lot of config options to support that:  https://github.com/alibaba/loongsuite-pilot/blob/main/docs/configuration.md#multimodal-object-storage -- we could probably support something like with a much simpler interface to begin with.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4317133555"
+        },
+        {
+          "at": "2026-10-21T17:51:39Z",
+          "body": "Agreed, we won't plan to stabilize upload hook configuration in the near term.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4340108569"
+        }
+      ],
+      "reviewed": "472f5f80a0019686ce107ccdc193f19f3a3981a9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4291026283"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "let's separate declarative config into a different PR? We won't be able to stabilize it at this time",
+      "created": "2026-10-16T04:50:56Z",
+      "hunk": "@@ -1004,6 +1050,28 @@ in the telemetry processing pipeline (in-process or via a collector), based on t\n attributes. Given the potential data volume, it is RECOMMENDED to tune batching\n and export settings accordingly in the OpenTelemetry SDK pipeline.\n \n+##### Content upload configuration\n+\n+Instrumentations that support content uploading via completion hooks SHOULD support the following\n+standard configuration options:\n+\n+- **Completion hook**: Specifies the qualified method or component name to be called when an operation completes.\n+  - Environment variable: `OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK` (e.g. `upload`).\n+  - Declarative configuration: `completion_hook` under `.instrumentation/development.general.gen_ai.upload`\n+- **Upload base path**: Specifies the destination path or URI for uploaded prompt and response content.\n+  It MAY be a local filesystem directory (e.g. `/var/log/genai/prompts`) or a cloud storage URI\n+  (e.g. `s3://my-bucket/prompts`, `gs://my-bucket/prompts`, `az://my-container/prompts`).\n+  - Environment variable: `OTEL_INSTRUMENTATION_GENAI_UPLOAD_BASE_PATH`\n+  - Declarative configuration: `base_path` under `.instrumentation/development.general.gen_ai.upload`",
+      "id": "PRRT_kwDOSUeMrM6tEXlx",
+      "opened": "2026-10-16T04:52:12Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-19T14:16:25Z",
+          "body": "Sure. removed",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4314886555"
+        }
+      ],
+      "reviewed": "472f5f80a0019686ce107ccdc193f19f3a3981a9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4291034474"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Good chance to polish env var name and align it with `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT`\n\n```suggestion\n  - Environment variable: `OTEL_INSTRUMENTATION_GENAI_CONTENT_HOOK` (e.g. `upload`).\n```",
+      "created": "2026-10-16T04:51:29Z",
+      "hunk": "@@ -1004,6 +1050,28 @@ in the telemetry processing pipeline (in-process or via a collector), based on t\n attributes. Given the potential data volume, it is RECOMMENDED to tune batching\n and export settings accordingly in the OpenTelemetry SDK pipeline.\n \n+##### Content upload configuration\n+\n+Instrumentations that support content uploading via completion hooks SHOULD support the following\n+standard configuration options:\n+\n+- **Completion hook**: Specifies the qualified method or component name to be called when an operation completes.\n+  - Environment variable: `OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK` (e.g. `upload`).",
+      "id": "PRRT_kwDOSUeMrM6tEYAe",
+      "opened": "2026-10-16T04:52:12Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-19T14:26:38Z",
+          "body": "Ack.. done",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4315002286"
+        }
+      ],
+      "reviewed": "472f5f80a0019686ce107ccdc193f19f3a3981a9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4291037131"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why `gen_ai.memory.record.count` ? it's not content and not schema",
+      "created": "2026-10-21T17:28:35Z",
+      "hunk": "@@ -970,6 +970,42 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.\n+Instrumentations that support capturing content MUST provide a configuration option to control\n+whether content is captured and which telemetry signals receive it.\n+\n+The content capture configuration governs the following attributes and their representation on spans and events:\n+\n+- [`gen_ai.input.messages`](/docs/registry/attributes/gen-ai.md#gen-ai-input-messages)\n+- [`gen_ai.output.messages`](/docs/registry/attributes/gen-ai.md#gen-ai-output-messages)\n+- [`gen_ai.system_instructions`](/docs/registry/attributes/gen-ai.md#gen-ai-system-instructions)\n+- [`gen_ai.tool.call.arguments`](/docs/registry/attributes/gen-ai.md#gen-ai-tool-call-arguments)\n+- [`gen_ai.tool.call.result`](/docs/registry/attributes/gen-ai.md#gen-ai-tool-call-result)\n+- [`gen_ai.memory.query.text`](/docs/registry/attributes/gen-ai.md#gen-ai-memory-query-text)\n+- [`gen_ai.memory.records`](/docs/registry/attributes/gen-ai.md#gen-ai-memory-records)\n+\n+Attributes providing schemas or operational metadata rather than user/model payload content (such as [`gen_ai.tool.definitions`](/docs/registry/attributes/gen-ai.md#gen-ai-tool-definitions) or [`gen_ai.memory.record.count`](/docs/registry/attributes/gen-ai.md#gen-ai-memory-record-count)) are not governed by this configuration.",
+      "id": "PRRT_kwDOSUeMrM6u4I0q",
+      "opened": "2026-10-21T17:31:20Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-21T17:51:35Z",
+          "body": "Good point, removed — as you noted, it's neither content nor schema.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4340107950"
+        }
+      ],
+      "reviewed": "61256d352e2492ddaa5329b28eba86db23a00261",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4339879446"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please update PR description, env names seems out of date",
+      "created": "2026-10-21T19:08:39Z",
+      "hunk": "@@ -0,0 +1 @@\n+Define and formalize GenAI content capture and external storage upload configuration options.",
+      "id": "PRRT_kwDOSUeMrM6u6aMg",
+      "opened": "2026-10-21T19:08:38Z",
+      "path": "changelog.d/543.enhancement.md",
+      "replies": [
+        {
+          "at": "2026-10-21T20:40:20Z",
+          "body": "Updated the PR description to reflect `OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT` and `OTEL_INSTRUMENTATION_GENAI_CONTENT_HOOK` (and removed mention of declarative config). Also aligned `docs/gen-ai/gen-ai-spans.md` to `OTEL_INSTRUMENTATION_GENAI_CONTENT_HOOK`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4341728497"
+        }
+      ],
+      "reviewed": "9812176d7818eabebe02e3be10f7ea4357162e6d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4340852010"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "\n```suggestion\n- [`gen_ai.tool.call.result`](/docs/registry/attributes/gen-ai.md#gen-ai-tool-call-result)\n- [`gen_ai.retrieval.query.text`](/docs/registry/attributes/gen-ai.md#gen-ai-retrieval-query-text)\n- [`gen_ai.prompt.variable.*`](/docs/registry/attributes/gen-ai.md#gen-ai-prompt-variable)\n```",
+      "created": "2026-10-21T21:11:32Z",
+      "hunk": "@@ -970,6 +970,42 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.\n+Instrumentations that support capturing content MUST provide a configuration option to control\n+whether content is captured and which telemetry signals receive it.\n+\n+The content capture configuration governs the following attributes and their representation on spans and events:\n+\n+- [`gen_ai.input.messages`](/docs/registry/attributes/gen-ai.md#gen-ai-input-messages)\n+- [`gen_ai.output.messages`](/docs/registry/attributes/gen-ai.md#gen-ai-output-messages)\n+- [`gen_ai.system_instructions`](/docs/registry/attributes/gen-ai.md#gen-ai-system-instructions)\n+- [`gen_ai.tool.call.arguments`](/docs/registry/attributes/gen-ai.md#gen-ai-tool-call-arguments)\n+- [`gen_ai.tool.call.result`](/docs/registry/attributes/gen-ai.md#gen-ai-tool-call-result)",
+      "id": "PRRT_kwDOSUeMrM6u9He0",
+      "opened": "2026-10-21T21:16:34Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-22T14:12:32Z",
+          "body": "Applied",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4349385859"
+        }
+      ],
+      "reviewed": "5dd5fb89083131dc29e9ca63556cb07a2a71b35d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4342011549"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "\n\n```suggestion\nA content attribute MUST NOT be reported on a signal unless that signal's conventions\nreference the attribute or explicitly permit copying it from another signal.\nFor example, [GenAI client operation exception events](gen-ai-exceptions.md#generative-ai-client-operation-exception)\nMAY include attributes captured on the corresponding span when configured to do so.\nIn either case, the content capture configuration MUST enable content on the destination signal.\n```",
+      "created": "2026-10-21T21:11:32Z",
+      "hunk": "@@ -970,6 +970,42 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.\n+Instrumentations that support capturing content MUST provide a configuration option to control\n+whether content is captured and which telemetry signals receive it.\n+\n+The content capture configuration governs the following attributes and their representation on spans and events:\n+\n+- [`gen_ai.input.messages`](/docs/registry/attributes/gen-ai.md#gen-ai-input-messages)\n+- [`gen_ai.output.messages`](/docs/registry/attributes/gen-ai.md#gen-ai-output-messages)\n+- [`gen_ai.system_instructions`](/docs/registry/attributes/gen-ai.md#gen-ai-system-instructions)\n+- [`gen_ai.tool.call.arguments`](/docs/registry/attributes/gen-ai.md#gen-ai-tool-call-arguments)\n+- [`gen_ai.tool.call.result`](/docs/registry/attributes/gen-ai.md#gen-ai-tool-call-result)\n+- [`gen_ai.memory.query.text`](/docs/registry/attributes/gen-ai.md#gen-ai-memory-query-text)\n+- [`gen_ai.memory.records`](/docs/registry/attributes/gen-ai.md#gen-ai-memory-records)\n+\n+Attributes providing schemas rather than user/model payload content (such as [`gen_ai.tool.definitions`](/docs/registry/attributes/gen-ai.md#gen-ai-tool-definitions)) are not governed by this configuration.\n+\n+Instrumentations SHOULD report content attributes only on the signals (spans and events) that explicitly reference them. If a content attribute is not referenced on a signal, it MUST NOT be reported regardless of content configuration.",
+      "id": "PRRT_kwDOSUeMrM6u9He7",
+      "opened": "2026-10-21T21:16:34Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-22T14:12:25Z",
+          "body": "Applied",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4349384395"
+        }
+      ],
+      "reviewed": "5dd5fb89083131dc29e9ca63556cb07a2a71b35d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4342011560"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "\n```suggestion\nCapturing model instructions, prompts, completions, retrieval queries, prompt template variables, and memory records is gated by an explicit user opt-in.\n```",
+      "created": "2026-10-21T21:11:32Z",
+      "hunk": "@@ -970,6 +970,42 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+##### Content capture configuration\n+\n+Capturing model instructions, prompts, completions, and memory records is gated by an explicit user opt-in.",
+      "id": "PRRT_kwDOSUeMrM6u9Heh",
+      "opened": "2026-10-21T21:16:34Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-22T14:12:37Z",
+          "body": "Applied",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4349387058"
+        }
+      ],
+      "reviewed": "5dd5fb89083131dc29e9ca63556cb07a2a71b35d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/543#discussion_r4342011526"
+    }
+  ]
+}

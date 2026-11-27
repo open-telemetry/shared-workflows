@@ -1,0 +1,316 @@
+{
+  "head": "4de58197e99daa1e074c6c0fff8b09afd6b95b5b",
+  "merge": "e18f607be4bf8835f7363613129fc03fb962181f",
+  "merged": "2026-10-27T11:43:53Z",
+  "missing_roots": 0,
+  "number": 20943,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with one targeted simplification. In instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/MemcachedClientInstrumentation.java, narrow SyncBulkAdvice from every public getBulk overload to the canonical getBulk(Collection, Transcoder) overload. In spymemcached 2.12.0 and 2.12.3, all synchronous array/collection overloads delegate to that method immediately before it converts the keys to an iterator. Capture the synchronous bulk query once at that boundary instead of rebuilding it and opening nested context scopes in the delegating overloads. Bind the collection directly in the advice where that simplifies argument handling, reusing existing sanitization logic without introducing an unnecessary abstraction.\n\nPreserve the bulk query snapshot and its cleanup, the asynchronous bulk completion/cancellation lifecycle, existing query text and operation names, iterator-key omission without consuming iterators, value redaction, the query-length limit, and descriptor-based CAS handling. Keep this change focused; do not rewrite unrelated advice or sanitizer logic. The existing synchronous/asynchronous bulk overload matrix and bulk cancellation coverage must continue to exercise the same behavior.\n\nApply the narrowest relevant Spotless formatter directly before behavioral validation and run the focused tests covering this change. Commit and push the change to this PR's existing head branch.",
+      "created": "2026-10-24T23:37:36Z",
+      "hunk": "@@ -51,15 +50,21 @@ public void transform(TypeTransformer transformer) {\n         getClass().getName() + \"$AsyncBulkAdvice\");\n     transformer.applyAdviceToMethod(\n         isPublic().and(namedOneOf(\"incr\", \"decr\")), getClass().getName() + \"$SyncOperationAdvice\");\n+    transformer.applyAdviceToMethod(\n+        isPublic().and(named(\"getBulk\")), getClass().getName() + \"$SyncBulkAdvice\");",
+      "id": "PRRT_kwDODJKVX86v8tww",
+      "opened": "2026-10-24T23:37:36Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/MemcachedClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-24T23:46:20Z",
+          "body": "Addressed in 90b9f328. `SyncBulkAdvice` now matches only `getBulk(Collection, Transcoder)` and binds the key collection directly, reusing the existing sanitizer. Snapshot cleanup and async completion/cancellation handling are unchanged. Applied module Java Spotless before validation; all 18 focused bulk overload and cancellation tests passed across both attribute modes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4368974023"
+        }
+      ],
+      "reviewed": "f853f243ec9a63643184a5692487eb4ecae40ead",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4368952899"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] If iterating an asynchronous bulk request's key collection throws, request construction exits after incrementing call depth but before returning an `AdviceScope`. The suppressed exception leaves exit advice unable to decrement the depth, so subsequent Spymemcached calls on that thread are treated as nested and produce no spans. Roll back the increment when request/listener construction fails, and add a regression test that follows a failed bulk capture with a normal request.",
+      "created": "2026-10-24T23:53:49Z",
+      "hunk": "@@ -138,16 +178,21 @@ private AdviceScope(Handler<F, T> handler, CallDepth callDepth, @Nullable T list\n     }\n \n     public static <F, T extends CompletionListener<?>> AdviceScope<F, T> start(\n-        Handler<F, T> handler, MemcachedClient client, String methodName) {\n+        Handler<F, T> handler,\n+        MemcachedClient client,\n+        String methodName,\n+        String descriptor,\n+        Object[] args) {\n       CallDepth callDepth = CallDepth.forClass(MemcachedClient.class);\n       if (callDepth.getAndIncrement() > 0) {\n         return new AdviceScope<>(handler, callDepth, null);\n       }\n \n-      return new AdviceScope<>(\n-          handler,\n-          callDepth,\n-          handler.create(Context.current(), client.getConnection(), methodName));\n+      SpymemcachedRequest request =\n+          SpymemcachedRequest.create(client.getConnection(), methodName, descriptor, args);\n+      // Consume the synchronous bulk snapshot without propagating it to nested client calls.\n+      Context parentContext = Context.current().with(SpymemcachedRequest.BULK_QUERY_TEXT, null);\n+      return new AdviceScope<>(handler, callDepth, handler.create(parentContext, request));",
+      "id": "PRRT_kwDODJKVX86v8zwQ",
+      "opened": "2026-10-24T23:53:50Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/MemcachedClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-25T00:55:00Z",
+          "body": "Fixed in 249b639a. Failed request/listener construction now decrements call depth before rethrowing to the advice suppression boundary. The regression follows failed bulk capture with a normal async get and verifies that the later request still emits a span.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369149899"
+        }
+      ],
+      "reviewed": "90b9f328b9cd2597e3ddd8bd9fdfa3cb28f97cb4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4368992947"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a focused follow-up for the query-capture lifecycle defect identified in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4368992947. The canonical getBulk(Collection, Transcoder) simplification in 90b9f328 is delivered and should remain unchanged.\n\nIn MemcachedClientInstrumentation.AdviceScope.start, the outermost call increments CallDepth before SpymemcachedRequest.create and listener construction. Query sanitization now iterates application bulk-key collections and can throw. When construction fails, entry advice suppresses that exception without returning an AdviceScope, so exit advice cannot balance the increment and later Spymemcached calls on the same thread stop producing spans. Balance the increment on request/listener construction failure before the exception reaches the existing advice suppression boundary. Preserve the nested-call bookkeeping and normal completion behavior; do not silently turn the failure into successful query capture or change application exception behavior.\n\nAdd focused regression coverage proving that failed bulk capture cannot suppress a later normal request on the same thread. Prefer an installed-agent test exercising the real entry/exit suppression path if practical. Keep the canonical synchronous bulk snapshot, asynchronous completion/cancellation behavior, iterator omission, value redaction, query-length limit, operation names, and CAS handling intact. Do not resolve or reply to review threads; the coordinator will verify the fix and handle the review thread.\n\nApply the narrowest relevant Spotless formatter directly before behavioral validation and run the focused regression plus existing bulk overload/cancellation coverage. Commit and push only this focused correction to this PR's existing head branch.",
+      "created": "2026-10-24T23:55:01Z",
+      "hunk": "@@ -138,16 +178,21 @@ private AdviceScope(Handler<F, T> handler, CallDepth callDepth, @Nullable T list\n     }\n \n     public static <F, T extends CompletionListener<?>> AdviceScope<F, T> start(\n-        Handler<F, T> handler, MemcachedClient client, String methodName) {\n+        Handler<F, T> handler,\n+        MemcachedClient client,\n+        String methodName,\n+        String descriptor,\n+        Object[] args) {\n       CallDepth callDepth = CallDepth.forClass(MemcachedClient.class);\n       if (callDepth.getAndIncrement() > 0) {\n         return new AdviceScope<>(handler, callDepth, null);\n       }\n \n-      return new AdviceScope<>(\n-          handler,\n-          callDepth,\n-          handler.create(Context.current(), client.getConnection(), methodName));\n+      SpymemcachedRequest request =\n+          SpymemcachedRequest.create(client.getConnection(), methodName, descriptor, args);",
+      "id": "PRRT_kwDODJKVX86v80X7",
+      "opened": "2026-10-24T23:55:01Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/MemcachedClientInstrumentation.java",
+      "replies": [],
+      "reviewed": "90b9f328b9cd2597e3ddd8bd9fdfa3cb28f97cb4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4368997032"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] The `asyncGetBulk(Collection<String>, Iterator<Transcoder<T>>)` overload requests only the minimum of the key and transcoder counts, explicitly allowing unequal lengths. With keys `[key1, key2]` and one transcoder, this loop emits `getBulk key1 key2` even though only `key1` is requested. Omit keys for this overload, as for iterator-supplied keys, unless the actually consumed keys can be captured without advancing either iterator.",
+      "created": "2026-10-25T00:08:11Z",
+      "hunk": "@@ -0,0 +1,106 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spymemcached.v2_12;\n+\n+import static io.opentelemetry.instrumentation.api.internal.StringUtils.appendTruncated;\n+\n+import java.util.Collection;\n+import javax.annotation.Nullable;\n+\n+final class SpymemcachedQuerySanitizer {\n+  private static final int LIMIT = 32 * 1024;\n+\n+  static String sanitize(String operation, String descriptor, Object[] args) {\n+    StringBuilder query = new StringBuilder(operation);\n+    if (args.length == 0) {\n+      return query.toString();\n+    }\n+    switch (operation) {\n+      case \"getBulk\":\n+        Object keys = args[0];\n+        if (keys instanceof Collection) {",
+      "id": "PRRT_kwDODJKVX86v857a",
+      "opened": "2026-10-25T00:08:12Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedQuerySanitizer.java",
+      "replies": [
+        {
+          "at": "2026-10-25T00:55:00Z",
+          "body": "Fixed in 249b639a. The collection/iterator-transcoder overload now omits keys without advancing either iterator. Regression coverage includes unequal key/transcoder counts and iterator non-consumption, and the README documents this limitation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369149900"
+        }
+      ],
+      "reviewed": "90b9f328b9cd2597e3ddd8bd9fdfa3cb28f97cb4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369036683"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Closing the async advice scope restores the outer `SyncBulkAdvice` context, making its bulk snapshot available again. If a synchronous bulk read runs a custom `Transcoder.decode()` on the caller thread and that decoder performs an `asyncGetBulk` lookup, the nested lookup records the outer request's keys instead of its own. Make the snapshot a one-use handoff to the delegated async call so later reentrant bulk requests sanitize their own arguments.",
+      "created": "2026-10-25T00:08:11Z",
+      "hunk": "@@ -16,13 +18,31 @@\n @AutoValue\n public abstract class SpymemcachedRequest {\n \n-  public static SpymemcachedRequest create(MemcachedConnection connection, String queryText) {\n+  static final ContextKey<String> BULK_QUERY_TEXT =\n+      ContextKey.named(\"opentelemetry-spymemcached-bulk-query-text\");\n+\n+  public static SpymemcachedRequest create(MemcachedConnection connection, String methodName) {\n+    return create(connection, methodName, \"\", new Object[0]);\n+  }\n+\n+  public static SpymemcachedRequest create(\n+      MemcachedConnection connection, String methodName, String descriptor, Object[] args) {\n+    String operationName = operationName(methodName);\n+    String queryText =\n+        operationName.equals(\"getBulk\") ? Context.current().get(BULK_QUERY_TEXT) : null;",
+      "id": "PRRT_kwDODJKVX86v857u",
+      "opened": "2026-10-25T00:08:12Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedRequest.java",
+      "replies": [
+        {
+          "at": "2026-10-25T00:54:59Z",
+          "body": "Fixed in 249b639a. The synchronous snapshot is now a one-use handoff consumed with getAndSet(null), so restoring the outer scope cannot expose its keys again. The reentrant-decoder regression verifies that outer and nested bulk requests retain their own query text.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369149896"
+        }
+      ],
+      "reviewed": "90b9f328b9cd2597e3ddd8bd9fdfa3cb28f97cb4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369036714"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Implement and push the following focused query-capture corrections directly to this PR. The prior correction session 50007793-be25-41f3-8756-b3298aa38026 ended without a commit or reply; the live head is still 90b9f328b9cd2597e3ddd8bd9fdfa3cb28f97cb4, and none of these issues is fixed. Preserve the delivered simplification that SyncBulkAdvice matches only getBulk(Collection, Transcoder). This is a coding request, not an analysis-only request.\n\nFix the call-depth leak identified at https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4368992947. In MemcachedClientInstrumentation.AdviceScope.start, balance the outermost CallDepth increment if request/listener construction throws before an AdviceScope is returned. Keep exception reporting/suppression at the existing advice boundary and preserve normal and nested-call bookkeeping. Add a regression that exercises failed bulk capture followed by a normal request on the same thread and verifies that the later span is still emitted.\n\nFix misleading keys for asyncGetBulk(Collection<String>, Iterator<Transcoder<T>>) as described at https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369036683. Spymemcached 2.12.0 explicitly permits unequal iterator lengths and loops while keyIter.hasNext() && tcIter.hasNext(), so not every collection key is necessarily requested. Omit captured keys for this explicit iterator-transcoder overload without advancing either iterator. Continue capturing keys for ordinary collection/transcoder and varargs overloads. Cover the unequal-length case and iterator non-consumption, and update the existing README limitation briefly if needed.\n\nFix reentrant snapshot reuse as described at https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369036714. The BULK_QUERY_TEXT snapshot is currently restored when the delegated async advice scope closes, so a caller-thread Transcoder.decode callback performing a different asyncGetBulk can pick up the outer synchronous request's keys. Make the snapshot a one-use handoff to the delegated async request while retaining correct scope cleanup. This is a supported path: TranscodeService.Task.get invokes run on the caller, and BulkGetFuture.internalGet calls those decode futures' get methods. Add focused regression coverage proving that a reentrant bulk lookup records its own keys, not the consumed outer snapshot.\n\nKeep these changes limited to the query-capture lifecycle and key accuracy. Preserve async completion/cancellation semantics, iterator-key omission, value redaction, the length limit, operation names, and descriptor-based CAS handling. Apply the narrowest relevant Spotless formatter immediately before behavioral validation. Run the new regressions plus existing bulk overload/cancellation coverage. Commit and push the fixes to this PR's existing head branch.",
+      "created": "2026-10-25T00:12:52Z",
+      "hunk": "@@ -138,16 +178,21 @@ private AdviceScope(Handler<F, T> handler, CallDepth callDepth, @Nullable T list\n     }\n \n     public static <F, T extends CompletionListener<?>> AdviceScope<F, T> start(\n-        Handler<F, T> handler, MemcachedClient client, String methodName) {\n+        Handler<F, T> handler,\n+        MemcachedClient client,\n+        String methodName,\n+        String descriptor,\n+        Object[] args) {\n       CallDepth callDepth = CallDepth.forClass(MemcachedClient.class);\n       if (callDepth.getAndIncrement() > 0) {\n         return new AdviceScope<>(handler, callDepth, null);\n       }\n \n-      return new AdviceScope<>(\n-          handler,\n-          callDepth,\n-          handler.create(Context.current(), client.getConnection(), methodName));\n+      SpymemcachedRequest request =\n+          SpymemcachedRequest.create(client.getConnection(), methodName, descriptor, args);",
+      "id": "PRRT_kwDODJKVX86v87kr",
+      "opened": "2026-10-25T00:12:52Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/MemcachedClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-25T00:51:15Z",
+          "body": "Implemented and pushed as 249b639a. Focused bulk, cancellation, reentrancy, call-depth, and sanitizer/request tests pass in both attribute modes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369141242"
+        }
+      ],
+      "reviewed": "90b9f328b9cd2597e3ddd8bd9fdfa3cb28f97cb4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369047747"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Calling `methodEnter` reflectively bypasses the installed advice's exception suppression and never executes the original bulk request, so this test does not verify that query-capture failures leave application requests working. Invoke `memcached.asyncGetBulk(keys).get()` through the installed agent and assert that it succeeds, then verify the subsequent request's telemetry. Replace the reflective setup and adjust the expected traces to cover the actual bulk call and recovery.",
+      "created": "2026-10-25T00:59:58Z",
+      "hunk": "@@ -450,6 +505,188 @@ void bulkGet() {\n                             equalTo(SERVER_PORT, memcachedAddress.getPort()))));\n   }\n \n+  @Test\n+  void bulkGetWithIteratorTranscodersOmitsKeysWhenCountsDiffer() throws Exception {\n+    MemcachedClient memcached = getMemcached(singletonMap(\"test-get\", \"get test\"));\n+    List<String> keys = asList(key(\"test-get\"), key(\"test-get-2\"));\n+    Iterator<Transcoder<Object>> transcoders = singletonList(memcached.getTranscoder()).iterator();\n+\n+    Map<String, Object> result =\n+        testing.runWithSpan(\"parent\", () -> memcached.asyncGetBulk(keys, transcoders).get());\n+\n+    assertThat(result).hasSize(1).containsEntry(key(\"test-get\"), \"get test\");\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"parent\").hasNoParent().hasTotalAttributeCount(0),\n+                span ->\n+                    span.hasName(spanName(\"get\"))\n+                        .hasAttributesSatisfying(equalTo(DB_QUERY_TEXT, \"getBulk\"))));\n+  }\n+\n+  @Test\n+  void failedBulkCaptureDoesNotSuppressSubsequentRequest() throws Exception {\n+    MemcachedClient memcached = getMemcached(singletonMap(\"test-get\", \"get test\"));\n+    AtomicBoolean failFirstIteration = new AtomicBoolean(true);\n+    Collection<String> keys =\n+        new AbstractCollection<String>() {\n+          @Override\n+          public Iterator<String> iterator() {\n+            if (failFirstIteration.getAndSet(false)) {\n+              throw new IllegalStateException(\"query capture failed\");\n+            }\n+            return singletonList(key(\"test-get\")).iterator();\n+          }\n+\n+          @Override\n+          public int size() {\n+            return 1;\n+          }\n+        };\n+\n+    Class<?> registry =\n+        AgentClassLoaderAccess.loadClass(\n+            \"io.opentelemetry.javaagent.tooling.instrumentation.indy.IndyModuleRegistry\");\n+    Method getInstrumentationClassLoader =\n+        registry.getMethod(\"getInstrumentationClassLoader\", String.class, ClassLoader.class);\n+    ClassLoader instrumentationClassLoader =\n+        (ClassLoader)\n+            getInstrumentationClassLoader.invoke(\n+                null,\n+                \"io.opentelemetry.javaagent.instrumentation.spymemcached.v2_12.\"\n+                    + \"SpymemcachedInstrumentationModule\",\n+                MemcachedClient.class.getClassLoader());\n+    Class<?> adviceClass =\n+        Class.forName(\n+            \"io.opentelemetry.javaagent.instrumentation.spymemcached.v2_12.\"\n+                + \"MemcachedClientInstrumentation$AsyncBulkAdvice\",\n+            true,\n+            instrumentationClassLoader);\n+    Method methodEnter =\n+        adviceClass.getMethod(\n+            \"methodEnter\", MemcachedClient.class, String.class, String.class, Object[].class);\n+    assertThatThrownBy(\n+            () ->\n+                methodEnter.invoke(\n+                    null,\n+                    memcached,",
+      "id": "PRRT_kwDODJKVX86v9M1Y",
+      "opened": "2026-10-25T00:59:58Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java",
+      "replies": [
+        {
+          "at": "2026-10-25T01:21:43Z",
+          "body": "Fixed in 5d5b4bb6. The regression now calls asyncGetBulk(keys).get() through the installed agent, verifies the successful bulk result, then performs a normal async get on the same thread. It checks exactly one suppressed capture failure and both resulting spans with exact attribute assertions. Async-bulk exit advice also handles the null entry state after that suppressed failure.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369218672"
+        }
+      ],
+      "reviewed": "249b639a6c0b2382d5151cec1ceddbc19df6de5d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369160322"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Implement a focused test simplification directly in this PR to address https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369160322. The three production fixes in 249b639a are delivered and verified; preserve them and the canonical getBulk(Collection, Transcoder) matcher.\n\nIn SpymemcachedTest.failedBulkCaptureDoesNotSuppressSubsequentRequest, replace the reflective AgentClassLoaderAccess/IndyModuleRegistry/AsyncBulkAdvice.methodEnter setup with a real memcached.asyncGetBulk(keys).get() call through the installed agent. Keep the collection whose first iterator() call throws and later calls succeed. Assert that the actual bulk request completes successfully with its expected result, then execute and assert the following normal async get on the same thread. Assert the complete resulting telemetry through waitAndAssertTraces, including any bulk span produced by the delegated overload after the outer capture failure. This must exercise the installed advice's exception suppression and prove application behavior and later instrumentation recovery, not merely invoke an advice helper directly.\n\nRemove reflection-only imports and setup that become unused. Keep expected values local and use the repository's exact attribute assertions for the trace assertions you edit. Keep this correction test-only unless the real installed-agent regression exposes a narrowly related production defect necessary to preserve the already-settled behavior; do not weaken application-success or subsequent-span expectations to make the test pass.\n\nApply the narrowest relevant Spotless formatter directly before behavioral validation. Run this regression and the existing bulk overload/cancellation regressions in both attribute modes. Commit and push the focused change to this PR's existing head branch.",
+      "created": "2026-10-25T01:05:33Z",
+      "hunk": "@@ -450,6 +505,188 @@ void bulkGet() {\n                             equalTo(SERVER_PORT, memcachedAddress.getPort()))));\n   }\n \n+  @Test\n+  void bulkGetWithIteratorTranscodersOmitsKeysWhenCountsDiffer() throws Exception {\n+    MemcachedClient memcached = getMemcached(singletonMap(\"test-get\", \"get test\"));\n+    List<String> keys = asList(key(\"test-get\"), key(\"test-get-2\"));\n+    Iterator<Transcoder<Object>> transcoders = singletonList(memcached.getTranscoder()).iterator();\n+\n+    Map<String, Object> result =\n+        testing.runWithSpan(\"parent\", () -> memcached.asyncGetBulk(keys, transcoders).get());\n+\n+    assertThat(result).hasSize(1).containsEntry(key(\"test-get\"), \"get test\");\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"parent\").hasNoParent().hasTotalAttributeCount(0),\n+                span ->\n+                    span.hasName(spanName(\"get\"))\n+                        .hasAttributesSatisfying(equalTo(DB_QUERY_TEXT, \"getBulk\"))));\n+  }\n+\n+  @Test\n+  void failedBulkCaptureDoesNotSuppressSubsequentRequest() throws Exception {\n+    MemcachedClient memcached = getMemcached(singletonMap(\"test-get\", \"get test\"));\n+    AtomicBoolean failFirstIteration = new AtomicBoolean(true);\n+    Collection<String> keys =\n+        new AbstractCollection<String>() {\n+          @Override\n+          public Iterator<String> iterator() {\n+            if (failFirstIteration.getAndSet(false)) {\n+              throw new IllegalStateException(\"query capture failed\");\n+            }\n+            return singletonList(key(\"test-get\")).iterator();\n+          }\n+\n+          @Override\n+          public int size() {\n+            return 1;\n+          }\n+        };\n+\n+    Class<?> registry =\n+        AgentClassLoaderAccess.loadClass(\n+            \"io.opentelemetry.javaagent.tooling.instrumentation.indy.IndyModuleRegistry\");\n+    Method getInstrumentationClassLoader =\n+        registry.getMethod(\"getInstrumentationClassLoader\", String.class, ClassLoader.class);\n+    ClassLoader instrumentationClassLoader =\n+        (ClassLoader)\n+            getInstrumentationClassLoader.invoke(\n+                null,\n+                \"io.opentelemetry.javaagent.instrumentation.spymemcached.v2_12.\"\n+                    + \"SpymemcachedInstrumentationModule\",\n+                MemcachedClient.class.getClassLoader());\n+    Class<?> adviceClass =\n+        Class.forName(\n+            \"io.opentelemetry.javaagent.instrumentation.spymemcached.v2_12.\"\n+                + \"MemcachedClientInstrumentation$AsyncBulkAdvice\",\n+            true,\n+            instrumentationClassLoader);\n+    Method methodEnter =\n+        adviceClass.getMethod(\n+            \"methodEnter\", MemcachedClient.class, String.class, String.class, Object[].class);\n+    assertThatThrownBy(\n+            () ->\n+                methodEnter.invoke(",
+      "id": "PRRT_kwDODJKVX86v9PxD",
+      "opened": "2026-10-25T01:05:33Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java",
+      "replies": [
+        {
+          "at": "2026-10-25T01:20:00Z",
+          "body": "Updated in 5d5b4bb6. The regression now exercises the real installed-agent bulk call and subsequent get, asserting both spans; async-bulk exit advice now tolerates a suppressed entry failure.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369215262"
+        }
+      ],
+      "reviewed": "249b639a6c0b2382d5151cec1ceddbc19df6de5d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369182904"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix both testing-convention findings from https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#pullrequestreview-5640931927 directly in this PR. The current head is 5d5b4bb6374fa93066dfcde4677db43585916ad0. Keep this correction test/build-only and preserve the delivered canonical getBulk(Collection, Transcoder) matcher and query-capture correctness fixes.\r\n\r\nMove the new SpymemcachedQuerySanitizerTest from instrumentation/spymemcached-2.12/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12 into the javaagent project's src/unitTests/java tree with the same package. Register the unitTests JvmTestSuite in instrumentation/spymemcached-2.12/javaagent/build.gradle.kts following .github/instructions/java-tests.instructions.md and .github/agents/knowledge/gradle-conventions.md, declare its required dependencies, and wire it into check. Keep direct helper access without installing the agent. Preserve every sanitizer test and leave the existing javaagent-unit-tests project and its other tests in place; no broad migration is requested. Ensure existing testExperimental wiring still runs the installed-agent integration tests rather than the new helper suite.\r\n\r\nIn SpymemcachedTest.bulkGetWithIteratorTranscodersOmitsKeysWhenCountsDiffer and both bulk-span assertions in reentrantBulkRequestUsesItsOwnQueryText, replace partial hasAttributesSatisfying assertions with hasAttributesSatisfyingExactly and the complete expected bulk-span attribute set, following the surrounding bulkGet test and failedBulkCaptureDoesNotSuppressSubsequentRequest. Preserve the exact query-text expectations, trace shape, and behavior in both default and experimental-attribute modes. Keep expected values inline and avoid adding a shared attribute-list helper solely for these assertions.\r\n\r\nApply the narrowest relevant spotlessApply tasks directly before behavioral validation. Run the relocated sanitizer suite and the affected installed-agent regressions in both attribute modes. Commit and push the focused changes to this PR's existing head branch. Do not post review replies or resolve review threads; the coordinator will assess delivery and handle review feedback.",
+      "created": "2026-10-25T02:57:09Z",
+      "hunk": "@@ -450,6 +504,187 @@ void bulkGet() {\n                             equalTo(SERVER_PORT, memcachedAddress.getPort()))));\n   }\n \n+  @Test\n+  void bulkGetWithIteratorTranscodersOmitsKeysWhenCountsDiffer() throws Exception {\n+    MemcachedClient memcached = getMemcached(singletonMap(\"test-get\", \"get test\"));\n+    List<String> keys = asList(key(\"test-get\"), key(\"test-get-2\"));\n+    Iterator<Transcoder<Object>> transcoders = singletonList(memcached.getTranscoder()).iterator();\n+\n+    Map<String, Object> result =\n+        testing.runWithSpan(\"parent\", () -> memcached.asyncGetBulk(keys, transcoders).get());\n+\n+    assertThat(result).hasSize(1).containsEntry(key(\"test-get\"), \"get test\");\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> span.hasName(\"parent\").hasNoParent().hasTotalAttributeCount(0),\n+                span ->\n+                    span.hasName(spanName(\"get\"))\n+                        .hasAttributesSatisfying(equalTo(DB_QUERY_TEXT, \"getBulk\"))));",
+      "id": "PRRT_kwDODJKVX86v93kb",
+      "opened": "2026-10-25T02:57:09Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java",
+      "replies": [],
+      "reviewed": "5d5b4bb6374fa93066dfcde4677db43585916ad0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369442302"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply the following focused simplifications directly to this PR's existing head branch. The current head is 9a82ee626ec6e2fd35d5c832d8df49637bdaa435. Reduce duplication without changing query text, supported overloads, lifecycle behavior, or regression coverage.\r\n\r\nIn SpymemcachedQuerySanitizer, introduce a package-private typed sanitizeBulk(Iterable<?>) entry point that owns the bounded bulk-key formatting loop. Reuse it for collection keys and String[] keys, adapting arrays with Arrays.asList. Retain overload selection and the explicit collection/iterator-transcoder omission in the general sanitizer; do not consume key or transcoder iterators or start walking arbitrary application Iterables. Change SyncBulkAdvice to call the typed method directly instead of sanitize(\"getBulk\", \"\", new Object[] {keys}). Remove the duplicated collection/array formatting loops and the synthetic advice argument array. Preserve empty-key behavior, the existing 32 KiB truncation and spacing, and all other sanitizer cases.\r\n\r\nIn SpymemcachedTest.reentrantBulkRequestUsesItsOwnQueryText, replace the anonymous Transcoder<Object> forwarding wrapper with a SerializingTranscoder subclass that overrides only decode, performs the nested asyncGetBulk call, and returns super.decode(cachedData). The test client uses the standard SerializingTranscoder by default, and its decode method is overridable in the supported baseline 2.12.0. Remove the captured default transcoder and forwarding asyncDecode, encode, and getMaxSize implementations. Preserve the real installed-agent reentrant operation and the exact outer/nested query-text and complete attribute assertions.\r\n\r\nCombine casNumericValueIsSanitized into a parameterized casNotFound test with three meaningful cases: the existing synchronous missing-key case, asynchronous numeric-value CAS without expiration, and asynchronous numeric-value CAS with expiration. Share the missing-key setup, NOT_FOUND result assertion, and complete trace assertion block. Preserve both declared CAS descriptor shapes and numeric-value masking. Keep the short expected-value differences inline; do not add a helper solely to compute expectations or construct attribute lists, and do not expand this into a Cartesian product of cases.\r\n\r\nKeep all eight bulk-overload cases, bulk cancellation, failed-capture recovery, unequal iterator-count coverage, and sanitizer unit cases. Preserve the one-use bulk snapshot, scope cleanup, call-depth rollback, async-bulk null-entry guard, descriptor-based CAS handling, value redaction, and the unitTests/testExperimental wiring. Do not migrate unrelated tests or rewrite other advice.\r\n\r\nApply the narrowest relevant spotlessApply tasks immediately before behavioral validation. Run the sanitizer unit suite and focused installed-agent bulk/CAS cases, including the reentrant regression and all three combined CAS cases, in both default and experimental-attribute modes. Commit and push the focused changes to this PR's existing head branch. Do not post review replies or resolve threads; the coordinator handles those after delivery verification.",
+      "created": "2026-10-25T03:30:25Z",
+      "hunk": "@@ -0,0 +1,110 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spymemcached.v2_12;\n+\n+import static io.opentelemetry.instrumentation.api.internal.StringUtils.appendTruncated;\n+\n+import java.util.Collection;\n+import javax.annotation.Nullable;\n+\n+final class SpymemcachedQuerySanitizer {\n+  private static final int LIMIT = 32 * 1024;\n+\n+  static String sanitize(String operation, String descriptor, Object[] args) {\n+    StringBuilder query = new StringBuilder(operation);\n+    if (args.length == 0) {\n+      return query.toString();\n+    }\n+    if (operation.equals(\"getBulk\")\n+        && descriptor.startsWith(\"(Ljava/util/Collection;Ljava/util/Iterator;\")) {\n+      return query.toString();\n+    }\n+    switch (operation) {\n+      case \"getBulk\":",
+      "id": "PRRT_kwDODJKVX86v-EBL",
+      "opened": "2026-10-25T03:30:24Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedQuerySanitizer.java",
+      "replies": [],
+      "reviewed": "9a82ee626ec6e2fd35d5c832d8df49637bdaa435",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369522061"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-25T03:57:34Z",
+      "hunk": "@@ -1,5 +1,10 @@\n # Settings for the Spymemcached instrumentation\n \n+Query text includes keys and command parameters, with stored values replaced by `?`.\n+Keys may contain sensitive information. Bulk keys are omitted when supplied through iterators or\n+paired with iterator-based transcoders, to avoid consuming iterators or reporting keys that may not\n+be requested.\n+",
+      "id": "PRRT_kwDODJKVX86v-MEJ",
+      "opened": "2026-10-25T03:57:34Z",
+      "path": "instrumentation/spymemcached-2.12/README.md",
+      "replies": [],
+      "reviewed": "8a778b0d2fcc90057948fda5ce6c342f984161f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369574338"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n```",
+      "created": "2026-10-25T03:57:59Z",
+      "hunk": "@@ -20,9 +20,22 @@ dependencies {\n   testImplementation(\"com.google.guava:guava\")\n }\n \n+testing {\n+  suites {\n+    register<JvmTestSuite>(\"unitTests\") {\n+      dependencies {\n+        implementation(project())\n+        implementation(\"net.spy:spymemcached:2.12.0\")\n+      }\n+    }\n+  }\n+}\n+\n tasks {\n   withType<Test>().configureEach {\n-    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n+    if (!name.endsWith(\"unitTests\", ignoreCase = true)) {\n+      usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n+    }",
+      "id": "PRRT_kwDODJKVX86v-MMR",
+      "opened": "2026-10-25T03:57:59Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "bef85ccf11ad2f18c5d72e87a32f1c1fdd5c3109",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369575149"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a test-only simplification in instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java. The current head is 2e307b032b27cc013456f373962a3ec2aa3c52a9.\r\n\r\nRemove the fixed KEY_PREFIX constant and key(String) helper, which only prepend \"SpymemcachedTest-\". The test class uses dedicated Memcached containers, and this shared prefix does not provide per-test isolation. Replace key(\"literal\") calls with the literal key directly throughout client operations and expected query text. Update fixture seeding to pass entry.getKey() directly, and remove prefix wrapping from dynamically generated routing candidates and any other computed keys. Keep readable concatenations and test-local expectations inline; do not replace the removed helper with another prefix helper or introduce constants just to hold short expected strings.\r\n\r\nPreserve every existing test case, exact telemetry assertion, stored/missing-key expectation, cancellation/recovery path, and default/experimental attribute behavior. Ensure any node-routing fixtures select keys using the client's actual locator rather than relying on hashes of the removed prefixed names. The resulting test file must contain no KEY_PREFIX declaration, key(String) helper, calls to that helper, or \"SpymemcachedTest-\" prefix. Do not change production sanitization, query formats, lifecycle code, or unrelated tests.\r\n\r\nPreserve the changes already on the live PR head, including the user-authored README and Gradle simplifications in bef85ccf11ad2f18c5d72e87a32f1c1fdd5c3109 and 2e307b032b27cc013456f373962a3ec2aa3c52a9. Do not restore the removed README paragraph or the conditional Testcontainers build-service registration.\r\n\r\nApply the narrowest relevant spotlessApply task immediately before behavioral validation. Run the SpymemcachedTest class in both default and experimental-attribute modes, since key spelling changes affect fixture seeding and routing across the class. Commit and push this focused change to the PR's existing head branch. Do not post review replies or resolve threads; the coordinator handles those after verification.",
+      "created": "2026-10-25T04:01:46Z",
+      "hunk": "@@ -1533,6 +1847,7 @@ void severalConfiguredNodesAreReportedTogether() {\n                         .hasAttributesSatisfyingExactly(\n                             equalTo(DB_SYSTEM_NAME, MEMCACHED),\n                             equalTo(DB_OPERATION_NAME, \"get\"),\n+                            equalTo(DB_QUERY_TEXT, \"get \" + key(\"test-several-nodes\")),",
+      "id": "PRRT_kwDODJKVX86v-NUm",
+      "opened": "2026-10-25T04:01:46Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java",
+      "replies": [
+        {
+          "at": "2026-10-25T04:11:54Z",
+          "body": "Removed the test prefix helper and updated fixture seeding, operations, query expectations, and routing candidates to use direct keys. The focused Spymemcached test class passes in both attribute modes. Commit: `44dd6734`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369612613"
+        }
+      ],
+      "reviewed": "2e307b032b27cc013456f373962a3ec2aa3c52a9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369582412"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This now exports cache keys in `db.query.text` by default, but the module README still contains only the experimental-attributes settings table. Keys can themselves contain sensitive identifiers, so masking stored values does not make the query text free of sensitive data. Please add a privacy note to `instrumentation/spymemcached-2.12/README.md` stating that keys and command parameters remain visible while stored values are masked.",
+      "created": "2026-10-25T04:22:05Z",
+      "hunk": "@@ -29,9 +29,8 @@ public String getDbNamespace(SpymemcachedRequest spymemcachedRequest) {\n   }\n \n   @Override\n-  @Nullable\n   public String getDbQueryText(SpymemcachedRequest spymemcachedRequest) {\n-    return null;\n+    return spymemcachedRequest.getQueryText();",
+      "id": "PRRT_kwDODJKVX86v-VNZ",
+      "opened": "2026-10-25T04:22:06Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T04:24:18Z",
+          "body": "Keeping the README unchanged as requested by the author. Keys and command parameters intentionally remain visible while stored values are masked, as described in the PR. The privacy concern is understood; no documentation change is planned.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369637987"
+        }
+      ],
+      "reviewed": "44dd673498be458e094cc229dd8b1afbd8c70f83",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369633173"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the sanitizer readability proposal below. The user's request was: \"if (operation.equals(\\\"getBulk\\\") && descriptor.startsWith(\\\"(Ljava/util/Collection;Ljava/util/Iterator;\\\")) { ... (descriptor.startsWith(\\\"(Ljava/lang/String;JI\\\")) { ... Uh, is there a better way to do this, or at least could we add some comments to make this method easier to read kind of the whole method\". They then invoked /cloud for the proposal.\n\nLimit the change to instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedQuerySanitizer.java. Keep the descriptor-based overload discrimination and preserve behavior exactly. Extract the two encoded signature checks into private static boolean predicates named hasPerKeyTranscoders(String descriptor) and hasCasExpiration(String descriptor). Document the corresponding Java parameter layouts next to the encoded strings: asyncGetBulk(Collection keys, Iterator transcoders), and cas/asyncCAS(String key, long cas, int expiration, Object value, ...). Keep the same descriptor prefixes; do not add descriptor parsing, reflection, dependencies, a command framework, or a helper per switch branch.\n\nMove the getBulk iterator-transcoder guard into case \"getBulk\", so the bulk behavior is together. At its call site, explain that this overload requests only as many keys as there are transcoders, and determining which keys are requested would consume the iterator. Preserve omission of iterator-supplied keys and do not consume key or transcoder iterators. Preserve Collection and String[] handling, including the transcoder preceding the varargs key array.\n\nAt the CAS predicate call site, explain why declared parameter types are required: a numeric stored value must not be mistaken for an expiration. Keep key, CAS token, optional expiration, and masked value in precisely the same order.\n\nMake the rest of sanitize readable with short comments describing the non-obvious argument layouts of the grouped cases. set/add/replace take key, expiration, stored value, and optional transcoder. append/prepend may start with a primitive long CAS token before the key and always mask the appended/prepended value. incr/decr take key, delta, optional initial value, optional expiration; mask the initial value while retaining delta and expiration. get/gets/getAndTouch/touch/delete may have a second numeric argument for expiration or deletion delay; ignore transcoders. Explain that the default branch deliberately omits unknown-operation arguments to avoid exposing values. Comment the code as it is now, without describing this change or adding obvious line-by-line narration.\n\nLeave sanitizeBulk, append, truncation, query formats, operation naming, advice/lifecycle code, and tests unchanged. Preserve all current PR work, including direct unprefixed test keys, exact telemetry assertions, suite wiring, and the user's unconditional Testcontainers build-service registration. The user explicitly chose to keep the README unchanged after the previous privacy-note review; do not restore or add that note.\n\nRun the narrowest relevant spotlessApply task immediately before behavioral validation, then run the existing SpymemcachedQuerySanitizerTest suite, including its numeric-CAS and iterator regressions. Commit and push this focused change to the existing PR head branch. Do not post review replies or resolve threads; the coordinator handles those after verification.",
+      "created": "2026-10-25T04:31:22Z",
+      "hunk": "@@ -0,0 +1,112 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spymemcached.v2_12;\n+\n+import static io.opentelemetry.instrumentation.api.internal.StringUtils.appendTruncated;\n+import static java.util.Arrays.asList;\n+\n+import java.util.Collection;\n+import javax.annotation.Nullable;\n+\n+final class SpymemcachedQuerySanitizer {\n+  private static final int LIMIT = 32 * 1024;\n+\n+  static String sanitize(String operation, String descriptor, Object[] args) {\n+    StringBuilder query = new StringBuilder(operation);\n+    if (args.length == 0) {\n+      return query.toString();\n+    }\n+    if (operation.equals(\"getBulk\")\n+        && descriptor.startsWith(\"(Ljava/util/Collection;Ljava/util/Iterator;\")) {",
+      "id": "PRRT_kwDODJKVX86v-X9A",
+      "opened": "2026-10-25T04:31:22Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedQuerySanitizer.java",
+      "replies": [
+        {
+          "at": "2026-10-25T04:37:37Z",
+          "body": "Implemented the sanitizer readability changes and pushed commit `0f61d9d2`. Spotless and the `unitTests` suite passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369662429"
+        }
+      ],
+      "reviewed": "44dd673498be458e094cc229dd8b1afbd8c70f83",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4369651017"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Non-blocking: these new tests exercise helpers directly, but extend the legacy `javaagent-unit-tests` project. `.github/instructions/java-tests.instructions.md:22–23` places such tests in the instrumentation project's `unitTests` suite, which this PR already adds. Move the new request tests into `javaagent/src/unitTests/java` alongside the sanitizer tests so the new coverage follows that convention.",
+      "created": "2026-10-26T20:01:27Z",
+      "hunk": "@@ -26,10 +28,69 @@\n import net.spy.memcached.ops.Operation;\n import org.junit.jupiter.api.Test;\n import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.CsvSource;\n import org.junit.jupiter.params.provider.ValueSource;\n \n class SpymemcachedRequestTest {\n \n+  @ParameterizedTest\n+  @CsvSource({\n+    \"asyncGet, get, get\",\n+    \"asyncGets, gets, gets\",\n+    \"asyncCAS, cas, cas\",\n+    \"asyncGetBulk, getBulk, get\",\n+    \"asyncGetAndTouch, getAndTouch, gat\"\n+  })\n+  void normalizesOperationNames(String method, String operation, String stableOperation) {\n+    SpymemcachedRequest request =\n+        SpymemcachedRequest.create(mock(MemcachedConnection.class), method);\n+\n+    assertThat(request.getOperationName()).isEqualTo(operation);\n+    assertThat(request.getStableOperationName()).isEqualTo(stableOperation);\n+  }\n+\n+  @Test\n+  void queryArgumentsAreCapturedWithoutChangingOperationName() {\n+    List<String> keys = new ArrayList<>(asList(\"key1\", \"key2\"));\n+    SpymemcachedRequest request =\n+        SpymemcachedRequest.create(\n+            mock(MemcachedConnection.class), \"asyncGetBulk\", \"\", new Object[] {keys});",
+      "id": "PRRT_kwDODJKVX86wbjSS",
+      "opened": "2026-10-26T20:01:27Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedRequestTest.java",
+      "replies": [
+        {
+          "at": "2026-10-26T20:43:59Z",
+          "body": "Moved the two new request tests into `javaagent/src/unitTests/java` alongside the sanitizer tests in e40b0b25, leaving existing legacy coverage unchanged. Both suites (68 tests total) and formatting checks passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4382251894"
+        }
+      ],
+      "reviewed": "cee7f84070f3fed5383397103dc3da8d2e66c267",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20943#discussion_r4381859208"
+    }
+  ]
+}

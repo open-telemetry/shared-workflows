@@ -1,0 +1,70 @@
+{
+  "head": "4d586ef5ded653aad76528e6fc223d5bb7273133",
+  "merge": "9d823b29eb7041e8e06b93c6e24756c033fe0592",
+  "merged": "2026-07-23T03:23:56Z",
+  "missing_roots": 0,
+  "number": 303,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This file appears to be a `requirements.txt`-style list, but the diff indicates line-number prefixes were introduced on some lines (`19 |`, `22 |`) while other lines remain unprefixed. If those prefixes are actually present in the file (not just diff metadata), `pip` will fail to parse the requirements. Please remove any line-number/pipe prefixes so each line is just `package==version` (consistent with the surrounding lines).",
+      "created": "2026-07-23T00:34:58Z",
+      "hunk": "@@ -16,10 +16,10 @@\n \n langchain==1.3.14\n langchain-openai==1.3.5\n-langchain-aws==1.6.2\n+langchain-aws==1.6.3\n langchain-google-genai==4.2.7\n langchain-anthropic==1.4.8\n-boto3==1.43.53\n+boto3==1.43.54",
+      "id": "PRRT_kwDOSbspP86TG9tO",
+      "opened": "2026-07-23T00:34:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.latest.txt",
+      "replies": [],
+      "reviewed": "4d586ef5ded653aad76528e6fc223d5bb7273133",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/303#discussion_r3634828046"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The diff shows a line-number prefix (`1 |`) added to the first requirement line. If that text is actually in the file, `pip` will treat it as an invalid requirement. Ensure the file contains only valid requirement specifiers (no line numbers/pipes).",
+      "created": "2026-07-23T00:34:58Z",
+      "hunk": "@@ -1,4 +1,4 @@\n-claude-agent-sdk>=0.2.125\n+claude-agent-sdk>=0.2.126",
+      "id": "PRRT_kwDOSbspP86TG9tZ",
+      "opened": "2026-07-23T00:34:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-claude-agent-sdk/examples/zero-code/requirements.txt",
+      "replies": [],
+      "reviewed": "4d586ef5ded653aad76528e6fc223d5bb7273133",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/303#discussion_r3634828064"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same as the zero-code example: the diff indicates a `1 |` prefix. If this is in the file content, it will break `pip install -r`. Please remove any line-number/pipe prefixes from requirements lines.",
+      "created": "2026-07-23T00:34:58Z",
+      "hunk": "@@ -1,4 +1,4 @@\n-claude-agent-sdk>=0.2.125\n+claude-agent-sdk>=0.2.126",
+      "id": "PRRT_kwDOSbspP86TG9tg",
+      "opened": "2026-07-23T00:34:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-claude-agent-sdk/examples/manual/requirements.txt",
+      "replies": [],
+      "reviewed": "4d586ef5ded653aad76528e6fc223d5bb7273133",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/303#discussion_r3634828073"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The diff suggests a line-number prefix (`11 |`) was introduced on this requirement line. If present in the actual file, it will invalidate the requirements file for tooling that parses it (pip, pip-tools, etc.). Please keep this file as plain requirement specifiers without line-number/pipe prefixes.",
+      "created": "2026-07-23T00:34:58Z",
+      "hunk": "@@ -8,7 +8,7 @@ wrapt>=2.2.2,<3.0.0\n \n # Required by instrumentation packages\n anthropic>=0.117.1\n-claude-agent-sdk>=0.2.125\n+claude-agent-sdk>=0.2.126",
+      "id": "PRRT_kwDOSbspP86TG9tq",
+      "opened": "2026-07-23T00:34:59Z",
+      "path": "docs-requirements.txt",
+      "replies": [],
+      "reviewed": "4d586ef5ded653aad76528e6fc223d5bb7273133",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/303#discussion_r3634828089"
+    }
+  ]
+}

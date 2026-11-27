@@ -1,0 +1,25 @@
+{
+  "head": "098aca058a696443d677ae8432b22267653841f2",
+  "merge": "656921e9281d82cf8daf51bc5c0afe9518a5d1ff",
+  "merged": "2026-03-06T10:51:38Z",
+  "missing_roots": 0,
+  "number": 16364,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "maybe it would be better to make `registerMetrics` return early when data source is already in the map? or use computeIfAbsent",
+      "created": "2026-03-05T09:46:16Z",
+      "hunk": "@@ -51,10 +51,13 @@ public static void registerMetrics(\n             maxIdleConnections,\n             maxConnections);\n \n-    dataSourceMetrics.put(dataSource, callback);\n+    BatchCallback previousCallback = dataSourceMetrics.put(dataSource, callback);",
+      "id": "PRRT_kwDODJKVX85ySNr_",
+      "opened": "2026-03-05T09:46:16Z",
+      "path": "instrumentation/apache-dbcp-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachedbcp/v2_0/DataSourceMetrics.java",
+      "replies": [],
+      "reviewed": "10a4d23fab784e50d1f442ed361bbd3eb6b803cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16364#discussion_r2888879976"
+    }
+  ]
+}

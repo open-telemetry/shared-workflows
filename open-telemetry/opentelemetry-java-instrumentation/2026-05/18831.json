@@ -1,0 +1,40 @@
+{
+  "head": "1ce5a7ad2b524a010949a10b6cbfc79681560cad",
+  "merge": "4bb6468a068d00c446b2730fe2d186b26c7986fb",
+  "merged": "2026-05-26T18:22:07Z",
+  "missing_roots": 0,
+  "number": 18831,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The first Aurora DSQL test case sets `namespace` but not `name`. In the rest of the file, `.setNamespace(...)` is used mainly when it differs from the database name (e.g., `db|schema`), while `.setName(...)` is used to express the expected database name. For consistency/readability, set `.setName(\"postgres\")` here and let namespace default to the name (or set both explicitly if you want to assert both).\n",
+      "created": "2026-05-22T10:19:08Z",
+      "hunk": "@@ -1632,6 +1632,33 @@ void testPolardbParsing(ParseTestArgument argument) {\n     testVerifySystemSubtypeParsingOfUrl(argument);\n   }\n \n+  // https://docs.aws.amazon.com/aurora-dsql/latest/userguide/SECTION_program-with-jdbc-connector.html\n+  private static Stream<Arguments> amazonAuroraDsqlArguments() {\n+    return args(\n+        arg(\"jdbc:aws-dsql:postgresql://your-cluster.dsql.us-east-1.on.aws/postgres\")\n+            .setShortUrl(\"postgresql://your-cluster.dsql.us-east-1.on.aws:5432\")\n+            .setSystem(POSTGRESQL)\n+            .setHost(\"your-cluster.dsql.us-east-1.on.aws\")\n+            .setPort(5432)\n+            .setNamespace(\"postgres\")",
+      "id": "PRRT_kwDODJKVX86EE-GP",
+      "opened": "2026-05-22T10:19:09Z",
+      "path": "instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParserTest.java",
+      "replies": [],
+      "reviewed": "f70e8808063bcf86aea0384b0792bbdc1fb3921d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18831#discussion_r3287667174"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`stripJdbcPrefix` has an explicit special-case for `jdbc:aws-dsql:` but no inline comment explaining the wrapper (unlike the `jdbc:tracing:` branch). Adding a brief note and/or link to the AWS Aurora DSQL JDBC connector docs would make this vendor-specific exception easier to understand and maintain.\n",
+      "created": "2026-05-22T10:19:09Z",
+      "hunk": "@@ -152,6 +152,8 @@ private static String stripJdbcPrefix(String connectionUrl) {\n     if (connectionUrl.startsWith(\"jdbc:tracing:\")) {\n       // see https://github.com/opentracing-contrib/java-jdbc\n       return connectionUrl.substring(\"jdbc:tracing:\".length());\n+    } else if (connectionUrl.startsWith(\"jdbc:aws-dsql:\")) {",
+      "id": "PRRT_kwDODJKVX86EE-Gz",
+      "opened": "2026-05-22T10:19:09Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+      "replies": [],
+      "reviewed": "f70e8808063bcf86aea0384b0792bbdc1fb3921d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18831#discussion_r3287667218"
+    }
+  ]
+}

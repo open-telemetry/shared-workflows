@@ -1,0 +1,278 @@
+{
+  "head": "fac56876b94faeae1a7b382751533530e9c2385d",
+  "merge": "d886ba674f225eff14829e8046ded54e08d9f282",
+  "merged": "2026-05-11T02:48:56Z",
+  "missing_roots": 0,
+  "number": 97,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Can reuse the shared `attributes.gen_ai.error` group.\r\n\r\n```suggestion\r\n    attributes:\r\n      - ref_group: attributes.gen_ai.error\r\n      - ref: gen_ai.operation.name\r\n        requirement_level: required\r\n        sampling_relevant: true\r\n```",
+      "created": "2026-05-05T19:52:20Z",
+      "hunk": "@@ -478,6 +478,54 @@ spans:\n       - ref: gen_ai.output.messages\n         requirement_level: opt_in\n \n+  - type: gen_ai.plan.internal\n+    kind: internal\n+    name:\n+      note: >\n+        **Span name** SHOULD be `plan {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n+        When `gen_ai.agent.name` is not available, it SHOULD be `plan`.\n+    brief: >\n+      Represents an agent planning or task decomposition phase.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `plan`.\n+      **Span name** SHOULD be `plan {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n+      When `gen_ai.agent.name` is not available, it SHOULD be `plan`.\n+\n+      A plan span represents the decision phase where an agent formulates\n+      a strategy before executing it. The LLM call that generates the plan is a child\n+      of the plan span, and the tool or task spans produced from the plan are sibling\n+      operations under the same `invoke_agent` span.\n+\n+      This span SHOULD be reported by instrumentations when they can reliably determine\n+      that the operation being instrumented is planning or task decomposition, and SHOULD\n+      NOT be reported when the instrumentation cannot distinguish planning from generic\n+      reasoning or normal inference.\n+\n+      Grouping primitives or span links can correlate planning-related spans, but they\n+      do not represent the planning phase itself as a timed parent span with a child\n+      `chat` call.\n+\n+      This is distinct from task execution. A task span represents execution of assigned\n+      work, while a plan span represents strategy formulation before execution.\n+    stability: development\n+    attributes:\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: error.type\n+        requirement_level:\n+          conditionally_required: \"if the operation ended in an error\"\n+        note: |\n+          The `error.type` SHOULD match the error code returned by the Generative AI provider or the client library,\n+          the canonical name of exception that occurred, or another low-cardinality error identifier.\n+          Instrumentations SHOULD document the list of errors they report.",
+      "id": "PRRT_kwDOSUeMrM5_xHPk",
+      "opened": "2026-05-05T20:01:48Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "4410662737d064a0fc97a4d330a3f05186926291",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3191163716"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The `Span name` guidance is already in `name.note` above.\r\n\r\n```suggestion\r\n      The `gen_ai.operation.name` SHOULD be `plan`.\r\n```",
+      "created": "2026-05-05T19:52:21Z",
+      "hunk": "@@ -478,6 +478,54 @@ spans:\n       - ref: gen_ai.output.messages\n         requirement_level: opt_in\n \n+  - type: gen_ai.plan.internal\n+    kind: internal\n+    name:\n+      note: >\n+        **Span name** SHOULD be `plan {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n+        When `gen_ai.agent.name` is not available, it SHOULD be `plan`.\n+    brief: >\n+      Represents an agent planning or task decomposition phase.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `plan`.\n+      **Span name** SHOULD be `plan {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n+      When `gen_ai.agent.name` is not available, it SHOULD be `plan`.",
+      "id": "PRRT_kwDOSUeMrM5_xHP_",
+      "opened": "2026-05-05T20:01:48Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "4410662737d064a0fc97a4d330a3f05186926291",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3191163751"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Soften to `SHOULD` / `typically` — the parent/sibling layout is the recommended shape, not something every instrumentation can guarantee.\n\n```suggestion\n      a strategy before executing it. The LLM call that generates the plan\n      SHOULD be a child of the plan span, and the tool or task spans produced\n      from the plan are typically sibling operations under the same\n      `invoke_agent` span.\n```",
+      "created": "2026-05-05T19:52:21Z",
+      "hunk": "@@ -478,6 +478,54 @@ spans:\n       - ref: gen_ai.output.messages\n         requirement_level: opt_in\n \n+  - type: gen_ai.plan.internal\n+    kind: internal\n+    name:\n+      note: >\n+        **Span name** SHOULD be `plan {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n+        When `gen_ai.agent.name` is not available, it SHOULD be `plan`.\n+    brief: >\n+      Represents an agent planning or task decomposition phase.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `plan`.\n+      **Span name** SHOULD be `plan {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n+      When `gen_ai.agent.name` is not available, it SHOULD be `plan`.\n+\n+      A plan span represents the decision phase where an agent formulates\n+      a strategy before executing it. The LLM call that generates the plan is a child\n+      of the plan span, and the tool or task spans produced from the plan are sibling\n+      operations under the same `invoke_agent` span.",
+      "id": "PRRT_kwDOSUeMrM5_xHQN",
+      "opened": "2026-05-05T20:01:48Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-05-05T21:42:17Z",
+          "body": "Applied all three suggestions. ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3191755869"
+        }
+      ],
+      "reviewed": "4410662737d064a0fc97a4d330a3f05186926291",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3191163770"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can you check out the report from the [evaluate-reference/SKILL.md](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/.github/skills/evaluate-reference/SKILL.md)?\n\n# Evaluation: PR 97 — `plan` operation for GenAI agent planning\n\n## Mirrored proposal\n\nPR 97 introduces `gen_ai.plan.internal` (span kind `INTERNAL`, op name `plan`) with:\n\n- **Required:** `gen_ai.operation.name`\n- **Conditionally required:** `error.type`, `gen_ai.agent.id`, `gen_ai.agent.name`\n\nThe reference set targets exactly this attribute list — the new [reference/reports/plan-span.md](reference/reports/plan-span.md) and [reference/scenarios/crewai/data.json](reference/scenarios/crewai/data.json) match the model. PR target is mirrored faithfully.\n\n## Credible reference coverage\n\n**crewai** ([reference/scenarios/crewai/scenario.py](reference/scenarios/crewai/scenario.py))\n\n| Attribute | Source | Class |\n| --- | --- | --- |\n| `gen_ai.operation.name` | constant `\"plan\"` set inside `CrewPlanner` flow | direct |\n| `gen_ai.agent.id` | `Agent.id` (UUID owned by the agent object) | direct |\n| `gen_ai.agent.name` | `Agent.role` | direct |\n| `error.type` | not exercised, but trivially capturable from a planner exception | direct (gap is honest — no error path in scenario) |\n\nCrewAI is the strongest candidate: `CrewPlanner` is a distinct, named pre-execution phase that runs an LLM call to decompose tasks. The classifier change in [reference/src/semconv_genai/classify.py](reference/src/semconv_genai/classify.py) correctly excludes `plan` from being mis-counted as `invoke_agent` (it shares the agent attribute set).\n\n## Weak / questionable choices in the crewai scenario\n\n1. **Wrong agent tagged on the plan span.** The scenario sets `gen_ai.agent.id` / `gen_ai.agent.name` from `researcher` — the worker agent — but `CrewPlanner` internally synthesizes its own `Agent(role=\"Task Execution Planner\", ...)` to actually run the planning LLM call (`crewai/utilities/planning_handler.py`). A native instrumentation hooking `CrewPlanner._handle_crew_planning` would naturally see the planner agent, not a worker agent. The spec is ambiguous about which agent to identify, but the *current call boundary* in CrewAI exposes the planner agent. Recommend either (a) tag the planner agent's `id` / `role`, or (b) leave both attributes off and add a comment that CrewAI's planner agent is an internal detail not meaningful to consumers — rather than tagging an agent that did not participate in the planning call.\n\n2. **Private API + synthetic chat span.** The scenario calls `planner._create_tasks_summary()` (private) and then *manually* fabricates the child `chat` span instead of going through `CrewPlanner._handle_crew_planning()` which would actually invoke the LLM via `planning_agent.execute_task(task)` against the mock server. This is acceptable for a reference (other scenarios fabricate too), but the comment \"exercise the public construction path here so the import surface is honestly covered\" overstates it: `_create_tasks_summary` is private. A more honest framing would acknowledge this is illustrative scaffolding around the real planner entry point.\n\n3. **No `error.type` path.** Acceptable as an honest gap; consistent with other internal spans that omit error scenarios.\n\n## Missing supporting library implementations\n\nThe spec explicitly cautions: *\"SHOULD NOT be reported when the instrumentation cannot distinguish planning from generic reasoning\"* — so libraries without a separable planning phase are correctly excluded. Candidates that *do* have a separable phase and are not yet covered:\n\n- **llamaindex** — `StructuredPlannerAgent` / `Planner` produces a `Plan` object before sub-task execution. Reference scenario exists ([reference/scenarios/llamaindex/scenario.py](reference/scenarios/llamaindex/scenario.py)) but does not exercise the planner agent. Add reference for supporting library.\n- **google-adk** — `PlanReActPlanner` / `BuiltInPlanner` produce an explicit planning step distinct from the model call. Scenario exists ([reference/scenarios/google-adk/scenario.py](reference/scenarios/google-adk/scenario.py)) and could be extended. Add reference for supporting library.\n- **langchain** — Plan-and-Execute (`langchain-experimental`) has `BaseChatPlanner.plan()` returning a `Plan`. Lower priority because it lives in `langchain-experimental` and is less actively maintained, but still a credible direct-observability source.\n\nHonest capture gaps (leave unchanged, no implementation needed):\n\n- **autogen, openai-agents, openai-assistants, pydantic-ai, claude-agent-sdk** — no API boundary that distinguishes planning from generic reasoning/chat.\n- **dspy** — ChainOfThought / ReAct are reasoning, not planning; spec note explicitly excludes this case.\n- **haystack, anthropic, openai, aws-bedrock, cohere, groq, mistralai, vertexai, azure-ai-inference, azure-openai, google-genai, instructor, litellm** — pure inference clients; no planning phase.\n- **aws-bedrock-agent, azure-ai-foundry** — managed-agent services that do not surface planning as a separate API call.\n\n## Evaluation recommendation\n\n- **fix implementation (crewai):** Re-tag `gen_ai.agent.id` / `gen_ai.agent.name` to reflect the agent actually running the planning LLM call (CrewPlanner's internal `Agent(role=\"Task Execution Planner\")`), or drop both attributes if the planner-internal agent is not meaningful to consumers. Also consider replacing the `_create_tasks_summary()` + synthetic chat span with a call through `CrewPlanner._handle_crew_planning()` so the chat span wraps the real LLM round-trip against the mock server.\n- **add reference for supporting library:** llamaindex (`StructuredPlannerAgent`), google-adk (`PlanReActPlanner` / `BuiltInPlanner`). Optionally langchain Plan-and-Execute.\n- **leave unchanged; honest capture gap:** autogen, openai-agents, openai-assistants, pydantic-ai, claude-agent-sdk, dspy, haystack, and all pure-inference SDKs — these honestly cannot distinguish planning from reasoning at their call boundary, which is exactly what the proposal's \"SHOULD NOT\" clause is meant to cover.\n",
+      "created": "2026-05-05T20:10:35Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM5_xaoh",
+      "opened": "2026-05-05T20:10:35Z",
+      "path": "reference/scenarios/crewai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-05T21:42:14Z",
+          "body": "Thanks @trask, addressed everything except:\r\n\r\n1. _handle_crew_planning() swap — it calls planning_agent.execute_task(...) with output_pydantic=PlannerTaskPydanticOutput; the mock can't return schema-valid structured output without per-library support. Synthetic chat span is the closest honest reference.\r\n2. llamaindex StructuredPlannerAgent — not in the pinned llama-index-core==0.14.21. The agent rewrite removed it; only BaseWorkflowAgent, FunctionAgent, CodeActAgent, ReActAgent, AgentWorkflow remain.\r\n3. google-adk PlanReActPlanner / BuiltInPlanner — both exist in 1.32.0 but are call-site modifiers (PlanReActPlanner injects /*PLANNING*/ tags into the same call; BuiltInPlanner sets Gemini thinking_config). No pre-call plan boundary — maps to the spec's \"SHOULD NOT\" clause.\r\n4. langchain Plan-and-Execute — would require pulling langchain-experimental (not in current langchain==1.2.17). BasePlanner.plan(inputs) -> Plan is clean; happy to add if you want the extra dep.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3191755668"
+        },
+        {
+          "at": "2026-05-06T04:12:08Z",
+          "body": "> langchain Plan-and-Execute — would require pulling langchain-experimental (not in current langchain==1.2.17). BasePlanner.plan(inputs) -> Plan is clean; happy to add if you want the extra dep.\r\n\r\nyeah, I think it would be good to have a second example, even if it's an experimental one",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3192953060"
+        },
+        {
+          "at": "2026-05-06T06:06:00Z",
+          "body": "Done in the latest commit, added run_plan_and_execute_reference() driving real langchain_experimental.LLMPlanner.plan() through the mock. ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3193339484"
+        }
+      ],
+      "reviewed": "4410662737d064a0fc97a4d330a3f05186926291",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3191272686"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "it would be good to see the real api exercised, can you add support to the mock server for it?",
+      "created": "2026-05-06T04:00:17Z",
+      "hunk": "@@ -212,13 +212,102 @@ def _capture_completion(*args, **kwargs):\n             print(f\"    -> {str(result)[:60]}\")\n \n \n+def run_crew_planning():\n+    \"\"\"Scenario: agent planning phase via CrewPlanner with reference implementation.\n+\n+    CrewPlanner produces a strategy before tasks are executed. CrewPlanner\n+    synthesizes its own internal Agent(role=\"Task Execution Planner\", ...) to\n+    actually run the planning LLM call (see CrewPlanner._create_planning_agent\n+    in crewai/utilities/planning_handler.py); that planner agent -- not the\n+    worker agent owning the surrounding tasks -- is what `gen_ai.agent.id`\n+    and `gen_ai.agent.name` should identify on the plan span. The tool/task\n+    spans that follow from the produced plan are siblings under the\n+    surrounding invoke_agent span (not modeled here -- planning is emitted\n+    standalone).\n+    \"\"\"\n+    print(\"  [crew] agent planning phase (reference implementation)\")\n+    os.environ[\"CREWAI_DISABLE_TELEMETRY\"] = \"true\"\n+    os.environ[\"CREWAI_DISABLE_TRACKING\"] = \"true\"\n+    os.environ[\"CREWAI_TRACING_ENABLED\"] = \"false\"\n+    from crewai import LLM, Agent, Task\n+    from crewai.utilities.planning_handler import CrewPlanner\n+\n+    request_model = \"gpt-4o-mini\"\n+    system_prompt = \"You are a helpful research assistant.\"\n+    host, port = mock_server_host_port(MOCK_BASE_URL)\n+    os.environ[\"OPENAI_API_KEY\"] = \"mock-key\"\n+    os.environ[\"OPENAI_API_BASE\"] = MOCK_BASE_URL\n+    os.environ[\"OPENAI_MODEL_NAME\"] = request_model\n+    llm = LLM(\n+        model=request_model,\n+        provider=\"openai\",\n+        base_url=MOCK_BASE_URL,\n+        api_key=\"mock-key\",\n+    )\n+\n+    researcher_role = \"Researcher\"\n+    researcher = Agent(\n+        role=researcher_role,\n+        goal=\"Find information\",\n+        backstory=system_prompt,\n+        llm=llm,\n+        verbose=False,\n+        allow_delegation=False,\n+    )\n+\n+    task = Task(\n+        description=\"Research the weather forecasting techniques used by meteorologists.\",\n+        expected_output=\"A short summary of forecasting techniques.\",\n+        agent=researcher,\n+    )\n+\n+    # CrewPlanner._handle_crew_planning() drives a real LLM round-trip via\n+    # planning_agent.execute_task(...) with output_pydantic=PlannerTaskPydanticOutput,\n+    # which the mock server cannot satisfy without library-specific schema\n+    # support. The closest honest reference is therefore: build the same\n+    # planner agent CrewPlanner uses internally (Agent(role=\"Task Execution\n+    # Planner\", ...)), drive _create_tasks_summary() to exercise the real\n+    # input-construction path, and emit the chat span manually around the\n+    # planning LLM call we cannot route through the mock here.",
+      "id": "PRRT_kwDOSUeMrM5_2FTT",
+      "opened": "2026-05-06T04:00:17Z",
+      "path": "reference/scenarios/crewai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-06T05:34:32Z",
+          "body": "Good point, added it, can you check?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3193232132"
+        }
+      ],
+      "reviewed": "59b9725a1a5ec47c37590f171cd96d23ae5b71f7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3192916997"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`langchain-classic` isn't imported anywhere in `scenario.py` — it's pulled in transitively by `langchain-experimental==0.4.1`. Listing it as a direct dep is redundant; `uv` will resolve it from the experimental package's metadata. Suggest removing this line unless there's a specific reason to pin it independently of what `langchain-experimental` requires.\n\n```suggestion\n    \"langchain-experimental==0.4.1\",\n```",
+      "created": "2026-05-06T21:01:16Z",
+      "hunk": "@@ -4,6 +4,8 @@ version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n     \"langchain==1.2.17\",\n+    \"langchain-classic==1.0.6\",",
+      "id": "PRRT_kwDOSUeMrM6AIQC4",
+      "opened": "2026-05-06T21:06:15Z",
+      "path": "reference/scenarios/langchain/pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-05-06T21:27:39Z",
+          "body": "dropped the explicit pin. Verified transitive chain: `langchain-experimental==0.4.1` → `langchain-community>=0.4.0` (`==0.4.1` resolved) → `langchain-classic>=1.0.0,<2.0.0` (`==1.0.6` resolved). uv.lock still has `langchain-classic==1.0.6`, scenario re-run passes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3197605103"
+        }
+      ],
+      "reviewed": "6706beb149e6c638ef79636ebcce0bd177338b6b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3197470151"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Sorry, I think I suggested to remove this before because of duplication with above, but realized now that it's not rendered into markdown.\r\n\r\n```suggestion\r\n      The `gen_ai.operation.name` SHOULD be `plan`.\r\n\r\n      **Span name** SHOULD be `plan {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\r\n      When `gen_ai.agent.name` is not available, it SHOULD be `plan`.\r\n```",
+      "created": "2026-05-06T21:01:16Z",
+      "hunk": "@@ -478,6 +478,47 @@ spans:\n       - ref: gen_ai.output.messages\n         requirement_level: opt_in\n \n+  - type: gen_ai.plan.internal\n+    kind: internal\n+    name:\n+      note: >\n+        **Span name** SHOULD be `plan {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n+        When `gen_ai.agent.name` is not available, it SHOULD be `plan`.\n+    brief: >\n+      Represents an agent planning or task decomposition phase.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `plan`.",
+      "id": "PRRT_kwDOSUeMrM6AIQCv",
+      "opened": "2026-05-06T21:06:15Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-05-06T21:27:14Z",
+          "body": "added the span name lines to `note:` so they render.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3197603123"
+        }
+      ],
+      "reviewed": "6706beb149e6c638ef79636ebcce0bd177338b6b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3197470136"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Do you think these two sentences are needed to avoid confusion or are covered adequately by the definition above?",
+      "created": "2026-05-06T21:06:10Z",
+      "hunk": "@@ -478,6 +478,47 @@ spans:\n       - ref: gen_ai.output.messages\n         requirement_level: opt_in\n \n+  - type: gen_ai.plan.internal\n+    kind: internal\n+    name:\n+      note: >\n+        **Span name** SHOULD be `plan {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n+        When `gen_ai.agent.name` is not available, it SHOULD be `plan`.\n+    brief: >\n+      Represents an agent planning or task decomposition phase.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `plan`.\n+\n+      A plan span represents the decision phase where an agent formulates\n+      a strategy before executing it. The LLM call that generates the plan\n+      SHOULD be a child of the plan span, and the tool or task spans produced\n+      from the plan are typically sibling operations under the same\n+      `invoke_agent` span.\n+\n+      This span SHOULD be reported by instrumentations when they can reliably determine\n+      that the operation being instrumented is planning or task decomposition, and SHOULD\n+      NOT be reported when the instrumentation cannot distinguish planning from generic\n+      reasoning or normal inference.\n+\n+      Grouping primitives or span links can correlate planning-related spans, but they\n+      do not represent the planning phase itself as a timed parent span with a child\n+      `chat` call.\n+\n+      This is distinct from task execution. A task span represents execution of assigned\n+      work, while a plan span represents strategy formulation before execution.",
+      "id": "PRRT_kwDOSUeMrM6AIUt2",
+      "opened": "2026-05-06T21:06:15Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-05-06T21:27:56Z",
+          "body": "You're right. Dropped both. ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3197606495"
+        }
+      ],
+      "reviewed": "6706beb149e6c638ef79636ebcce0bd177338b6b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3197495811"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n- Add `plan` operation for GenAI agent planning/task decomposition spans.\r\n  ([#97](https://github.com/open-telemetry/semantic-conventions-genai/pull/97))\r\n```",
+      "created": "2026-05-06T23:58:27Z",
+      "hunk": "@@ -10,6 +10,8 @@\n \n ### 💡 Enhancements 💡\n \n+- Add `plan` operation for GenAI agent planning/task decomposition spans.",
+      "id": "PRRT_kwDOSUeMrM6AKU3f",
+      "opened": "2026-05-07T00:38:39Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "220ef05a55bcaf7a17e2452632f19cd5a0e117fb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3198209973"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\r\n\r\n      When `gen_ai.agent.name` is not available, it SHOULD be `plan`.\r\n```",
+      "created": "2026-05-07T00:18:32Z",
+      "hunk": "@@ -478,6 +478,42 @@ spans:\n       - ref: gen_ai.output.messages\n         requirement_level: opt_in\n \n+  - type: gen_ai.plan.internal\n+    kind: internal\n+    name:\n+      note: >\n+        **Span name** SHOULD be `plan {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n+        When `gen_ai.agent.name` is not available, it SHOULD be `plan`.\n+    brief: >\n+      Represents an agent planning or task decomposition phase.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `plan`.\n+      **Span name** SHOULD be `plan {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n+      When `gen_ai.agent.name` is not available, it SHOULD be `plan`.",
+      "id": "PRRT_kwDOSUeMrM6AKfKt",
+      "opened": "2026-05-07T00:38:39Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "220ef05a55bcaf7a17e2452632f19cd5a0e117fb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3198266582"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "> ### Why a span, not an attribute or grouping primitive\r\n>\r\n> `execute_tool` got its own span -- not an attribute on `chat` -- because tool execution has independent duration, error status, and parent-child structure. Planning has the same properties. A grouping attribute correlates sibling spans; a `plan` span creates a parent boundary with its own duration. You cannot model a parent as an attribute on its own child.\r\n\r\ncan you expand this, particularly to address why not a boolean \"planning\" attribute on the chat span? I assume it's to support multiple steps under a single planning span, but currently the library examples only support a single chat span per planning operation, so I think it deserves a bit more explanation, thanks!",
+      "created": "2026-05-07T00:37:18Z",
+      "hunk": "@@ -478,6 +478,42 @@ spans:\n       - ref: gen_ai.output.messages\n         requirement_level: opt_in\n \n+  - type: gen_ai.plan.internal",
+      "id": "PRRT_kwDOSUeMrM6AKn-W",
+      "opened": "2026-05-07T00:38:39Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-05-07T00:58:18Z",
+          "body": "3 reasons come off the top of my mind. \r\n\r\nFirstly, Operation vs modifier, gen_ai.* uses operation.name for kinds of work such as chat, execute_tool, invoke_agent (each of these get a span) and attributes for request modifiers (stream, temperature). A planning boolean would be the only operation-as-attribute in the namespace. \r\nSecondly, The 1-chat-per-plan ratio in the references is implementation-current, not a spec invariant. CrewAI's planner runs inside a `while not AgentFinish` loop, LangChain Plan-and-Execute with OutputFixingParser issues repair calls, plan-critique-replan loops issue several. Mocks happen to succeed first try. \r\nThirdly, And even at 1:1, plan duration includes input construction (_create_tasks_summary) and output parsing (Pydantic validation, regex split), not just the LLM call.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3198365482"
+        },
+        {
+          "at": "2026-05-07T02:43:38Z",
+          "body": "> Firstly, Operation vs modifier, gen_ai.* uses operation.name for kinds of work such as chat, execute_tool, invoke_agent (each of these get a span) and attributes for request modifiers (stream, temperature). A planning boolean would be the only operation-as-attribute in the namespace.\r\n\r\nI'm not sure this is compelling if there's really a 1-1 relationship between plan and chat spans, there doesn't seem like a need for both.\r\n\r\nI think the case we need to make here is why it's not a 1-1 relationship.\r\n\r\n> Secondly, The 1-chat-per-plan ratio in the references is implementation-current, not a spec invariant. CrewAI's planner runs inside a while not AgentFinish loop, LangChain Plan-and-Execute with OutputFixingParser issues repair calls, plan-critique-replan loops issue several. Mocks happen to succeed first try.\r\n\r\nCan you show this in the reference instrumentation? that would be really helpful\r\n\r\n> Thirdly, And even at 1:1, plan duration includes input construction (_create_tasks_summary) and output parsing (Pydantic validation, regex split), not just the LLM call.\r\n\r\nI'm not sure this is too strong of a case either just based on what we've typically modeled in semantic conventions, let's focus on your second point and try to flush that out a bit more in the reference instrumentation or in the PR description about why it's not limited to 1:1, thanks!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3198657781"
+        },
+        {
+          "at": "2026-05-07T03:32:19Z",
+          "body": "Done in 7dadcec, added run_plan_with_repair_reference() in reference/scenarios/langchain/scenario.py. This wraps LLMPlanner.output_parser with OutputFixingParser; first LLM call returns malformed text, parser raises, OutputFixingParser issues a second LLM call wrapping the malformed completion in NAIVE_FIX_PROMPT. Both chat spans captured under one plan span via the same chat.completions.create patch and the output is: \"planned 3 step(s) after 2 chat call(s)\".\r\n\r\nAbout the trigger: the default PlanningOutputParser silently returns Plan(steps=[]) on malformed input rather than raising, so the demo subclasses it to raise OutputParserException (and uses a [FORCE_MALFORMED] sentinel in the user input to route the mock's response). The OutputFixingParser machinery itself (langchain_classic/output_parsers/fix.py) is the canonical langchain repair pattern — what's contrived is the trigger, not the captured telemetry.\r\n\r\nA more naturally occurring multi-call planning case exists in CrewAI which has a `while not isinstance(formatted_answer, AgentFinish)` retry loop that re-issues real LLM calls when the planner's response fails Pydantic validation. Happy to add a CrewAI demo that triggers this native retry path (mock returns invalid Pydantic JSON first, valid second) if the OutputFixenough on its own.\r\n\r\nI didn't update the PR description yet, let me know if this looks good and I can update it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3198794810"
+        },
+        {
+          "at": "2026-05-07T15:05:10Z",
+          "body": "> This wraps LLMPlanner.output_parser with OutputFixingParser; first LLM call returns malformed text, parser raises, OutputFixingParser issues a second LLM call wrapping the malformed completion in NAIVE_FIX_PROMPT\r\n\r\nI think one could potentially argue that this could be modeled more like a \"retry mechanism\" (which we have other precedent for modeling in semantic conventions).\r\n\r\n> A more naturally occurring multi-call planning case exists in CrewAI\r\n\r\ncan you add this? I agree it sounds like a better example. Thanks!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3202467164"
+        },
+        {
+          "at": "2026-05-07T18:04:29Z",
+          "body": "Done in 291d5b4, added run_crew_planning_with_native_retry() in reference/scenarios/crewai/scenario.py. The [FORCE_PLANNER_RETRY] sentinel in the task description scopes the malformed-response behavior to this scenario only.\r\n\r\nThe trace contains one plan Task Execution Planner span parenting 3 chat gpt-4o-mini children, all from real CrewAI library code paths:\r\n\r\n1. beta.chat.completions.parse — planner's structured-output call. Mock returns {message.content: null, refusal: \"...\"}. CrewAI's _handle_completion (crewai/llms/providers/openai/completion.py:1612) treats parsed_object=None as a fall-through trigger.\r\n2. chat.completions.create fall-through with the planner's original prompt (no response_format key — the planner's LLM instance leaves self.response_format unset). Mock returns plain text the converter cannot validate as PlannerTaskPydanticOutput.\r\n3. chat.completions.create issued by Task._export_output → convert_to_model → handle_partial_json → convert_with_instructions → Converter.to_pydantic() (crewai/utilities/converter.py:155-336), carrying CrewAI's schema-conversion system prompt (\"Format your final answer according to the following OpenAPI schema...\" from crewai/translations/en.json). Mock detects that prompt and returns valid PlannerTaskPydanticOutput JSON.\r\n\r\nOutput is planned 1 task(s) after 3 chat call(s).\r\n\r\nThe 3 chats run on different code paths (beta.parse, create fall-through, converter's create) and carry different system prompts (planner role, planner role again, schema-conversion role) — the plan span's duration includes all three plus the planner-side input construction (_create_tasks_summary) and the Pydantic validation between calls. That's the case for a span boundary that a boolean attribute on chat can't carry.\r\n\r\nThis is structurally different from langchain. Call 3 is not a retry of call 1 or 2 with the same intent but it's a different kind of work (parse-then-convert, with a different system prompt and a different input shape) that the planner agent dispatches as part of producing the plan. So even if a gen_ai.retry.attempt style attribute landed for repair-style retries, the converter call 3 wouldn't fit under it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3203685234"
+        },
+        {
+          "at": "2026-05-07T18:37:31Z",
+          "body": "thanks, that looks good. I'd suggest reverting 7dadcec4f2af1bc771d8cb5343c691de566e1c8b\r\n\r\nand then update the PR description to dive a bit more into the current and future need for multiple chat operations per planning operation",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3203878183"
+        },
+        {
+          "at": "2026-05-07T19:27:46Z",
+          "body": "Done, reverted and updated the PR description. ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3204165816"
+        }
+      ],
+      "reviewed": "220ef05a55bcaf7a17e2452632f19cd5a0e117fb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3198313751"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I sent a PR to your branch with a bit of refactoring that helped me follow it better at least: https://github.com/Krishnachaitanyakc/semantic-conventions-genai/pull/1",
+      "created": "2026-05-08T01:30:19Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6AfZOp",
+      "opened": "2026-05-08T01:30:19Z",
+      "path": "reference/scenarios/crewai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-05-08T07:30:00Z",
+          "body": "Sounds good, merged it here. ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3207086755"
+        }
+      ],
+      "reviewed": "72051ca92100e90831d7203ff851a3f67eb17ffe",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/97#discussion_r3205673498"
+    }
+  ]
+}

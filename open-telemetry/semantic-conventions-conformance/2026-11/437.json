@@ -1,0 +1,25 @@
+{
+  "head": "ad8b6cbdc2f4f194a37b333d890a8ff9cb60cc32",
+  "merge": "1e9375fe9a40cbe94f30dccfd79446cea0e20f77",
+  "merged": "2026-11-03T06:46:08Z",
+  "missing_roots": 0,
+  "number": 437,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Together 3 includes `/v1` in its resource paths, but `conformance.yaml:14` still sets `TOGETHER_BASE_URL` to `${MOCK_SERVER_URL}/v1`. This produces `/v1/v1/chat/completions` and `/v1/v1/embeddings`, which the mock does not serve, so the scenarios fail with 404s instead of collecting results. Change that environment variable to `${MOCK_SERVER_URL}` alongside this upgrade, then rerun the scenarios and commit any regenerated results.",
+      "created": "2026-11-02T21:07:46Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"together-openinference-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"together==2.42.0\",\n+    \"together==3.0.0\",",
+      "id": "PRRT_kwDOTuzK5c6y3Tty",
+      "opened": "2026-11-02T21:07:46Z",
+      "path": "scenarios/gen-ai/python/together/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "f3ec24f1ed96b3c8568906c68bf264e5a6067f23",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/437#discussion_r4447756240"
+    }
+  ]
+}

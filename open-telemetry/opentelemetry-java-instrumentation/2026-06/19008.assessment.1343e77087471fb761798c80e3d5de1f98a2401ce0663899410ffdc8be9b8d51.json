@@ -1,0 +1,139 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "093c04b90ca4cd045fe1e7b477ba10688e2c7a8b507dd864df1bd9e593900a96",
+  "input_digest": "1343e77087471fb761798c80e3d5de1f98a2401ce0663899410ffdc8be9b8d51",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fdb9be7bf9bac227373c7d77348b308fb007aa76/javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ThreadDetailsCustomizerProviderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ThreadDetailsCustomizerProviderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/sdk-autoconfigure-support/src/test/java/io/opentelemetry/instrumentation/thread/internal/AbstractThreadDetailsCustomizerProviderTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86JuQ3c",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fdb9be7bf9bac227373c7d77348b308fb007aa76/javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ThreadDetailsCustomizerProviderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ThreadDetailsCustomizerProviderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/sdk-autoconfigure-support/src/test/java/io/opentelemetry/instrumentation/thread/internal/AbstractThreadDetailsCustomizerProviderTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86JuQ3s",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fa7c90802ff5b4b570c89bd815a8e635e88c52ed/smoke-tests-otel-starter/spring-boot-2/src/testDeclarativeConfig/java/io/opentelemetry/spring/smoketest/OtelSpringStarterSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/smoke-tests-otel-starter/spring-boot-2/src/testDeclarativeConfig/java/io/opentelemetry/spring/smoketest/OtelSpringStarterSmokeTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Juge6",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fa7c90802ff5b4b570c89bd815a8e635e88c52ed/instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/thread/ThreadDetailsCustomizerProviderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/thread/ThreadDetailsCustomizerProviderTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86JugfO",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb8f3d6b0a57a3859b64a39a0c4cbdb7fc146cc8/sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/thread/internal/AbstractThreadDetailsCustomizerProvider.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/thread/internal/AbstractThreadDetailsCustomizerProvider.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Jusl4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb8f3d6b0a57a3859b64a39a0c4cbdb7fc146cc8/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/thread/ThreadDetailsCustomizerProvider.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/thread/ThreadDetailsCustomizerProvider.java"
+      ],
+      "id": "PRRT_kwDODJKVX86JusmR",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb8f3d6b0a57a3859b64a39a0c4cbdb7fc146cc8/docs/advanced-configuration-options.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/docs/advanced-configuration-options.md"
+      ],
+      "id": "PRRT_kwDODJKVX86Jusma",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eb8f3d6b0a57a3859b64a39a0c4cbdb7fc146cc8/javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ThreadDetailsCustomizerProviderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/javaagent-tooling/src/test/java/io/opentelemetry/javaagent/tooling/config/ThreadDetailsCustomizerProviderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/sdk-autoconfigure-support/src/test/java/io/opentelemetry/instrumentation/thread/internal/AbstractThreadDetailsCustomizerProviderTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Jusmm",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/94791f1d4cd3b1effb362a3635404b177958a651/sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/thread/internal/AbstractThreadDetailsCustomizerProvider.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/sdk-autoconfigure-support/src/main/java/io/opentelemetry/instrumentation/thread/internal/AbstractThreadDetailsCustomizerProvider.java"
+      ],
+      "id": "PRRT_kwDODJKVX86JuxuQ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86Ju2gJ",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86JuxuQ",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0266809b8a4115b23482730e97ff81d1c0c413e0/docs/advanced-configuration-options.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/docs/advanced-configuration-options.md"
+      ],
+      "id": "PRRT_kwDODJKVX86Ju2gg",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c4730160206f2cb6f7812f29c2a656b7355e5fbe/smoke-tests-otel-starter/spring-boot-2/src/testDeclarativeConfig/resources/application.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f759eec78231d806bc38aebfcbd93f901ff1615/smoke-tests-otel-starter/spring-boot-2/src/testDeclarativeConfig/resources/application.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86JvVbo",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

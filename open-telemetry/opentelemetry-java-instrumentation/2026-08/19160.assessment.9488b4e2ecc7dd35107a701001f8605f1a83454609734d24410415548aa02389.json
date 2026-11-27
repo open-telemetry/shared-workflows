@@ -1,0 +1,287 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "4d48b002a8f98d961713c776cc5cb27c114ff317107b246aa6843bd7515b94c2",
+  "input_digest": "9488b4e2ecc7dd35107a701001f8605f1a83454609734d24410415548aa02389",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ba6b9c6c879a7d44d315cc774ba8d4d65c826b5/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ba6b9c6c879a7d44d315cc774ba8d4d65c826b5/instrumentation/apache-dbcp-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachedbcp/v2_0/DataSourceMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachedbcp/v2_0/DataSourceMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/675a416419c77f2133a5baaafeeab9f272256b76"
+      ],
+      "id": "PRRT_kwDODJKVX86PkJNJ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ba6b9c6c879a7d44d315cc774ba8d4d65c826b5/instrumentation/apache-dbcp-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachedbcp/v2_0/DataSourceMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7ba6b9c6c879a7d44d315cc774ba8d4d65c826b5/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/library/src/main/java/io/opentelemetry/instrumentation/apachedbcp/v2_0/DataSourceMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/675a416419c77f2133a5baaafeeab9f272256b76"
+      ],
+      "id": "PRRT_kwDODJKVX86PkJNi",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b56b691cc3e7804e0612f8abee5cfe9eed64206a/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d5aee8df6e4dc9e5caefbec5a91b1aaa4cc21696"
+      ],
+      "id": "PRRT_kwDODJKVX86QIu8u",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b56b691cc3e7804e0612f8abee5cfe9eed64206a/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b56b691cc3e7804e0612f8abee5cfe9eed64206a/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/531c29ffcc2419ff6381c44ee86b09e077c97736"
+      ],
+      "id": "PRRT_kwDODJKVX86QIxSy",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fe602219611b8932abbd541db95a61bff7a24836/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8a707eb02853576250c5bbed07092867ff9ca6d1"
+      ],
+      "id": "PRRT_kwDODJKVX86Rgqtj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fe602219611b8932abbd541db95a61bff7a24836/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9be2da11c095bb76118a3565ce5b1547c8bc8bf2"
+      ],
+      "id": "PRRT_kwDODJKVX86RgquB",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fe602219611b8932abbd541db95a61bff7a24836/instrumentation/apache-dbcp-2.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fe602219611b8932abbd541db95a61bff7a24836/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9be2da11c095bb76118a3565ce5b1547c8bc8bf2"
+      ],
+      "id": "PRRT_kwDODJKVX86RgquX",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fe602219611b8932abbd541db95a61bff7a24836/instrumentation/apache-dbcp-2.0/javaagent/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fe602219611b8932abbd541db95a61bff7a24836/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9be2da11c095bb76118a3565ce5b1547c8bc8bf2"
+      ],
+      "id": "PRRT_kwDODJKVX86Rgqu_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fe602219611b8932abbd541db95a61bff7a24836/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fe602219611b8932abbd541db95a61bff7a24836/instrumentation/apache-dbcp-2.0/javaagent/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/README.md"
+      ],
+      "id": "PRRT_kwDODJKVX86Rgqvy",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fe602219611b8932abbd541db95a61bff7a24836/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Rgqwp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/aec86552b50d4610c5fe7faa8abc2fc18f347928/instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/73a923285f1054c3d25320b2f4f0421c590144e7"
+      ],
+      "id": "PRRT_kwDODJKVX86SHuKA",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/73a923285f1054c3d25320b2f4f0421c590144e7/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a268b7ad44759d1ce857e5b1c14b0706773a3be6"
+      ],
+      "id": "PRRT_kwDODJKVX86SS75V",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a268b7ad44759d1ce857e5b1c14b0706773a3be6/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a268b7ad44759d1ce857e5b1c14b0706773a3be6/instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86STNmk",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a268b7ad44759d1ce857e5b1c14b0706773a3be6/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/992f82bb2a68e01d127e025967dc549182509c3a"
+      ],
+      "id": "PRRT_kwDODJKVX86U3u62",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a268b7ad44759d1ce857e5b1c14b0706773a3be6/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/org/apache/commons/dbcp2/OpenTelemetryBasicDataSourceUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/org/apache/commons/dbcp2/OpenTelemetryBasicDataSourceUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/992f82bb2a68e01d127e025967dc549182509c3a"
+      ],
+      "id": "PRRT_kwDODJKVX86U3u7J",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/992f82bb2a68e01d127e025967dc549182509c3a/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/992f82bb2a68e01d127e025967dc549182509c3a/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b7f411e029ec2eb58c2b1d456b86e7a3e5147a73"
+      ],
+      "id": "PRRT_kwDODJKVX86VGzq0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/992f82bb2a68e01d127e025967dc549182509c3a/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b7f411e029ec2eb58c2b1d456b86e7a3e5147a73"
+      ],
+      "id": "PRRT_kwDODJKVX86VGzq-",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/992f82bb2a68e01d127e025967dc549182509c3a/instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/992f82bb2a68e01d127e025967dc549182509c3a/instrumentation/apache-dbcp-2.0/testing/src/main/java/io/opentelemetry/instrumentation/apachedbcp/AbstractApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/testing/src/main/java/io/opentelemetry/instrumentation/apachedbcp/AbstractApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b7f411e029ec2eb58c2b1d456b86e7a3e5147a73"
+      ],
+      "id": "PRRT_kwDODJKVX86VGzrC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/992f82bb2a68e01d127e025967dc549182509c3a/instrumentation/apache-dbcp-2.0/testing/src/main/java/io/opentelemetry/instrumentation/apachedbcp/AbstractApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/992f82bb2a68e01d127e025967dc549182509c3a/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/BasicDataSourceInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/testing/src/main/java/io/opentelemetry/instrumentation/apachedbcp/AbstractApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b7f411e029ec2eb58c2b1d456b86e7a3e5147a73"
+      ],
+      "id": "PRRT_kwDODJKVX86VGzrJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/75fe2cc1abf7c8723fd5b049eb7bc7555879e116/instrumentation/apache-dbcp-2.0/javaagent/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/75fe2cc1abf7c8723fd5b049eb7bc7555879e116/instrumentation/apache-dbcp-2.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4fe0e6da99b4fcd05bb3b0069b1aae2b5101cc19"
+      ],
+      "id": "PRRT_kwDODJKVX86Vb2Pi",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4fe0e6da99b4fcd05bb3b0069b1aae2b5101cc19/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67b72e379f38e24ad7373f3550499cfe0922945e/instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8fe76be6419d1bbb9029d5bf70bf6d9b0eaaede0"
+      ],
+      "id": "PRRT_kwDODJKVX86VptiT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

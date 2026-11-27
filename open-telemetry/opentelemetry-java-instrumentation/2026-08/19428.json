@@ -1,0 +1,52 @@
+{
+  "head": "c86c422dab6a58bf8f9fa3b1e9d1d24c24d21226",
+  "merge": "a6a5693c2dc7b08486cab2b106b34571fa404942",
+  "merged": "2026-08-07T11:56:05Z",
+  "missing_roots": 0,
+  "number": 19428,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This scans the absolute path from the filesystem root, so an ancestor checkout directory named `javaagent` or `library` wins before the module's own segment. For example, `/work/library/repo/instrumentation/foo/javaagent/build.gradle.kts` is classified as `LIBRARY`, which drops the module's agent flag and target versions. Determine the type from the path relative to the current module root (whose first segment is the actual type), rather than from every absolute-path element.",
+      "created": "2026-08-06T14:41:06Z",
+      "hunk": "@@ -216,11 +216,16 @@ private static void processGradleFile(\n     }\n   }\n \n-  private static Optional<InstrumentationType> determineInstrumentationType(String filePath) {\n-    if (filePath.contains(\"/javaagent/\")) {\n-      return Optional.of(InstrumentationType.JAVAAGENT);\n-    } else if (filePath.contains(\"/library/\")) {\n-      return Optional.of(InstrumentationType.LIBRARY);\n+  private static Optional<InstrumentationType> determineInstrumentationType(Path filePath) {\n+    // matching on path elements rather than substrings keeps this working on Windows, where\n+    // Path#toString uses backslashes\n+    for (Path element : filePath) {",
+      "id": "PRRT_kwDODJKVX86XBj6X",
+      "opened": "2026-08-06T14:41:06Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+      "replies": [
+        {
+          "at": "2026-08-06T15:05:48Z",
+          "body": "Good catch, fixed in 8d6d891. ^[xtractVersions now takes the module root and the type comes from moduleRoot.relativize(filePath).getName(0). Since \findBuildGradleFiles already filters out nested modules, the first module-relative segment is the type by construction.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19428#discussion_r3729955472"
+        }
+      ],
+      "reviewed": "f86b114733694d3091e54d0a3eed637636aeb38e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19428#discussion_r3729765050"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This logic does not exclude nested build files under a top-level `javaagent/` or `library/` directory (e.g., `javaagent/nested/java17/build.gradle.kts`). Because the first `javaagent/library` segment is at index 0, the method returns `false` and nested modules are incorrectly included. A concrete fix is to treat any build file not directly under `javaagent/` or `library/` as nested (e.g., when the first segment is `javaagent/library` but the relative path has more than 2 name elements before/including the filename), while still considering `javaagent/library` occurring at an index > 0 as nested.",
+      "created": "2026-08-06T15:19:54Z",
+      "hunk": "@@ -124,19 +130,28 @@ private static boolean isInNestedInstrumentationModule(Path filePath, Path rootP\n     return false;\n   }",
+      "id": "PRRT_kwDODJKVX86XCVRx",
+      "opened": "2026-08-06T15:19:54Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/utils/FileManager.java",
+      "replies": [
+        {
+          "at": "2026-08-06T15:27:15Z",
+          "body": "This method is unchanged by this PR apart from the String -> Path type (the logic is byte-identical to main), and the structure it describes doesn't exist: there are no `build.gradle.kts` files nested below a top-level `javaagent/` or `library/` directory anywhere under `instrumentation/`. Changing the rule speculatively would risk altering generated output, so leaving as is.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19428#discussion_r3730112397"
+        }
+      ],
+      "reviewed": "8d6d891d2cf75156cca88d4d041cda6188aa3b74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19428#discussion_r3730059668"
+    }
+  ]
+}

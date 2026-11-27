@@ -1,0 +1,25 @@
+{
+  "head": "f2f3ac918606016dda3016950682161dcd1bc93a",
+  "merge": "83b9081829648b5054f79e6707078c1c8bd7f9e2",
+  "merged": "2026-05-26T18:18:49Z",
+  "missing_roots": 0,
+  "number": 18836,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this is a bug fix",
+      "created": "2026-05-22T19:04:42Z",
+      "hunk": "@@ -123,7 +110,8 @@ void constructorAndMethodAddingSpanAttributesDoesNotAddAttributes() {\n                     span.hasName(\"root\")\n                         .hasKind(SpanKind.INTERNAL)\n                         .hasNoParent()\n-                        .hasTotalAttributeCount(0)));\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(stringKey(\"methodAttribute\"), \"method\"))));",
+      "id": "PRRT_kwDODJKVX86ENbZB",
+      "opened": "2026-05-22T19:04:42Z",
+      "path": "instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/test/java/io/opentelemetry/test/annotation/AddingSpanAttributesInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "f2f3ac918606016dda3016950682161dcd1bc93a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18836#discussion_r3290709844"
+    }
+  ]
+}

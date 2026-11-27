@@ -1,0 +1,91 @@
+{
+  "head": "b560a589cf99557ab35cac109e4e107dc808464c",
+  "merge": "fbef673e8c3249b2f2f84944d5489ec80a87b4e9",
+  "merged": "2026-10-07T19:53:00Z",
+  "missing_roots": 0,
+  "number": 776,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This repeats the same incorrect alias-to-version mapping in the request extractor, so removing the assignment from `_start_invoke_agent` alone would not fix the emitted `gen_ai.agent.version`. Do not populate the version from `agentAliasId`; Bedrock does not return the resolved version here.",
+      "created": "2026-09-23T14:31:37Z",
+      "hunk": "@@ -818,3 +825,210 @@ def extract_invoke_model_response(\n                     finish_reason=finish_reason or \"error\",\n                 )\n             ]\n+\n+\n+def is_embedding_model(model_id: str | None) -> bool:\n+    \"\"\"Return True if the model ID corresponds to an embedding model.\n+\n+    Every Bedrock embedding model ID contains ``embed`` (``amazon.titan-embed-*``,\n+    ``cohere.embed-*``, ``twelvelabs.*-embed-*``), and no text generation model does. The\n+    match is deliberately broad so that new embedding models are not reported as chat\n+    completions.\n+    \"\"\"\n+    if not model_id:\n+        return False\n+    return \"embed\" in model_id.lower()\n+\n+\n+def extract_embedding_request(\n+    api_params: dict[str, Any],\n+    invocation: EmbeddingInvocation,\n+) -> None:\n+    \"\"\"Populate request attributes from InvokeModel api_params onto the embedding invocation.\"\"\"\n+    _extract_guardrail_id(api_params, invocation)\n+\n+    body = _parse_body(api_params.get(\"body\"))\n+    if not _is_dict(body):\n+        return\n+\n+    # Dimensions (e.g. Titan Text v2 dimensions or embeddingConfig.outputEmbeddingLength)\n+    emb_config = body.get(\"embeddingConfig\")\n+    emb_config_dict = emb_config if _is_dict(emb_config) else None\n+    dimensions = _safe_int(\n+        _first_not_none(\n+            body.get(\"dimensions\"),\n+            emb_config_dict.get(\"outputEmbeddingLength\")\n+            if emb_config_dict\n+            else None,\n+        )\n+    )\n+    if dimensions is not None:\n+        invocation.dimension_count = dimensions\n+\n+    # Encoding formats (e.g. Cohere embedding_types)\n+    raw_formats = _first_not_none(\n+        body.get(\"embedding_types\"),\n+        body.get(\"embeddingTypes\"),\n+        body.get(\"encoding_format\"),\n+        body.get(\"encoding_formats\"),\n+    )\n+    if _is_list(raw_formats):\n+        formats = [str(fmt) for fmt in raw_formats if fmt is not None]\n+        if formats:\n+            invocation.encoding_formats = formats\n+    elif isinstance(raw_formats, str) and raw_formats:\n+        invocation.encoding_formats = [raw_formats]\n+\n+\n+def extract_embedding_response(\n+    response: dict[str, Any],\n+    raw_body_bytes: bytes,\n+    invocation: EmbeddingInvocation,\n+) -> None:\n+    \"\"\"Populate response attributes from InvokeModel embedding response.\"\"\"\n+    # 1. Token counts and response model from response headers (case-insensitive)\n+    resp_meta = response.get(\"ResponseMetadata\")\n+    http_headers = (\n+        resp_meta.get(\"HTTPHeaders\") if _is_dict(resp_meta) else None\n+    )\n+    if _is_dict(http_headers):\n+        headers_lower: dict[str, str] = {\n+            str(k).lower(): str(v) for k, v in http_headers.items()\n+        }\n+        if invocation.input_tokens is None:\n+            invocation.input_tokens = _safe_int(\n+                headers_lower.get(\"x-amzn-bedrock-input-token-count\")\n+            )\n+        model_header = headers_lower.get(\"x-amzn-bedrock-model-id\")\n+        if model_header and invocation.response_model_name is None:\n+            invocation.response_model_name = model_header\n+\n+    body = _parse_body(raw_body_bytes)\n+    if not _is_dict(body):\n+        return\n+\n+    # 2. Token counts from payload if not in headers\n+    if invocation.input_tokens is None:\n+        token_count = body.get(\"inputTextTokenCount\")\n+        if token_count is None and _is_dict(body.get(\"meta\")):\n+            meta = body[\"meta\"]\n+            if _is_dict(meta.get(\"billed_units\")):\n+                token_count = meta[\"billed_units\"].get(\"input_tokens\")\n+        invocation.input_tokens = _safe_int(token_count)\n+\n+    # 3. Dimension count from embeddings in body\n+    embedding = body.get(\"embedding\")\n+    if _is_list(embedding):\n+        invocation.dimension_count = len(embedding)\n+    else:\n+        embeddings = body.get(\"embeddings\")\n+        if _is_list(embeddings) and embeddings:\n+            first = embeddings[0]\n+            if _is_list(first):\n+                invocation.dimension_count = len(first)\n+        elif _is_dict(embeddings):\n+            for emb_list in embeddings.values():\n+                if _is_list(emb_list) and emb_list:\n+                    first = emb_list[0]\n+                    if _is_list(first):\n+                        invocation.dimension_count = len(first)\n+                        break\n+\n+\n+def extract_invoke_agent_request(\n+    api_params: dict[str, Any],\n+    invocation: RemoteAgentInvocation,\n+    *,\n+    capture_content: bool = True,\n+) -> None:\n+    session_id = api_params.get(\"sessionId\")\n+    if session_id:\n+        invocation.conversation_id = str(session_id)\n+\n+    # InvokeAgent takes an alias, not a version, and the response doesn't report the\n+    # version the alias resolved to. The alias is the closest available identifier of\n+    # which agent revision served the request.\n+    agent_alias_id = api_params.get(\"agentAliasId\")\n+    if agent_alias_id:\n+        invocation.agent_version = str(agent_alias_id)",
+      "id": "PRRT_kwDOSbspP86lMgCl",
+      "opened": "2026-09-23T14:31:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-09-23T15:16:54Z",
+          "body": "Im not sure the right thing to do here.. will remove it for now",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/776#discussion_r4084079853"
+        }
+      ],
+      "reviewed": "8b4589f10f847dd698912165acc85e1ab885a427",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/776#discussion_r4083599008"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The embedding path reads the returned `StreamingBody` outside the `try` that records provider-call failures. A network/read error after the API returns therefore re-raises without calling `invocation.fail`, leaving the embedding span unfinished and without `error.type`; keep the read and extraction inside a `BaseException` handler that re-raises the original error.",
+      "created": "2026-09-23T14:31:38Z",
+      "hunk": "@@ -162,6 +175,37 @@ def _handle_invoke_model(\n     server_address, server_port = extract_server_address_and_port(endpoint_url)\n     raw_model_id = api_params.get(\"modelId\")\n     model_id = str(raw_model_id) if raw_model_id else None\n+\n+    if not is_stream and is_embedding_model(model_id):\n+        invocation = handler.embedding(\n+            provider=GenAiProviderNameValues.AWS_BEDROCK.value,\n+            request_model=model_id,\n+            server_address=server_address,\n+            server_port=server_port,\n+        )\n+        extract_embedding_request(api_params, invocation)\n+        try:\n+            response: Any = wrapped(*args, **kwargs)\n+        except BaseException as exc:\n+            invocation.fail(exc)\n+            raise\n+\n+        raw_bytes = b\"\"\n+        body_stream = response.get(\"body\")\n+        if hasattr(body_stream, \"read\"):\n+            raw_bytes = body_stream.read()\n+            response[\"body\"] = StreamingBody(\n+                io.BytesIO(raw_bytes), len(raw_bytes)\n+            )\n+\n+        extract_embedding_response(\n+            response,\n+            raw_bytes,\n+            invocation,\n+        )\n+        invocation.stop()",
+      "id": "PRRT_kwDOSbspP86lMgDm",
+      "opened": "2026-09-23T14:31:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/patch.py",
+      "replies": [],
+      "reviewed": "8b4589f10f847dd698912165acc85e1ab885a427",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/776#discussion_r4083599114"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The async embedding response is returned through `AsyncBedrockStreamingBodyWrapper`, whose destructor finalizes the invocation with `stop()` even when the caller drops the body before draining it. Consequently an abandoned embedding response is reported as a successful span, unlike the shared stream wrappers' `AbandonedStreamError`; this path needs the shared abandonment/failure lifecycle or equivalent handling.",
+      "created": "2026-09-23T14:31:38Z",
+      "hunk": "@@ -222,6 +266,49 @@ async def _handle_async_invoke_model(\n     server_address, server_port = extract_server_address_and_port(endpoint_url)\n     raw_model_id = api_params.get(\"modelId\")\n     model_id = str(raw_model_id) if raw_model_id else None\n+\n+    if not is_stream and is_embedding_model(model_id):\n+        invocation = handler.embedding(\n+            provider=GenAiProviderNameValues.AWS_BEDROCK.value,\n+            request_model=model_id,\n+            server_address=server_address,\n+            server_port=server_port,\n+        )\n+        extract_embedding_request(api_params, invocation)\n+        try:\n+            response: Any = await wrapped(*args, **kwargs)\n+        except BaseException as exc:\n+            invocation.fail(exc)\n+            raise\n+\n+        body_stream = response.get(\"body\")\n+        if body_stream is not None:\n+            if hasattr(body_stream, \"read\") and inspect.iscoroutinefunction(\n+                body_stream.read\n+            ):\n+                response[\"body\"] = AsyncBedrockStreamingBodyWrapper(\n+                    body_stream,\n+                    invocation=invocation,\n+                    response=response,\n+                )\n+                return response",
+      "id": "PRRT_kwDOSbspP86lMgEh",
+      "opened": "2026-09-23T14:31:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/patch.py",
+      "replies": [],
+      "reviewed": "8b4589f10f847dd698912165acc85e1ab885a427",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/776#discussion_r4083599209"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`agentAliasId` is an alias identifier, not the resolved Bedrock agent version (for example, an alias can point to version `1`). Recording it as `gen_ai.agent.version` makes consumers see a false version; leave this attribute unset unless the resolved version is actually available.",
+      "created": "2026-09-23T14:31:39Z",
+      "hunk": "@@ -278,6 +365,175 @@ async def _handle_async_invoke_model(\n     return response\n \n \n+def _server_address_and_port(\n+    instance: BaseClient,\n+) -> tuple[str | None, int | None]:\n+    endpoint_url = getattr(\n+        getattr(instance, \"meta\", None), \"endpoint_url\", None\n+    )\n+    return extract_server_address_and_port(endpoint_url)\n+\n+\n+def _start_invoke_agent(\n+    instance: BaseClient,\n+    api_params: dict[str, Any],\n+    handler: TelemetryHandler,\n+) -> RemoteAgentInvocation:\n+    server_address, server_port = _server_address_and_port(instance)\n+\n+    invocation = handler.invoke_remote_agent(\n+        provider=GenAiProviderNameValues.AWS_BEDROCK.value,\n+        server_address=server_address,\n+        server_port=server_port,\n+    )\n+    raw_agent_id = api_params.get(\"agentId\")\n+    if raw_agent_id:\n+        invocation.agent_id = str(raw_agent_id)\n+    # InvokeAgent addresses an agent by alias rather than by version, and an alias\n+    # resolves to a version server-side.\n+    raw_alias_id = api_params.get(\"agentAliasId\")\n+    if raw_alias_id:\n+        invocation.agent_version = str(raw_alias_id)",
+      "id": "PRRT_kwDOSbspP86lMgFT",
+      "opened": "2026-09-23T14:31:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/patch.py",
+      "replies": [],
+      "reviewed": "8b4589f10f847dd698912165acc85e1ab885a427",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/776#discussion_r4083599287"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This destructor is a telemetry-finalization path, so it must catch `BaseException`, not just `Exception`. An `asyncio.CancelledError` or other `BaseException` raised while failing the invocation would escape as an unraisable destructor error instead of being contained by the best-effort cleanup.",
+      "created": "2026-09-23T14:31:39Z",
+      "hunk": "@@ -91,6 +102,26 @@ def _finalize_failure(self, error: BaseException) -> None:\n         self._self_finalized = True\n         self._on_stream_error(error)\n \n+    def __del__(self) -> None:\n+        \"\"\"Finalize a stream that was never drained, closed, or exited.\n+\n+        A caller that breaks out of iteration -- or raises inside the loop body --\n+        without a ``with`` block or ``close()`` hands the wrapper no other opportunity\n+        to end the span, so it would otherwise leak. An ``AbandonedStreamError`` is\n+        recorded with error.type ``_OTHER`` and description ``\"abandoned stream\"``.\n+        \"\"\"\n+        # __del__ can run during interpreter shutdown or on an object whose\n+        # __init__ raised, so nothing here may assume state exists.\n+        if getattr(self, \"_self_finalized\", True):\n+            return\n+        try:\n+            self._finalize_failure(AbandonedStreamError())\n+        except Exception:  # pylint: disable=broad-exception-caught",
+      "id": "PRRT_kwDOSbspP86lMgGD",
+      "opened": "2026-09-23T14:31:40Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/stream.py",
+      "replies": [],
+      "reviewed": "8b4589f10f847dd698912165acc85e1ab885a427",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/776#discussion_r4083599365"
+    }
+  ]
+}

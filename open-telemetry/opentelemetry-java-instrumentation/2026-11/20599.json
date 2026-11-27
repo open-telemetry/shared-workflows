@@ -1,0 +1,277 @@
+{
+  "head": "f0980d53a9b714053ffe9fa35ef9ea448b9c7cbb",
+  "merge": "1eb06176b151b7bdc78ed7a396caa01d478d840e",
+  "merged": "2026-11-25T11:26:11Z",
+  "missing_roots": 0,
+  "number": 20599,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Since `jdk.GarbageCollection` event can be emitted along with other collector specific events perhaps it would be better to add a handler for it only when no other gc handlers were added. Then it could serve as a fallback handler that is used when other more specific handlers were not available.",
+      "created": "2026-10-15T10:13:45Z",
+      "hunk": "@@ -134,6 +154,15 @@ static List<RecordedEventHandler> getHandlers(\n                 () ->\n                     OldGarbageCollectionHandler.create(meter, effectiveMetricNamePredicate, name));\n \n+        // GraalVM native image: its collectors (\"young generation scavenger\" and \"complete\n+        // scavenger\") emit only the generic jdk.GarbageCollection event, so one handler covers both\n+        case \"young generation scavenger\" ->",
+      "id": "PRRT_kwDODJKVX86suOHZ",
+      "opened": "2026-10-15T10:13:45Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/HandlerRegistry.java",
+      "replies": [],
+      "reviewed": "0391f2d054f0bcb4aa61fedf66ae7a06f87ea6ca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4281723985"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This fallback also matches ZGC, whose collector names are not handled by the switch. When `jvm.gc.duration` is selected for JFR, `RuntimeTelemetryBuilder` disables its JMX collection, so the existing ZGC pause-duration series disappear: generic collection events measure whole cycles, not individual pauses, even with `requireCompleteJmxReplacement=true`. Restrict the fallback to the native-image collectors so other collectors retain their JMX metrics.",
+      "created": "2026-11-14T19:20:51Z",
+      "hunk": "@@ -137,6 +157,15 @@ static List<RecordedEventHandler> getHandlers(\n         default -> {}\n       }\n     }\n+    if (handlers.isEmpty()) {\n+      // No collector-specific event is available, as in a GraalVM native image, whose collectors\n+      // emit only the generic jdk.GarbageCollection event: fall back to it for every collector",
+      "id": "PRRT_kwDODJKVX863iGTO",
+      "opened": "2026-11-14T19:20:51Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/HandlerRegistry.java",
+      "replies": [
+        {
+          "at": "2026-11-14T19:30:44Z",
+          "body": "Good catch. ZGC and Shenandoah had no handler in the switch, so `jvm.gc.duration` stayed on JMX for them, and the fallback would have replaced the pause durations with whole cycles.\n\nFixed in 97521e4. The fallback now also requires that the JVM registers none of the collector-specific event types: `jdk.G1GarbageCollection`, `jdk.YoungGarbageCollection` and `jdk.OldGarbageCollection`. HotSpot registers them for every collector, so ZGC and Shenandoah keep their JMX metrics. A GraalVM native image registers only the generic event, so it still gets the fallback. A test covers ZGC with all event types present.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4575331367"
+        }
+      ],
+      "reviewed": "fe38892831e6c0c3ae0c9093ab8f1a4d4595e550",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4575299057"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think this isn't needed since gc events aren't periodic",
+      "created": "2026-11-16T08:12:13Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry.internal.garbagecollection;\n+\n+import static io.opentelemetry.semconv.JvmAttributes.JVM_GC_NAME;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.metrics.DoubleHistogram;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.Constants;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.DurationUtil;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.RecordedEventHandler;\n+import java.time.Duration;\n+import java.util.Optional;\n+import java.util.Set;\n+import java.util.function.Predicate;\n+import javax.annotation.Nullable;\n+import jdk.jfr.consumer.RecordedEvent;\n+\n+/**\n+ * Records {@code jdk.GarbageCollection}, the only garbage collection event emitted by GraalVM\n+ * native images. The event does not tell minor and major collections apart, so no {@code\n+ * jvm.gc.action} attribute is recorded.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class GarbageCollectionHandler implements RecordedEventHandler {\n+  private static final String EVENT_NAME = \"jdk.GarbageCollection\";\n+\n+  private final DoubleHistogram histogram;\n+\n+  @Nullable\n+  public static GarbageCollectionHandler create(\n+      Meter meter, Predicate<String> metricNamePredicate) {\n+    return metricNamePredicate.test(Constants.METRIC_NAME_GC_DURATION)\n+        ? new GarbageCollectionHandler(meter)\n+        : null;\n+  }\n+\n+  public GarbageCollectionHandler(Meter meter) {\n+    histogram =\n+        meter\n+            .histogramBuilder(Constants.METRIC_NAME_GC_DURATION)\n+            .setDescription(Constants.METRIC_DESCRIPTION_GC_DURATION)\n+            .setUnit(Constants.SECONDS)\n+            .build();\n+  }\n+\n+  @Override\n+  public void accept(RecordedEvent ev) {\n+    histogram.record(\n+        DurationUtil.toSeconds(ev.getDuration()), Attributes.of(JVM_GC_NAME, ev.getString(\"name\")));\n+  }\n+\n+  @Override\n+  public String getEventName() {\n+    return EVENT_NAME;\n+  }\n+\n+  @Override\n+  public Set<String> getMetricNames() {\n+    return Set.of(Constants.METRIC_NAME_GC_DURATION);\n+  }\n+\n+  @Override\n+  public Optional<Duration> getPollingDuration() {\n+    return Optional.of(Duration.ofSeconds(1));\n+  }",
+      "id": "PRRT_kwDODJKVX8631Psk",
+      "opened": "2026-11-16T08:12:13Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/garbagecollection/GarbageCollectionHandler.java",
+      "replies": [
+        {
+          "at": "2026-11-17T02:43:28Z",
+          "body": "Right, removed. I had copied it from the G1, young and old collection handlers, which set the same period.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4594609885"
+        }
+      ],
+      "reviewed": "97521e4bd4cb6228e3eb918e05763db844c36161",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4583318538"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wouldn't just `handlers.isEmpty()` be sufficient here?",
+      "created": "2026-11-16T08:23:16Z",
+      "hunk": "@@ -137,6 +161,17 @@ static List<RecordedEventHandler> getHandlers(\n         default -> {}\n       }\n     }\n+    if (handlers.isEmpty()\n+        && Collections.disjoint(availableEventNames, COLLECTOR_SPECIFIC_GC_EVENTS)) {",
+      "id": "PRRT_kwDODJKVX8631eey",
+      "opened": "2026-11-16T08:23:16Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/HandlerRegistry.java",
+      "replies": [
+        {
+          "at": "2026-11-17T02:44:10Z",
+          "body": "No, because of ZGC and Shenandoah. HotSpot registers `jdk.G1GarbageCollection`, `jdk.YoungGarbageCollection` and `jdk.OldGarbageCollection` for every collector. I checked this on JDK 21 and 25 with ZGC, Shenandoah and G1. The collector names match no case of the switch, so `handlers` stays empty. Examples are `ZGC Pauses` and `ZGC Cycles` on 21, or `ZGC Minor Pauses` on 25.\n\nWith `handlers.isEmpty()` alone, a ZGC application that selects `jvm.gc.duration` for JFR would get the generic handler. `RuntimeTelemetryBuilder` then drops `jvm.gc.duration` from JMX, because JFR provides it. Whole-collection durations would then replace the JMX series with separate pauses and cycles. The extra check keeps the fallback for the native image case, where none of the specific event types exists.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4594615204"
+        }
+      ],
+      "reviewed": "97521e4bd4cb6228e3eb918e05763db844c36161",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4583414700"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I don't get `so ZGC and Shenandoah keep their JMX metrics`",
+      "created": "2026-11-16T08:24:05Z",
+      "hunk": "@@ -137,6 +161,17 @@ static List<RecordedEventHandler> getHandlers(\n         default -> {}\n       }\n     }\n+    if (handlers.isEmpty()\n+        && Collections.disjoint(availableEventNames, COLLECTOR_SPECIFIC_GC_EVENTS)) {\n+      // The JVM has no collector-specific collection event at all, as in a GraalVM native image:\n+      // fall back to the generic jdk.GarbageCollection event. HotSpot registers the specific\n+      // event types whatever collector runs, so ZGC and Shenandoah keep their JMX metrics.",
+      "id": "PRRT_kwDODJKVX8631fis",
+      "opened": "2026-11-16T08:24:05Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/HandlerRegistry.java",
+      "replies": [
+        {
+          "at": "2026-11-17T02:44:52Z",
+          "body": "Fair, the comment was too short. I rewrote it. Now it says that only a JVM without the specific event types uses the generic event. HotSpot registers those types for every collector, so with ZGC or Shenandoah `jvm.gc.duration` stays on JMX. The previous thread has the details.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4594620012"
+        }
+      ],
+      "reviewed": "97521e4bd4cb6228e3eb918e05763db844c36161",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4583421588"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "usually we add `// visible for testing` for method that aren't private only because they are used from tests",
+      "created": "2026-11-16T08:25:30Z",
+      "hunk": "@@ -77,6 +82,26 @@ static List<RecordedEventHandler> getHandlers(\n       boolean requireCompleteJmxReplacement,\n       boolean emitExperimentalJmxMetrics,\n       Set<String> availableEventNames) {\n+    List<String> garbageCollectorNames = new ArrayList<>();\n+    for (GarbageCollectorMXBean bean : ManagementFactory.getGarbageCollectorMXBeans()) {\n+      garbageCollectorNames.add(bean.getName());\n+    }\n+    return getHandlers(\n+        meter,\n+        metricNamePredicate,\n+        requireCompleteJmxReplacement,\n+        emitExperimentalJmxMetrics,\n+        availableEventNames,\n+        garbageCollectorNames);\n+  }\n+\n+  static List<RecordedEventHandler> getHandlers(",
+      "id": "PRRT_kwDODJKVX8631hTN",
+      "opened": "2026-11-16T08:25:30Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/HandlerRegistry.java",
+      "replies": [
+        {
+          "at": "2026-11-17T02:45:34Z",
+          "body": "Added.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4594625229"
+        }
+      ],
+      "reviewed": "97521e4bd4cb6228e3eb918e05763db844c36161",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4583433465"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The [README](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f01d8e617392e13fd33840c4d3605b4b2e121c49/instrumentation/runtime-telemetry/library/README.md#L218) says JFR duration points include `jvm.gc.action`, but the library omits it when it reads the generic GC event used by GraalVM Native Image:\n\n```diff\ndiff --git a/instrumentation/runtime-telemetry/library/README.md b/instrumentation/runtime-telemetry/library/README.md\n--- a/instrumentation/runtime-telemetry/library/README.md\n+++ b/instrumentation/runtime-telemetry/library/README.md\n@@ -217,4 +217,6 @@\n \n-Every JMX-sourced `jvm.gc.duration` point also includes `jvm.gc.cause`, omitted from the examples below because its value varies by collection (for example, `Allocation Failure` or `System.gc()`). When selected for JFR on Java 17+, `jvm.gc.duration` points include only `jvm.gc.name` and `jvm.gc.action`, not `jvm.gc.cause`.\n+Every JMX-sourced `jvm.gc.duration` point also includes `jvm.gc.cause`, omitted from the examples below because its value varies by collection (for example, `Allocation Failure` or `System.gc()`).\n+\n+On Java 17+, JFR-sourced `jvm.gc.duration` points include `jvm.gc.name` but not `jvm.gc.cause`. They also include `jvm.gc.action` unless they come from the generic `jdk.GarbageCollection` event. GraalVM Native Image's serial collector emits this event without identifying the collection as young or full.\n \n - CMS Garbage Collector\n```",
+      "created": "2026-11-21T01:11:06Z",
+      "hunk": "@@ -0,0 +1,66 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry.internal.garbagecollection;\n+\n+import static io.opentelemetry.semconv.JvmAttributes.JVM_GC_NAME;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.metrics.DoubleHistogram;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.Constants;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.DurationUtil;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.RecordedEventHandler;\n+import java.util.Set;\n+import java.util.function.Predicate;\n+import javax.annotation.Nullable;\n+import jdk.jfr.consumer.RecordedEvent;\n+\n+/**\n+ * Records {@code jdk.GarbageCollection}, the only garbage collection event emitted by GraalVM\n+ * native images. The event does not tell minor and major collections apart, so no {@code\n+ * jvm.gc.action} attribute is recorded.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class GarbageCollectionHandler implements RecordedEventHandler {\n+  private static final String EVENT_NAME = \"jdk.GarbageCollection\";\n+\n+  private final DoubleHistogram histogram;\n+\n+  @Nullable\n+  public static GarbageCollectionHandler create(\n+      Meter meter, Predicate<String> metricNamePredicate) {\n+    return metricNamePredicate.test(Constants.METRIC_NAME_GC_DURATION)\n+        ? new GarbageCollectionHandler(meter)\n+        : null;\n+  }\n+\n+  public GarbageCollectionHandler(Meter meter) {\n+    histogram =\n+        meter\n+            .histogramBuilder(Constants.METRIC_NAME_GC_DURATION)\n+            .setDescription(Constants.METRIC_DESCRIPTION_GC_DURATION)\n+            .setUnit(Constants.SECONDS)\n+            .build();\n+  }\n+\n+  @Override\n+  public void accept(RecordedEvent ev) {\n+    histogram.record(\n+        DurationUtil.toSeconds(ev.getDuration()), Attributes.of(JVM_GC_NAME, ev.getString(\"name\")));",
+      "id": "PRRT_kwDODJKVX866PUOj",
+      "opened": "2026-11-21T01:25:29Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/garbagecollection/GarbageCollectionHandler.java",
+      "replies": [
+        {
+          "at": "2026-11-21T04:51:03Z",
+          "body": "Thanks, applied as suggested.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4650614903"
+        }
+      ],
+      "reviewed": "f01d8e617392e13fd33840c4d3605b4b2e121c49",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4649542333"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Please set the bucket boundary advice to `[0.01, 0.1, 1, 10]` seconds, as recommended by the [`jvm.gc.duration` semantic conventions](https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/docs/runtime/jvm-metrics.md#metric-jvmgcduration).",
+      "created": "2026-11-21T01:24:35Z",
+      "hunk": "@@ -0,0 +1,66 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry.internal.garbagecollection;\n+\n+import static io.opentelemetry.semconv.JvmAttributes.JVM_GC_NAME;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.metrics.DoubleHistogram;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.Constants;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.DurationUtil;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.RecordedEventHandler;\n+import java.util.Set;\n+import java.util.function.Predicate;\n+import javax.annotation.Nullable;\n+import jdk.jfr.consumer.RecordedEvent;\n+\n+/**\n+ * Records {@code jdk.GarbageCollection}, the only garbage collection event emitted by GraalVM\n+ * native images. The event does not tell minor and major collections apart, so no {@code\n+ * jvm.gc.action} attribute is recorded.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class GarbageCollectionHandler implements RecordedEventHandler {\n+  private static final String EVENT_NAME = \"jdk.GarbageCollection\";\n+\n+  private final DoubleHistogram histogram;\n+\n+  @Nullable\n+  public static GarbageCollectionHandler create(\n+      Meter meter, Predicate<String> metricNamePredicate) {\n+    return metricNamePredicate.test(Constants.METRIC_NAME_GC_DURATION)\n+        ? new GarbageCollectionHandler(meter)\n+        : null;\n+  }\n+\n+  public GarbageCollectionHandler(Meter meter) {\n+    histogram =\n+        meter\n+            .histogramBuilder(Constants.METRIC_NAME_GC_DURATION)\n+            .setDescription(Constants.METRIC_DESCRIPTION_GC_DURATION)\n+            .setUnit(Constants.SECONDS)\n+            .build();",
+      "id": "PRRT_kwDODJKVX866PhMU",
+      "opened": "2026-11-21T01:25:29Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/garbagecollection/GarbageCollectionHandler.java",
+      "replies": [
+        {
+          "at": "2026-11-21T04:50:21Z",
+          "body": "Done, the handler now sets `GC_DURATION_BUCKETS`, the same advice as the JMX `jvm.gc.duration` histogram. The test checks the boundaries.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4650612651"
+        }
+      ],
+      "reviewed": "f01d8e617392e13fd33840c4d3605b4b2e121c49",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4649627573"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Oracle GraalVM Native Image lists these collector-specific events even with Serial GC, so this check skips the generic handler and `jvm.gc.duration` never reaches the reader. I opened [jnbdz/opentelemetry-java-instrumentation#1](https://github.com/jnbdz/opentelemetry-java-instrumentation/pull/1) against your branch with a reproducing native test and a fix that selects the generic handler using the Serial GC MXBean names.",
+      "created": "2026-11-21T20:06:31Z",
+      "hunk": "@@ -137,6 +162,18 @@ static List<RecordedEventHandler> getHandlers(\n         default -> {}\n       }\n     }\n+    if (handlers.isEmpty()\n+        && Collections.disjoint(availableEventNames, COLLECTOR_SPECIFIC_GC_EVENTS)) {",
+      "id": "PRRT_kwDODJKVX866bwTQ",
+      "opened": "2026-11-21T20:07:24Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/HandlerRegistry.java",
+      "replies": [
+        {
+          "at": "2026-11-21T22:06:36Z",
+          "body": "Thanks, the Serial GC MXBean names are a better signal than the missing event types. I added your commit to this pull request as is, 56ec10f384. The JVM tests pass here, with the ZGC and Shenandoah cases. I have no Oracle GraalVM on my build machine, so CI runs the new native test first.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4655229301"
+        }
+      ],
+      "reviewed": "84f6a642744c40a6f35b88f78fa25d3f951ec239",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4654740432"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This constructor is only called by `create()` and the same-package `GarbageCollectionHandlerTest`, so it does not need public visibility. Please make it package-private, following the narrowest-access rule in `.github/instructions/java-style.instructions.md:10`; `HandlerRegistry` can continue using the public factory.",
+      "created": "2026-11-23T00:25:26Z",
+      "hunk": "@@ -0,0 +1,68 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry.internal.garbagecollection;\n+\n+import static io.opentelemetry.semconv.JvmAttributes.JVM_GC_NAME;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.metrics.DoubleHistogram;\n+import io.opentelemetry.api.metrics.Meter;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.Constants;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.DurationUtil;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.GarbageCollector;\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.RecordedEventHandler;\n+import java.util.Set;\n+import java.util.function.Predicate;\n+import javax.annotation.Nullable;\n+import jdk.jfr.consumer.RecordedEvent;\n+\n+/**\n+ * Records {@code jdk.GarbageCollection}, the only garbage collection event emitted by GraalVM\n+ * native images. The event does not tell minor and major collections apart, so no {@code\n+ * jvm.gc.action} attribute is recorded.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class GarbageCollectionHandler implements RecordedEventHandler {\n+  private static final String EVENT_NAME = \"jdk.GarbageCollection\";\n+\n+  private final DoubleHistogram histogram;\n+\n+  @Nullable\n+  public static GarbageCollectionHandler create(\n+      Meter meter, Predicate<String> metricNamePredicate) {\n+    return metricNamePredicate.test(Constants.METRIC_NAME_GC_DURATION)\n+        ? new GarbageCollectionHandler(meter)\n+        : null;\n+  }\n+\n+  public GarbageCollectionHandler(Meter meter) {",
+      "id": "PRRT_kwDODJKVX866p8us",
+      "opened": "2026-11-23T00:25:26Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/garbagecollection/GarbageCollectionHandler.java",
+      "replies": [
+        {
+          "at": "2026-11-23T17:01:05Z",
+          "body": "Done in e92849546e. The handler is still created through `create()`.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4669090251"
+        }
+      ],
+      "reviewed": "606e2a6d810def21703320300acfb4944693f3b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4660777162"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] The latch isn't needed. `GarbageCollectionHandler` is already a `Consumer<RecordedEvent>`, so it can be passed straight to `onEvent`, and the test can wait for the metric itself. `InMemoryMetricReader` is cumulative by default, so polling doesn't break the assertions that follow. This removes the latch, the wrapper lambda and the nested timed wait. Separately, drop the `CountDownLatch` and `MILLISECONDS` imports and the `throws InterruptedException` clause.\n\n```suggestion\n      try (RecordingStream stream = new RecordingStream()) {\n        stream.enable(handler.getEventName());\n        stream.onEvent(handler.getEventName(), handler);\n        stream.startAsync();\n        await()\n            .atMost(Duration.ofSeconds(30))\n            .until(() -> {\n              System.gc();\n              return !reader.collectAllMetrics().isEmpty();\n            });\n```",
+      "created": "2026-11-23T18:09:24Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.runtimetelemetry.internal.garbagecollection;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.semconv.JvmAttributes.JVM_GC_ACTION;\n+import static io.opentelemetry.semconv.JvmAttributes.JVM_GC_NAME;\n+import static java.util.concurrent.TimeUnit.MILLISECONDS;\n+import static org.awaitility.Awaitility.await;\n+\n+import io.opentelemetry.instrumentation.runtimetelemetry.internal.GarbageCollector;\n+import io.opentelemetry.sdk.metrics.SdkMeterProvider;\n+import io.opentelemetry.sdk.metrics.data.MetricData;\n+import io.opentelemetry.sdk.testing.exporter.InMemoryMetricReader;\n+import java.time.Duration;\n+import java.util.concurrent.CountDownLatch;\n+import jdk.jfr.FlightRecorder;\n+import jdk.jfr.consumer.RecordingStream;\n+import org.junit.jupiter.api.Assumptions;\n+import org.junit.jupiter.api.Test;\n+\n+class GarbageCollectionHandlerTest {\n+\n+  @Test\n+  void recordsDurationWithCollectorName() throws InterruptedException {\n+    Assumptions.assumeTrue(FlightRecorder.isAvailable(), \"JFR not available\");\n+    InMemoryMetricReader reader = InMemoryMetricReader.create();\n+    try (SdkMeterProvider meterProvider =\n+        SdkMeterProvider.builder().registerMetricReader(reader).build()) {\n+      GarbageCollectionHandler handler = new GarbageCollectionHandler(meterProvider.get(\"test\"));\n+      CountDownLatch recorded = new CountDownLatch(1);\n+      try (RecordingStream stream = new RecordingStream()) {\n+        stream.enable(handler.getEventName());\n+        stream.onEvent(\n+            handler.getEventName(),\n+            event -> {\n+              handler.accept(event);\n+              recorded.countDown();\n+            });\n+        stream.startAsync();\n+        await()\n+            .atMost(Duration.ofSeconds(30))\n+            .until(() -> {\n+              System.gc();\n+              return recorded.await(100, MILLISECONDS);\n+            });",
+      "id": "PRRT_kwDODJKVX866_ijD",
+      "opened": "2026-11-23T18:09:23Z",
+      "path": "instrumentation/runtime-telemetry/library/src/testJava17/java/io/opentelemetry/instrumentation/runtimetelemetry/internal/garbagecollection/GarbageCollectionHandlerTest.java",
+      "replies": [
+        {
+          "at": "2026-11-23T22:32:23Z",
+          "body": "Applied in 18bc87bdbf: the handler goes straight to `onEvent`, and the test polls the reader instead of a latch.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4672915540"
+        }
+      ],
+      "reviewed": "9a62038fbe9ae88a997a1e48dc41af9a14e009ae",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4669956956"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] This leaves three `getHandlers` overloads, each passing one more input to the next. Only one test, `doesNotCreateInstrumentsForUnavailableEvents`, calls the five-argument version. Move the GC-name collection into the four-argument overload, alongside the JFR event-name discovery, and call the six-argument overload directly from there. Then delete this overload and have that test pass `emptySet(), List.of()`. That leaves two steps: discover the runtime inputs, then pick handlers from explicit inputs.",
+      "created": "2026-11-23T18:09:24Z",
+      "hunk": "@@ -78,6 +79,27 @@ static List<RecordedEventHandler> getHandlers(\n       boolean requireCompleteJmxReplacement,\n       boolean emitExperimentalJmxMetrics,\n       Set<String> availableEventNames) {\n+    List<String> garbageCollectorNames = new ArrayList<>();\n+    for (GarbageCollectorMXBean bean : ManagementFactory.getGarbageCollectorMXBeans()) {\n+      garbageCollectorNames.add(bean.getName());\n+    }\n+    return getHandlers(\n+        meter,\n+        metricNamePredicate,\n+        requireCompleteJmxReplacement,\n+        emitExperimentalJmxMetrics,\n+        availableEventNames,\n+        garbageCollectorNames);",
+      "id": "PRRT_kwDODJKVX866_ijW",
+      "opened": "2026-11-23T18:09:23Z",
+      "path": "instrumentation/runtime-telemetry/library/src/main/java17/io/opentelemetry/instrumentation/runtimetelemetry/internal/HandlerRegistry.java",
+      "replies": [
+        {
+          "at": "2026-11-23T22:33:04Z",
+          "body": "Applied in 18bc87bdbf: the four-argument overload now collects both the JFR event names and the collector names, and the test passes `emptySet(), List.of()`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4672922128"
+        }
+      ],
+      "reviewed": "9a62038fbe9ae88a997a1e48dc41af9a14e009ae",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4669956992"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\nOn Java 17+, JFR-sourced `jvm.gc.duration` points include `jvm.gc.name` but not `jvm.gc.cause`. They also include `jvm.gc.action` unless they come from the generic `jdk.GarbageCollection` event. GraalVM Native Image's serial collector emits this event without identifying the collection as young or full.\n\nTo collect `jvm.gc.duration` with GraalVM Native Image's Serial GC, build the image with\n`--enable-monitoring=jfr` and include `jvm.gc.duration` in the JFR metric selector.\n```",
+      "created": "2026-11-24T00:27:07Z",
+      "hunk": "@@ -215,7 +215,9 @@ The attributes reported on the memory metrics (`jvm.memory.*`) and gc metrics (`\n \n The following lists attributes reported for a variety of garbage collectors. Notice that attributes are not necessarily constant across `*.used`, `*.committed`, and `*.limit` since not all memory pools report a limit.\n \n-Every JMX-sourced `jvm.gc.duration` point also includes `jvm.gc.cause`, omitted from the examples below because its value varies by collection (for example, `Allocation Failure` or `System.gc()`). When selected for JFR on Java 17+, `jvm.gc.duration` points include only `jvm.gc.name` and `jvm.gc.action`, not `jvm.gc.cause`.\n+Every JMX-sourced `jvm.gc.duration` point also includes `jvm.gc.cause`, omitted from the examples below because its value varies by collection (for example, `Allocation Failure` or `System.gc()`).\n+\n+On Java 17+, JFR-sourced `jvm.gc.duration` points include `jvm.gc.name` but not `jvm.gc.cause`. They also include `jvm.gc.action` unless they come from the generic `jdk.GarbageCollection` event. GraalVM Native Image's serial collector emits this event without identifying the collection as young or full.",
+      "id": "PRRT_kwDODJKVX867IlmF",
+      "opened": "2026-11-24T00:37:49Z",
+      "path": "instrumentation/runtime-telemetry/library/README.md",
+      "replies": [
+        {
+          "at": "2026-11-24T16:00:17Z",
+          "body": "Applied in ceb620a1e5, thanks.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4682790083"
+        }
+      ],
+      "reviewed": "18bc87bdbf8b7f1d8f2b06ff7d327d5a307eab6c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20599#discussion_r4673885479"
+    }
+  ]
+}

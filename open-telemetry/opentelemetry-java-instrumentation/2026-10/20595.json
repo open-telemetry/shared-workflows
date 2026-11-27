@@ -1,0 +1,31 @@
+{
+  "head": "67ea12403a5abfdd87e569c692ee45545af70280",
+  "merge": "c199ca71f56795c4d7d0a526dd706b7b4e494e31",
+  "merged": "2026-10-15T06:19:09Z",
+  "missing_roots": 0,
+  "number": 20595,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Polling `getCount()` with Awaitility bypasses the repository's latch-wait convention and obscures that this is a bounded callback wait. Please use `assertThat(connectionAttemptStarted.await(timeout, unit)).isTrue()` and update the test's checked-exception declaration accordingly.",
+      "created": "2026-10-14T17:51:39Z",
+      "hunk": "@@ -115,28 +116,40 @@ void shouldNotBreakCustomUserMetrics() throws SQLException, InterruptedException\n   @Test\n   void shouldReportTimeouts() throws SQLException {\n     // given\n+    CountDownLatch connectionAttemptStarted = new CountDownLatch(1);\n+    CountDownLatch releaseConnectionAttempt = new CountDownLatch(1);\n     when(dataSourceMock.getConnection())\n         .then(\n             invocation -> {\n-              MILLISECONDS.sleep(2_000);\n+              connectionAttemptStarted.countDown();\n+              releaseConnectionAttempt.await();\n               throw new SQLException(\"timed out!\");\n             });\n+    // HikariCP waits for connection creation to stop up to the data source login timeout.\n+    when(dataSourceMock.getLoginTimeout()).thenReturn(1);\n \n     HikariDataSource hikariDataSource = new HikariDataSource();\n     hikariDataSource.setPoolName(\"timingOutPool\");\n     hikariDataSource.setDataSource(dataSourceMock);\n     hikariDataSource.setConnectionTimeout(250 /* millis */);\n+    hikariDataSource.setMinimumIdle(0);\n+    hikariDataSource.setMaximumPoolSize(1);\n     // start the pool without initializing connections\n     hikariDataSource.setInitializationFailTimeout(-1);\n     configure(hikariDataSource, null);\n \n     cleanup.deferCleanup(hikariDataSource);\n \n     // when\n-    Exception thrown = catchException(hikariDataSource::getConnection);\n-\n-    // then\n-    assertThat(thrown).isInstanceOf(SQLException.class);\n+    try {\n+      Exception thrown = catchException(hikariDataSource::getConnection);\n+\n+      // then\n+      assertThat(thrown).isInstanceOf(SQLException.class);\n+      await().untilAsserted(() -> assertThat(connectionAttemptStarted.getCount()).isZero());",
+      "id": "PRRT_kwDODJKVX86scnpH",
+      "opened": "2026-10-14T17:51:40Z",
+      "path": "instrumentation/hikaricp-3.0/testing/src/main/java/io/opentelemetry/instrumentation/hikaricp/AbstractHikariInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-10-14T18:36:06Z",
+          "body": "Addressed in 67ea12403a5abfdd87e569c692ee45545af70280.\n\nThe frozen getCount() polling violates the direct latch-wait guidance in .github/agents/knowledge/testing-general-patterns.md:130-134 and differs from AbstractNatsDispatcherTest.java:59. Candidate commit 1 replaces it with a direct ten-second bounded await and declares SQLException and InterruptedException, matching the neighboring HikariCP tests. An initial throws Exception declaration failed Error Prone's InterruptedExceptionSwallowed check, so explicit checked types are necessary. The finally block still releases the connection attempt on timeout, failure, or interruption. Formatting, Checkstyle, and all 21 library/javaagent module tests passed.\n\n<!-- copilot-loop:25fa8006a87734190ce68eba6ae9a25debbe707d52c9c226547ad68e35a15cd3:4274315895:d6598948136742c7b5749d2fa843ccee -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20595#discussion_r4274768523"
+        }
+      ],
+      "reviewed": "ff26aa3abf4c1131513d6a0cc9f30a28588bc521",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20595#discussion_r4274315895"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "6e67fb5b1840244f36d17766359bf7aa23062f90",
+  "merge": "d026cd943332d7bd71d03e2b45199bbb878fd503",
+  "merged": "2026-01-27T12:02:33Z",
+  "missing_roots": 0,
+  "number": 15920,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Ensure Conditional Access to SqlStatementInfo Methods\r\n\r\nIn the ClickHouse instrumentation, calls to `SqlStatementInfo.getOperationName()` and `SqlStatementInfo.getCollectionName()` should only occur under the old semconv flag, because these attributes (`db.operation` and `db.sql.table`) should no longer be parsed from `db.query.text` under stable semconv.\r\n\r\nUnder stable semconv, this extraction is no longer needed because we use `db.query.summary` instead. The `ClickHouseAttributesGetter` must conditionally call these methods based on the semconv flag.\r\n\r\n**Action:** Ensure `ClickHouseAttributesGetter.getDbOperationName()` only delegates to `SqlStatementInfo.getOperationName()` when the old semconv flag is enabled.\r\n",
+      "created": "2026-01-19T00:42:32Z",
+      "hunk": "@@ -206,6 +212,7 @@ void testQueryWithStringQueryAndId() throws Exception {\n                             equalTo(SERVER_ADDRESS, host),\n                             equalTo(SERVER_PORT, port),\n                             equalTo(maybeStable(DB_STATEMENT), \"select * from \" + tableName),\n+                            equalTo(DB_QUERY_SUMMARY, emitStableDatabaseSemconv() ? \"SELECT test_table\" : null),\n                             equalTo(maybeStable(DB_OPERATION), \"SELECT\"))));",
+      "id": "PRRT_kwDODJKVX85p6Upb",
+      "opened": "2026-01-19T00:42:32Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v2-0.8/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv2/v0_8/ClickHouseClientV2Test.java",
+      "replies": [
+        {
+          "at": "2026-01-19T00:52:49Z",
+          "body": "Fixed in f2d345cc. The `ClickHouseAttributesGetter.getDbOperationName()` now returns `null` when stable semconv is enabled, ensuring that `db.operation.name` is not extracted from the query text. Under stable semconv, operation information is now conveyed only through `db.query.summary`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15920#discussion_r2702923392"
+        }
+      ],
+      "reviewed": "db428020313bb8d7c3cf2b5d3607432227002fdf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15920#discussion_r2702914347"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "the metric is only emitted under stable semconv flag",
+      "created": "2026-01-24T03:58:34Z",
+      "hunk": "@@ -118,13 +120,18 @@ void testConnectionStringWithoutDatabaseSpecifiedStillGeneratesSpans()\n                             equalTo(SERVER_ADDRESS, host),\n                             equalTo(SERVER_PORT, port),\n                             equalTo(maybeStable(DB_STATEMENT), \"select * from \" + tableName),\n-                            equalTo(maybeStable(DB_OPERATION), \"SELECT\"))));\n+                            equalTo(\n+                                DB_QUERY_SUMMARY,\n+                                emitStableDatabaseSemconv() ? \"SELECT test_table\" : null),\n+                            equalTo(\n+                                maybeStable(DB_OPERATION),\n+                                emitStableDatabaseSemconv() ? null : \"SELECT\"))));\n \n     assertDurationMetric(\n         testing,\n         \"io.opentelemetry.clickhouse-client-v1-0.5\",\n         DB_SYSTEM_NAME,\n-        DB_OPERATION_NAME,\n+        DB_QUERY_SUMMARY,",
+      "id": "PRRT_kwDODJKVX85q2T8V",
+      "opened": "2026-01-24T03:58:35Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Test.java",
+      "replies": [],
+      "reviewed": "3c33346e6b11fc67839aea257be836b544f1cf96",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15920#discussion_r2723569502"
+    }
+  ]
+}

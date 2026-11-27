@@ -1,0 +1,240 @@
+{
+  "head": "ac168fe5fa5b482925d24bc3ff3ff4ce73a7bcdd",
+  "merge": "ff3e300d9a99c96484a5bbb1dec42221f6d939e0",
+  "merged": "2026-08-28T18:00:56Z",
+  "missing_roots": 0,
+  "number": 19675,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Remove `@Nullable` here; this repository's Java test rules prohibit adding nullability annotations to test code.",
+      "created": "2026-08-18T01:03:07Z",
+      "hunk": "@@ -0,0 +1,132 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.elasticsearch.rest.common.v5_0.internal;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import java.io.ByteArrayInputStream;\n+import javax.annotation.Nullable;\n+import org.apache.http.HttpEntity;\n+import org.apache.http.entity.ContentType;\n+import org.apache.http.entity.InputStreamEntity;\n+import org.apache.http.entity.StringEntity;\n+import org.junit.jupiter.api.Test;\n+\n+class ElasticsearchDbAttributesGetterTest {\n+\n+  private static final String SEARCH_BODY =\n+      \"{\\\"query\\\":{\\\"match\\\":{\\\"title\\\":\\\"secret user data\\\"}}}\";\n+  private static final String SANITIZED_BODY = \"{\\\"query\\\":{\\\"match\\\":{\\\"title\\\":\\\"?\\\"}}}\";\n+\n+  @Test\n+  void sanitizesSearchQueryByDefault() {\n+    // the getter runs the captured body through the real masker and returns the sanitized result\n+    ElasticsearchDbAttributesGetter getter = new ElasticsearchDbAttributesGetter(true, true);\n+\n+    assertThat(\n+            getter.getDbQueryText(\n+                searchRequest(new StringEntity(SEARCH_BODY, ContentType.APPLICATION_JSON))))\n+        .isEqualTo(SANITIZED_BODY);\n+  }\n+\n+  @Test\n+  void masksScalarValuesOfEveryType() {\n+    // strings, numbers, booleans and nulls are all masked to \"?\"\n+    ElasticsearchDbAttributesGetter getter = new ElasticsearchDbAttributesGetter(true, true);\n+    String body = \"{\\\"from\\\":0,\\\"size\\\":10,\\\"track_total_hits\\\":true,\\\"after\\\":null}\";\n+\n+    assertThat(\n+            getter.getDbQueryText(\n+                searchRequest(new StringEntity(body, ContentType.APPLICATION_JSON))))\n+        .isEqualTo(\"{\\\"from\\\":\\\"?\\\",\\\"size\\\":\\\"?\\\",\\\"track_total_hits\\\":\\\"?\\\",\\\"after\\\":\\\"?\\\"}\");\n+  }\n+\n+  @Test\n+  void masksArrayElements() {\n+    ElasticsearchDbAttributesGetter getter = new ElasticsearchDbAttributesGetter(true, true);\n+    String body = \"{\\\"terms\\\":{\\\"tags\\\":[\\\"a\\\",\\\"b\\\",\\\"c\\\"]}}\";\n+\n+    assertThat(\n+            getter.getDbQueryText(\n+                searchRequest(new StringEntity(body, ContentType.APPLICATION_JSON))))\n+        .isEqualTo(\"{\\\"terms\\\":{\\\"tags\\\":[\\\"?\\\",\\\"?\\\",\\\"?\\\"]}}\");\n+  }\n+\n+  @Test\n+  void capturesRawBodyWhenSanitizationDisabled() {\n+    // sanitization explicitly disabled: capture the body verbatim\n+    ElasticsearchDbAttributesGetter getter = new ElasticsearchDbAttributesGetter(true, false);\n+\n+    assertThat(\n+            getter.getDbQueryText(\n+                searchRequest(new StringEntity(SEARCH_BODY, ContentType.APPLICATION_JSON))))\n+        .isEqualTo(SEARCH_BODY);\n+  }\n+\n+  @Test\n+  void capturesNothingWhenCaptureDisabled() {\n+    ElasticsearchDbAttributesGetter getter = new ElasticsearchDbAttributesGetter(false, true);\n+\n+    assertThat(\n+            getter.getDbQueryText(\n+                searchRequest(new StringEntity(SEARCH_BODY, ContentType.APPLICATION_JSON))))\n+        .isNull();\n+  }\n+\n+  @Test\n+  void capturesNothingForNonSearchEndpoint() {\n+    ElasticsearchDbAttributesGetter getter = new ElasticsearchDbAttributesGetter(true, true);\n+    ElasticsearchRestRequest request =\n+        ElasticsearchRestRequest.create(\n+            \"PUT\",\n+            \"/test-index/_doc/1\",\n+            new ElasticsearchEndpointDefinition(\"PUT\", new String[] {\"/{index}/_doc/{id}\"}, false),\n+            new StringEntity(SEARCH_BODY, ContentType.APPLICATION_JSON));\n+\n+    assertThat(getter.getDbQueryText(request)).isNull();\n+  }\n+\n+  @Test\n+  void doesNotReadNonRepeatableEntity() {\n+    // a non-repeatable entity must never be read, otherwise the request body would be consumed\n+    ElasticsearchDbAttributesGetter getter = new ElasticsearchDbAttributesGetter(true, true);\n+    HttpEntity entity =\n+        new InputStreamEntity(new ByteArrayInputStream(SEARCH_BODY.getBytes(UTF_8)));\n+\n+    assertThat(getter.getDbQueryText(searchRequest(entity))).isNull();\n+  }\n+\n+  @Test\n+  void dropsBodyWhenNotJson() {\n+    // a body that is not JSON must be dropped, never captured raw\n+    ElasticsearchDbAttributesGetter getter = new ElasticsearchDbAttributesGetter(true, true);\n+\n+    assertThat(\n+            getter.getDbQueryText(\n+                searchRequest(new StringEntity(\"this is not json\", ContentType.TEXT_PLAIN))))\n+        .isNull();\n+  }\n+\n+  @Test\n+  void dropsBodyWhenMalformedJson() {\n+    // a truncated body must be dropped, never captured raw\n+    ElasticsearchDbAttributesGetter getter = new ElasticsearchDbAttributesGetter(true, true);\n+\n+    assertThat(\n+            getter.getDbQueryText(\n+                searchRequest(new StringEntity(\"{\\\"query\\\":\", ContentType.APPLICATION_JSON))))\n+        .isNull();\n+  }\n+\n+  private static ElasticsearchRestRequest searchRequest(@Nullable HttpEntity httpEntity) {",
+      "id": "PRRT_kwDODJKVX86Z8qA2",
+      "opened": "2026-08-18T01:03:07Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/test/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetterTest.java",
+      "replies": [
+        {
+          "at": "2026-08-18T01:20:59Z",
+          "body": "Removed the `@Nullable` annotation (and its import) from the test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3800201825"
+        }
+      ],
+      "reviewed": "73bd6df208b351f6f745cab4c7cb0d2a81cf174f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3800128246"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This recursive descent has no nesting limit, so a sufficiently deep but valid JSON body throws `StackOverflowError`. The handler in `sanitize` catches only `RuntimeException`; in the javaagent path the outer advice suppresses the error and skips span creation instead of merely omitting the query attribute. Please use iterative traversal or reject input at an explicit safe depth before recursing.",
+      "created": "2026-08-18T01:03:07Z",
+      "hunk": "@@ -0,0 +1,270 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.elasticsearch.rest.common.v5_0.internal;\n+\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Rewrites an Elasticsearch search request body so that every literal value is replaced with the\n+ * mask {@code \"?\"} while the structure and field names are preserved. For example {@code\n+ * {\"query\":{\"match\":{\"title\":\"secret user data\"}}}} becomes {@code\n+ * {\"query\":{\"match\":{\"title\":\"?\"}}}}.\n+ *\n+ * <p>This is a small dependency-free JSON scanner. It is deliberately not backed by Jackson: the\n+ * Elasticsearch low-level REST client does not put Jackson on the application classpath, and a\n+ * Jackson-based helper in the javaagent module would make muzzle disable the whole instrumentation\n+ * on applications without Jackson. It masks the same set of values as the OpenSearch\n+ * instrumentation (which uses {@code SanitizingJacksonJsonGenerator}): every string, number,\n+ * boolean and null in value position is replaced with the JSON string {@code \"?\"}, while object\n+ * keys and structure are kept.\n+ *\n+ * <p>When the body is not valid JSON the scanner returns {@code null} so that the caller drops the\n+ * body rather than capturing it raw.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+final class ElasticsearchDbQuerySanitizer {\n+\n+  private static final String MASKED_VALUE = \"\\\"?\\\"\";\n+\n+  private final String json;\n+  private int pos;\n+\n+  private ElasticsearchDbQuerySanitizer(String json) {\n+    this.json = json;\n+  }\n+\n+  @Nullable\n+  static String sanitize(String body) {\n+    ElasticsearchDbQuerySanitizer scanner = new ElasticsearchDbQuerySanitizer(body);\n+    StringBuilder out = new StringBuilder(body.length());\n+    try {\n+      scanner.skipWhitespace();\n+      scanner.maskValue(out);\n+      scanner.skipWhitespace();\n+      if (!scanner.atEnd()) {\n+        // trailing content after a complete JSON value means the body is not valid JSON\n+        return null;\n+      }\n+    } catch (RuntimeException e) {\n+      // a body that is not valid JSON must not be captured raw, so drop it instead\n+      return null;\n+    }\n+    return out.length() == 0 ? null : out.toString();\n+  }\n+\n+  private void maskValue(StringBuilder out) {\n+    char c = current();\n+    switch (c) {\n+      case '{':\n+        maskObject(out);\n+        break;\n+      case '[':\n+        maskArray(out);",
+      "id": "PRRT_kwDODJKVX86Z8qAs",
+      "opened": "2026-08-18T01:03:07Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbQuerySanitizer.java",
+      "replies": [
+        {
+          "at": "2026-08-18T01:20:59Z",
+          "body": "Fixed by bounding the recursion depth. `maskObject` and `maskArray` now call `enterNesting()`, which increments a `depth` counter and throws `NestingTooDeepException` once it exceeds `MAX_NESTING_DEPTH` (200); every non-throwing return decrements. `NestingTooDeepException` extends `RuntimeException`, so the existing handler in `sanitize` catches it and drops the body (attribute omitted, never captured raw), matching the fail-safe already used for malformed input.\n\nI kept the recursive descent rather than rewriting to an iterative traversal: a depth cap is a few lines and obviously correct, whereas an explicit stack rewrite would be a much larger diff. The cap is chosen on its own terms — the walker uses roughly two frames per nesting level and runs on the application's own thread, which may have a small stack, and real Elasticsearch bodies nest at most a few dozen levels, so 200 sits well above any realistic query while staying safe on a small stack. Added a test that nests past the cap and asserts the attribute is omitted.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3800201832"
+        }
+      ],
+      "reviewed": "73bd6df208b351f6f745cab4c7cb0d2a81cf174f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3800128220"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] This exception is intentionally unused, so name it `ignored` per the repository's catch-variable convention (`.github/copilot-instructions.md:28-36`).",
+      "created": "2026-08-18T01:03:07Z",
+      "hunk": "@@ -0,0 +1,270 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.elasticsearch.rest.common.v5_0.internal;\n+\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Rewrites an Elasticsearch search request body so that every literal value is replaced with the\n+ * mask {@code \"?\"} while the structure and field names are preserved. For example {@code\n+ * {\"query\":{\"match\":{\"title\":\"secret user data\"}}}} becomes {@code\n+ * {\"query\":{\"match\":{\"title\":\"?\"}}}}.\n+ *\n+ * <p>This is a small dependency-free JSON scanner. It is deliberately not backed by Jackson: the\n+ * Elasticsearch low-level REST client does not put Jackson on the application classpath, and a\n+ * Jackson-based helper in the javaagent module would make muzzle disable the whole instrumentation\n+ * on applications without Jackson. It masks the same set of values as the OpenSearch\n+ * instrumentation (which uses {@code SanitizingJacksonJsonGenerator}): every string, number,\n+ * boolean and null in value position is replaced with the JSON string {@code \"?\"}, while object\n+ * keys and structure are kept.\n+ *\n+ * <p>When the body is not valid JSON the scanner returns {@code null} so that the caller drops the\n+ * body rather than capturing it raw.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+final class ElasticsearchDbQuerySanitizer {\n+\n+  private static final String MASKED_VALUE = \"\\\"?\\\"\";\n+\n+  private final String json;\n+  private int pos;\n+\n+  private ElasticsearchDbQuerySanitizer(String json) {\n+    this.json = json;\n+  }\n+\n+  @Nullable\n+  static String sanitize(String body) {\n+    ElasticsearchDbQuerySanitizer scanner = new ElasticsearchDbQuerySanitizer(body);\n+    StringBuilder out = new StringBuilder(body.length());\n+    try {\n+      scanner.skipWhitespace();\n+      scanner.maskValue(out);\n+      scanner.skipWhitespace();\n+      if (!scanner.atEnd()) {\n+        // trailing content after a complete JSON value means the body is not valid JSON\n+        return null;\n+      }\n+    } catch (RuntimeException e) {",
+      "id": "PRRT_kwDODJKVX86Z8qBG",
+      "opened": "2026-08-18T01:03:07Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbQuerySanitizer.java",
+      "replies": [
+        {
+          "at": "2026-08-18T01:20:59Z",
+          "body": "Renamed the catch variable to `ignored`. It remains unused after the depth-cap change, so the convention applies.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3800201828"
+        }
+      ],
+      "reviewed": "73bd6df208b351f6f745cab4c7cb0d2a81cf174f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3800128277"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This drops every `_msearch` and `_msearch/template` query when sanitization is enabled. Those endpoints are marked as search endpoints (`ElasticsearchEndpointMap.java:253,397`), but their valid request format is an NDJSON sequence of header/body objects; `readBody()` concatenates those lines, so after the first object this branch always sees trailing content and returns `null`. Please sanitize the complete NDJSON sequence (without ever falling back to raw text) and cover both multi-search endpoints.",
+      "created": "2026-08-18T02:43:56Z",
+      "hunk": "@@ -0,0 +1,299 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.elasticsearch.rest.common.v5_0.internal;\n+\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Rewrites an Elasticsearch search request body so that every literal value is replaced with the\n+ * mask {@code \"?\"} while the structure and field names are preserved. For example {@code\n+ * {\"query\":{\"match\":{\"title\":\"secret user data\"}}}} becomes {@code\n+ * {\"query\":{\"match\":{\"title\":\"?\"}}}}.\n+ *\n+ * <p>This is a small dependency-free JSON scanner. It is deliberately not backed by Jackson: the\n+ * Elasticsearch low-level REST client does not put Jackson on the application classpath, and a\n+ * Jackson-based helper in the javaagent module would make muzzle disable the whole instrumentation\n+ * on applications without Jackson. It masks the same set of values as the OpenSearch\n+ * instrumentation (which uses {@code SanitizingJacksonJsonGenerator}): every string, number,\n+ * boolean and null in value position is replaced with the JSON string {@code \"?\"}, while object\n+ * keys and structure are kept.\n+ *\n+ * <p>When the body is not valid JSON the scanner returns {@code null} so that the caller drops the\n+ * body rather than capturing it raw.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+final class ElasticsearchDbQuerySanitizer {\n+\n+  private static final String MASKED_VALUE = \"\\\"?\\\"\";\n+\n+  // Bounds the recursion depth of the descent below so that a deeply nested but otherwise valid\n+  // body cannot overflow the stack. This code runs on the application's own thread, already partway\n+  // down a client-plus-instrumentation call stack that may have a small stack size, and a\n+  // StackOverflowError would escape the RuntimeException handler in sanitize(). Real Elasticsearch\n+  // query bodies nest at most a few dozen levels, so this sits well above any realistic query.\n+  static final int MAX_NESTING_DEPTH = 200;\n+\n+  private final String json;\n+  private int pos;\n+  private int depth;\n+\n+  private ElasticsearchDbQuerySanitizer(String json) {\n+    this.json = json;\n+  }\n+\n+  @Nullable\n+  static String sanitize(String body) {\n+    ElasticsearchDbQuerySanitizer scanner = new ElasticsearchDbQuerySanitizer(body);\n+    StringBuilder out = new StringBuilder(body.length());\n+    try {\n+      scanner.skipWhitespace();\n+      scanner.maskValue(out);\n+      scanner.skipWhitespace();\n+      if (!scanner.atEnd()) {\n+        // trailing content after a complete JSON value means the body is not valid JSON\n+        return null;",
+      "id": "PRRT_kwDODJKVX86Z9vPR",
+      "opened": "2026-08-18T02:43:56Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbQuerySanitizer.java",
+      "replies": [
+        {
+          "at": "2026-08-18T02:51:28Z",
+          "body": "Addressed in 7c4b5bf3095b1f4e508cb56c2e7229fda7163dd5.\n\nAnalysis: The comment is valid. `readBody()` removes NDJSON line separators, which leaves adjacent top-level header and body objects. The sanitizer now scans every top-level JSON value and inserts the same semicolon separator used by the OpenSearch instrumentation. It still returns null if any value is malformed or exceeds the nesting limit. Parameterized getter coverage exercises both `msearch` and `msearch_template`.\n\nUpsides: Sanitized query capture now works for both multi-search endpoints. Every scalar in every NDJSON object remains masked, and malformed sequences are still dropped without a raw-text fallback.\n\nDownsides: The sanitizer now accepts multiple top-level JSON values for any search endpoint, not only multi-search endpoints. This does not expose raw data because every accepted value is fully masked.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3800605699"
+        }
+      ],
+      "reviewed": "19d54788f457d3f726cdb91f808fcfb901594dc6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3800563792"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Valid low-level REST endpoints do not have to start with `/`—this module already calls `new Request(\"GET\", \"_cluster/health\")` successfully. With v3-preview, an equivalent `new Request(\"POST\", \"_search\")` reaches this branch with no endpoint definition and is rejected, so its query is never captured. Normalize an optional leading slash instead of requiring one.",
+      "created": "2026-08-27T00:18:59Z",
+      "hunk": "@@ -54,18 +58,77 @@ public String getDbQueryText(ElasticsearchRestRequest request) {\n     ElasticsearchEndpointDefinition epDefinition = request.getEndpointDefinition();\n     HttpEntity httpEntity = request.getHttpEntity();\n     if (captureSearchQuery\n-        && epDefinition != null\n-        && epDefinition.isSearchEndpoint()\n+        && isSearchEndpoint(request.getEndpoint(), epDefinition)\n         && httpEntity != null\n         && httpEntity.isRepeatable()) {\n       // Retrieve HTTP body for search-type Elasticsearch requests when captureSearchQuery is\n       // enabled.\n-      try (BufferedReader reader =\n-          new BufferedReader(new InputStreamReader(httpEntity.getContent(), UTF_8))) {\n-        return reader.lines().collect(joining());\n-      } catch (IOException e) {\n-        logger.log(FINE, \"Failed reading HTTP body content.\", e);\n+      String body = readBody(httpEntity);\n+      if (body == null) {\n+        return null;\n       }\n+      if (sanitizer == null) {\n+        // sanitization was explicitly disabled, so capture the body verbatim\n+        return body;\n+      }\n+      // the sanitizer returns null when the body cannot be sanitized (malformed, non-JSON, or no\n+      // sanitizer registered), in which case the body is dropped rather than captured raw\n+      return sanitizer.apply(body);\n+    }\n+    return null;\n+  }\n+\n+  private static boolean isSearchEndpoint(\n+      String endpoint, @Nullable ElasticsearchEndpointDefinition endpointDefinition) {\n+    if (endpointDefinition != null) {\n+      return endpointDefinition.isSearchEndpoint();\n+    }\n+\n+    int queryStart = endpoint.indexOf('?');\n+    String path = queryStart == -1 ? endpoint : endpoint.substring(0, queryStart);\n+    if (!path.startsWith(\"/\")) {\n+      return false;\n+    }\n+\n+    String[] segments = path.substring(1).split(\"/\", -1);",
+      "id": "PRRT_kwDODJKVX86cp-vz",
+      "opened": "2026-08-27T00:19:00Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-27T00:32:08Z",
+          "body": "Addressed in 1c1def292ad034b22076f52b8c7d938299fb5e24.\n\nAnalysis: The fallback endpoint matcher required a leading slash even though the Elasticsearch REST clients accept endpoints without one. It now strips a leading slash only when present and applies the same segment validation to both forms.\n\nUpsides: V3-preview captures and sanitizes search bodies for valid slashless endpoints. Tests cover slashless paths with one, two, and three segments.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3867779081"
+        }
+      ],
+      "reviewed": "ba546037aad028ba69eff0649b28394c2d83e7c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3867722556"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Enabling capture here does not implement the advertised v3-preview behavior for the REST 5.0 and 6.4 javaagents. Both instrumentations still call `ElasticsearchRestRequest.create(method, endpoint)` without the request entity, so `getDbQueryText()` always sees `httpEntity == null`; only the 7.0 advice passes the body. Please propagate the entity in the 5.0/6.4 advice paths and cover their v3-preview capture behavior.",
+      "created": "2026-08-27T00:19:00Z",
+      "hunk": "@@ -8,19 +8,34 @@\n import static java.util.Collections.emptyList;\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DbConfig;\n import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n import io.opentelemetry.instrumentation.elasticsearch.rest.common.v5_0.internal.ElasticsearchRestInstrumenterFactory;\n import io.opentelemetry.instrumentation.elasticsearch.rest.common.v5_0.internal.ElasticsearchRestRequest;\n+import io.opentelemetry.javaagent.bootstrap.elasticsearch.ElasticsearchQuerySanitizerAccess;\n import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;\n import java.util.function.Function;\n+import java.util.function.UnaryOperator;\n+import javax.annotation.Nullable;\n import org.elasticsearch.client.Response;\n \n public class ElasticsearchRestJavaagentInstrumenterFactory {\n \n   private static final boolean CAPTURE_SEARCH_QUERY =\n-      DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"elasticsearch\")\n-          .getBoolean(\"capture_search_query\", false);\n+      ElasticsearchRestConfig.captureSearchQuery(\n+          DeclarativeConfigUtil.getInstrumentationConfig(\n+              GlobalOpenTelemetry.get(), \"elasticsearch\"),\n+          AgentCommonConfig.get().isV3Preview());",
+      "id": "PRRT_kwDODJKVX86cp-wB",
+      "opened": "2026-08-27T00:19:00Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchRestJavaagentInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-08-27T00:32:10Z",
+          "body": "Addressed in 2ec2ef59d3e6a060159d1a5fc08e7461c87272b9.\n\nAnalysis: The REST 5.0 advice receives the entity as its fourth argument, and the REST 6.4 Request exposes it through getEntity(). Both advice paths now pass that entity to ElasticsearchRestRequest so the shared attribute getter can sanitize and capture search bodies.\n\nUpsides: The REST 5.0 and 6.4 javaagents now implement the advertised v3-preview behavior. Integration tests verify that each version captures a sanitized query only under v3-preview.\n\nDownsides: The two new v3-preview Testcontainers tasks add CI runtime for these modules.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3867779181"
+        }
+      ],
+      "reviewed": "ba546037aad028ba69eff0649b28394c2d83e7c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3867722579"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This rejects the legacy typed search route `/{index}/{type}/_search`, even though it is valid in the REST 5.0 and 6.4 versions that share this getter. Those low-level-client requests have no endpoint definition, so under v3-preview their bodies are never captured. Recognize the typed route here and move `/test-index/_doc/_search` from the rejection cases to the accepted cases.",
+      "created": "2026-08-27T00:39:50Z",
+      "hunk": "@@ -54,18 +58,74 @@ public String getDbQueryText(ElasticsearchRestRequest request) {\n     ElasticsearchEndpointDefinition epDefinition = request.getEndpointDefinition();\n     HttpEntity httpEntity = request.getHttpEntity();\n     if (captureSearchQuery\n-        && epDefinition != null\n-        && epDefinition.isSearchEndpoint()\n+        && isSearchEndpoint(request.getEndpoint(), epDefinition)\n         && httpEntity != null\n         && httpEntity.isRepeatable()) {\n       // Retrieve HTTP body for search-type Elasticsearch requests when captureSearchQuery is\n       // enabled.\n-      try (BufferedReader reader =\n-          new BufferedReader(new InputStreamReader(httpEntity.getContent(), UTF_8))) {\n-        return reader.lines().collect(joining());\n-      } catch (IOException e) {\n-        logger.log(FINE, \"Failed reading HTTP body content.\", e);\n+      String body = readBody(httpEntity);\n+      if (body == null) {\n+        return null;\n       }\n+      if (sanitizer == null) {\n+        // sanitization was explicitly disabled, so capture the body verbatim\n+        return body;\n+      }\n+      // the sanitizer returns null when the body cannot be sanitized (malformed, non-JSON, or no\n+      // sanitizer registered), in which case the body is dropped rather than captured raw\n+      return sanitizer.apply(body);\n+    }\n+    return null;\n+  }\n+\n+  private static boolean isSearchEndpoint(\n+      String endpoint, @Nullable ElasticsearchEndpointDefinition endpointDefinition) {\n+    if (endpointDefinition != null) {\n+      return endpointDefinition.isSearchEndpoint();\n+    }\n+\n+    int queryStart = endpoint.indexOf('?');\n+    String path = queryStart == -1 ? endpoint : endpoint.substring(0, queryStart);\n+    int pathStart = path.startsWith(\"/\") ? 1 : 0;\n+    String[] segments = path.substring(pathStart).split(\"/\", -1);\n+    for (String segment : segments) {\n+      if (segment.isEmpty()) {\n+        return false;\n+      }\n+    }\n+\n+    if (segments.length == 1) {\n+      return isSearchAction(segments[0]);\n+    }\n+    if (segments.length == 2) {\n+      return isSearchAction(segments[1])\n+          || segments[1].equals(\"_terms_enum\")\n+          || ((segments[0].equals(\"_search\") || segments[0].equals(\"_msearch\"))\n+              && segments[1].equals(\"template\"))\n+          || (segments[0].equals(\"_render\") && segments[1].equals(\"template\"));\n+    }\n+    if (segments.length == 3) {\n+      return ((segments[1].equals(\"_search\") || segments[1].equals(\"_msearch\"))\n+              && segments[2].equals(\"template\"))\n+          || (segments[0].equals(\"_render\") && segments[1].equals(\"template\"))\n+          || (segments[1].equals(\"_eql\") && segments[2].equals(\"search\"));",
+      "id": "PRRT_kwDODJKVX86cqNXR",
+      "opened": "2026-08-27T00:39:50Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-27T00:45:36Z",
+          "body": "Addressed in f8e866f81b6c3f26dc66f0227f8aedd96be652ad.\n\nAnalysis: Elasticsearch REST 5.0 and 6.4 accept three-segment typed search routes. The fallback matcher now treats a three-segment path ending in `_search` as a search endpoint.\n\nUpsides: V3-preview captures and sanitizes low-level typed search bodies for the client versions that support this route. Tests cover both leading-slash forms.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3867840475"
+        }
+      ],
+      "reviewed": "2ec2ef59d3e6a060159d1a5fc08e7461c87272b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3867816062"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether we should also attempt to limit the query lenght?",
+      "created": "2026-08-27T14:03:57Z",
+      "hunk": "@@ -0,0 +1,102 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.elasticsearch.rest.v7_0;\n+\n+import com.fasterxml.jackson.core.JsonFactory;\n+import com.fasterxml.jackson.core.JsonGenerator;\n+import com.fasterxml.jackson.core.JsonParser;\n+import com.fasterxml.jackson.core.StreamReadConstraints;\n+import java.io.IOException;\n+import java.io.StringWriter;\n+import java.util.function.UnaryOperator;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Masks every literal value in an Elasticsearch search request body while preserving the structure\n+ * and field names. A sequence of JSON values, such as an NDJSON multi-search request, is sanitized\n+ * completely and separated with semicolons.\n+ *\n+ * <p>When the body is not a valid JSON value or sequence of JSON values, this returns {@code null}\n+ * so that the caller drops the body rather than capturing it raw.\n+ */\n+final class JacksonElasticsearchQuerySanitizer implements UnaryOperator<String> {\n+\n+  private static final String MASKED_VALUE = \"?\";\n+  private static final char QUERY_SEPARATOR = ';';\n+\n+  static final int MAX_NESTING_DEPTH = 200;\n+\n+  private static class JsonFactoryHolder {\n+    static final JsonFactory jsonFactory =\n+        JsonFactory.builder()\n+            .streamReadConstraints(\n+                StreamReadConstraints.builder().maxNestingDepth(MAX_NESTING_DEPTH).build())\n+            .build();\n+\n+    private JsonFactoryHolder() {}\n+  }\n+\n+  @Override\n+  @Nullable\n+  public String apply(String body) {\n+    JsonFactory jsonFactory = JsonFactoryHolder.jsonFactory;\n+    StringWriter out = new StringWriter(body.length());",
+      "id": "PRRT_kwDODJKVX86c2ED3",
+      "opened": "2026-08-27T14:03:57Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-7.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/v7_0/JacksonElasticsearchQuerySanitizer.java",
+      "replies": [
+        {
+          "at": "2026-08-27T15:02:16Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675/commits/b978ea98105d9dc858024dc96af28db98081b901",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3872991214"
+        }
+      ],
+      "reviewed": "52383386b8dd706819ef4d1b7e9f5ef56bc5728f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3872464621"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "opensearch doesn't have an option to disable sanitization",
+      "created": "2026-08-27T14:08:36Z",
+      "hunk": "@@ -8,8 +8,18 @@ configurations:\n   - name: otel.instrumentation.elasticsearch.capture-search-query\n     declarative_name: java.elasticsearch.capture_search_query\n     description: >\n-      Enable the capture of search query bodies. It is important to note that Elasticsearch queries\n-      may contain personal or sensitive information.\n+      Deprecated for removal in 3.0 with no replacement. Outside v3-preview, explicitly set this to\n+      capture or omit search query bodies. Under v3-preview and in 3.0, the setting is ignored and\n+      search query bodies are always captured. Sanitization remains separately configurable with\n+      otel.instrumentation.elasticsearch.query-sanitization.enabled.\n     type: boolean\n     default: false\n+  - name: otel.instrumentation.elasticsearch.query-sanitization.enabled",
+      "id": "PRRT_kwDODJKVX86c2LdF",
+      "opened": "2026-08-27T14:08:36Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-7.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-08-27T15:02:26Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19869",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3872992647"
+        }
+      ],
+      "reviewed": "52383386b8dd706819ef4d1b7e9f5ef56bc5728f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3872509287"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `AgentListener.afterAgent()` is not guaranteed to finish before application instrumentation runs. On Java 8 with a custom JUL manager, `AgentInstaller` deliberately delays these callbacks until `LogManager` loads and then runs them on a new daemon thread (`javaagent-tooling/.../AgentInstaller.java:368-401,520-537`). The first Elasticsearch request can therefore race this registration; `ElasticsearchQuerySanitizerAccess.sanitize()` still sees `null` and silently drops the query even though v3-preview promises capture. Register the bridge from an eager agent-installation hook (for example, while loading the Elasticsearch `InstrumentationModule`) rather than from `afterAgent()`.",
+      "created": "2026-08-27T21:39:41Z",
+      "hunk": "@@ -0,0 +1,26 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.elasticsearch.rest.common.v5_0;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.bootstrap.elasticsearch.ElasticsearchQuerySanitizerAccess;\n+import io.opentelemetry.javaagent.extension.AgentListener;\n+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;\n+\n+/**\n+ * Publishes the Elasticsearch search query sanitizer. This runs in the agent class loader, which is\n+ * the only place jackson-core is visible, and hands the sanitizer to a bootstrap class that the\n+ * instrumentation can reach from the application class loader.\n+ */\n+@AutoService(AgentListener.class)\n+public class ElasticsearchQuerySanitizerInstaller implements AgentListener {\n+\n+  @Override\n+  public void afterAgent(AutoConfiguredOpenTelemetrySdk autoConfiguredOpenTelemetrySdk) {\n+    ElasticsearchQuerySanitizerAccess.internalSetSanitizer(\n+        new JacksonElasticsearchQuerySanitizer());",
+      "id": "PRRT_kwDODJKVX86c_QpK",
+      "opened": "2026-08-27T21:39:41Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchQuerySanitizerInstaller.java",
+      "replies": [
+        {
+          "at": "2026-08-28T11:32:50Z",
+          "body": "I think we can ignore this for now.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3880239463"
+        },
+        {
+          "at": "2026-08-28T16:54:21Z",
+          "body": "switched it to BeforeAgentListener",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3882424702"
+        }
+      ],
+      "reviewed": "5eab622ebab9162e8ed7aebe3fb4c3df3134af53",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3876082894"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `BufferedReader.lines()` wraps an I/O failure encountered while consuming the stream in `UncheckedIOException`, so this `IOException` handler does not catch mid-read failures. With v3-preview the library instrumentation now enters this path by default, and `RestClientWrapper` does not suppress exceptions from `instrumenter.start()`, allowing telemetry extraction to abort the Elasticsearch request. Catch `UncheckedIOException` as well and drop the body as intended.",
+      "created": "2026-08-28T16:34:23Z",
+      "hunk": "@@ -54,18 +58,75 @@ public String getDbQueryText(ElasticsearchRestRequest request) {\n     ElasticsearchEndpointDefinition epDefinition = request.getEndpointDefinition();\n     HttpEntity httpEntity = request.getHttpEntity();\n     if (captureSearchQuery\n-        && epDefinition != null\n-        && epDefinition.isSearchEndpoint()\n+        && isSearchEndpoint(request.getEndpoint(), epDefinition)\n         && httpEntity != null\n         && httpEntity.isRepeatable()) {\n       // Retrieve HTTP body for search-type Elasticsearch requests when captureSearchQuery is\n       // enabled.\n-      try (BufferedReader reader =\n-          new BufferedReader(new InputStreamReader(httpEntity.getContent(), UTF_8))) {\n-        return reader.lines().collect(joining());\n-      } catch (IOException e) {\n-        logger.log(FINE, \"Failed reading HTTP body content.\", e);\n+      String body = readBody(httpEntity);\n+      if (body == null) {\n+        return null;\n       }\n+      if (sanitizer == null) {\n+        // sanitization was explicitly disabled, so capture the body verbatim\n+        return body;\n+      }\n+      // the sanitizer returns null when the body cannot be sanitized (malformed, non-JSON, or no\n+      // sanitizer registered), in which case the body is dropped rather than captured raw\n+      return sanitizer.apply(body);\n+    }\n+    return null;\n+  }\n+\n+  private static boolean isSearchEndpoint(\n+      String endpoint, @Nullable ElasticsearchEndpointDefinition endpointDefinition) {\n+    if (endpointDefinition != null) {\n+      return endpointDefinition.isSearchEndpoint();\n+    }\n+\n+    int queryStart = endpoint.indexOf('?');\n+    String path = queryStart == -1 ? endpoint : endpoint.substring(0, queryStart);\n+    int pathStart = path.startsWith(\"/\") ? 1 : 0;\n+    String[] segments = path.substring(pathStart).split(\"/\", -1);\n+    for (String segment : segments) {\n+      if (segment.isEmpty()) {\n+        return false;\n+      }\n+    }\n+\n+    if (segments.length == 1) {\n+      return isSearchAction(segments[0]);\n+    }\n+    if (segments.length == 2) {\n+      return isSearchAction(segments[1])\n+          || segments[1].equals(\"_terms_enum\")\n+          || ((segments[0].equals(\"_search\") || segments[0].equals(\"_msearch\"))\n+              && segments[1].equals(\"template\"))\n+          || (segments[0].equals(\"_render\") && segments[1].equals(\"template\"));\n+    }\n+    if (segments.length == 3) {\n+      return segments[2].equals(\"_search\")\n+          || ((segments[1].equals(\"_search\") || segments[1].equals(\"_msearch\"))\n+              && segments[2].equals(\"template\"))\n+          || (segments[0].equals(\"_render\") && segments[1].equals(\"template\"))\n+          || (segments[1].equals(\"_eql\") && segments[2].equals(\"search\"));\n+    }\n+    return false;\n+  }\n+\n+  private static boolean isSearchAction(String segment) {\n+    return segment.equals(\"_search\")\n+        || segment.equals(\"_msearch\")\n+        || segment.equals(\"_async_search\");\n+  }\n+\n+  @Nullable\n+  private static String readBody(HttpEntity httpEntity) {\n+    try (BufferedReader reader =\n+        new BufferedReader(new InputStreamReader(httpEntity.getContent(), UTF_8))) {\n+      return reader.lines().collect(joining());\n+    } catch (IOException e) {",
+      "id": "PRRT_kwDODJKVX86dPBpf",
+      "opened": "2026-08-28T16:34:23Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-rest-common-5.0/library/src/main/java/io/opentelemetry/instrumentation/elasticsearch/rest/common/v5_0/internal/ElasticsearchDbAttributesGetter.java",
+      "replies": [],
+      "reviewed": "d3d10b9ed55d5eb2dc612f3b78d13546d17152cf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19675#discussion_r3882289430"
+    }
+  ]
+}

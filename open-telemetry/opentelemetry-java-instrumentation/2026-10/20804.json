@@ -1,0 +1,25 @@
+{
+  "head": "6156a586845284fa9aa9140e3a67d0127ae922ea",
+  "merge": "4c54b89cba6e5e2fad3be1cb3ad1a6203f99dc30",
+  "merged": "2026-10-22T06:54:25Z",
+  "missing_roots": 0,
+  "number": 20804,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Handle null names in delegated defineClass calls**\n\nWhen `ClassLoader#defineClass(null, ByteBuffer, ...)` is invoked with a heap buffer, the JDK delegates to the also-instrumented byte-array overload while retaining the null name. This guard makes `isDefining` return false for that legal input, so the nested callback still parses the class and loads its supertypes a second time instead of being suppressed as intended; track enough identity to recognize unnamed delegations without conflating unrelated unnamed definitions.\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-10-21T13:56:52Z",
+      "hunk": "@@ -112,35 +121,49 @@ public void afterDefineClass(@Nullable DefineClassContext context) {\n    * @return true if it is known that loading class with given name will fail\n    */\n   public static boolean isFailedClass(String dotClassName) {\n-    DefineClassContextImpl context = defineClassContext.get();\n+    DefineClassContextImpl context = INSTANCE.defineClassContext.get();\n     return context.failedClassDotName != null && context.failedClassDotName.equals(dotClassName);\n   }\n \n   public static Set<String> getSuperTypes() {\n-    Set<String> superNames = defineClassContext.get().superDotNames;\n+    Set<String> superNames = INSTANCE.defineClassContext.get().superDotNames;\n     return superNames == null ? emptySet() : superNames;\n   }\n \n-  private static class DefineClassContextImpl implements DefineClassContext {\n-    private static final DefineClassContextImpl ROOT = new DefineClassContextImpl();\n+  private DefineClassContextImpl enter() {\n+    return enter(null, null);\n+  }\n+\n+  private DefineClassContextImpl enter(\n+      @Nullable ClassLoader classLoader, @Nullable String className) {\n+    DefineClassContextImpl previous = defineClassContext.get();\n+    DefineClassContextImpl context = new DefineClassContextImpl(previous, classLoader, className);\n+    defineClassContext.set(context);\n+    return context;\n+  }\n+\n+  // visible for testing\n+  boolean isDefining(ClassLoader classLoader, String className) {\n+    DefineClassContextImpl current = defineClassContext.get();\n+    return current.classLoader == classLoader\n+        && current.className != null",
+      "id": "PRRT_kwDODJKVX86uzB7F",
+      "opened": "2026-10-21T13:56:52Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/DefineClassHandler.java",
+      "replies": [],
+      "reviewed": "6156a586845284fa9aa9140e3a67d0127ae922ea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20804#discussion_r4337726300"
+    }
+  ]
+}

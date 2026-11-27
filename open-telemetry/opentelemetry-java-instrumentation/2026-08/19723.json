@@ -1,0 +1,40 @@
+{
+  "head": "85b222c9ae48cbdbd4cb1317f45e3be77358cb17",
+  "merge": "54d384ccdafd7675525f72a81950e3d39f4f9cde",
+  "merged": "2026-08-24T17:53:37Z",
+  "missing_roots": 0,
+  "number": 19723,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`instrumentation-docs/readme.md` still teaches the pattern this rule removes: its inline `configurations` example is `- name: otel.instrumentation.my-module.enabled`. That readme is the metadata.yaml format documentation contributors are sent to from `docs/contributing/documenting-instrumentation.md`, so the convention should be recorded there too.",
+      "created": "2026-08-20T14:39:44Z",
+      "hunk": "@@ -5,6 +5,12 @@\n - Use when: reviewing or creating `metadata.yaml` files, converting config names\n - Review focus: declarative_name format, examples guidelines, special mappings, config validation\n \n+## General\n+\n+- General enabled/disabled configs for an instrumentation module (example: `otel.instrumentation.apache-commons-pool.enabled`)",
+      "id": "PRRT_kwDODJKVX86a2PiW",
+      "opened": "2026-08-20T14:41:03Z",
+      "path": ".github/agents/knowledge/metadata-yaml-format.md",
+      "replies": [],
+      "reviewed": "2413a3b553d904a1006b3ebaca99bab4f354b661",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19723#discussion_r3822554477"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`instrumentation/dropwizard/dropwizard-metrics-4.0/metadata.yaml` still breaks this rule: it sets `disabled_by_default: true` and its only `configurations` entry is `otel.instrumentation.dropwizard-metrics.enabled`. Worth removing that block here too.",
+      "created": "2026-08-21T17:20:29Z",
+      "hunk": "@@ -5,6 +5,12 @@\n - Use when: reviewing or creating `metadata.yaml` files, converting config names\n - Review focus: declarative_name format, examples guidelines, special mappings, config validation\n \n+## General\n+\n+- General enabled/disabled configs for an instrumentation module (example: `otel.instrumentation.apache-commons-pool.enabled`)\n+  should not be defined within the configuration block. It will be assumed that modules are enabled\n+  unless they contain `disabled_by_default: true`",
+      "id": "PRRT_kwDODJKVX86bPD0J",
+      "opened": "2026-08-21T17:24:27Z",
+      "path": ".github/agents/knowledge/metadata-yaml-format.md",
+      "replies": [],
+      "reviewed": "f8a552ef43ad5b38cee5ca6eaf3ae9ddd789ba57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19723#discussion_r3832261954"
+    }
+  ]
+}

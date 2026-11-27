@@ -1,0 +1,31 @@
+{
+  "head": "4eafd44c3a07735af9cd2250a193f1cc123ec1e7",
+  "merge": "f8423d6da800e5d4202b8ac273eac668d55413dc",
+  "merged": "2026-08-28T15:09:18Z",
+  "missing_roots": 0,
+  "number": 19825,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This deletes the last read of `OPTIONAL_APACHE_METRICS`, so the field and its static initializer are now dead. Please remove them and their imports too.",
+      "created": "2026-08-26T17:48:55Z",
+      "hunk": "@@ -172,57 +163,6 @@ private JmxConfig loadKafkaConnectConfig() throws Exception {\n     }\n   }\n \n-  private Set<String> loadKafkaConnectMetricNames(boolean includeOptional) throws Exception {\n-    JmxConfig config = loadKafkaConnectConfig();\n-    Set<String> metricNames = new TreeSet<>();\n-    for (JmxRule rule : config.getRules()) {\n-      String prefix = rule.getPrefix();\n-      for (Map.Entry<String, Metric> entry : rule.getMapping().entrySet()) {\n-        Metric metric = entry.getValue();\n-        String baseName =\n-            metric == null || metric.getMetric() == null ? entry.getKey() : metric.getMetric();\n-        metricNames.add(prefix == null ? baseName : prefix + baseName);\n-      }\n-    }\n-    if (!includeOptional) {\n-      metricNames.removeAll(OPTIONAL_APACHE_METRICS);",
+      "id": "PRRT_kwDODJKVX86cj2bm",
+      "opened": "2026-08-26T17:52:53Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/kafka/KafkaConnectTest.java",
+      "replies": [
+        {
+          "at": "2026-08-27T09:17:27Z",
+          "body": "Another usage of OPTIONAL_APACHE_METRICS is present in #19724 merged yesterday as optional metrics are part of the registry definitions. After updating this PR with `main` this is no longer unused.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19825#discussion_r3870378817"
+        }
+      ],
+      "reviewed": "a25227ff846a4d8f78dcc63742ed7e142de6c37a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19825#discussion_r3865308421"
+    }
+  ]
+}

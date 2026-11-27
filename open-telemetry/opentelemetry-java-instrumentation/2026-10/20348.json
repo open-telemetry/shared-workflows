@@ -1,0 +1,40 @@
+{
+  "head": "e3e2e555e91c681ce2d1fe3b668c4067eb8de2ad",
+  "merge": "680435f457d0b42bc14325fb5bba58e41f9b3b17",
+  "merged": "2026-10-05T06:20:13Z",
+  "missing_roots": 0,
+  "number": 20348,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This producer-only metric definition omits `messaging.destination.subscription.name`, but Pulsar still emits that attribute for consumer receive operation durations: `PulsarSingletons.java:92-106` installs `MessagingConsumerMetrics`, `PulsarMessagingAttributesGetter.java:88-92` supplies the subscription, and `MessagingMetricsAdvice.java:66-97` retains it for this histogram. Pointing Pulsar at `dab7c60a` therefore makes the generated list incomplete for receive operations. Please fix the metadata collection so the consumer point is included, then regenerate this file.",
+      "created": "2026-10-02T03:18:38Z",
+      "hunk": "@@ -16988,7 +16968,7 @@ libraries:\n   - when: otel.semconv-stability.preview=messaging\n     metric_refs:\n     - messaging.client.consumed.messages-5c21579f\n-    - messaging.client.operation.duration-df200871\n+    - messaging.client.operation.duration-dab7c60a",
+      "id": "PRRT_kwDODJKVX86oN3pR",
+      "opened": "2026-10-02T03:18:38Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "6fa8d4b17fc323d9809eeea0ff2d4009c5438642",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20348#discussion_r4162578353"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The renamed module scope causes the non-v3 controller telemetry to disappear from this generated entry. `JaxrsSingletons` still emits these enabled controller spans under `io.opentelemetry.jaxrs-1.0` outside v3 preview, and both JAX-RS 1 tests assert that path, but the docs parser now filters it out because the module scope is `io.opentelemetry.jaxrs-1.0-annotations`. Add the legacy scope as an allowed scope for this renamed module in the generator (or otherwise model both scopes), then regenerate this file so the `controller-telemetry.enabled=true` case with `code.function`/`code.namespace` remains documented alongside the v3 case.",
+      "created": "2026-10-03T03:08:38Z",
+      "hunk": "@@ -11843,32 +11825,30 @@ libraries:\n   has_javaagent: true\n   javaagent_target_versions:\n   - io.javalin:javalin:[7.0.0,)\n-- name: jaxrs-1.0\n-  display_name: JAX-RS 1.x\n+- name: jaxrs-1.0-annotations\n+  display_name: JAX-RS 1.x annotations\n   description: |\n     This instrumentation enriches HTTP server spans with route information and enables controller spans for JAX-RS annotated methods (controller spans are disabled by default).\n   library_link: https://javaee.github.io/javaee-spec/javadocs/javax/ws/rs/package-summary.html\n   disabled_by_default: true\n   features:\n   - HTTP_ROUTE\n   - CONTROLLER_SPANS\n-  source_path: instrumentation/jaxrs/jaxrs-1.0\n+  source_path: instrumentation/jaxrs/jaxrs-1.0-annotations\n   scope:\n-    name: io.opentelemetry.jaxrs-1.0\n+    name: io.opentelemetry.jaxrs-1.0-annotations\n   has_javaagent: true\n   javaagent_target_versions:\n   - javax.ws.rs:jsr311-api:[0.5,)\n   configuration_refs:\n   - common.controller-telemetry.enabled\n   - common.deprecated-controller-telemetry.enabled\n   telemetry:\n-  - when: otel.instrumentation.common.controller-telemetry.enabled=true\n+  - when: otel.instrumentation.common.controller-telemetry.enabled=true,otel.instrumentation.common.v3-preview=true\n     spans:\n     - span_kind: INTERNAL\n       attributes:\n-      - name: code.function\n-        type: STRING\n-      - name: code.namespace\n+      - name: code.function.name",
+      "id": "PRRT_kwDODJKVX86ojZM_",
+      "opened": "2026-10-03T03:08:39Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "6bc46acfc92c3c896d24d9570d5abb987e66dec8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20348#discussion_r4171468980"
+    }
+  ]
+}

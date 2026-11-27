@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "c3b7e746399394f0e9be421ef051da624109b03e99e8f569c13dbb4f29a5eb50",
+  "input_digest": "9d335730db7f53376cfad3445c3aeff24255ea93017ab4e4533640e090325868",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9035c9777cea5bd122eb6832a095e8a5d269cbcd/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d3fc54a12d475e8baf48985f898977ec3052a0e9/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/DefaultHttpClientInstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d3fc54a12d475e8baf48985f898977ec3052a0e9/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/semconv/http/HttpClientAttributesExtractorBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Zd92g",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/985cd12a5f83c5a33e6fed41d6d5028cb7f5add4/instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/Netty41ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d3fc54a12d475e8baf48985f898977ec3052a0e9/instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/Netty41ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/985cd12a5f83c5a33e6fed41d6d5028cb7f5add4/instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/Netty41ServerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d3fc54a12d475e8baf48985f898977ec3052a0e9/instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/Netty41ServerTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86aFwT0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

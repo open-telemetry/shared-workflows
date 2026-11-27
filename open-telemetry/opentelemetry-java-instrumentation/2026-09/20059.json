@@ -1,0 +1,46 @@
+{
+  "head": "6675a05b306f9b5e7555688a314216f6df14501a",
+  "merge": "16d1487e8cfbdaf5aace7b96954a64c5554f3f53",
+  "merged": "2026-09-10T05:45:43Z",
+  "missing_roots": 0,
+  "number": 20059,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This relies on the `Test` task name (`name`) matching the test suite name exactly. With Gradle JVM test suites, per-target tasks can be generated with names that don’t equal the suite name (e.g., when multiple targets are used), causing `findByName(name)` to return null and the agent configuration to be applied even for `*unitTests` suites. Consider tagging/configuring the suite’s `targets.all { testTask.configure { ... } }` directly (or otherwise deriving the suite from the task in a way that doesn’t depend on exact name equality) so all tasks belonging to a `*unitTests` suite are consistently excluded.",
+      "created": "2026-09-09T16:19:05Z",
+      "hunk": "@@ -145,6 +145,11 @@ afterEvaluate {\n     val failOnContextLeakOverride = failOnContextLeakProperty.get()\n     val testIndyEnabled = testIndyProperty.get()\n \n+    val suite = testing.suites.findByName(name) as? JvmTestSuite\n+    if (suite != null && suite.name.endsWith(\"unitTests\", true)) {\n+      return@configureEach\n+    }",
+      "id": "PRRT_kwDODJKVX86gvalp",
+      "opened": "2026-09-09T16:19:06Z",
+      "path": "conventions/src/main/kotlin/io.opentelemetry.instrumentation.javaagent-testing.gradle.kts",
+      "replies": [],
+      "reviewed": "6675a05b306f9b5e7555688a314216f6df14501a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20059#discussion_r3970654937"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The check is currently case-insensitive (`ignoreCase = true`). Gradle suite names are typically treated as case-sensitive identifiers, so this may unintentionally exclude suites with mixed-case suffixes. If the intent is specifically `...unitTests` as documented in the PR description, prefer a case-sensitive check (or document that casing is intentionally ignored).",
+      "created": "2026-09-09T16:19:06Z",
+      "hunk": "@@ -145,6 +145,11 @@ afterEvaluate {\n     val failOnContextLeakOverride = failOnContextLeakProperty.get()\n     val testIndyEnabled = testIndyProperty.get()\n \n+    val suite = testing.suites.findByName(name) as? JvmTestSuite\n+    if (suite != null && suite.name.endsWith(\"unitTests\", true)) {",
+      "id": "PRRT_kwDODJKVX86gvamO",
+      "opened": "2026-09-09T16:19:06Z",
+      "path": "conventions/src/main/kotlin/io.opentelemetry.instrumentation.javaagent-testing.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-09T16:31:37Z",
+          "body": "deliberately using case insensitive comparison so that both `unitTests` and `xxxUnitTest` would match",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20059#discussion_r3970780564"
+        }
+      ],
+      "reviewed": "6675a05b306f9b5e7555688a314216f6df14501a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20059#discussion_r3970654989"
+    }
+  ]
+}

@@ -1,0 +1,235 @@
+{
+  "head": "35daa78d63ecf2dea43896e6a94a9b92fbfd7ae2",
+  "merge": "768f106063f2e065b310439562f350facf6af3a9",
+  "merged": "2026-10-29T18:37:16Z",
+  "missing_roots": 0,
+  "number": 20988,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix the rpc/dup compatibility regression in its service-name change. Preserve the current main base, draft state, RPC preview flag, and generated IDL identity discovery for both synchronous and asynchronous processors. Do not open another PR or change unrelated conformance behavior.\n\nThe current getServerServiceName replaces the single request service name whenever preview is emitted, including rpc/dup. ThriftRpcAttributesGetter.getService then returns that replacement for the legacy rpc.service attribute as well as getRpcMethod using it for preview. As a result rpc/dup changes legacy rpc.service on server spans and the legacy server duration metric from the handler implementation class to the generated IDL service. The revised AbstractThriftTest assertions currently hide this by calling getServerServiceName for legacy RPC_SERVICE expectations. Copilot review 5659242123 has no findings, but this separate full-diff compatibility issue remains actionable.\n\nKeep the legacy handler identity and logical preview IDL identity independently available through request/decorator/getter wiring. In rpc/dup, the preview span name and fully qualified rpc.method and preview duration metric method must use the generated IDL service, while the legacy rpc.service on spans and legacy server duration metrics must retain the concrete handler class. The shared rpc.method attribute can follow the existing preview-wins convention in dual mode; do not try to emit two conflicting values for that one attribute. Default legacy-only names and attributes must remain unchanged. Preview-only output must not add legacy attributes. Explicit service names passed to library wrappers must keep their existing behavior, and existing public constructors or wrapper methods must remain source-compatible if the shared request/decorator classes need an internal extension.\n\nUpdate the shared assertions to distinguish preview logical identity from legacy handler identity rather than using one substituted name for both. Exercise the actual synchronous and asynchronous agent paths for original and renamed inherited handlers, including unrelated interfaces, with assertions for both legacy rpc.service and preview rpc.method in the same rpc/dup trace and for the corresponding old and preview duration metrics. Reuse the existing default, preview, and dual-emission suites; preserve library-wrapper coverage. Keep the fix focused and avoid copying service-discovery logic or adding configuration. Run the narrowest relevant spotlessApply directly before targeted behavior validation, preserving caches and reporting any actual validation blocker.",
+      "created": "2026-10-26T21:26:20Z",
+      "hunk": "@@ -30,6 +33,44 @@ public final class ThriftSingletons {\n       ThriftInstrumenterFactory.createServerInstrumenter(\n           GlobalOpenTelemetry.get(), UnaryOperator.identity(), emptyList(), emptyList());\n   private static final ContextPropagators propagators = GlobalOpenTelemetry.get().getPropagators();\n+  private static final boolean useIdlServiceName = emitPreviewRpcSemconv(GlobalOpenTelemetry.get());\n+  private static final ClassValue<String> serviceNames =\n+      new ClassValue<String>() {\n+        @Override\n+        protected String computeValue(Class<?> type) {\n+          for (Class<?> current = type; current != null; current = current.getSuperclass()) {\n+            Class<?> service = current.getEnclosingClass();\n+            if (service == null) {\n+              continue;\n+            }\n+            // Generated processors bind I to their service's Iface or AsyncIface.\n+            for (TypeVariable<?> parameter : current.getTypeParameters()) {\n+              for (Type bound : parameter.getBounds()) {\n+                if (bound instanceof Class<?>) {\n+                  Class<?> iface = (Class<?>) bound;\n+                  if (iface.isInterface()\n+                      && iface.getEnclosingClass() == service\n+                      && (\"Iface\".equals(iface.getSimpleName())\n+                          || \"AsyncIface\".equals(iface.getSimpleName()))) {\n+                    return service.getName();\n+                  }\n+                }\n+              }\n+            }\n+          }\n+          return \"\";\n+        }\n+      };\n+\n+  public static String getServerServiceName(Object processor, Object iface) {",
+      "id": "PRRT_kwDODJKVX86wdedh",
+      "opened": "2026-10-26T21:26:20Z",
+      "path": "instrumentation/thrift-0.13/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/thrift/v0_13/ThriftSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-26T21:39:35Z",
+          "body": "Fixed in cfac1d59. Legacy handler identity and preview IDL identity now remain separate through both sync and async server paths; the default, preview, dual-emission, and library-wrapper suites pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4382810841"
+        }
+      ],
+      "reviewed": "c9cfae120714408978d4444b18283efca7f0e11f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4382680499"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the Thrift library documentation clarification below. This is documentation-only work; preserve all current runtime behavior, explicit library-wrapper service names, public API signatures, RPC preview gating, and legacy/dual-emission compatibility. Do not create another PR.\n\nIn instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/ThriftTelemetry.java, expand wrapServerProcessor's Javadoc to explain the serviceName argument. It identifies the Thrift RPC service, not the application's resource service.name. Recommend the generated service class name, for example CustomService.class.getName(), rather than the handler implementation class. Explain that the supplied name is used as-is and is not automatically discovered from the processor. Keep the explanation accurate for both synchronous and asynchronous processors.\n\nIn instrumentation/thrift-0.13/library/README.md, replace or supplement the unexplained serviceName usage with a concrete example wrapping new CustomService.Processor<>(handler) with CustomService.class.getName(). Briefly explain the same service-name distinction. Document the existing otel.semconv-stability.preview=rpc and rpc/dup opt-ins, including that preview rpc.method combines the supplied service name and method as <service>/<method>. Make clear these modes do not replace the service name explicitly supplied to the library wrapper. Verify the supported library configuration mechanism from existing repository code/docs before documenting it; do not imply setting a Java system property works for every programmatically configured OpenTelemetry instance.\n\nKeep these edits concise and consistent with the current implementation. Do not add a service-name builder setting or automatic discovery, change unrelated documentation, or edit the PR title or description. Inspect the final documentation against the existing API and preview/dual-emission behavior. Run the repository's documented Markdown formatting/lint command on the changed README and the narrowest relevant Java formatting task for the Javadoc; report any actual validation blocker. No runtime changes or new behavior tests are needed.",
+      "created": "2026-10-26T21:45:39Z",
+      "hunk": "@@ -35,7 +35,7 @@ public String getMethod(ThriftRequest request) {\n   @Override\n   @Nullable\n   public String getRpcMethod(ThriftRequest request) {\n-    String service = getService(request);\n+    String service = request.getRpcServiceName();",
+      "id": "PRRT_kwDODJKVX86wd8tz",
+      "opened": "2026-10-26T21:45:39Z",
+      "path": "instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/internal/ThriftRpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-26T21:52:42Z",
+          "body": "Added the requested Javadoc and README clarification in 4a0560c0. The README includes a generated-service processor example, both preview opt-ins, the declarative configuration form, and the `<service>/<method>` behavior; runtime behavior and API signatures are unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4382938028"
+        }
+      ],
+      "reviewed": "cfac1d59ccaeabb98338c047dd56fa03875b0faf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4382878866"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This overload breaks source compatibility with the existing nullable-address constructor: `new ThriftRequest(\"method\", \"service\", null, null, emptyMap())` previously compiled, but now ambiguously matches both five-argument constructors. This affects consumers of the published `opentelemetry-thrift-0.13` library even though current repository call sites compile. Use a named factory or the new six-argument constructor for distinct service names instead of adding this conflicting overload.",
+      "created": "2026-10-26T21:46:25Z",
+      "hunk": "@@ -17,23 +17,34 @@ public final class ThriftRequest {\n \n   @Nullable private final String methodName;\n   @Nullable private final String serviceName;\n+  @Nullable private final String rpcServiceName;\n   private final Map<String, String> headers;\n   @Nullable private final SocketAddress localAddress;\n   @Nullable private final SocketAddress remoteAddress;\n \n   public ThriftRequest(\n       @Nullable String methodName, @Nullable String serviceName, @Nullable Socket socket) {\n-    this(methodName, serviceName, socket, emptyMap());\n+    this(methodName, serviceName, serviceName, socket, emptyMap());\n   }\n \n   public ThriftRequest(\n       @Nullable String methodName,\n       @Nullable String serviceName,\n       @Nullable Socket socket,\n       Map<String, String> headers) {\n+    this(methodName, serviceName, serviceName, socket, headers);\n+  }\n+\n+  public ThriftRequest(\n+      @Nullable String methodName,\n+      @Nullable String serviceName,\n+      @Nullable String rpcServiceName,\n+      @Nullable Socket socket,",
+      "id": "PRRT_kwDODJKVX86wd92B",
+      "opened": "2026-10-26T21:46:26Z",
+      "path": "instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/ThriftRequest.java",
+      "replies": [
+        {
+          "at": "2026-10-26T22:15:06Z",
+          "body": "Fixed in 8663a1c2. The conflicting five-argument overload is removed, and internal calls use the unambiguous six-argument constructor. The regression test includes the exact existing null-address call without casts and verifies both service identities and null addresses.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4383109174"
+        }
+      ],
+      "reviewed": "cfac1d59ccaeabb98338c047dd56fa03875b0faf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4382886416"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix the source-compatibility regression identified in Copilot review 5659556350, inline finding 4382886416. Preserve the independent legacy handler and preview IDL identities, all current runtime behavior, the main base, draft state, RPC preview flag, and existing library-wrapper service names. Keep the documentation edits already delivered in commit 4a0560c0. Do not create another PR or edit its title or description.\n\nThe new ThriftRequest(String, String, String, Socket, Map) overload conflicts with the existing ThriftRequest(String, String, SocketAddress, SocketAddress, Map) constructor. The previously valid source expression new ThriftRequest(\"method\", \"service\", null, null, emptyMap()) is now ambiguous. Remove the conflicting newly added five-argument overload and use the unambiguous six-argument constructor or a distinctly named factory for internal calls that supply separate identities. Preserve every pre-existing public constructor signature and behavior. Do not solve the issue by requiring casts or non-null addresses at old call sites.\n\nUpdate the existing decorator and focused getter/request tests accordingly. Add a compilation-backed regression test that contains the exact old five-argument null-address call with no casts and verifies its expected legacy/logical service-name and null-address behavior. Keep current sync/async agent, default/preview/dual, duration metric identity, and explicit library-wrapper coverage intact. This is only the overload compatibility correction; do not add unrelated cleanup, conformance changes, public configuration, or automatic library service discovery. Run the narrowest relevant spotlessApply directly before targeted validation and report any actual blocker. Leave the review finding unresolved until the fix is verified.",
+      "created": "2026-10-26T21:57:01Z",
+      "hunk": "@@ -17,23 +17,34 @@ public final class ThriftRequest {\n \n   @Nullable private final String methodName;\n   @Nullable private final String serviceName;\n+  @Nullable private final String rpcServiceName;\n   private final Map<String, String> headers;\n   @Nullable private final SocketAddress localAddress;\n   @Nullable private final SocketAddress remoteAddress;\n \n   public ThriftRequest(\n       @Nullable String methodName, @Nullable String serviceName, @Nullable Socket socket) {\n-    this(methodName, serviceName, socket, emptyMap());\n+    this(methodName, serviceName, serviceName, socket, emptyMap());\n   }\n \n   public ThriftRequest(\n       @Nullable String methodName,\n       @Nullable String serviceName,\n       @Nullable Socket socket,\n       Map<String, String> headers) {\n+    this(methodName, serviceName, serviceName, socket, headers);\n+  }\n+\n+  public ThriftRequest(",
+      "id": "PRRT_kwDODJKVX86weK4d",
+      "opened": "2026-10-26T21:57:00Z",
+      "path": "instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/ThriftRequest.java",
+      "replies": [
+        {
+          "at": "2026-10-26T22:09:53Z",
+          "body": "Removed the conflicting overload, preserved the existing constructor signatures and behavior, and added a regression test for the exact null-address call. Commit: `8663a1c2`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4383070935"
+        }
+      ],
+      "reviewed": "4a0560c0f11977e16e6245b2e5d551fb07366a92",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4382971272"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This YAML example omits the required `instrumentation/development` parent, so copying it as a top-level configuration does not enable RPC preview telemetry (see `SemconvStabilityTest.declarativePreviewOverridesSystemPropertyFallback`). Remove the equivalent YAML example and its `[rpc/dup]` follow-up, retaining the flat-property instructions as required by `.github/copilot-instructions.md:85–87`.",
+      "created": "2026-10-26T22:01:34Z",
+      "hunk": "@@ -67,3 +68,25 @@ CustomService.AsyncIface configureClient(OpenTelemetry openTelemetry, CustomServ\n   return thriftTelemetry.wrapAsyncClient(asyncClient, CustomService.AsyncIface.class);\n }\n ```\n+\n+The `serviceName` passed to `wrapServerProcessor` identifies the Thrift RPC service, not the\n+application's resource `service.name`. Supply the generated service class name, as above, rather\n+than the handler implementation class. The name is used as provided and is not discovered from\n+either synchronous or asynchronous processors.\n+\n+To opt in to the RPC preview conventions, set `otel.semconv-stability.preview=rpc`; use\n+`otel.semconv-stability.preview=rpc/dup` to emit both legacy and preview conventions. For an\n+OpenTelemetry instance configured declaratively, the equivalent is:\n+\n+```yaml\n+java:\n+  common:\n+    semconv_stability:\n+      preview: [rpc]\n+```\n+\n+Use `[rpc/dup]` for dual emission. The flat property is read from JVM system properties or\n+environment variables; custom programmatic OpenTelemetry configuration may require configuring the\n+preview setting through its own configuration mechanism. These modes do not replace the\n+`serviceName` supplied to the library wrapper: preview `rpc.method` combines that name and the\n+method as `<service>/<method>`.",
+      "id": "PRRT_kwDODJKVX86weQ4v",
+      "opened": "2026-10-26T22:01:34Z",
+      "path": "instrumentation/thrift-0.13/library/README.md",
+      "replies": [
+        {
+          "at": "2026-10-26T22:20:13Z",
+          "body": "Fixed in 4f4bbea1. Removed the incomplete declarative YAML example and its dual-emission reference. The README retains both flat-property opt-ins, the generated-service example, and the service-name guidance.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4383147332"
+        }
+      ],
+      "reviewed": "4a0560c0f11977e16e6245b2e5d551fb07366a92",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4383010227"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with one documentation-only correction for review 5659706064, inline finding 4383010227. The previous documentation attempt delivered the requested service-name guidance in 4a0560c0, but its README YAML example is incomplete and conflicts with the repository documentation rule. The separate constructor-compatibility attempt has ended and delivered 8663a1c2; preserve that fix and all other current code.\n\nIn instrumentation/thrift-0.13/library/README.md, remove the equivalent declarative YAML example, its introductory sentence, and the now-obsolete `Use [rpc/dup] for dual emission` reference. The YAML lacks the required instrumentation/development parent, and .github/copilot-instructions.md explicitly says to document flat properties without repeating equivalent declarative configuration. Keep the existing flat opt-ins otel.semconv-stability.preview=rpc and rpc/dup, the generated-service processor example, the distinction from resource service.name, and the supplied-name/preview rpc.method explanation. Keep any accurate programmatic-configuration caveat concise. Preserve the wrapServerProcessor Javadoc already delivered.\n\nDo not change runtime code, public APIs, naming behavior, tests, PR title/description, or unrelated documentation. Do not create another PR. Run the repository's documented Markdown formatter/linter only on the changed README. Leave Copilot review threads unresolved; the coordinating session will verify the fix and handle its own finding.",
+      "created": "2026-10-26T22:14:31Z",
+      "hunk": "@@ -67,3 +68,25 @@ CustomService.AsyncIface configureClient(OpenTelemetry openTelemetry, CustomServ\n   return thriftTelemetry.wrapAsyncClient(asyncClient, CustomService.AsyncIface.class);\n }\n ```\n+\n+The `serviceName` passed to `wrapServerProcessor` identifies the Thrift RPC service, not the\n+application's resource `service.name`. Supply the generated service class name, as above, rather\n+than the handler implementation class. The name is used as provided and is not discovered from\n+either synchronous or asynchronous processors.\n+\n+To opt in to the RPC preview conventions, set `otel.semconv-stability.preview=rpc`; use\n+`otel.semconv-stability.preview=rpc/dup` to emit both legacy and preview conventions. For an\n+OpenTelemetry instance configured declaratively, the equivalent is:\n+\n+```yaml",
+      "id": "PRRT_kwDODJKVX86wee-J",
+      "opened": "2026-10-26T22:14:31Z",
+      "path": "instrumentation/thrift-0.13/library/README.md",
+      "replies": [
+        {
+          "at": "2026-10-26T22:17:59Z",
+          "body": "Removed the declarative YAML example, introductory sentence, and obsolete `[rpc/dup]` reference while retaining the flat opt-ins and existing service-name/configuration guidance. Commit: `4f4bbea1`. I couldn’t run Flint because `mise` is not installed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4383129892"
+        }
+      ],
+      "reviewed": "8663a1c2adb05b2cfbe03b0edbb335c3af0f2adb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4383104942"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix the Java 8 CI failure in the new serviceIdentityDoesNotDependOnAsyncHandler test. Preserve its main base, draft state, all production behavior, existing service identities, public APIs, and default/preview/dual-emission coverage. Do not create another PR.\n\nCI job https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/40560828308/job/122414569173?pr=20988 fails in :instrumentation:thrift-0.13:javaagent:test on Java 8. Both inherited=false and inherited=true cases time out at ThriftTest.java:121 after the Thrift async selector thread crashes with java.lang.NoSuchMethodError: java.nio.ByteBuffer.rewind()Ljava/nio/ByteBuffer; from org.apache.thrift.async.TAsyncMethodCall.doWritingRequestBody. This is the known Thrift 0.13/Java 8 async-client incompatibility, not a telemetry assertion failure.\n\nAt the beginning of serviceIdentityDoesNotDependOnAsyncHandler in instrumentation/thrift-0.13/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/thrift/v0_13/ThriftTest.java, apply the same compatibility assumption already used by the shared async tests in instrumentation/thrift-0.13/testing/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/AbstractThriftTest.java: assumeTrue(!\"1.8\".equals(System.getProperty(\"java.specification.version\")) || testLatestDeps());. Add the necessary existing-helper and JUnit static imports. Keep this surgical and test-only. Skip only the known Java 8/baseline-dependency combination, retaining execution on newer JDKs and compatible latest dependencies. Do not increase timeouts, alter dependencies, disable the synchronous test, or change instrumentation behavior.\n\nRun the narrowest relevant spotlessApply directly before targeted validation. Validate both parameterized async cases on a supported JDK and, if available, verify they skip with baseline Thrift on Java 8. Preserve the existing default, preview, and rpc/dup suite wiring and assertions. Report any actual environment blocker rather than claiming validation passed.",
+      "created": "2026-10-27T22:08:27Z",
+      "hunk": "@@ -62,4 +71,72 @@ protected TProtocolFactory configureServerOutProtocolFactory(TProtocolFactory pr\n   protected boolean hasAsyncServerNetworkAttributes() {\n     return true;\n   }\n+\n+  @Override\n+  protected String getServerRpcServiceName(String handlerClassName) {\n+    return CustomService.class.getName();\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  void serviceIdentityDoesNotDependOnSyncHandler(boolean inherited) throws Exception {\n+    CustomHandler handler = inherited ? new RenamedHandler() : new CustomHandler();\n+    int port = startSimpleServer(true, null, handler);\n+    CustomService.Iface client = createClient(port);\n+\n+    assertThat(client.say(\"Hello\", \"World\")).isEqualTo(\"Say Hello World\");\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span -> assertClientSpan(span, \"say\", port).hasNoParent(),\n+                span ->\n+                    assertServerSpan(span, handler.getClass().getName(), \"say\", port, null)\n+                        .hasParent(trace.getSpan(0))));\n+    assertMetrics(port, handler.getClass().getName());\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  void serviceIdentityDoesNotDependOnAsyncHandler(boolean inherited) throws Exception {",
+      "id": "PRRT_kwDODJKVX86w54Fk",
+      "opened": "2026-10-27T22:08:27Z",
+      "path": "instrumentation/thrift-0.13/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/thrift/v0_13/ThriftTest.java",
+      "replies": [
+        {
+          "at": "2026-10-27T22:18:26Z",
+          "body": "Added the Java 8/baseline-Thrift assumption to the async identity test. Both parameter cases pass on Java 25 and skip on Java 8. Commit: `465eedba`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4394820906"
+        }
+      ],
+      "reviewed": "95663549ff6f1d9c355c2a4d38d0167b6b72abe0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4394744695"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the parameter naming and documentation refinement below. Preserve runtime behavior, the existing PR base and draft/ready state, and the Java method signature. Do not create another PR.\n\nIn instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/ThriftTelemetry.java, rename wrapServerProcessor's serviceName parameter to rpcMethodPrefix and update its references within that method. This is a parameter-only rename, not a new overload, setter, public method rename, or broad internal renaming.\n\nRewrite its Javadoc positively in terms of emitted telemetry. RPC semantic conventions now expose rpc.method rather than a separate rpc.service attribute. Explain that rpcMethodPrefix is combined with the method name as prefix/method to form server span names and the rpc.method attribute on server spans and duration metrics. Recommend the generated service class name, such as CustomService.class.getName(), to match client telemetry. Keep this concise and accurate for synchronous and asynchronous processors. Replace the current paragraph about what serviceName is not and about automatic discovery; do not describe the parameter as a distinct emitted RPC service attribute.\n\nUpdate the directly related paragraph in instrumentation/thrift-0.13/library/README.md to use rpcMethodPrefix and the same telemetry-focused explanation. Keep its existing generated-service example. Do not add configuration, historical semantic-convention discussion, or migration notes to the README. Do not change telemetry identities, service discovery, unrelated production code, or tests just for this documentation and parameter cleanup.\n\nRun the narrowest applicable spotlessApply directly before focused validation. Use the repository's existing Markdown formatter/linter on the changed README if available, and report any actual validation blocker. Keep all existing library-wrapper behavior and source compatibility.",
+      "created": "2026-10-29T15:06:42Z",
+      "hunk": "@@ -56,7 +56,14 @@ public static ThriftTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n     this.propagators = propagators;\n   }\n \n-  /** Returns a {@link TProcessor} that instruments Thrift server requests. */\n+  /**\n+   * Returns a {@link TProcessor} that instruments Thrift server requests.\n+   *\n+   * <p>{@code serviceName} identifies the Thrift RPC service, not the application's resource {@code",
+      "id": "PRRT_kwDODJKVX86xnUJI",
+      "opened": "2026-10-29T15:06:42Z",
+      "path": "instrumentation/thrift-0.13/library/src/main/java/io/opentelemetry/instrumentation/thrift/v0_13/ThriftTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-10-29T15:14:58Z",
+          "body": "Updated and pushed in `03ac1dfa`. The parameter is now `rpcMethodPrefix`, and the Javadoc/README describe its `prefix/method` use in server span names and `rpc.method` on spans and duration metrics.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4414168198"
+        }
+      ],
+      "reviewed": "6beef0c42087e74105a09c18ee0dc4301bd0a105",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4414068664"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the following comment-only clarification in instrumentation/thrift-0.13/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/thrift/v0_13/ThriftSingletons.java. Preserve all code and runtime behavior, the existing base and draft state, and the rpcMethodPrefix documentation/parameter refinement already present. Do not create another PR.\n\nIn serviceNames.computeValue, replace the existing comment immediately above the loop over current.getTypeParameters() with these two lines:\n\n```java\n// Generated processors declare Processor<I extends Iface> or\n// AsyncProcessor<I extends AsyncIface>; the bound identifies the service.\n```\n\nImmediately before the if (iface.isInterface() ...) condition, after Class<?> iface = (Class<?>) bound;, add:\n\n```java\n// Both the processor and its bound interface must belong to the same service.\n```\n\nKeep the change limited to these explanatory comments. The first explains the generated generic shape being inspected; the second explains the common enclosing-service check. Do not refactor or rename code, change tests or documentation elsewhere, or add historical change rationale. Run the narrowest applicable spotlessApply and verify the resulting diff is comment-only. No behavioral test changes are needed.",
+      "created": "2026-10-29T15:29:08Z",
+      "hunk": "@@ -30,6 +32,41 @@ public final class ThriftSingletons {\n       ThriftInstrumenterFactory.createServerInstrumenter(\n           GlobalOpenTelemetry.get(), UnaryOperator.identity(), emptyList(), emptyList());\n   private static final ContextPropagators propagators = GlobalOpenTelemetry.get().getPropagators();\n+  private static final ClassValue<String> serviceNames =\n+      new ClassValue<String>() {\n+        @Override\n+        protected String computeValue(Class<?> type) {\n+          for (Class<?> current = type; current != null; current = current.getSuperclass()) {\n+            Class<?> service = current.getEnclosingClass();\n+            if (service == null) {\n+              continue;\n+            }\n+            // Generated processors bind I to their service's Iface or AsyncIface.",
+      "id": "PRRT_kwDODJKVX86xn8IW",
+      "opened": "2026-10-29T15:29:08Z",
+      "path": "instrumentation/thrift-0.13/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/thrift/v0_13/ThriftSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-29T15:34:31Z",
+          "body": "Updated and pushed the comment-only clarification in `c3b4ed6f`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4414405441"
+        }
+      ],
+      "reviewed": "03ac1dfa8212cd906ac2b7b2a613d3468c226b1a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4414337103"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`getTypeParameters` could throw `GenericSignatureFormatError` and `getBounds` could also throw. This could happen when something has gone wrong with bytecode manipulation. Idk if this is something we should worry about. Could also deal with this if it actually turns out to be a problem.",
+      "created": "2026-10-29T16:48:34Z",
+      "hunk": "@@ -30,6 +32,43 @@ public final class ThriftSingletons {\n       ThriftInstrumenterFactory.createServerInstrumenter(\n           GlobalOpenTelemetry.get(), UnaryOperator.identity(), emptyList(), emptyList());\n   private static final ContextPropagators propagators = GlobalOpenTelemetry.get().getPropagators();\n+  private static final ClassValue<String> serviceNames =\n+      new ClassValue<String>() {\n+        @Override\n+        protected String computeValue(Class<?> type) {\n+          for (Class<?> current = type; current != null; current = current.getSuperclass()) {\n+            Class<?> service = current.getEnclosingClass();\n+            if (service == null) {\n+              continue;\n+            }\n+            // Generated processors declare Processor<I extends Iface> or\n+            // AsyncProcessor<I extends AsyncIface>; the bound identifies the service.\n+            for (TypeVariable<?> parameter : current.getTypeParameters()) {\n+              for (Type bound : parameter.getBounds()) {",
+      "id": "PRRT_kwDODJKVX86xqHVN",
+      "opened": "2026-10-29T16:48:34Z",
+      "path": "instrumentation/thrift-0.13/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/thrift/v0_13/ThriftSingletons.java",
+      "replies": [],
+      "reviewed": "c3b4ed6ff52a14d58b77f6588b8ba97159bfa271",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4415262581"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to make the best-effort Thrift service-name lookup resilient to reflection and class-loading failures. Preserve successful service discovery, synchronous and asynchronous instrumentation, the existing base and draft/ready state, and explicit library-wrapper behavior. Do not create another PR.\n\nIn instrumentation/thrift-0.13/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/thrift/v0_13/ThriftSingletons.java, wrap each class's generic introspection inside serviceNames.computeValue in try/catch (Throwable t), inside the superclass loop. Cover getTypeParameters(), getBounds(), and the related bound inspection rather than enumerating exception types. Log the failure at FINE using the existing java.util.logging conventions, identifying the class being inspected, and continue checking its superclass. If no service is found, retain the existing empty-string result so ClassValue caches it and getServerServiceName falls back to the handler class name. Do not cache a handler-specific name in the processor-class cache.\n\nThe existing advice-level suppress = Throwable.class protects the application but is not sufficient here: a lookup failure currently aborts advice before the synchronous decorators are installed or the asynchronous service name is assigned. Keep the catch narrowly scoped to this optional metadata lookup so instrumentation continues with the existing fallback. Do not change telemetry identities on successful lookup, public APIs, configuration, library documentation, or unrelated code.\n\nAdd focused regression coverage for failed generic inspection, superclass continuation, and the handler fallback using existing test utilities where practical. Run the narrowest applicable spotlessApply directly before targeted behavior validation, and report any actual validation blocker.",
+      "created": "2026-10-29T17:51:16Z",
+      "hunk": "@@ -30,6 +32,43 @@ public final class ThriftSingletons {\n       ThriftInstrumenterFactory.createServerInstrumenter(\n           GlobalOpenTelemetry.get(), UnaryOperator.identity(), emptyList(), emptyList());\n   private static final ContextPropagators propagators = GlobalOpenTelemetry.get().getPropagators();\n+  private static final ClassValue<String> serviceNames =\n+      new ClassValue<String>() {\n+        @Override\n+        protected String computeValue(Class<?> type) {\n+          for (Class<?> current = type; current != null; current = current.getSuperclass()) {\n+            Class<?> service = current.getEnclosingClass();\n+            if (service == null) {\n+              continue;\n+            }\n+            // Generated processors declare Processor<I extends Iface> or\n+            // AsyncProcessor<I extends AsyncIface>; the bound identifies the service.\n+            for (TypeVariable<?> parameter : current.getTypeParameters()) {",
+      "id": "PRRT_kwDODJKVX86xrsAR",
+      "opened": "2026-10-29T17:51:16Z",
+      "path": "instrumentation/thrift-0.13/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/thrift/v0_13/ThriftSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-29T18:10:34Z",
+          "body": "Added a narrowly scoped `Throwable` catch around each processor class’s generic metadata inspection, logging at `FINE` and continuing to its superclass. Added unit coverage for failed bound inspection, superclass discovery, and handler-name fallback. Commit: `35daa78d`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4416133129"
+        }
+      ],
+      "reviewed": "c3b4ed6ff52a14d58b77f6588b8ba97159bfa271",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20988#discussion_r4415936282"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ae18cb08155497c20d7a13761b045cc0bd41d2c90a5c2d5cfb77d0b95e04c47d",
+  "input_digest": "0a05b8332989b39a780cc93e95f0e3292df42c7b8bd4260a67b5cc1e0d986e3a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b12af46ddc2dc7636e7a247fd2da92d80dc34392/instrumentation/opentelemetry-api/opentelemetry-api-1.10/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_10/metrics/ApplicationDoubleCounterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6098ba755021fae423d6dea1f77491f9b4a65c54/instrumentation/opentelemetry-api/opentelemetry-api-1.10/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_10/metrics/ApplicationDoubleCounterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4c03a99a3a62f97ab14370342ea6aed9eff80f87"
+      ],
+      "id": "PRRT_kwDODJKVX85xzSxE",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b12af46ddc2dc7636e7a247fd2da92d80dc34392/instrumentation/opentelemetry-api/opentelemetry-api-1.10/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_10/metrics/CallbackAnchor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6098ba755021fae423d6dea1f77491f9b4a65c54/instrumentation/opentelemetry-api/opentelemetry-api-1.10/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_10/metrics/CallbackAnchor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4c03a99a3a62f97ab14370342ea6aed9eff80f87"
+      ],
+      "id": "PRRT_kwDODJKVX85xzVul",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4c03a99a3a62f97ab14370342ea6aed9eff80f87/instrumentation/opentelemetry-api/opentelemetry-api-1.10/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_10/metrics/CallbackAnchor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6098ba755021fae423d6dea1f77491f9b4a65c54/instrumentation/opentelemetry-api/opentelemetry-api-1.10/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_10/metrics/CallbackAnchor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f3c15afa9eeae8abd8971601850d170812695bc6"
+      ],
+      "id": "PRRT_kwDODJKVX85zXxyk",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

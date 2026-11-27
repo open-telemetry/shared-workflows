@@ -1,0 +1,136 @@
+{
+  "head": "318181dcb5efb534d3432fb6217670b73b349dd5",
+  "merge": "611e2e5169076bc075e98b3edd89e5b1bfc7e036",
+  "merged": "2026-06-09T22:52:37Z",
+  "missing_roots": 0,
+  "number": 18952,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Inline code span for the `this.getClass().getName() + \"$InnerClassName\"` example is currently split across lines, which breaks Markdown rendering and makes the guidance hard to read.",
+      "created": "2026-06-09T19:56:47Z",
+      "hunk": "@@ -149,38 +149,38 @@ Auto-fix boundaries:\n     determine each class's **role** (floor vs ceiling) and add the matching comment.\n     First check: does a **newer** sibling instrumentation module exist for this library\n     (e.g., `mongo-4.0` next to `mongo-3.7`)? If so, look at what the newer module checks\n-    in *its* `classLoaderMatcher()`. Classes that are present in the newer module's check\n+    in _its_ `classLoaderMatcher()`. Classes that are present in the newer module's check\n     but absent from the current module's check (or vice versa) reveal a version boundary —\n     the class was likely added or removed between versions.\n     Then determine the comment form for each class:\n-  **Positive floor class** (proves \"at least version X\"): look up when the class was\n-  **introduced** → comment `// added in X.Y`.\n-  **Positive ceiling class** (proves \"not yet version Y\"): look up when the class was\n-  **removed** → comment `// removed in Y.Z` (meaning: its presence here ensures we\n-  don't match version Y.Z+ where a different module takes over).\n-  **Negated exclusion class** in `not(hasClassesNamed(...))`: look up when the class was\n-  **introduced** → comment `// added in Y.Z`, because that first appearance begins the\n-  excluded version range.\n-  **Single positive class that provides both bounds**: include both facts in one comment,\n-  e.g. `// added in X.Y, removed in Y.Z`.\n-  A ceiling class might have been *introduced* much earlier than the module's target version.\n-  Do not use `// added in` for a positive ceiling class — that is misleading. The relevant\n-  fact is when it was **removed**. But for a negated exclusion class, `// added in` is the\n-  correct form because the class's introduction is exactly what starts excluding newer versions.\n-  Validate the version in the comment before adding or requesting it. Do not guess the\n-  version from the module name alone; confirm it with repository or upstream evidence.\n-  Sources: muzzle `versions.set(...)` ranges, sibling module `classLoaderMatcher()` checks,\n-  module directory names, existing code comments, Javadoc/release notes.\n-  Do NOT add a `classLoaderMatcher()` override where one does not already exist —\n-  this method is only for version-boundary detection when muzzle is insufficient,\n-  not for optimization (use `TypeInstrumentation.classLoaderOptimization()` instead)\n+    **Positive floor class** (proves \"at least version X\"): look up when the class was\n+    **introduced** → comment `// added in X.Y`.\n+    **Positive ceiling class** (proves \"not yet version Y\"): look up when the class was\n+    **removed** → comment `// removed in Y.Z` (meaning: its presence here ensures we\n+    don't match version Y.Z+ where a different module takes over).\n+    **Negated exclusion class** in `not(hasClassesNamed(...))`: look up when the class was\n+    **introduced** → comment `// added in Y.Z`, because that first appearance begins the\n+    excluded version range.\n+    **Single positive class that provides both bounds**: include both facts in one comment,\n+    e.g. `// added in X.Y, removed in Y.Z`.\n+    A ceiling class might have been _introduced_ much earlier than the module's target version.\n+    Do not use `// added in` for a positive ceiling class — that is misleading. The relevant\n+    fact is when it was **removed**. But for a negated exclusion class, `// added in` is the\n+    correct form because the class's introduction is exactly what starts excluding newer versions.\n+    Validate the version in the comment before adding or requesting it. Do not guess the\n+    version from the module name alone; confirm it with repository or upstream evidence.\n+    Sources: muzzle `versions.set(...)` ranges, sibling module `classLoaderMatcher()` checks,\n+    module directory names, existing code comments, Javadoc/release notes.\n+    Do NOT add a `classLoaderMatcher()` override where one does not already exist —\n+    this method is only for version-boundary detection when muzzle is insufficient,\n+    not for optimization (use `TypeInstrumentation.classLoaderOptimization()` instead)\n   - redundant `isMethod()` in method matchers inside `transform()` when the matcher already\n     names a specific, non-empty method (e.g., `isMethod().and(named(\"execute\"))` →\n     `named(\"execute\")`). Do not remove `isMethod()` when the name could be empty —\n     `named(\"\")` matches constructors and static initializers.\n   - redundant `this.` qualifier on advice class references inside `transform()` — prefer\n     `getClass().getName() + \"$InnerClassName\"`, not `this.getClass().getName() +\n-    \"$InnerClassName\"`\n+\"$InnerClassName\"`",
+      "id": "PRRT_kwDODJKVX86IRaZy",
+      "opened": "2026-06-09T19:56:49Z",
+      "path": ".github/agents/module-cleanup.agent.md",
+      "replies": [
+        {
+          "at": "2026-06-09T20:02:39Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952/commits/318181dcb5efb534d3432fb6217670b73b349dd5",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383495220"
+        }
+      ],
+      "reviewed": "063ffcba65b17e6d07008b4ea84a890aea4806e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383464067"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This line ends with a literal `\\*\\*`, which renders as stray `**` in Markdown. It looks like an accidental leftover from earlier bold markup and should be removed.",
+      "created": "2026-06-09T19:56:47Z",
+      "hunk": "@@ -89,7 +89,7 @@ Follow the principle of minimal necessary visibility. Use the most restrictive a\n still allows the code to function correctly.\n \n **Exception — Single public class**: If a module has only one public class then don't change it to\n-package-private. Javadoc task fails when module has no public classes.**\n+package-private. Javadoc task fails when module has no public classes.\\*\\*",
+      "id": "PRRT_kwDODJKVX86IRaam",
+      "opened": "2026-06-09T19:56:49Z",
+      "path": ".github/agents/knowledge/general-rules.md",
+      "replies": [
+        {
+          "at": "2026-06-09T20:02:36Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952/commits/318181dcb5efb534d3432fb6217670b73b349dd5",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383494981"
+        }
+      ],
+      "reviewed": "063ffcba65b17e6d07008b4ea84a890aea4806e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383464139"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The inline code for `public static final` is wrapped across a newline (`...`public static` + newline + `final`...), which is invalid/fragile Markdown and renders poorly. Keep the full phrase inside a single inline-code span.",
+      "created": "2026-06-09T19:56:48Z",
+      "hunk": "@@ -111,7 +111,7 @@ class MyInstrumentation implements TypeInstrumentation {\n \n - Exposed lower camel collaborator fields such as `public static final Instrumenter ...`.\n - Private + accessor wrappers around uppercase constant-like fields when a direct `public static\n-  final` field would be clearer and matches the naming guidance, including semantic keys/handles\n+final` field would be clearer and matches the naming guidance, including semantic keys/handles\n   and immutable value constants.",
+      "id": "PRRT_kwDODJKVX86IRabA",
+      "opened": "2026-06-09T19:56:49Z",
+      "path": ".github/agents/knowledge/javaagent-singletons-patterns.md",
+      "replies": [
+        {
+          "at": "2026-06-09T20:02:33Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952/commits/318181dcb5efb534d3432fb6217670b73b349dd5",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383494758"
+        }
+      ],
+      "reviewed": "063ffcba65b17e6d07008b4ea84a890aea4806e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383464173"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The example inline code `// added in Servlet 5.0` is currently broken across two lines, which makes the Markdown hard to read and can render incorrectly. Keep the example on one line.",
+      "created": "2026-06-09T19:56:48Z",
+      "hunk": "@@ -99,7 +99,7 @@ name string**.\n     `// added in X.Y (via groupId:artifactId A.B)`.\n   - For `javax.servlet:javax.servlet-api` and `jakarta.servlet:jakarta.servlet-api`, use the\n     shorthand `Servlet` instead of the full Maven coordinate, for example `// added in Servlet\n-    5.0` or `// added in X.Y (via Servlet 5.0)`.\n+5.0` or `// added in X.Y (via Servlet 5.0)`.",
+      "id": "PRRT_kwDODJKVX86IRabd",
+      "opened": "2026-06-09T19:56:49Z",
+      "path": ".github/agents/knowledge/javaagent-module-patterns.md",
+      "replies": [
+        {
+          "at": "2026-06-09T20:02:31Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952/commits/318181dcb5efb534d3432fb6217670b73b349dd5",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383494573"
+        }
+      ],
+      "reviewed": "063ffcba65b17e6d07008b4ea84a890aea4806e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383464215"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The example inline code `// removed in Servlet 5.0` is currently split across a line break, which is fragile Markdown and renders poorly. Keep the example on one line.",
+      "created": "2026-06-09T19:56:48Z",
+      "hunk": "@@ -109,7 +109,7 @@ name string**.\n     supplied by a different artifact, use `// removed in Y.Z (via groupId:artifactId A.B)`.\n   - For `javax.servlet:javax.servlet-api` and `jakarta.servlet:jakarta.servlet-api`, use the\n     shorthand `Servlet` instead of the full Maven coordinate, for example `// removed in Servlet\n-    5.0` or `// removed in Y.Z (via Servlet 5.0)`.\n+5.0` or `// removed in Y.Z (via Servlet 5.0)`.",
+      "id": "PRRT_kwDODJKVX86IRabx",
+      "opened": "2026-06-09T19:56:49Z",
+      "path": ".github/agents/knowledge/javaagent-module-patterns.md",
+      "replies": [
+        {
+          "at": "2026-06-09T20:02:28Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952/commits/318181dcb5efb534d3432fb6217670b73b349dd5",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383494344"
+        }
+      ],
+      "reviewed": "063ffcba65b17e6d07008b4ea84a890aea4806e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383464249"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The example inline code `// added in Servlet 5.0` is split across two lines here, which can render incorrectly. Keep the example on one line to avoid a newline inside the code span.",
+      "created": "2026-06-09T19:56:49Z",
+      "hunk": "@@ -122,7 +122,7 @@ name string**.\n     `// added in Y.Z (via groupId:artifactId A.B)`.\n   - For `javax.servlet:javax.servlet-api` and `jakarta.servlet:jakarta.servlet-api`, use the\n     shorthand `Servlet` instead of the full Maven coordinate, for example `// added in Servlet\n-    5.0` or `// added in Y.Z (via Servlet 5.0)`.\n+5.0` or `// added in Y.Z (via Servlet 5.0)`.",
+      "id": "PRRT_kwDODJKVX86IRacX",
+      "opened": "2026-06-09T19:56:49Z",
+      "path": ".github/agents/knowledge/javaagent-module-patterns.md",
+      "replies": [
+        {
+          "at": "2026-06-09T20:02:26Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952/commits/318181dcb5efb534d3432fb6217670b73b349dd5",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383494121"
+        }
+      ],
+      "reviewed": "063ffcba65b17e6d07008b4ea84a890aea4806e2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18952#discussion_r3383464297"
+    }
+  ]
+}

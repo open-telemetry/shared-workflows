@@ -1,0 +1,61 @@
+{
+  "head": "909d7c147e1ada94910268b8efd8ad109954f51b",
+  "merge": "a43806bc8d9ebf687a70c0b4eb2d26513b616b3c",
+  "merged": "2026-09-24T16:16:06Z",
+  "missing_roots": 0,
+  "number": 20178,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The latch is released inside the error handler, before `executeListener()` returns and its exit advice ends/exports the process span. The test can therefore finish while this test's spans are still exporting, allowing them to leak past the extension's lifecycle clear into another test. As with the other dynamically started containers in this class, drain and clear the three startup traces, then wait for the message and acknowledgement traces after the callback.",
+      "created": "2026-09-17T05:05:08Z",
+      "hunk": "@@ -508,6 +511,42 @@ void testDirectErrorMetrics() throws InterruptedException {\n             : \"org.springframework.amqp.rabbit.listener.exception.ListenerExecutionFailedException\");\n   }\n \n+  @ParameterizedTest\n+  @ValueSource(booleans = {true, false})\n+  void testErrorHandlerContextPropagation(boolean directContainer) throws InterruptedException {\n+    String queue = directContainer ? \"directErrorHandlerQueue\" : \"simpleErrorHandlerQueue\";\n+    applicationContext.getBean(AmqpAdmin.class).declareQueue(new Queue(queue));\n+    CountDownLatch errorHandled = new CountDownLatch(1);\n+    AtomicReference<SpanContext> errorHandlerSpanContext = new AtomicReference<>();\n+\n+    AbstractMessageListenerContainer container =\n+        directContainer\n+            ? new DirectMessageListenerContainer()\n+            : new SimpleMessageListenerContainer();\n+    container.setConnectionFactory(\n+        applicationContext.getBean(\n+            org.springframework.amqp.rabbit.connection.ConnectionFactory.class));\n+    container.setQueueNames(queue);\n+    container.setDefaultRequeueRejected(false);\n+    container.setMessageListener(\n+        message -> {\n+          throw new IllegalStateException(\"test\");\n+        });\n+    container.setErrorHandler(\n+        error -> {\n+          errorHandlerSpanContext.set(Span.current().getSpanContext());\n+          errorHandled.countDown();\n+        });\n+    cleanup.deferCleanup(container::stop);\n+    container.start();\n+\n+    applicationContext.getBean(AmqpTemplate.class).convertAndSend(queue, \"test\");\n+\n+    assertThat(errorHandled.await(10, SECONDS)).isTrue();\n+    assertThat(errorHandlerSpanContext.get()).isNotNull();\n+    assertThat(errorHandlerSpanContext.get().isValid()).isTrue();",
+      "id": "PRRT_kwDODJKVX86jNr2_",
+      "opened": "2026-09-17T05:05:09Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitMqTest.java",
+      "replies": [],
+      "reviewed": "343ff2028089fa1493930b6961e2246e66bd8b7e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20178#discussion_r4033299860"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Preserve listener failures when a custom error handler consumes them. `executeListener()` catches failures from `invokeListener()` and calls the configured `ErrorHandler`; if that handler returns normally (as the new regression handler does), this advice's `@Advice.Thrown` is `null`. The process span and `messaging.process.duration` metric therefore become successful, whereas the previous `invokeListener()` advice ended them with the listener exception. Keep the scope active around `executeListener()`, but retain the inner listener throwable for `instrumenter().end(...)` and cover its error status/metric in the regression test.",
+      "created": "2026-09-18T18:06:53Z",
+      "hunk": "@@ -33,17 +33,17 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n-        named(\"invokeListener\")\n+        named(\"executeListener\")",
+      "id": "PRRT_kwDODJKVX86j1-te",
+      "opened": "2026-09-18T18:06:54Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-19T18:18:10Z",
+          "body": "Thanks, fixed in e9bb710e85. The outer executeListener scope now retains failures captured from invokeListener, so a custom ErrorHandler can run with the process context active without turning the span or process metrics into a success. The regression test now drains startup traces and verifies the error span status, nack span, and error-tagged process metrics. Validated with Spotless, the full module test suite, Muzzle, latest dependencies, and both messaging semconv modes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20178#discussion_r4054186923"
+        }
+      ],
+      "reviewed": "8ac89d8a75433e4eaf92740f2c8b84760189fceb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20178#discussion_r4049385393"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Clear the captured throwable after consuming it. Application listener/error-handler code runs while this context is current and can retain or propagate it beyond `executeListener`; leaving `holder.error` set then keeps the exception and its object graph reachable for that context's lifetime. The analogous `GrizzlyErrorHolder` and `NettyErrorHolder` implementations both read and clear the field in `getOrDefault`.",
+      "created": "2026-09-22T09:16:23Z",
+      "hunk": "@@ -0,0 +1,45 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rabbit.v1_0;\n+\n+import static io.opentelemetry.context.ContextKey.named;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.ImplicitContextKeyed;\n+import javax.annotation.Nullable;\n+\n+public class SpringRabbitErrorHolder implements ImplicitContextKeyed {\n+\n+  private static final ContextKey<SpringRabbitErrorHolder> KEY =\n+      named(\"opentelemetry-spring-rabbit-error\");\n+\n+  @Nullable private Throwable error;\n+\n+  private SpringRabbitErrorHolder() {}\n+\n+  public static Context init(Context context) {\n+    return context.with(new SpringRabbitErrorHolder());\n+  }\n+\n+  public static void set(Context context, Throwable error) {\n+    SpringRabbitErrorHolder holder = context.get(KEY);\n+    if (holder != null) {\n+      holder.error = error;\n+    }\n+  }\n+\n+  @Nullable\n+  public static Throwable getOrDefault(Context context, @Nullable Throwable error) {\n+    SpringRabbitErrorHolder holder = context.get(KEY);\n+    return holder == null || holder.error == null ? error : holder.error;",
+      "id": "PRRT_kwDODJKVX86kqjXp",
+      "opened": "2026-09-22T09:16:23Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitErrorHolder.java",
+      "replies": [],
+      "reviewed": "6863bb5f6dfdc350ec535a7246534119de3128a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20178#discussion_r4070102268"
+    }
+  ]
+}

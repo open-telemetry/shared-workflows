@@ -1,0 +1,200 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9d9358a9696d5e13d87cf7ec2e6c9a1c2c22d15b07ce01dd8ee41d4e7913938e",
+  "input_digest": "21788088f1ef5f0b0e5cb1bc06f1f7ea25066d1ad61d9798cb59b6487ea0df1a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d3fea09a3572e5853c576b755f41d737c16dc811/tools/database/runner/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/tools/database/runner/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dcKHr",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/500d027f25717aac873b0425c0a8c7e28f2467da/tools/database/runner/src/database_conformance/_container.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/500d027f25717aac873b0425c0a8c7e28f2467da/tools/database/runner/tests/test_database_backends.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/tools/database/runner/src/database_conformance/_container.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/tools/database/runner/tests/test_database_backends.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/0aa2796049fa6f82f210f7b1aa513c46393332c8"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dlbsA",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a37a155d8b5a9e1d3e8994cf059696cd2ee46623/scenarios/database/java/gradle/libs.versions.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/java/gradle/libs.versions.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/272e2c5bc771da8e87d52011304d8b18c5c6b7ce"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tFPWi",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a37a155d8b5a9e1d3e8994cf059696cd2ee46623/tools/database/runner/src/database_conformance/_redis.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a37a155d8b5a9e1d3e8994cf059696cd2ee46623/tools/database/runner/src/database_conformance/_container.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/tools/database/runner/src/database_conformance/_redis.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/tools/database/runner/src/database_conformance/_container.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/68ef62584224503e8e3766da691b4111517e2cb5"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tFPWl",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a37a155d8b5a9e1d3e8994cf059696cd2ee46623/tools/database/runner/src/database_conformance/_redis.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/tools/database/runner/src/database_conformance/_redis.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/961e0e8f29f454b69daf09a3309ffdd2b2f64da2"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tFPWm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a37a155d8b5a9e1d3e8994cf059696cd2ee46623/tools/database/runner/src/database_conformance/_redis.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a37a155d8b5a9e1d3e8994cf059696cd2ee46623/tools/database/runner/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/tools/database/runner/src/database_conformance/_redis.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/tools/database/runner/tests/test_redis_clients.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/tools/database/runner/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/f54d026c1e23be32068e779112c7c4aee42fa363"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tFPWq",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a37a155d8b5a9e1d3e8994cf059696cd2ee46623/scenarios/database/java/shared/redis/rediscala/opentelemetry-javaagent/src/main/scala/RediscalaJavaagentScenario.scala",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/java/shared/redis/rediscala/opentelemetry-javaagent/src/main/scala/RediscalaJavaagentScenario.scala",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/0400217f16802ec599bae465f9d67cfb98bd2e11"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tFPWs",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a37a155d8b5a9e1d3e8994cf059696cd2ee46623/tools/database/runner/tests/test_database_backends.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/tools/database/runner/tests/test_database_backends.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/a39cc85ef4d43be9e68be1e09ead73954ea8cb2e"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tFPW5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a37a155d8b5a9e1d3e8994cf059696cd2ee46623/scenarios/database/java/shared/redis/rediscala/opentelemetry-javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/java/shared/redis/rediscala/opentelemetry-javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/76474e28d0d55874b2026744244358091f91c87e"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tFPWw",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a39cc85ef4d43be9e68be1e09ead73954ea8cb2e/tools/database/runner/tests/test_redis_clients.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/tools/database/runner/tests/test_redis_clients.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/3b2a2b80ad5a8e0149775cab5214de1f873df390"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tudxy",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6tudx5",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a39cc85ef4d43be9e68be1e09ead73954ea8cb2e/scenarios/database/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6tudx8",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/189f2683deb52708f95a29cf6680cf16a17b95e4/scenarios/database/contracts/redis-jedis.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/189f2683deb52708f95a29cf6680cf16a17b95e4/scenarios/database/contracts/redis-lettuce.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/189f2683deb52708f95a29cf6680cf16a17b95e4/scenarios/database/contracts/redis-rediscala.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/189f2683deb52708f95a29cf6680cf16a17b95e4/scenarios/database/contracts/redis-redisson.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/contracts/redis-jedis.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/contracts/redis-lettuce.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/contracts/redis-rediscala.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/contracts/redis-redisson.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/1568d53d6e6300ac16a777912bd4bf8790ae181c"
+      ],
+      "id": "PRRT_kwDOTuzK5c6var7r",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/189f2683deb52708f95a29cf6680cf16a17b95e4/scenarios/database/contracts/redis-lettuce.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/contracts/redis-lettuce.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/189f2683deb52708f95a29cf6680cf16a17b95e4/scenarios/database/contracts/redis-jedis.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/contracts/redis-jedis.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/189f2683deb52708f95a29cf6680cf16a17b95e4/scenarios/database/contracts/redis-rediscala.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/contracts/redis-rediscala.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/189f2683deb52708f95a29cf6680cf16a17b95e4/scenarios/database/contracts/redis-redisson.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e3ee8ca604219c592d8cc3c1788f19b71d94b6e/scenarios/database/contracts/redis-redisson.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/0d03ba8b01240345ef16e29dde9046918814f56b",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/17fb42646b142e48bea7c9175bf0b07c61600803"
+      ],
+      "id": "PRRT_kwDOTuzK5c6vaz6X",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6v8alt",
+      "kind": null,
+      "original": "PRRT_kwDOTuzK5c6var7r",
+      "status": "duplicate"
+    },
+    {
+      "id": "PRRT_kwDOTuzK5c6v8lGe",
+      "kind": null,
+      "original": "PRRT_kwDOTuzK5c6vaz6X",
+      "status": "duplicate"
+    }
+  ]
+}

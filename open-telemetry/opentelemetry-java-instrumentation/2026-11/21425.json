@@ -1,0 +1,139 @@
+{
+  "head": "d444827f46534aab88df857dc35da00924fcbe15",
+  "merge": "26f083ab8623bc960fa4a0ce69e1920a9a0646d7",
+  "merged": "2026-11-24T15:10:07Z",
+  "missing_roots": 0,
+  "number": 21425,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`randomVet()` still selects its last name from `adj`, which includes `Freakin' awesome`; that value violates the pinned image's [surname pattern](https://github.com/spring-petclinic/spring-petclinic-rest/blob/220f4ba8e92cec9ad1faa03324723a3e9da63d95/src/main/resources/openapi.yml#L2230-L2236). When selected, POST `/vets` returns HTTP 400 and the new zero-failure k6 thresholds fail the benchmark run. Select the last name from `surnames`, as `randomOwner()` already does.",
+      "created": "2026-11-23T01:04:34Z",
+      "hunk": "@@ -95,7 +95,8 @@ function randomVet(specialties) {\n     const first = randItem(firstNames);\n     const last = randItem(adj);",
+      "id": "PRRT_kwDODJKVX866qTfd",
+      "opened": "2026-11-23T01:04:34Z",
+      "path": "benchmark-overhead/k6/names.js",
+      "replies": [
+        {
+          "at": "2026-11-23T01:25:36Z",
+          "body": "Fixed in 344f476bd93bbe35318d46763a0191ca9fa1c648. `randomVet()` now selects from `surnames`, and a deterministic generator regression test covers the invalid-surname case. The zero-failure k6 thresholds remain unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21425#discussion_r4661007754"
+        }
+      ],
+      "reviewed": "82e54d4fb6015df71aa25d3fc680ebf113f5aa53",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21425#discussion_r4660927601"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly in its verified head repository open-telemetry/opentelemetry-java-instrumentation and branch copilot/petclinic-benchmark-integration. Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. The previous coding task has completed and its current-head Copilot review has finished. Make these two in-scope corrections together, preserving the rest of the approved integration.\n\nThe approved one-time latest-dependency upgrade requires Spring MVC 7.1.0, not the 7.0.10 currently used for both testImplementation and startupHelper compile-only in benchmark-overhead/build.gradle.kts. The coordinator verified Maven Central metadata at https://repo.maven.apache.org/maven2/org/springframework/spring-webmvc/maven-metadata.xml: release/latest are 7.1.0, lastUpdated 20261119135832. Update both dependency pins and directly related documentation. Keep the published application image and its digest unchanged; verify the benchmark helper remains compatible with the actual published Boot application rather than rebuilding the image to match the test dependency.\n\nCopilot review 6015521557 on head 82e54d4fb6015df71aa25d3fc680ebf113f5aa53 correctly found that benchmark-overhead/k6/names.js randomVet() selects lastName from adj, unlike randomOwner(). This array includes Freakin' awesome, which fails the pinned upstream Petclinic source 220f4ba8e92cec9ad1faa03324723a3e9da63d95 surname validation in src/main/resources/openapi.yml. With the new zero-failure k6 thresholds, a generated invalid surname makes the daily workload fail intermittently with HTTP 400. Select vet last names from the existing valid surnames array. Preserve the upgraded API payloads and the zero-failure thresholds. Add the smallest focused deterministic regression coverage using existing tooling; do not rely only on a random short k6 run to hit the bad case.\n\nRun the narrowest formatter directly before relevant validation, then validate the updated Spring tests/helper and generated vet requests against the pinned image where feasible. Preserve seeded readiness/body/header/JFR contracts and results/petclinic-v2 historical separation. Do not modify unrelated code, image publication, or PR title/description. Do not reply to or resolve review comments; the coordinator will handle them after verifying the fix. Do not merge anything or dispatch other tasks.",
+      "created": "2026-11-23T01:08:16Z",
+      "hunk": "@@ -32,8 +32,8 @@ dependencies {\n   testImplementation(\"com.jayway.jsonpath:json-path:3.0.0\")\n   testImplementation(\"org.slf4j:slf4j-simple:2.0.20\")\n   testImplementation(\"org.assertj:assertj-core:3.27.7\")\n-  testImplementation(\"org.springframework:spring-webmvc:5.3.3\")\n-  add(startupHelper.compileOnlyConfigurationName, \"org.springframework:spring-webmvc:5.3.3\")\n+  testImplementation(\"org.springframework:spring-webmvc:7.0.10\")",
+      "id": "PRRT_kwDODJKVX866qVn3",
+      "opened": "2026-11-23T01:08:16Z",
+      "path": "benchmark-overhead/build.gradle.kts",
+      "replies": [],
+      "reviewed": "82e54d4fb6015df71aa25d3fc680ebf113f5aa53",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21425#discussion_r4660941866"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete the remaining end-to-end verification for this existing PR in open-telemetry/opentelemetry-java-instrumentation on its verified head branch copilot/petclinic-benchmark-integration, current commit 344f476bd93bbe35318d46763a0191ca9fa1c648. Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. The previous coding attempt and latest Copilot review have ended.\n\nThe approved integration's code corrections are delivered: Spring MVC 7.1.0, valid vet surnames, immutable application/database images, modern helper registration/launcher, and separate historical results. Review 6015633204 has no remaining inline code issues, but its body correctly identifies an unmet acceptance criterion: Docker integration and agent/no-agent benchmark runs timed out because the cloud host could not reach Testcontainers mapped ports. Reported manual image checks do not prove the complete Java harness paths. This follow-up is specifically to close that verification gap, not to make unrelated changes.\n\nFirst diagnose the reachable Docker endpoint, the harness/container network relationship, and the actual mapped-port host address. Earlier successful in-container checks provide a concrete alternative to repeating the same unreachable-host timeout. Run the existing harness from an environment/network that can reach the Docker-created containers, or use a justified process-local Testcontainers host setting after proving reachability. Keep machine-only network settings out of repository defaults. Do not disable TLS verification, cleanup, or assertions, fake successful checks, change the pinned images, or blindly retry the same failure. If the available cloud environment cannot support this after bounded diagnostics, stop and record the precise remaining blocker and attempted alternatives.\n\nOn this exact PR code, run the existing benchmark-overhead petclinicIntegrationTest to validate seeded owner readiness, actual modern helper discovery, unchanged response body, selective uptime/JVM-version headers and nonempty JFR capture. Then run the documented Petclinic agentStartupBenchmark functional configuration with startupBenchmarkWarmups=0 and startupBenchmarkSamples=1, using the actual built current agent and annotation JARs. It must exercise both no-agent and agent launches through the real harness and retain the normal untimed profiling/JFR path. Build the required agent/annotation/recorder/helper artifacts using existing tasks before measurement. Inspect the actual generated observations, diagnostics and recordings rather than counting a command exit as sufficient. This is a functional check, not a performance claim; do not run the full nightly benchmark or default twenty-sample measurement.\n\nFix only a reproducible PR-caused harness issue if these checks uncover one, with the smallest focused change and appropriate regression coverage. Do not manufacture code changes if verification succeeds without them. If code changes are necessary, run the narrowest formatter immediately before relevant validation. Record exact commands, their outcomes and artifact evidence in the coding session output. Do not edit PR titles/descriptions, reply to or resolve review comments, merge anything, or dispatch other tasks.",
+      "created": "2026-11-23T01:32:19Z",
+      "hunk": "@@ -32,8 +32,8 @@ dependencies {\n   testImplementation(\"com.jayway.jsonpath:json-path:3.0.0\")\n   testImplementation(\"org.slf4j:slf4j-simple:2.0.20\")\n   testImplementation(\"org.assertj:assertj-core:3.27.7\")\n-  testImplementation(\"org.springframework:spring-webmvc:5.3.3\")\n-  add(startupHelper.compileOnlyConfigurationName, \"org.springframework:spring-webmvc:5.3.3\")\n+  testImplementation(\"org.springframework:spring-webmvc:7.1.0\")",
+      "id": "PRRT_kwDODJKVX866qjdk",
+      "opened": "2026-11-23T01:32:19Z",
+      "path": "benchmark-overhead/build.gradle.kts",
+      "replies": [],
+      "reviewed": "344f476bd93bbe35318d46763a0191ca9fa1c648",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21425#discussion_r4661033946"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update existing PR 21425 directly in its verified head repository open-telemetry/opentelemetry-java-instrumentation and branch copilot/petclinic-benchmark-integration. Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. Preserve the PR's draft state. The user approved reducing the test expansion to focused regressions and necessary compatibility updates, without changing the substantive Petclinic workload upgrade.\n\nRemove benchmark-overhead/src/test/java/io/opentelemetry/startup/PetclinicIntegrationTest.java, its dedicated petclinicIntegrationTest Gradle task, its exclusion from the default test task, and the README paragraph/command introducing that task. The existing opt-in AgentStartupBenchmark already checks real Petclinic helper discovery, seeded readiness and JFR; do not replace the removed integration test with another new test or abstraction.\n\nRemove the additional bundled-Spring helper-JAR hardening: the jar.stream().anyMatch entry-name rejection predicate in PetclinicStartupFixture.java and the bundledSpring JAR/test case added inside AgentStartupReportTest.petclinicValidatesInputsBeforeStartingDocker(). Keep the pre-existing invalid-JAR checks and their necessary adaptation to modern AutoConfiguration.imports registration. Keep the normal helper JAR packaging restricted to its advice class and imports resource, with Spring remaining compile-only.\n\nKeep MainResultsPersisterTest.java and k6/names-test.js, which cover historical CSV preservation and the real intermittent invalid-surname bug. Keep the existing launcher/header assertion updates. Preserve Spring MVC 7.1.0, the published application and PostgreSQL digest pins, modern Boot launcher/registration, seeded readiness/body/header behavior, database schema/profiles, upgraded k6 payloads, valid surname and unique-specialty generation, separate petclinic-v2 historical results, JFR error checks, and zero-failure k6 thresholds. Clean up only directly obsolete references/imports from these removals. Do not expand scope or add replacement coverage.\n\nRun the narrowest formatter directly before targeted validation of the retained startup/results tests and surname regression using existing tooling. Use the existing Petclinic agentStartupBenchmark short functional run with startupBenchmarkWarmups=0 and startupBenchmarkSamples=1 if runtime verification is needed, not a new integration-test task. On current head 344f476bd93bbe35318d46763a0191ca9fa1c648, the coordinator already inspected successful real no-agent/agent harness samples, pinned image metadata and nonempty JFR recordings from the prior verification attempt. Preserve those contracts and report exact outcomes or genuine environment blockers. Do not merge anything, dispatch other tasks, or reply to or resolve review comments.",
+      "created": "2026-11-23T02:27:40Z",
+      "hunk": "@@ -49,6 +49,7 @@ tasks {\n     useJUnitPlatform()\n     exclude(\"**/AotStartupBenchmark.class\")\n     exclude(\"**/AgentStartupBenchmark.class\")\n+    exclude(\"**/PetclinicIntegrationTest.class\")",
+      "id": "PRRT_kwDODJKVX866rHsQ",
+      "opened": "2026-11-23T02:27:40Z",
+      "path": "benchmark-overhead/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-23T02:34:56Z",
+          "body": "Removed the standalone integration test/task and obsolete README command, and removed the bundled-Spring JAR rejection/test while retaining required helper validation. Commit: `0356ec44`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21425#discussion_r4661298853"
+        }
+      ],
+      "reviewed": "344f476bd93bbe35318d46763a0191ca9fa1c648",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21425#discussion_r4661268123"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] The three new JFR command checks repeat the same steps: run the command, check the exit code, and throw an `IllegalStateException` with the result. A small private helper could replace all three and keep the context-specific messages. For example: `private static void execChecked(GenericContainer<?> container, String errorMessage, String... command)`. Call it from `startRecording` and from the warmup start and stop calls in `doWarmupPhase`.",
+      "created": "2026-11-23T03:16:25Z",
+      "hunk": "@@ -121,7 +121,10 @@ private void startRecording(Agent agent, GenericContainer<?> petclinic) throws E\n       \"name=petclinic\",\n       \"filename=\" + outFile\n     };\n-    petclinic.execInContainer(command);\n+    var result = petclinic.execInContainer(command);\n+    if (result.getExitCode() != 0) {\n+      throw new IllegalStateException(\"Could not start JFR: \" + result);\n+    }",
+      "id": "PRRT_kwDODJKVX866roN7",
+      "opened": "2026-11-23T03:16:25Z",
+      "path": "benchmark-overhead/src/test/java/io/opentelemetry/OverheadTests.java",
+      "replies": [],
+      "reviewed": "0356ec441ef1fdfafae4d6e43b088654d7aad68e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21425#discussion_r4661482222"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] `PetclinicStartupFixture.DATABASE_IMAGE` is now just `PostgresContainer.IMAGE`, so both callers use the same image. That makes the image override unnecessary. You could:\n\n- delete the `(Network, String image)` constructor and the `image` field;\n- build `new PostgreSQLContainer<>(IMAGE)` directly;\n- use `new PostgresContainer(network)` in `PetclinicStartupFixture`.\n\nThat removes a configuration path nothing uses any more.",
+      "created": "2026-11-23T21:30:51Z",
+      "hunk": "@@ -18,12 +18,14 @@ public class PostgresContainer {\n   public static final String PASSWORD = \"petclinic\";\n   public static final String USERNAME = \"petclinic\";\n   public static final String DATABASE_NAME = \"petclinic\";\n+  public static final String IMAGE =\n+      \"postgres@sha256:eb63372c1e05c755f55fa30cbd07aecc443676fc6c0fa90b9002d01537841e1a\";\n \n   private final Network network;\n   private final String image;\n \n   public PostgresContainer(Network network) {\n-    this(network, \"postgres:9.6.22\");\n+    this(network, IMAGE);",
+      "id": "PRRT_kwDODJKVX867E7kq",
+      "opened": "2026-11-23T21:30:51Z",
+      "path": "benchmark-overhead/src/test/java/io/opentelemetry/containers/PostgresContainer.java",
+      "replies": [
+        {
+          "at": "2026-11-23T23:02:55Z",
+          "body": "90403add9d508339c749e7a9e5f1cc1b893a4435",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21425#discussion_r4673200057"
+        }
+      ],
+      "reviewed": "8ac2a8e8a5ce4eadccc7863ce4714a4a745412ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21425#discussion_r4672293052"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "Nothing runs this test: no Gradle task, workflow or README step calls `k6 run k6/names-test.js`. A regression in `names.js` would therefore go unnoticed. Either add it to a build or CI step (for example, a k6 run before `basic.js`) or document how to run it. It also gets copied into the k6 container's `/app`, since `K6Container` copies the whole `./k6` directory.",
+      "created": "2026-11-23T21:30:51Z",
+      "hunk": "@@ -0,0 +1,16 @@\n+import names from \"./names.js\";",
+      "id": "PRRT_kwDODJKVX867E7ku",
+      "opened": "2026-11-23T21:30:51Z",
+      "path": "benchmark-overhead/k6/names-test.js",
+      "replies": [
+        {
+          "at": "2026-11-23T23:02:57Z",
+          "body": "d444827f46534aab88df857dc35da00924fcbe15",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21425#discussion_r4673200399"
+        }
+      ],
+      "reviewed": "8ac2a8e8a5ce4eadccc7863ce4714a4a745412ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21425#discussion_r4672293058"
+    }
+  ]
+}

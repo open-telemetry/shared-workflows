@@ -1,0 +1,97 @@
+{
+  "head": "d33899f9557071be3043a7f97eee80dbab70cfa8",
+  "merge": "5d1937f8c3a35532eafcbf5535a8bb27c79faf53",
+  "merged": "2026-09-12T00:49:53Z",
+  "missing_roots": 0,
+  "number": 20044,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The interceptor producer-span test in `AbstractInterceptorsTest` validates this span's shape but never compares its start and end timestamps, so the zero-duration requirement can regress unnoticed. Add an assertion that `getEndEpochNanos()` equals `getStartEpochNanos()`, following the existing SQS synthetic-span test pattern.",
+      "created": "2026-09-09T16:30:46Z",
+      "hunk": "@@ -58,13 +60,13 @@ public <K, V> ProducerRecord<K, V> buildAndInjectSpan(\n       return record;\n     }\n \n-    Context context = producerInstrumenter.start(parentContext, request);\n-    try {\n-      if (producerPropagationEnabled) {\n-        record = KafkaPropagation.propagateContext(propagator, context, record);\n-      }\n-    } finally {\n-      producerInstrumenter.end(context, request, null, null);\n+    // The interceptor only injects headers, so this synthetic span has no operation duration.\n+    Instant timestamp = Instant.now();\n+    Context context =\n+        InstrumenterUtil.startAndEnd(\n+            producerInstrumenter, parentContext, request, null, null, timestamp, timestamp);",
+      "id": "PRRT_kwDODJKVX86gvtoC",
+      "opened": "2026-09-09T16:30:47Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaProducerTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-09-09T17:59:29Z",
+          "body": "I’m intentionally not asserting zero duration here. Unlike synthetic `create` spans, this span represents an operation that ideally includes network duration. It is zero-duration only because the interceptor API does not expose hooks around the operation, so encoding that limitation in the test would prevent a future instrumentation improvement.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20044#discussion_r3971503317"
+        }
+      ],
+      "reviewed": "d05cdca0f66b0f34f02dea7914079b990dc39d56",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20044#discussion_r3970770207"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The interceptor consumer-span test in `AbstractInterceptorsTest` checks this receive span but does not assert that its start and end timestamps are equal. Add that timestamp assertion so the zero-duration behavior required by #19941 is preserved independently of the implementation.",
+      "created": "2026-09-09T16:30:47Z",
+      "hunk": "@@ -40,10 +40,11 @@ public ConsumerRecords<K, V> onConsume(ConsumerRecords<K, V> records) {\n     if (consumerTelemetry == null) {\n       return records;\n     }\n-    // timer should be started before fetching ConsumerRecords, but there is no callback for that\n-    Timer timer = Timer.start();\n+    // There is no callback before fetching ConsumerRecords, so the receive duration is unknown.\n+    Instant timestamp = Instant.now();\n     Context receiveContext =\n-        consumerTelemetry.buildAndFinishSpan(records, consumerGroup, clientId, timer);\n+        consumerTelemetry.buildAndFinishSpan(\n+            records, consumerGroup, clientId, timestamp, timestamp);",
+      "id": "PRRT_kwDODJKVX86gvtqF",
+      "opened": "2026-09-09T16:30:47Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/OpenTelemetryConsumerInterceptor.java",
+      "replies": [
+        {
+          "at": "2026-09-09T17:59:29Z",
+          "body": "I’m intentionally not asserting zero duration here. Unlike synthetic `create` spans, this span represents an operation that ideally includes network duration. It is zero-duration only because the interceptor API does not expose hooks around the operation, so encoding that limitation in the test would prevent a future instrumentation improvement.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20044#discussion_r3971503323"
+        }
+      ],
+      "reviewed": "d05cdca0f66b0f34f02dea7914079b990dc39d56",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20044#discussion_r3970770374"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using `Instant.now()` introduces reliance on wall-clock time (which can jump due to NTP/clock adjustments) for span timestamps. Since you only need a “now” value to create a zero-duration span, it’d be more robust to use a shared/SDK-consistent time source (e.g., an OpenTelemetry clock/time utility used elsewhere in this instrumentation) so timestamps align with other spans produced by the same library and are less sensitive to wall-clock corrections.",
+      "created": "2026-09-09T19:49:24Z",
+      "hunk": "@@ -40,10 +40,11 @@ public ConsumerRecords<K, V> onConsume(ConsumerRecords<K, V> records) {\n     if (consumerTelemetry == null) {\n       return records;\n     }\n-    // timer should be started before fetching ConsumerRecords, but there is no callback for that\n-    Timer timer = Timer.start();\n+    // There is no callback before fetching ConsumerRecords, so the receive duration is unknown.\n+    Instant timestamp = Instant.now();\n     Context receiveContext =\n-        consumerTelemetry.buildAndFinishSpan(records, consumerGroup, clientId, timer);\n+        consumerTelemetry.buildAndFinishSpan(\n+            records, consumerGroup, clientId, timestamp, timestamp);",
+      "id": "PRRT_kwDODJKVX86gz1A-",
+      "opened": "2026-09-09T19:49:25Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/OpenTelemetryConsumerInterceptor.java",
+      "replies": [],
+      "reviewed": "d05cdca0f66b0f34f02dea7914079b990dc39d56",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20044#discussion_r3972402464"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`InstrumenterUtil.startAndEnd(...)` ends the span before header propagation runs. If `KafkaPropagation.propagateContext(...)` throws (or otherwise fails), that failure can no longer be recorded on the span, whereas previously the `end(...)` happened in a `finally` and could observe the thrown error. Consider switching back to a `try/finally` structure where you end the span after propagation, but still force zero-duration by using the same explicit timestamp for start/end and passing any thrown `Throwable` into `end(...)` (or using an `InstrumenterUtil` helper that supports explicit timestamps + error propagation).",
+      "created": "2026-09-09T19:49:24Z",
+      "hunk": "@@ -58,13 +60,13 @@ public <K, V> ProducerRecord<K, V> buildAndInjectSpan(\n       return record;\n     }\n \n-    Context context = producerInstrumenter.start(parentContext, request);\n-    try {\n-      if (producerPropagationEnabled) {\n-        record = KafkaPropagation.propagateContext(propagator, context, record);\n-      }\n-    } finally {\n-      producerInstrumenter.end(context, request, null, null);\n+    // The interceptor only injects headers, so this synthetic span has no operation duration.\n+    Instant timestamp = Instant.now();\n+    Context context =\n+        InstrumenterUtil.startAndEnd(\n+            producerInstrumenter, parentContext, request, null, null, timestamp, timestamp);\n+    if (producerPropagationEnabled) {\n+      record = KafkaPropagation.propagateContext(propagator, context, record);\n     }\n     return record;",
+      "id": "PRRT_kwDODJKVX86gz1AW",
+      "opened": "2026-09-09T19:49:25Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaProducerTelemetry.java",
+      "replies": [],
+      "reviewed": "d05cdca0f66b0f34f02dea7914079b990dc39d56",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20044#discussion_r3972402408"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test updates the call signature but doesn’t assert the new behavior that motivated the change (that interceptor-created spans are zero-duration). Add an assertion that the produced receive span has `startTime == endTime` (or duration == 0) to prevent regressions back to measurable interceptor execution time.",
+      "created": "2026-09-09T19:49:24Z",
+      "hunk": "@@ -140,9 +140,10 @@ void disabledReceiveClearsInheritedReceiveOperation() {\n     Context inheritedContext =\n         KafkaConsumerContextUtil.withReceiveOperation(Context.current(), true);\n     try (Scope ignored = inheritedContext.makeCurrent()) {\n+      Instant timestamp = Instant.now();\n       receiveContext =\n           requireNonNull(\n-              supplier.get().buildAndFinishSpan(records, \"test\", \"client\", Timer.start()));\n+              supplier.get().buildAndFinishSpan(records, \"test\", \"client\", timestamp, timestamp));",
+      "id": "PRRT_kwDODJKVX86gz1Bd",
+      "opened": "2026-09-09T19:49:25Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/OpenTelemetryConsumerInterceptorTest.java",
+      "replies": [],
+      "reviewed": "d05cdca0f66b0f34f02dea7914079b990dc39d56",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20044#discussion_r3972402504"
+    }
+  ]
+}

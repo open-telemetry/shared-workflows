@@ -1,0 +1,31 @@
+{
+  "head": "25dc84f032e59a505e4bb0354d47005af898a858",
+  "merge": "aada8328d4a7be017fbd8bb4ba1fd291c71419cf",
+  "merged": "2026-05-12T19:00:58Z",
+  "missing_roots": 0,
+  "number": 18717,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Because the script runs with `set -euo pipefail`, a `git merge-base origin/main origin/$WIP_BRANCH` failure (e.g., if the remote wip branch has unrelated history due to force-push or repo history rewrite) will abort the finalize step and prevent flushing/cleanup. Consider guarding this and falling back to a safe base (e.g., diff against `origin/main` as a fallback) so the job remains robust.",
+      "created": "2026-05-12T18:22:25Z",
+      "hunk": "@@ -140,8 +140,12 @@ git fetch origin \"$WIP_BRANCH\" 2>/dev/null || true\n \n # ---- 3. Decide flush ----\n \n+# Count files touched by wip's own commits only. Diffing against\n+# `origin/main` directly would also count files that have moved forward\n+# on main since the wip branch was created.\n if git rev-parse --verify \"origin/$WIP_BRANCH\" >/dev/null 2>&1; then\n-    FILE_COUNT=$(git diff --name-only origin/main \"origin/$WIP_BRANCH\" | wc -l)\n+    WIP_BASE=$(git merge-base origin/main \"origin/$WIP_BRANCH\")\n+    FILE_COUNT=$(git diff --name-only \"$WIP_BASE\" \"origin/$WIP_BRANCH\" | wc -l)",
+      "id": "PRRT_kwDODJKVX86BhH59",
+      "opened": "2026-05-12T18:22:26Z",
+      "path": ".github/scripts/module-cleanup/finalize.sh",
+      "replies": [
+        {
+          "at": "2026-05-12T18:25:33Z",
+          "body": "The WIP branch is always created from `origin/main` (see the `git worktree add -B \"$WIP_BRANCH\" \"$WIP_WT\" origin/main` earlier in this same script), so it's guaranteed to share history with main. `git merge-base` only fails when there is no common ancestor — that requires an orphan branch or a full rewrite of main, neither of which happens here. A plain force-push to wip doesn't break merge-base; the new tip still has the original main commit in its ancestry.\n\nFalling back to `origin/main` is also exactly the buggy behavior this PR removes — silently falling back would mask a real upstream problem (rewritten main) while reintroducing the false-flush bug. If merge-base ever did fail, failing loudly is the right outcome.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18717#discussion_r3228823841"
+        }
+      ],
+      "reviewed": "25dc84f032e59a505e4bb0354d47005af898a858",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18717#discussion_r3228804438"
+    }
+  ]
+}

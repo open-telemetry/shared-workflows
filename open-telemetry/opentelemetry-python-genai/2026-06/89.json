@@ -1,0 +1,25 @@
+{
+  "head": "e3cc37543660f4cce75d1a64f65cde2fb6f09001",
+  "merge": "7f364dc56f706730d9dd0244336324a394e63ab0",
+  "merged": "2026-06-10T00:31:37Z",
+  "missing_roots": 0,
+  "number": 89,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The retrieval section comment says only `gen_ai.operation.name` is unconditionally required, but `_retrieval_expected` now also includes `server.address`. Please update the comment to reflect that `server.address` is being treated as an expected (always-emit recommended) attribute for retrieval spans, or remove it from `_retrieval_expected` if that wasn’t intended.",
+      "created": "2026-05-23T19:34:27Z",
+      "hunk": "@@ -174,7 +174,7 @@ _create_agent_expected := {\n # Retrieval. Only gen_ai.operation.name is unconditionally required.\n _retrieval_expected := {\n \t\"gen_ai.operation.name\",\n-\t# \"server.address\", sometimes not available\n+\t\"server.address\",\n }",
+      "id": "PRRT_kwDOSbspP86EVJzf",
+      "opened": "2026-05-23T19:34:27Z",
+      "path": "policies/genai_span_validation.rego",
+      "replies": [],
+      "reviewed": "808a29098ee64e686c972cae9f90b4b5faeeee59",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/89#discussion_r3293386110"
+    }
+  ]
+}

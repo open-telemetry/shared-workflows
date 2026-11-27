@@ -1,0 +1,25 @@
+{
+  "head": "41b8f967b09db1bcf4f54dbd2373ed050b83198d",
+  "merge": "1e27b90766a27a655575c59d51596e73962366a1",
+  "merged": "2026-07-16T18:25:27Z",
+  "missing_roots": 0,
+  "number": 276,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_seen_span_operations()` currently increments once per *attribute occurrence*. If a sampled span ever carries duplicate `gen_ai.operation.name` attributes (e.g., from an SDK bug or test fixture), this will over-count operations and make `Scenario.validate()` fail even though the span count is correct. Counting at most once per span sample makes the helper more robust while preserving current behavior for well-formed spans.",
+      "created": "2026-07-16T02:28:02Z",
+      "hunk": "@@ -163,15 +165,16 @@ def _seen_metric_names(report: LiveCheckReport) -> set[str]:\n     return {name for name, count in seen.items() if count}\n \n \n-def _seen_span_operations(report: LiveCheckReport) -> set[str]:\n-    \"\"\"`gen_ai.operation.name` values observed across the report's span samples.\"\"\"\n-    return {\n-        attr[\"value\"]\n-        for entry in report[\"samples\"]\n-        if \"span\" in entry\n-        for attr in entry[\"span\"][\"attributes\"]\n-        if attr[\"name\"] == \"gen_ai.operation.name\"\n-    }\n+def _seen_span_operations(report: LiveCheckReport) -> dict[str, int]:\n+    \"\"\"`gen_ai.operation.name` counts across the report's span samples.\"\"\"\n+    counts: dict[str, int] = {}\n+    for entry in report[\"samples\"]:\n+        if \"span\" not in entry:\n+            continue\n+        for attr in entry[\"span\"][\"attributes\"]:\n+            if attr[\"name\"] == \"gen_ai.operation.name\":\n+                counts[attr[\"value\"]] = counts.get(attr[\"value\"], 0) + 1",
+      "id": "PRRT_kwDOSbspP86RTaWz",
+      "opened": "2026-07-16T02:28:02Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [],
+      "reviewed": "99fe694031a933fc0ea81a34044e34dd736fa846",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/276#discussion_r3592210455"
+    }
+  ]
+}

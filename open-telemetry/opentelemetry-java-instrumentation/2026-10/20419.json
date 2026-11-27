@@ -1,0 +1,277 @@
+{
+  "head": "7666764ee4ac07ff87b1e0403302389e7d9604e5",
+  "merge": "6866060e9140df6b090df9ccc1e8fde6507db64b",
+  "merged": "2026-10-08T11:34:44Z",
+  "missing_roots": 0,
+  "number": 20419,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This creates a second `user` key under `java.common` (another one remains at lines 229-237). Duplicate YAML mapping keys are invalid or parser-dependent, so this example can be rejected or silently overwrite one block. Remove this first duplicate and keep the existing block near `v3_preview`.",
+      "created": "2026-10-07T04:01:12Z",
+      "hunk": "@@ -105,18 +105,14 @@ instrumentation/development:\n           # augmenting queries with tracing context will make query texts unique, which may have\n           # adverse impact on database performance.\n           enabled: false\n-      enduser:\n-        id:\n-          # Enables capturing the enduser.id attribute. This property and the associated attribute\n-          # are not supported when v3 preview is enabled.\n-          enabled: false\n-        role:\n-          # Enables capturing the enduser.role attribute. This property and the associated attribute\n-          # are not supported when v3 preview is enabled.\n+      user:",
+      "id": "PRRT_kwDODJKVX86pwCqm",
+      "opened": "2026-10-07T04:01:13Z",
+      "path": "docs/declarative-configuration-example.yaml",
+      "replies": [],
+      "reviewed": "22d786af2c064c3ba515f9810e93c4747dbb4eca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4202923963"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This breaking-API entry omits the removal of the public `UserConfig.isScopeEnabled()` method from `opentelemetry-instrumentation-api-incubator`. Include it so consumers of that alpha artifact receive complete migration notes.",
+      "created": "2026-10-07T04:01:13Z",
+      "hunk": "@@ -25,6 +35,8 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- Rename `Experimental.setCaptureEnduserId` to `setCaptureUserName` in the Servlet 3.0 and 5.0\n+  libraries, and remove the Spring Security `UserAttributesCapturer` scope-capture methods.",
+      "id": "PRRT_kwDODJKVX86pwCrM",
+      "opened": "2026-10-07T04:01:13Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "22d786af2c064c3ba515f9810e93c4747dbb4eca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4202924028"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This shared setting is now the sole control read by Servlet 2.2, 3.0, and 5.0 through `AgentCommonConfig` (`BaseServletHelper`/`AgentServletInstrumenterBuilder`), but none of those modules' `metadata.yaml` files reference `common.user.name.enabled`. Consequently the generated supported-configuration docs omit the setting for Servlet even though the Servlet README advertises it. Add this ref to each affected Servlet metadata file.",
+      "created": "2026-10-07T04:01:13Z",
+      "hunk": "@@ -215,6 +215,20 @@ configurations:\n     type: string\n     default: trace_id\n \n+  common.user.name.enabled:",
+      "id": "PRRT_kwDODJKVX86pwCrs",
+      "opened": "2026-10-07T04:01:13Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [],
+      "reviewed": "22d786af2c064c3ba515f9810e93c4747dbb4eca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4202924081"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] There is no installed-agent Servlet test that enables the new common setting, supplies a request principal, and verifies `user.name`. The added extractor unit test bypasses both configuration wiring and the app-server-owned SERVER-span fallback in `BaseServletHelper`, so this 3.0 telemetry migration is not covered on the actual agent path. Add representative agent-backed coverage for both span-ownership paths.",
+      "created": "2026-10-07T05:06:30Z",
+      "hunk": "@@ -60,7 +60,7 @@ public Instrumenter<ServletRequestContext<REQUEST>, ServletResponseContext<RESPO\n                 instrumentationName, GlobalOpenTelemetry.get(), httpAttributesGetter, accessor)\n             .setRequestParameters(servletConfig.getRequestParameters())\n             .setCaptureExperimentalAttributes(servletConfig.getCaptureExperimentalAttributes())\n-            .setCaptureEnduserId(AgentCommonConfig.get().getUserConfig().isNameEnabled());\n+            .setCaptureUserName(AgentCommonConfig.get().getUserConfig().isNameEnabled());",
+      "id": "PRRT_kwDODJKVX86pw1qM",
+      "opened": "2026-10-07T05:06:30Z",
+      "path": "instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/AgentServletInstrumenterBuilder.java",
+      "replies": [
+        {
+          "at": "2026-10-07T20:52:53Z",
+          "body": "No code change.\n\nAnalysis: Already addressed at frozen head by af7b1b851d. Servlet3UserNameTest (servlet-3.0 javaagent-testing) runs a Tomcat agent test with a request principal valve and asserts user.name on the servlet-owned SERVER span (scope io.opentelemetry.servlet-3.0). TomcatHandlerTest.capturesUserNameFromPrincipal covers the app-server-owned SERVER span fallback in BaseServletHelper (scope tomcat-10.0). Both run with otel.instrumentation.common.user.name.enabled=true via testUserNameCapture Gradle tasks wired into check.\n\nUpsides: Both span-ownership paths are covered on the real agent path, including config wiring.\n\nDownsides: Tomcat coverage only for 10.0; extra Gradle test tasks add CI time. Not needed to resolve this finding.\n\n<!-- copilot-loop:c82c6518265a6b4f6fd8aeae8bffb6c1dec45bd80143ca320f429d1019f8a26d:4203251293:872af4c6cfc145e6948bc2480258930c -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4211865664"
+        }
+      ],
+      "reviewed": "c92d56d83bd93ee472a0a7b7cc4b1d58e466eb08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4203251293"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I'm not sure mentioning the removed method makes sense here, perhaps this should only be mentioned in the breaking changes.",
+      "created": "2026-10-07T05:22:44Z",
+      "hunk": "@@ -49,6 +49,20 @@ ServletTelemetry telemetry = ServletTelemetry.create(openTelemetry);\n Filter filter = telemetry.createFilter();\n ```\n \n+### Capture the authenticated user name\n+\n+Capture the name returned by `HttpServletRequest.getUserPrincipal()` as `user.name` by enabling it\n+on the builder. Capture is disabled by default.\n+\n+```java\n+ServletTelemetryBuilder builder = ServletTelemetry.builder(openTelemetry);\n+Experimental.setCaptureUserName(builder, true);\n+Filter filter = builder.build().createFilter();\n+```\n+\n+Replace calls to `Experimental.setCaptureEnduserId(builder, enabled)` with",
+      "id": "PRRT_kwDODJKVX86pxHVz",
+      "opened": "2026-10-07T05:22:44Z",
+      "path": "instrumentation/servlet/servlet-5.0/library/README.md",
+      "replies": [],
+      "reviewed": "c92d56d83bd93ee472a0a7b7cc4b1d58e466eb08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4203367558"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Not sure about mentioning the old properties here. If we want to mention them maybe we should have a separate migration notes section that make clear that these are pre v3 properties?",
+      "created": "2026-10-07T05:26:52Z",
+      "hunk": "@@ -3,21 +3,33 @@\n Javaagent automatic instrumentation to capture identity semantic attributes\n from Spring Security `Authentication` objects.\n \n-By default this instrumentation emits the deprecated `enduser.*` attributes when enabled. When\n-`otel.instrumentation.common.v3-preview` is enabled, it emits `user.name` and the string array\n-`user.roles` instead, and `enduser.scope` is not supported.\n+When explicitly enabled, this instrumentation emits `user.name` and `user.roles` as a string array.\n+Identity capture is disabled by default. Scope authorities are not captured.\n \n ## Settings\n \n-This module honors the [common `otel.instrumentation.common.enduser.*` properties](https://opentelemetry.io/docs/zero-code/java/agent/instrumentation/#capturing-enduser-attributes).\n-When `otel.instrumentation.common.v3-preview` is enabled, it honors\n-`otel.instrumentation.common.user.name.enabled` and\n-`otel.instrumentation.common.user.roles.enabled` instead.\n+Enable identity capture with `otel.instrumentation.common.user.name.enabled` and\n+`otel.instrumentation.common.user.roles.enabled`; both default to `false`.\n \n-It also supports the following properties:\n+For example, migrate the former settings:\n \n-| Property                                                                      | Type   | Default  | Description                                                                                                                                                                                                                     |\n-| ----------------------------------------------------------------------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.spring-security.enduser.role.granted-authority-prefix`  | String | `ROLE_`  | Prefix of granted authorities identifying roles to capture in the `enduser.role` semantic attribute. This property is not honored when v3 preview is enabled; use the `user.roles` variant instead.                             |\n-| `otel.instrumentation.spring-security.user.roles.granted-authority-prefix`    | String | `ROLE_`  | Prefix of granted authorities identifying roles to capture in the `user.roles` semantic attribute when v3 preview is enabled. This property is not honored when v3 preview is disabled; use the `enduser.role` variant instead. |\n-| `otel.instrumentation.spring-security.enduser.scope.granted-authority-prefix` | String | `SCOPE_` | Prefix of granted authorities identifying scopes to capture in the `enduser.scope` semantic attribute. This property and the associated attribute are not supported when v3 preview is enabled.                                 |\n+```properties\n+# Before\n+otel.instrumentation.common.enduser.id.enabled=true\n+otel.instrumentation.common.enduser.role.enabled=true\n+otel.instrumentation.spring-security.enduser.role.granted-authority-prefix=ROLE_\n+\n+# After\n+otel.instrumentation.common.user.name.enabled=true\n+otel.instrumentation.common.user.roles.enabled=true\n+otel.instrumentation.spring-security.user.roles.granted-authority-prefix=ROLE_\n+```\n+\n+The captured keys change from `enduser.id` and comma-separated `enduser.role` to `user.name` and\n+string-array `user.roles`. The `enduser.scope` setting and scope capture are removed.",
+      "id": "PRRT_kwDODJKVX86pxLxq",
+      "opened": "2026-10-07T05:26:52Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/javaagent/README.md",
+      "replies": [],
+      "reviewed": "c92d56d83bd93ee472a0a7b7cc4b1d58e466eb08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4203396381"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "For consistency could consider formatting these as a table as we do with other properties.",
+      "created": "2026-10-07T05:28:15Z",
+      "hunk": "@@ -3,21 +3,33 @@\n Javaagent automatic instrumentation to capture identity semantic attributes\n from Spring Security `Authentication` objects.\n \n-By default this instrumentation emits the deprecated `enduser.*` attributes when enabled. When\n-`otel.instrumentation.common.v3-preview` is enabled, it emits `user.name` and the string array\n-`user.roles` instead, and `enduser.scope` is not supported.\n+When explicitly enabled, this instrumentation emits `user.name` and `user.roles` as a string array.\n+Identity capture is disabled by default. Scope authorities are not captured.\n \n ## Settings\n \n-This module honors the [common `otel.instrumentation.common.enduser.*` properties](https://opentelemetry.io/docs/zero-code/java/agent/instrumentation/#capturing-enduser-attributes).\n-When `otel.instrumentation.common.v3-preview` is enabled, it honors\n-`otel.instrumentation.common.user.name.enabled` and\n-`otel.instrumentation.common.user.roles.enabled` instead.\n+Enable identity capture with `otel.instrumentation.common.user.name.enabled` and\n+`otel.instrumentation.common.user.roles.enabled`; both default to `false`.\n \n-It also supports the following properties:\n+For example, migrate the former settings:\n \n-| Property                                                                      | Type   | Default  | Description                                                                                                                                                                                                                     |\n-| ----------------------------------------------------------------------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.spring-security.enduser.role.granted-authority-prefix`  | String | `ROLE_`  | Prefix of granted authorities identifying roles to capture in the `enduser.role` semantic attribute. This property is not honored when v3 preview is enabled; use the `user.roles` variant instead.                             |\n-| `otel.instrumentation.spring-security.user.roles.granted-authority-prefix`    | String | `ROLE_`  | Prefix of granted authorities identifying roles to capture in the `user.roles` semantic attribute when v3 preview is enabled. This property is not honored when v3 preview is disabled; use the `enduser.role` variant instead. |\n-| `otel.instrumentation.spring-security.enduser.scope.granted-authority-prefix` | String | `SCOPE_` | Prefix of granted authorities identifying scopes to capture in the `enduser.scope` semantic attribute. This property and the associated attribute are not supported when v3 preview is enabled.                                 |\n+```properties\n+# Before\n+otel.instrumentation.common.enduser.id.enabled=true\n+otel.instrumentation.common.enduser.role.enabled=true\n+otel.instrumentation.spring-security.enduser.role.granted-authority-prefix=ROLE_",
+      "id": "PRRT_kwDODJKVX86pxM7C",
+      "opened": "2026-10-07T05:28:15Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/javaagent/README.md",
+      "replies": [],
+      "reviewed": "c92d56d83bd93ee472a0a7b7cc4b1d58e466eb08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4203403827"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "either move to changelog or make clear that this is a migration note to v3",
+      "created": "2026-10-07T05:30:22Z",
+      "hunk": "@@ -3,9 +3,16 @@\n Provides a Servlet `Filter` and a WebFlux `WebFilter` to capture identity semantic attributes\n from Spring Security `Authentication` objects.\n \n-By default this instrumentation emits the deprecated `enduser.*` attributes when enabled. When\n-`otel.instrumentation.common.v3-preview` is enabled, it emits `user.name` and the string array\n-`user.roles` instead, and `enduser.scope` is not supported.\n+When explicitly enabled, this instrumentation emits `user.name` and `user.roles` as a string array.\n+Identity capture is disabled by default. Scope authorities are not captured.\n+\n+For javaagent users, replace `otel.instrumentation.common.enduser.id.enabled` and",
+      "id": "PRRT_kwDODJKVX86pxOtx",
+      "opened": "2026-10-07T05:30:21Z",
+      "path": "instrumentation/spring/spring-security-config-6.0/library/README.md",
+      "replies": [],
+      "reviewed": "c92d56d83bd93ee472a0a7b7cc4b1d58e466eb08",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4203415363"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] No Servlet 3.0 standalone-library test invokes `Experimental.setCaptureUserName`; the common extractor unit test and installed-agent tests bypass this static handoff. A regression in the newly documented library API could therefore pass all current tests. Add a library test that configures this setter and verifies a request principal is emitted as `user.name`.",
+      "created": "2026-10-08T03:38:59Z",
+      "hunk": "@@ -51,8 +51,8 @@ public final class ServletTelemetryBuilder {\n     Experimental.internalSetRequestParameters(\n         (builder, requestParameters) ->\n             builder.servletBuilder.setRequestParameters(requestParameters));\n-    Experimental.internalSetCaptureEnduserId(\n-        (builder, value) -> builder.servletBuilder.setCaptureEnduserId(value));\n+    Experimental.internalSetCaptureUserName(\n+        (builder, value) -> builder.servletBuilder.setCaptureUserName(value));",
+      "id": "PRRT_kwDODJKVX86qLuLs",
+      "opened": "2026-10-08T03:39:01Z",
+      "path": "instrumentation/servlet/servlet-3.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v3_0/ServletTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-10-08T05:00:03Z",
+          "body": "Addressed in bdad6417230578f6d2a6e65a473a9c065c037a40.\n\nAnalysis: Tests invoke Experimental.setCaptureUserName on 3.0 and 5.0 library builders and verify user.name is emitted only when enabled.\n\nUpsides: Covers the static handoff regression path.\n\nDownsides: Adds two tests per module.\n\n<!-- copilot-loop:6efbd252675aae7eaf1fa400f00f9292c2b6ad13976fd95aef91133935d7aa3b:4214330251:8826186415fc4980808d3d3b257b2f6b -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4214922581"
+        }
+      ],
+      "reviewed": "105f78e29324477f9fc82cf517f715ce6c4c823d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4214330251"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] No Servlet 5.0 standalone-library test invokes `Experimental.setCaptureUserName`; the common extractor unit test and installed-agent tests bypass this static handoff. A regression in the newly documented library API could therefore pass all current tests. Add a library test that configures this setter and verifies a request principal is emitted as `user.name`.",
+      "created": "2026-10-08T03:39:00Z",
+      "hunk": "@@ -51,8 +51,8 @@ public final class ServletTelemetryBuilder {\n     Experimental.internalSetRequestParameters(\n         (builder, requestParameters) ->\n             builder.servletBuilder.setRequestParameters(requestParameters));\n-    Experimental.internalSetCaptureEnduserId(\n-        (builder, value) -> builder.servletBuilder.setCaptureEnduserId(value));\n+    Experimental.internalSetCaptureUserName(\n+        (builder, value) -> builder.servletBuilder.setCaptureUserName(value));",
+      "id": "PRRT_kwDODJKVX86qLuL9",
+      "opened": "2026-10-08T03:39:01Z",
+      "path": "instrumentation/servlet/servlet-5.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v5_0/ServletTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-10-08T05:00:59Z",
+          "body": "Addressed in bdad6417230578f6d2a6e65a473a9c065c037a40.\n\nAnalysis: Tests invoke Experimental.setCaptureUserName on 3.0 and 5.0 library builders and verify user.name is emitted only when enabled.\n\nUpsides: Covers the static handoff regression path.\n\nDownsides: Adds two tests per module.\n\n<!-- copilot-loop:6efbd252675aae7eaf1fa400f00f9292c2b6ad13976fd95aef91133935d7aa3b:4214330276:82d844854ed349bfa959a1fa3125c214 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4214930783"
+        }
+      ],
+      "reviewed": "105f78e29324477f9fc82cf517f715ce6c4c823d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4214330276"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `withType<Test>().configureEach` also applies `otel.instrumentation.servlet.experimental.request-parameters.included=test-*` to this new task, but `metadataConfig` reports only the user-name setting. Metadata collected from the task is therefore labeled with an incomplete JVM configuration. Include both active properties in `metadataConfig`.",
+      "created": "2026-10-08T03:39:00Z",
+      "hunk": "@@ -32,6 +32,19 @@ tasks {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n+  val testUserNameCapture = register<Test>(\"testUserNameCapture\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+    filter {\n+      includeTestsMatching(\"*TomcatHandlerTest.capturesUserNameFromPrincipal\")\n+    }\n+    jvmArgs(\"-Dotel.instrumentation.common.user.name.enabled=true\")\n+    jvmArgs(\"--add-opens=java.base/java.util=ALL-UNNAMED\")\n+    jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+    systemProperty(\"metadataConfig\", \"otel.instrumentation.common.user.name.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86qLuMM",
+      "opened": "2026-10-08T03:39:01Z",
+      "path": "instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-08T05:01:54Z",
+          "body": "Addressed in 5b936064d6022271ed55b76c6b7016e1caba7dd5.\n\nAnalysis: testUserNameCapture inherits request-parameters.included via configureEach, so it is set explicitly and reported in metadataConfig.\n\nUpsides: Metadata matches actual JVM configuration.\n\nDownsides: Duplicates the property in the task.\n\n<!-- copilot-loop:6efbd252675aae7eaf1fa400f00f9292c2b6ad13976fd95aef91133935d7aa3b:4214330303:b01f8dc9526449368c4fdbf3ae3ef403 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4214938264"
+        }
+      ],
+      "reviewed": "105f78e29324477f9fc82cf517f715ce6c4c823d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4214330303"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The new shared setting is only referenced by the Servlet and Spring Security metadata, but it is also read for app-server-owned spans through `AgentServletInstrumenterBuilder` and `BaseServletHelper` (including Tomcat, Jetty, Liberty, Grizzly, and Undertow). Those modules can emit `user.name` while their generated settings documentation omits the property; the new Tomcat test demonstrates this mismatch directly. Add `common.user.name.enabled` refs to every affected app-server module's `metadata.yaml`.",
+      "created": "2026-10-08T03:39:00Z",
+      "hunk": "@@ -206,6 +206,20 @@ configurations:\n     type: string\n     default: trace_id\n \n+  common.user.name.enabled:",
+      "id": "PRRT_kwDODJKVX86qLuMc",
+      "opened": "2026-10-08T03:39:01Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [
+        {
+          "at": "2026-10-08T05:03:27Z",
+          "body": "Addressed in 4aedf6030ffb5cefa2b84fd8f840d7ffd222cdba.\n\nAnalysis: Grizzly, Jetty, Liberty, Tomcat and Undertow use servlet-common helpers that read the setting, so metadata.yaml refs common.user.name.enabled.\n\nUpsides: Generated docs list the property for modules that can emit user.name.\n\nDownsides: Metadata only; docs/instrumentation-list.yaml not regenerated.\n\n<!-- copilot-loop:6efbd252675aae7eaf1fa400f00f9292c2b6ad13976fd95aef91133935d7aa3b:4214330332:72c40000df4f44d6ae00fe1ae8f7aa5f -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4214952638"
+        }
+      ],
+      "reviewed": "105f78e29324477f9fc82cf517f715ce6c4c823d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4214330332"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `UserIncubatingAttributes` type import was removed, and statically importing `USER_NAME` does not make its enclosing type available to this Javadoc link, so the link no longer resolves. Use a code-form attribute name or restore/qualify the type import.",
+      "created": "2026-10-08T03:39:01Z",
+      "hunk": "@@ -157,22 +153,21 @@ private void captureRequestParameters(Span serverSpan, REQUEST request) {\n   }\n \n   /**\n-   * Capture {@link EnduserIncubatingAttributes#ENDUSER_ID}, or {@link\n-   * UserIncubatingAttributes#USER_NAME} when v3 preview is enabled, as a span attribute when SERVER\n-   * span is not created by servlet instrumentation.\n+   * Capture {@link UserIncubatingAttributes#USER_NAME} as a span attribute when SERVER span is not\n+   * created by servlet instrumentation.",
+      "id": "PRRT_kwDODJKVX86qLuMv",
+      "opened": "2026-10-08T03:39:01Z",
+      "path": "instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/BaseServletHelper.java",
+      "replies": [],
+      "reviewed": "105f78e29324477f9fc82cf517f715ce6c4c823d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4214330356"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This custom task is not registered in `.github/scripts/instrumentations.sh`, where instrumentation CI currently runs only `servlet:servlet-3.0:javaagent-testing:test`. Depending on `check` does not make the task part of that direct task invocation, so the enabled user-name capture path is skipped in CI. Add `servlet:servlet-3.0:javaagent-testing:testUserNameCapture` to the instrumentation task list.",
+      "created": "2026-10-08T05:14:58Z",
+      "hunk": "@@ -31,6 +31,23 @@ tasks {\n     jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n+\n+  val testUserNameCapture = register<Test>(\"testUserNameCapture\") {",
+      "id": "PRRT_kwDODJKVX86qNXoN",
+      "opened": "2026-10-08T05:14:59Z",
+      "path": "instrumentation/servlet/servlet-3.0/javaagent-testing/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-08T07:09:15Z",
+          "body": "Addressed in 051cdc264d76c59a9748afcd3c3eb9451494e37a.\n\nAnalysis: Confirmed task absent from instrumentations.sh; added the missing entries.\n\nUpsides: Tests run in CI.\n\nDownsides: Minor CI time.\n\n<!-- copilot-loop:d91215c06a372f5c83539638425defa5cc9ec3ea5141494431636a941bc3e84d:4215049013:772a442c74924ca6a9bceb7f712b1330 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4215999656"
+        }
+      ],
+      "reviewed": "35a111568702665770272becc20ebba2be07e856",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4215049013"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This new test variant is wired only into Gradle `check`, but instrumentation CI invokes tasks from `.github/scripts/instrumentations.sh` directly; that list currently contains `tomcat-10.0:javaagent:test` and `testExperimental`, not `testUserNameCapture`. Consequently the enabled configuration branch and app-server-owned span fallback are not exercised in CI. Add `tomcat:tomcat-10.0:javaagent:testUserNameCapture` to the instrumentation task list.",
+      "created": "2026-10-08T05:14:59Z",
+      "hunk": "@@ -32,6 +32,20 @@ tasks {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n+  val testUserNameCapture = register<Test>(\"testUserNameCapture\") {",
+      "id": "PRRT_kwDODJKVX86qNXo-",
+      "opened": "2026-10-08T05:14:59Z",
+      "path": "instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-08T07:10:02Z",
+          "body": "Addressed in 051cdc264d76c59a9748afcd3c3eb9451494e37a.\n\nAnalysis: Confirmed task absent from instrumentations.sh; added the missing entries.\n\nUpsides: Tests run in CI.\n\nDownsides: Minor CI time.\n\n<!-- copilot-loop:d91215c06a372f5c83539638425defa5cc9ec3ea5141494431636a941bc3e84d:4215049091:ecc62c99bb824e2e8a8afa49e9059790 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4216007720"
+        }
+      ],
+      "reviewed": "35a111568702665770272becc20ebba2be07e856",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20419#discussion_r4215049091"
+    }
+  ]
+}

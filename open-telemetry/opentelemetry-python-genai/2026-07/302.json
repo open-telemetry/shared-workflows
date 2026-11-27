@@ -1,0 +1,70 @@
+{
+  "head": "ee1dc2dd710377c6aeebaecb70ad441aaf94e301",
+  "merge": "0892f5d3fa2012f589f7f7b9cb08159ec3cf784c",
+  "merged": "2026-07-23T19:58:47Z",
+  "missing_roots": 0,
+  "number": 302,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog fragment filename will fail the CI changelog workflow. Fragments must be named `<PR_NUMBER>.(added|changed|deprecated|removed|fixed)` and match the PR number; a `+completion-hook.fixed` basename is rejected by `.github/workflows/changelog.yml`. Please rename this file accordingly (e.g. `<PR_NUMBER>.fixed`).",
+      "created": "2026-07-22T20:41:05Z",
+      "hunk": "@@ -0,0 +1,2 @@\n+Honor ``OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK`` by falling back to ``load_completion_hook()``\n+when no ``completion_hook`` is passed to ``instrument()``.",
+      "id": "PRRT_kwDOSbspP86TD29H",
+      "opened": "2026-07-22T20:41:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/.changelog/302.fixed",
+      "replies": [],
+      "reviewed": "ea39ef97b616e42c03bdfea2e270fbe00c05c9da",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/302#discussion_r3633653092"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The References section here dropped the standard OpenTelemetry links that other instrumentations include (e.g. OpenTelemetry Project + GenAI semconv). That makes this README inconsistent with the rest of the repo and removes useful context for users.",
+      "created": "2026-07-22T20:41:06Z",
+      "hunk": "@@ -61,11 +61,24 @@ environment variable ``OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`` to o\n     export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_AND_EVENT\n \n \n+Uploading prompts and completions\n+*********************************\n+\n+Instead of recording message content inline, prompts and completions can be uploaded to external\n+storage via a completion hook. To enable the built-in upload hook, set:\n+\n+- ``OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK=upload``\n+- ``OTEL_INSTRUMENTATION_GENAI_UPLOAD_BASE_PATH`` to an ``fsspec``-compatible URI/path\n+  (e.g. ``/path/to/prompts`` or ``gs://my_bucket``), and install the ``upload`` extra\n+  (``pip install opentelemetry-util-genai[upload]``).\n+\n+A custom ``CompletionHook`` can also be passed programmatically, taking precedence over the\n+environment variable::\n+\n+    AnthropicInstrumentor().instrument(completion_hook=my_hook)\n+\n+\n References\n ----------\n-\n-* `OpenTelemetry Project <https://opentelemetry.io/>`_\n-* `OpenTelemetry GenAI semantic conventions <https://opentelemetry.io/docs/specs/semconv/gen-ai/>`_\n-* `Anthropic SDK (Python) <https://github.com/anthropics/anthropic-sdk-python>`_\n * `Anthropic Documentation <https://docs.anthropic.com/>`_",
+      "id": "PRRT_kwDOSbspP86TD2-O",
+      "opened": "2026-07-22T20:41:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/README.rst",
+      "replies": [],
+      "reviewed": "ea39ef97b616e42c03bdfea2e270fbe00c05c9da",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/302#discussion_r3633653195"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog fragment filename will fail the CI changelog workflow. Fragments must be named `<PR_NUMBER>.(added|changed|deprecated|removed|fixed)` and match the PR number; a `+completion-hook.added` basename is rejected by `.github/workflows/changelog.yml`. Please rename this file accordingly (e.g. `<PR_NUMBER>.added`).",
+      "created": "2026-07-22T20:41:06Z",
+      "hunk": "@@ -0,0 +1,2 @@\n+Forward the configured ``CompletionHook`` (``OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK`` or the\n+``instrument(completion_hook=...)`` argument) to the telemetry handler.",
+      "id": "PRRT_kwDOSbspP86TD290",
+      "opened": "2026-07-22T20:41:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/.changelog/302.added",
+      "replies": [],
+      "reviewed": "ea39ef97b616e42c03bdfea2e270fbe00c05c9da",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/302#discussion_r3633653159"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This changelog fragment filename will fail the CI changelog workflow. Fragments must be named `<PR_NUMBER>.(added|changed|deprecated|removed|fixed)` and match the PR number; a `+completion-hook.added` basename is rejected by `.github/workflows/changelog.yml`. Please rename this file accordingly (e.g. `<PR_NUMBER>.added`).",
+      "created": "2026-07-22T20:41:06Z",
+      "hunk": "@@ -0,0 +1,2 @@\n+Forward the configured ``CompletionHook`` (``OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK`` or the\n+``instrument(completion_hook=...)`` argument) to the telemetry handler.",
+      "id": "PRRT_kwDOSbspP86TD29i",
+      "opened": "2026-07-22T20:41:06Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/.changelog/302.added",
+      "replies": [],
+      "reviewed": "ea39ef97b616e42c03bdfea2e270fbe00c05c9da",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/302#discussion_r3633653132"
+    }
+  ]
+}

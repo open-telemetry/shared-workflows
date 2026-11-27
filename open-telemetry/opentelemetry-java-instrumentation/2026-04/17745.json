@@ -1,0 +1,25 @@
+{
+  "head": "5152c1a7c36a2b8467ca21d5300ffcdf87aeba59",
+  "merge": "8d7698db62ff40fa5c130860bea04ed30e74572b",
+  "merged": "2026-04-13T08:04:43Z",
+  "missing_roots": 0,
+  "number": 17745,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "It would be nice if we could change the order of `afterEach` cleanup also to lifo like here.",
+      "created": "2026-04-09T12:48:03Z",
+      "hunk": "@@ -44,7 +53,23 @@ public void afterEach(ExtensionContext extensionContext) throws Exception {\n         exceptions.add(e);\n       }\n     }\n+    throwIfAny(exceptions);\n+  }\n+\n+  @Override\n+  public void afterAll(ExtensionContext extensionContext) throws Exception {\n+    List<Exception> exceptions = new ArrayList<>();\n+    while (!thingsToCleanUpAfterAll.isEmpty()) {\n+      try {\n+        thingsToCleanUpAfterAll.pop().close();",
+      "id": "PRRT_kwDODJKVX8552ZNO",
+      "opened": "2026-04-09T12:48:03Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/AutoCleanupExtension.java",
+      "replies": [],
+      "reviewed": "5152c1a7c36a2b8467ca21d5300ffcdf87aeba59",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17745#discussion_r3057903073"
+    }
+  ]
+}

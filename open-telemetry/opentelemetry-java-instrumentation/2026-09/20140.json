@@ -1,0 +1,157 @@
+{
+  "head": "cd95dd0d7cecd32e5a71cd1b5eff20a49c70668b",
+  "merge": "37ddc90a92495df39efb402c9fbb7548783b39c1",
+  "merged": "2026-09-29T21:33:26Z",
+  "missing_roots": 0,
+  "number": 20140,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This transfer misses Camel message copies. In Camel 2.20, `DefaultExchange.copy()` calls `Message.copy()`, and `JmsMessage.copyFrom(...)` assigns the underlying JMS message field directly rather than invoking this constructor or `setJmsMessage`. Multicast/parallel or other copied exchanges therefore lose `JmsMessageDeliveryState`; a later route falls back to an unclaimed message and can record `messaging.client.consumed.messages` again for the same physical delivery. Please also propagate the state when a `JmsMessage` is copied, and cover a JMS route that crosses a copied/parallel exchange.",
+      "created": "2026-09-20T04:04:15Z",
+      "hunk": "@@ -40,21 +40,39 @@ public void transform(TypeTransformer transformer) {\n   @SuppressWarnings(\"unused\")\n   public static class StoreReceiveTelemetryAdvice {\n \n-    private static final MessagingTelemetryCarrier<Message> jmsMessageTelemetry =\n-        MessagingTelemetryCarrier.create(\n-            VirtualField.find(Message.class, MessagingTelemetrySignals.class));\n+    private static final VirtualField<Message, JmsMessageDeliveryState> JMS_DELIVERY_STATE =\n+        VirtualField.find(Message.class, JmsMessageDeliveryState.class);\n+    private static final VirtualField<org.apache.camel.Message, JmsMessageDeliveryState>\n+        CAMEL_DELIVERY_STATE =\n+            VirtualField.find(org.apache.camel.Message.class, JmsMessageDeliveryState.class);\n \n-    public static MessagingTelemetryCarrier<Message> jmsMessageTelemetry() {\n-      return jmsMessageTelemetry;\n+    public static VirtualField<Message, JmsMessageDeliveryState> jmsDeliveryState() {\n+      return JMS_DELIVERY_STATE;\n+    }\n+\n+    public static VirtualField<org.apache.camel.Message, JmsMessageDeliveryState>\n+        camelDeliveryState() {\n+      return CAMEL_DELIVERY_STATE;\n     }\n \n     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n     public static void onExit(\n         @Advice.This org.apache.camel.Message camelMessage,\n-        @Advice.Argument(0) Message jmsMessage) {\n-      // a Camel message is refilled when its JMS message is swapped, so what it carried before must\n-      // not survive\n-      messageTelemetry().replaceFrom(jmsMessageTelemetry(), jmsMessage, camelMessage);\n+        @Advice.Argument(0) @Nullable Message jmsMessage) {\n+      messageTelemetry().clear(camelMessage);\n+      if (jmsMessage == null) {\n+        camelDeliveryState().set(camelMessage, null);\n+        return;\n+      }\n+      JmsMessageDeliveryState state = jmsDeliveryState().get(jmsMessage);\n+      if (state == null) {\n+        state = new JmsMessageDeliveryState();\n+        jmsDeliveryState().set(jmsMessage, state);\n+      }\n+      state.prepareForWrapping();\n+      // A Camel message is refilled when its JMS message is swapped. Replace the delivery state,\n+      // without copying the receive context or retaining the previous message's accounting.\n+      camelDeliveryState().set(camelMessage, state);",
+      "id": "PRRT_kwDODJKVX86kGz-f",
+      "opened": "2026-09-20T04:04:16Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/JmsMessageInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-20T04:24:20Z",
+          "body": "Addressed in 4d946997b9c07df53629c7ec6c7e2f9cfde21ae3.\n\nFixed in the verified source changes 4d946997b9c07df53629c7ec6c7e2f9cfde21ae3.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4056102707"
+        }
+      ],
+      "reviewed": "cb200b5e10060a6f2b212c67454ad69c4fcd17d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4056056207"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] This check-and-set is not atomic even though the same state is deliberately shared by the physical JMS message and Camel wrappers. Camel supports parallel route processing, so two routes can both observe `false` and both return `true`, producing duplicate consumed-message counts. Make the ownership claim atomic (for example, synchronize this method or use an atomic state transition).",
+      "created": "2026-09-20T04:04:16Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.bootstrap.jms;\n+\n+/** Tracks whether a JMS message delivery has been counted. */\n+public final class JmsMessageDeliveryState {\n+\n+  private boolean consumedMessagesRecorded;\n+  private boolean receivePending;\n+  private boolean processingReceivedMessage;\n+  private int processingDepth;\n+\n+  public void prepareForReceive() {\n+    consumedMessagesRecorded = false;\n+    receivePending = true;\n+  }\n+\n+  public boolean beginProcessing() {\n+    if (processingDepth == 0) {\n+      processingReceivedMessage = receivePending;\n+      receivePending = false;\n+      if (!processingReceivedMessage) {\n+        consumedMessagesRecorded = false;\n+      }\n+    }\n+    processingDepth++;\n+    return processingReceivedMessage;\n+  }\n+\n+  public boolean endProcessing() {\n+    if (processingDepth == 0) {\n+      return false;\n+    }\n+    processingDepth--;\n+    if (processingDepth != 0) {\n+      return false;\n+    }\n+    processingReceivedMessage = false;\n+    return true;\n+  }\n+\n+  public void prepareForWrapping() {\n+    if (processingDepth == 0 && !receivePending) {\n+      consumedMessagesRecorded = false;\n+    }\n+  }\n+\n+  public boolean claimConsumedMessages() {\n+    if (consumedMessagesRecorded) {\n+      return false;\n+    }\n+    consumedMessagesRecorded = true;\n+    return true;\n+  }",
+      "id": "PRRT_kwDODJKVX86kGz-p",
+      "opened": "2026-09-20T04:04:16Z",
+      "path": "instrumentation/jms/jms-common-1.1/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/jms/JmsMessageDeliveryState.java",
+      "replies": [
+        {
+          "at": "2026-09-20T04:24:21Z",
+          "body": "Addressed in 4d946997b9c07df53629c7ec6c7e2f9cfde21ae3.\n\nFixed in the verified source changes 4d946997b9c07df53629c7ec6c7e2f9cfde21ae3.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4056102743"
+        }
+      ],
+      "reviewed": "cb200b5e10060a6f2b212c67454ad69c4fcd17d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4056056219"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[bug] This removes consumed-message emission from process-only JMS deliveries. A pushed `MessageListener` callback has no receive operation, so `MessagingConsumerMetrics.getForOperationType()` never runs and `messaging.client.consumed.messages` is no longer emitted for that delivery. Please retain an equivalent process-side claim for push callbacks while still avoiding a second claim for receive-backed deliveries; consumed-message deduplication is tracked separately in #20214.",
+      "created": "2026-09-24T06:41:13Z",
+      "hunk": "@@ -107,12 +107,13 @@ public Instrumenter<MessageWithDestination, Void> createConsumerProcessInstrumen\n                 instrumentationName,\n                 MessagingSpanNameExtractor.create(getter, operationType, PROCESS_OPERATION_NAME))\n             .addAttributesExtractor(\n-                createMessagingAttributesExtractor(operationType, PROCESS_OPERATION_NAME))\n-            .addOperationMetrics(MessagingProcessMetrics.get());\n+                createMessagingAttributesExtractor(operationType, PROCESS_OPERATION_NAME));\n     boolean receiveOperationExists =\n         canHaveReceiveInstrumentation && messagingReceiveInstrumentationEnabled;\n-    if (recordConsumedMessages && emitStableMessagingSemconv()) {\n-      builder.addOperationMetrics(MessagingConsumerMetrics.getConsumedMessages());\n+    if (emitStableMessagingSemconv()) {\n+      builder.addOperationMetrics(JmsProcessMetrics.create());\n+    } else {\n+      builder.addOperationMetrics(MessagingProcessMetrics.get());",
+      "id": "PRRT_kwDODJKVX86ld7w_",
+      "opened": "2026-09-24T06:41:14Z",
+      "path": "instrumentation/jms/jms-common-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/common/v1_1/JmsInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-09-24T07:00:31Z",
+          "body": "Addressed in 1764385294ae4c5d9c280a5183e4a8146069e345.\n\nFixed in the verified source changes 1764385294ae4c5d9c280a5183e4a8146069e345.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4090810318"
+        }
+      ],
+      "reviewed": "8c950ec527e25e4fe6e4cae90d2588c528c9ac6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4090680312"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] This `VirtualField.find` is initialized on an `inline = false` advice class. Non-inlined advice is not rewritten, so this lookup is not registered through the advice transformation and is rejected by the repository's VirtualField validation. Move the handle to a non-advice helper/singleton and have the advice reference that handle.",
+      "created": "2026-09-24T11:02:27Z",
+      "hunk": "@@ -0,0 +1,68 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.camel.v2_20;\n+\n+import static java.util.Arrays.asList;\n+import static net.bytebuddy.matcher.ElementMatchers.isPublic;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.none;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.javaagent.bootstrap.jms.JmsMessageProcessingState;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.AgentDistributionConfig;\n+import javax.annotation.Nullable;\n+import javax.jms.Message;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class SjmsMessageHandlerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    AgentDistributionConfig config = AgentDistributionConfig.get();\n+    if (config.isInstrumentationEnabled(\n+        asList(\"jms\", \"jms-1.1\"), config.isInstrumentationDefaultEnabled())) {\n+      return none();\n+    }\n+    return named(\"org.apache.camel.component.sjms.consumer.AbstractMessageHandler\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"onMessage\").and(takesArgument(0, named(\"javax.jms.Message\"))).and(isPublic()),\n+        getClass().getName() + \"$MessageHandlerAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class MessageHandlerAdvice {\n+\n+    public static final VirtualField<Message, JmsMessageProcessingState> PROCESSING_STATE =\n+        VirtualField.find(Message.class, JmsMessageProcessingState.class);",
+      "id": "PRRT_kwDODJKVX86ljRAA",
+      "opened": "2026-09-24T11:02:27Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SjmsMessageHandlerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-24T11:18:18Z",
+          "body": "Addressed in 232274475ec718d691f4261b4dea9a8acb52bd3a.\n\nFixed in the verified source changes 232274475ec718d691f4261b4dea9a8acb52bd3a.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4092976634"
+        }
+      ],
+      "reviewed": "ba025106f9f68546c845e507e0c7b18693082f68",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4092832095"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Would the try-finally still be needed if `messageAdapter.endProcessing()` was moved after this? Or perhaps we should assume that `messageAdapter.endProcessing()` does not throw? Could also leave as is.",
+      "created": "2026-09-28T19:16:21Z",
+      "hunk": "@@ -125,8 +165,12 @@ public void end(@Nullable Throwable throwable) {\n             instrumenter.end(context, messageWithDestination, null, throwable);\n           }\n         } finally {\n-          if (messageWithListenerSubscriptionName != null) {\n-            JmsSubscriptionNames.set(messageWithListenerSubscriptionName, null);\n+          try {\n+            messageAdapter.endProcessing();\n+          } finally {\n+            if (messageWithListenerSubscriptionName != null) {",
+      "id": "PRRT_kwDODJKVX86m09CQ",
+      "opened": "2026-09-28T19:16:20Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/JmsMessageListenerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-29T15:27:50Z",
+          "body": "bbaf3638a008f73c0440674f9474077c6aa6650e",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4135254555"
+        }
+      ],
+      "reviewed": "946e1b25a7b06241925d3161ea659b16eccdbe9f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4126106917"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could use a comment why this is necessary",
+      "created": "2026-09-28T19:22:47Z",
+      "hunk": "@@ -0,0 +1,46 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jms.common.v1_1;\n+\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingProcessMetrics;\n+import io.opentelemetry.instrumentation.api.instrumenter.OperationListener;\n+import io.opentelemetry.instrumentation.api.instrumenter.OperationMetrics;\n+\n+final class JmsProcessMetrics {\n+\n+  private static final ContextKey<Context> DURATION_CONTEXT =\n+      ContextKey.named(\"jms-process-duration-context\");\n+\n+  static OperationMetrics create() {\n+    return meter -> create(MessagingProcessMetrics.get().create(meter));\n+  }\n+\n+  static OperationListener create(OperationListener duration) {\n+    return new OperationListener() {\n+      @Override\n+      public Context onStart(Context context, Attributes startAttributes, long startNanos) {\n+        Context durationContext = Span.fromContext(context).storeInContext(Context.root());",
+      "id": "PRRT_kwDODJKVX86m1Ftv",
+      "opened": "2026-09-28T19:22:47Z",
+      "path": "instrumentation/jms/jms-common-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jms/common/v1_1/JmsProcessMetrics.java",
+      "replies": [
+        {
+          "at": "2026-09-29T15:27:50Z",
+          "body": "9eb99863f30c997a15c6197919a7e463d1359560",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4135254551"
+        }
+      ],
+      "reviewed": "946e1b25a7b06241925d3161ea659b16eccdbe9f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4126162158"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "shouldn't this metric be still recorded?",
+      "created": "2026-09-28T19:30:52Z",
+      "hunk": "@@ -492,14 +493,66 @@ void shouldRecordConsumedMessagesOnceWhenReceivedMessageIsDispatchedToListener()\n         INSTRUMENTATION_NAME,\n         \"messaging.process.duration\",\n         messagingMetricAttributes(\"process\", \"metricsReceiveAndDispatchQueue\"));\n-    // the receive operation already counted this delivery, so the process operation must not count\n-    // it again\n-    assertCounter(\n-        testing,\n-        INSTRUMENTATION_NAME,\n-        \"messaging.client.consumed.messages\",",
+      "id": "PRRT_kwDODJKVX86m1Q2t",
+      "opened": "2026-09-28T19:30:52Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/AbstractJms1Test.java",
+      "replies": [
+        {
+          "at": "2026-09-29T18:29:40Z",
+          "body": "c604f33ef1",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4136940784"
+        }
+      ],
+      "reviewed": "946e1b25a7b06241925d3161ea659b16eccdbe9f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20140#discussion_r4126234051"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "af4be17985f29f6759669e18c78affb08a3393e1",
+  "merge": "cad32143635b638808a5cb0eed0e816f3b44593f",
+  "merged": "2026-05-20T01:13:54Z",
+  "missing_roots": 0,
+  "number": 34,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "👀 ",
+      "created": "2026-05-18T04:13:56Z",
+      "hunk": "@@ -12,7 +12,7 @@\n # See the License for the specific language governing permissions and\n # limitations under the License.\n \n-google-genai ~= 1.0.0\n+google-genai ~=1.75.0",
+      "id": "PRRT_kwDOSbspP86Ct300",
+      "opened": "2026-05-18T04:13:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/examples/manual/requirements.txt",
+      "replies": [
+        {
+          "at": "2026-05-18T22:55:08Z",
+          "body": "any concern with it?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/34#discussion_r3262660936"
+        },
+        {
+          "at": "2026-05-19T00:03:12Z",
+          "body": "it looked intentional to test against 1.0, as in saying that the instrumentation is compatible with 1.0\r\n\r\ne.g. in Java instrumentation we test against an earliest library baseline as well as the latest library release\r\n\r\nI wasn't sure what existing policy here is, though given the fast pace of GenAI, I would support only testing against latest",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/34#discussion_r3262872933"
+        },
+        {
+          "at": "2026-05-19T00:08:54Z",
+          "body": "These are not even tests, just examples. We should run them against latest (which is [at 2.4](https://pypi.org/project/google-genai/2.4.0/), renovate didn't want to update major version? 🤔)\r\n\r\nI'm thinking we should either replace these with conformance tests or make them testable. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/34#discussion_r3262889853"
+        },
+        {
+          "at": "2026-05-19T04:53:54Z",
+          "body": "> renovate didn't want to update major version?\r\n\r\nit likes to separate minor updates from major updates, it's got a lot of updates queued for this repo: https://github.com/open-telemetry/opentelemetry-python-genai/issues/1\r\n\r\nI didn't want to mass request them myself until I had a better understanding of this repo's dependencies, no need for me to be a blocker here, though I do plan to spend some time this week to better understand the dependency story",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/34#discussion_r3263745496"
+        }
+      ],
+      "reviewed": "fc1c8697c585f5a2dd6ac9bea9374f286ecc583a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/34#discussion_r3256306703"
+    }
+  ]
+}

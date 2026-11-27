@@ -1,0 +1,31 @@
+{
+  "head": "24cdb0d21176a435ba5791dc4b49e12652c46f41",
+  "merge": "754d2c2064d1db1b9a910cd2c7e5543f34fe2c2e",
+  "merged": "2026-05-22T16:44:59Z",
+  "missing_roots": 0,
+  "number": 60,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Some of the package names we were planning for didn't follow this. Probably none of the ones in this repo, but [here's what I've reserved so far.](https://docs.google.com/spreadsheets/d/1rII7yvFXxGTxdyuJtwSwTAn9m_HPNcmzzwFqp793pik/edit?gid=0#gid=0)\n\nFeel free to resolve this comment if the ones in this PR match what I reserved",
+      "created": "2026-05-22T14:56:49Z",
+      "hunk": "@@ -86,4 +86,12 @@ New instrumentations must ship a minimal example under the package's `examples/`\n - Cover which part of the GenAI semconv the change implements or follows (when applicable) and\n   how instrumentations should consume it.\n \n+## 8. Package naming and versioning",
+      "id": "PRRT_kwDOSbspP86EJcwr",
+      "opened": "2026-05-22T14:56:54Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [
+        {
+          "at": "2026-05-22T16:41:05Z",
+          "body": "thanks a lot! updated one to `weaviate-client`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/60#discussion_r3289892870"
+        }
+      ],
+      "reviewed": "54f771d1d95b15b84043b70eb617437c2e7a9234",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/60#discussion_r3289252548"
+    }
+  ]
+}

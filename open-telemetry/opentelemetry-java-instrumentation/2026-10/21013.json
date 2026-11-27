@@ -1,0 +1,31 @@
+{
+  "head": "611e0b04c232c81a5ac65a14333b08e4856182bf",
+  "merge": "e293f2ba366b03bb285da40728ecb01f8f3d2568",
+  "merged": "2026-10-27T22:14:31Z",
+  "missing_roots": 0,
+  "number": 21013,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove the Error Prone update from this PR #21013. Update this existing PR directly, without opening a separate PR. Restore errorProneVersion from 2.51.0 to the base branch value 2.50.0 in dependencyManagement/build.gradle.kts. Also restore any explicit error_prone_core version bumped by this PR, including examples/distro/buildSrc/src/main/kotlin/otel.nullaway-conventions.gradle.kts if applicable. Inspect this PR's diff and commits and undo adaptations introduced solely for Error Prone 2.51.0, including newly added suppressions or disabled checks that are not valid or needed with 2.50.0. Preserve every unrelated dependency update, including NullAway updates, and preserve changes needed independently of the Error Prone upgrade. Do not fix unrelated Camel test isolation or Kafka container startup failures, increase CI heap limits, or change intended instrumentation behavior. The main PR's sampled CI jobs exhausted Java heap during compilation, with one compiler stack inside Error Prone; the maintenance PR stops on the new MissingJavadoc check under -Werror. Acceptance criteria: this PR no longer upgrades Error Prone anywhere, no upgrade-only adaptations remain, and all other dependency updates remain intact. Run the narrowest relevant formatting and validation commands, including custom-checks compilation/tests where feasible, and report any validation blocker.",
+      "created": "2026-10-27T18:58:40Z",
+      "hunk": "@@ -38,7 +38,7 @@ val DEPENDENCY_BOMS = listOf(\n \n val autoServiceVersion = \"1.1.1\"\n val autoValueVersion = \"1.11.1\"\n-val errorProneVersion = \"2.50.0\"\n+val errorProneVersion = \"2.51.0\"",
+      "id": "PRRT_kwDODJKVX86w1o_Z",
+      "opened": "2026-10-27T18:58:40Z",
+      "path": "dependencyManagement/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-27T19:08:35Z",
+          "body": "Reverted Error Prone to 2.50.0 in `611e0b04`; no other Error Prone bumps or upgrade-only adaptations were present, and NullAway 0.14.3 remains. `./gradlew :custom-checks:check :dependencyManagement:check` passes. The deterministic CI bundle script could not authenticate (`GH_TOKEN` unavailable); GitHub job logs confirmed the reported `MissingJavadoc` failure in `:custom-checks:compileJava`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21013#discussion_r4392992029"
+        }
+      ],
+      "reviewed": "3f49c3c48b323fcd33fbdc3767d2a748cb99344d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21013#discussion_r4392898301"
+    }
+  ]
+}

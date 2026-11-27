@@ -1,0 +1,31 @@
+{
+  "head": "a7f59a722bb50eb8d49d2bcda9b0fbb0525018a7",
+  "merge": "dfe396fd9d2bccd062c864007ca06902ae0b1c95",
+  "merged": "2026-06-09T12:03:15Z",
+  "missing_roots": 0,
+  "number": 265,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The node-limit math in this inline comment is misleading: the query fetches `users(first: 20)` for *every* `reactionGroups` entry, so the worst-case node count scales with the number of reaction groups that have users (not just `threads * comments * 20`). This could confuse future adjustments if the query still approaches GitHub’s 500k GraphQL node limit.",
+      "created": "2026-06-08T23:29:28Z",
+      "hunk": "@@ -215,7 +215,11 @@ def load_reviewer_set(org: str) -> set[str]:\n                             }\n                             reactionGroups {\n                                 content\n-                                users(first: 100) {\n+                                # Keep this capped at 20: this bulk query can\n+                                # request 100 review threads * 100 comments *\n+                                # 20 reaction users = 200,000 possible user\n+                                # nodes, below GitHub's 500,000 GraphQL ceiling.",
+      "id": "PRRT_kwDOSUeMrM6H_RNe",
+      "opened": "2026-06-08T23:29:28Z",
+      "path": ".github/scripts/pull-request-dashboard/github_cli.py",
+      "replies": [
+        {
+          "at": "2026-06-08T23:51:25Z",
+          "body": "Fixed in https://github.com/open-telemetry/semantic-conventions-genai/commit/a7f59a722bb50eb8d49d2bcda9b0fbb0525018a7.\n\nReplaced the exact node-product math with a qualitative note that the users connection is nested under reactionGroups for each fetched review comment, so raising the cap multiplies the possible node count.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/265#discussion_r3377005047"
+        }
+      ],
+      "reviewed": "1770464e4ae45219c7cfb8ad04bbefca0c473ccb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/265#discussion_r3376932778"
+    }
+  ]
+}

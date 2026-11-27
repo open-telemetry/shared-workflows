@@ -1,0 +1,31 @@
+{
+  "head": "447779b942995c32ddc4b9053829667a606c4aa9",
+  "merge": "8151672c52d4f4529959c1965782ff10118893eb",
+  "merged": "2026-04-02T15:49:59Z",
+  "missing_roots": 0,
+  "number": 17431,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "> java.lang.IllegalAccessError: tried to access class io.opentelemetry.javaagent.instrumentation.jbosslogmanager.mdc.v1_1.JbossLogManagerHelper from class org.jboss.logmanager.Logger\n\nAlthough the advice class is in the same package it gets inlined into a different package.",
+      "created": "2026-04-02T13:54:36Z",
+      "hunk": "@@ -11,7 +11,7 @@\n import io.opentelemetry.instrumentation.api.util.VirtualField;\n import org.jboss.logmanager.ExtLogRecord;\n \n-public class JbossLogManagerHelper {\n+final class JbossLogManagerHelper {",
+      "id": "PRRT_kwDODJKVX854gqFp",
+      "opened": "2026-04-02T13:54:36Z",
+      "path": "instrumentation/jboss-logmanager/jboss-logmanager-mdc-1.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jbosslogmanager/mdc/v1_1/JbossLogManagerHelper.java",
+      "replies": [
+        {
+          "at": "2026-04-02T15:23:42Z",
+          "body": "```suggestion\npublic final class JbossLogManagerHelper {\n```",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17431#discussion_r3028749081"
+        }
+      ],
+      "reviewed": "49ee22710a341a7875a5e9677dcb2cedcac7bb95",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17431#discussion_r3028204210"
+    }
+  ]
+}

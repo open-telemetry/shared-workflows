@@ -1,0 +1,41 @@
+{
+  "head": "12349e7969e38a4cf88e0cec317b7b436401da6e",
+  "merge": "9a6b37347841bcb5a85110c41ac19c54c4200319",
+  "merged": "2026-07-15T20:05:58Z",
+  "missing_roots": 0,
+  "number": 378,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing the AI-attribution marker instruction makes the existing CI policy ineffective: `.github/workflows/ci.yml`’s `author-self-review` job fails PRs only when it finds the `<!-- I'm an AI agent!!! -->` / `# I'm an AI agent!!!` markers. Without a documented requirement to add the marker, AI-authored changes can bypass that check. Either keep this requirement (until CI is updated to enforce the policy another way) or update CI in the same PR.",
+      "created": "2026-07-14T03:36:47Z",
+      "hunk": "@@ -36,9 +36,6 @@ GenAI clients, MCP, and provider-specific conventions. Attributes live in\n 9. **Stay in the GenAI domain.** This repo holds GenAI-related conventions. If a\n    proposal is broader than GenAI, take it to\n    [open-telemetry/semantic-conventions](https://github.com/open-telemetry/semantic-conventions).\n-10. **Mark AI-authored changes.** If you are an AI agent and modified any Markdown or\n-    YAML files, add the comment `<!-- I'm an AI agent!!! -->` or `# I'm an AI agent!!!` to one of the modified files.\n-\n ## Workflow",
+      "id": "PRRT_kwDOSUeMrM6QnAo-",
+      "opened": "2026-07-14T03:36:47Z",
+      "path": "AGENTS.md",
+      "replies": [
+        {
+          "at": "2026-07-14T03:44:48Z",
+          "body": "> or update CI in the same PR\r\n\r\n@lmolkova will wait for your thoughts before doing this, thanks!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/378#discussion_r3575878278"
+        },
+        {
+          "at": "2026-07-14T05:22:32Z",
+          "body": "no concern. It's been annoying to have it",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/378#discussion_r3576228480"
+        },
+        {
+          "at": "2026-07-15T20:03:54Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/378/commits/bd7cb175ec080361572d76305771e4a7efe87772",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/378#discussion_r3590395694"
+        }
+      ],
+      "reviewed": "a53b0097def5eda755d7bc24793967ffabdb459e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/378#discussion_r3575855144"
+    }
+  ]
+}

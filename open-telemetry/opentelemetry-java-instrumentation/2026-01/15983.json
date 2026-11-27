@@ -1,0 +1,25 @@
+{
+  "head": "9dcdcba7e10ee18815a4e890ea22bb83cb8a415b",
+  "merge": "2077edd97717361510e2c70b7bd7c0dd1c669355",
+  "merged": "2026-01-26T19:46:57Z",
+  "missing_roots": 0,
+  "number": 15983,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "considering that the jflex change isn't too complicated maybe it would make sense to make it in the old jflex too?",
+      "created": "2026-01-26T15:02:45Z",
+      "hunk": "@@ -684,7 +683,31 @@ private static Stream<Arguments> simplifyArgs() {\n                 \"SELECT * FROM `table` WHERE `col``name` = ?\",\n                 \"SELECT\",\n                 \"table\",\n-                \"SELECT `table`\")));\n+                \"SELECT `table`\")),\n+\n+        // Line comments\n+        Arguments.of(\n+            \"-- This query will DELETE old records\\nSELECT * FROM users WHERE active = 1\",\n+            expect(\n+                \"-- This query will DELETE old records SELECT * FROM users WHERE active = ?\",\n+                \"DELETE\", // this is old semconv jflex behavior\n+                \"users\",\n+                \"SELECT users\")),\n+        // Line comment without space after -- (invalid on MySQL/MariaDB)\n+        Arguments.of(\n+            \"--This query will DELETE old records\\nSELECT * FROM users WHERE active = 1\",\n+            expect(\n+                \"--This query will DELETE old records SELECT * FROM users WHERE active = ?\",\n+                \"DELETE\", // this is old semconv jflex behavior\n+                \"users\",\n+                \"SELECT users\")),\n+        // Weird case: \"--83...\" is line comment per SQL standard and on most databases\n+        // Except for MySQL/MariaDB which requires a space after \"--\" for line comments\n+        // Stable semconv parser treats \"--83\" as a line comment (preserved as-is)\n+        // Old semconv parser treats \"--83\" as a numeric expression\n+        emitStableDatabaseSemconv()",
+      "id": "PRRT_kwDODJKVX85rDC_P",
+      "opened": "2026-01-26T15:02:45Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlStatementSanitizerTest.java",
+      "replies": [],
+      "reviewed": "5afcd245ece43571ad038c6d641a6c83235e0fa4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15983#discussion_r2727960621"
+    }
+  ]
+}

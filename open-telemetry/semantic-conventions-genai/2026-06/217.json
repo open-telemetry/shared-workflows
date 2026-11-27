@@ -1,0 +1,52 @@
+{
+  "head": "7e7e4e763354b505b8e1f76512f17a1977b00f70",
+  "merge": "c8e928825be59b601d9f6336bba1a5c51f5f721c",
+  "merged": "2026-06-04T14:42:09Z",
+  "missing_roots": 0,
+  "number": 217,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.request.top_k` is still declared as `type: double`, but the new example is an integer literal. Other double-valued request examples in this registry use decimal literals (for example `temperature: [0.0]` and `top_p: [1.0]`), and keeping the example aligned with the declared attribute type avoids generating docs that show a double attribute with an integer example. Consider using `40.0` here, or changing the attribute type consistently if `top_k` should be modeled as an integer.",
+      "created": "2026-05-29T15:58:33Z",
+      "hunk": "@@ -123,8 +123,16 @@ attributes:\n     stability: development\n   - key: gen_ai.request.top_k\n     type: double\n-    brief: The top_k sampling setting for the GenAI request.\n-    examples: [1.0]\n+    brief: >\n+      The top-K sampling setting for the GenAI request: restricts token\n+      generation at each step to the K most likely next tokens.\n+    note: >\n+      This is a decoding/sampling parameter (e.g., Anthropic `top_k`,\n+      Cohere `k`, Google `topK`), not an output-shaping parameter. In\n+      particular, OpenAI's `top_logprobs` controls how many per-token\n+      log-probabilities are returned in the response and does not change\n+      generation; it MUST NOT be reported as `gen_ai.request.top_k`.\n+    examples: [40]",
+      "id": "PRRT_kwDOSUeMrM6FuuDd",
+      "opened": "2026-05-29T15:58:34Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-05-29T16:23:03Z",
+          "body": "reverted example in https://github.com/open-telemetry/semantic-conventions-genai/pull/217/commits/270c8b76e16919f997b7537c937a5ddaf921b05b\r\n\r\naddressing type in #218",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/217#discussion_r3325620586"
+        }
+      ],
+      "reviewed": "77eb65308b484d6b7b05cd683454ba58e95dd7dc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/217#discussion_r3325490040"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This clarification makes the registry definition say `gen_ai.request.top_k` is only a token decoding/sampling parameter, but the same attribute is also referenced by `gen_ai.retrieval.client` spans as a recommended retrieval attribute (`model/gen-ai/spans.yaml:266-288`). As generated, the retrieval docs now describe retrieval `top_k` as restricting token generation, which is inaccurate unless the retrieval use is removed or clarified separately.",
+      "created": "2026-05-29T16:25:02Z",
+      "hunk": "@@ -123,7 +123,15 @@ attributes:\n     stability: development\n   - key: gen_ai.request.top_k\n     type: double\n-    brief: The top_k sampling setting for the GenAI request.\n+    brief: >\n+      The top-K sampling setting for the GenAI request: restricts token\n+      generation at each step to the K most likely next tokens.\n+    note: >\n+      This is a decoding/sampling parameter (e.g., Anthropic `top_k`,\n+      Cohere `k`, Google `topK`), not an output-shaping parameter. In\n+      particular, OpenAI's `top_logprobs` controls how many per-token\n+      log-probabilities are returned in the response and does not change\n+      generation; it MUST NOT be reported as `gen_ai.request.top_k`.",
+      "id": "PRRT_kwDOSUeMrM6FvGnC",
+      "opened": "2026-05-29T16:25:02Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-05-29T17:13:00Z",
+          "body": "split out `gen_ai.retrieval.top_k`",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/217#discussion_r3325865863"
+        }
+      ],
+      "reviewed": "270c8b76e16919f997b7537c937a5ddaf921b05b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/217#discussion_r3325629813"
+    }
+  ]
+}

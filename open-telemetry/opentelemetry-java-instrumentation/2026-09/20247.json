@@ -1,0 +1,103 @@
+{
+  "head": "73f0afc47b4bfcf7cbb46dcf56e01bc827c2604a",
+  "merge": "9e1a5aac08f20d33b2c8cac15f8611b4272c47c9",
+  "merged": "2026-09-26T18:53:53Z",
+  "missing_roots": 0,
+  "number": 20247,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Attribute-assertion `satisfies(...)` lambdas use `val` in Java so the parameter is not mistaken for the raw attribute value. Please rename this newly added parameter consistently with the repository's test convention.",
+      "created": "2026-09-25T17:24:54Z",
+      "hunk": "@@ -127,6 +128,42 @@ void testEmitsSpans() {\n         });\n   }\n \n+  @Test\n+  void testAsyncErrorEmitsSpans() {\n+    assertThatThrownBy(() -> collection.async().get(\"async-id\").join())\n+        .hasCauseInstanceOf(DocumentNotFoundException.class);\n+\n+    testing.waitAndAssertTracesWithoutScopeVersionVerification(\n+        trace -> {\n+          if (emitSdkDetailSpans()) {\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasKind(v3Preview() ? CLIENT : INTERNAL)\n+                        .hasName(\"get\")\n+                        .hasStatus(StatusData.unset())\n+                        .hasNoParent()\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(stringKey(\"peer.service\"), \"kv\"),\n+                            satisfies(\n+                                stringKey(\"couchbase.operation_id\"),\n+                                value -> value.startsWith(\"0x\")),",
+      "id": "PRRT_kwDODJKVX86mF9xR",
+      "opened": "2026-09-25T17:24:55Z",
+      "path": "instrumentation/couchbase/couchbase-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_0/CouchbaseClient30Test.java",
+      "replies": [
+        {
+          "at": "2026-09-25T17:49:37Z",
+          "body": "Addressed in 8e088e79d5045d6f93b46e4f33080a9e38acf374, 12d30876dbc79c607f44ad8bc5851b7952517767.\n\nFixed in the verified source changes 8e088e79d5045d6f93b46e4f33080a9e38acf374, 12d30876dbc79c607f44ad8bc5851b7952517767.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20247#discussion_r4107164624"
+        }
+      ],
+      "reviewed": "3068323be3b74e1ee590ab2bbf783908acb3e06c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20247#discussion_r4106979281"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Keep this short mode-dependent expected kind inline at both assertions. Hiding the `v3Preview()`/`testLatestDeps()` branches in a helper makes it harder to see what each test mode expects, contrary to the repository's mode-dependent assertion convention.",
+      "created": "2026-09-25T17:24:55Z",
+      "hunk": "@@ -141,34 +144,83 @@ void testEmitsSpans() throws UnknownHostException {\n         trace -> {\n           if (emitSdkDetailSpans()) {\n             trace.hasSpansSatisfyingExactly(\n-                CouchbaseClient32Test::assertGetSpan,\n+                span -> {\n+                  assertOperationSpan(\n+                      span,\n+                      \"get\",\n+                      \"id\",\n+                      testLatestDeps() ? StatusData.error() : StatusData.unset());\n+                  span.hasNoParent();\n+                },\n                 span ->\n                     span.hasName(\"dispatch_to_server\")\n                         .hasKind(v3Preview() ? INTERNAL : (testLatestDeps() ? CLIENT : INTERNAL))\n+                        .hasParent(trace.getSpan(0))\n                         .hasAttributesSatisfyingExactly(dispatchAttributes));\n           } else {\n-            trace.hasSpansSatisfyingExactly(CouchbaseClient32Test::assertGetSpan);\n+            trace.hasSpansSatisfyingExactly(\n+                span -> {\n+                  assertOperationSpan(\n+                      span,\n+                      \"get\",\n+                      \"id\",\n+                      testLatestDeps() ? StatusData.error() : StatusData.unset());\n+                  span.hasNoParent();\n+                });\n           }\n         });\n   }\n \n-  private static void assertGetSpan(SpanDataAssert span) {\n+  @Test\n+  void asyncWriteEmitsLifecycleSpans() {\n+    collection.async().upsert(\"async-id\", JsonObject.create().put(\"value\", \"test\")).join();\n+\n+    testing.waitAndAssertTracesWithoutScopeVersionVerification(\n+        trace -> {\n+          if (emitSdkDetailSpans()) {\n+            trace.hasSpansSatisfyingExactly(\n+                span -> {\n+                  assertOperationSpan(span, \"upsert\", \"async-id\", StatusData.unset());\n+                  span.hasNoParent();\n+                },\n+                span ->\n+                    span.hasName(\"request_encoding\")\n+                        .hasKind(sdkDetailSpanKind())\n+                        .hasParent(trace.getSpan(0)),\n+                span ->\n+                    span.hasName(\"dispatch_to_server\")\n+                        .hasKind(sdkDetailSpanKind())\n+                        .hasParent(trace.getSpan(0)));\n+          } else {\n+            trace.hasSpansSatisfyingExactly(\n+                span -> {\n+                  assertOperationSpan(span, \"upsert\", \"async-id\", StatusData.unset());\n+                  span.hasNoParent();\n+                });\n+          }\n+        });\n+  }\n+\n+  private static void assertOperationSpan(\n+      SpanDataAssert span, String operation, String documentId, StatusData status) {\n     span.hasKind(v3Preview() || testLatestDeps() ? CLIENT : INTERNAL)\n-        .hasName(emitStableDatabaseSemconv() ? \"get _default\" : \"get\");\n-    if (testLatestDeps()) {\n-      span.hasStatus(StatusData.error());\n-    }\n-    span.hasAttributesSatisfyingExactly(\n-        equalTo(maybeStable(DB_SYSTEM), \"couchbase\"),\n-        equalTo(maybeStable(DB_NAME), \"test\"),\n-        equalTo(maybeStable(DB_OPERATION), \"get\"),\n-        equalTo(maybeStable(stringKey(\"db.couchbase.collection\")), \"_default\"),\n-        equalTo(stringKey(\"db.couchbase.document_id\"), experimental(\"id\")),\n-        equalTo(stringKey(\"db.couchbase.scope\"), experimental(\"_default\")),\n-        equalTo(longKey(\"db.couchbase.retries\"), experimental(0L)),\n-        equalTo(stringKey(\"db.couchbase.service\"), experimental(\"kv\")),\n-        equalTo(SERVER_ADDRESS, emitStableDatabaseSemconv() ? seedAddress : null),\n-        equalTo(SERVER_PORT, emitStableDatabaseSemconv() ? (long) seedPort : null));\n+        .hasName(emitStableDatabaseSemconv() ? operation + \" _default\" : operation)\n+        .hasStatus(status)\n+        .hasAttributesSatisfyingExactly(\n+            equalTo(maybeStable(DB_SYSTEM), \"couchbase\"),\n+            equalTo(maybeStable(DB_NAME), \"test\"),\n+            equalTo(maybeStable(DB_OPERATION), operation),\n+            equalTo(maybeStable(stringKey(\"db.couchbase.collection\")), \"_default\"),\n+            equalTo(stringKey(\"db.couchbase.document_id\"), experimental(documentId)),\n+            equalTo(stringKey(\"db.couchbase.scope\"), experimental(\"_default\")),\n+            equalTo(longKey(\"db.couchbase.retries\"), experimental(0L)),\n+            equalTo(stringKey(\"db.couchbase.service\"), experimental(\"kv\")),\n+            equalTo(SERVER_ADDRESS, emitStableDatabaseSemconv() ? seedAddress : null),\n+            equalTo(SERVER_PORT, emitStableDatabaseSemconv() ? (long) seedPort : null));\n+  }\n+\n+  private static SpanKind sdkDetailSpanKind() {\n+    return v3Preview() ? INTERNAL : (testLatestDeps() ? CLIENT : INTERNAL);\n   }",
+      "id": "PRRT_kwDODJKVX86mF9xz",
+      "opened": "2026-09-25T17:24:55Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseClient32Test.java",
+      "replies": [
+        {
+          "at": "2026-09-25T17:49:40Z",
+          "body": "Addressed in 8e088e79d5045d6f93b46e4f33080a9e38acf374, 12d30876dbc79c607f44ad8bc5851b7952517767.\n\nFixed in the verified source changes 8e088e79d5045d6f93b46e4f33080a9e38acf374, 12d30876dbc79c607f44ad8bc5851b7952517767.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20247#discussion_r4107164914"
+        }
+      ],
+      "reviewed": "3068323be3b74e1ee590ab2bbf783908acb3e06c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20247#discussion_r4106979337"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-26T04:35:36Z",
+      "hunk": "@@ -68,7 +69,8 @@\n import org.testcontainers.couchbase.CouchbaseContainer;\n import org.testcontainers.couchbase.CouchbaseService;\n \n-// Couchbase instrumentation is owned upstream, so limited testing is performed here.\n+// The Couchbase SDK owns the request lifecycle hooks; the agent owns the tracing bridge and\n+// adapter.",
+      "id": "PRRT_kwDODJKVX86mNu2r",
+      "opened": "2026-09-26T04:35:36Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseClient32Test.java",
+      "replies": [],
+      "reviewed": "be1302829555c77fbc7772412a18445548771888",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20247#discussion_r4110191842"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-09-26T04:35:53Z",
+      "hunk": "@@ -63,7 +64,8 @@\n import org.testcontainers.couchbase.CouchbaseContainer;\n import org.testcontainers.couchbase.CouchbaseService;\n \n-// Couchbase instrumentation is owned upstream, so limited testing is performed here.\n+// The Couchbase SDK owns the request lifecycle hooks; the agent owns the tracing bridge and\n+// adapter.",
+      "id": "PRRT_kwDODJKVX86mNu8x",
+      "opened": "2026-09-26T04:35:53Z",
+      "path": "instrumentation/couchbase/couchbase-3.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseClient31Test.java",
+      "replies": [],
+      "reviewed": "be1302829555c77fbc7772412a18445548771888",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20247#discussion_r4110192507"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "any reason we shouldn't static import this?",
+      "created": "2026-09-26T11:36:36Z",
+      "hunk": "@@ -127,6 +127,41 @@ void testEmitsSpans() {\n         });\n   }\n \n+  @Test\n+  void testAsyncErrorEmitsSpans() {\n+    assertThatThrownBy(() -> collection.async().get(\"async-id\").join())\n+        .hasCauseInstanceOf(DocumentNotFoundException.class);\n+\n+    testing.waitAndAssertTracesWithoutScopeVersionVerification(\n+        trace -> {\n+          if (emitSdkDetailSpans()) {\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasKind(v3Preview() ? CLIENT : INTERNAL)\n+                        .hasName(\"get\")\n+                        .hasStatus(StatusData.unset())\n+                        .hasNoParent()\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(stringKey(\"peer.service\"), \"kv\"),",
+      "id": "PRRT_kwDODJKVX86mQV4T",
+      "opened": "2026-09-26T11:36:42Z",
+      "path": "instrumentation/couchbase/couchbase-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_0/CouchbaseClient30Test.java",
+      "replies": [
+        {
+          "at": "2026-09-26T17:11:49Z",
+          "body": "I'm going to resolve this, and update the branch to latest restructured review instructions to see if copilot review catches it",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20247#discussion_r4112105900"
+        }
+      ],
+      "reviewed": "d006367dcc3ba4ca04512cea3bac063381cba1fc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20247#discussion_r4111253288"
+    }
+  ]
+}

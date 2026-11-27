@@ -1,0 +1,130 @@
+{
+  "head": "db072a4666736b09faad0958c492b49920d10e91",
+  "merge": "80d48c825227e454d75100bc544f572f10d1059b",
+  "merged": "2026-05-10T17:53:03Z",
+  "missing_roots": 0,
+  "number": 18658,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `awk` range extraction can bleed across multiple PR bodies if any open module-cleanup PR is missing the terminating `---` line. `gh pr list --jq '.[].body'` outputs bodies back-to-back with no explicit separator, so once `f` is set it will continue scanning into subsequent bodies until it finds a later `---`, potentially reintroducing the processed-set poisoning this is trying to prevent. Consider parsing each body independently (e.g., do the section extraction in `jq` per element), or add an explicit sentinel delimiter between bodies in the `--jq` output and have `awk` reset `f` on that delimiter.\n",
+      "created": "2026-05-09T20:14:36Z",
+      "hunk": "@@ -131,10 +131,13 @@ jobs:\n           # bodies list the modules under \"## Modules in this batch\" as\n           # \"- \" followed by the short wrapped in backticks). Once a PR\n           # merges, those shorts also exist in processed.txt so they won't\n-          # be re-picked.\n+          # be re-picked. Only scan the \"Modules in this batch\" section\n+          # (terminated by `---`) so an unrelated backticked line elsewhere\n+          # in the body cannot poison the processed-set.\n           inflight=$(gh pr list --repo \"$GITHUB_REPOSITORY\" \\\n                        --label \"module cleanup\" --state open \\\n                        --json body --jq '.[].body' \\\n+                     | awk '/^## Modules in this batch/{f=1; next} /^---/{f=0} f' \\\n                      | sed -n 's/^- `\\([^`]*\\)`$/\\1/p' || true)",
+      "id": "PRRT_kwDODJKVX86A2b_-",
+      "opened": "2026-05-09T20:14:37Z",
+      "path": ".github/workflows/module-cleanup.md",
+      "replies": [],
+      "reviewed": "a39e811163c9e23febcae2b57cd15793d0920f14",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18658#discussion_r3213831318"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `awk` range extraction can bleed across multiple PR bodies if any open module-cleanup PR is missing the terminating `---` line. Since `gh pr list --jq '.[].body'` emits bodies back-to-back with no explicit separator, once `f` is set it will keep scanning into subsequent bodies until it encounters a later `---`, which can still poison the processed-set. Consider extracting the section per PR in `jq`, or injecting a sentinel delimiter between bodies in the `--jq` output and resetting `f` on that delimiter.\n",
+      "created": "2026-05-09T20:14:37Z",
+      "hunk": "@@ -1031,10 +1031,13 @@ jobs:\n           # bodies list the modules under \"## Modules in this batch\" as\n           # \"- \" followed by the short wrapped in backticks). Once a PR\n           # merges, those shorts also exist in processed.txt so they won't\n-          # be re-picked.\n+          # be re-picked. Only scan the \"Modules in this batch\" section\n+          # (terminated by `---`) so an unrelated backticked line elsewhere\n+          # in the body cannot poison the processed-set.\n           inflight=$(gh pr list --repo \"$GITHUB_REPOSITORY\" \\\n                        --label \"module cleanup\" --state open \\\n                        --json body --jq '.[].body' \\\n+                     | awk '/^## Modules in this batch/{f=1; next} /^---/{f=0} f' \\",
+      "id": "PRRT_kwDODJKVX86A2cAN",
+      "opened": "2026-05-09T20:14:37Z",
+      "path": ".github/workflows/module-cleanup.lock.yml",
+      "replies": [],
+      "reviewed": "a39e811163c9e23febcae2b57cd15793d0920f14",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18658#discussion_r3213831334"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The hidden per-module marker is derived from the commit subject (`%s`), but the module-cleanup persona requires subjects like `Cleanup for <module>`. That means these markers will currently include the `Cleanup for ` prefix and won’t match the `short_name` values in `processed.txt`/`REVIEW_PROGRESS`, so inflight PRs won’t be excluded and modules can be re-picked. Adjust the marker generation to emit just the raw module short name (e.g., strip the `Cleanup for ` prefix, consistent with the visible module list below).\n",
+      "created": "2026-05-09T20:51:09Z",
+      "hunk": "@@ -174,6 +174,10 @@ if [ \"$SHOULD_FLUSH\" = \"true\" ]; then\n     {\n         echo \"Automated module-cleanup batch.\"\n         echo\n+        git -C \"$WIP_WT\" log \"origin/main..origin/$WIP_BRANCH\" \\\n+            --reverse --format='<!-- module-cleanup-module: %s -->' \\\n+            | sed 's|: Cleanup for |: |'",
+      "id": "PRRT_kwDODJKVX86A2klC",
+      "opened": "2026-05-09T20:51:10Z",
+      "path": ".github/scripts/module-cleanup/finalize.sh",
+      "replies": [],
+      "reviewed": "8d39139a2307cc711b9df1b119571c22503deaa1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18658#discussion_r3213875639"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`--jq '.[].body | split(\"\\n\")[]'` will error if any PR has a null body (GitHub API can return `body: null`). Because the pipeline is `|| true`, this would silently drop all inflight markers and allow re-picking modules already in open PRs. Consider null-coalescing in jq (e.g., treat null as empty string) before splitting.\n",
+      "created": "2026-05-09T20:51:10Z",
+      "hunk": "@@ -127,15 +127,14 @@ jobs:\n           if git fetch origin \"$MEMORY_BRANCH\" --depth=1 2>/dev/null; then\n             processed=$(git show \"origin/$MEMORY_BRANCH:processed.txt\" 2>/dev/null || true)\n           fi\n-          # Also exclude shorts already in inflight module-cleanup PRs (their\n-          # bodies list the modules under \"## Modules in this batch\" as\n-          # \"- \" followed by the short wrapped in backticks). Once a PR\n-          # merges, those shorts also exist in processed.txt so they won't\n-          # be re-picked.\n+          # Also exclude shorts already in inflight module-cleanup PRs. The\n+          # finalize script emits one hidden marker per module in the PR body.\n+          # Once a PR merges, those shorts also exist in processed.txt so they\n+          # won't be re-picked.\n           inflight=$(gh pr list --repo \"$GITHUB_REPOSITORY\" \\\n                        --label \"module cleanup\" --state open \\\n-                       --json body --jq '.[].body' \\\n-                     | sed -n 's/^- `\\([^`]*\\)`$/\\1/p' || true)\n+                       --json body --jq '.[].body | split(\"\\n\")[]' \\",
+      "id": "PRRT_kwDODJKVX86A2klI",
+      "opened": "2026-05-09T20:51:10Z",
+      "path": ".github/workflows/module-cleanup.md",
+      "replies": [],
+      "reviewed": "8d39139a2307cc711b9df1b119571c22503deaa1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18658#discussion_r3213875647"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`--jq '.[].body | split(\"\\n\")[]'` will error if any PR has a null body (GitHub API can return `body: null`). Since the pipeline is `|| true`, this would silently drop inflight markers and allow re-picking modules already in open PRs. Consider null-coalescing in jq (treat null as empty string) before splitting.\n",
+      "created": "2026-05-09T20:51:10Z",
+      "hunk": "@@ -1027,15 +1027,14 @@ jobs:\n           if git fetch origin \"$MEMORY_BRANCH\" --depth=1 2>/dev/null; then\n             processed=$(git show \"origin/$MEMORY_BRANCH:processed.txt\" 2>/dev/null || true)\n           fi\n-          # Also exclude shorts already in inflight module-cleanup PRs (their\n-          # bodies list the modules under \"## Modules in this batch\" as\n-          # \"- \" followed by the short wrapped in backticks). Once a PR\n-          # merges, those shorts also exist in processed.txt so they won't\n-          # be re-picked.\n+          # Also exclude shorts already in inflight module-cleanup PRs. The\n+          # finalize script emits one hidden marker per module in the PR body.\n+          # Once a PR merges, those shorts also exist in processed.txt so they\n+          # won't be re-picked.\n           inflight=$(gh pr list --repo \"$GITHUB_REPOSITORY\" \\\n                        --label \"module cleanup\" --state open \\\n-                       --json body --jq '.[].body' \\\n-                     | sed -n 's/^- `\\([^`]*\\)`$/\\1/p' || true)\n+                       --json body --jq '.[].body | split(\"\\n\")[]' \\",
+      "id": "PRRT_kwDODJKVX86A2klP",
+      "opened": "2026-05-09T20:51:10Z",
+      "path": ".github/workflows/module-cleanup.lock.yml",
+      "replies": [],
+      "reviewed": "8d39139a2307cc711b9df1b119571c22503deaa1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18658#discussion_r3213875655"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The dispatch step no longer adds modules from inflight module-cleanup PRs into REVIEW_PROGRESS (it now only uses processed.txt). That contradicts the current build-cleanup-matrix.py contract (it still documents that REVIEW_PROGRESS includes inflight PR modules) and also contradicts finalize.sh’s comment that dispatch derives an inflight list from commit subjects. Either reintroduce a safe inflight exclusion mechanism (e.g., restricted parsing of the PR body section) or update the related script/docs/comments so the workflow’s behavior is consistent and not misleading.",
+      "created": "2026-05-09T21:32:22Z",
+      "hunk": "@@ -127,17 +127,7 @@ jobs:\n           if git fetch origin \"$MEMORY_BRANCH\" --depth=1 2>/dev/null; then\n             processed=$(git show \"origin/$MEMORY_BRANCH:processed.txt\" 2>/dev/null || true)\n           fi\n-          # Also exclude shorts already in inflight module-cleanup PRs (their\n-          # bodies list the modules under \"## Modules in this batch\" as\n-          # \"- \" followed by the short wrapped in backticks). Once a PR\n-          # merges, those shorts also exist in processed.txt so they won't\n-          # be re-picked.\n-          inflight=$(gh pr list --repo \"$GITHUB_REPOSITORY\" \\\n-                       --label \"module cleanup\" --state open \\\n-                       --json body --jq '.[].body' \\\n-                     | sed -n 's/^- `\\([^`]*\\)`$/\\1/p' || true)\n-          export REVIEW_PROGRESS=\"$(printf '%s\\n%s\\n' \"$processed\" \"$inflight\" \\\n-                                    | grep -v '^$' | sort -u)\"\n+          export REVIEW_PROGRESS=\"$(printf '%s\\n' \"$processed\" | grep -v '^$' | sort -u)\"",
+      "id": "PRRT_kwDODJKVX86A2tWE",
+      "opened": "2026-05-09T21:32:23Z",
+      "path": ".github/workflows/module-cleanup.md",
+      "replies": [],
+      "reviewed": "95b4d53aacf26d2a2fc061268f351ac767d49d03",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18658#discussion_r3213919559"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This comment says the dispatch job derives an inflight-module list from commit subjects on open module-cleanup PR branches, but the current dispatch implementation no longer computes any inflight-module set (and build-cleanup-matrix.py doesn’t either). Please either implement that inflight filtering logic or remove/update this comment to reflect the actual behavior.\n",
+      "created": "2026-05-09T21:32:22Z",
+      "hunk": "@@ -170,6 +170,9 @@ if [ \"$SHOULD_FLUSH\" = \"true\" ]; then\n \n     MODULE_COUNT=$(git -C \"$WIP_WT\" rev-list --count \"origin/main..origin/$WIP_BRANCH\")\n \n+    # The dispatch job derives the inflight-module list from commit subjects\n+    # on open module-cleanup PR branches (\"Cleanup for <module>\"), so no\n+    # hidden marker block is needed here.",
+      "id": "PRRT_kwDODJKVX86A2tWL",
+      "opened": "2026-05-09T21:32:23Z",
+      "path": ".github/scripts/module-cleanup/finalize.sh",
+      "replies": [],
+      "reviewed": "95b4d53aacf26d2a2fc061268f351ac767d49d03",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18658#discussion_r3213919566"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "PR description mentions hardening the inflight-PR-body parser to only read the `## Modules in this batch` section, but the workflow/script no longer parses inflight PR bodies at all (REVIEW_PROGRESS is now only `processed.txt`). If dropping inflight parsing is intentional (relying solely on the memory branch as the source of truth), please update the PR description accordingly; otherwise, the hardened parser logic still needs to be implemented in the dispatch path.",
+      "created": "2026-05-09T21:55:56Z",
+      "hunk": "@@ -13,8 +13,7 @@\n   GITHUB_OUTPUT   - path to the GitHub Actions output file\n   GH_TOKEN        - token for `gh` CLI (set automatically by the workflow)\n   REVIEW_PROGRESS - newline-separated list of processed module names\n-                    (contents of processed.txt on the memory branch, plus\n-                    shorts already in inflight module-cleanup PR bodies)\n+                    (contents of processed.txt on the memory branch)\n ",
+      "id": "PRRT_kwDODJKVX86A2y_7",
+      "opened": "2026-05-09T21:55:56Z",
+      "path": ".github/scripts/module-cleanup/build-cleanup-matrix.py",
+      "replies": [],
+      "reviewed": "db072a4666736b09faad0958c492b49920d10e91",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18658#discussion_r3213948056"
+    }
+  ]
+}

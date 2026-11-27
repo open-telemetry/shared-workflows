@@ -1,0 +1,109 @@
+{
+  "head": "9c08997a3a5813e3b9e5d84583cbf12ba146664e",
+  "merge": "b3f2989219b2c1ec604d95fe0760f09c657a749f",
+  "merged": "2026-10-26T07:23:07Z",
+  "missing_roots": 0,
+  "number": 20937,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify this PR directly, without creating another PR as a workaround. The user requested the following reduction after reviewing the current implementation: check async appender configuration only when the SDK is installed via OpenTelemetryAppender.setOpenTelemetry(), not at three lifecycle points.\n\nIn instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/OpenTelemetryAppender.java, retain the configuration check in setOpenTelemetry(), remove it from start() and append(), and remove asyncAppenderCheckedOnAppend and its restart/reset bookkeeping. Keep the once-per-appender warning flag, nested attachment detection, identity-based cycle protection, and class-name-based AsyncAppenderBase detection for compatibility with supported Logback releases that predate that class. Keep this an advisory Logback status warning, with appender names and recommended direct OTel attachment plus SDK batch export. Do not introduce async propagation or alter export behavior.\n\nThe accepted tradeoff is that configuration must be assembled before SDK installation. Appender graphs attached or changed afterward are not guaranteed to be detected until SDK installation is performed again. Update the relevant README explanation to state the installation-time check and this limitation without adding a dynamic reconfiguration mechanism.\n\nReduce the tests accordingly. Remove coverage solely for the deleted start/first-append detection hooks. Consolidate Spring Boot coverage around the actual SDK-installation path: OpenTelemetryAppenderAutoConfiguration.LogbackAppenderConfiguration calls OpenTelemetryAppender.install(openTelemetry); confirm the exact code and exercise the relevant existing integration path rather than relying on early LogbackAppenderInstaller.start() behavior. Retain focused coverage for once-only warnings across repeated installation, nested async paths, and directly attached OTel with separate async output preserving correlation and producing no warning. Keep the implementation and tests as small as the requirements allow; do not replace removed test boilerplate with unnecessary abstractions.\n\nRun the narrowest relevant formatting tasks before targeted tests and report their actual results in your completion evidence. Keep changes limited to this simplification and its directly related documentation and tests. Preserve the existing draft state.\n",
+      "created": "2026-10-24T18:03:33Z",
+      "hunk": "@@ -60,6 +63,8 @@ public class OpenTelemetryAppender extends UnsynchronizedAppenderBase<ILoggingEv\n   private BlockingQueue<LoggingEventToReplay> eventsToReplay =\n       new ArrayBlockingQueue<>(numLogsCapturedBeforeOtelInstall);\n   private final AtomicBoolean replayLimitWarningLogged = new AtomicBoolean();\n+  private final AtomicBoolean asyncAppenderWarningLogged = new AtomicBoolean();\n+  private final AtomicBoolean asyncAppenderCheckedOnAppend = new AtomicBoolean();",
+      "id": "PRRT_kwDODJKVX86v6b2U",
+      "opened": "2026-10-24T18:03:33Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/OpenTelemetryAppender.java",
+      "replies": [
+        {
+          "at": "2026-10-24T18:16:48Z",
+          "body": "Simplified as requested in `5ed9afc9`: async graph inspection now runs only during SDK installation, with lifecycle-hook coverage removed and Spring coverage routed through the `ApplicationReadyEvent` installer. The README documents the installation-time detection limitation. Focused formatting and tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20937#discussion_r4368032149"
+        }
+      ],
+      "reviewed": "c6a5b520764a464456d3c0459efc5ef460ed199a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20937#discussion_r4367995868"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-24T18:37:46Z",
+      "hunk": "@@ -80,6 +80,41 @@ public class Application {\n }\n ```\n \n+#### Asynchronous logging and trace correlation\n+\n+Attach `OpenTelemetryAppender` directly to your logger. Placing it behind Logback's `AsyncAppender`\n+loses trace/span correlation because the logging thread's OpenTelemetry context is not propagated\n+to the async worker. This limitation does not apply to the Java agent's automatic log capture.\n+\n+Use the SDK's `BatchLogRecordProcessor` for asynchronous export. Formatting and attribute extraction\n+still run on the logging thread. Console or file appenders can remain asynchronous, as shown below:\n+\n+```xml\n+<configuration>\n+  <appender name=\"console\" class=\"ch.qos.logback.core.ConsoleAppender\">\n+    <encoder>\n+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>\n+    </encoder>\n+  </appender>\n+  <appender name=\"async-console\" class=\"ch.qos.logback.classic.AsyncAppender\">\n+    <appender-ref ref=\"console\"/>\n+  </appender>\n+  <appender name=\"OpenTelemetry\"\n+            class=\"io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender\"/>\n+  <root level=\"INFO\">\n+    <appender-ref ref=\"OpenTelemetry\"/>\n+    <appender-ref ref=\"async-console\"/>\n+  </root>\n+</configuration>\n+```\n+\n+With the OpenTelemetry Spring Boot starter, use the same layout in `logback-spring.xml`. The starter\n+configures SDK batch export by default.\n+\n+When the SDK is installed, `OpenTelemetryAppender` checks the configuration and warns once if it is\n+behind a Logback async appender. Configure appenders before installing the SDK; later changes are\n+not checked automatically. The warning does not change logging behavior.",
+      "id": "PRRT_kwDODJKVX86v6qQx",
+      "opened": "2026-10-24T18:37:46Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/README.md",
+      "replies": [],
+      "reviewed": "915d9a4704b132367348f8c77e0d1699b1e3d13c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20937#discussion_r4368089695"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the warning tests in this PR directly. Keep meaningful coverage, but reduce unnecessary setup and repeated assertions in instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncAppenderWarningTest.java.\r\n\r\nThe existing AsyncOpenTelemetryAppenderTest already covers the basic warning through OpenTelemetryAppender.install(). Trim the XML configuration case in AsyncAppenderWarningTest to focus on warning timing and deduplication through setOpenTelemetry(): no warning before SDK installation, one warning when installed, and still one warning after repeated installation. Avoid repeating basic log-export assertions already covered elsewhere.\r\n\r\nKeep one focused nested traversal case proving the warning finds the async boundary through synchronous wrappers and nested async appenders. Keep the recommended-setup case proving directly attached OTel with separate async output emits no warning and preserves span correlation. Simplify the custom forwarding-appender fixture where practical, without introducing unnecessary helpers or abstractions. Preserve meaningful existing assertions and keep production behavior unchanged.\r\n\r\nKeep this change limited to test simplification. Do not change production code or remove the distinct timing, deduplication, nested traversal, or recommended-setup coverage. Run the narrowest applicable formatting task before targeted async-appender tests and report the actual results in your completion evidence. Preserve the PR's existing draft/ready state. Update this PR rather than creating another PR as a workaround.",
+      "created": "2026-10-24T18:41:15Z",
+      "hunk": "@@ -0,0 +1,250 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.logback.appender.v1_0;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.stream.Collectors.toList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import ch.qos.logback.classic.AsyncAppender;\n+import ch.qos.logback.classic.Logger;\n+import ch.qos.logback.classic.LoggerContext;\n+import ch.qos.logback.classic.joran.JoranConfigurator;\n+import ch.qos.logback.classic.spi.ILoggingEvent;\n+import ch.qos.logback.core.Appender;\n+import ch.qos.logback.core.AppenderBase;\n+import ch.qos.logback.core.joran.spi.JoranException;\n+import ch.qos.logback.core.read.ListAppender;\n+import ch.qos.logback.core.spi.AppenderAttachable;\n+import ch.qos.logback.core.spi.AppenderAttachableImpl;\n+import ch.qos.logback.core.status.Status;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import java.io.ByteArrayInputStream;\n+import java.util.Iterator;\n+import java.util.List;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.slf4j.MDC;\n+import org.slf4j.spi.MDCAdapter;\n+\n+class AsyncAppenderWarningTest {\n+\n+  @RegisterExtension\n+  private static final LibraryInstrumentationExtension testing =\n+      LibraryInstrumentationExtension.create();\n+\n+  private final LoggerContext loggerContext = new LoggerContext();\n+\n+  @BeforeEach\n+  void setUp() throws ReflectiveOperationException {\n+    // Newer Logback versions initialize the MDC adapter through their SLF4J service provider.\n+    try {\n+      LoggerContext.class\n+          .getMethod(\"setMDCAdapter\", MDCAdapter.class)\n+          .invoke(loggerContext, MDC.getMDCAdapter());\n+    } catch (NoSuchMethodException ignored) {\n+      // Logback 1.0 uses the static MDC adapter instead.\n+    }\n+  }\n+\n+  @AfterEach\n+  void tearDown() {\n+    loggerContext.stop();\n+  }\n+\n+  @Test\n+  void xmlConfigurationWarnsAtSdkInstallationOnlyOnce() throws JoranException {\n+    OpenTelemetryAppender appender = configureXml();",
+      "id": "PRRT_kwDODJKVX86v6rpG",
+      "opened": "2026-10-24T18:41:15Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncAppenderWarningTest.java",
+      "replies": [
+        {
+          "at": "2026-10-24T18:50:41Z",
+          "body": "Simplified in 7651372a. `spotlessJavaApply` and `asyncAppenderTest` both passed; production code is unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20937#discussion_r4368125416"
+        }
+      ],
+      "reviewed": "eaa63a5d9a1a91635cef41e4cb51a13fb6a5c3a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20937#discussion_r4368099039"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to keep only the existing happy-path library coverage for the async-appender warning. Delete instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncAppenderWarningTest.java.\r\n\r\nThe user has explicitly decided that happy-path testing is sufficient for this feature. The existing AsyncOpenTelemetryAppenderTest already verifies that AsyncAppender -> OpenTelemetryAppender produces one warning across repeated SDK installation, identifies both appender names, and still exports the log. Keep that test and its warning, deduplication, and export assertions unchanged. Do not move the deleted class's XML timing, nested-wrapper, separate-async-output, or correlation scenarios into other tests, and do not add replacement fixtures. This user-directed scope reduction supersedes the earlier request to retain those extra scenarios.\r\n\r\nLeave production code, documentation, and Spring Boot tests unchanged. Preserve the PR's draft state. Run the narrowest applicable formatting task before the targeted asyncAppenderTest suite and report actual results in completion evidence. Do not create another PR as a workaround.",
+      "created": "2026-10-24T19:25:56Z",
+      "hunk": "@@ -0,0 +1,229 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.logback.appender.v1_0;\n+\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static java.util.stream.Collectors.toList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import ch.qos.logback.classic.AsyncAppender;\n+import ch.qos.logback.classic.Logger;\n+import ch.qos.logback.classic.LoggerContext;\n+import ch.qos.logback.classic.joran.JoranConfigurator;\n+import ch.qos.logback.classic.spi.ILoggingEvent;\n+import ch.qos.logback.core.Appender;\n+import ch.qos.logback.core.AppenderBase;\n+import ch.qos.logback.core.joran.spi.JoranException;\n+import ch.qos.logback.core.read.ListAppender;\n+import ch.qos.logback.core.spi.AppenderAttachable;\n+import ch.qos.logback.core.spi.AppenderAttachableImpl;\n+import ch.qos.logback.core.status.Status;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import java.io.ByteArrayInputStream;\n+import java.util.Iterator;\n+import java.util.List;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.slf4j.MDC;\n+import org.slf4j.spi.MDCAdapter;\n+\n+class AsyncAppenderWarningTest {\n+",
+      "id": "PRRT_kwDODJKVX86v6_Ha",
+      "opened": "2026-10-24T19:25:56Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncAppenderWarningTest.java",
+      "replies": [
+        {
+          "at": "2026-10-24T19:32:21Z",
+          "body": "Removed `AsyncAppenderWarningTest.java` as requested; the existing happy-path coverage remains unchanged. Commit: `9c08997a`. The formatting task and targeted `asyncAppenderTest` suite passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20937#discussion_r4368249269"
+        }
+      ],
+      "reviewed": "7651372a25dc5b58ec6b78616d87558a0ec552b2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20937#discussion_r4368226454"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Both added warning tests use a single AsyncAppender directly wrapping OpenTelemetryAppender, so neither exercises preserving an inherited async boundary through a non-async wrapper. Please add library tests for AsyncAppender → synchronous AppenderAttachable → OpenTelemetryAppender and for the documented direct-OTel/async-console layout. Assert one warning for the nested case and none for the recommended layout, so the new traversal cannot silently miss nested attachments or report unrelated async branches.",
+      "created": "2026-10-24T19:40:17Z",
+      "hunk": "@@ -118,6 +122,55 @@ public void start() {\n     super.start();\n   }\n \n+  private void checkAsyncAppenderConfiguration() {\n+    if (asyncAppenderWarningLogged.get() || !(getContext() instanceof LoggerContext)) {\n+      return;\n+    }\n+    LoggerContext loggerContext = (LoggerContext) getContext();\n+    Set<Appender<?>> path = Collections.newSetFromMap(new IdentityHashMap<>());\n+    for (Logger logger : loggerContext.getLoggerList()) {\n+      logger\n+          .iteratorForAppenders()\n+          .forEachRemaining(appender -> checkAsyncAppenderConfiguration(appender, null, path));\n+    }\n+  }\n+\n+  private void checkAsyncAppenderConfiguration(\n+      Appender<?> appender, @Nullable Appender<?> asyncAppender, Set<Appender<?>> path) {\n+    if (!path.add(appender)) {\n+      return;\n+    }\n+    if (appender == this && asyncAppender != null) {\n+      if (asyncAppenderWarningLogged.compareAndSet(false, true)) {\n+        addWarn(\n+            \"OpenTelemetryAppender '\"\n+                + getName()\n+                + \"' is downstream of AsyncAppender '\"\n+                + asyncAppender.getName()\n+                + \"'. This loses trace/span correlation because OpenTelemetry context is not\"\n+                + \" propagated to the async worker. Attach OpenTelemetryAppender directly to the\"\n+                + \" logger and use SDK batch export instead; keep console/file appenders async\"\n+                + \" separately.\");\n+      }\n+    } else if (appender instanceof AppenderAttachable) {\n+      Appender<?> boundary = isAsyncAppender(appender) ? appender : asyncAppender;\n+      ((AppenderAttachable<?>) appender)\n+          .iteratorForAppenders()\n+          .forEachRemaining(child -> checkAsyncAppenderConfiguration(child, boundary, path));",
+      "id": "PRRT_kwDODJKVX86v7HWU",
+      "opened": "2026-10-24T19:40:17Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/OpenTelemetryAppender.java",
+      "replies": [
+        {
+          "at": "2026-10-24T19:42:15Z",
+          "body": "Happy-path-only coverage is intentional for this feature. The nested-wrapper and separate-output tests were deliberately removed in 9c08997a; the existing test still covers the warning, repeated-installation deduplication, and log export.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20937#discussion_r4368285657"
+        }
+      ],
+      "reviewed": "9c08997a3a5813e3b9e5d84583cbf12ba146664e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20937#discussion_r4368279613"
+    }
+  ]
+}

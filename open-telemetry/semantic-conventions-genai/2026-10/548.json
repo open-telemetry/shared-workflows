@@ -1,0 +1,67 @@
+{
+  "head": "bac2af9ee2df593ca97d676329fd345f406c6156",
+  "merge": "ac2cc8868cf413ac14ab3c768c55dd1f74bf1204",
+  "merged": "2026-10-17T19:13:03Z",
+  "missing_roots": 0,
+  "number": 548,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n          recommended: When available and non-zero.\n```\n\n(there is always a chance it's not returned at all or in this request)\n\napplicable to other attrs too",
+      "created": "2026-10-08T16:22:19Z",
+      "hunk": "@@ -48,37 +48,37 @@ attribute_groups:\n     attributes:\n       - ref: gen_ai.usage.text.input_tokens\n         requirement_level:\n-          recommended: When applicable.\n+          recommended: When the provider returns a non-zero value.",
+      "id": "PRRT_kwDOSUeMrM6qdCxg",
+      "opened": "2026-10-08T16:22:19Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-09T08:41:33Z",
+          "body": "Done, for all of them.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/548#discussion_r4228273206"
+        }
+      ],
+      "reviewed": "4152f538596c7b528dbe392f9670fd42d9554398",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/548#discussion_r4221493743"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "With `cached_tokens=0`, this drops the value from `usage`, which is also passed to `record_inference_usage` below. That stops recording the zero-valued cache-read counter too (which could be meaningful in some edge cases where someone uses a metric view to change the aggregation).",
+      "created": "2026-10-14T23:27:35Z",
+      "hunk": "@@ -254,7 +254,7 @@ def run_chat_reference(client):\n                 \"cached_tokens\",\n                 None,\n             )\n-            if cached_tokens is not None:\n+            if cached_tokens:",
+      "id": "PRRT_kwDOSUeMrM6sj0QV",
+      "opened": "2026-10-14T23:29:45Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-15T00:06:13Z",
+          "body": "Fixed in 69f7132: the counter gets the 0 again, only the span and event leave it out.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/548#discussion_r4277599299"
+        },
+        {
+          "at": "2026-10-17T01:43:35Z",
+          "body": "@AgentGymLeader sorry, thought about this some more and discussed with @lmolkova, see https://github.com/open-telemetry/semantic-conventions-genai/pull/602",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/548#discussion_r4300775458"
+        },
+        {
+          "at": "2026-10-17T08:19:31Z",
+          "body": "With #602's `> 0` check, the keep-0 here becomes a no-op. I can drop it if you'd prefer.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/548#discussion_r4302028227"
+        },
+        {
+          "at": "2026-10-17T17:27:44Z",
+          "body": "Dropped it in bac2af9.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/548#discussion_r4303725605"
+        }
+      ],
+      "reviewed": "708f08522ae28ff3a0737514a21017b068438ba4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/548#discussion_r4277359793"
+    }
+  ]
+}

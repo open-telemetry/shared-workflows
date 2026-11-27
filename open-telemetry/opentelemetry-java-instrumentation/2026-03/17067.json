@@ -1,0 +1,31 @@
+{
+  "head": "5e0ecab4876f59669a09e1bfb54f9eaaaca1ba97",
+  "merge": "fa14933b9f8eac40a9786c7cbfd60c4b6de24601",
+  "merged": "2026-03-27T08:48:36Z",
+  "missing_roots": 0,
+  "number": 17067,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "the common ones we use are `findProperty(\"testLatestDeps\") as Boolean` where this probably wouldn't work since the property is really a boolean as set in https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0ae301eaabd4a280d9a192b5fbfd5f47446572d7/conventions/src/main/kotlin/io.opentelemetry.instrumentation.base.gradle.kts#L30-L31\nthe other common one is `systemProperty(\"collectMetadata\", findProperty(\"collectMetadata\")?.toString() ?: \"false\")` wondering whether this could be replaced with just `systemProperty(\"collectMetadata\", findProperty(\"collectMetadata\"))` I guess we could consider removing `extra[\"testLatestDeps\"] = testLatestDeps` then we could use `findProperty(\"myFlag\") == \"true\"` (I hope this works).\nAnother somewhat related inconsistency is the usage of `jvmArgs(\"-Dxxd=true\")` and `systemProperty(\"xxx\", \"true\")`, could decide on one to use everywhere.",
+      "created": "2026-03-26T07:42:56Z",
+      "hunk": "@@ -51,6 +51,18 @@ Verify `build.gradle.kts` applies the correct plugin for the module type:\n | `library/` | `otel.library-instrumentation` |\n | `testing/` | `otel.java-conventions` |\n \n+## Boolean Project Properties\n+\n+For simple boolean Gradle project properties in `build.gradle.kts`, prefer the repository's most\n+common pattern:\n+\n+```kotlin\n+val myFlag = findProperty(\"myFlag\") == \"true\"",
+      "id": "PRRT_kwDODJKVX8527qEv",
+      "opened": "2026-03-26T07:42:56Z",
+      "path": ".github/agents/knowledge/gradle-conventions.md",
+      "replies": [
+        {
+          "at": "2026-03-26T11:34:46Z",
+          "body": "> wondering whether this could be replaced with just systemProperty(\"collectMetadata\", findProperty(\"collectMetadata\"))\r\n\r\nyea this works, i submitted #17080 to update those",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17067#discussion_r2994238991"
+        }
+      ],
+      "reviewed": "5e0ecab4876f59669a09e1bfb54f9eaaaca1ba97",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17067#discussion_r2993038081"
+    }
+  ]
+}

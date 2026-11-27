@@ -1,0 +1,25 @@
+{
+  "head": "3cb20bc7b0369a84699de8a5ec0e35ccb0e855f9",
+  "merge": "414d6fdab3e0d78cf703ce88d91d040d8d6f5901",
+  "merged": "2026-05-12T15:20:01Z",
+  "missing_roots": 0,
+  "number": 18670,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Parameter name `rcpMethod` looks like a typo and is easy to confuse with the `RPC_METHOD` attribute being set. Consider renaming it to `rpcMethod` (and updating call sites) to match the semantic meaning.",
+      "created": "2026-05-09T23:30:31Z",
+      "hunk": "@@ -243,7 +252,7 @@ static SpanDataAssert processSpan(SpanDataAssert span, SpanData parent) {\n   }\n \n   @SuppressWarnings(\"deprecation\") // using deprecated semconv\n-  static SpanDataAssert publishSpan(SpanDataAssert span, String queueUrl, String rcpMethod) {\n+  SpanDataAssert publishSpan(SpanDataAssert span, String queueUrl, String rcpMethod) {\n     return span.hasName(\"testSdkSqs publish\")",
+      "id": "PRRT_kwDODJKVX86A3FHE",
+      "opened": "2026-05-09T23:30:31Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2SqsBaseTest.java",
+      "replies": [],
+      "reviewed": "93ff355101e3f613be0cff2d9b544f8a64b87614",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18670#discussion_r3214039283"
+    }
+  ]
+}

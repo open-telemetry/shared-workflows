@@ -1,0 +1,31 @@
+{
+  "head": "69298be6916475903b92ca652a30c967d4aa56c1",
+  "merge": "7ada57ea89e364ce1e4984a866217a772a7e052a",
+  "merged": "2026-08-17T22:54:56Z",
+  "missing_roots": 0,
+  "number": 19593,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "this is not test code, and those `code.*` attributes are deprecated, so we should keep the inlined copies for now.",
+      "created": "2026-08-17T13:36:13Z",
+      "hunk": "@@ -37,12 +41,6 @@ public class LogEventMapper {\n   private static final Cache<String, AttributeKey<String>> mdcAttributeKeys = Cache.bounded(100);\n \n   public static final LogEventMapper INSTANCE = new LogEventMapper();\n-\n-  private static final AttributeKey<String> CODE_FILEPATH = AttributeKey.stringKey(\"code.filepath\");\n-  private static final AttributeKey<String> CODE_FUNCTION = AttributeKey.stringKey(\"code.function\");\n-  private static final AttributeKey<Long> CODE_LINENO = AttributeKey.longKey(\"code.lineno\");\n-  private static final AttributeKey<String> CODE_NAMESPACE =\n-      AttributeKey.stringKey(\"code.namespace\");",
+      "id": "PRRT_kwDODJKVX86Z0FXc",
+      "opened": "2026-08-17T13:38:26Z",
+      "path": "instrumentation/log4j/log4j-appender-1.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/log4j/appender/v1_2/LogEventMapper.java",
+      "replies": [
+        {
+          "at": "2026-08-17T17:05:26Z",
+          "body": "it's ok in the agent since we vendor in the dependency, tried to clarify that in 69298be6916475903b92ca652a30c967d4aa56c1",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19593#discussion_r3797416939"
+        }
+      ],
+      "reviewed": "3bada9bf43da98798efb2b20f264f7aa8311ddc0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19593#discussion_r3796802837"
+    }
+  ]
+}

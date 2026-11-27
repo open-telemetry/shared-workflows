@@ -1,0 +1,52 @@
+{
+  "head": "71d80373b0c13b5a27adbd14dd2cf3c7c64ea7ae",
+  "merge": "146c7910b17df03b32cc92a8124e1f5c4ebb37fb",
+  "merged": "2026-09-03T17:20:33Z",
+  "missing_roots": 0,
+  "number": 19948,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These agent instructions now rely on the term “public API” without any scoping help. To keep automated reviews consistent, consider adding a short pointer (e.g., a link/anchor to the style guide’s definition of public API) so agents can identify the applicable code surface without resurrecting the removed path/package special-casing.",
+      "created": "2026-09-02T14:59:03Z",
+      "hunk": "@@ -9,10 +9,7 @@ Follow `docs/contributing/style-guide.md`.\n - **Visibility**: principle of least access. Use the most restrictive modifier\n   that still works. Static fields should be `private` unless they are\n   constant-like with a `SCREAMING_SNAKE_CASE` name.\n-- **`final` on classes**: declare public API classes `final` where possible. Do\n-  **not** add `final` in `javaagent/src/main/`, in `.internal` packages, or in\n-  test code (paths under `src/test/` or modules whose name starts/ends with\n-  `testing` or `tests`).\n+- **`final` on classes**: declare public API classes `final` where possible.\n - **`final` on parameters and local variables**: never declare them `final`.",
+      "id": "PRRT_kwDODJKVX86ejmNP",
+      "opened": "2026-09-02T14:59:04Z",
+      "path": ".github/instructions/java-style.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-03T15:27:41Z",
+          "body": "Addressed in 71d80373b0c13b5a27adbd14dd2cf3c7c64ea7ae.\n\nAnalysis: The style guide now defines public API by the published artifact's intended external contract. The agent rule links to that definition instead of duplicating path-based exceptions.\n\nUpsides: Contributors and review agents use one definition, and a public modifier no longer implies that a class is public API.\n\nDownsides: Readers still need to determine whether an artifact intentionally exposes a type.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19948#discussion_r3926035593"
+        }
+      ],
+      "reviewed": "7a2f6f1ff33e2f164dc9413688b655e16eae17c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19948#discussion_r3915489079"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "By removing the concrete examples of what is/isn’t considered public API, the rule becomes harder to apply consistently (especially for new contributors). Consider adding a brief definition of “public API” here (or a link to the project’s canonical definition) so readers can reliably determine the rule’s scope without reintroducing path-specific `final` enforcement guidance.",
+      "created": "2026-09-02T14:59:04Z",
+      "hunk": "@@ -96,16 +96,7 @@ methods.\n \n ### `final` keyword usage\n ",
+      "id": "PRRT_kwDODJKVX86ejmOA",
+      "opened": "2026-09-02T14:59:04Z",
+      "path": "docs/contributing/style-guide.md",
+      "replies": [
+        {
+          "at": "2026-09-03T15:27:42Z",
+          "body": "Addressed in 71d80373b0c13b5a27adbd14dd2cf3c7c64ea7ae.\n\nAnalysis: The style guide now defines public API by the published artifact's intended external contract. The agent rule links to that definition instead of duplicating path-based exceptions.\n\nUpsides: Contributors and review agents use one definition, and a public modifier no longer implies that a class is public API.\n\nDownsides: Readers still need to determine whether an artifact intentionally exposes a type.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19948#discussion_r3926035835"
+        }
+      ],
+      "reviewed": "7a2f6f1ff33e2f164dc9413688b655e16eae17c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19948#discussion_r3915489150"
+    }
+  ]
+}

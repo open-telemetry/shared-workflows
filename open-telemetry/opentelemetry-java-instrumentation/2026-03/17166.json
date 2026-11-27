@@ -1,0 +1,46 @@
+{
+  "head": "029c552f9fc61ba3400ef1751d1fca628b383a2b",
+  "merge": "8d50fc33babb55a4ba9e54f54e8dcb5d5cc5cb1f",
+  "merged": "2026-03-27T23:57:11Z",
+  "missing_roots": 0,
+  "number": 17166,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "adding `settings.gradle.kts` here should cause the next renovate PR that tries to update `org.graalvm.buildtools.native` to fail CI",
+      "created": "2026-03-27T19:06:46Z",
+      "hunk": "@@ -1,10 +1,14 @@\n test native:\n-- all:\n+- any:\n   - changed-files:\n       - any-glob-to-any-file:\n           - instrumentation/logback/logback-appender-1.0/library/**\n           - instrumentation/jdbc/library/**\n-          - instrumentation/spring/**\n           - smoke-tests-otel-starter/**\n           - dependencyManagement/build.gradle.kts\n-      - all-globs-to-all-files: '!instrumentation/spring/**/javaagent/**'\n+          - settings.gradle.kts",
+      "id": "PRRT_kwDODJKVX853XPu-",
+      "opened": "2026-03-27T19:06:46Z",
+      "path": ".github/labeler.yml",
+      "replies": [],
+      "reviewed": "d3aa11c26d7f06f765233908edc0d8932976ca7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17166#discussion_r3002720306"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "reworked this to more accurately reflect the intent of\n\n`'!instrumentation/spring/**/javaagent/**'`\n\nbeing an exclusion filter to\n\n`instrumentation/spring/**`",
+      "created": "2026-03-27T19:07:28Z",
+      "hunk": "@@ -1,10 +1,14 @@\n test native:\n-- all:\n+- any:\n   - changed-files:\n       - any-glob-to-any-file:\n           - instrumentation/logback/logback-appender-1.0/library/**\n           - instrumentation/jdbc/library/**\n-          - instrumentation/spring/**\n           - smoke-tests-otel-starter/**\n           - dependencyManagement/build.gradle.kts\n-      - all-globs-to-all-files: '!instrumentation/spring/**/javaagent/**'\n+          - settings.gradle.kts\n+  - all:\n+      - changed-files:\n+          - any-glob-to-any-file:\n+              - instrumentation/spring/**\n+          - all-globs-to-all-files: '!instrumentation/spring/**/javaagent/**'",
+      "id": "PRRT_kwDODJKVX853XQRh",
+      "opened": "2026-03-27T19:07:28Z",
+      "path": ".github/labeler.yml",
+      "replies": [
+        {
+          "at": "2026-03-27T19:11:39Z",
+          "body": "nope, this wasn't right, reverted this portion",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17166#discussion_r3002741886"
+        }
+      ],
+      "reviewed": "d3aa11c26d7f06f765233908edc0d8932976ca7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17166#discussion_r3002723387"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "a9a453218facbc9559152d883aa5dbbf63565af0",
+  "merge": "33b35dccc52f02309c01bc851474f8e2bfe93e53",
+  "merged": "2026-10-21T04:41:23Z",
+  "missing_roots": 0,
+  "number": 930,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`GenericPart` is deprecated and on its way out, so this test pins behavior we're about to remove. Could reasoning parts be dropped from system instructions instead?\n\n```suggestion\n    def test_to_system_instructions_thought_part(self):\n        content = genai_types.Content(\n            parts=[genai_types.Part(text=\"Let me think.\", thought=True)]\n        )\n        instructions = to_system_instructions(content=content)\n        self.assertEqual(instructions, [])\n```",
+      "created": "2026-10-21T04:28:58Z",
+      "hunk": "@@ -48,11 +49,28 @@ def test_to_system_instructions_non_text_parts(self):\n             ],\n         )\n \n+    def test_to_system_instructions_thought_part(self):\n+        content = genai_types.Content(\n+            parts=[genai_types.Part(text=\"Let me think.\", thought=True)]\n+        )\n+        instructions = to_system_instructions(content=content)\n+        self.assertEqual(instructions, [GenericPart(type=\"reasoning\")])",
+      "id": "PRRT_kwDOSbspP86un7Sz",
+      "opened": "2026-10-21T04:30:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_message.py",
+      "replies": [
+        {
+          "at": "2026-10-21T04:30:51Z",
+          "body": "will address in #936 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/930#discussion_r4333050609"
+        }
+      ],
+      "reviewed": "a9a453218facbc9559152d883aa5dbbf63565af0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/930#discussion_r4333041464"
+    }
+  ]
+}

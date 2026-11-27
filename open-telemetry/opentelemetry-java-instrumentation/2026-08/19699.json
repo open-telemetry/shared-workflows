@@ -1,0 +1,25 @@
+{
+  "head": "017a468505cb3b6466fdc17e8a0402ae1540819b",
+  "merge": "3791351cde2c4c865c776ef255a3041fec98a008",
+  "merged": "2026-08-25T11:07:52Z",
+  "missing_roots": 0,
+  "number": 19699,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `@AssignReturned.ToReturned` only replaces the current invocation's result; it does not update `conf`'s listener field. This second call therefore sees `originalListener` again, never exercises the new `instanceof` branch, and cannot return the same wrapper. Store the first wrapper back into the configuration before calling the getter again to reproduce the recursive-wrapping path.",
+      "created": "2026-08-19T00:17:01Z",
+      "hunk": "@@ -1252,4 +1252,18 @@ void testSendMessageWithTxn() throws Exception {\n                         .hasKind(SpanKind.PRODUCER)\n                         .hasParent(trace.getSpan(0))));\n   }\n+\n+  @Test\n+  void testMessageListenerNotWrappedMultipleTimes() {\n+    org.apache.pulsar.client.impl.conf.ConsumerConfigurationData<String> conf =\n+        new org.apache.pulsar.client.impl.conf.ConsumerConfigurationData<>();\n+    MessageListener<String> originalListener = (consumer, msg) -> {};\n+    conf.setMessageListener(originalListener);\n+\n+    MessageListener<String> wrapped1 = conf.getMessageListener();\n+    MessageListener<String> wrapped2 = conf.getMessageListener();",
+      "id": "PRRT_kwDODJKVX86aTuN2",
+      "opened": "2026-08-19T00:17:02Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/PulsarClientTest.java",
+      "replies": [],
+      "reviewed": "94705e0acea63b55aac4ba119e32d0520e68b8b9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19699#discussion_r3809097758"
+    }
+  ]
+}

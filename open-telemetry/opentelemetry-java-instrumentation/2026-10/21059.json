@@ -1,0 +1,31 @@
+{
+  "head": "6ec7a5a864f6f687980e85dc6e34a291cd82170b",
+  "merge": "8e2b992280c7b8be3bbdbe991cd8bdad70c5bfbe",
+  "merged": "2026-10-30T08:41:21Z",
+  "missing_roots": 0,
+  "number": 21059,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly. The user requested: \"New class-loader tests - remove these\".\n\nRemove the newly added handlerMappingFilterApplicationVisible() test method from both SpringBootBasedTest.java files under instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webmvc/v3_1/boot/ and instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webmvc/v6_0/boot/. Remove the org.springframework.web.servlet.DispatcherServlet imports that become unused.\n\nKeep the existing handlerMappingFilterResourceAvailable() tests and their relocated resource paths. Preserve the filter package moves, class-name/resource registrations, null-request guards, and all other existing changes. Do not replace the removed tests with new class-loader tests or make unrelated changes. Run the relevant focused validation.",
+      "created": "2026-10-29T14:23:53Z",
+      "hunk": "@@ -20,6 +20,7 @@\n import org.junit.jupiter.api.extension.RegisterExtension;\n import org.springframework.boot.SpringApplication;\n import org.springframework.context.ConfigurableApplicationContext;\n+import org.springframework.web.servlet.DispatcherServlet;",
+      "id": "PRRT_kwDODJKVX86xmGWM",
+      "opened": "2026-10-29T14:23:53Z",
+      "path": "instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webmvc/v3_1/boot/SpringBootBasedTest.java",
+      "replies": [
+        {
+          "at": "2026-10-29T14:32:10Z",
+          "body": "Removed both application-visible class-loader tests and their unused `DispatcherServlet` imports, preserving the resource-availability tests. Focused tests passed (28 tests per module, no failures). Commit: `6ec7a5a8`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21059#discussion_r4413648138"
+        }
+      ],
+      "reviewed": "3bc486e73f12dbdeee5198de6ccc204c4e5ea726",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21059#discussion_r4413549456"
+    }
+  ]
+}

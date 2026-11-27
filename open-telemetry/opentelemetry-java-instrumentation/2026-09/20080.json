@@ -1,0 +1,178 @@
+{
+  "head": "ce011416d93a79e541b1b883a6414c8cc62ca490",
+  "merge": "64a2d3452668a934b482ea14bf7dd48bcaa48744",
+  "merged": "2026-09-24T14:56:32Z",
+  "missing_roots": 0,
+  "number": 20080,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This deduplication also changes legacy telemetry. Lettuce 5 retries the same `ClusterCommand`/`AsyncCommand` after a MOVED response, so the previous advice started a span for each write; this unconditional guard now suppresses the retry span even when stable database semconv is disabled. That conflicts with the stated requirement that legacy telemetry remain unchanged. Gate the single-span behavior on `emitStableDatabaseSemconv()` while retaining last-peer replacement for stable spans, and make the legacy MOVED assertion cover the prior span count.",
+      "created": "2026-09-10T02:13:32Z",
+      "hunk": "@@ -86,6 +93,9 @@ public static void onExit(\n       if (asyncCommand == null) {\n         return;\n       }\n+      if (!LettuceSingletons.markCommandSpanStarted(asyncCommand)) {\n+        return;\n+      }",
+      "id": "PRRT_kwDODJKVX86g56FK",
+      "opened": "2026-09-10T02:13:32Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceEndpointInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-10T04:47:09Z",
+          "body": "Addressed in 85872068af1601186c35c543a51c91401894bbf8.\n\nAnalysis: The span-start guard applied to both semconv modes. A MOVED retry reuses the same AsyncCommand, so the guard reduced legacy telemetry from two root spans to one. The stable span still needs the guard because its peer fields update through the retry and must describe the completing connection.\n\nUpsides: Legacy mode keeps one span per write, while stable mode keeps one span with the completing peer. The MOVED test now checks the mode-specific trace count and span attributes.\n\nDownsides: The test uses a small mode-dependent trace assertion list because legacy and stable modes emit different numbers of traces.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r3975635079"
+        }
+      ],
+      "reviewed": "6b5cabfc8171c712faf5df503e21c73be5cba3e3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r3974854969"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] A pending reactive Mono now leaks its span when cancelled after native subscription. `onCommand()` starts the span, but this handler inherits the default no-op `onCancel()` and only ends from success/error callbacks; Lettuce cancellation transitions the subscription to completed without sending either terminal signal. Override `onCancel()` to end an expected-response span and share an atomic once guard with the terminal callbacks so cancellation/completion races cannot record twice.",
+      "created": "2026-09-10T02:13:32Z",
+      "hunk": "@@ -5,43 +5,63 @@\n \n package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.rx;\n \n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceInstrumentationUtil.expectsResponse;\n import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.instrumenter;\n \n+import io.lettuce.core.api.StatefulConnection;\n import io.lettuce.core.protocol.RedisCommand;\n import io.opentelemetry.context.Context;\n-import java.util.function.BiConsumer;\n-import java.util.function.Consumer;\n+import io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons;\n import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import reactor.core.CoreSubscriber;\n import reactor.core.publisher.Mono;\n \n-public class LettuceMonoDualConsumer<R, T> implements Consumer<R>, BiConsumer<T, Throwable> {\n+public class LettuceMonoDualConsumer<T> implements LettuceReactiveCommandHandler {",
+      "id": "PRRT_kwDODJKVX86g56Fk",
+      "opened": "2026-09-10T02:13:32Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceMonoDualConsumer.java",
+      "replies": [
+        {
+          "at": "2026-09-10T04:47:10Z",
+          "body": "Addressed in c87614b3b466a4607eec9f1c1e048bdc1d019846.\n\nAnalysis: Lettuce calls the handler's cancellation hook after `onCommand()` starts the span, but the Mono handler did not override that hook. Cancellation can race with a success or error callback, so all expected-response completion paths must claim a shared once guard before ending the span.\n\nUpsides: Pending Mono spans now end on cancellation, and terminal signal races cannot end a span twice. The isolated BLPOP test verifies cancellation exports the expected span without blocking the shared test connection.\n\nDownsides: Each Mono subscription allocates one AtomicBoolean.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r3975635413"
+        }
+      ],
+      "reviewed": "6b5cabfc8171c712faf5df503e21c73be5cba3e3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r3974855011"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`LettuceReactiveCommandSubscriber` intentionally swallows exceptions thrown by `handler.onCancel()` (it drops them via `Operators.onErrorDropped`), so `Subscription#cancel()` should not throw. This assertion will fail; update the test to assert cancellation does not throw and still cancels upstream (and optionally verify error-dropping via a Reactor hook if you want to validate the failure path).",
+      "created": "2026-09-15T01:10:58Z",
+      "hunk": "@@ -0,0 +1,44 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.rx;\n+\n+import static org.assertj.core.api.Assertions.assertThatThrownBy;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.verify;\n+import static org.mockito.Mockito.when;\n+\n+import io.lettuce.core.api.StatefulConnection;\n+import org.junit.jupiter.api.Test;\n+import org.mockito.ArgumentCaptor;\n+import org.reactivestreams.Subscription;\n+import reactor.core.CoreSubscriber;\n+import reactor.util.context.Context;\n+\n+class LettuceReactiveCommandSubscriberTest {\n+\n+  @Test\n+  void cancellationStillCancelsUpstreamWhenHandlerFails() {\n+    CoreSubscriber<?> actual = mock(CoreSubscriber.class);\n+    when(actual.currentContext()).thenReturn(Context.empty());\n+    Subscription upstream = mock(Subscription.class);\n+    LettuceReactiveCommandHandler handler =\n+        new LettuceReactiveCommandHandler(mock(StatefulConnection.class)) {\n+          @Override\n+          public void onCancel() {\n+            throw new IllegalStateException(\"test\");\n+          }\n+        };\n+\n+    LettuceReactiveCommandSubscriber.withCancellation(actual, handler).onSubscribe(upstream);\n+\n+    ArgumentCaptor<Subscription> subscription = ArgumentCaptor.forClass(Subscription.class);\n+    verify(actual).onSubscribe(subscription.capture());\n+\n+    assertThatThrownBy(subscription.getValue()::cancel)\n+        .hasRootCauseInstanceOf(IllegalStateException.class);\n+    verify(upstream).cancel();",
+      "id": "PRRT_kwDODJKVX86iVipC",
+      "opened": "2026-09-15T01:11:00Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceReactiveCommandSubscriberTest.java",
+      "replies": [
+        {
+          "at": "2026-09-15T01:26:46Z",
+          "body": "No code change.\n\nAnalysis: Reactor 3.1 does not always swallow errors passed to Operators.onErrorDropped. With no local or global drop hook, Operators.onErrorDropped bubbles the error. That is the test's configuration, and the targeted test confirms the IllegalStateException remains the root cause while the finally block cancels upstream. Reactor 3.1 FluxPeek.cancel() also runs its doOnCancel callback before it cancels upstream and returns. The immediate cancelled assertion is therefore ordered by the dispose call, and the targeted integration test passed repeatedly.\n\nUpsides: The tests keep checking the actual Reactor 3.1 contracts and will catch a regression in upstream cancellation or callback ordering.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4011088191"
+        }
+      ],
+      "reviewed": "5c923b0c4d280e170b2e7a5bc37309fb13293afb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4011018940"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`commands` is stored by reference and later read to derive the peer address at span end. If the passed-in list is mutable (or reused by Lettuce), this can lead to incorrect peer attribution or `ConcurrentModificationException`. Prefer storing an immutable snapshot (e.g., `List.copyOf(commands)` or a defensive copy) when constructing `LettuceBatchRequest`.",
+      "created": "2026-09-15T01:10:59Z",
+      "hunk": "@@ -27,16 +28,19 @@ final class LettuceBatchRequest {\n   private final String operationName;\n   @Nullable private final String queryText;\n   @Nullable private final Long batchSize;\n+  private final List<RedisCommand<?, ?, ?>> commands;\n   @Nullable private final LettuceConnectionState connectionState;\n \n   private LettuceBatchRequest(\n       String operationName,\n       @Nullable String queryText,\n       @Nullable Long batchSize,\n+      List<RedisCommand<?, ?, ?>> commands,\n       @Nullable LettuceConnectionState connectionState) {\n     this.operationName = operationName;\n     this.queryText = queryText;\n     this.batchSize = batchSize;\n+    this.commands = commands;\n     this.connectionState = connectionState;\n   }",
+      "id": "PRRT_kwDODJKVX86iVipP",
+      "opened": "2026-09-15T01:11:00Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceBatchRequest.java",
+      "replies": [
+        {
+          "at": "2026-09-15T01:26:47Z",
+          "body": "Addressed in 85d23cc820f9d1d3364511311bb2ab9955d38e09.\n\nAnalysis: LettuceBatchRequest reads the command list again when the span ends, after the batch state has handed off its mutable buffer. Copying the list before deriving request fields keeps the request's command set stable while preserving later peer updates on each command object.\n\nUpsides: Peer attribution cannot change because the source list is cleared or reused. All request fields now derive from the same snapshot. The regression test covers source-list mutation.\n\nDownsides: Each batch request allocates one shallow ArrayList copy.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4011088304"
+        }
+      ],
+      "reviewed": "5c923b0c4d280e170b2e7a5bc37309fb13293afb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4011018964"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If `onSpanEnding(...)` throws, `instrumenter().end(...)` will be skipped and the span may leak. Since this is agent code, it should be resilient to unexpected exceptions; wrap `onSpanEnding` in a `try/catch` (or `try/finally`) to ensure `instrumenter().end(...)` is always invoked.",
+      "created": "2026-09-15T01:10:59Z",
+      "hunk": "@@ -0,0 +1,68 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.rx;\n+\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceInstrumentationUtil.expectsResponse;\n+import static io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceSingletons.instrumenter;\n+\n+import io.lettuce.core.api.StatefulConnection;\n+import io.lettuce.core.protocol.RedisCommand;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceCommandPeer;\n+import io.opentelemetry.javaagent.instrumentation.lettuce.v5_0.LettuceConnectionState;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+public abstract class LettuceReactiveCommandHandler {\n+\n+  private static final Logger logger =\n+      Logger.getLogger(LettuceReactiveCommandHandler.class.getName());\n+\n+  private final StatefulConnection<?, ?> connection;\n+  private final AtomicBoolean spanEnded = new AtomicBoolean();\n+  @Nullable private RedisCommand<?, ?, ?> command;\n+  @Nullable private Context context;\n+  private boolean expectsResponse;\n+\n+  protected LettuceReactiveCommandHandler(StatefulConnection<?, ?> connection) {\n+    this.connection = connection;\n+  }\n+\n+  public final void onCommand(RedisCommand<?, ?, ?> command) {\n+    this.command = command;\n+    expectsResponse = expectsResponse(command);\n+    LettuceCommandPeer.initializeForSubscription(command);\n+    LettuceConnectionState.copy(connection, command);\n+    context = instrumenter().start(Context.current(), command);\n+    if (!expectsResponse) {\n+      instrumenter().end(context, command, null, null);\n+    }\n+  }\n+\n+  protected final boolean commandExpectsResponse() {\n+    return expectsResponse;\n+  }\n+\n+  protected final void finishSpan(boolean isCommandCancelled, @Nullable Throwable throwable) {\n+    // A terminal signal can race cancellation from the subscribing thread.\n+    if (!expectsResponse || !spanEnded.compareAndSet(false, true)) {\n+      return;\n+    }\n+    if (context != null && command != null) {\n+      onSpanEnding(context, isCommandCancelled);\n+      instrumenter().end(context, command, null, throwable);\n+    } else {\n+      logger.fine(\"Failed to end reactive Lettuce span because it probably wasn't started.\");\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86iVipa",
+      "opened": "2026-09-15T01:11:00Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/rx/LettuceReactiveCommandHandler.java",
+      "replies": [
+        {
+          "at": "2026-09-15T01:26:49Z",
+          "body": "No code change.\n\nAnalysis: LettuceFluxTerminationHandler is the only onSpanEnding override. It only reads the span from an OpenTelemetry context and sets two attributes. Those API calls have no expected exception path. A try/finally would address only a hypothetical future override and would still pass its exception into Reactor. A broad catch would instead hide an instrumentation defect. There is no current failure or unsafe input to guard.\n\nUpsides: The terminal path stays direct and does not add a broad exception handler for OpenTelemetry API calls that are expected not to throw.\n\nDownsides: A future onSpanEnding override that introduces a throwing operation would need its own error handling before it is safe to use here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4011088414"
+        }
+      ],
+      "reviewed": "5c923b0c4d280e170b2e7a5bc37309fb13293afb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4011018991"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This assertion can be timing-sensitive because the `doOnCancel` callback may not have executed by the time `assertThat(cancelled).isTrue()` runs (depending on Reactor/operator behavior). To reduce flakiness, wait until `cancelled.get()` becomes true (e.g., via Awaitility) or use a Reactor test utility to deterministically assert cancellation callbacks ran before asserting spans/metrics.",
+      "created": "2026-09-15T01:10:59Z",
+      "hunk": "@@ -277,6 +450,47 @@ void testCommandCancelAfter2OnFluxPublisher() {\n                                 }))));\n   }\n \n+  @Test\n+  void testNoResponseCommandFluxCancellationEndsSpanOnce() {\n+    withIsolatedContainer(\n+        (connection, port) -> {\n+          connection.setAutoFlushCommands(false);\n+          AtomicBoolean cancelled = new AtomicBoolean();\n+          Disposable subscription =\n+              connection\n+                  .reactive()\n+                  .dispatch(\n+                      CommandType.DEBUG,\n+                      new StatusOutput<>(StringCodec.UTF8),\n+                      new CommandArgs<>(StringCodec.UTF8).add(\"HELP\"))\n+                  .doOnCancel(() -> cancelled.set(true))\n+                  .subscribe();\n+\n+          subscription.dispose();\n+\n+          assertThat(cancelled).isTrue();",
+      "id": "PRRT_kwDODJKVX86iVipm",
+      "opened": "2026-09-15T01:11:00Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceReactiveClientTest.java",
+      "replies": [
+        {
+          "at": "2026-09-15T01:26:50Z",
+          "body": "No code change.\n\nAnalysis: Reactor 3.1 does not always swallow errors passed to Operators.onErrorDropped. With no local or global drop hook, Operators.onErrorDropped bubbles the error. That is the test's configuration, and the targeted test confirms the IllegalStateException remains the root cause while the finally block cancels upstream. Reactor 3.1 FluxPeek.cancel() also runs its doOnCancel callback before it cancels upstream and returns. The immediate cancelled assertion is therefore ordered by the dispose call, and the targeted integration test passed repeatedly.\n\nUpsides: The tests keep checking the actual Reactor 3.1 contracts and will catch a regression in upstream cancellation or callback ordering.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4011088528"
+        }
+      ],
+      "reviewed": "5c923b0c4d280e170b2e7a5bc37309fb13293afb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4011019012"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use the bounded shutdown helper here. `AbstractLettuceClientTest.shutdown(...)` exists because Lettuce's synchronous `RedisClient.shutdown()` can hang (see `AbstractLettuceClientTest.java:102-110`), and the other client tests use that helper. Registering `redisClient::shutdown` can therefore stall this suite during cleanup.",
+      "created": "2026-09-20T07:46:51Z",
+      "hunk": "@@ -0,0 +1,278 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static java.util.Arrays.asList;\n+import static java.util.concurrent.TimeUnit.SECONDS;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.lettuce.core.RedisClient;\n+import io.lettuce.core.api.reactive.RedisReactiveCommands;\n+import io.lettuce.core.resource.ClientResources;\n+import io.lettuce.core.tracing.TraceContext;\n+import io.lettuce.core.tracing.TraceContextProvider;\n+import io.lettuce.core.tracing.TracerProvider;\n+import io.lettuce.core.tracing.Tracing;\n+import io.opentelemetry.api.trace.SpanKind;\n+import java.net.InetAddress;\n+import java.net.SocketAddress;\n+import java.net.UnknownHostException;\n+import java.util.List;\n+import java.util.concurrent.CountDownLatch;\n+import java.util.concurrent.atomic.AtomicBoolean;\n+import java.util.concurrent.atomic.AtomicInteger;\n+import java.util.concurrent.atomic.AtomicReference;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import reactor.core.Disposable;\n+import reactor.core.publisher.Mono;\n+import reactor.core.scheduler.Schedulers;\n+\n+class LettuceNativeTracingReactiveTest extends AbstractLettuceClientTest {\n+\n+  private static final Object USER_CONTEXT_KEY = new Object();\n+  private static final String USER_CONTEXT_VALUE = \"user-context\";\n+\n+  private RedisReactiveCommands<String, String> reactiveCommands;\n+  private AsyncTraceContextProvider traceContextProvider;\n+\n+  @BeforeEach\n+  void setUp() throws UnknownHostException {\n+    redisServer.start();\n+    cleanup.deferCleanup(redisServer::stop);\n+\n+    host = redisServer.getHost();\n+    ip = InetAddress.getByName(host).getHostAddress();\n+    port = redisServer.getMappedPort(6379);\n+    embeddedDbUri = \"redis://\" + host + \":\" + port + \"/\" + DB_INDEX;\n+\n+    traceContextProvider = new AsyncTraceContextProvider();\n+    ClientResources resources =\n+        ClientResources.builder()\n+            .tracing(enabledTracing(Tracing.disabled(), traceContextProvider))\n+            .build();\n+    assertThat(resources.tracing().isEnabled()).isTrue();\n+    cleanup.deferCleanup(() -> resources.shutdown());\n+\n+    redisClient = RedisClient.create(resources, embeddedDbUri);\n+    redisClient.setOptions(CLIENT_OPTIONS);\n+    cleanup.deferCleanup(redisClient::shutdown);",
+      "id": "PRRT_kwDODJKVX86kHzVe",
+      "opened": "2026-09-20T07:46:51Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/testLettuce65/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceNativeTracingReactiveTest.java",
+      "replies": [
+        {
+          "at": "2026-09-20T07:57:57Z",
+          "body": "Addressed in e85c67a9e77a257f7c020235755052721b462817.\n\nFixed in the verified source changes e85c67a9e77a257f7c020235755052721b462817.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4056462679"
+        }
+      ],
+      "reviewed": "e0980b8cc68bbec913525b68500747de0cf545a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4056440463"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The new cluster address callback updates `DefaultEndpoint` state for every semconv mode, and the legacy getter still reads that state as `server.address`/`server.port`. Consequently, cluster sync and batch spans now emit selected-node server attributes in legacy mode (the new assertions at `LettuceClusterClientTest.java:136-141` explicitly require this), whereas the pre-existing cluster path had no endpoint target capture. This conflicts with the PR/issue requirement that legacy semantic-convention telemetry remain unchanged; keep this capture out of the legacy path or otherwise preserve the prior cluster attributes.",
+      "created": "2026-09-22T21:29:13Z",
+      "hunk": "@@ -0,0 +1,174 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.lettuce.v5_0;\n+\n+import static java.util.logging.Level.FINE;\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.lettuce.core.RedisChannelHandler;\n+import io.lettuce.core.RedisURI;\n+import io.lettuce.core.cluster.RedisClusterClient;\n+import io.lettuce.core.protocol.DefaultEndpoint;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.net.InetSocketAddress;\n+import java.net.SocketAddress;\n+import java.util.function.Consumer;\n+import java.util.function.Supplier;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.asm.Advice.AssignReturned.ToArguments.ToArgument;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import reactor.core.publisher.Mono;\n+\n+class LettuceClusterClientInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"io.lettuce.core.cluster.RedisClusterClient\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor().and(takesArgument(1, Iterable.class)),\n+        getClass().getName() + \"$ConstructorAdvice\");\n+    // Lettuce 5.0 and 6.0+ place DefaultEndpoint and RedisURI at indexes 1 and 2.\n+    transformer.applyAdviceToMethod(\n+        nameStartsWith(\"connectStateful\")\n+            .and(takesArgument(1, named(\"io.lettuce.core.protocol.DefaultEndpoint\")))\n+            .and(takesArgument(2, named(\"io.lettuce.core.RedisURI\"))),\n+        getClass().getName() + \"$AttachEndpointAdvice\");\n+    // Lettuce 5.1-5.3 insert a codec before DefaultEndpoint.\n+    transformer.applyAdviceToMethod(\n+        nameStartsWith(\"connectStateful\")\n+            .and(takesArgument(2, named(\"io.lettuce.core.protocol.DefaultEndpoint\")))\n+            .and(takesArgument(3, named(\"io.lettuce.core.RedisURI\"))),\n+        getClass().getName() + \"$AttachEndpointWithCodecAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(\n+        @Advice.This RedisClusterClient client,\n+        @Advice.Argument(1) @Nullable Iterable<RedisURI> initialUris) {\n+      LettuceServerTargets.capture(client, initialUris);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class AttachEndpointAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    @Advice.AssignReturned.ToArguments(@ToArgument(3))\n+    public static Object onEnter(\n+        @Advice.This RedisClusterClient client,\n+        @Advice.Argument(0) Object connection,\n+        @Advice.Argument(1) DefaultEndpoint endpoint,\n+        @Advice.Argument(2) RedisURI redisUri,\n+        @Advice.Argument(3) Object socketAddressSource) {\n+      return AttachEndpointHelper.attach(\n+          client, connection, endpoint, redisUri, socketAddressSource);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class AttachEndpointWithCodecAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    @Advice.AssignReturned.ToArguments(@ToArgument(4))\n+    public static Object onEnter(\n+        @Advice.This RedisClusterClient client,\n+        @Advice.Argument(0) Object connection,\n+        @Advice.Argument(2) DefaultEndpoint endpoint,\n+        @Advice.Argument(3) RedisURI redisUri,\n+        @Advice.Argument(4) Object socketAddressSource) {\n+      return AttachEndpointHelper.attach(\n+          client, connection, endpoint, redisUri, socketAddressSource);\n+    }\n+  }\n+\n+  public static class AttachEndpointHelper {\n+\n+    private static final Logger logger = Logger.getLogger(AttachEndpointHelper.class.getName());\n+\n+    public static Object attach(\n+        RedisClusterClient client,\n+        Object connection,\n+        DefaultEndpoint endpoint,\n+        RedisURI redisUri,\n+        Object socketAddressSource) {\n+      RedisServerTarget target = LettuceServerTargets.get(client);\n+      LettuceConnectionState.captureEndpoint(endpoint, null, redisUri.getDatabase(), target);\n+      if (connection instanceof RedisChannelHandler) {\n+        RedisChannelHandler<?, ?> connectionHandler = (RedisChannelHandler<?, ?>) connection;\n+        LettuceServerTargets.copy(client, connectionHandler);\n+      }\n+      if (socketAddressSource instanceof Supplier) {\n+        Supplier<?> socketAddressSupplier = (Supplier<?>) socketAddressSource;\n+        return socketAddressSupplier instanceof EndpointAddressSupplier\n+            ? socketAddressSupplier\n+            : new EndpointAddressSupplier(socketAddressSupplier, endpoint);\n+      }\n+      if (socketAddressSource instanceof Mono) {\n+        return ((Mono<?>) socketAddressSource).doOnNext(new EndpointAddressConsumer(endpoint));\n+      }\n+      return socketAddressSource;\n+    }\n+\n+    public static void captureAddress(DefaultEndpoint endpoint, InetSocketAddress serverAddress) {\n+      try {\n+        LettuceConnectionState.updateServerAddress(endpoint, serverAddress);\n+      } catch (Throwable t) {\n+        logger.log(FINE, \"Failed to attach Lettuce server address\", t);\n+      }\n+    }\n+\n+    private AttachEndpointHelper() {}\n+  }\n+\n+  public static class EndpointAddressSupplier implements Supplier<SocketAddress> {\n+    private final Supplier<?> delegate;\n+    private final DefaultEndpoint endpoint;\n+\n+    public EndpointAddressSupplier(Supplier<?> delegate, DefaultEndpoint endpoint) {\n+      this.delegate = delegate;\n+      this.endpoint = endpoint;\n+    }\n+\n+    @Override\n+    public SocketAddress get() {\n+      Object address = delegate.get();\n+      if (address instanceof InetSocketAddress) {\n+        AttachEndpointHelper.captureAddress(endpoint, (InetSocketAddress) address);\n+      }",
+      "id": "PRRT_kwDODJKVX86k7Lxe",
+      "opened": "2026-09-22T21:29:14Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceClusterClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-24T06:51:31Z",
+          "body": "Addressed in 87a004370119981be6436b60131df26a3eeafb98, 582ad36d8bc0a377ac0e4a2c554cc1f6b591dd50.\n\nFixed in the verified source changes 87a004370119981be6436b60131df26a3eeafb98, 582ad36d8bc0a377ac0e4a2c554cc1f6b591dd50.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4090747530"
+        }
+      ],
+      "reviewed": "7258415dde307acd60c2e2f5ed8bd7e5e102fdc0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20080#discussion_r4076692508"
+    }
+  ]
+}

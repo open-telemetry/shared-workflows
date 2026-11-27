@@ -1,0 +1,52 @@
+{
+  "head": "0a73638832236b64e82ef52541daf3348cb69385",
+  "merge": "3f8c01aab29443035915728847a4e89849d91315",
+  "merged": "2026-11-08T22:22:32Z",
+  "missing_roots": 0,
+  "number": 21256,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly in open-telemetry/opentelemetry-java-instrumentation on its verified head branch renovate/maintenance/v2.x-all-patch-and-minor-versions, targeting maintenance/v2.x. The user approved the previously investigated plan with: \"do that plan cloud\". Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. Keep any platform-assigned follow-up branch if GitHub creates one.\n\nFix the Spotless CI failure without bulk Java formatting changes. Keep this PR's Spotless 8.11.0 upgrade and all other intended dependency updates. Explicitly pin Google Java Format to 1.36.1 using googleJavaFormat(\"1.36.1\") in all five affected formatter configurations: conventions/src/main/kotlin/otel.spotless-conventions.gradle.kts, conventions/build.gradle.kts, benchmark-overhead/build.gradle.kts, examples/distro/buildSrc/src/main/kotlin/otel.java-conventions.gradle.kts, and examples/extension/build.gradle.kts. These standalone builds must not silently use a different formatter. Preserve other formatter settings and existing style; do not copy the massive formatting commit from main PR #21166, downgrade Spotless, or use formatting exclusions to hide violations.\n\nVerified investigation: Spotless 8.10.4's release version catalog selects google-java-format 1.36.1 on JDK 21+, while 8.11.0 selects 2.0.0. The repository builds with JDK 25, and 1.36.1 meets the formatter's JDK-25 minimum. Spotless 8.11.0 supports an explicit formatter-version argument. The deterministic CI bundle for #21256 identifies job 128816644032, build / common / spotless, failing in :declarative-config-bridge:spotlessJavaCheck. Its diff changes the lambda wrapping in DeclarativeConfigPropertiesBridge.java at about line 138; no production fix is needed. CI invokes both ./gradlew spotlessCheck and ./gradlew -p conventions spotlessCheck, so pinning just the shared convention is insufficient.\n\nAdd a narrowly targeted maintenance-only Renovate restriction for com.google.googlejavaformat:google-java-format to retain the 1.36.1 pin across later dependency updates. Follow the repository's existing package-rule patterns and check main/maintenance configuration merging so main's formatter-update policy is not changed. Do not alter unrelated dependency constraints or the existing dependency-update groups.\n\nRead contribution and applicable instruction files first. Run spotlessApply directly, before format checks, in the root and affected standalone builds. Validate the configurations and relevant formatter checks without running spotlessCheck as a preliminary probe. Inspect the incremental git diff against the pre-attempt head 4d232202e432638f91d22ca08d973a5a316e410c. Acceptance criteria: Spotless remains 8.11.0; all five formatter configurations pin 1.36.1; the Renovate restriction is maintenance-specific; the incremental fix has zero Java-source formatting changes and only necessary configuration edits; the other dependency updates remain intact. Report any real validation limitations instead of claiming success.\n\nThe other downloaded failed job, 128816644089 build / lint / lint-check, is a shields.io README badge HTTP 408 timeout, not a formatting issue. Retry that job if appropriate and feasible, but do not change the README link, suppress the check, or weaken lint rules. Do not make unrelated code or workflow changes, create additional requested PRs, or reply to or resolve review threads.",
+      "created": "2026-11-08T18:39:48Z",
+      "hunk": "@@ -1,7 +1,7 @@\n plugins {\n   `kotlin-dsl`\n   // When updating, update below in dependencies too\n-  id(\"com.diffplug.spotless\") version \"8.10.4\"\n+  id(\"com.diffplug.spotless\") version \"8.11.0\"",
+      "id": "PRRT_kwDODJKVX861DRnj",
+      "opened": "2026-11-08T18:39:48Z",
+      "path": "conventions/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-08T18:53:45Z",
+          "body": "Pinned Google Java Format 1.36.1 in all five configurations and added a `maintenance/v2.x`-only Renovate restriction in e786f571. Root and conventions Spotless checks pass with no Java-source diff. The standalone benchmark check finds existing Java formatting violations; distro and extension checks are blocked by unavailable Muzzle snapshots.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21256#discussion_r4507372122"
+        }
+      ],
+      "reviewed": "4d232202e432638f91d22ca08d973a5a316e410c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21256#discussion_r4507326908"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update PR #21256 directly in open-telemetry/opentelemetry-java-instrumentation on its head branch renovate/maintenance/v2.x-all-patch-and-minor-versions, targeting maintenance/v2.x. This is a user-directed follow-up to the completed formatter-pinning attempt. Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. Keep any platform-assigned follow-up branch if GitHub creates one.\n\nReplace the Google Java Format exact-version Renovate restriction in .github/renovate.json5 with this repository's conventional major-update exclusion. Match com.google.googlejavaformat:google-java-format and maintenance/v2.x, set matchUpdateTypes: ['major'] and enabled: false, and remove the formatter-specific allowedVersions constraint. Place the rule alongside the existing major-update exclusions and write its comment for the current policy. Minor and patch formatter updates must remain eligible for Renovate's existing groups and schedules; main's policy must remain unchanged. Do not replace the exact freeze with an allowedVersions range.\n\nKeep googleJavaFormat(\"1.36.1\") in all five builds already changed by commit e786f571bfa6459f6b9572470e649ca670a53460: conventions/src/main/kotlin/otel.spotless-conventions.gradle.kts, conventions/build.gradle.kts, benchmark-overhead/build.gradle.kts, examples/distro/buildSrc/src/main/kotlin/otel.java-conventions.gradle.kts, and examples/extension/build.gradle.kts. Keep Spotless 8.11.0 and all other dependency updates. The initial fix is already present and changes no Java source. Do not redo it, update the formatter itself, introduce bulk formatting, or make unrelated code, dependency, lint, or workflow changes.\n\nRead contribution and applicable instructions. Validate the Renovate configuration with the repository's available tooling and verify the effective branch-scoped rule excludes major updates while allowing minor and patch updates. Inspect the incremental diff against e786f571bfa6459f6b9572470e649ca670a53460; it should contain only the necessary Renovate rule/comment change and no Java-source changes. Do not run spotlessCheck before spotlessApply, and do not run unrelated builds. Report any validation limitations honestly. Do not create another requested PR or reply to or resolve review threads.",
+      "created": "2026-11-08T19:18:18Z",
+      "hunk": "@@ -96,6 +96,16 @@\n \n     // ── Version constraints ────────────────────────────────────────────\n \n+    {\n+      // Keep formatter updates aligned with the version pinned in maintenance build configurations.\n+      matchBaseBranches: [\n+        'maintenance/v2.x',\n+      ],\n+      matchPackageNames: [\n+        'com.google.googlejavaformat:google-java-format',\n+      ],\n+      allowedVersions: '/^1\\\\.36\\\\.1$/',",
+      "id": "PRRT_kwDODJKVX861DliG",
+      "opened": "2026-11-08T19:18:17Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-11-08T19:23:11Z",
+          "body": "Replaced the exact formatter version freeze with a maintenance-only major-update exclusion; minor/patch updates remain eligible. Commit: `0a736388`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21256#discussion_r4507479093"
+        }
+      ],
+      "reviewed": "e786f571bfa6459f6b9572470e649ca670a53460",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21256#discussion_r4507462059"
+    }
+  ]
+}

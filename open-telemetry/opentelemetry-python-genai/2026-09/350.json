@@ -1,0 +1,481 @@
+{
+  "head": "dae36c66d8f1321158f2a021d5efa61121410baa",
+  "merge": "88b0dfcb5dabef8f31f26a2b2b3317da59c2f3c1",
+  "merged": "2026-09-02T19:53:36Z",
+  "missing_roots": 0,
+  "number": 350,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Skipping only on `fastapi` being absent may not cover other optional dependency/import failures in `agno.workflow.workflow`. It’s more robust to skip on importing the workflow module itself.\n\nThis issue also appears on line 308 of the same file.",
+      "created": "2026-08-03T17:35:43Z",
+      "hunk": "@@ -150,3 +153,171 @@ async def _run_async() -> None:\n     assert (\n         span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_ID) == \"call-456\"\n     )\n+\n+\n+def test_team_run_spans(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test that Team.run emits an invoke_agent span.\"\"\"\n+    member = Agent(name=\"member-agent\", model=MockModel(id=\"mock-model\"))\n+    team = Team(\n+        name=\"test-sync-team\",\n+        members=[member],\n+        model=MockModel(id=\"mock-model\"),\n+    )\n+    mock_output = ModelResponse(content=\"Hello back from team!\")\n+\n+    with patch(\"agno.models.base.Model.response\", return_value=mock_output):\n+        res = team.run(\"hello team world\")\n+        assert res is not None\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"invoke_agent test-sync-team\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME)\n+        == \"invoke_agent\"\n+    )\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_AGENT_NAME)\n+        == \"test-sync-team\"\n+    )\n+\n+\n+def test_team_arun_spans(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test that Team.arun emits an invoke_agent span.\"\"\"\n+    member = Agent(name=\"member-agent\", model=MockModel(id=\"mock-model\"))\n+    team = Team(\n+        name=\"test-async-team\",\n+        members=[member],\n+        model=MockModel(id=\"mock-model\"),\n+    )\n+    mock_output = ModelResponse(content=\"Async hello back from team!\")\n+\n+    async def _run_async() -> None:\n+        with patch(\n+            \"agno.models.base.Model.aresponse\", return_value=mock_output\n+        ):\n+            res = await team.arun(\"hello async team world\")\n+            assert res is not None\n+\n+    asyncio.run(_run_async())\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"invoke_agent test-async-team\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME)\n+        == \"invoke_agent\"\n+    )\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_AGENT_NAME)\n+        == \"test-async-team\"\n+    )\n+\n+\n+def test_model_response_spans(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test that Model.response emits a chat span.\"\"\"\n+    model = MockModel(id=\"test-mock-model\")\n+    mock_output = ModelResponse(content=\"Hello from model!\", role=\"assistant\")\n+\n+    with patch.object(MockModel, \"invoke\", return_value=mock_output):\n+        res = model.response(\n+            messages=[Message(role=\"user\", content=\"hello model\")]\n+        )\n+        assert res is not None\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"chat test-mock-model\"\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME) == \"chat\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_REQUEST_MODEL)\n+        == \"test-mock-model\"\n+    )\n+\n+\n+def test_model_aresponse_spans(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test that Model.aresponse emits a chat span.\"\"\"\n+    model = MockModel(id=\"test-mock-model-async\")\n+    mock_output = ModelResponse(\n+        content=\"Async hello from model!\", role=\"assistant\"\n+    )\n+\n+    async def _run_async() -> None:\n+        with patch.object(MockModel, \"ainvoke\", return_value=mock_output):\n+            res = await model.aresponse(\n+                messages=[Message(role=\"user\", content=\"hello async model\")]\n+            )\n+            assert res is not None\n+\n+    asyncio.run(_run_async())\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"chat test-mock-model-async\"\n+    assert span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME) == \"chat\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_REQUEST_MODEL)\n+        == \"test-mock-model-async\"\n+    )\n+\n+\n+def test_workflow_run_spans(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test that Workflow.run emits an invoke_workflow span.\"\"\"\n+    pytest.importorskip(\"fastapi\")\n+    from agno.workflow.workflow import Workflow  # noqa: PLC0415",
+      "id": "PRRT_kwDOSbspP86WEY-H",
+      "opened": "2026-08-03T17:35:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_agent.py",
+      "replies": [],
+      "reviewed": "1f6d118401d2d3ab34674576e696c586513e1ad1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3706361951"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`typing.cast()` expects a type object; passing a string literal here is likely to fail type checking (pyright/mypy) and can break CI. Use a real type (e.g., `list[Any]`).",
+      "created": "2026-08-03T17:35:43Z",
+      "hunk": "@@ -290,3 +384,209 @@ async def traced_method(\n             return result\n \n     return cast(Callable[..., Any], traced_method)\n+\n+\n+def _start_workflow_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+    *,\n+    default_name: str = \"Workflow\",\n+) -> WorkflowInvocation:\n+    workflow_name = getattr(instance, \"name\", None) or default_name\n+    invocation = handler.workflow(name=workflow_name)\n+    _set_invocation_input(invocation, instance, args, kwargs, capture_content)\n+    return invocation\n+\n+\n+def _start_model_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+) -> InferenceInvocation:\n+    provider_name = (\n+        getattr(instance, \"provider\", None)\n+        or instance.__class__.__name__\n+        or \"agno\"\n+    )\n+    request_model = getattr(instance, \"id\", None)\n+    invocation = handler.inference(\n+        provider=str(provider_name),\n+        request_model=str(request_model) if request_model else None,\n+    )\n+    if capture_content and (args or \"messages\" in kwargs):\n+        messages_val: Any = args[0] if args else kwargs.get(\"messages\")\n+        if messages_val and isinstance(messages_val, (list, tuple)):\n+            input_msgs: list[InputMessage] = []\n+            for msg in cast(\"list[Any]\", messages_val):",
+      "id": "PRRT_kwDOSbspP86WEY8x",
+      "opened": "2026-08-03T17:35:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [],
+      "reviewed": "1f6d118401d2d3ab34674576e696c586513e1ad1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3706361834"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ModelResponse` includes a `role` in tests, but the instrumentation always records the output role as \"assistant\". Use the response's role when available to avoid incorrect attributes.",
+      "created": "2026-08-03T17:35:43Z",
+      "hunk": "@@ -290,3 +384,209 @@ async def traced_method(\n             return result\n \n     return cast(Callable[..., Any], traced_method)\n+\n+\n+def _start_workflow_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+    *,\n+    default_name: str = \"Workflow\",\n+) -> WorkflowInvocation:\n+    workflow_name = getattr(instance, \"name\", None) or default_name\n+    invocation = handler.workflow(name=workflow_name)\n+    _set_invocation_input(invocation, instance, args, kwargs, capture_content)\n+    return invocation\n+\n+\n+def _start_model_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+) -> InferenceInvocation:\n+    provider_name = (\n+        getattr(instance, \"provider\", None)\n+        or instance.__class__.__name__\n+        or \"agno\"\n+    )\n+    request_model = getattr(instance, \"id\", None)\n+    invocation = handler.inference(\n+        provider=str(provider_name),\n+        request_model=str(request_model) if request_model else None,\n+    )\n+    if capture_content and (args or \"messages\" in kwargs):\n+        messages_val: Any = args[0] if args else kwargs.get(\"messages\")\n+        if messages_val and isinstance(messages_val, (list, tuple)):\n+            input_msgs: list[InputMessage] = []\n+            for msg in cast(\"list[Any]\", messages_val):\n+                role = str(getattr(msg, \"role\", \"user\"))\n+                content: Any = getattr(msg, \"content\", \"\")\n+                content_str = str(content) if content is not None else \"\"\n+                input_msgs.append(\n+                    InputMessage(role=role, parts=[Text(content=content_str)])\n+                )\n+            if input_msgs:\n+                invocation.input_messages = input_msgs\n+    return invocation\n+\n+\n+def _set_model_invocation_output(\n+    invocation: Any,\n+    result: Any,\n+    capture_content: bool,\n+) -> None:\n+    if capture_content and result is not None:\n+        content = getattr(result, \"content\", None)\n+        if content is not None:\n+            output_str = (\n+                str(content) if not isinstance(content, str) else content\n+            )\n+            invocation.output_messages = [\n+                OutputMessage(\n+                    role=\"assistant\",",
+      "id": "PRRT_kwDOSbspP86WEY9R",
+      "opened": "2026-08-03T17:35:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [],
+      "reviewed": "1f6d118401d2d3ab34674576e696c586513e1ad1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3706361880"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This PR instruments `Workflow.arun`, but there is no corresponding async test coverage validating that span emission works for the async variant.\n\nThis issue also appears on line 104 of the same file.",
+      "created": "2026-08-03T17:35:43Z",
+      "hunk": "@@ -59,24 +82,92 @@ def patch_agent(handler: TelemetryHandler) -> None:\n         )\n     except (ImportError, AttributeError):\n         pass\n+    try:\n+        wrap_function_wrapper(\n+            _AGNO_WORKFLOW_MODULE,\n+            f\"{_WORKFLOW_CLASS}.run\",\n+            _workflow_run(handler),\n+        )\n+        wrap_function_wrapper(\n+            _AGNO_WORKFLOW_MODULE,\n+            f\"{_WORKFLOW_CLASS}.arun\",\n+            _workflow_arun(handler),\n+        )",
+      "id": "PRRT_kwDOSbspP86WEY9x",
+      "opened": "2026-08-03T17:35:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [],
+      "reviewed": "1f6d118401d2d3ab34674576e696c586513e1ad1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3706361919"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`_set_invocation_output()` currently hard-codes `OutputMessage(role=\"assistant\", finish_reason=\"stop\")`. With the new Workflow/Step instrumentation calling this helper, spans may record incorrect roles/finish reasons even when Agno results provide `role` / `finish_reason`. Consider updating `_set_invocation_output()` to read these fields from `result` when available (mirroring `_set_model_invocation_output()`).",
+      "created": "2026-08-03T17:35:44Z",
+      "hunk": "@@ -290,3 +384,209 @@ async def traced_method(\n             return result\n \n     return cast(Callable[..., Any], traced_method)\n+\n+\n+def _start_workflow_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+    *,\n+    default_name: str = \"Workflow\",\n+) -> WorkflowInvocation:\n+    workflow_name = getattr(instance, \"name\", None) or default_name\n+    invocation = handler.workflow(name=workflow_name)\n+    _set_invocation_input(invocation, instance, args, kwargs, capture_content)\n+    return invocation\n+\n+\n+def _start_model_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+) -> InferenceInvocation:\n+    provider_name = (\n+        getattr(instance, \"provider\", None)\n+        or instance.__class__.__name__\n+        or \"agno\"\n+    )\n+    request_model = getattr(instance, \"id\", None)\n+    invocation = handler.inference(\n+        provider=str(provider_name),\n+        request_model=str(request_model) if request_model else None,\n+    )\n+    if capture_content and (args or \"messages\" in kwargs):\n+        messages_val: Any = args[0] if args else kwargs.get(\"messages\")\n+        if messages_val and isinstance(messages_val, (list, tuple)):\n+            input_msgs: list[InputMessage] = []\n+            for msg in cast(\"list[Any]\", messages_val):\n+                role = str(getattr(msg, \"role\", \"user\"))\n+                content: Any = getattr(msg, \"content\", \"\")\n+                content_str = str(content) if content is not None else \"\"\n+                input_msgs.append(\n+                    InputMessage(role=role, parts=[Text(content=content_str)])\n+                )\n+            if input_msgs:\n+                invocation.input_messages = input_msgs\n+    return invocation\n+\n+\n+def _set_model_invocation_output(\n+    invocation: Any,\n+    result: Any,\n+    capture_content: bool,\n+) -> None:\n+    if capture_content and result is not None:\n+        content = getattr(result, \"content\", None)\n+        if content is not None:\n+            output_str = (\n+                str(content) if not isinstance(content, str) else content\n+            )\n+            invocation.output_messages = [\n+                OutputMessage(\n+                    role=\"assistant\",\n+                    parts=[Text(content=output_str)],\n+                    finish_reason=str(\n+                        getattr(result, \"finish_reason\", \"stop\")\n+                    ),\n+                )\n+            ]\n+\n+\n+def _workflow_run(\n+    handler: TelemetryHandler,\n+) -> Callable[..., Any]:\n+    capture_content = handler.should_capture_content()\n+\n+    def traced_method(\n+        wrapped: Callable[..., Any],\n+        instance: Any,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Any:\n+        with _start_workflow_invocation(\n+            handler, instance, args, kwargs, capture_content\n+        ) as invocation:\n+            result = wrapped(*args, **kwargs)\n+            _set_invocation_output(invocation, result, capture_content)\n+            return result",
+      "id": "PRRT_kwDOSbspP86WEY-g",
+      "opened": "2026-08-03T17:35:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [],
+      "reviewed": "1f6d118401d2d3ab34674576e696c586513e1ad1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3706361981"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "sorry I didn't ask before, but is this remote agent id or a local instance identifier? In semconv we decided not to record in-proc instance id on this attribute - https://github.com/open-telemetry/semantic-conventions-genai/pull/242",
+      "created": "2026-08-03T19:03:42Z",
+      "hunk": "@@ -135,14 +226,16 @@ def _set_tool_invocation_output(\n \n \n def _set_invocation_input(\n-    invocation: AgentInvocation,\n+    invocation: Any,\n     instance: Any,\n     args: tuple[Any, ...],\n     kwargs: dict[str, Any],\n     capture_content: bool,\n ) -> None:\n-    agent_id = getattr(instance, \"agent_id\", None)\n-    if agent_id:\n+    agent_id = getattr(instance, \"agent_id\", None) or getattr(",
+      "id": "PRRT_kwDOSbspP86WF5aF",
+      "opened": "2026-08-03T19:16:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-03T19:23:23Z",
+          "body": "local instance identifier. Alright SG I've removed it",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3707057188"
+        }
+      ],
+      "reviewed": "588e16612b7ba5ad15f0de3a6586fb10c2d55e2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3706939289"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we need a static name? it shouldn't be required, I'd prefer it not to have name rather than using a static name. this one is proposing explicit guidance to avoid hardcoded name fallbacks for workflows - https://github.com/open-telemetry/semantic-conventions-genai/pull/354",
+      "created": "2026-08-03T19:06:05Z",
+      "hunk": "@@ -179,7 +272,8 @@ def _start_agent_invocation(\n     kwargs: dict[str, Any],\n     capture_content: bool,\n ) -> AgentInvocation:\n-    agent_name = getattr(instance, \"name\", None) or \"Agent\"\n+    default_name = \"Team\" if instance.__class__.__name__ == \"Team\" else \"Agent\"\n+    agent_name = getattr(instance, \"name\", None) or default_name",
+      "id": "PRRT_kwDOSbspP86WF7vL",
+      "opened": "2026-08-03T19:16:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-03T19:35:26Z",
+          "body": "Ack thats fine, no need for a static name, updated it to default to None",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3707127563"
+        }
+      ],
+      "reviewed": "588e16612b7ba5ad15f0de3a6586fb10c2d55e2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3706952984"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "same (and drop default as a param)\n\n```suggestion\n    workflow_name = getattr(instance, \"name\", None)\n```",
+      "created": "2026-08-03T19:06:41Z",
+      "hunk": "@@ -290,3 +384,209 @@ async def traced_method(\n             return result\n \n     return cast(Callable[..., Any], traced_method)\n+\n+\n+def _start_workflow_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+    *,\n+    default_name: str = \"Workflow\",\n+) -> WorkflowInvocation:\n+    workflow_name = getattr(instance, \"name\", None) or default_name",
+      "id": "PRRT_kwDOSbspP86WF8U_",
+      "opened": "2026-08-03T19:16:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [],
+      "reviewed": "588e16612b7ba5ad15f0de3a6586fb10c2d55e2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3706956465"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can you please add conformance scenario for workflows ?",
+      "created": "2026-08-03T19:07:26Z",
+      "hunk": "@@ -290,3 +384,209 @@ async def traced_method(\n             return result\n \n     return cast(Callable[..., Any], traced_method)\n+\n+\n+def _start_workflow_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+    *,\n+    default_name: str = \"Workflow\",\n+) -> WorkflowInvocation:\n+    workflow_name = getattr(instance, \"name\", None) or default_name\n+    invocation = handler.workflow(name=workflow_name)\n+    _set_invocation_input(invocation, instance, args, kwargs, capture_content)\n+    return invocation\n+\n+\n+def _start_model_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+) -> InferenceInvocation:\n+    provider_name = (\n+        getattr(instance, \"provider\", None)\n+        or instance.__class__.__name__\n+        or \"agno\"\n+    )\n+    request_model = getattr(instance, \"id\", None)\n+    invocation = handler.inference(\n+        provider=str(provider_name),\n+        request_model=str(request_model) if request_model else None,\n+    )\n+    if capture_content and (args or \"messages\" in kwargs):\n+        messages_val: Any = args[0] if args else kwargs.get(\"messages\")\n+        if messages_val and isinstance(messages_val, (list, tuple)):\n+            input_msgs: list[InputMessage] = []\n+            for msg in cast(list[Any], messages_val):\n+                role = str(getattr(msg, \"role\", \"user\"))\n+                content: Any = getattr(msg, \"content\", \"\")\n+                content_str = str(content) if content is not None else \"\"\n+                input_msgs.append(\n+                    InputMessage(role=role, parts=[Text(content=content_str)])\n+                )\n+            if input_msgs:\n+                invocation.input_messages = input_msgs\n+    return invocation\n+\n+\n+def _set_model_invocation_output(\n+    invocation: Any,\n+    result: Any,\n+    capture_content: bool,\n+) -> None:\n+    if capture_content and result is not None:\n+        content = getattr(result, \"content\", None)\n+        if content is not None:\n+            output_str = (\n+                str(content) if not isinstance(content, str) else content\n+            )\n+            invocation.output_messages = [\n+                OutputMessage(\n+                    role=str(getattr(result, \"role\", \"assistant\")),\n+                    parts=[Text(content=output_str)],\n+                    finish_reason=str(\n+                        getattr(result, \"finish_reason\", \"stop\")\n+                    ),\n+                )\n+            ]\n+\n+\n+def _workflow_run(",
+      "id": "PRRT_kwDOSbspP86WF9F8",
+      "opened": "2026-08-03T19:16:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-03T19:35:45Z",
+          "body": "yep, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3707129319"
+        },
+        {
+          "at": "2026-08-03T20:14:49Z",
+          "body": "FYI this turned up that the duration metric was missing from GenAi utils workflow code (which I've added in  this PR now)\r\n\r\nOther workflow conformance scenarios didn't fail previously because the child operations (chat or invoke_agent) inside the workflows emitted gen_ai.client.operation.duration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3707354577"
+        }
+      ],
+      "reviewed": "588e16612b7ba5ad15f0de3a6586fb10c2d55e2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3706960830"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is step a workflow? \n\n@RKest is defining a node / step span here https://github.com/open-telemetry/semantic-conventions-genai/pull/188 and we're bikeshedding on terminology.\n\nJFYI: the ultimate terminology bikeshed - https://github.com/open-telemetry/semantic-conventions-genai/issues/418",
+      "created": "2026-08-03T19:16:18Z",
+      "hunk": "@@ -290,3 +384,209 @@ async def traced_method(\n             return result\n \n     return cast(Callable[..., Any], traced_method)\n+\n+\n+def _start_workflow_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+    *,\n+    default_name: str = \"Workflow\",\n+) -> WorkflowInvocation:\n+    workflow_name = getattr(instance, \"name\", None) or default_name\n+    invocation = handler.workflow(name=workflow_name)\n+    _set_invocation_input(invocation, instance, args, kwargs, capture_content)\n+    return invocation\n+\n+\n+def _start_model_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+) -> InferenceInvocation:\n+    provider_name = (\n+        getattr(instance, \"provider\", None)\n+        or instance.__class__.__name__\n+        or \"agno\"\n+    )\n+    request_model = getattr(instance, \"id\", None)\n+    invocation = handler.inference(\n+        provider=str(provider_name),\n+        request_model=str(request_model) if request_model else None,\n+    )\n+    if capture_content and (args or \"messages\" in kwargs):\n+        messages_val: Any = args[0] if args else kwargs.get(\"messages\")\n+        if messages_val and isinstance(messages_val, (list, tuple)):\n+            input_msgs: list[InputMessage] = []\n+            for msg in cast(list[Any], messages_val):\n+                role = str(getattr(msg, \"role\", \"user\"))\n+                content: Any = getattr(msg, \"content\", \"\")\n+                content_str = str(content) if content is not None else \"\"\n+                input_msgs.append(\n+                    InputMessage(role=role, parts=[Text(content=content_str)])\n+                )\n+            if input_msgs:\n+                invocation.input_messages = input_msgs\n+    return invocation\n+\n+\n+def _set_model_invocation_output(\n+    invocation: Any,\n+    result: Any,\n+    capture_content: bool,\n+) -> None:\n+    if capture_content and result is not None:\n+        content = getattr(result, \"content\", None)\n+        if content is not None:\n+            output_str = (\n+                str(content) if not isinstance(content, str) else content\n+            )\n+            invocation.output_messages = [\n+                OutputMessage(\n+                    role=str(getattr(result, \"role\", \"assistant\")),\n+                    parts=[Text(content=output_str)],\n+                    finish_reason=str(\n+                        getattr(result, \"finish_reason\", \"stop\")\n+                    ),\n+                )\n+            ]\n+\n+\n+def _workflow_run(\n+    handler: TelemetryHandler,\n+) -> Callable[..., Any]:\n+    capture_content = handler.should_capture_content()\n+\n+    def traced_method(\n+        wrapped: Callable[..., Any],\n+        instance: Any,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Any:\n+        with _start_workflow_invocation(\n+            handler, instance, args, kwargs, capture_content\n+        ) as invocation:\n+            result = wrapped(*args, **kwargs)\n+            _set_invocation_output(invocation, result, capture_content)\n+            return result\n+\n+    return traced_method\n+\n+\n+def _workflow_arun(\n+    handler: TelemetryHandler,\n+) -> Callable[..., Any]:\n+    capture_content = handler.should_capture_content()\n+\n+    async def traced_method(\n+        wrapped: Callable[..., Awaitable[Any]],\n+        instance: Any,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Any:\n+        with _start_workflow_invocation(\n+            handler, instance, args, kwargs, capture_content\n+        ) as invocation:\n+            result = await wrapped(*args, **kwargs)\n+            _set_invocation_output(invocation, result, capture_content)\n+            return result\n+\n+    return cast(Callable[..., Any], traced_method)\n+\n+\n+def _step_execute(\n+    handler: TelemetryHandler,\n+) -> Callable[..., Any]:\n+    capture_content = handler.should_capture_content()\n+\n+    def traced_method(\n+        wrapped: Callable[..., Any],\n+        instance: Any,\n+        args: tuple[Any, ...],\n+        kwargs: dict[str, Any],\n+    ) -> Any:\n+        with _start_workflow_invocation(",
+      "id": "PRRT_kwDOSbspP86WGGbE",
+      "opened": "2026-08-03T19:16:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-03T19:41:48Z",
+          "body": "step is a node in a workflow (see https://docs.agno.com/workflows/workflow-patterns/step-based-workflow and https://docs.agno.com/reference/workflows/step) -- so it sounds like I should hold off on it for now.. I've reverted monkey patching of STEP in this PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3707165225"
+        }
+      ],
+      "reviewed": "588e16612b7ba5ad15f0de3a6586fb10c2d55e2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3707015791"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "we have a special metric for workflow - https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-metrics.md#metric-gen_aiinvoke_workflowduration\n\nthis one i think records the client duration",
+      "created": "2026-08-05T05:06:55Z",
+      "hunk": "@@ -97,4 +106,4 @@ def _apply_finish(self, error: Error | None = None) -> None:\n             inputs=self.input_messages,\n             outputs=self.output_messages,\n         )\n-        # TODO: Add workflow metrics when supported\n+        self._metrics_recorder.record(self)",
+      "id": "PRRT_kwDOSbspP86WjATz",
+      "opened": "2026-08-05T05:06:55Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_workflow_invocation.py",
+      "replies": [
+        {
+          "at": "2026-08-05T14:04:54Z",
+          "body": "Woops.. done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3721225514"
+        }
+      ],
+      "reviewed": "c36bb004579f89105ddef60b4ac2c3106844b9f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3718081672"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why? should it be workflow invocation instead?",
+      "created": "2026-08-05T05:07:36Z",
+      "hunk": "@@ -135,16 +204,12 @@ def _set_tool_invocation_output(\n \n \n def _set_invocation_input(\n-    invocation: AgentInvocation,\n+    invocation: Any,",
+      "id": "PRRT_kwDOSbspP86WjAs-",
+      "opened": "2026-08-05T05:09:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-05T14:05:38Z",
+          "body": "yes Agent or Workflow invocation.. fixed thanks",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3721230528"
+        }
+      ],
+      "reviewed": "c36bb004579f89105ddef60b4ac2c3106844b9f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3718084042"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "mind updating conformance scenarios for other libs doing workflows and adding `gen_ai.invoke_workflow.duration` as expected metric? ",
+      "created": "2026-08-05T05:09:12Z",
+      "hunk": "@@ -0,0 +1 @@\n+Record `gen_ai.client.operation.duration` metric on workflow invocations (`WorkflowInvocation`).",
+      "id": "PRRT_kwDOSbspP86WjCD4",
+      "opened": "2026-08-05T05:09:31Z",
+      "path": "util/opentelemetry-util-genai/.changelog/350.fixed",
+      "replies": [
+        {
+          "at": "2026-08-05T14:04:44Z",
+          "body": "Yes, ack done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3721224232"
+        }
+      ],
+      "reviewed": "c36bb004579f89105ddef60b4ac2c3106844b9f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3718092574"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we need to report inference from agno? does it rely on openai / anthropic / google genai to make model calls? if so, why not rely on the corresponding instrumentations to do it? \n\nOtherwise we end up with duplication if inference is recorded by both layers.",
+      "created": "2026-08-06T23:23:57Z",
+      "hunk": "@@ -291,3 +360,155 @@ async def traced_method(\n             return result\n \n     return cast(Callable[..., Any], traced_method)\n+\n+\n+def _start_workflow_invocation(\n+    handler: TelemetryHandler,\n+    instance: Any,\n+    args: tuple[Any, ...],\n+    kwargs: dict[str, Any],\n+    capture_content: bool,\n+) -> WorkflowInvocation:\n+    workflow_name = getattr(instance, \"name\", None)\n+    invocation = handler.workflow(name=workflow_name)\n+    _set_invocation_input(invocation, instance, args, kwargs, capture_content)\n+    return invocation\n+\n+\n+def _start_model_invocation(",
+      "id": "PRRT_kwDOSbspP86XIbRc",
+      "opened": "2026-08-06T23:32:39Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-17T16:07:23Z",
+          "body": "They support a ton of models including ones we don't have instrumenation for and stuff like vLLM where you can bring up your own model (https://docs.agno.com/examples/models/overview) ..\r\n\r\nIf we instrument at the agno layer the invoke model span will look the exact same for every model call, versus it will look slightly different when generated at the model layer (because the model API interfaces differ, and the instrumentations differ slightly).. \r\n\r\nIt's easier to just install agno instrumentation, than install agno + X model provider instrumentations (probably not a big deal but still..)\r\n\r\nADK does the same thing FWIW..\r\n\r\nYeah duplication is a problem though.. I think probably the best way to handle it is for the agno instrumentation to NOT instrument the model call IF the models associated instrumentation is installed and the model has been monkey patched.. Before thinking about how to do that though, what do you think of my argument ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3797145577"
+        },
+        {
+          "at": "2026-08-20T14:32:31Z",
+          "body": "I think it makes sense to instrument layers that can't be instrumented otherwise. \r\nPriority-wise - we deliver more value and coverage by instrumenting layers that uniquely belong to this library.\r\n\r\nI propose to postpone inference instrumentation in agentic libs until we have a reasonable coverage for agentic layers and get back to it later when polishing onboarding experience or covering less popular inference providers.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3822497146"
+        },
+        {
+          "at": "2026-08-20T15:18:34Z",
+          "body": "I'm going to instrument all of `agno`, I don't think we have to worry about prioritization and ranking value of particular parts of this library.. I think it makes sense to instrument this layer and address the problem now.. But I'll instrument the rest of the library first, I don't have a problem doing that either.. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3822891334"
+        },
+        {
+          "at": "2026-08-20T15:30:51Z",
+          "body": "Reverted the model inference instrumentation for now.. PTAL",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3822996824"
+        },
+        {
+          "at": "2026-08-22T17:21:33Z",
+          "body": "thanks! this is not about writing the code that does inference. Writing it is not a problem, but if we do it, we need to\r\n- figure out suppression\r\n- keep parity across all libs when we make changes\r\n\r\nwe already have this problem with openai and anthropic instrumented in langchain and in their own libs. \r\n\r\nIt's readonable to add inference for providers that don't and won't have their own instrumentation - this is what we just did in smolagents. \r\n\r\nThis is also now a part of the guidelines in this repo - https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTRIBUTING.md#which-operations-an-instrumentation-should-emit",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3836576444"
+        },
+        {
+          "at": "2026-08-25T20:20:55Z",
+          "body": "Ack.. discussed offline we will figure out suppression first.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3856982055"
+        }
+      ],
+      "reviewed": "368f78ec1b6339669a339d5d86b7c309bdef2a06",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3732392089"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we need to relax? I'd rather make it more strict",
+      "created": "2026-08-06T23:31:44Z",
+      "hunk": "@@ -72,9 +72,7 @@ class ExpectedViolation:\n     def matches(self, violation: dict[str, Any]) -> bool:\n         return violation.get(\n             \"id\"\n-        ) == self.advice_id and self.message_substring in str(\n-            violation.get(\"message\", \"\")\n-        )\n+        ) == self.advice_id and self.message_substring in str(violation)",
+      "id": "PRRT_kwDOSbspP86XIf3l",
+      "opened": "2026-08-06T23:32:39Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/conformance.py",
+      "replies": [
+        {
+          "at": "2026-08-17T17:22:43Z",
+          "body": "reverted this change",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3797501845"
+        }
+      ],
+      "reviewed": "368f78ec1b6339669a339d5d86b7c309bdef2a06",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3732418753"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "intentional?",
+      "created": "2026-08-06T23:31:55Z",
+      "hunk": "@@ -207,25 +207,22 @@ def _provision_genai_root() -> Path:\n     )\n \n     upstream_pins = _load_version_pins(genai_target / \"versions.env\")\n-    try:\n-        upstream_version = upstream_pins[\"SEMCONV_VERSION\"]\n-    except KeyError as missing:\n-        raise RuntimeError(\n-            f\"genai repo's versions.env is missing {missing!s}\"\n-        ) from missing\n+    upstream_version = upstream_pins.get(\"SEMCONV_VERSION\")",
+      "id": "PRRT_kwDOSbspP86XIf9-",
+      "opened": "2026-08-06T23:32:39Z",
+      "path": "util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/_setup_weaver.py",
+      "replies": [
+        {
+          "at": "2026-08-17T17:26:37Z",
+          "body": "Yes because as of https://github.com/open-telemetry/semantic-conventions-genai/pull/433/ we no longer specify `SEMCONV_VERSION` in `versions.env`.. instead it's directly specified in the manifest (not sure what this means or how that works exatly) but i'm pretty sure we can get rid of this workaround completely now.. PTAL though and verify what I did",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3797522629"
+        }
+      ],
+      "reviewed": "368f78ec1b6339669a339d5d86b7c309bdef2a06",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3732419315"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`role` and `finish_reason` don't exist on `RunOutput`, `TeamRunOutput` or `WorkflowRunOutput` (agno 2.8.6), so both `getattr`s always take the default. And if either field does appear later as `None`, `str()` turns it into the literal string `\"None\"`:\r\n\r\n```python\r\n@dataclass\r\nclass _Result:\r\n    content: str = \"hi\"\r\n    role: str | None = None\r\n    finish_reason: str | None = None\r\n\r\ndef test_none_role_becomes_string_none():\r\n    invocation = TelemetryHandler().workflow(name=\"wf\")\r\n    _set_invocation_output(invocation, _Result(), capture_content=True)\r\n    invocation.stop()\r\n    msg = invocation.output_messages[0]\r\n    assert msg.role == \"assistant\"\r\n    assert msg.finish_reason == \"stop\"\r\n```\r\n\r\n```\r\nAssertionError: OutputMessage(role='None', parts=[Text(content='hi', type='text')], finish_reason='None')\r\n```\r\n\r\nPlease use an existing field or fallback to stop on success / error on failure. Please make sure there is a test coverage",
+      "created": "2026-08-22T17:12:02Z",
+      "hunk": "@@ -156,20 +198,24 @@ def _set_invocation_input(\n \n \n def _set_invocation_output(\n-    invocation: Any,\n+    invocation: AgentInvocation | WorkflowInvocation,\n     result: Any,\n     capture_content: bool,\n ) -> None:\n     if capture_content and result is not None:\n         output_str = _extract_output_content(result)\n         invocation.output_messages = [\n             OutputMessage(\n-                role=\"assistant\",\n+                role=str(getattr(result, \"role\", \"assistant\")),\n                 parts=[Text(content=output_str)],\n-                finish_reason=\"stop\",\n+                finish_reason=str(getattr(result, \"finish_reason\", \"stop\")),",
+      "id": "PRRT_kwDOSbspP86baH7A",
+      "opened": "2026-08-22T17:21:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-25T19:56:25Z",
+          "body": "ok good point.. I've updated the type to be the union of those 3 output types, and I just default role to assistant.. Similar changes made to the finish_reason",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3856781260"
+        }
+      ],
+      "reviewed": "d5b48398cfb8ef13cf2dfde351246a7d91681694",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3836561597"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`WorkflowRunOutput` has a `session_id`, but this `isinstance` gate silently drops it because `WorkflowInvocation` has no `conversation_id`:\r\n\r\n```python\r\ndef test_workflow_session_id(tracer_provider, logger_provider, meter_provider, span_exporter):\r\n    with instrument(AgnoInstrumentor(), tracer_provider=tracer_provider,\r\n                    logger_provider=logger_provider, meter_provider=meter_provider,\r\n                    content_capture=\"SPAN_ONLY\"):\r\n        Workflow(name=\"wf\", steps=[], session_id=\"session-1\").run(\"hi\")\r\n    span = span_exporter.get_finished_spans()[0]\r\n    assert span.attributes.get(GenAIAttributes.GEN_AI_CONVERSATION_ID) == \"session-1\"\r\n```\r\n\r\n```\r\nAssertionError: assert None == 'session-1'\r\n  {'gen_ai.operation.name': 'invoke_workflow', 'gen_ai.workflow.name': 'wf', ...}\r\n```\r\n\r\nPlease add `conversation_id` to `WorkflowInvocation` and set it here",
+      "created": "2026-08-22T17:12:02Z",
+      "hunk": "@@ -156,20 +198,24 @@ def _set_invocation_input(\n \n \n def _set_invocation_output(\n-    invocation: Any,\n+    invocation: AgentInvocation | WorkflowInvocation,\n     result: Any,\n     capture_content: bool,\n ) -> None:\n     if capture_content and result is not None:\n         output_str = _extract_output_content(result)\n         invocation.output_messages = [\n             OutputMessage(\n-                role=\"assistant\",\n+                role=str(getattr(result, \"role\", \"assistant\")),\n                 parts=[Text(content=output_str)],\n-                finish_reason=\"stop\",\n+                finish_reason=str(getattr(result, \"finish_reason\", \"stop\")),\n             )\n         ]\n-    if hasattr(result, \"session_id\") and getattr(result, \"session_id\"):\n+    if (\n+        isinstance(invocation, AgentInvocation)",
+      "id": "PRRT_kwDOSbspP86baH7B",
+      "opened": "2026-08-22T17:21:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/src/opentelemetry/instrumentation/genai/agno/patch.py",
+      "replies": [
+        {
+          "at": "2026-08-25T20:03:29Z",
+          "body": "good point.. done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3856837556"
+        }
+      ],
+      "reviewed": "d5b48398cfb8ef13cf2dfde351246a7d91681694",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3836561598"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The two workflow tests don't assert much. `patch.object(Workflow, \"run\", wraps=workflow.run)` is a no-op - the bound method it wraps is already the instrumented one, and removing the patch produces the identical span. And `assert any(... == \"invoke_workflow\")` skips span count, span name, and `gen_ai.workflow.name`; the Team tests above assert all three.\n\nAlso missing across all four new tests: the error path (wrapped call raises -> span carries `error.type` and the exception re-raises unchanged).",
+      "created": "2026-08-22T17:12:02Z",
+      "hunk": "@@ -150,3 +152,113 @@ async def _run_async() -> None:\n     assert (\n         span.attributes.get(GenAIAttributes.GEN_AI_TOOL_CALL_ID) == \"call-456\"\n     )\n+\n+\n+def test_team_run_spans(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test that Team.run emits an invoke_agent span.\"\"\"\n+    member = Agent(name=\"member-agent\", model=MockModel(id=\"mock-model\"))\n+    team = Team(\n+        name=\"test-sync-team\",\n+        members=[member],\n+        model=MockModel(id=\"mock-model\"),\n+    )\n+    mock_output = ModelResponse(content=\"Hello back from team!\")\n+\n+    with patch(\"agno.models.base.Model.response\", return_value=mock_output):\n+        res = team.run(\"hello team world\")\n+        assert res is not None\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"invoke_agent test-sync-team\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME)\n+        == \"invoke_agent\"\n+    )\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_AGENT_NAME)\n+        == \"test-sync-team\"\n+    )\n+\n+\n+def test_team_arun_spans(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test that Team.arun emits an invoke_agent span.\"\"\"\n+    member = Agent(name=\"member-agent\", model=MockModel(id=\"mock-model\"))\n+    team = Team(\n+        name=\"test-async-team\",\n+        members=[member],\n+        model=MockModel(id=\"mock-model\"),\n+    )\n+    mock_output = ModelResponse(content=\"Async hello back from team!\")\n+\n+    async def _run_async() -> None:\n+        with patch(\n+            \"agno.models.base.Model.aresponse\", return_value=mock_output\n+        ):\n+            res = await team.arun(\"hello async team world\")\n+            assert res is not None\n+\n+    asyncio.run(_run_async())\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    assert span.name == \"invoke_agent test-async-team\"\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_OPERATION_NAME)\n+        == \"invoke_agent\"\n+    )\n+    assert (\n+        span.attributes.get(GenAIAttributes.GEN_AI_AGENT_NAME)\n+        == \"test-async-team\"\n+    )\n+\n+\n+def test_workflow_run_spans(\n+    instrument_agno,\n+    span_exporter,\n+) -> None:\n+    \"\"\"Test that Workflow.run emits an invoke_workflow span.\"\"\"\n+    pytest.importorskip(\"fastapi\")\n+    pytest.importorskip(\"agno.workflow.workflow\")\n+    from agno.workflow.workflow import Workflow\n+\n+    workflow = Workflow(name=\"test-workflow\", steps=[])\n+    with patch.object(Workflow, \"run\", wraps=workflow.run):\n+        workflow.run(\"test input\")\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert any(",
+      "id": "PRRT_kwDOSbspP86baH7D",
+      "opened": "2026-08-22T17:21:33Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/test_agent.py",
+      "replies": [
+        {
+          "at": "2026-08-25T20:14:21Z",
+          "body": "Ack, applied these changes",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3856929597"
+        }
+      ],
+      "reviewed": "d5b48398cfb8ef13cf2dfde351246a7d91681694",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3836561599"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Type this `WorkflowInvocation`, not `GenAIInvocation`. The base `_get_metric_attributes()` returns just `metric_attributes` - no `gen_ai.operation.name`, no `gen_ai.workflow.name` - so any other invocation type passed here records a silently wrong-shaped metric instead of failing.",
+      "created": "2026-08-22T17:12:02Z",
+      "hunk": "@@ -58,6 +62,19 @@ def record(self, invocation: GenAIInvocation) -> None:\n                 context=invocation._span_context,\n             )\n \n+    def record_workflow(self, invocation: GenAIInvocation) -> None:",
+      "id": "PRRT_kwDOSbspP86baH7F",
+      "opened": "2026-08-22T17:21:33Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/metrics.py",
+      "replies": [
+        {
+          "at": "2026-08-25T20:18:20Z",
+          "body": "Ack..  good catch, fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3856960777"
+        }
+      ],
+      "reviewed": "d5b48398cfb8ef13cf2dfde351246a7d91681694",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3836561602"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `getattr(gen_ai_metrics, \"GEN_AI_INVOKE_WORKFLOW_DURATION\", ...)` always takes the fallback - the constant doesn't exist in any released `opentelemetry-semantic-conventions`. It reads as forward-compat but is a hardcoded name in disguise, and if semconv-python ever defines that symbol with a different value the metric name flips silently. Please use the literal",
+      "created": "2026-08-22T17:12:02Z",
+      "hunk": "@@ -48,6 +48,20 @@ def create_duration_histogram(meter: Meter) -> Histogram:\n     )\n \n \n+def create_workflow_duration_histogram(meter: Meter) -> Histogram:\n+    name = getattr(\n+        gen_ai_metrics,\n+        \"GEN_AI_INVOKE_WORKFLOW_DURATION\",",
+      "id": "PRRT_kwDOSbspP86baH7H",
+      "opened": "2026-08-22T17:21:33Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/instruments.py",
+      "replies": [
+        {
+          "at": "2026-08-25T20:16:32Z",
+          "body": "Ack, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3856946669"
+        }
+      ],
+      "reviewed": "d5b48398cfb8ef13cf2dfde351246a7d91681694",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3836561604"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "why do we need it? doesn't seem like anything in tests depends on fastapi ",
+      "created": "2026-08-26T22:25:24Z",
+      "hunk": "@@ -20,6 +20,4 @@\n # factor, so they are NOT pinned here — pyproject.toml is the single source of truth. The\n # OpenTelemetry SDK and test utilities come transitively from opentelemetry-test-util-genai, which\n # every oldest env installs. Pin here only test-only deps that nothing else already provides.\n-#\n-# There is currently nothing to pin: agno has no test-only dependency that isn't already\n-# provided by a declared bound or by the shared test fixtures.\n+fastapi >= 0.100.0",
+      "id": "PRRT_kwDOSbspP86cop-C",
+      "opened": "2026-08-26T22:27:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-agno/tests/requirements.oldest.txt",
+      "replies": [
+        {
+          "at": "2026-08-31T15:04:06Z",
+          "body": "it is required for agno workflows -- so the workflow unit tests require it",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3895662600"
+        }
+      ],
+      "reviewed": "f2df0a8b39272a8c946ef4d194e994b85d18cc96",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3867197414"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nice!",
+      "created": "2026-08-26T22:26:22Z",
+      "hunk": "@@ -87,8 +88,19 @@ def _get_messages_for_span(self) -> dict[str, AttributeValue]:\n             key: value for key, value in optional_attrs if value is not None\n         }\n \n+    def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n+        attrs: dict[str, AttributeValue] = {\n+            GenAI.GEN_AI_OPERATION_NAME: self._operation_name,\n+        }\n+        if self._name is not None:\n+            attrs[GenAI.GEN_AI_WORKFLOW_NAME] = self._name\n+        attrs.update(self.metric_attributes)\n+        return attrs\n+\n     def _apply_finish(self, error: Error | None = None) -> None:\n         attributes: dict[str, AttributeValue] = self._get_messages_for_span()\n+        if self.conversation_id is not None:\n+            attributes[GenAI.GEN_AI_CONVERSATION_ID] = self.conversation_id",
+      "id": "PRRT_kwDOSbspP86coqyo",
+      "opened": "2026-08-26T22:27:19Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_workflow_invocation.py",
+      "replies": [],
+      "reviewed": "f2df0a8b39272a8c946ef4d194e994b85d18cc96",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/350#discussion_r3867202388"
+    }
+  ]
+}

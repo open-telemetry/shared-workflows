@@ -1,0 +1,55 @@
+{
+  "head": "80a0857477b9512f1078545b74916535f203bd96",
+  "merge": "5ea43aa3dfe6d38eb99976bc099db6b398886d1f",
+  "merged": "2026-09-24T06:16:35Z",
+  "missing_roots": 0,
+  "number": 19963,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When `hasRoute` is true, `httpAttributes` are left untouched (implicitly relying on `HttpServerTestOptions` defaults). To make the test setup deterministic and resilient to future default changes, consider explicitly setting attributes in both branches (e.g., `DEFAULT_HTTP_ATTRIBUTES` when `hasRoute` is true, and `DEFAULT_HTTP_ATTRIBUTES` minus `HTTP_ROUTE` when false).",
+      "created": "2026-09-08T19:56:26Z",
+      "hunk": "@@ -37,19 +37,28 @@ abstract class AbstractHttpServerInstrumentationTest\n \n   override protected def configure(\n       options: HttpServerTestOptions\n+  ): Unit = {\n+    configure(options, hasRoute = false)\n+  }\n+\n+  protected def configure(\n+      options: HttpServerTestOptions,\n+      hasRoute: Boolean\n   ): Unit = {\n     options.setTestCaptureHttpHeaders(false)\n-    options.setHttpAttributes(\n-      new Function[ServerEndpoint, util.Set[AttributeKey[_]]] {\n-        override def apply(v1: ServerEndpoint): util.Set[AttributeKey[_]] = {\n-          val set = new util.HashSet[AttributeKey[_]](\n-            HttpServerTestOptions.DEFAULT_HTTP_ATTRIBUTES\n-          )\n-          set.remove(HttpAttributes.HTTP_ROUTE)\n-          set\n+    if (!hasRoute) {\n+      options.setHttpAttributes(\n+        new Function[ServerEndpoint, util.Set[AttributeKey[_]]] {\n+          override def apply(v1: ServerEndpoint): util.Set[AttributeKey[_]] = {\n+            val set = new util.HashSet[AttributeKey[_]](\n+              HttpServerTestOptions.DEFAULT_HTTP_ATTRIBUTES\n+            )\n+            set.remove(HttpAttributes.HTTP_ROUTE)\n+            set\n+          }\n         }\n-      }\n-    )\n+      )\n+    }",
+      "id": "PRRT_kwDODJKVX86gY721",
+      "opened": "2026-09-08T19:56:26Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/AbstractHttpServerInstrumentationTest.scala",
+      "replies": [],
+      "reviewed": "15e2f09b0f38b16cf7a8ae3985b26956e84c08a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19963#discussion_r3961715099"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The boolean parameter name `hasRoute` is a bit ambiguous because it actually controls whether `HTTP_ROUTE` is included in expected HTTP attributes. Renaming it to something more explicit (e.g., `includeHttpRouteAttribute` / `expectHttpRouteAttribute`) would make call sites and the `if (!hasRoute)` condition easier to understand and reduce mistakes when adding new tests.",
+      "created": "2026-09-08T19:56:26Z",
+      "hunk": "@@ -21,19 +21,28 @@ abstract class AbstractHttpServerInstrumentationTest\n \n   override protected def configure(\n       options: HttpServerTestOptions\n+  ): Unit = {\n+    configure(options, hasRoute = false)\n+  }\n+\n+  protected def configure(\n+      options: HttpServerTestOptions,\n+      hasRoute: Boolean\n   ): Unit = {\n     options.setTestCaptureHttpHeaders(false)\n-    options.setHttpAttributes(\n-      new Function[ServerEndpoint, util.Set[AttributeKey[_]]] {\n-        override def apply(v1: ServerEndpoint): util.Set[AttributeKey[_]] = {\n-          val set = new util.HashSet[AttributeKey[_]](\n-            HttpServerTestOptions.DEFAULT_HTTP_ATTRIBUTES\n-          )\n-          set.remove(HttpAttributes.HTTP_ROUTE)\n-          set\n+    if (!hasRoute) {\n+      options.setHttpAttributes(\n+        new Function[ServerEndpoint, util.Set[AttributeKey[_]]] {\n+          override def apply(v1: ServerEndpoint): util.Set[AttributeKey[_]] = {\n+            val set = new util.HashSet[AttributeKey[_]](\n+              HttpServerTestOptions.DEFAULT_HTTP_ATTRIBUTES\n+            )\n+            set.remove(HttpAttributes.HTTP_ROUTE)\n+            set\n+          }\n         }\n-      }\n-    )\n+      )\n+    }",
+      "id": "PRRT_kwDODJKVX86gY73d",
+      "opened": "2026-09-08T19:56:26Z",
+      "path": "instrumentation/akka/akka-http-10.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AbstractHttpServerInstrumentationTest.scala",
+      "replies": [],
+      "reviewed": "15e2f09b0f38b16cf7a8ae3985b26956e84c08a5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19963#discussion_r3961715149"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`hasRoute = true` already preserves the default HTTP attributes, but this helper still immediately resets them to `DEFAULT_HTTP_ATTRIBUTES` below. That leaves the Akka tests with the redundant reset this PR removes from Pekko; remove the `setHttpAttributes` block here as well.",
+      "created": "2026-09-21T06:52:14Z",
+      "hunk": "@@ -45,6 +54,8 @@ abstract class AbstractHttpServerInstrumentationTest\n   }\n \n   protected def configureRouteServer(options: HttpServerTestOptions): Unit = {\n+    configure(options, hasRoute = true)",
+      "id": "PRRT_kwDODJKVX86kQhCG",
+      "opened": "2026-09-21T06:52:14Z",
+      "path": "instrumentation/akka/akka-http-10.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/akkahttp/v10_0/AbstractHttpServerInstrumentationTest.scala",
+      "replies": [],
+      "reviewed": "e5358de17f3a778a19b0f181043f5e62b23d029f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19963#discussion_r4059851427"
+    }
+  ]
+}

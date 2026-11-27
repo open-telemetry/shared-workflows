@@ -1,0 +1,36 @@
+{
+  "head": "ed26352018726db0c5edda1d6541311a1b47c982",
+  "merge": "2a7c143d9c83254703fc3fdf657d868a069a8a9f",
+  "merged": "2026-01-29T15:27:59Z",
+  "missing_roots": 0,
+  "number": 15959,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "So shouldn't we also make other getters (`getBoolean` and `getInt`) public? ",
+      "created": "2026-01-28T16:25:26Z",
+      "hunk": "@@ -55,7 +55,7 @@ public int getLoggingApplicationLogsBufferMaxRecords() {\n   }\n \n   @Nullable\n-  private String getString(String propertyName) {\n+  public String getString(String propertyName) {",
+      "id": "PRRT_kwDODJKVX85recmh",
+      "opened": "2026-01-28T16:25:36Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/config/EarlyInitAgentConfig.java",
+      "replies": [
+        {
+          "at": "2026-01-28T17:53:04Z",
+          "body": "I'm fine with adding those changes but are there objections to making any of them public?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15959#discussion_r2737820617"
+        },
+        {
+          "at": "2026-01-28T22:35:49Z",
+          "body": "done",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15959#discussion_r2738904353"
+        }
+      ],
+      "reviewed": "93263f1ed7403f11d8ed68cbbfba5d773d930d74",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15959#discussion_r2737450460"
+    }
+  ]
+}

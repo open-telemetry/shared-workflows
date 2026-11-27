@@ -1,0 +1,104 @@
+{
+  "head": "0ff3070576c55a390b7ce20f42910161c4b7b192",
+  "merge": "aa2d26f2d6e50892757ffbfbbe92147bb8749fc7",
+  "merged": "2026-08-07T05:04:30Z",
+  "missing_roots": 0,
+  "number": 19350,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether spec says anything about lining to the same creation context multiple times. Idk whether this would happen in practice.",
+      "created": "2026-08-05T13:47:04Z",
+      "hunk": "@@ -96,51 +105,80 @@ private List<AttributesExtractor<Request<?>, Response<?>>> attributesExtractors(\n   }\n \n   private <REQUEST, RESPONSE> AttributesExtractor<REQUEST, RESPONSE> messagingAttributesExtractor(\n-      MessagingAttributesGetter<REQUEST, RESPONSE> getter, MessageOperation operation) {\n-    return MessagingAttributesExtractor.builder(getter, operation)\n+      MessagingAttributesGetter<REQUEST, RESPONSE> getter,\n+      MessagingOperationType operationType,\n+      String operationName) {\n+    return MessagingAttributesExtractor.builder(getter, operationType, operationName)\n         .setCapturedHeaders(capturedHeaders)\n         .build();\n   }\n \n   public Instrumenter<SqsReceiveRequest, Response<?>> consumerReceiveInstrumenter() {\n-    MessageOperation operation = MessageOperation.RECEIVE;\n+    MessagingOperationType operationType = MessagingOperationType.RECEIVE;\n     SqsReceiveRequestAttributesGetter getter = new SqsReceiveRequestAttributesGetter();\n     AttributesExtractor<SqsReceiveRequest, Response<?>> messagingAttributeExtractor =\n-        messagingAttributesExtractor(getter, operation);\n+        messagingAttributesExtractor(getter, operationType, RECEIVE_OPERATION_NAME);\n \n     return createInstrumenter(\n         openTelemetry,\n-        MessagingSpanNameExtractor.create(getter, operation),\n-        SpanKindExtractor.alwaysConsumer(),\n+        MessagingSpanNameExtractor.create(getter, operationType, RECEIVE_OPERATION_NAME),\n+        MessagingSpanKindExtractor.create(operationType),\n         toSqsRequestExtractors(attributesExtractors()),\n         singletonList(messagingAttributeExtractor),\n-        builder -> setMessagingReceiveExceptionEventExtractor(builder),\n+        builder -> {\n+          setMessagingReceiveExceptionEventExtractor(builder);\n+          if (emitStableMessagingSemconv()) {\n+            builder.addSpanLinksExtractor(\n+                (spanLinks, parentContext, request) -> {\n+                  for (SqsMessage message : request.getMessages()) {\n+                    SpanContext spanContext =\n+                        Span.fromContext(message.getCreationContext()).getSpanContext();\n+                    if (spanContext.isValid()) {\n+                      spanLinks.addLink(spanContext);",
+      "id": "PRRT_kwDODJKVX86Wq8z1",
+      "opened": "2026-08-05T13:47:04Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/AwsSdkInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-08-05T23:04:50Z",
+          "body": "good question, will follow-up: https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/19415",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350#discussion_r3724682987"
+        }
+      ],
+      "reviewed": "9af7e48ab9b6354f865b97b552b2cfd0f887f15b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350#discussion_r3721094132"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether we still need the receive telemetry flag. As far as I remember we introduced it because spec demanded producer and consumer in separate linked traces, but since the backends didn't support span links we chose to keep them in the same trace. Now I think the spec allowed keeping single message producers and consumers in the same trace. It is fine if this is something that we should look into after the first batch of changes are done.",
+      "created": "2026-08-05T15:45:20Z",
+      "hunk": "@@ -145,8 +145,39 @@ tasks {\n     systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=database\")\n   }\n \n+  val testMessagingPreview = register<Test>(\"testMessagingPreview\") {\n+    testClassesDirs = sourceSets[\"testSqs\"].output.classesDirs\n+    classpath = sourceSets[\"testSqs\"].runtimeClasspath\n+\n+    jvmArgs(\"-Dotel.instrumentation.messaging.experimental.receive-telemetry.enabled=true\")\n+    jvmArgs(\"-Dotel.semconv-stability.preview=messaging\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv-stability.preview=messaging\")\n+  }\n+\n+  val testMessagingPreviewNoReceiveTelemetry = register<Test>(\"testMessagingPreviewNoReceiveTelemetry\") {",
+      "id": "PRRT_kwDODJKVX86WtR8t",
+      "opened": "2026-08-05T15:45:20Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-05T23:05:05Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/19414",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350#discussion_r3724684039"
+        }
+      ],
+      "reviewed": "9af7e48ab9b6354f865b97b552b2cfd0f887f15b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350#discussion_r3721981178"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "if the `purgeQueue` call also creates spans we might need to wait and clear them too",
+      "created": "2026-08-05T15:48:30Z",
+      "hunk": "@@ -158,6 +166,22 @@ void cleanUp() {\n     }\n   }\n \n+  @AfterEach\n+  void purgeQueue() {\n+    // some tests send messages that they don't consume; purge the queue so that leftovers don't\n+    // leak into the next test\n+    try (SqsClient client =\n+        SqsClient.builder()\n+            .endpointOverride(URI.create(\"http://localhost:\" + sqsPort))\n+            .region(Region.AP_NORTHEAST_1)\n+            .credentialsProvider(CREDENTIALS_PROVIDER)\n+            .build()) {\n+      client.purgeQueue(PurgeQueueRequest.builder().queueUrl(queueUrl).build());",
+      "id": "PRRT_kwDODJKVX86WtVpU",
+      "opened": "2026-08-05T15:48:29Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2SqsBaseTest.java",
+      "replies": [
+        {
+          "at": "2026-08-05T23:03:57Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350/commits/8b4a701539510f1936d221d3dc1375324a3e232a",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350#discussion_r3724679241"
+        },
+        {
+          "at": "2026-08-06T11:54:58Z",
+          "body": "usually we add `testing.waitForTraces(1);` before clearing to ensure that the trace has been received. Idk whether the clearing itself is actually necessary because I think it is done anyway before each test",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350#discussion_r3728537381"
+        },
+        {
+          "at": "2026-08-06T14:42:17Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350/commits/26e3cb22b2c4b0f753de57a1657c669815171d3c",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350#discussion_r3729774033"
+        }
+      ],
+      "reviewed": "9af7e48ab9b6354f865b97b552b2cfd0f887f15b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350#discussion_r3722003280"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `hasNewSpan` treats extraction as successful only when the extracted span differs from the ambient span. If a valid message `traceparent` happens to equal the ambient `SpanContext` while the X-Ray header differs, this returns false and the fallback replaces the messaging-propagator result. Detect whether the propagator produced a valid span independently of the inherited ambient span before deciding to apply the X-Ray fallback.",
+      "created": "2026-08-05T22:25:55Z",
+      "hunk": "@@ -65,34 +67,71 @@ public String get(@Nullable Map<String, MessageAttributeValue> map, String s) {\n \n   static Context ofMessageAttributes(\n       Map<String, MessageAttributeValue> messageAttributes, TextMapPropagator propagator) {\n+    return ofMessageAttributes(Context.root(), messageAttributes, propagator);\n+  }\n+\n+  static Context ofMessageAttributes(\n+      Context parentContext,\n+      Map<String, MessageAttributeValue> messageAttributes,\n+      TextMapPropagator propagator) {\n     return propagator.extract(\n-        Context.root(), messageAttributes, MessageAttributeValueMapGetter.INSTANCE);\n+        parentContext, messageAttributes, MessageAttributeValueMapGetter.INSTANCE);\n   }\n \n   static Context ofSystemAttributes(Map<String, String> systemAttributes) {\n+    return ofSystemAttributes(Context.root(), systemAttributes);\n+  }\n+\n+  static Context ofSystemAttributes(Context parentContext, Map<String, String> systemAttributes) {\n     String traceHeader = systemAttributes.get(AWS_TRACE_SYSTEM_ATTRIBUTE);\n     return AwsXrayPropagator.getInstance()\n         .extract(\n-            Context.root(), singletonMap(\"X-Amzn-Trace-Id\", traceHeader), StringMapGetter.INSTANCE);\n+            parentContext, singletonMap(\"X-Amzn-Trace-Id\", traceHeader), StringMapGetter.INSTANCE);\n   }\n \n   public static Context ofMessage(SqsMessage message, TracingExecutionInterceptor config) {\n-    return ofMessage(message, config.getMessagingPropagator(), config.shouldUseXrayPropagator());\n+    return ofMessage(Context.root(), message, config);\n+  }\n+\n+  public static Context ofMessage(\n+      Context parentContext, SqsMessage message, TracingExecutionInterceptor config) {\n+    return ofMessage(\n+        parentContext, message, config.getMessagingPropagator(), config.shouldUseXrayPropagator());\n   }\n \n   static Context ofMessage(\n       SqsMessage message, TextMapPropagator messagingPropagator, boolean shouldUseXrayPropagator) {\n-    Context parentContext = Context.root();\n+    return ofMessage(Context.root(), message, messagingPropagator, shouldUseXrayPropagator);\n+  }\n+\n+  static Context ofMessage(\n+      Context parentContext,\n+      SqsMessage message,\n+      TextMapPropagator messagingPropagator,\n+      boolean shouldUseXrayPropagator) {\n+    Context extractedContext = parentContext;\n+    boolean extractedCreationContext = false;\n \n     if (messagingPropagator != null) {\n-      parentContext = ofMessageAttributes(message.messageAttributes(), messagingPropagator);\n+      extractedContext =\n+          ofMessageAttributes(parentContext, message.messageAttributes(), messagingPropagator);\n+      extractedCreationContext = hasNewSpan(parentContext, extractedContext);",
+      "id": "PRRT_kwDODJKVX86Wz20z",
+      "opened": "2026-08-05T22:25:55Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/SqsParentContext.java",
+      "replies": [
+        {
+          "at": "2026-08-05T23:40:16Z",
+          "body": "Fixed. hasNewSpan is gone. Extraction now runs against a context with the ambient span replaced by Span.getInvalid(), so a valid span in the extracted context can only have come from the message. The X-Ray fallback is applied purely based on whether the messaging propagator produced a valid span, and the ambient span is restored at the end only if the message carried no creation context.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350#discussion_r3724836685"
+        }
+      ],
+      "reviewed": "9af7e48ab9b6354f865b97b552b2cfd0f887f15b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19350#discussion_r3724504324"
+    }
+  ]
+}

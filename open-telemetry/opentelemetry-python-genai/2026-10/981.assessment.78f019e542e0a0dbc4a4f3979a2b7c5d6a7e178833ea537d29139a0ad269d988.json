@@ -1,0 +1,22 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "213f671f17a0e7bfe2b3b91361dd8c1b36f91a71e18d8f7926e244e0465d01c2",
+  "input_digest": "78f019e542e0a0dbc4a4f3979a2b7c5d6a7e178833ea537d29139a0ad269d988",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/9615cd4f51ce02cb8525a93ef7892dba9a3f9975/instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/81e76cc8ec6e080d034df865d30da8c43adf3e4b/instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/patch.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/81e76cc8ec6e080d034df865d30da8c43adf3e4b/instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_embedding_invocation_unit.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/7015264f9a40799fc2a2ccdfe97e79b3944980b1"
+      ],
+      "id": "PRRT_kwDOSbspP86weQAl",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

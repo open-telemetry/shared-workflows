@@ -1,0 +1,136 @@
+{
+  "head": "236bf2887e34c4989cd2299e8cb3781be475a062",
+  "merge": "f8f42ac7bc16e0835a37e2a3601eedb9ba78a381",
+  "merged": "2026-08-18T13:06:28Z",
+  "missing_roots": 0,
+  "number": 19601,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This removal notice conflicts with #19444, which requires retaining the deprecated HTTP setters throughout 2.x and removing them in 3.0; the corresponding extractor API also documents 3.0. State the 3.0 timeline so consumers are not told that a compatible minor may remove this API.\n\nThis issue also appears on line 102 of the same file.",
+      "created": "2026-08-15T00:36:05Z",
+      "hunk": "@@ -45,26 +46,66 @@ public OkHttpTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code http.request.header.<key>} attribute key, where\n+   * {@code <key>} is the lowercase header name.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, while an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector, like an absent one, captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public OkHttpTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n    * @param requestHeaders HTTP header names to capture.\n+   * @deprecated Use {@link #setRequestHeaders(IncludeExclude)} instead. May be removed in the next\n+   *     minor release.\n    */\n+  @Deprecated // may be removed in the next minor release",
+      "id": "PRRT_kwDODJKVX86Zcvb1",
+      "opened": "2026-08-15T00:36:06Z",
+      "path": "instrumentation/okhttp/okhttp-3.0/library/src/main/java/io/opentelemetry/instrumentation/okhttp/v3_0/OkHttpTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T03:55:11Z",
+          "body": "Disagreeing here — the removal timeline follows the stability of the artifact that publishes the symbol, not the surface the deprecation belongs to.\n\n`instrumentation/okhttp/okhttp-3.0/library` has no `gradle.properties`, so it does not set `otel.stable=true` and publishes an `-alpha` artifact. `.github/agents/knowledge/api-deprecation-policy.md` calls out this exact trap: `*TelemetryBuilder` classes in `instrumentation/**/library` look like supported public API but are alpha, and it lists \"`to be removed in 3.0` on an alpha-only symbol\" as something to flag in review. For alpha symbols the correct wording is \"may be removed in the next minor release\", which is what these setters say.\n\nThe extractor API you're comparing against is `HttpClientAttributesExtractorBuilder` in `instrumentation-api`, whose `gradle.properties` does set `otel.stable=true`. That is why it documents 3.0, and #19444's 2.x-retention language is about that stable surface. Applying 3.0 here would over-promise on an alpha artifact.\n\nI have updated the javadoc on this pass, though, for a different reason: the deprecated setters match header names literally while `setRequestHeaders(IncludeExclude)` matches glob patterns, so the replacement is not a drop-in for a caller who passed a value containing `*`. The `@deprecated` tag now says so.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3788421364"
+        }
+      ],
+      "reviewed": "06bb5f49603397112e566301597493a8d8005a57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3787984587"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This removal notice conflicts with #19444, which requires retaining the deprecated HTTP setters throughout 2.x and removing them in 3.0; the corresponding extractor API also documents 3.0. State the 3.0 timeline so consumers are not told that a compatible minor may remove this API.\n\nThis issue also appears on line 104 of the same file.",
+      "created": "2026-08-15T00:36:06Z",
+      "hunk": "@@ -46,28 +47,68 @@ public JavaHttpClientTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code http.request.header.<key>} attribute key, where\n+   * {@code <key>} is the lowercase header name.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, while an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector, like an absent one, captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public JavaHttpClientTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n    * @param requestHeaders HTTP header names to capture.\n+   * @deprecated Use {@link #setRequestHeaders(IncludeExclude)} instead. May be removed in the next\n+   *     minor release.\n    */\n+  @Deprecated // may be removed in the next minor release",
+      "id": "PRRT_kwDODJKVX86Zcvb-",
+      "opened": "2026-08-15T00:36:06Z",
+      "path": "instrumentation/java-http-client/library/src/main/java/io/opentelemetry/instrumentation/javahttpclient/JavaHttpClientTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T03:55:11Z",
+          "body": "Disagreeing here — the removal timeline follows the stability of the artifact that publishes the symbol, not the surface the deprecation belongs to.\n\n`instrumentation/java-http-client/library` has no `gradle.properties`, so it does not set `otel.stable=true` and publishes an `-alpha` artifact. `.github/agents/knowledge/api-deprecation-policy.md` calls out this exact trap: `*TelemetryBuilder` classes in `instrumentation/**/library` look like supported public API but are alpha, and it lists \"`to be removed in 3.0` on an alpha-only symbol\" as something to flag in review. For alpha symbols the correct wording is \"may be removed in the next minor release\", which is what these setters say.\n\nThe extractor API you're comparing against is `HttpClientAttributesExtractorBuilder` in `instrumentation-api`, whose `gradle.properties` does set `otel.stable=true`. That is why it documents 3.0, and #19444's 2.x-retention language is about that stable surface. Applying 3.0 here would over-promise on an alpha artifact.\n\nI have updated the javadoc on this pass, though, for a different reason: the deprecated setters match header names literally while `setRequestHeaders(IncludeExclude)` matches glob patterns, so the replacement is not a drop-in for a caller who passed a value containing `*`. The `@deprecated` tag now says so.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3788421368"
+        }
+      ],
+      "reviewed": "06bb5f49603397112e566301597493a8d8005a57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3787984598"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This removal notice conflicts with #19444, which requires retaining the deprecated HTTP setters throughout 2.x and removing them in 3.0; the corresponding extractor API also documents 3.0. State the 3.0 timeline so consumers are not told that a compatible minor may remove this API.\n\nThis issue also appears on line 118 of the same file.",
+      "created": "2026-08-15T00:36:06Z",
+      "hunk": "@@ -60,28 +61,68 @@ public JavaHttpServerTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code http.request.header.<key>} attribute key, where\n+   * {@code <key>} is the lowercase header name.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, while an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector, like an absent one, captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public JavaHttpServerTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n    * @param requestHeaders HTTP header names to capture.\n+   * @deprecated Use {@link #setRequestHeaders(IncludeExclude)} instead. May be removed in the next\n+   *     minor release.\n    */\n+  @Deprecated // may be removed in the next minor release",
+      "id": "PRRT_kwDODJKVX86ZcvcE",
+      "opened": "2026-08-15T00:36:06Z",
+      "path": "instrumentation/java-http-server/library/src/main/java/io/opentelemetry/instrumentation/javahttpserver/JavaHttpServerTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T03:55:11Z",
+          "body": "Disagreeing here — the removal timeline follows the stability of the artifact that publishes the symbol, not the surface the deprecation belongs to.\n\n`instrumentation/java-http-server/library` has no `gradle.properties`, so it does not set `otel.stable=true` and publishes an `-alpha` artifact. `.github/agents/knowledge/api-deprecation-policy.md` calls out this exact trap: `*TelemetryBuilder` classes in `instrumentation/**/library` look like supported public API but are alpha, and it lists \"`to be removed in 3.0` on an alpha-only symbol\" as something to flag in review. For alpha symbols the correct wording is \"may be removed in the next minor release\", which is what these setters say.\n\nThe extractor API you're comparing against is `HttpServerAttributesExtractorBuilder` in `instrumentation-api`, whose `gradle.properties` does set `otel.stable=true`. That is why it documents 3.0, and #19444's 2.x-retention language is about that stable surface. Applying 3.0 here would over-promise on an alpha artifact.\n\nI have updated the javadoc on this pass, though, for a different reason: the deprecated setters match header names literally while `setRequestHeaders(IncludeExclude)` matches glob patterns, so the replacement is not a drop-in for a caller who passed a value containing `*`. The `@deprecated` tag now says so.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3788421372"
+        }
+      ],
+      "reviewed": "06bb5f49603397112e566301597493a8d8005a57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3787984610"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This literal-matching promise is not implemented. `DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` converts this collection to an `IncludeExclude`, and with the new header-name enumeration a value such as `*` captures every request header rather than a header literally named `*` (the shared behavior is asserted in `instrumentation-api/.../HttpHeadersTest.java:169-184`). Preserve a separate exact-name path for this deprecated API; otherwise existing callers can unexpectedly capture sensitive headers.\n\nThis issue also appears on line 122 of the same file.",
+      "created": "2026-08-15T03:59:13Z",
+      "hunk": "@@ -60,23 +61,73 @@ public JavaHttpServerTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code http.request.header.<key>} attribute key, where\n+   * {@code <key>} is the lowercase header name.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, while an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector, like an absent one, captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public JavaHttpServerTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86Zd6V2",
+      "opened": "2026-08-15T03:59:13Z",
+      "path": "instrumentation/java-http-server/library/src/main/java/io/opentelemetry/instrumentation/javahttpserver/JavaHttpServerTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:21:43Z",
+          "body": "Good catch, and accurate for the tree you're looking at — but it's already fixed one commit up the stack.\n\nYou're reading `DefaultHttpServerInstrumenterBuilder#setCapturedRequestHeaders` as of this PR's merge-base, `23e26c0169`, where it still does `setRequestHeaders(IncludeExclude.builder().setIncluded(requestHeaders).build())`. The base branch has since gained `1572a0077b`, \"Match deprecated captured header names literally\", which adds `CapturedHttpHeaders.createExact` — a literal `Set<String>` with no selector — and routes both extractor builders' deprecated setters and the internal builders' `setCaptured*Headers` through it. That commit also rewrites the `HttpHeadersTest` case you cite; the assertion that `*` captures everything was the bug stated as an expectation, and it was inverted there.\n\nThis PR is deliberately not rebased onto it. `build-pull-request.yml` triggers on `pull_request` and none of its `actions/checkout` steps set an explicit `ref`, so CI builds `refs/pull/N/merge` and sees the fixed base. Rebasing seven stacked PRs onto the same fix would be churn.\n\nI did verify both sides rather than assuming, using the regression test added here, `deprecatedSettersMatchHeaderNamesLiterally`, which passes `\"*\"` through the deprecated setters and asserts nothing is captured. Against this branch in isolation it fails exactly as you predict:\n\n```\nexpected: null\n but was: [\"request-value\"]\n```\n\nwith the span carrying `http.request.header.x-other-request` and `http.response.header.x-secret-response` — every header, which is the widening you're describing. Against the merge commit it passes, in all three modules.\n\nSo the exact-name path you're asking for exists; it just lives in `instrumentation-api` and `instrumentation-api-incubator` rather than here, which is the right place for it since all seven phase 3 modules need it. What changed on this branch is that the deprecated setter now delegates to that path instead of building an `IncludeExclude` itself.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3788474817"
+        }
+      ],
+      "reviewed": "f4ef33a7f1dfacd6f6b6f860d9170c3512fe70b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3788428209"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This literal-matching promise is not implemented. `DefaultHttpClientInstrumenterBuilder#setCapturedRequestHeaders` converts this collection to an `IncludeExclude`, and with the new header-name enumeration a value such as `*` captures every request header rather than a header literally named `*` (the shared behavior is asserted in `instrumentation-api/.../HttpHeadersTest.java:169-184`). Preserve a separate exact-name path for this deprecated API; otherwise existing callers can unexpectedly capture sensitive headers.\n\nThis issue also appears on line 106 of the same file.",
+      "created": "2026-08-15T03:59:13Z",
+      "hunk": "@@ -45,22 +46,72 @@ public OkHttpTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code http.request.header.<key>} attribute key, where\n+   * {@code <key>} is the lowercase header name.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, while an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector, like an absent one, captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public OkHttpTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86Zd6Vr",
+      "opened": "2026-08-15T03:59:13Z",
+      "path": "instrumentation/okhttp/okhttp-3.0/library/src/main/java/io/opentelemetry/instrumentation/okhttp/v3_0/OkHttpTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:21:43Z",
+          "body": "Good catch, and accurate for the tree you're looking at — but it's already fixed one commit up the stack.\n\nYou're reading `DefaultHttpClientInstrumenterBuilder#setCapturedRequestHeaders` as of this PR's merge-base, `23e26c0169`, where it still does `setRequestHeaders(IncludeExclude.builder().setIncluded(requestHeaders).build())`. The base branch has since gained `1572a0077b`, \"Match deprecated captured header names literally\", which adds `CapturedHttpHeaders.createExact` — a literal `Set<String>` with no selector — and routes both extractor builders' deprecated setters and the internal builders' `setCaptured*Headers` through it. That commit also rewrites the `HttpHeadersTest` case you cite; the assertion that `*` captures everything was the bug stated as an expectation, and it was inverted there.\n\nThis PR is deliberately not rebased onto it. `build-pull-request.yml` triggers on `pull_request` and none of its `actions/checkout` steps set an explicit `ref`, so CI builds `refs/pull/N/merge` and sees the fixed base. Rebasing seven stacked PRs onto the same fix would be churn.\n\nI did verify both sides rather than assuming, using the regression test added here, `deprecatedSettersMatchHeaderNamesLiterally`, which passes `\"*\"` through the deprecated setters and asserts nothing is captured. Against this branch in isolation it fails exactly as you predict:\n\n```\nexpected: null\n but was: [\"request-value\"]\n```\n\nwith the span carrying `http.request.header.x-other-request` and `http.response.header.x-secret-response` — every header, which is the widening you're describing. Against the merge commit it passes, in all three modules.\n\nSo the exact-name path you're asking for exists; it just lives in `instrumentation-api` and `instrumentation-api-incubator` rather than here, which is the right place for it since all seven phase 3 modules need it. What changed on this branch is that the deprecated setter now delegates to that path instead of building an `IncludeExclude` itself.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3788474820"
+        }
+      ],
+      "reviewed": "f4ef33a7f1dfacd6f6b6f860d9170c3512fe70b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3788428196"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This literal-matching promise is not implemented. `DefaultHttpClientInstrumenterBuilder#setCapturedRequestHeaders` converts this collection to an `IncludeExclude`, and with the new header-name enumeration a value such as `*` captures every request header rather than a header literally named `*` (the shared behavior is asserted in `instrumentation-api/.../HttpHeadersTest.java:169-184`). Preserve a separate exact-name path for this deprecated API; otherwise existing callers can unexpectedly capture sensitive headers.\n\nThis issue also appears on line 108 of the same file.",
+      "created": "2026-08-15T03:59:13Z",
+      "hunk": "@@ -46,23 +47,73 @@ public JavaHttpClientTelemetryBuilder addAttributesExtractor(\n     return this;\n   }\n \n+  /**\n+   * Configures which HTTP request headers are captured as span attributes.\n+   *\n+   * <p>Header values are captured under the {@code http.request.header.<key>} attribute key, where\n+   * {@code <key>} is the lowercase header name.\n+   *\n+   * <p>Selector patterns are matched case-insensitively, since HTTP header names are\n+   * case-insensitive. {@code ?} matches one character and {@code *} matches any number of\n+   * characters, including none. Excluded patterns take precedence over included patterns. A\n+   * selector with no included patterns captures every header that is not excluded, while an\n+   * {@linkplain IncludeExclude#isEmpty() empty} selector, like an absent one, captures no headers.\n+   */\n+  @CanIgnoreReturnValue\n+  public JavaHttpClientTelemetryBuilder setRequestHeaders(IncludeExclude requestHeaders) {\n+    builder.setRequestHeaders(requestHeaders);\n+    return this;\n+  }\n+\n   /**\n    * Configures HTTP request headers to capture as span attributes.\n    *\n+   * <p>The header names are matched literally. Unlike {@link #setRequestHeaders(IncludeExclude)},\n+   * {@code *} and {@code ?} are not treated as glob patterns, since this setting never documented\n+   * them as wildcards.",
+      "id": "PRRT_kwDODJKVX86Zd6WB",
+      "opened": "2026-08-15T03:59:13Z",
+      "path": "instrumentation/java-http-client/library/src/main/java/io/opentelemetry/instrumentation/javahttpclient/JavaHttpClientTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-08-15T04:21:43Z",
+          "body": "Good catch, and accurate for the tree you're looking at — but it's already fixed one commit up the stack.\n\nYou're reading `DefaultHttpClientInstrumenterBuilder#setCapturedRequestHeaders` as of this PR's merge-base, `23e26c0169`, where it still does `setRequestHeaders(IncludeExclude.builder().setIncluded(requestHeaders).build())`. The base branch has since gained `1572a0077b`, \"Match deprecated captured header names literally\", which adds `CapturedHttpHeaders.createExact` — a literal `Set<String>` with no selector — and routes both extractor builders' deprecated setters and the internal builders' `setCaptured*Headers` through it. That commit also rewrites the `HttpHeadersTest` case you cite; the assertion that `*` captures everything was the bug stated as an expectation, and it was inverted there.\n\nThis PR is deliberately not rebased onto it. `build-pull-request.yml` triggers on `pull_request` and none of its `actions/checkout` steps set an explicit `ref`, so CI builds `refs/pull/N/merge` and sees the fixed base. Rebasing seven stacked PRs onto the same fix would be churn.\n\nI did verify both sides rather than assuming, using the regression test added here, `deprecatedSettersMatchHeaderNamesLiterally`, which passes `\"*\"` through the deprecated setters and asserts nothing is captured. Against this branch in isolation it fails exactly as you predict:\n\n```\nexpected: null\n but was: [\"request-value\"]\n```\n\nwith the span carrying `http.request.header.x-other-request` and `http.response.header.x-secret-response` — every header, which is the widening you're describing. Against the merge commit it passes, in all three modules.\n\nSo the exact-name path you're asking for exists; it just lives in `instrumentation-api` and `instrumentation-api-incubator` rather than here, which is the right place for it since all seven phase 3 modules need it. What changed on this branch is that the deprecated setter now delegates to that path instead of building an `IncludeExclude` itself.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3788474818"
+        }
+      ],
+      "reviewed": "f4ef33a7f1dfacd6f6b6f860d9170c3512fe70b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19601#discussion_r3788428220"
+    }
+  ]
+}

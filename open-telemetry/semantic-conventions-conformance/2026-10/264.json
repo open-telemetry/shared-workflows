@@ -1,0 +1,25 @@
+{
+  "head": "d138f6411439e8129a9dc836d217b7d0d3100dc2",
+  "merge": "3af02f93042d19ee564011531e939e06a2521c4f",
+  "merged": "2026-10-05T15:35:03Z",
+  "missing_roots": 0,
+  "number": 264,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This toolchain bump makes `scenarios/http/go/README.md:19-21` inaccurate: it still says every Go module and the current OpenTelemetry dependencies require Go 1.25, while this scenario and the shared SDK module now require 1.26. Please update that compatibility note (and distinguish the test-client module, which remains at 1.25) so contributors know the actual minimum and CI-selected version.",
+      "created": "2026-10-05T00:40:47Z",
+      "hunk": "@@ -1,6 +1,6 @@\n module github.com/open-telemetry/semantic-conventions-conformance/scenarios/http/go\n \n-go 1.25.0\n+go 1.26.0",
+      "id": "PRRT_kwDOTuzK5c6o4E24",
+      "opened": "2026-10-05T00:40:47Z",
+      "path": "scenarios/http/go/go.mod",
+      "replies": [],
+      "reviewed": "b96cbb61a08e6ac677d4cc3f3caac030e7040464",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/264#discussion_r4179970044"
+    }
+  ]
+}

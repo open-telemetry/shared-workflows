@@ -1,0 +1,193 @@
+{
+  "head": "545b615f43e3ecf7827bc8dd32eee389bcb73260",
+  "merge": "57c630b802811aac03ba9a4207799167b14c10b5",
+  "merged": "2026-08-25T17:28:01Z",
+  "missing_roots": 0,
+  "number": 19781,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "this is no longer used by jmx-scraper",
+      "created": "2026-08-24T16:57:56Z",
+      "hunk": "@@ -48,27 +41,6 @@ private JmxMetricInsight(OpenTelemetry openTelemetry, long discoveryDelay) {\n     this.discoveryDelay = discoveryDelay;\n   }\n \n-  /**\n-   * Starts metric registration for local JVM\n-   *\n-   * @param conf metric configuration\n-   */\n-  public AutoCloseable startLocal(MetricConfiguration conf) {\n-    return start(conf, () -> MBeanServerFactory.findMBeanServer(null), defaultComponentLoader);\n-  }\n-\n-  /**\n-   * Starts metric registration for a remote JVM connection\n-   *\n-   * @param conf metric configuration\n-   * @param connections supplier for list of remote connections\n-   */\n-  @SuppressWarnings(\"unused\") // used by jmx-scraper with remote connection",
+      "id": "PRRT_kwDODJKVX86bx8fz",
+      "opened": "2026-08-24T17:26:38Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/JmxMetricInsight.java",
+      "replies": [],
+      "reviewed": "dfaf5150c2f7ba4a61dfbbf4ada8be44df72e64a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3845650940"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "was only used for tests",
+      "created": "2026-08-24T16:58:10Z",
+      "hunk": "@@ -48,27 +41,6 @@ private JmxMetricInsight(OpenTelemetry openTelemetry, long discoveryDelay) {\n     this.discoveryDelay = discoveryDelay;\n   }\n \n-  /**\n-   * Starts metric registration for local JVM\n-   *\n-   * @param conf metric configuration\n-   */\n-  public AutoCloseable startLocal(MetricConfiguration conf) {",
+      "id": "PRRT_kwDODJKVX86bx80x",
+      "opened": "2026-08-24T17:26:38Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/JmxMetricInsight.java",
+      "replies": [],
+      "reviewed": "dfaf5150c2f7ba4a61dfbbf4ada8be44df72e64a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3845652850"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "get the metric names from yaml to allow filtering on metric names.",
+      "created": "2026-08-24T17:20:00Z",
+      "hunk": "@@ -109,4 +111,17 @@ List<MetricExtractor> getMetricExtractors() {\n   List<MetricHandlerHolder> getHandlers() {\n     return handlers;\n   }\n+\n+  /**\n+   * Get list of metric names captured by this MetricDef.\n+   *\n+   * @return metric names.\n+   */\n+  public Set<String> getMetricNames() {",
+      "id": "PRRT_kwDODJKVX86byXLx",
+      "opened": "2026-08-24T17:26:38Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricDef.java",
+      "replies": [],
+      "reviewed": "dfaf5150c2f7ba4a61dfbbf4ada8be44df72e64a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3845812797"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "split the parsing and the registration as we need to be able to get the list of metric names that have been parsed.",
+      "created": "2026-08-24T17:21:09Z",
+      "hunk": "@@ -64,7 +67,11 @@ public JmxTelemetryBuilder addRules(InputStream input) {\n       throw new IllegalArgumentException(\"missing JMX rules\");\n     }\n     RuleParser parserInstance = RuleParser.get();\n-    parserInstance.addMetricDefsTo(metricConfiguration, input);\n+    List<MetricDef> metricDefs = parserInstance.parseMetricDefs(input);",
+      "id": "PRRT_kwDODJKVX86byYhc",
+      "opened": "2026-08-24T17:26:38Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "dfaf5150c2f7ba4a61dfbbf4ada8be44df72e64a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3845820866"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "metric names from handlers are only available after instances have been created.",
+      "created": "2026-08-24T17:22:53Z",
+      "hunk": "@@ -97,6 +104,8 @@ public JmxTelemetryBuilder setServiceClassLoader(ClassLoader serviceClassLoader)\n   }\n \n   public JmxTelemetry build() {\n-    return new JmxTelemetry(openTelemetry, discoveryDelayMs, metricConfiguration, componentLoader);\n+    HandlerRegistry handlerRegistry = new HandlerRegistry();\n+    handlerRegistry.load(componentLoader);",
+      "id": "PRRT_kwDODJKVX86byagq",
+      "opened": "2026-08-24T17:26:38Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/JmxTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "dfaf5150c2f7ba4a61dfbbf4ada8be44df72e64a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3845832936"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "as the metric names are registered dynamically by handlers, we need to make them explicitly provide the list. This is technically a breaking change, providing a default implementation with an empty list would only create a silent failure, so probably better for now to produce a compile-time error (alternatively we can issue a warning if that's better).",
+      "created": "2026-08-24T17:25:39Z",
+      "hunk": "@@ -34,6 +35,13 @@ public interface ExperimentalJmxMetricHandler {\n    */\n   String getName();\n \n+  /**\n+   * Returns the list of metric names that this handler produces for metric registration\n+   *\n+   * @return the list of metric names that this handler produces\n+   */\n+  List<String> getMetricNames();",
+      "id": "PRRT_kwDODJKVX86byd2q",
+      "opened": "2026-08-24T17:26:38Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/ExperimentalJmxMetricHandler.java",
+      "replies": [],
+      "reviewed": "dfaf5150c2f7ba4a61dfbbf4ada8be44df72e64a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3845853019"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "SylvainJuge"
+      },
+      "body": "make this method only do the parsing, let the caller handle the registration.",
+      "created": "2026-08-24T17:26:18Z",
+      "hunk": "@@ -177,15 +178,19 @@ private static void failOnExtraKeys(Map<String, Object> yaml) {\n    * Parse the YAML rules from the specified input stream and add them, after converting to the\n    * internal representation, to the provided metric configuration.\n    *\n-   * @param conf the metric configuration\n    * @param is the InputStream with the YAML rules\n+   * @return metric names that were added to the configuration\n    * @throws IllegalArgumentException when unable to parse YAML\n    */\n-  public void addMetricDefsTo(MetricConfiguration conf, InputStream is) {\n+  public List<MetricDef> parseMetricDefs(InputStream is) {",
+      "id": "PRRT_kwDODJKVX86byes0",
+      "opened": "2026-08-24T17:26:38Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/yaml/RuleParser.java",
+      "replies": [],
+      "reviewed": "dfaf5150c2f7ba4a61dfbbf4ada8be44df72e64a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3845857992"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This Javadoc still says the method mutates a metric configuration and returns metric names, but the refactored method does neither: it returns parsed `MetricDef` instances. Update the contract so callers are not misled.",
+      "created": "2026-08-25T07:15:09Z",
+      "hunk": "@@ -177,15 +178,19 @@ private static void failOnExtraKeys(Map<String, Object> yaml) {\n    * Parse the YAML rules from the specified input stream and add them, after converting to the\n    * internal representation, to the provided metric configuration.\n    *\n-   * @param conf the metric configuration\n    * @param is the InputStream with the YAML rules\n+   * @return metric names that were added to the configuration",
+      "id": "PRRT_kwDODJKVX86b-Ct0",
+      "opened": "2026-08-25T07:15:10Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/yaml/RuleParser.java",
+      "replies": [
+        {
+          "at": "2026-08-25T07:49:15Z",
+          "body": "[7dcf615](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781/commits/7dcf615359b88ebcbe77f1505633e2a6dc6c3c72)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3850634668"
+        }
+      ],
+      "reviewed": "4b8d887edcf633c603832992c9297dbbb1b7946d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3850402653"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When two providers share a handler name, the registry keeps only the first provider but still reports metric names from the discarded provider. Callers of `load()` can therefore register names for metrics that the selected handler cannot produce. Add names only when the handler is accepted.",
+      "created": "2026-08-25T07:15:09Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.internal.handler;\n+\n+import io.opentelemetry.common.ComponentLoader;\n+import io.opentelemetry.instrumentation.jmx.internal.ExperimentalJmxMetricHandler;\n+import java.util.HashMap;\n+import java.util.HashSet;\n+import java.util.Map;\n+import java.util.Set;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class HandlerRegistry {\n+\n+  private static final Logger logger = Logger.getLogger(HandlerRegistry.class.getName());\n+\n+  private final Map<String, ExperimentalJmxMetricHandler> handlers = new HashMap<>();\n+\n+  public HandlerRegistry() {}\n+\n+  /**\n+   * Loads all available jmx metric handlers\n+   *\n+   * @param componentLoader component loader\n+   * @return metric names produced by handlers\n+   */\n+  public Set<String> load(ComponentLoader componentLoader) {\n+    Set<String> metricNames = new HashSet<>();\n+    for (ExperimentalJmxMetricHandler handler :\n+        componentLoader.load(ExperimentalJmxMetricHandler.class)) {\n+\n+      String name = handler.getName();\n+      if (handlers.putIfAbsent(name, handler) != null) {\n+        logger.warning(\n+            \"Multiple JmxMetricHandlers with the same name found: \"\n+                + name\n+                + \". Only one will be used.\");\n+      }\n+      metricNames.addAll(handler.getMetricNames());",
+      "id": "PRRT_kwDODJKVX86b-CtZ",
+      "opened": "2026-08-25T07:15:10Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/handler/HandlerRegistry.java",
+      "replies": [
+        {
+          "at": "2026-08-25T07:49:31Z",
+          "body": "fixed in 7dcf615",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3850636465"
+        }
+      ],
+      "reviewed": "4b8d887edcf633c603832992c9297dbbb1b7946d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3850402619"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Nothing reads this return value: `JmxTelemetryBuilder.build()` is the only caller and discards it. #19782 makes `load` void again.\n\n```suggestion\n   */\n  public void load(ComponentLoader componentLoader) {\n    for (ExperimentalJmxMetricHandler handler :\n        componentLoader.load(ExperimentalJmxMetricHandler.class)) {\n\n      String name = handler.getName();\n      if (handlers.putIfAbsent(name, handler) != null) {\n        logger.warning(\n            \"Multiple JmxMetricHandlers with the same name found: \"\n                + name\n                + \". Only one will be used.\");\n      }\n    }\n  }\n```\n\nThe `HashSet` and `Set` imports then become unused.",
+      "created": "2026-08-25T13:04:09Z",
+      "hunk": "@@ -0,0 +1,57 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.internal.handler;\n+\n+import io.opentelemetry.common.ComponentLoader;\n+import io.opentelemetry.instrumentation.jmx.internal.ExperimentalJmxMetricHandler;\n+import java.util.HashMap;\n+import java.util.HashSet;\n+import java.util.Map;\n+import java.util.Set;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public class HandlerRegistry {\n+\n+  private static final Logger logger = Logger.getLogger(HandlerRegistry.class.getName());\n+\n+  private final Map<String, ExperimentalJmxMetricHandler> handlers = new HashMap<>();\n+\n+  public HandlerRegistry() {}\n+\n+  /**\n+   * Loads all available jmx metric handlers\n+   *\n+   * @param componentLoader component loader\n+   * @return metric names produced by handlers\n+   */\n+  public Set<String> load(ComponentLoader componentLoader) {\n+    Set<String> metricNames = new HashSet<>();\n+    for (ExperimentalJmxMetricHandler handler :\n+        componentLoader.load(ExperimentalJmxMetricHandler.class)) {\n+\n+      String name = handler.getName();\n+      if (handlers.putIfAbsent(name, handler) != null) {\n+        logger.warning(\n+            \"Multiple JmxMetricHandlers with the same name found: \"\n+                + name\n+                + \". Only one will be used.\");\n+      } else {\n+        metricNames.addAll(handler.getMetricNames());\n+      }\n+    }\n+    return metricNames;\n+  }",
+      "id": "PRRT_kwDODJKVX86cFMJ6",
+      "opened": "2026-08-25T13:05:33Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/handler/HandlerRegistry.java",
+      "replies": [
+        {
+          "at": "2026-08-25T13:44:32Z",
+          "body": "fixed in 2671038",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3853594676"
+        }
+      ],
+      "reviewed": "7dcf615359b88ebcbe77f1505633e2a6dc6c3c72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3853224899"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This returns only the YAML extractor metrics, not the metrics that the handlers on this `MetricDef` produce.\n\n```suggestion\n  /**\n   * Get metric names included in this MetricDef, does not include metrics from handlers.\n   *\n   * @return metric names.\n   */\n```",
+      "created": "2026-08-25T14:13:07Z",
+      "hunk": "@@ -109,4 +111,17 @@ List<MetricExtractor> getMetricExtractors() {\n   List<MetricHandlerHolder> getHandlers() {\n     return handlers;\n   }\n+\n+  /**\n+   * Get list of metric names captured by this MetricDef.\n+   *\n+   * @return metric names.\n+   */",
+      "id": "PRRT_kwDODJKVX86cG0Of",
+      "opened": "2026-08-25T14:14:34Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/java/io/opentelemetry/instrumentation/jmx/internal/engine/MetricDef.java",
+      "replies": [],
+      "reviewed": "2671038d345357c472708a2e991f594dce0ecd88",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19781#discussion_r3853857106"
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "head": "a628ced52be13120a802623357aa89c52b317082",
+  "merge": "9ee4488c1ad2388340008c6a3cbbcc00813a08b4",
+  "merged": "2026-11-25T12:36:45Z",
+  "missing_roots": 0,
+  "number": 21461,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The existing shared callback tests expect a client span, so they do not protect these `context == null` branches. Add regression tests for suppressed completion and failure/cancellation before initialization in both this module and the 5.0 `WrappedFutureCallback` (lines 189–228). Verify captured custom context values, including without a caller span, and restoration of an unrelated callback-thread context after normal and throwing delegate exits.",
+      "created": "2026-11-24T19:38:17Z",
+      "hunk": "@@ -169,7 +169,9 @@ public void completed(T result) {\n       if (context == null) {\n         // this is unexpected\n         logger.fine(\"context was never set\");\n-        completeDelegate(result);\n+        try (Scope ignored = parentContext.makeCurrent()) {\n+          completeDelegate(result);\n+        }",
+      "id": "PRRT_kwDODJKVX867jhbW",
+      "opened": "2026-11-24T19:38:18Z",
+      "path": "instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/v4_1/ApacheHttpAsyncClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-24T21:09:11Z",
+          "body": "Added regression tests for both clients in 3a3dca92a2. The integration tests cover suppressed completion with a custom context value and no caller or client span. The wrapper tests verify that early failure and cancellation run with the captured caller context and restore the previous context on both normal and throwing exits. All six tests fail without the fix and pass with it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21461#discussion_r4686576468"
+        }
+      ],
+      "reviewed": "30fb7a2d5ba267061deffc53c966a4bd6f835fc9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21461#discussion_r4685501111"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This suite pins `httpclient5:5.0`, so `-PtestLatestDeps=true` still runs these wrapper tests against the baseline instead of the latest supported client version; the matching fixed dependency also appears at `instrumentation/apache-httpasyncclient-4.1/javaagent/build.gradle.kts:25`. Select both suite dependencies with `baseVersion(...).orLatest()` so the custom suites honor latest-dependency mode.",
+      "created": "2026-11-24T21:14:53Z",
+      "hunk": "@@ -20,6 +22,14 @@ dependencies {\n   testInstrumentation(project(\":instrumentation:apache-httpclient:apache-httpclient-4.0:javaagent\"))\n }\n \n+testing.suites {\n+  unitTests {\n+    dependencies {\n+      implementation(\"org.apache.httpcomponents.client5:httpclient5:5.0\")",
+      "id": "PRRT_kwDODJKVX867mISe",
+      "opened": "2026-11-24T21:14:53Z",
+      "path": "instrumentation/apache-httpclient/apache-httpclient-5.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-24T21:29:46Z",
+          "body": "Keeping the baseline versions here. The wrapper tests mock `FutureCallback` and check our context scoping; they don't exercise version-specific Apache client behavior. The installed-agent integration tests already exercise real requests in latest-dependency mode. We’re documenting the distinction in #21464.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21461#discussion_r4686814819"
+        }
+      ],
+      "reviewed": "3a3dca92a28049f1563717666f18b5951ba73e93",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21461#discussion_r4686644591"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] With this change, the `context == null` branch makes the same scoped delegate call as the normal path. Only the step before that call differs: logging or ending the span. You could branch only on that step and keep a single scoped call afterward. This would remove the duplicated `try` block and the early `return`:\n\n```java\nif (context == null) {\n  // this is unexpected\n  logger.fine(\"context was never set\");\n} else {\n  instrumenter().end(context, otelRequest, getResponseFromHttpContext(), null);\n}\n\ntry (Scope ignored = parentContext.makeCurrent()) {\n  completeDelegate(result);\n}\n```\n\nThe same shape would work in `failed` and `cancelled`, and in the matching 5.0 `WrappedFutureCallback`. It also makes clear that ending the span is conditional, while calling the delegate under the caller context always happens. Ordering and scope cleanup stay the same.",
+      "created": "2026-11-24T23:28:13Z",
+      "hunk": "@@ -169,7 +169,9 @@ public void completed(T result) {\n       if (context == null) {\n         // this is unexpected\n         logger.fine(\"context was never set\");\n-        completeDelegate(result);\n+        try (Scope ignored = parentContext.makeCurrent()) {\n+          completeDelegate(result);\n+        }",
+      "id": "PRRT_kwDODJKVX867pJ0K",
+      "opened": "2026-11-24T23:28:13Z",
+      "path": "instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/v4_1/ApacheHttpAsyncClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-25T00:04:41Z",
+          "body": "@copilot do this",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21461#discussion_r4688335090"
+        },
+        {
+          "at": "2026-11-25T04:04:48Z",
+          "body": "Simplified `completed`, `failed`, and `cancelled` in both versions in e45fc92a498. Each method now opens one caller-context scope for the delegate, after logging or ending the span.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21461#discussion_r4690251586"
+        }
+      ],
+      "reviewed": "3a3dca92a28049f1563717666f18b5951ba73e93",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21461#discussion_r4687964174"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think some instrumentations set `error.type` to cancelled",
+      "created": "2026-11-25T08:49:50Z",
+      "hunk": "@@ -202,14 +198,12 @@ public void cancelled() {\n       if (context == null) {\n         // this is unexpected\n         logger.fine(\"context was never set\");\n-        cancelDelegate();\n-        return;\n+      } else {\n+        // TODO (trask) add \"canceled\" span attribute",
+      "id": "PRRT_kwDODJKVX867zaO1",
+      "opened": "2026-11-25T08:49:50Z",
+      "path": "instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/v4_1/ApacheHttpAsyncClientInstrumentation.java",
+      "replies": [],
+      "reviewed": "a628ced52be13120a802623357aa89c52b317082",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21461#discussion_r4692420730"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess not completely unexpected any more since there is a test for it now",
+      "created": "2026-11-25T08:53:36Z",
+      "hunk": "@@ -169,12 +169,10 @@ public void completed(T result) {\n       if (context == null) {\n         // this is unexpected",
+      "id": "PRRT_kwDODJKVX867zgFC",
+      "opened": "2026-11-25T08:53:36Z",
+      "path": "instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/v4_1/ApacheHttpAsyncClientInstrumentation.java",
+      "replies": [],
+      "reviewed": "a628ced52be13120a802623357aa89c52b317082",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21461#discussion_r4692459388"
+    }
+  ]
+}

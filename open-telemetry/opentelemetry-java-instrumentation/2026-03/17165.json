@@ -1,0 +1,25 @@
+{
+  "head": "f258b0c6cfb5499489af8bbd63799c53440852e3",
+  "merge": "fce473209a1c79ae358bf4968249596c37156a42",
+  "merged": "2026-03-28T09:22:58Z",
+  "missing_roots": 0,
+  "number": 17165,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "i'm going to send a different fix for this\n```suggestion\n      response.getWriter().print(t != null ? t.getCause().getMessage() : response.getMessage());\n```",
+      "created": "2026-03-28T01:01:08Z",
+      "hunk": "@@ -18,7 +18,8 @@ protected void report(Request request, Response response, Throwable t) {\n       return;\n     }\n     try {\n-      response.getWriter().print(t != null ? t.getCause().getMessage() : response.getMessage());\n+      Throwable cause = t != null ? t.getCause() : null;\n+      response.getWriter().print(cause != null ? cause.getMessage() : response.getMessage());",
+      "id": "PRRT_kwDODJKVX853adFM",
+      "opened": "2026-03-28T01:01:08Z",
+      "path": "instrumentation/tomcat/tomcat-7.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/tomcat/v7_0/ErrorHandlerValve.java",
+      "replies": [],
+      "reviewed": "9991434b083dd8b18b99afd206f271b9d3754115",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17165#discussion_r3003847115"
+    }
+  ]
+}

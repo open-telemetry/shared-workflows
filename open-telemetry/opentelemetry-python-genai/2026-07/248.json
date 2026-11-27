@@ -1,0 +1,122 @@
+{
+  "head": "15f5374eb09aa41b21b69d1fe0db9aee3c064f21",
+  "merge": "bd4b4d3947ae4715949a2f63af678c6c68f59f13",
+  "merged": "2026-07-10T19:12:01Z",
+  "missing_roots": 0,
+  "number": 248,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new `opentelemetry-util-genai` requirement drops the `<2` upper bound that was previously in place. This could allow a future `2.x` major release to be installed automatically and potentially break compatibility. Consider keeping the major-version cap (as is already done for other OTel deps in this file).",
+      "created": "2026-07-10T18:23:21Z",
+      "hunk": "@@ -42,7 +42,7 @@ dependencies = [\n   \"opentelemetry-api ~=1.40\",\n   \"opentelemetry-instrumentation >=0.61b0, <2\",\n   \"opentelemetry-semantic-conventions >=0.61b0, <2\",\n-  \"opentelemetry-util-genai >= 0.4b0, <2\",\n+  \"opentelemetry-util-genai >= 1.0b0.dev\",",
+      "id": "PRRT_kwDOSbspP86P-h2F",
+      "opened": "2026-07-10T18:23:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-07-10T18:39:41Z",
+          "body": "why not?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561220610"
+        },
+        {
+          "at": "2026-07-10T18:41:16Z",
+          "body": "sure doesn't hurt",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561228399"
+        }
+      ],
+      "reviewed": "38c74e00330114f239a0f993f0c1608d21d7d64c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561136043"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description/checklist says unit tests were added and documentation updated, but this PR (as shown) only changes a dependency constraint. Please either adjust the checklist/description to match the actual scope, or include the corresponding test/doc updates in this PR.",
+      "created": "2026-07-10T18:23:22Z",
+      "hunk": "@@ -42,7 +42,7 @@ dependencies = [\n   \"opentelemetry-api ~=1.40\",\n   \"opentelemetry-instrumentation >=0.61b0, <2\",\n   \"opentelemetry-semantic-conventions >=0.61b0, <2\",\n-  \"opentelemetry-util-genai >= 0.4b0, <2\",\n+  \"opentelemetry-util-genai >= 1.0b0.dev\",",
+      "id": "PRRT_kwDOSbspP86P-h3Y",
+      "opened": "2026-07-10T18:23:22Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/pyproject.toml",
+      "replies": [],
+      "reviewed": "38c74e00330114f239a0f993f0c1608d21d7d64c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561136141"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n  \"opentelemetry-util-genai >= 1.0b0, <2\",\n```",
+      "created": "2026-07-10T18:39:02Z",
+      "hunk": "@@ -42,7 +42,7 @@ dependencies = [\n   \"opentelemetry-api ~=1.40\",\n   \"opentelemetry-instrumentation >=0.61b0, <2\",\n   \"opentelemetry-semantic-conventions >=0.61b0, <2\",\n-  \"opentelemetry-util-genai >= 0.4b0, <2\",\n+  \"opentelemetry-util-genai >= 1.0b0.dev\",",
+      "id": "PRRT_kwDOSbspP86P-wOw",
+      "opened": "2026-07-10T18:39:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/pyproject.toml",
+      "replies": [],
+      "reviewed": "1c221a61a032a3fe475433e77f0e23fa39547dcb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561217479"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "could you please update req.oldest.txt in tests so we catch it next time https://github.com/open-telemetry/opentelemetry-python-genai/blob/9e6859a5a352f7b41ecbcebf8edadffdd10c1da4/instrumentation/opentelemetry-instrumentation-google-genai/tests/requirements.oldest.txt#L30 ?",
+      "created": "2026-07-10T18:41:49Z",
+      "hunk": "@@ -0,0 +1 @@\n+Fix minimum version of `opentelemetry-util-genai` dependency.",
+      "id": "PRRT_kwDOSbspP86P-yox",
+      "opened": "2026-07-10T18:41:49Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/.changelog/248.fixed",
+      "replies": [
+        {
+          "at": "2026-07-10T18:46:32Z",
+          "body": "sure I can set it to 1.0b0 here... If we need the latest (unreleased) version -- how do we specify that in the pyproject.toml (before it's released) ? I don't understand how other instrumentations didn't have this issue",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561255956"
+        },
+        {
+          "at": "2026-07-10T18:50:41Z",
+          "body": "oh, you're right. they all have this issue - let's fix it for all ~~and patch all~~?\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561278564"
+        },
+        {
+          "at": "2026-07-10T18:52:12Z",
+          "body": "i mean in tests, other libs didn't do >0.4b0, they did `opentelemetry-util-genai >= 1.0b0.dev` and 1.0b0 satisfies it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561286519"
+        },
+        {
+          "at": "2026-07-10T18:55:56Z",
+          "body": "in the future what is the process for updating the pyproject.toml correctly, when you need the latest unreleased version of utils ?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561307165"
+        },
+        {
+          "at": "2026-07-10T18:58:50Z",
+          "body": "only if you use some new API not available in older version. I.e. when your `oldest` tests fail on that version and you bump it consistently across pyproject.toml and oldest.txt. If tests pass, no bump",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561324792"
+        },
+        {
+          "at": "2026-07-10T19:01:32Z",
+          "body": "I.e. you change pyproject.toml to `opentelemetry-util-genai >= 1.{future}b0.dev` - it should probably work for tests too, but not 100% sure",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561339986"
+        },
+        {
+          "at": "2026-07-10T19:06:54Z",
+          "body": "let me actually address it in #244, resolving here",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561368201"
+        },
+        {
+          "at": "2026-07-10T19:09:59Z",
+          "body": "ok so you can change pyproject.toml to specify the future version, got it. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561383130"
+        }
+      ],
+      "reviewed": "15f5374eb09aa41b21b69d1fe0db9aee3c064f21",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/248#discussion_r3561231365"
+    }
+  ]
+}

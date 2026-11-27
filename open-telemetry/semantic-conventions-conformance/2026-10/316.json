@@ -1,0 +1,70 @@
+{
+  "head": "8d10952346cb8f899574809bab3b55e0fb3e590a",
+  "merge": "79d0885a70d2c4e3d8edfd3f1a2b909d6d85f49b",
+  "merged": "2026-10-15T16:18:30Z",
+  "missing_roots": 0,
+  "number": 316,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\ncode injection via template expansion: may expand into attacker-controllable code\n\n[Show more details](https://github.com/open-telemetry/semantic-conventions-conformance/security/code-scanning/52)",
+      "created": "2026-10-14T19:37:33Z",
+      "hunk": "@@ -564,13 +574,25 @@\n           cache-dependency-glob: \"scenarios/${{ matrix.domain }}/${{ matrix.language }}/**/uv.lock\"\n \n       # A JVM scenario builds itself from source in its `setup:` before it runs.\n-      - name: Set up Java\n+      - name: Set up Helidon Java\n+        id: helidon-java\n+        if: matrix.language == 'java'\n+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1\n+        with:\n+          distribution: zulu\n+          java-version: \"27\"\n+\n+      - name: Set up build Java\n         if: matrix.language == 'java'\n         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1\n         with:\n           distribution: temurin\n           java-version: \"25\"\n \n+      - name: Configure Java toolchain discovery\n+        if: matrix.language == 'java'\n+        run: echo \"ORG_GRADLE_PROJECT_org.gradle.java.installations.paths=${{ steps.helidon-java.outputs.path }},$JAVA_HOME\" >> \"$GITHUB_ENV\"",
+      "id": "PRRT_kwDOTuzK5c6sfMh6",
+      "opened": "2026-10-14T19:37:34Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "8d7ad48d289fcef8554eccfac7414a835c657ee7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/316#discussion_r4275393724"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "github-advanced-security"
+      },
+      "body": "## zizmor / \n\ncode injection via template expansion: may expand into attacker-controllable code\n\n[Show more details](https://github.com/open-telemetry/semantic-conventions-conformance/security/code-scanning/51)",
+      "created": "2026-10-14T19:37:33Z",
+      "hunk": "@@ -68,12 +68,22 @@\n         with:\n           args: check .\n \n-      - name: Set up Java\n+      - name: Set up Helidon Java\n+        id: helidon-java\n+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1\n+        with:\n+          distribution: zulu\n+          java-version: \"27\"\n+\n+      - name: Set up build Java\n         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1\n         with:\n           distribution: temurin\n           java-version: \"25\"\n \n+      - name: Configure Java toolchain discovery\n+        run: echo \"ORG_GRADLE_PROJECT_org.gradle.java.installations.paths=${{ steps.helidon-java.outputs.path }},$JAVA_HOME\" >> \"$GITHUB_ENV\"",
+      "id": "PRRT_kwDOTuzK5c6sfMhb",
+      "opened": "2026-10-14T19:37:34Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "8d7ad48d289fcef8554eccfac7414a835c657ee7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/316#discussion_r4275393683"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      - name: Set up Java\n```",
+      "created": "2026-10-14T21:37:55Z",
+      "hunk": "@@ -68,7 +68,7 @@ jobs:\n         with:\n           args: check .\n \n-      - name: Set up Java\n+      - name: Set up build Java",
+      "id": "PRRT_kwDOTuzK5c6sh6yQ",
+      "opened": "2026-10-14T21:37:55Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "7ba60b440f02bf51f956b62f5afbf95035014592",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/316#discussion_r4276543849"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n      - name: Set up Java\n```",
+      "created": "2026-10-14T21:38:03Z",
+      "hunk": "@@ -564,7 +564,7 @@ jobs:\n           cache-dependency-glob: \"scenarios/${{ matrix.domain }}/${{ matrix.language }}/**/uv.lock\"\n \n       # A JVM scenario builds itself from source in its `setup:` before it runs.\n-      - name: Set up Java\n+      - name: Set up build Java",
+      "id": "PRRT_kwDOTuzK5c6sh68z",
+      "opened": "2026-10-14T21:38:03Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "7ba60b440f02bf51f956b62f5afbf95035014592",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/316#discussion_r4276544974"
+    }
+  ]
+}

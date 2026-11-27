@@ -1,0 +1,130 @@
+{
+  "head": "501bfd5636b2248991bc0eae5e4bf1bf7c32dcdb",
+  "merge": "35647596d93b485d8597d19b71473aa836e4bd86",
+  "merged": "2026-09-11T00:21:23Z",
+  "missing_roots": 0,
+  "number": 668,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The nested `FunctionTool.call/acall` deduplication currently only short-circuits when `parent._workflow_agent_invocation` is set. If `call_tool` and the nested `FunctionTool` execution happen in different threads/tasks (so `_ACTIVE_WORKFLOW_TOOL` isn’t visible), standalone agent tool calls can regress to emitting duplicate `execute_tool` spans. The parent span being a `ToolInvocation` should be sufficient to dedupe in all cases.",
+      "created": "2026-09-10T02:02:37Z",
+      "hunk": "@@ -464,17 +901,39 @@ def new_span(\n                     dict[str, Any], cast(Any, tool_call).tool_kwargs\n                 )\n             invocation = tool_invocation\n+            if parent is not None and isinstance(\n+                parent._invocation, WorkflowInvocation\n+            ):\n+                workflow_agent_invocation = active_invocation\n+                workflow_handoff = tool_call.tool_name == \"handoff\"\n         elif isinstance(instance, FunctionTool) and method_name in {\n             \"call\",\n             \"acall\",\n         }:\n             parent = self.open_spans.get(parent_span_id or \"\")\n             # LlamaIndex reports an agent tool execution through both call_tool\n             # and the nested FunctionTool.call/acall; the parent records it.\n-            if parent is not None and isinstance(\n-                parent._invocation, ToolInvocation\n+            if (\n+                parent is not None\n+                and parent._workflow_agent_invocation is not None\n+                and isinstance(parent._invocation, ToolInvocation)\n             ):\n+                # The workflow callback identifies the tool by name only; the\n+                # nested FunctionTool call is the authoritative executing tool.\n+                parent._invocation.tool_description = (\n+                    instance.metadata.description or None\n+                )\n                 return None",
+      "id": "PRRT_kwDOSbspP86g5yOr",
+      "opened": "2026-09-10T02:02:37Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "40a22a7ac5193aec54d165dbbe72d46175e3734b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/668#discussion_r3974805494"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "All new `AgentWorkflow` coverage constructs members with `streaming=False`, but this branch also handles streaming `FunctionAgent` and `ReActAgent` members, whose LlamaIndex execution path uses streaming LLM APIs. Add workflow-member happy-path and interrupted-stream tests that verify span hierarchy, unchanged exception propagation, and error finalization.",
+      "created": "2026-09-10T02:34:52Z",
+      "hunk": "@@ -441,21 +811,131 @@ def new_span(\n             agent_invocation.agent_description = agent_description\n             agent_invocation.input_messages = input_messages\n             agent_invocation.tool_definitions = tool_definitions\n-            agent_invocation.system_instruction = system_instruction\n+            agent_invocation.system_instruction = agent_system_instruction\n             invocation = agent_invocation\n             tool_attributes_token = _AGENT_TOOL_ATTRIBUTES.set(\n                 _agent_tool_attribute_map(instance)\n             )\n+        elif method_name == \"run_agent_step\" and isinstance(\n+            (agent_setup := bound_args.arguments.get(\"ev\")), AgentSetup\n+        ):",
+      "id": "PRRT_kwDOSbspP86g6JJ6",
+      "opened": "2026-09-10T02:34:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "abcff90eac22bedcb727d6cd84b9e47a2b5531a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/668#discussion_r3974948402"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This only captures `AgentOutput` returned by `run_agent_step`. When `AgentWorkflow` reaches `max_iterations` with `early_stopping_method=\"generate\"`, LlamaIndex generates the successful final response later in `parse_agent_output`, so no subsequent step updates the member invocation and its `gen_ai.output.messages` remains the preceding tool-call response. Propagate the workflow stop result to the active member before finalization and cover this path.",
+      "created": "2026-09-10T02:34:52Z",
+      "hunk": "@@ -512,17 +1067,48 @@ def prepare_to_exit_span(\n         span = self.open_spans.get(id_)\n         if span is None:\n             return None\n-        if isinstance(span._invocation, AgentInvocation):\n+        if isinstance(span._invocation, WorkflowInvocation):\n+            if self._handler.should_capture_content():\n+                _set_workflow_output(span._invocation, result)\n+            span.finalize_workflow_agents()\n+        elif isinstance(span._invocation, AgentInvocation):\n             span.reset_tool_attributes()\n+            span.reset_workflow_tool()\n             if self._handler.should_capture_content():\n-                _set_agent_output(span._invocation, result)\n+                if isinstance(result, AgentOutput):\n+                    _set_agent_step_output(span._invocation, result)\n+                else:\n+                    _set_agent_output(span._invocation, result)\n+            if span._workflow_agent_invocation is not None:\n+                span.reset_workflow_agent()\n+                if not _agent_step_is_complete(result):\n+                    self._expect_workflow_tools(span, result)",
+      "id": "PRRT_kwDOSbspP86g6JJy",
+      "opened": "2026-09-10T02:34:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "abcff90eac22bedcb727d6cd84b9e47a2b5531a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/668#discussion_r3974948389"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The scenario only requires the generic client-duration metric, which the nested agent/tool spans already emit, so it can pass even if the new workflow invocation fails to emit its operation-specific duration metric. Require `gen_ai.invoke_workflow.duration` as well.",
+      "created": "2026-09-10T02:34:52Z",
+      "hunk": "@@ -0,0 +1,102 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from typing import Any\n+\n+from llama_index.core.agent.workflow import (\n+    AgentWorkflow,\n+    FunctionAgent,\n+    ReActAgent,\n+)\n+from llama_index.core.base.llms.types import ToolCallBlock\n+from llama_index.core.llms import ChatMessage, MockFunctionCallingLLM\n+\n+from opentelemetry.instrumentation.genai.llama_index import (\n+    LlamaIndexInstrumentor,\n+)\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+class WorkflowScenario(Scenario):\n+    expected_spans = {\n+        \"invoke_workflow\": 1,\n+        \"invoke_agent\": 2,\n+        \"execute_tool\": 1,\n+    }\n+    expected_metrics = (\"gen_ai.client.operation.duration\",)",
+      "id": "PRRT_kwDOSbspP86g6JKJ",
+      "opened": "2026-09-10T02:34:52Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/conformance/workflow.py",
+      "replies": [],
+      "reviewed": "abcff90eac22bedcb727d6cd84b9e47a2b5531a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/668#discussion_r3974948425"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A failed handoff is still treated as a completed handoff here. Both the `ToolOutput.is_error` path and `prepare_to_drop_span` call this helper, so `_workflow_handoff` causes the member invocation to be stopped successfully and removed even though LlamaIndex only finalizes a handoff when `return_direct` is true **and** the tool output is not an error. If the workflow retries the current agent, telemetry is split into a second `invoke_agent` span; if the workflow aborts, the original agent span is incorrectly successful. Gate the pending-handoff close on a successful `ToolCallResult` and keep/appropriately fail the invocation on error.",
+      "created": "2026-09-10T13:29:16Z",
+      "hunk": "@@ -489,12 +1004,67 @@ def new_span(\n         else:\n             return None\n \n-        return _LlamaIndexInvocation(\n+        adapter = _LlamaIndexInvocation(\n             id_=id_,\n             parent_id=parent_span_id,\n             invocation=invocation,\n             tool_attributes_token=tool_attributes_token,\n+            workflow_tool_token=workflow_tool_token,\n+            tool_parent_context_token=tool_parent_context_token,\n+            workflow_agents=workflow_agents,\n+            workflow_run_id=workflow_run_id,\n+            workflow_agent=workflow_agent,\n+            workflow_agent_invocation=workflow_agent_invocation,\n+            workflow_handoff=workflow_handoff,\n         )\n+        if method_name == \"run_agent_step\" and member_agent_step:\n+            adapter.activate_workflow_agent()\n+        return adapter\n+\n+    def _expect_workflow_tools(\n+        self, span: _LlamaIndexInvocation, result: Any\n+    ) -> None:\n+        \"\"\"Record the tool calls a member agent's turn just requested.\"\"\"\n+        run_id = span._workflow_run_id\n+        if run_id is None or not isinstance(result, AgentOutput):\n+            return\n+        parent = self.open_spans.get(span.parent_id or \"\")\n+        if parent is not None:\n+            parent.expect_workflow_tools(run_id, len(result.tool_calls))\n+\n+    def _release_workflow_invocation(\n+        self,\n+        span: _LlamaIndexInvocation,\n+        invocation: AgentInvocation,\n+    ) -> None:\n+        \"\"\"Drop a finished member invocation so a later turn opens a new span.\"\"\"\n+        parent = self.open_spans.get(span.parent_id or \"\")\n+        if parent is not None:\n+            parent.remove_workflow_invocation(invocation)\n+\n+    def _finish_workflow_tool(self, span: _LlamaIndexInvocation) -> None:\n+        \"\"\"Release one tool of a member agent's turn and close the agent last.\n+\n+        AgentWorkflow reports a handoff as a tool call made by the agent that is\n+        stepping down, and that turn can request other tools alongside it. The\n+        agent's span has to outlive every one of them, so it is closed only once\n+        the turn's last tool call ends.\n+        \"\"\"\n+        run_id = span._workflow_run_id\n+        if run_id is None:\n+            return\n+        parent = self.open_spans.get(span.parent_id or \"\")\n+        if parent is None:\n+            return\n+        invocation = span._workflow_agent_invocation\n+        if span._workflow_handoff and invocation is not None:\n+            parent.set_pending_handoff(run_id, invocation)",
+      "id": "PRRT_kwDOSbspP86hF00w",
+      "opened": "2026-09-10T13:29:17Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "1543b7c94e1646fba13c32efec896ae5492b8f94",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/668#discussion_r3979561803"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A mixed handoff/tool turn can incorrectly mark the handing-off agent successful. If the handoff finishes first, it stores `pending`; when a sibling tool later raises, `_finish_workflow_tool(..., handoff_succeeded=False)` still reaches this block, calls `_finish_member_agent(pending)` without the error, and removes the invocation. The subsequent workflow failure can no longer change that agent span to ERROR. Preserve the turn's first failure and pass it to `_finish_member_agent`, rather than tracking only whether the current completion was the handoff.",
+      "created": "2026-09-10T14:54:09Z",
+      "hunk": "@@ -489,12 +1004,75 @@ def new_span(\n         else:\n             return None\n \n-        return _LlamaIndexInvocation(\n+        adapter = _LlamaIndexInvocation(\n             id_=id_,\n             parent_id=parent_span_id,\n             invocation=invocation,\n             tool_attributes_token=tool_attributes_token,\n+            workflow_tool_token=workflow_tool_token,\n+            tool_parent_context_token=tool_parent_context_token,\n+            workflow_agents=workflow_agents,\n+            workflow_run_id=workflow_run_id,\n+            workflow_agent=workflow_agent,\n+            workflow_agent_invocation=workflow_agent_invocation,\n+            workflow_handoff=workflow_handoff,\n         )\n+        if method_name == \"run_agent_step\" and member_agent_step:\n+            adapter.activate_workflow_agent()\n+        return adapter\n+\n+    def _expect_workflow_tools(\n+        self, span: _LlamaIndexInvocation, result: Any\n+    ) -> None:\n+        \"\"\"Record the tool calls a member agent's turn just requested.\"\"\"\n+        run_id = span._workflow_run_id\n+        if run_id is None or not isinstance(result, AgentOutput):\n+            return\n+        parent = self.open_spans.get(span.parent_id or \"\")\n+        if parent is not None:\n+            parent.expect_workflow_tools(run_id, len(result.tool_calls))\n+\n+    def _release_workflow_invocation(\n+        self,\n+        span: _LlamaIndexInvocation,\n+        invocation: AgentInvocation,\n+    ) -> None:\n+        \"\"\"Drop a finished member invocation so a later turn opens a new span.\"\"\"\n+        parent = self.open_spans.get(span.parent_id or \"\")\n+        if parent is not None:\n+            parent.remove_workflow_invocation(invocation)\n+\n+    def _finish_workflow_tool(\n+        self,\n+        span: _LlamaIndexInvocation,\n+        handoff_succeeded: bool = True,\n+    ) -> None:\n+        \"\"\"Release one tool of a member agent's turn and close the agent last.\n+\n+        AgentWorkflow reports a handoff as a tool call made by the agent that is\n+        stepping down, and that turn can request other tools alongside it. The\n+        agent's span has to outlive every one of them, so it is closed only once\n+        the turn's last tool call ends.\n+        \"\"\"\n+        run_id = span._workflow_run_id\n+        if run_id is None:\n+            return\n+        parent = self.open_spans.get(span.parent_id or \"\")\n+        if parent is None:\n+            return\n+        invocation = span._workflow_agent_invocation\n+        if (\n+            handoff_succeeded\n+            and span._workflow_handoff\n+            and invocation is not None\n+        ):\n+            parent.set_pending_handoff(run_id, invocation)\n+        if not parent.release_workflow_tool(run_id):\n+            return\n+        pending = parent.take_pending_handoff(run_id)\n+        if pending is not None:\n+            _finish_member_agent(pending)\n+            parent.remove_workflow_invocation(pending)",
+      "id": "PRRT_kwDOSbspP86hH7Wd",
+      "opened": "2026-09-10T14:54:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "7a15c44abe823a0eaa7e1f9cf13c5565df2bd5c0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/668#discussion_r3980387147"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Pass `agent_name` so the tool execution span records `gen_ai.agent.name`:\r\n\r\n```suggestion\r\n                tool_invocation = self._handler.tool(\r\n                    tool_call.tool_name,\r\n                    tool_type=tool_type,\r\n                    agent_name=getattr(active_invocation, \"_agent_name\", None),\r\n                )\r\n```\r\n\r\nlet's also add tests that validate it",
+      "created": "2026-09-10T18:02:35Z",
+      "hunk": "@@ -441,21 +840,131 @@ def new_span(\n             agent_invocation.agent_description = agent_description\n             agent_invocation.input_messages = input_messages\n             agent_invocation.tool_definitions = tool_definitions\n-            agent_invocation.system_instruction = system_instruction\n+            agent_invocation.system_instruction = agent_system_instruction\n             invocation = agent_invocation\n             tool_attributes_token = _AGENT_TOOL_ATTRIBUTES.set(\n                 _agent_tool_attribute_map(instance)\n             )\n+        elif method_name == \"run_agent_step\" and isinstance(\n+            (agent_setup := bound_args.arguments.get(\"ev\")), AgentSetup\n+        ):\n+            parent = self.open_spans.get(parent_span_id or \"\")\n+            agent = (\n+                parent.workflow_agent(agent_setup.current_agent_name)\n+                if parent is not None\n+                else None\n+            )\n+            if agent is None:\n+                return None\n+            capture_content = self._handler.should_capture_content()\n+            agent_name = agent.name or type(agent).__name__\n+            request_model = _request_model(agent)\n+            agent_description = agent.description\n+            input_messages = (\n+                _agent_step_input(agent_setup, agent.system_prompt)\n+                if capture_content\n+                else []\n+            )\n+            tool_definitions = _workflow_tool_definitions(\n+                cast(AgentWorkflow, instance), agent\n+            )\n+            system_instruction: list[SystemInstructionPart] = (\n+                [TextPart(content=agent.system_prompt)]\n+                if capture_content and agent.system_prompt\n+                else []\n+            )\n+            workflow_run_id = (\n+                tags.get(\"llamaindex.run_id\") if tags is not None else None\n+            )\n+            workflow_agent_invocation = (\n+                parent.workflow_invocation_for_run_id(\n+                    workflow_run_id, agent_name\n+                )\n+                if parent is not None\n+                else None\n+            )\n+            member_agent_step = True\n+            if workflow_agent_invocation is None:\n+                workflow_agent_invocation = _start_member_agent(\n+                    lambda: self._handler.invoke_local_agent(\n+                        request_model=request_model,\n+                        agent_name=agent_name,\n+                    )\n+                )\n+                workflow_agent_invocation.agent_description = agent_description\n+                workflow_agent_invocation.input_messages = input_messages\n+                workflow_agent_invocation.tool_definitions = tool_definitions\n+                workflow_agent_invocation.system_instruction = (\n+                    system_instruction\n+                )\n+                if parent is not None and workflow_run_id is not None:\n+                    parent.register_workflow_invocation(\n+                        workflow_run_id, agent_name, workflow_agent_invocation\n+                    )\n+            agent_invocation = workflow_agent_invocation\n+            invocation = agent_invocation\n+            if parent is not None:\n+                if workflow_run_id is not None:\n+                    parent.register_workflow_agent(workflow_run_id, agent)\n+            workflow_agent = agent\n         elif method_name == \"call_tool\" and isinstance(\n             (tool_call := bound_args.arguments.get(\"ev\")), ToolCall\n         ):\n-            tool_type, tool_description = _agent_tool_attributes(\n-                instance or bound_args.arguments.get(\"self\"),\n-                tool_call.tool_name,\n+            parent = self.open_spans.get(parent_span_id or \"\")\n+            active_agent = (\n+                parent.workflow_agent_for_run_id(\n+                    tags.get(\"llamaindex.run_id\") if tags is not None else None\n+                )\n+                if parent is not None\n+                else None\n             )\n-            tool_invocation = self._handler.tool(\n-                tool_call.tool_name,\n-                tool_type=tool_type,\n+            active_invocation = (\n+                parent.workflow_invocation_for_run_id(\n+                    tags.get(\"llamaindex.run_id\") if tags is not None else None\n+                )\n+                if parent is not None\n+                else None\n+            )\n+            if active_invocation is None and parent is not None:\n+                if isinstance(parent._invocation, AgentInvocation):\n+                    active_invocation = parent._invocation\n+            workflow_run_id = (\n+                tags.get(\"llamaindex.run_id\") if tags is not None else None\n+            )\n+            tool_type, tool_description = (\n+                _agent_tool_attributes(active_agent, tool_call.tool_name)\n+                if active_agent is not None\n+                else (None, None)\n+            )\n+            if tool_type is None:\n+                tool_type, tool_description = _agent_tool_attributes(\n+                    instance or bound_args.arguments.get(\"self\"),\n+                    tool_call.tool_name,\n+                )\n+            if tool_type is None and tool_call.tool_name == \"handoff\":\n+                # AgentWorkflow's built-in handoff is emitted as a ToolCall,\n+                # although its generated tool metadata is not available here.\n+                tool_type = \"function\"\n+            # The member-agent span stays open across workflow steps, each of\n+            # which runs in its own asyncio task. Pass its context explicitly\n+            # so the tool span nests under the agent that requested the call.\n+            agent_context_token = (\n+                attach(set_span_in_context(active_invocation.span))\n+                if active_invocation is not None\n+                else None\n+            )\n+            try:\n+                tool_invocation = self._handler.tool(\n+                    tool_call.tool_name,\n+                    tool_type=tool_type,\n+                )",
+      "id": "PRRT_kwDOSbspP86hMJYL",
+      "opened": "2026-09-10T18:04:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [],
+      "reviewed": "72a7abd990ea6d6dc449c9ab951e3951f70339bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/668#discussion_r3982055254"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`gen_ai.client.operation.duration` is no longer emitted for GenAI spans; replace with operation duration metrics:\r\n\r\n```suggestion\r\n    expected_metrics = (\r\n        \"gen_ai.invoke_workflow.duration\",\r\n        \"gen_ai.invoke_agent.duration\",\r\n        \"gen_ai.execute_tool.duration\",\r\n    )\r\n```\r\n\r\nupdate: this is coming in #616, not merged yet.",
+      "created": "2026-09-10T18:02:36Z",
+      "hunk": "@@ -0,0 +1,105 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from typing import Any\n+\n+from llama_index.core.agent.workflow import (\n+    AgentWorkflow,\n+    FunctionAgent,\n+    ReActAgent,\n+)\n+from llama_index.core.base.llms.types import ToolCallBlock\n+from llama_index.core.llms import ChatMessage, MockFunctionCallingLLM\n+\n+from opentelemetry.instrumentation.genai.llama_index import (\n+    LlamaIndexInstrumentor,\n+)\n+from opentelemetry.sdk._logs import LoggerProvider\n+from opentelemetry.sdk.metrics import MeterProvider\n+from opentelemetry.sdk.trace import TracerProvider\n+from opentelemetry.test_util_genai.conformance import Scenario\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+\n+\n+class WorkflowScenario(Scenario):\n+    expected_spans = {\n+        \"invoke_workflow\": 1,\n+        \"invoke_agent\": 2,\n+        \"execute_tool\": 1,\n+    }\n+    expected_metrics = (\n+        \"gen_ai.client.operation.duration\",\n+        \"gen_ai.invoke_workflow.duration\",\n+    )",
+      "id": "PRRT_kwDOSbspP86hMJYO",
+      "opened": "2026-09-10T18:04:56Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/tests/conformance/workflow.py",
+      "replies": [],
+      "reviewed": "72a7abd990ea6d6dc449c9ab951e3951f70339bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/668#discussion_r3982055257"
+    }
+  ]
+}

@@ -1,0 +1,304 @@
+{
+  "head": "b8e01a807922ae5cd57e7e88ee2fc64adf4fb4fd",
+  "merge": "80a6cf139ff5da66da1bf0243a276a2efb75fae4",
+  "merged": "2026-09-21T19:41:04Z",
+  "missing_roots": 0,
+  "number": 20073,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Removing `service.peer` means this suite no longer exercises `SERVICE_PEER_NAME`; every `maybeStablePeerService()` assertion now runs only in the legacy `PEER_SERVICE` mode. Since the new aggregate `server.address` values also feed `ServicePeerAttributesExtractor`, keep the existing service-peer opt-in so this interaction remains covered (as in the Jedis 1.4 and 3.0 suites).",
+      "created": "2026-09-10T00:40:33Z",
+      "hunk": "@@ -36,8 +37,8 @@ tasks {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n \n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=database,service.peer\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=database,service.peer\")\n+    jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+    systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=database\")",
+      "id": "PRRT_kwDODJKVX86g4xVK",
+      "opened": "2026-09-10T00:40:33Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-10T04:21:32Z",
+          "body": "Addressed in 08fd00f9962ad77a38c2f9d2eab9d8c4772f8ac5.\n\nAnalysis: The stable semantic convention task still runs `maybeStablePeerService()` assertions. Without the `service.peer` opt-in, those assertions only select the legacy key. Restoring the opt-in in both the JVM argument and metadata configuration makes the stable task exercise `service.peer.name` and keeps metadata collection aligned with the test mode.\n\nUpsides: The test now verifies that aggregate `server.address` values work with `ServicePeerAttributesExtractor` under stable service-peer semantic conventions. It also matches the coverage in the Jedis 1.4 and 3.0 modules.\n\nDownsides: The stable task tests the database and service-peer semantic convention domains together instead of isolating them.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r3975434314"
+        }
+      ],
+      "reviewed": "bf25ec876e91319b66422cb8a4c1ddfecd9bf44a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r3974387225"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This only exercises `RenewSlotCacheAdvice` and discovery `CLUSTER` spans. Normal `JedisCluster` commands route through the newly added `getConnection*` advice, so a broken version-sensitive matcher or target attachment there would still pass this suite. Please add a cluster `set`/`get` assertion that verifies the configured aggregate target on the resulting command span.",
+      "created": "2026-09-10T04:30:31Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.singleton;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.awaitility.Awaitility.await;\n+import static org.junit.jupiter.api.Assumptions.assumeTrue;\n+\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.lang.reflect.Field;\n+import java.net.ServerSocket;\n+import java.util.LinkedHashSet;\n+import java.util.Set;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.testcontainers.containers.Container;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv\n+class JedisAggregateTargetTest {\n+\n+  private static final String MASTER_NAME = \"mymaster\";\n+\n+  @RegisterExtension\n+  private static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension\n+  private static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  private static GenericContainer<?> sentinelServer;\n+  private static String sentinelEndpoint;\n+\n+  private static GenericContainer<?> clusterServer;\n+  private static Object cluster;\n+  private static String clusterTarget;\n+  private static String clusterHost;\n+\n+  @BeforeAll\n+  static void setup() throws Exception {\n+    assumeTrue(classPresent(\"redis.clients.jedis.JedisSentinelPool\"));\n+    assumeTrue(classPresent(\"redis.clients.jedis.JedisCluster\"));\n+\n+    startSentinelServer();\n+    startClusterServer();\n+  }\n+\n+  @Test\n+  void sentinelDiscoveryAndCommandsUseConfiguredTarget() throws Exception {\n+    Class<?> poolClass = Class.forName(\"redis.clients.jedis.JedisSentinelPool\");\n+    Object pool =\n+        poolClass\n+            .getConstructor(String.class, Set.class)\n+            .newInstance(MASTER_NAME, singleton(sentinelEndpoint));\n+    Object jedis = poolClass.getMethod(\"getResource\").invoke(pool);\n+    try {\n+      jedis.getClass().getMethod(\"set\", String.class, String.class).invoke(jedis, \"key\", \"value\");\n+    } finally {\n+      jedis.getClass().getMethod(\"close\").invoke(jedis);\n+      poolClass.getMethod(\"destroy\").invoke(pool);\n+    }\n+\n+    await()\n+        .untilAsserted(\n+            () -> {\n+              assertThat(testing.spans())\n+                  .filteredOn(span -> span.getName().startsWith(\"SET\"))\n+                  .anySatisfy(\n+                      span -> {\n+                        if (emitStableDatabaseSemconv()) {\n+                          assertThat(span.getAttributes().get(SERVER_ADDRESS))\n+                              .isEqualTo(sentinelEndpoint + \"/\" + MASTER_NAME);\n+                          assertThat(span.getAttributes().get(SERVER_PORT)).isNull();\n+                        } else {\n+                          assertThat(span.getAttributes().get(SERVER_ADDRESS))\n+                              .isNotEqualTo(sentinelEndpoint + \"/\" + MASTER_NAME);\n+                          assertThat(span.getAttributes().get(SERVER_PORT)).isNotNull();\n+                        }\n+                      });\n+              assertThat(testing.spans())\n+                  .filteredOn(\n+                      span ->\n+                          span.getName().startsWith(\"SENTINEL\")\n+                              || span.getName().startsWith(\"SUBSCRIBE\"))\n+                  .isNotEmpty()\n+                  .allSatisfy(\n+                      span -> {\n+                        if (emitStableDatabaseSemconv()) {\n+                          assertThat(span.getAttributes().get(SERVER_ADDRESS))\n+                              .isEqualTo(sentinelEndpoint + \"/\" + MASTER_NAME);\n+                          assertThat(span.getAttributes().get(SERVER_PORT)).isNull();\n+                        } else {\n+                          assertThat(span.getAttributes().get(SERVER_ADDRESS))\n+                              .isNotEqualTo(sentinelEndpoint + \"/\" + MASTER_NAME);\n+                          assertThat(span.getAttributes().get(SERVER_PORT)).isNotNull();\n+                        }\n+                      });\n+            });\n+  }\n+\n+  @Test\n+  void clusterRefreshUsesConfiguredTarget() throws Exception {",
+      "id": "PRRT_kwDODJKVX86g7e8S",
+      "opened": "2026-09-10T04:30:31Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisAggregateTargetTest.java",
+      "replies": [
+        {
+          "at": "2026-09-10T04:41:46Z",
+          "body": "Addressed in ec3bd9de5bdbe348327d33f4da7a183cf9e4d7c9.\n\nAnalysis: The existing test called `renewSlotCache` directly and only checked `CLUSTER` spans. It did not run the normal cluster connection lookup. Calling `JedisCluster.set` and `get` exercises the `getConnection*` advice. The command-span assertions verify the aggregate target in stable database semantic conventions and the selected node in legacy mode.\n\nUpsides: The test now detects broken connection matchers and missing target attachment on normal cluster commands. It also confirms that both `SET` and `GET` preserve the configured aggregate target.\n\nDownsides: The test sends two more commands to its Redis container.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r3975586835"
+        }
+      ],
+      "reviewed": "08fd00f9962ad77a38c2f9d2eab9d8c4772f8ac5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r3975488727"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "unusual?",
+      "created": "2026-09-14T02:47:41Z",
+      "hunk": "@@ -0,0 +1,141 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.tooling.muzzle.NoMuzzle;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.jedis.JedisClusterConnectionHandler;\n+\n+class JedisClusterInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.JedisClusterConnectionHandler\",\n+        \"redis.clients.jedis.JedisSlotBasedConnectionHandler\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisClusterConnectionHandler\")))\n+            .and(takesArgument(0, named(\"java.util.Set\"))),\n+        getClass().getName() + \"$ConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"initializeSlotsCache\").and(takesArgument(0, named(\"java.util.Set\"))),\n+        getClass().getName() + \"$InitializeAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"getConnection\", \"getConnectionFromSlot\")\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisSlotBasedConnectionHandler\")))",
+      "id": "PRRT_kwDODJKVX86h-dh-",
+      "opened": "2026-09-14T02:47:41Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClusterInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:34:36Z",
+          "body": "Changed this to `not(isAbstract())` in [`8d1e73b`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8d1e73b6aa3e1481b4a812afffbfb48ee6074027), so the matcher states the actual requirement without coupling to `JedisSlotBasedConnectionHandler`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4010202036"
+        }
+      ],
+      "reviewed": "ac63572b7d3bc7bf79715c6863c81cf98671e69e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4001862552"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "more typical to close first thing? general rule?",
+      "created": "2026-09-14T02:48:41Z",
+      "hunk": "@@ -0,0 +1,141 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.tooling.muzzle.NoMuzzle;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.jedis.JedisClusterConnectionHandler;\n+\n+class JedisClusterInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"redis.clients.jedis.JedisClusterConnectionHandler\",\n+        \"redis.clients.jedis.JedisSlotBasedConnectionHandler\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        isConstructor()\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisClusterConnectionHandler\")))\n+            .and(takesArgument(0, named(\"java.util.Set\"))),\n+        getClass().getName() + \"$ConstructorAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"initializeSlotsCache\").and(takesArgument(0, named(\"java.util.Set\"))),\n+        getClass().getName() + \"$InitializeAdvice\");\n+    transformer.applyAdviceToMethod(\n+        namedOneOf(\"getConnection\", \"getConnectionFromSlot\")\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisSlotBasedConnectionHandler\")))\n+            .and(returns(named(\"redis.clients.jedis.Jedis\"))),\n+        getClass().getName() + \"$GetConnectionAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"getConnectionFromNode\")\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisClusterConnectionHandler\")))\n+            .and(returns(named(\"redis.clients.jedis.Jedis\"))),\n+        getClass().getName() + \"$GetConnectionAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"renewSlotCache\")\n+            .and(isDeclaredBy(named(\"redis.clients.jedis.JedisClusterConnectionHandler\"))),\n+        getClass().getName() + \"$RenewSlotCacheAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ConstructorAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    @NoMuzzle\n+    public static void onExit(\n+        @Advice.This JedisClusterConnectionHandler handler,\n+        @Advice.Argument(0) @Nullable Set<?> nodes) {\n+      JedisClusterTargetAccessor.setTarget(handler, JedisServerTargets.ofNodes(nodes));\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class InitializeAdvice {\n+\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    @NoMuzzle\n+    public static Scope onEnter(\n+        @Advice.This JedisClusterConnectionHandler handler,\n+        @Advice.Argument(0) @Nullable Set<?> nodes) {\n+      RedisServerTarget target = JedisServerTargets.ofNodes(nodes);\n+      JedisClusterTargetAccessor.setTarget(handler, target);\n+      return JedisSingletons.openConfiguredTargetScope(target);\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    @NoMuzzle\n+    public static void onExit(\n+        @Advice.This JedisClusterConnectionHandler handler,\n+        @Advice.Thrown @Nullable Throwable throwable,\n+        @Advice.Enter @Nullable Scope scope) {\n+      try {\n+        if (throwable != null) {\n+          JedisClusterTargetAccessor.setTarget(handler, null);\n+        }\n+      } finally {\n+        if (scope != null) {\n+          scope.close();\n+        }",
+      "id": "PRRT_kwDODJKVX86h-eCC",
+      "opened": "2026-09-14T02:48:41Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClusterInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:34:36Z",
+          "body": "Changed the exit ordering in [`4d26871`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4d268713f64c0f521911c6708f88c067e499c190): the scope closes before failed initialization clears the attached target. The general rule is also documented in #20154.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4010202043"
+        }
+      ],
+      "reviewed": "ac63572b7d3bc7bf79715c6863c81cf98671e69e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4001865578"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "check all these NoMuzzle",
+      "created": "2026-09-14T02:49:18Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.opentelemetry.javaagent.tooling.muzzle.NoMuzzle;\n+import javax.annotation.Nullable;\n+import redis.clients.jedis.JedisClusterConnectionHandler;\n+\n+public final class JedisClusterTargetAccessor {\n+\n+  private static final VirtualField<JedisClusterConnectionHandler, RedisServerTarget>\n+      CLUSTER_TARGET = getClusterTargetVirtualField();\n+\n+  @NoMuzzle",
+      "id": "PRRT_kwDODJKVX86h-ea7",
+      "opened": "2026-09-14T02:49:18Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisClusterTargetAccessor.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:34:37Z",
+          "body": "Removed the three ineffective accessor-level annotations in [`64357da`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/64357da8a738a118c94246103d9ac5f9bc602289), retained the five advice-level annotations needed for Jedis 2.0 through 2.2, and added one shared comment about cluster types beginning in 2.3.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4010202084"
+        }
+      ],
+      "reviewed": "ac63572b7d3bc7bf79715c6863c81cf98671e69e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4001867827"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "inline",
+      "created": "2026-09-14T02:50:34Z",
+      "hunk": "@@ -7,16 +7,24 @@\n \n import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n import static java.util.Arrays.asList;\n+import static java.util.Collections.singletonList;\n import static net.bytebuddy.matcher.ElementMatchers.not;\n \n import com.google.auto.service.AutoService;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.internal.ExperimentalInstrumentationModule;\n import java.util.List;\n+import java.util.function.BiConsumer;\n import net.bytebuddy.matcher.ElementMatcher;\n \n @AutoService(InstrumentationModule.class)\n-public class JedisInstrumentationModule extends InstrumentationModule {\n+public class JedisInstrumentationModule extends InstrumentationModule\n+    implements ExperimentalInstrumentationModule {\n+\n+  private static final String CLUSTER_TARGET_ACCESSOR =",
+      "id": "PRRT_kwDODJKVX86h-fJt",
+      "opened": "2026-09-14T02:50:34Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:34:36Z",
+          "body": "Inlined the helper class name in [`13e58f7`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/13e58f790997d28fbc9531f3d5de47203df2896a). It remains a string so loading the module does not resolve cluster-only types on Jedis 2.0 through 2.2.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4010202045"
+        }
+      ],
+      "reviewed": "ac63572b7d3bc7bf79715c6863c81cf98671e69e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4001872309"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "need a rule about where to call makeCurrent",
+      "created": "2026-09-14T02:52:35Z",
+      "hunk": "@@ -54,5 +70,47 @@ static Instrumenter<JedisRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  public static void captureConnectionTarget(Connection connection) {\n+    RedisServerTarget target = Context.current().get(CURRENT_CONFIGURED_TARGET);\n+    if (target == null) {\n+      target = RedisServerTarget.ofHostAndPort(connection.getHost(), connection.getPort());\n+    }\n+    if (target != null) {\n+      CONNECTION_TARGET.set(connection, target);\n+    }\n+  }\n+\n+  public static void capturePoolTarget(Pool<?> pool) {\n+    RedisServerTarget target = Context.current().get(CURRENT_CONFIGURED_TARGET);\n+    if (target != null) {\n+      POOL_TARGET.set(pool, target);\n+    }\n+  }\n+\n+  public static void setPoolTarget(Pool<?> pool, @Nullable RedisServerTarget target) {\n+    POOL_TARGET.set(pool, target);\n+  }\n+\n+  @Nullable\n+  public static Scope openPoolTargetScope(Pool<?> pool) {\n+    return openConfiguredTargetScope(POOL_TARGET.get(pool));\n+  }\n+\n+  @Nullable\n+  public static Scope openConfiguredTargetScope(@Nullable RedisServerTarget target) {\n+    return target != null\n+        ? Context.current().with(CURRENT_CONFIGURED_TARGET, target).makeCurrent()",
+      "id": "PRRT_kwDODJKVX86h-gLE",
+      "opened": "2026-09-14T02:52:34Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:34:36Z",
+          "body": "Moved `makeCurrent()` into the owning advice methods in [`aff636f`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/aff636f654f28aa88a1f091970f799a804e7ac89); helpers now return `Context`. The general ownership rule is documented in #20155.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4010202041"
+        }
+      ],
+      "reviewed": "ac63572b7d3bc7bf79715c6863c81cf98671e69e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4001878783"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] When `setHost` or `setPort` changes a previously captured connection to an unrepresentable endpoint, `target` is `null` and this guard leaves the old virtual-field value in place. Stable telemetry then reports the stale address; clear the field by setting the nullable result unconditionally.\n\nThis issue also appears on line 99 of the same file.",
+      "created": "2026-09-14T22:53:51Z",
+      "hunk": "@@ -54,5 +69,45 @@ static Instrumenter<JedisRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  public static void captureConnectionTarget(Connection connection) {\n+    RedisServerTarget target = Context.current().get(CURRENT_CONFIGURED_TARGET);\n+    if (target == null) {\n+      target = RedisServerTarget.ofHostAndPort(connection.getHost(), connection.getPort());\n+    }\n+    if (target != null) {\n+      CONNECTION_TARGET.set(connection, target);\n+    }",
+      "id": "PRRT_kwDODJKVX86iT0Rw",
+      "opened": "2026-09-14T22:53:51Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:59:47Z",
+          "body": "Addressed in 81e9ad4123555a336dcb4c7e6d17b74659ffaff6.\n\nAnalysis: `captureConnectionTarget` kept the old virtual-field value when `RedisServerTarget.ofHostAndPort` returned null. Setting null removes virtual-field state, so the method now always writes its computed result. A unit test covers invalid host and port updates.\n\nUpsides: Stable telemetry no longer reports a stale server target after mutable Jedis connections receive invalid endpoint values.\n\nDownsides: This adds one virtual-field set when no target can be represented. Setting null only clears existing state.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4010340208"
+        }
+      ],
+      "reviewed": "8d1e73b6aa3e1481b4a812afffbfb48ee6074027",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4010308782"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] A null aggregate target currently means “do not install a context.” During sharded, cluster, or Sentinel initialization, connection constructors then use their individual host/port fallback, so a client with one unrepresentable configured endpoint can still report a selected endpoint instead of omitting `server.address` as required. Carry an explicit “configured but unavailable” marker and make target capture/lookup suppress the direct fallback while that marker is current.",
+      "created": "2026-09-14T23:12:51Z",
+      "hunk": "@@ -54,5 +69,43 @@ static Instrumenter<JedisRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  public static void captureConnectionTarget(Connection connection) {\n+    RedisServerTarget target = Context.current().get(CURRENT_CONFIGURED_TARGET);\n+    if (target == null) {\n+      target = RedisServerTarget.ofHostAndPort(connection.getHost(), connection.getPort());\n+    }\n+    CONNECTION_TARGET.set(connection, target);\n+  }\n+\n+  public static void capturePoolTarget(Pool<?> pool) {\n+    RedisServerTarget target = Context.current().get(CURRENT_CONFIGURED_TARGET);\n+    if (target != null) {\n+      POOL_TARGET.set(pool, target);\n+    }\n+  }\n+\n+  public static void setPoolTarget(Pool<?> pool, @Nullable RedisServerTarget target) {\n+    POOL_TARGET.set(pool, target);\n+  }\n+\n+  @Nullable\n+  public static RedisServerTarget getPoolTarget(Pool<?> pool) {\n+    return POOL_TARGET.get(pool);\n+  }\n+\n+  @Nullable\n+  public static Context configuredTargetContext(@Nullable RedisServerTarget target) {\n+    return target != null ? Context.current().with(CURRENT_CONFIGURED_TARGET, target) : null;",
+      "id": "PRRT_kwDODJKVX86iUDed",
+      "opened": "2026-09-14T23:12:51Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-14T23:17:23Z",
+          "body": "Addressed in b53dfffe2f63123eff8ef0070f386b4f6614f047.\n\nAnalysis: A nullable target could not distinguish an aggregate client with an unrepresentable configuration from a direct client with no aggregate target. `ConfiguredTarget` now preserves that distinction in the current context and pool virtual field. Connection capture and lookup honor the marker, while ordinary pools still allow direct host and port capture.\n\nUpsides: Sharded, cluster, and Sentinel clients now omit the stable server target when their aggregate configuration cannot be represented. Tests cover current-context and pooled marker propagation.\n\nDownsides: Creating configured target contexts now allocates a small holder for the nullable target.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4010428279"
+        }
+      ],
+      "reviewed": "81e9ad4123555a336dcb4c7e6d17b74659ffaff6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4010405163"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This wrapper inherits `ofUnorderedEndpointsAndLogicalName`'s logical-name fallback: an empty Sentinel set, or a set where every endpoint is unrepresentable, returns `masterName` alone. That contradicts this PR's fail-closed contract that an unavailable configured endpoint list must omit the target (the shared fallback is explicitly covered in `RedisServerTargetTest.java:109-115`). Validate the endpoint list before invoking the permissive discovery helper.",
+      "created": "2026-09-14T23:31:31Z",
+      "hunk": "@@ -0,0 +1,62 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import java.util.ArrayList;\n+import java.util.Collection;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import redis.clients.jedis.JedisShardInfo;\n+\n+public class JedisServerTargets {\n+\n+  @Nullable\n+  public static RedisServerTarget ofShards(@Nullable List<JedisShardInfo> shards) {\n+    if (shards == null || shards.isEmpty()) {\n+      return null;\n+    }\n+    List<String> endpoints = new ArrayList<>(shards.size());\n+    for (JedisShardInfo shard : shards) {\n+      endpoints.add(\n+          shard == null ? null : RedisServerTarget.endpoint(shard.getHost(), shard.getPort()));\n+    }\n+    return RedisServerTarget.ofEndpoints(endpoints);\n+  }\n+\n+  @Nullable\n+  public static RedisServerTarget ofSentinels(\n+      @Nullable String masterName, @Nullable Collection<?> sentinels) {\n+    return RedisServerTarget.ofUnorderedEndpointsAndLogicalName(\n+        endpointStrings(sentinels), masterName);\n+  }",
+      "id": "PRRT_kwDODJKVX86iUUdX",
+      "opened": "2026-09-14T23:31:31Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisServerTargets.java",
+      "replies": [
+        {
+          "at": "2026-09-14T23:33:55Z",
+          "body": "Addressed in 67bbf56f670cf4a27b005e25305511b754d979cf.\n\nAnalysis: `ofSentinels` passed its endpoint list directly to a helper that permits logical-name-only discovery targets. It now requires the same endpoint list to produce a strict unordered target before it adds the Sentinel master name.\n\nUpsides: Empty and wholly unrepresentable Sentinel endpoint lists now fail closed instead of reporting only the master name. Tests cover both cases.\n\nDownsides: Valid Sentinel endpoint lists are parsed twice during client initialization.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4010530742"
+        }
+      ],
+      "reviewed": "b53dfffe2f63123eff8ef0070f386b4f6614f047",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4010514658"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "it's a bit odd, but seems like a nice way to avoid separate gradle module",
+      "created": "2026-09-17T22:23:35Z",
+      "hunk": "@@ -8,12 +8,25 @@ muzzle {\n     module.set(\"jedis\")\n     versions.set(\"[2.0.0,3.0.0)\")\n     assertInverse.set(true)\n+\n+    excludeInstrumentationName(\"jedis-2.3-cluster\")\n+  }\n+  pass {\n+    // instrumentation-docs:ignore - verification only, the directive above is the range we document\n+    name.set(\"Jedis cluster instrumentation\")\n+    group.set(\"redis.clients\")\n+    module.set(\"jedis\")\n+    versions.set(\"[2.3.0,3.0.0)\")\n+    assertInverse.set(true)\n+\n+    excludeInstrumentationName(\"jedis-2.0-core\")\n   }\n }\n \n dependencies {\n   library(\"redis.clients:jedis:2.0.0\")\n \n+  compileOnly(\"redis.clients:jedis:2.3.0\") // For optional cluster types added in 2.3",
+      "id": "PRRT_kwDODJKVX86jjWHN",
+      "opened": "2026-09-17T22:23:35Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-21T16:41:08Z",
+          "body": "I think it is fine, we have used it elsewhere too",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4064307477"
+        }
+      ],
+      "reviewed": "7a136fc5575106aa7379ff1ce6f770a3bfe74298",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4041930036"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `getResource()` runs before the `try`, so a borrow failure after the Sentinel pool has started its listener threads skips `destroy()` and leaks the pool. Use an outer `try/finally` around both borrowing and using the resource so pool cleanup also occurs on borrow or resource-close failures.",
+      "created": "2026-09-17T22:30:00Z",
+      "hunk": "@@ -0,0 +1,258 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.singleton;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.awaitility.Awaitility.await;\n+import static org.junit.jupiter.api.Assumptions.assumeTrue;\n+\n+import io.opentelemetry.instrumentation.test.utils.PortUtils;\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.lang.reflect.Field;\n+import java.util.LinkedHashSet;\n+import java.util.Set;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.testcontainers.containers.Container;\n+import org.testcontainers.containers.GenericContainer;\n+import org.testcontainers.containers.wait.strategy.Wait;\n+\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv\n+class JedisAggregateTargetTest {\n+\n+  private static final String MASTER_NAME = \"mymaster\";\n+\n+  @RegisterExtension\n+  private static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension\n+  private static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  private static GenericContainer<?> sentinelServer;\n+  private static String sentinelEndpoint;\n+\n+  private static GenericContainer<?> clusterServer;\n+  private static Object cluster;\n+  private static String clusterTarget;\n+  private static String clusterHost;\n+\n+  @BeforeAll\n+  static void setup() throws Exception {\n+    assumeTrue(classPresent(\"redis.clients.jedis.JedisSentinelPool\"));\n+    assumeTrue(classPresent(\"redis.clients.jedis.JedisCluster\"));\n+\n+    startSentinelServer();\n+    startClusterServer();\n+  }\n+\n+  @Test\n+  void sentinelDiscoveryAndCommandsUseConfiguredTarget() throws Exception {\n+    Class<?> poolClass = Class.forName(\"redis.clients.jedis.JedisSentinelPool\");\n+    Object pool =\n+        poolClass\n+            .getConstructor(String.class, Set.class)\n+            .newInstance(MASTER_NAME, singleton(sentinelEndpoint));\n+    Object jedis = poolClass.getMethod(\"getResource\").invoke(pool);\n+    try {\n+      jedis.getClass().getMethod(\"set\", String.class, String.class).invoke(jedis, \"key\", \"value\");\n+    } finally {\n+      jedis.getClass().getMethod(\"close\").invoke(jedis);\n+      poolClass.getMethod(\"destroy\").invoke(pool);\n+    }",
+      "id": "PRRT_kwDODJKVX86jjbe4",
+      "opened": "2026-09-17T22:30:01Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/JedisAggregateTargetTest.java",
+      "replies": [
+        {
+          "at": "2026-09-21T18:30:16Z",
+          "body": "Addressed in c0767ea32fa1b0aeb63ff0aafe0aa7e110595d12.\n\nAnalysis: Nested finally blocks make pool.destroy() run when getResource(), set(), or close() throws.\n\nUpsides: The test no longer leaks Sentinel listener threads after a failed resource borrow or close.\n\nDownsides: The test has one additional nested try/finally block.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4065183028"
+        }
+      ],
+      "reviewed": "7a136fc5575106aa7379ff1ce6f770a3bfe74298",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4041963645"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] Direct tests of javaagent helpers should live in a `JvmTestSuite` named `unitTests` in the javaagent project (`src/unitTests`) rather than a separate `javaagent-unit-tests` subproject. This adds a non-standard project and duplicates its classpath/task wiring; move these tests and dependencies into the existing javaagent build and remove this include.",
+      "created": "2026-09-17T22:30:00Z",
+      "hunk": "@@ -419,6 +419,7 @@ include(\":instrumentation:jdbc:library\")\n include(\":instrumentation:jdbc:testing\")\n include(\":instrumentation:jedis:jedis-1.4:javaagent\")\n include(\":instrumentation:jedis:jedis-2.0:javaagent\")\n+include(\":instrumentation:jedis:jedis-2.0:javaagent-unit-tests\")",
+      "id": "PRRT_kwDODJKVX86jjbfH",
+      "opened": "2026-09-17T22:30:01Z",
+      "path": "settings.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-21T18:30:18Z",
+          "body": "Addressed in cd731d822a041cfa21f87c6e181b8c4ad7a57667.\n\nAnalysis: The repository's javaagent test convention gives a unitTests suite direct access to helper classes without installing the agent. Moving the tests there removes the separate project's duplicate classpath and task setup while preserving its dependencies and database semconv setting.\n\nUpsides: The tests now follow the repository convention, run from the javaagent check lifecycle, and keep their direct helper access.\n\nDownsides: The test task path changes from :instrumentation:jedis:jedis-2.0:javaagent-unit-tests:test to :instrumentation:jedis:jedis-2.0:javaagent:unitTests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4065183261"
+        }
+      ],
+      "reviewed": "7a136fc5575106aa7379ff1ce6f770a3bfe74298",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4041963675"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The configured context only covers the `borrowObject()` call, so a previously created idle resource keeps whatever target its `Connection` constructor captured. For example, Jedis 2.x exposes `Pool.addObjects(int)` (and Commons Pool can replenish `minIdle` in its evictor thread); those connections are created outside this scope and therefore retain the selected master/node target. Borrowing one then closes this scope before the command runs, causing Sentinel or cluster telemetry to report that selected endpoint instead of the configured aggregate target. Stamp the returned `Jedis` connection with the pool target before closing the scope (and add a pre-created-idle-resource regression test).",
+      "created": "2026-09-21T18:37:00Z",
+      "hunk": "@@ -0,0 +1,62 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v2_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.isConstructor;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.util.Pool;\n+\n+class PoolResourceInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"redis.clients.util.Pool\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(isConstructor(), getClass().getName() + \"$CaptureTargetAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"getResource\").and(takesArguments(0)), getClass().getName() + \"$GetResourceAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class CaptureTargetAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void onExit(@Advice.This Pool<?> pool) {\n+      JedisSingletons.capturePoolTarget(pool);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class GetResourceAdvice {\n+\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Scope onEnter(@Advice.This Pool<?> pool) {\n+      Context context = JedisSingletons.configuredPoolTargetContext(pool);\n+      return context != null ? context.makeCurrent() : null;",
+      "id": "PRRT_kwDODJKVX86keUXC",
+      "opened": "2026-09-21T18:37:01Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v2_0/PoolResourceInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-21T19:02:45Z",
+          "body": "Addressed in b8e01a807922ae5cd57e7e88ee2fc64adf4fb4fd.\n\nAnalysis: A pooled Jedis connection can be created before the configured pool target becomes current. The getResource exit advice now replaces that stale connection target while the pool context is still current, then closes the scope in a finally block. The regression test pre-creates an idle Sentinel resource before borrowing it.\n\nUpsides: Stable telemetry keeps the configured aggregate target for idle resources created by callers or pool maintenance threads.\n\nDownsides: Stable configured-target pool borrows now perform one additional type check and virtual-field write.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4065436123"
+        }
+      ],
+      "reviewed": "cd731d822a041cfa21f87c6e181b8c4ad7a57667",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20073#discussion_r4065234421"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "head": "8f3bfa7db953987edaa74e4cd031cdef141cdddc",
+  "merge": "2589576b37b9948d41d6df178ea5f192c668802e",
+  "merged": "2026-09-23T13:53:33Z",
+  "missing_roots": 0,
+  "number": 20076,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Vert.x 4.4.4 supports `REPLICATION`, so it reaches this fallback and its configured endpoints are sorted. Vert.x tries replication seeds in native order to locate the master, making that order part of the failover configuration; sorting it records a different target than configured. Detect this later-added enum value without directly linking it from the 4.0.0 compile baseline, and use `RedisServerTarget.ofEndpoints(...)` (with 4.4.4-era coverage).",
+      "created": "2026-09-10T00:58:35Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.redisclient.v4_0;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.instrumentation.api.util.VirtualField;\n+import io.vertx.core.net.SocketAddress;\n+import io.vertx.redis.client.RedisClientType;\n+import io.vertx.redis.client.RedisOptions;\n+import io.vertx.redis.client.impl.RedisURI;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+\n+public final class VertxRedisServerTargets {\n+\n+  private static final VirtualField<RedisURI, CapturedTarget> TARGET_FIELD =\n+      VirtualField.find(RedisURI.class, CapturedTarget.class);\n+\n+  @Nullable\n+  public static RedisServerTarget of(@Nullable RedisOptions options) {\n+    if (options == null) {\n+      return null;\n+    }\n+    if (options.getType() == RedisClientType.SENTINEL) {\n+      return RedisServerTarget.ofUnorderedEndpointsAndLogicalName(\n+          discoveryEndpoints(options.getEndpoints()), options.getMasterName());\n+    }\n+    if (options.getType() == RedisClientType.STANDALONE) {\n+      return RedisServerTarget.ofEndpoint(options.getEndpoint());\n+    }\n+    return RedisServerTarget.ofUnorderedEndpoints(options.getEndpoints());",
+      "id": "PRRT_kwDODJKVX86g5FeV",
+      "opened": "2026-09-10T00:58:35Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisServerTargets.java",
+      "replies": [
+        {
+          "at": "2026-09-10T04:23:22Z",
+          "body": "Addressed in 47b62fcaad54d37ed691470aa04918d601dc8428.\n\nAnalysis: Vert.x added `RedisClientType.REPLICATION` after the instrumentation's 4.0.0 compile baseline. Comparing the runtime enum name detects it without linking the missing field, and `RedisServerTarget.ofEndpoints(...)` keeps the configured seed order. Running the unit tests with Vert.x 4.4.4 covers the added enum value.\n\nUpsides: Replication targets now match the application's failover configuration while cluster targets remain order-independent.\n\nDownsides: The compatibility check relies on the upstream enum constant name, and the unit-test classpath now targets Vert.x 4.4.4 instead of 4.0.0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20076#discussion_r3975445855"
+        }
+      ],
+      "reviewed": "11d0c5afff6c3d06570869b37fbf4267754af4f5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20076#discussion_r3974520529"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] This adds a separate project solely for direct javaagent helper tests, but new helper-test coverage is conventionally registered as a `JvmTestSuite` named `unitTests` in the javaagent project (for example, `instrumentation/jedis/jedis-1.4/javaagent/build.gradle.kts:29-38` and `instrumentation/jms/jms-common-1.1/javaagent/build.gradle.kts:12-19`). Please move these tests under `javaagent/src/unitTests`, declare their dependencies in that suite, and remove the extra subproject/settings wiring.",
+      "created": "2026-09-19T20:40:50Z",
+      "hunk": "@@ -0,0 +1,21 @@\n+plugins {\n+  id(\"otel.java-conventions\")\n+}",
+      "id": "PRRT_kwDODJKVX86kDQMW",
+      "opened": "2026-09-19T20:40:50Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent-unit-tests/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-20T01:40:52Z",
+          "body": "Addressed in 783df0c942cc79184c72c3a36d4313b9d286a816, 8f3bfa7db953987edaa74e4cd031cdef141cdddc.\n\nFixed in the verified source changes 783df0c942cc79184c72c3a36d4313b9d286a816, 8f3bfa7db953987edaa74e4cd031cdef141cdddc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20076#discussion_r4055617226"
+        }
+      ],
+      "reviewed": "984e482a94162ab4cb6ed87957e7a0d8af398263",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20076#discussion_r4054643060"
+    }
+  ]
+}

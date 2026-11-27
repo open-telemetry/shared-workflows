@@ -1,0 +1,25 @@
+{
+  "head": "8b01b3ee236c9af29f5e1bab20e270ee644f62e5",
+  "merge": "ace798d68db07159c129c06d3c9d577af68ed499",
+  "merged": "2026-03-21T15:09:26Z",
+  "missing_roots": 0,
+  "number": 16885,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "javadoc says that it should return an empty list",
+      "created": "2026-03-21T12:54:19Z",
+      "hunk": "@@ -28,12 +27,18 @@ public Iterable<String> keys(NettyCommonRequest carrier) {\n   @Nullable\n   @Override\n   public String get(@Nullable NettyCommonRequest carrier, String key) {\n+    if (carrier == null) {\n+      return null;\n+    }\n     return carrier.getRequest().headers().get(key);\n   }\n \n   @Override\n   public Iterator<String> getAll(@Nullable NettyCommonRequest carrier, String key) {\n+    if (carrier == null) {\n+      return emptyIterator();\n+    }\n     List<String> list = carrier.getRequest().headers().getAll(key);\n-    return list != null ? list.iterator() : emptyIterator();\n+    return list.iterator();",
+      "id": "PRRT_kwDODJKVX8514kBr",
+      "opened": "2026-03-21T12:54:19Z",
+      "path": "instrumentation/netty/netty-common-4.0/library/src/main/java/io/opentelemetry/instrumentation/netty/common/v4_0/internal/server/HttpRequestHeadersGetter.java",
+      "replies": [],
+      "reviewed": "8b01b3ee236c9af29f5e1bab20e270ee644f62e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16885#discussion_r2969553936"
+    }
+  ]
+}

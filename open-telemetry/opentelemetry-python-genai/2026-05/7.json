@@ -1,0 +1,46 @@
+{
+  "head": "5b2bcdb3eb15a9d3d2938dcc1ac730d0ac3c2e93",
+  "merge": "2d181db36207755a9eddcea5231598a25cb94bfe",
+  "merged": "2026-05-13T14:51:00Z",
+  "missing_roots": 0,
+  "number": 7,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These pytest dependencies are now unpinned, which can make CI non-reproducible and introduce sudden breakages when a new pytest/plug-in release lands. Consider constraining them (e.g., upper bounds or a known-good pinned set) or installing them via a constraints file so updates remain controlled (Renovate can still manage the pins/constraints).\n",
+      "created": "2026-05-13T14:20:49Z",
+      "hunk": "@@ -64,6 +64,10 @@ test_deps =\n   opentelemetry-sdk\n   opentelemetry-instrumentation\n   opentelemetry-test-utils\n+pytest_deps =\n+  pytest\n+  pytest-asyncio\n+  pytest-vcr",
+      "id": "PRRT_kwDOSbspP86ByL2P",
+      "opened": "2026-05-13T14:20:50Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "5b2bcdb3eb15a9d3d2938dcc1ac730d0ac3c2e93",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/7#discussion_r3234999988"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Renovate's `pip_requirements` manager configuration typically uses `fileMatch` (not `managerFilePatterns`). With the current key, Renovate may ignore this setting and still not detect `requirements.latest.txt`. Suggested fix: use the correct manager option name so the pattern is applied.\n",
+      "created": "2026-05-13T14:20:50Z",
+      "hunk": "@@ -4,6 +4,15 @@\n     \"config:best-practices\",\n     \"helpers:pinGitHubActionDigestsToSemver\"\n   ],\n+  // requirements.oldest.txt pins exist to test against the oldest\n+  // supported versions and must not be auto-updated.\n+  \"ignorePaths\": [\"**/requirements.oldest.txt\"],\n+  \"pip_requirements\": {\n+    // Default pip_requirements fileMatch only allows [\\w-]* between\n+    // \"requirements\" and \".txt\", so per-instrumentation\n+    // requirements.latest.txt files are skipped without this.\n+    \"managerFilePatterns\": [\"/(^|/)requirements\\\\.latest\\\\.txt$/\"]",
+      "id": "PRRT_kwDOSbspP86ByL3J",
+      "opened": "2026-05-13T14:20:50Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-05-13T14:50:47Z",
+          "body": "not right https://docs.renovatebot.com/configuration-options/, managerFilePatterns is a new syntax",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/7#discussion_r3235215969"
+        }
+      ],
+      "reviewed": "5b2bcdb3eb15a9d3d2938dcc1ac730d0ac3c2e93",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/7#discussion_r3235000056"
+    }
+  ]
+}

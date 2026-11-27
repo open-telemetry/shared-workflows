@@ -1,0 +1,100 @@
+{
+  "head": "1397e5fc60971e2a31eef3cb1c2259afe0c37ba1",
+  "merge": "90ce96c54c4d410e6acd80d8acde1c5aab173ba6",
+  "merged": "2026-06-20T00:30:24Z",
+  "missing_roots": 0,
+  "number": 19029,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There is an inconsistency in handling empty values between this code and `ParseContext.applyCommonParams`. In `ParseContext.applyCommonParams`, an empty `databasename` value falls through to `database` (due to the `databaseName.isEmpty()` check), but here only `containsKey` is checked—meaning an empty `databasename=` would be set and would NOT fall through to `database`. For consistency, consider also checking that the value is non-empty before accepting it, e.g., checking `urlParams.get(\\\"databasename\\\")` is not null/empty before setting it.",
+      "created": "2026-06-17T11:43:31Z",
+      "hunk": "@@ -66,9 +66,13 @@ public void parse(String jdbcUrl, ParseContext ctx) {\n         instanceName = urlParams.get(\"instance\");\n       }\n \n-      // If no path, use databasename param as fallback for database\n-      if (ctx.databaseName() == null && urlParams.containsKey(\"databasename\")) {\n-        ctx.databaseName(urlParams.get(\"databasename\"));\n+      // If no path, use databasename or database param as fallback for database\n+      if (ctx.databaseName() == null) {\n+        if (urlParams.containsKey(\"databasename\")) {\n+          ctx.databaseName(urlParams.get(\"databasename\"));\n+        } else if (urlParams.containsKey(\"database\")) {\n+          ctx.databaseName(urlParams.get(\"database\"));\n+        }",
+      "id": "PRRT_kwDODJKVX86KMqvG",
+      "opened": "2026-06-17T11:43:31Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/JtdsUrlParser.java",
+      "replies": [],
+      "reviewed": "2e437e7160eda9a210837aa409163a15da59ba00",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19029#discussion_r3427817957"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `databasename`/`database` fallback resolution logic is duplicated between `JtdsUrlParser.parse` and `ParseContext.applyCommonParams`. Consider extracting this into a shared helper method (e.g., `resolveDatabaseNameParam(Map<String, String> params)`) to avoid the two implementations drifting apart if the resolution rules change in the future.",
+      "created": "2026-06-17T13:17:54Z",
+      "hunk": "@@ -66,9 +66,15 @@ public void parse(String jdbcUrl, ParseContext ctx) {\n         instanceName = urlParams.get(\"instance\");\n       }\n \n-      // If no path, use databasename param as fallback for database\n-      if (ctx.databaseName() == null && urlParams.containsKey(\"databasename\")) {\n-        ctx.databaseName(urlParams.get(\"databasename\"));\n+      // If no path, use databasename or database param as fallback for database\n+      if (ctx.databaseName() == null) {\n+        String databaseName = urlParams.get(\"databasename\");\n+        if (databaseName == null || databaseName.isEmpty()) {\n+          databaseName = urlParams.get(\"database\");\n+        }\n+        if (databaseName != null && !databaseName.isEmpty()) {\n+          ctx.databaseName(databaseName);\n+        }",
+      "id": "PRRT_kwDODJKVX86KOXT_",
+      "opened": "2026-06-17T13:17:55Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/JtdsUrlParser.java",
+      "replies": [],
+      "reviewed": "56ff1e0e5c55336a39f93d156785518e264dbc9c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19029#discussion_r3428425133"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This test case is missing `.setSubtype(\\\"sqlserver\\\")`, which is present in the analogous jTDS test case at line 682. Both URLs have the same `jdbc:jtds:sqlserver://` prefix and should produce the same subtype. Without it, the expected subtype assertion for this case would be inconsistent.",
+      "created": "2026-06-17T13:43:20Z",
+      "hunk": "@@ -659,6 +678,27 @@ private static Stream<Arguments> sqlServerArguments() {\n             .setNamespace(\"ssinstance\")\n             .setName(\"ssinstance\")\n             .build(),\n+        // database= alias (shorthand for databaseName) in jTDS URLs\n+        arg(\"jdbc:jtds:sqlserver://ss.host/ssdb;instance=ssinstance;database=otherdb\")\n+            .setShortUrl(\"jtds:sqlserver://ss.host:1433\")\n+            .setSystem(\"microsoft.sql_server\")\n+            .setOldSystem(\"mssql\")\n+            .setSubtype(\"sqlserver\")\n+            .setHost(\"ss.host\")\n+            .setPort(1433)\n+            .setNamespace(\"ssinstance|ssdb\")\n+            .setName(\"ssinstance\")\n+            .build(),\n+        // database= param provides database name when there's no URL path\n+        arg(\"jdbc:jtds:sqlserver://ss.host;instance=ssinstance;database=ssdb\")\n+            .setShortUrl(\"jtds:sqlserver://ss.host:1433\")\n+            .setSystem(\"microsoft.sql_server\")\n+            .setOldSystem(\"mssql\")\n+            .setHost(\"ss.host\")\n+            .setPort(1433)\n+            .setNamespace(\"ssinstance|ssdb\")\n+            .setName(\"ssinstance\")\n+            .build(),",
+      "id": "PRRT_kwDODJKVX86KO5rh",
+      "opened": "2026-06-17T13:43:21Z",
+      "path": "instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParserTest.java",
+      "replies": [],
+      "reviewed": "4b19dbcc7f2b6ca213fdf99325c888de55d5716e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19029#discussion_r3428618708"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `getDatabaseNameParam` is duplicated verbatim in `JtdsUrlParser` (lines 92-98). `UrlParsingUtils` already serves as the shared helper class for all parsers (e.g. `extractSemicolonParams`, `splitQuery`, `extractSubtype`). Moving `getDatabaseNameParam` there would eliminate the duplication and keep the two parsers in sync if additional aliases need to be added later.",
+      "created": "2026-06-17T23:31:28Z",
+      "hunk": "@@ -143,6 +146,26 @@ private static String parseUrlWithInstance(String jdbcUrl, ParseContext ctx) {\n     return instanceName;\n   }\n \n+  private static void applyDatabaseAliasParam(String jdbcUrl, ParseContext ctx) {\n+    if (ctx.databaseName() != null) {\n+      return;\n+    }\n+    Map<String, String> params = UrlParsingUtils.extractSemicolonParams(jdbcUrl);\n+    String databaseName = getDatabaseNameParam(params);\n+    if (databaseName != null) {\n+      ctx.databaseName(databaseName);\n+    }\n+  }\n+\n+  @Nullable\n+  private static String getDatabaseNameParam(Map<String, String> params) {\n+    String databaseName = params.get(\"databasename\");\n+    if (databaseName == null || databaseName.isEmpty()) {\n+      databaseName = params.get(\"database\");\n+    }\n+    return databaseName == null || databaseName.isEmpty() ? null : databaseName;\n+  }",
+      "id": "PRRT_kwDODJKVX86KYcNd",
+      "opened": "2026-06-17T23:31:29Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MssqlUrlParser.java",
+      "replies": [],
+      "reviewed": "04e33808d4f8e137aa03ad1d328f5d9ddef565fc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19029#discussion_r3432062271"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `applyDatabaseAliasParam` re-parses the semicolon-delimited URL parameters that were already parsed inside `applyCommonParams` on line 58 (both call `extractParams(jdbcUrl, \";\", \";\")`). Consider extracting the params map once in `parse()` and passing it to both `applyCommonParams` and the `database` fallback logic, or adding the `database` fallback directly into `applyCommonParams` (gated behind a parameter or MSSQL-specific flag) to avoid the redundant parse.",
+      "created": "2026-06-17T23:31:29Z",
+      "hunk": "@@ -143,6 +146,26 @@ private static String parseUrlWithInstance(String jdbcUrl, ParseContext ctx) {\n     return instanceName;\n   }\n \n+  private static void applyDatabaseAliasParam(String jdbcUrl, ParseContext ctx) {\n+    if (ctx.databaseName() != null) {\n+      return;\n+    }\n+    Map<String, String> params = UrlParsingUtils.extractSemicolonParams(jdbcUrl);\n+    String databaseName = getDatabaseNameParam(params);\n+    if (databaseName != null) {\n+      ctx.databaseName(databaseName);\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86KYcNw",
+      "opened": "2026-06-17T23:31:29Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MssqlUrlParser.java",
+      "replies": [],
+      "reviewed": "04e33808d4f8e137aa03ad1d328f5d9ddef565fc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19029#discussion_r3432062296"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The private `applyCommonParams` method here is a near-exact copy of `ParseContext.applyCommonParams` (lines 179-200). If that shared method is ever updated (e.g. to handle additional common properties), this copy will silently drift. Consider adding an overloaded `ParseContext.applyCommonParams(Map<String, String> params)` that accepts a pre-parsed map, so `MssqlUrlParser` can reuse it directly without duplication.",
+      "created": "2026-06-18T03:45:21Z",
+      "hunk": "@@ -143,6 +148,45 @@ private static String parseUrlWithInstance(String jdbcUrl, ParseContext ctx) {\n     return instanceName;\n   }\n \n+  /**\n+   * Apply standard URL parameters from a pre-parsed map. Equivalent to {@link\n+   * ParseContext#applyCommonParams} but operates on an already-extracted parameter map to avoid\n+   * re-parsing the URL string.\n+   */\n+  private static void applyCommonParams(ParseContext ctx, Map<String, String> params) {\n+    if (params.isEmpty()) {\n+      return;\n+    }\n+    if (params.containsKey(\"servername\")) {\n+      ctx.host(params.get(\"servername\"));\n+    }\n+    Integer port = UrlParsingUtils.parsePort(params.get(\"portnumber\"));\n+    if (port != null) {\n+      ctx.port(port);\n+    }\n+    String databaseName = params.get(\"databasename\");\n+    if (databaseName != null && !databaseName.isEmpty()) {\n+      ctx.databaseName(databaseName);\n+    }\n+    if (params.containsKey(\"user\")) {\n+      ctx.user(params.get(\"user\"));\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86Kak2g",
+      "opened": "2026-06-18T03:45:22Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MssqlUrlParser.java",
+      "replies": [],
+      "reviewed": "2a83168521227e680abf018b11e589b1489c7306",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19029#discussion_r3432842596"
+    }
+  ]
+}

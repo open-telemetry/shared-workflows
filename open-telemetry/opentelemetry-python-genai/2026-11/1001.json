@@ -1,0 +1,316 @@
+{
+  "head": "a320076755546864d789e009b982be654d2b6029",
+  "merge": "aeed2342d65146fb1c49abba2a862b03e64cba1d",
+  "merged": "2026-11-12T03:41:57Z",
+  "missing_roots": 0,
+  "number": 1001,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Unlike the other start callbacks, `on_llm_start` is not included in `_ExecutionContext.instrument()`'s callback-manager refresh wrappers. A callback manager retained from before instrumentation (or from a previous instrumentation) can therefore dispatch a text-LLM start without the active handler, leaving its agent's inference count at zero. Add the sync and async `on_llm_start` dispatchers to the refresh list and cover retained managers as in `test_reinstrument_refreshes_direct_callback_dispatch`.",
+      "created": "2026-10-28T19:34:33Z",
+      "hunk": "@@ -456,6 +456,21 @@ def on_chain_error(\n         invocation.fail(error)\n         self._invocation_manager.delete_invocation_state(run_id=run_id)\n \n+    def on_llm_start(",
+      "id": "PRRT_kwDOSbspP86xSgPl",
+      "opened": "2026-10-28T19:34:34Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "5b7ad0c7b5a7530b2cded24ab2da386b03f3a0ee",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4405207152"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Initializing this to zero reports a definitive count even when the agent calls a model outside LangChain's LLM callbacks. For example, the `RunnableLambda(clients.infer)` pattern in `test_execution_context.py` can be classified as an agent, but its direct OpenAI call never reaches either increment and is reported as zero. Track those model calls through the shared invocation context, or avoid emitting a count when it cannot be determined reliably.",
+      "created": "2026-10-28T19:34:33Z",
+      "hunk": "@@ -58,6 +58,9 @@ def add_invocation_state(\n         invocation: _AnyInvocation | None,\n         agent_name: str | None = None,\n     ) -> None:\n+        if isinstance(invocation, LocalAgentInvocation):\n+            invocation.inference_calls = 0",
+      "id": "PRRT_kwDOSbspP86xSgQU",
+      "opened": "2026-10-28T19:34:34Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/invocation_manager.py",
+      "replies": [],
+      "reviewed": "5b7ad0c7b5a7530b2cded24ab2da386b03f3a0ee",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4405207227"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This traversal crosses tool and retriever boundaries, so their internal model or tool calls are also counted against the enclosing agent. That overcounts calls issued by the agent itself under the [metric conventions](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/model/gen-ai/metrics.yaml). Stop at a tool or retrieval invocation unless a nearer agent has already been found.",
+      "created": "2026-10-28T19:34:34Z",
+      "hunk": "@@ -91,6 +94,17 @@ def get_parent_context(self, parent_run_id: UUID | None) -> Context | None:\n             current = self.get_parent_run_id(current)\n         return None\n \n+    def get_parent_agent(\n+        self, parent_run_id: UUID | None\n+    ) -> LocalAgentInvocation | None:\n+        current = parent_run_id\n+        while current is not None:\n+            invocation = self.get_invocation(current)\n+            if isinstance(invocation, LocalAgentInvocation):\n+                return invocation\n+            current = self.get_parent_run_id(current)",
+      "id": "PRRT_kwDOSbspP86xSgRJ",
+      "opened": "2026-10-28T19:34:34Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/invocation_manager.py",
+      "replies": [],
+      "reviewed": "5b7ad0c7b5a7530b2cded24ab2da386b03f3a0ee",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4405207306"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[P2] This condition leaves the counters unset for built-in `AgentExecutor` runs, because only LangGraph agent entry points produce an announcement. An `AgentExecutor` using LangChain models and tools therefore emits its agent span but never either call-count metric, including on the supported LangChain 0.3.x versions. Please also enable counting for reliably identifiable executor agents whose calls are delivered through these callbacks.",
+      "created": "2026-10-28T20:41:25Z",
+      "hunk": "@@ -406,6 +406,12 @@ def on_chain_start(\n                 run_id, parent_run_id, None\n             )\n \n+        if agent_announcement is not None:\n+            invocation = self._invocation_manager.get_invocation(run_id)\n+            if isinstance(invocation, LocalAgentInvocation):",
+      "id": "PRRT_kwDOSbspP86xUBGY",
+      "opened": "2026-10-28T20:41:27Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "6fa2de636136b0ec11365c1fe9d231d09bb1a191",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4405854899"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[P2] Concurrent callbacks can lose updates to these shared agent counters: two callbacks can read the same value and overwrite each other's increment on free-threaded Python or under thread tracing. Protect the counter checks and increments with shared per-agent synchronization; apply the same protection to the inference updates at lines 478 and 495.",
+      "created": "2026-10-28T20:41:26Z",
+      "hunk": "@@ -833,6 +857,9 @@ def on_tool_start(\n     ) -> None:\n         if not self._enabled:\n             return\n+        agent = self._invocation_manager.get_parent_agent(parent_run_id)\n+        if agent is not None and agent.tool_calls is not None:\n+            agent.tool_calls += 1",
+      "id": "PRRT_kwDOSbspP86xUBG2",
+      "opened": "2026-10-28T20:41:27Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "6fa2de636136b0ec11365c1fe9d231d09bb1a191",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4405854955"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[P2] When a chat-model wrapper delegates to another LangChain model through a child callback manager, this traversal attributes both model starts to the agent, counting its single delegated call twice. Treat `InferenceInvocation` as an attribution boundary too, and update the boundary test to expect no parent agent across it.",
+      "created": "2026-10-28T20:41:26Z",
+      "hunk": "@@ -91,6 +91,19 @@ def get_parent_context(self, parent_run_id: UUID | None) -> Context | None:\n             current = self.get_parent_run_id(current)\n         return None\n \n+    def get_parent_agent(\n+        self, parent_run_id: UUID | None\n+    ) -> LocalAgentInvocation | None:\n+        current = parent_run_id\n+        while current is not None:\n+            invocation = self.get_invocation(current)\n+            if isinstance(invocation, LocalAgentInvocation):\n+                return invocation\n+            if isinstance(invocation, (ToolInvocation, RetrievalInvocation)):",
+      "id": "PRRT_kwDOSbspP86xUBHV",
+      "opened": "2026-10-28T20:41:27Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/invocation_manager.py",
+      "replies": [],
+      "reviewed": "6fa2de636136b0ec11365c1fe9d231d09bb1a191",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4405855012"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "All positive call-count tests are skipped on the supported oldest LangChain version because they require `langchain.agents.create_agent`. Add a `create_react_agent` test outside this module-level skip and assert both histogram values, so the [oldest-version test requirement](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/AGENTS.md#tests) covers this feature.",
+      "created": "2026-10-28T20:41:27Z",
+      "hunk": "@@ -354,6 +357,22 @@ def test_create_agent_internal_nodes_are_not_agents(\n     tool_span = spans[0]\n     assert tool_span.parent.span_id == agent_span.context.span_id\n     assert tool_span.attributes[\"gen_ai.agent.name\"] == \"agent\"\n+    data = metric_reader.get_metrics_data()\n+    assert data is not None\n+    metrics = {\n+        metric.name: metric\n+        for resource in data.resource_metrics\n+        for scope in resource.scope_metrics\n+        for metric in scope.metrics\n+    }\n+    for metric_name, expected_sum in (\n+        (\"gen_ai.invoke_agent.inference_calls\", 2),\n+        (\"gen_ai.invoke_agent.tool_calls\", 1),",
+      "id": "PRRT_kwDOSbspP86xUBH4",
+      "opened": "2026-10-28T20:41:27Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_agent_classification_corpus.py",
+      "replies": [],
+      "reviewed": "6fa2de636136b0ec11365c1fe9d231d09bb1a191",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4405855077"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[P2] This error test uses an unannounced `RunnableLambda`, so its counters stay `None` and the test never exercises call-count recording on failure. Add a failing tool/model under an announced agent and assert the emitted counts include the failed call, for sync and async paths, as required by the [instrumentation test rules](../../AGENTS.md#tests).",
+      "created": "2026-10-28T20:41:27Z",
+      "hunk": "@@ -593,12 +597,40 @@ def failing_tool(value: str) -> str:\n         \"\"\"Fail with the original exception.\"\"\"\n         raise error\n \n+    def run(inputs: dict[str, str], config: RunnableConfig) -> str:\n+        return failing_tool.invoke(inputs, config=config)\n+\n+    async def arun(inputs: dict[str, str], config: RunnableConfig) -> str:\n+        return await failing_tool.ainvoke(inputs, config=config)\n+\n+    runnable = (\n+        RunnableLambda(run, afunc=arun).with_config(\n+            run_name=\"math_agent\",\n+            metadata={\"agent_name\": \"math_agent\", \"otel_agent_span\": True},\n+        )\n+        if in_agent\n+        else failing_tool",
+      "id": "PRRT_kwDOSbspP86xUBIP",
+      "opened": "2026-10-28T20:41:27Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_tools.py",
+      "replies": [],
+      "reviewed": "6fa2de636136b0ec11365c1fe9d231d09bb1a191",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4405855116"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Non-announced agents record positive call counts but omit zero-call observations because untouched counters remain `None`. An agent that sometimes calls a tool therefore contributes only its tool-using runs to `gen_ai.invoke_agent.tool_calls`, biasing the distribution and average. Initialize both counters to zero for agent boundaries with complete callback coverage; where completeness cannot be established, omit the counts consistently rather than publishing only positive observations.",
+      "created": "2026-10-29T20:22:57Z",
+      "hunk": "@@ -406,6 +406,13 @@ def on_chain_start(\n                 run_id, parent_run_id, None\n             )\n \n+        invocation = self._invocation_manager.get_invocation(run_id)\n+        if isinstance(invocation, LocalAgentInvocation):\n+            # Without a native graph boundary, missing callbacks do not prove zero.\n+            initial_count = 0 if agent_announcement is not None else None\n+            invocation.inference_calls = initial_count\n+            invocation.tool_calls = initial_count",
+      "id": "PRRT_kwDOSbspP86xvSzv",
+      "opened": "2026-10-29T20:22:57Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "63164f51bc4e794d214f282605c41f0921cda522",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4417482577"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `LocalAgentInvocation` already defaults both counters to `None`, so only the announced case needs handling. The comment is also hard to follow; maybe:\n\n```suggestion\n        invocation = self._invocation_manager.get_invocation(run_id)\n        # Only create_agent/create_react_agent graphs report every model and tool call\n        # through callbacks; other agents may call models directly, so their counts are unknown.\n        if agent_announcement is not None and isinstance(\n            invocation, LocalAgentInvocation\n        ):\n            invocation.inference_calls = 0\n            invocation.tool_calls = 0\n```\n",
+      "created": "2026-10-31T19:29:20Z",
+      "hunk": "@@ -406,6 +406,13 @@ def on_chain_start(\n                 run_id, parent_run_id, None\n             )\n \n+        invocation = self._invocation_manager.get_invocation(run_id)\n+        if isinstance(invocation, LocalAgentInvocation):\n+            # Without a native graph boundary, missing callbacks do not prove zero.\n+            initial_count = 0 if agent_announcement is not None else None\n+            invocation.inference_calls = initial_count\n+            invocation.tool_calls = initial_count",
+      "id": "PRRT_kwDOSbspP86yT8nS",
+      "opened": "2026-10-31T19:42:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-11-05T17:46:49Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4483939737"
+        }
+      ],
+      "reviewed": "8b01ee1d012ed7b877ab2838ad61f71d7e30eed3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4433022551"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This counts every attempt, including retries from `with_retry` and retry/fallback middleware. Semconv defines inference as a logical call (see https://github.com/open-telemetry/opentelemetry-python-genai/pull/1000#discussion_r4432999152), so could we skip retries and only count the logical inference operations we already trace as inference spans?\n\nIt also counts calls we don't trace: `on_llm_start` (text-completion LLMs) and chat models without a detectable model name, which return below without a span. I'd rather not do extra work to count things we don't instrument and keep this simple. If you feel strongly they need to be in the metrics, let's instrument them for tracing too - tracked in #1023.\n",
+      "created": "2026-10-31T19:35:14Z",
+      "hunk": "@@ -469,6 +488,7 @@ def on_chat_model_start(\n     ) -> None:\n         if not self._enabled:\n             return\n+        self._invocation_manager.record_agent_call(parent_run_id)",
+      "id": "PRRT_kwDOSbspP86yT-_s",
+      "opened": "2026-10-31T19:42:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-11-05T17:47:29Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4483946441"
+        }
+      ],
+      "reviewed": "8b01ee1d012ed7b877ab2838ad61f71d7e30eed3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4433037939"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Can two independent model calls share the same ancestor model node, in which case, the flag would only count for the first call?",
+      "created": "2026-11-02T23:25:40Z",
+      "hunk": "@@ -91,6 +98,36 @@ def get_parent_context(self, parent_run_id: UUID | None) -> Context | None:\n             current = self.get_parent_run_id(current)\n         return None\n \n+    def record_agent_call(\n+        self, parent_run_id: UUID | None, *, tool_call: bool = False\n+    ) -> None:\n+        with self._call_count_lock:\n+            current = parent_run_id\n+            logical_call: _InvocationState | None = None\n+            while current is not None:\n+                state = self._invocations.get(current)\n+                if state is not None and state.inference_counted is not None:\n+                    logical_call = state\n+                invocation = self.get_invocation(current)\n+                if isinstance(invocation, LocalAgentInvocation):\n+                    if tool_call:\n+                        if invocation.tool_calls is not None:\n+                            invocation.tool_calls += 1\n+                    elif invocation.inference_calls is not None and (",
+      "id": "PRRT_kwDOSbspP86y6LwP",
+      "opened": "2026-11-02T23:25:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/invocation_manager.py",
+      "replies": [
+        {
+          "at": "2026-11-05T17:25:35Z",
+          "body": "Thanks for catching that, fixed in https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001/commits/53e21f2604c85ca7ff7c5899b59226cb23986887.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4483716839"
+        }
+      ],
+      "reviewed": "cf8a0146fe00f74ef95e9ad4cd2d4000a852bfc9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4449001970"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Sorry, my earlier retry comment sent this in the wrong direction. LangChain retries/fallbacks each produce their own chat span, so every traced inference is already one logical call from our side. Could we drop the retry dedup (`_InferenceCallScope`, the `patch_config`/`BaseChatModel.invoke`/middleware patches, `start_inference_attempt`) and just increment the agent counter in `on_chat_model_start` when we start an inference span? That keeps the metric consistent with the spans.\n",
+      "created": "2026-11-06T03:15:22Z",
+      "hunk": "@@ -182,12 +217,100 @@ def _config_context(\n                 and context.run(get_current) is not parent\n                 else None\n             )\n+            scope_token = (\n+                context.run(_inference_calls.set, scope)\n+                if scope is not None\n+                else None\n+            )\n             try:\n                 yield context\n             finally:\n+                if scope_token is not None:\n+                    context.run(_inference_calls.reset, scope_token)\n                 if token is not None:\n                     context.run(detach, token)\n \n+    def _wrap_attempt_config(",
+      "id": "PRRT_kwDOSbspP860XWbP",
+      "opened": "2026-11-06T03:18:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/_execution_context.py",
+      "replies": [
+        {
+          "at": "2026-11-06T18:40:10Z",
+          "body": "Makes sense, made revisions to the code.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4496232820"
+        }
+      ],
+      "reviewed": "53e21f2604c85ca7ff7c5899b59226cb23986887",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4488659115"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "question: this looks unrelated now that `on_llm_start` isn't counted. Is it left over from the earlier version? If so, could we drop it along with the `llm` case in `test_execution_context.py`, and send it as a separate fix if it's still needed?",
+      "created": "2026-11-06T03:15:22Z",
+      "hunk": "@@ -322,6 +483,7 @@ def instrument(self) -> None:\n         ):\n             for method in (\n                 \"on_chat_model_start\",\n+                \"on_llm_start\",",
+      "id": "PRRT_kwDOSbspP860XWbU",
+      "opened": "2026-11-06T03:18:13Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/_execution_context.py",
+      "replies": [
+        {
+          "at": "2026-11-06T18:39:29Z",
+          "body": "Yes, it was left over from the previous iteration. Removed it in the updated version.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4496226615"
+        }
+      ],
+      "reviewed": "53e21f2604c85ca7ff7c5899b59226cb23986887",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4488659121"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Now that retry dedup is gone, counting is just \"one per chat span\", so this 64-case retry/fallback/middleware matrix (plus `test_agent_inference_counts_direct_fallback_stream` and `test_independent_model_calls_share_one_agent_node`) mostly re-tests the old design. Could we drop them and keep `test_native_agent_call_counts` with a single retry case? Those tests would also fit better in an agent test module than in `test_tools.py`.",
+      "created": "2026-11-07T01:42:45Z",
+      "hunk": "@@ -604,6 +607,421 @@ def failing_tool(value: str) -> str:\n     assert span.attributes[error_attributes.ERROR_TYPE] == error_type.__name__\n \n \n+@pytest.mark.asyncio\n+@pytest.mark.parametrize(\"asynchronous\", [False, True], ids=[\"sync\", \"async\"])\n+@pytest.mark.parametrize(\"streaming\", [False, True], ids=[\"invoke\", \"stream\"])\n+@pytest.mark.parametrize(\n+    (\"failure\", \"use_tool\"),\n+    [(None, False), (None, True), (\"model\", True), (\"tool\", True)],\n+)\n+async def test_native_agent_call_counts(\n+    asynchronous: bool,\n+    streaming: bool,\n+    failure: str | None,\n+    use_tool: bool,\n+    span_exporter: InMemorySpanExporter,\n+    metric_reader: InMemoryMetricReader,\n+    instrument_langchain: None,\n+) -> None:\n+    error = RuntimeError(\"agent call failed\")\n+\n+    @tool\n+    def calculate() -> str:\n+        \"\"\"Return the calculation result.\"\"\"\n+        if failure == \"tool\":\n+            raise error\n+        return \"42\"\n+\n+    model = _ToolChatModel(\n+        responses=[\n+            AIMessage(\n+                content=\"\",\n+                tool_calls=[{\"name\": \"calculate\", \"args\": {}, \"id\": \"1\"}],\n+            ),\n+            AIMessage(content=\"42\"),\n+        ]\n+        if use_tool\n+        else [AIMessage(content=\"42\")],\n+        error=error if failure == \"model\" else None,\n+    )\n+    agent = create_react_agent(\n+        model, ToolNode([calculate], handle_tool_errors=False)\n+    )\n+    inputs = {\"messages\": [(\"user\", \"calculate\")]}\n+\n+    async def run() -> None:\n+        if not streaming:\n+            await _invoke(agent, inputs, asynchronous)\n+        elif asynchronous:\n+            async for _ in agent.astream(inputs):\n+                pass\n+        else:\n+            list(agent.stream(inputs))\n+\n+    if failure:\n+        with pytest.raises(RuntimeError) as raised:\n+            await run()\n+        assert raised.value is error\n+    else:\n+        await run()\n+    (agent_span,) = [\n+        span\n+        for span in span_exporter.get_finished_spans()\n+        if span.parent is None\n+        and span.attributes[gen_ai_attributes.GEN_AI_OPERATION_NAME]\n+        == \"invoke_agent\"\n+    ]\n+    assert agent_span.status.status_code == (\n+        StatusCode.ERROR if failure else StatusCode.UNSET\n+    )\n+    if failure:\n+        assert (\n+            agent_span.attributes[error_attributes.ERROR_TYPE]\n+            == \"RuntimeError\"\n+        )\n+    data = metric_reader.get_metrics_data()\n+    assert data is not None\n+    metrics = {\n+        metric.name: metric\n+        for resource in data.resource_metrics\n+        for scope in resource.scope_metrics\n+        for metric in scope.metrics\n+    }\n+    for name, total in (\n+        (\n+            \"gen_ai.invoke_agent.inference_calls\",\n+            1 if failure or not use_tool else 2,\n+        ),\n+        (\n+            \"gen_ai.invoke_agent.tool_calls\",\n+            int(use_tool and failure != \"model\"),\n+        ),\n+    ):\n+        (point,) = metrics[name].data.data_points\n+        assert point.count == 1\n+        assert type(point.sum) is int\n+        assert point.sum == total\n+\n+\n+@pytest.mark.asyncio\n+@pytest.mark.parametrize(\"asynchronous\", [False, True], ids=[\"sync\", \"async\"])\n+@pytest.mark.parametrize(\"streaming\", [False, True], ids=[\"invoke\", \"stream\"])\n+@pytest.mark.parametrize(\"strategy\", [\"retry\", \"fallback\"])\n+@pytest.mark.parametrize(\"failure\", [False, True])\n+@pytest.mark.parametrize(\"use_tool\", [False, True])\n+@pytest.mark.parametrize(\n+    \"use_middleware\",\n+    [\n+        False,\n+        pytest.param(\n+            True,\n+            marks=pytest.mark.skipif(\n+                not hasattr(langchain.agents, \"create_agent\"),\n+                reason=\"Model middleware requires LangChain 1.x\",\n+            ),\n+        ),\n+    ],\n+)\n+async def test_native_agent_retries_count_traced_inferences(",
+      "id": "PRRT_kwDOSbspP860wip6",
+      "opened": "2026-11-07T02:11:05Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_tools.py",
+      "replies": [
+        {
+          "at": "2026-11-09T17:35:44Z",
+          "body": "Addressed. Created a new `test_agent` suite and added the test there.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4515874662"
+        }
+      ],
+      "reviewed": "13102fe6f670c2ba2d56b223f9c489346baefcd3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4499419437"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`on_chat_model_start` returns before this increment when it cannot resolve a model name, so native agents can export zero inference calls despite executing a model. The existing `test_create_agent_internal_nodes_are_not_agents` exercises two such calls. Record each enabled callback before model-name resolution, and update `test_chat_model_start_does_not_count_untraced_calls` to distinguish disabled callbacks from calls without model metadata.",
+      "created": "2026-11-11T19:32:10Z",
+      "hunk": "@@ -587,6 +602,7 @@ def on_chat_model_start(\n             parent_run_id=parent_run_id,\n             invocation=llm_invocation,\n         )\n+        self._invocation_manager.record_agent_call(parent_run_id)",
+      "id": "PRRT_kwDOSbspP862VGOD",
+      "opened": "2026-11-11T19:32:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [],
+      "reviewed": "a7ea0244dbdb18e2f21d24f64aff4882df62ef9d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4542391409"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The ownership boundaries are only checked with mocked invocations, so incorrect callback ancestry or attribution to an outer agent could pass the current tests. Add sync/async public-API cases that assert each nested agent's exact histogram values and verify that model/tool calls inside tools or retrievers do not increment the enclosing agent's counts. See the [public-API test requirement](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/AGENTS.md#tests).",
+      "created": "2026-11-11T19:32:11Z",
+      "hunk": "@@ -91,6 +93,27 @@ def get_parent_context(self, parent_run_id: UUID | None) -> Context | None:\n             current = self.get_parent_run_id(current)\n         return None\n \n+    def record_agent_call(\n+        self, parent_run_id: UUID | None, *, tool_call: bool = False\n+    ) -> None:\n+        with self._call_count_lock:\n+            current = parent_run_id\n+            while current is not None:\n+                invocation = self.get_invocation(current)\n+                if isinstance(invocation, LocalAgentInvocation):\n+                    if tool_call:\n+                        if invocation.tool_calls is not None:\n+                            invocation.tool_calls += 1\n+                    elif invocation.inference_calls is not None:\n+                        invocation.inference_calls += 1\n+                    return\n+                if isinstance(\n+                    invocation,\n+                    (InferenceInvocation, ToolInvocation, RetrievalInvocation),\n+                ):\n+                    return",
+      "id": "PRRT_kwDOSbspP862VGPH",
+      "opened": "2026-11-11T19:32:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/invocation_manager.py",
+      "replies": [],
+      "reviewed": "a7ea0244dbdb18e2f21d24f64aff4882df62ef9d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4542391512"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Both streaming branches drain the agent stream, so the new metrics have no coverage for early closure or cancellation during an in-flight call. Add public-API native-agent cases for sync/async early closure and async cancellation, asserting exact partial counts and one observation per histogram for each invocation, as required by the [instrumentation testing rules](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/AGENTS.md#tests).",
+      "created": "2026-11-11T19:32:11Z",
+      "hunk": "@@ -0,0 +1,154 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Agent telemetry exercised through LangChain's public APIs, without network calls.\"\"\"\n+\n+from __future__ import annotations\n+\n+from typing import Any\n+\n+import pytest\n+from langchain_core.callbacks import BaseCallbackHandler\n+from langchain_core.messages import AIMessage\n+from langchain_core.runnables import RunnableConfig\n+from langchain_core.tools import tool\n+from langgraph.prebuilt import ToolNode, create_react_agent\n+from tests._api import FakeChatModel\n+from tests._api import invoke as _invoke\n+\n+from opentelemetry.sdk.metrics.export import InMemoryMetricReader\n+from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\n+    InMemorySpanExporter,\n+)\n+from opentelemetry.semconv._incubating.attributes import gen_ai_attributes\n+from opentelemetry.semconv.attributes import error_attributes\n+from opentelemetry.trace import StatusCode\n+\n+\n+@pytest.mark.asyncio\n+@pytest.mark.parametrize(\"asynchronous\", [False, True], ids=[\"sync\", \"async\"])\n+@pytest.mark.parametrize(\"streaming\", [False, True], ids=[\"invoke\", \"stream\"])\n+@pytest.mark.parametrize(\n+    (\"failure\", \"use_tool\", \"retry\"),\n+    [\n+        pytest.param(None, False, False, id=\"model-only\"),\n+        pytest.param(None, True, False, id=\"with-tool\"),\n+        pytest.param(\"model\", True, False, id=\"model-error\"),\n+        pytest.param(\"tool\", True, False, id=\"tool-error\"),\n+        pytest.param(None, False, True, id=\"retry\"),\n+    ],\n+)\n+async def test_native_agent_call_counts(\n+    asynchronous: bool,\n+    streaming: bool,\n+    failure: str | None,\n+    use_tool: bool,\n+    retry: bool,\n+    span_exporter: InMemorySpanExporter,\n+    metric_reader: InMemoryMetricReader,\n+    instrument_langchain: None,\n+) -> None:\n+    error = RuntimeError(\"agent call failed\")\n+\n+    @tool\n+    def calculate() -> str:\n+        \"\"\"Return the calculation result.\"\"\"\n+        if failure == \"tool\":\n+            raise error\n+        return \"42\"\n+\n+    model = FakeChatModel(\n+        responses=[\n+            AIMessage(\n+                content=\"\",\n+                tool_calls=[{\"name\": \"calculate\", \"args\": {}, \"id\": \"1\"}],\n+            ),\n+            AIMessage(content=\"42\"),\n+        ]\n+        if use_tool\n+        else [AIMessage(content=\"42\")],\n+        error=error if failure == \"model\" or retry else None,\n+    )\n+\n+    class RecoverOnError(BaseCallbackHandler):\n+        def on_llm_error(self, error: BaseException, **kwargs: Any) -> None:\n+            model.error = None\n+\n+    config: RunnableConfig = {\"callbacks\": [RecoverOnError()]} if retry else {}\n+    runnable = (\n+        model.with_retry(wait_exponential_jitter=False, stop_after_attempt=2)\n+        if retry\n+        else model\n+    )\n+    agent = create_react_agent(\n+        runnable,\n+        ToolNode([calculate], handle_tool_errors=False) if use_tool else [],\n+    )\n+    inputs = {\"messages\": [(\"user\", \"calculate\")]}\n+\n+    async def run() -> None:\n+        if not streaming:\n+            result = await _invoke(agent, inputs, asynchronous, config=config)\n+            assert result[\"messages\"][-1].content == \"42\"\n+        elif asynchronous:\n+            async for _ in agent.astream(inputs, config=config):\n+                pass\n+        else:\n+            list(agent.stream(inputs, config=config))",
+      "id": "PRRT_kwDOSbspP862VGPm",
+      "opened": "2026-11-11T19:32:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_agent.py",
+      "replies": [],
+      "reviewed": "a7ea0244dbdb18e2f21d24f64aff4882df62ef9d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1001#discussion_r4542391570"
+    }
+  ]
+}

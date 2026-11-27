@@ -1,0 +1,61 @@
+{
+  "head": "801ff5bb92c5590ee169bfa7a7ebb6d052d97673",
+  "merge": "3cfb9e6e2344a337f9378e2bfdfd8ed9e1f20ca2",
+  "merged": "2026-07-28T16:53:14Z",
+  "missing_roots": 0,
+  "number": 396,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n    score: float | None = Field(default=None, description=\"The relevance score of the document.\")\n```\n\n- `null` is a valid value, someone validating payload against json schema should not fail when null is there. I'd love to be strict, but not allowing null will be too strict\n- `default` set to `None` gives a hint that absence and null are equivalent\n- since it has a default, it's not required\n",
+      "created": "2026-07-23T18:13:46Z",
+      "hunk": "@@ -464,8 +465,14 @@ class RetrievalDocument(BaseModel):\n     Represents a single document retrieved from a vector database or search system.\n     \"\"\"\n \n-    id: str = Field(description=\"A unique identifier for the document.\")\n-    score: float = Field(description=\"The relevance score of the document.\")\n+    id: str | SkipJsonSchema[None] = Field(\n+        default_factory=lambda: None,\n+        description=\"A unique identifier for the document.\",\n+    )\n+    score: float | SkipJsonSchema[None] = Field(\n+        default_factory=lambda: None,\n+        description=\"The relevance score of the document.\",\n+    )",
+      "id": "PRRT_kwDOSUeMrM6TVzbC",
+      "opened": "2026-07-23T18:13:46Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [],
+      "reviewed": "d639b9948914e3bf647dfe83c42e5ba8d0a5e5fc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/396#discussion_r3640363923"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "seems there is a similar PR #395,  @nitishagar @JWinermaSplunk could you folks please decide which one we'll go ahead with? thanks!",
+      "created": "2026-07-23T18:15:45Z",
+      "hunk": "@@ -0,0 +1 @@\n+Make retrieval document `id` and `score` optional so instrumentations can omit values that are unavailable at runtime.",
+      "id": "PRRT_kwDOSUeMrM6TV1Vo",
+      "opened": "2026-07-23T18:15:45Z",
+      "path": "changelog.d/+.bugfix.md",
+      "replies": [],
+      "reviewed": "d639b9948914e3bf647dfe83c42e5ba8d0a5e5fc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/396#discussion_r3640375257"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "could you please update this one too?",
+      "created": "2026-07-23T19:57:24Z",
+      "hunk": "@@ -464,8 +465,13 @@ class RetrievalDocument(BaseModel):\n     Represents a single document retrieved from a vector database or search system.\n     \"\"\"\n \n-    id: str = Field(description=\"A unique identifier for the document.\")\n-    score: float = Field(description=\"The relevance score of the document.\")\n+    id: str | SkipJsonSchema[None] = Field(",
+      "id": "PRRT_kwDOSUeMrM6TXek1",
+      "opened": "2026-07-23T19:57:24Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-07-23T20:23:51Z",
+          "body": "Done!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/396#discussion_r3641151578"
+        }
+      ],
+      "reviewed": "bbe1c6805a1f4f5a6e73c5d53c7722d100446c02",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/396#discussion_r3640990008"
+    }
+  ]
+}

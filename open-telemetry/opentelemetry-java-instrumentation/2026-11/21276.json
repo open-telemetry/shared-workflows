@@ -1,0 +1,228 @@
+{
+  "head": "a699cefe12e503c168c3e1718ad2885b18c235a3",
+  "merge": "0beee11a2bae8ce777535d845c8eed64cfacf452",
+  "merged": "2026-11-26T22:27:58Z",
+  "missing_roots": 0,
+  "number": 21276,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Our convention is that in default configuration we only emit attributes from the semantic conventions. Attributes that don't have semantic conventions should be gated behind a flag e.g. many instrumentations have flags like `otel.instrumentation.grpc.experimental-span-attributes` or `otel.instrumentation.couchbase.emit-experimental-telemetry`.\nAnother aspect to consider is whether the lite topic name could be presented as part of `messaging.destination.name`. Ideally semantic conventions would provide guidance on this. If you believe that a separate attribute is the best option we can start with this. ",
+      "created": "2026-11-11T06:52:49Z",
+      "hunk": "@@ -36,6 +38,9 @@ class RocketMqConsumerProcessAttributeExtractor\n   @Override\n   public void onStart(\n       AttributesBuilder attributes, Context parentContext, MessageView messageView) {\n+    attributes.put(\n+        ROCKETMQ_MESSAGE_LITE_TOPIC, RocketMqMessageAttributes.getLiteTopic(messageView));\n+    attributes.put(ROCKETMQ_MESSAGE_PRIORITY, RocketMqMessageAttributes.getPriority(messageView));",
+      "id": "PRRT_kwDODJKVX862Dt4R",
+      "opened": "2026-11-11T06:52:49Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqConsumerProcessAttributeExtractor.java",
+      "replies": [],
+      "reviewed": "972290034f67826c49ffd614724ef1748c1704d0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4534852533"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "you could define your own logger and use that to log the failure",
+      "created": "2026-11-11T07:00:52Z",
+      "hunk": "@@ -0,0 +1,83 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rocketmqclient.v5_0;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import io.opentelemetry.javaagent.bootstrap.ExceptionLogger;\n+import java.lang.reflect.Method;\n+import java.util.Optional;\n+import javax.annotation.Nullable;\n+import org.apache.rocketmq.client.apis.message.Message;\n+import org.apache.rocketmq.client.apis.message.MessageView;\n+\n+final class RocketMqMessageAttributes {\n+  static final AttributeKey<String> ROCKETMQ_MESSAGE_LITE_TOPIC =\n+      AttributeKey.stringKey(\"rocketmq.message.lite_topic\");\n+  static final AttributeKey<Long> ROCKETMQ_MESSAGE_PRIORITY =\n+      AttributeKey.longKey(\"rocketmq.message.priority\");\n+\n+  @Nullable\n+  private static final Method MESSAGE_LITE_TOPIC = findMethod(Message.class, \"getLiteTopic\");\n+\n+  @Nullable\n+  private static final Method MESSAGE_VIEW_LITE_TOPIC =\n+      findMethod(MessageView.class, \"getLiteTopic\");\n+\n+  @Nullable private static final Method MESSAGE_PRIORITY = findMethod(Message.class, \"getPriority\");\n+\n+  @Nullable\n+  private static final Method MESSAGE_VIEW_PRIORITY = findMethod(MessageView.class, \"getPriority\");\n+\n+  @Nullable\n+  static String getLiteTopic(Message message) {\n+    return (String) read(MESSAGE_LITE_TOPIC, message);\n+  }\n+\n+  @Nullable\n+  static String getLiteTopic(MessageView message) {\n+    return (String) read(MESSAGE_VIEW_LITE_TOPIC, message);\n+  }\n+\n+  @Nullable\n+  static Long getPriority(Message message) {\n+    Integer priority = (Integer) read(MESSAGE_PRIORITY, message);\n+    return priority == null ? null : priority.longValue();\n+  }\n+\n+  @Nullable\n+  static Long getPriority(MessageView message) {\n+    Integer priority = (Integer) read(MESSAGE_VIEW_PRIORITY, message);\n+    return priority == null ? null : priority.longValue();\n+  }\n+\n+  @Nullable\n+  private static Method findMethod(Class<?> declaringType, String name) {\n+    try {\n+      return declaringType.getMethod(name);\n+    } catch (NoSuchMethodException ignored) {\n+      // The getters were added in 5.1 (LiteTopic) and 5.2 (priority).\n+      return null;\n+    } catch (Throwable t) {\n+      ExceptionLogger.logSuppressedError(\"Error finding RocketMQ message attribute getter\", t);",
+      "id": "PRRT_kwDODJKVX862D2ZC",
+      "opened": "2026-11-11T07:00:52Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqMessageAttributes.java",
+      "replies": [],
+      "reviewed": "972290034f67826c49ffd614724ef1748c1704d0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4534910476"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] These common-value scans run even when experimental span attributes are disabled: ordinary receive extraction calls `getDestination()` or `getMessageTag()`, which initializes this entire batch holder. On clients exposing the new getters, this adds two reflective getter calls per message for a homogeneous batch, although neither value will be emitted. Please compute and cache the experimental batch values only when capture is enabled, so the default receive path avoids these extra scans and reflective calls.",
+      "created": "2026-11-11T11:17:42Z",
+      "hunk": "@@ -167,6 +179,8 @@ private BatchMessageAttributes(\n       messageDeliveryTimestamp =\n           commonValue(messages, message -> message.getDeliveryTimestamp().orElse(null));\n       messageKeys = commonKeys(messages);\n+      messageLiteTopic = commonValue(messages, RocketMqMessageAttributes::getLiteTopic);\n+      messagePriority = commonValue(messages, RocketMqMessageAttributes::getPriority);",
+      "id": "PRRT_kwDODJKVX862JMxC",
+      "opened": "2026-11-11T11:17:42Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqReceiveRequest.java",
+      "replies": [],
+      "reviewed": "7086734fe49fca6e015db272cca801d5c137646b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4537215504"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Are you sure all of these are needed?",
+      "created": "2026-11-13T13:40:22Z",
+      "hunk": "@@ -253,6 +253,10 @@ readonly INSTRUMENTATIONS=(\n   \"rocketmq:rocketmq-client-4.8:javaagent:test\"\n   \"rocketmq:rocketmq-client-4.8:javaagent:testExperimental\"\n   \"rocketmq:rocketmq-client-5.0:javaagent:test\"\n+  \"rocketmq:rocketmq-client-5.0:javaagent:rocketmq52Test\"\n+  \"rocketmq:rocketmq-client-5.0:javaagent:rocketmq52TestReceiveTelemetry\"\n+  \"rocketmq:rocketmq-client-5.0:javaagent:rocketmq52TestExperimental\"\n+  \"rocketmq:rocketmq-client-5.0:javaagent:rocketmq52TestExperimentalReceiveTelemetry\"",
+      "id": "PRRT_kwDODJKVX863HS_3",
+      "opened": "2026-11-13T13:40:21Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [],
+      "reviewed": "d2a27300acf5f134ed990d8f4059efa1b7fda017",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4563980909"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@trask do we have a preference on whether to use `experimental_span_attributes` or `experimental_telemetry`?",
+      "created": "2026-11-13T13:43:54Z",
+      "hunk": "@@ -31,17 +32,28 @@ public class RocketMqSingletons {\n     boolean receiveInstrumentationEnabled =\n         ExperimentalConfig.get().messagingReceiveInstrumentationEnabled();\n \n+    boolean captureExperimentalSpanAttributes =\n+        DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"rocketmq_client\")\n+            .getBoolean(\"experimental_span_attributes/development\", false);",
+      "id": "PRRT_kwDODJKVX863HYqX",
+      "opened": "2026-11-13T13:43:54Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqSingletons.java",
+      "replies": [
+        {
+          "at": "2026-11-20T17:24:29Z",
+          "body": "I think for now `experimental_span_attributes` is most consistent here",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4645561178"
+        }
+      ],
+      "reviewed": "d2a27300acf5f134ed990d8f4059efa1b7fda017",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4564018985"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Does testing all these configurations separately provide value? Perhaps it would be enough to just run one configuration that enables experimental attributes and receive telemetry if that is affected by the experimental flag.",
+      "created": "2026-11-13T15:26:28Z",
+      "hunk": "@@ -57,4 +77,41 @@ testing.suites {\n       include(\"**/RocketMqSimpleConsumerTest.*\")\n     }\n   }\n+\n+  executions(\"rocketmq52Test\") {",
+      "id": "PRRT_kwDODJKVX863KMGl",
+      "opened": "2026-11-13T15:26:28Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-16T03:17:29Z",
+          "body": "I've reduced this to the default configuration and one configuration with both flags enabled. I kept the default run on 5.2 to verify that LiteTopic and priority attributes remain absent when the experimental flag is unset, even when the messages contain those values.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4581655795"
+        }
+      ],
+      "reviewed": "d2a27300acf5f134ed990d8f4059efa1b7fda017",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4565203600"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "each instrumentation that has such configuration options also has a readme, for an example see https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/rocketmq/rocketmq-client-4.8/README.md",
+      "created": "2026-11-20T16:06:47Z",
+      "hunk": "@@ -7,6 +7,13 @@ semantic_conventions:\n   - MESSAGING_METRICS\n library_link: https://rocketmq.apache.org/\n configurations:\n+  - name: otel.instrumentation.rocketmq-client.experimental-span-attributes",
+      "id": "PRRT_kwDODJKVX866ELJD",
+      "opened": "2026-11-20T16:06:47Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "118e165e97ce11b97608cd7b56a60463924d1a70",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4644702860"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Can we switch on `message.getMessageType().name()` and use string constants for the known types, including `LITE` and `PRIORITY`? `toLowerCase(Locale.ROOT)` creates a string for every instrumented send, even on 5.0 with experimental attributes off. Switching on the name lets us handle the newer values without referencing enum constants that are missing on 5.0.",
+      "created": "2026-11-21T18:49:54Z",
+      "hunk": "@@ -42,18 +51,10 @@ public void onStart(\n         .getDeliveryTimestamp()\n         .ifPresent(s -> attributes.put(ROCKETMQ_MESSAGE_DELIVERY_TIMESTAMP, s));\n     attributes.put(ROCKETMQ_MESSAGE_KEYS, new ArrayList<>(message.getKeys()));\n-    switch (message.getMessageType()) {\n-      case FIFO:\n-        attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.FIFO);\n-        break;\n-      case DELAY:\n-        attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.DELAY);\n-        break;\n-      case TRANSACTION:\n-        attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.TRANSACTION);\n-        break;\n-      default:\n-        attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.NORMAL);\n+    attributes.put(ROCKETMQ_MESSAGE_TYPE, message.getMessageType().name().toLowerCase(Locale.ROOT));",
+      "id": "PRRT_kwDODJKVX866a6ag",
+      "opened": "2026-11-21T18:51:01Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqProducerAttributeExtractor.java",
+      "replies": [],
+      "reviewed": "f491169fc70ab4b60f6c54fd39d04c8daf49d897",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4654382321"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Can we cache handles from `findVirtual` for these getters? All four take no arguments and return `Optional`, so we know the exact signature. `Class.getMethod` can resolve unrelated method signatures while searching. An exact lookup avoids that, and we can still treat `NoSuchMethodException` as an expected result on older clients.",
+      "created": "2026-11-21T18:49:54Z",
+      "hunk": "@@ -0,0 +1,87 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rocketmqclient.v5_0;\n+\n+import static java.util.logging.Level.FINE;\n+\n+import io.opentelemetry.api.common.AttributeKey;\n+import java.lang.reflect.Method;\n+import java.util.Optional;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+import org.apache.rocketmq.client.apis.message.Message;\n+import org.apache.rocketmq.client.apis.message.MessageView;\n+\n+final class RocketMqMessageAttributes {\n+  private static final Logger logger = Logger.getLogger(RocketMqMessageAttributes.class.getName());\n+\n+  static final AttributeKey<String> ROCKETMQ_MESSAGE_LITE_TOPIC =\n+      AttributeKey.stringKey(\"rocketmq.message.lite_topic\");\n+  static final AttributeKey<Long> ROCKETMQ_MESSAGE_PRIORITY =\n+      AttributeKey.longKey(\"rocketmq.message.priority\");\n+\n+  @Nullable\n+  private static final Method MESSAGE_LITE_TOPIC = findMethod(Message.class, \"getLiteTopic\");\n+\n+  @Nullable\n+  private static final Method MESSAGE_VIEW_LITE_TOPIC =\n+      findMethod(MessageView.class, \"getLiteTopic\");\n+\n+  @Nullable private static final Method MESSAGE_PRIORITY = findMethod(Message.class, \"getPriority\");\n+\n+  @Nullable\n+  private static final Method MESSAGE_VIEW_PRIORITY = findMethod(MessageView.class, \"getPriority\");\n+\n+  @Nullable\n+  static String getLiteTopic(Message message) {\n+    return (String) read(MESSAGE_LITE_TOPIC, message);\n+  }\n+\n+  @Nullable\n+  static String getLiteTopic(MessageView message) {\n+    return (String) read(MESSAGE_VIEW_LITE_TOPIC, message);\n+  }\n+\n+  @Nullable\n+  static Long getPriority(Message message) {\n+    Integer priority = (Integer) read(MESSAGE_PRIORITY, message);\n+    return priority == null ? null : priority.longValue();\n+  }\n+\n+  @Nullable\n+  static Long getPriority(MessageView message) {\n+    Integer priority = (Integer) read(MESSAGE_VIEW_PRIORITY, message);\n+    return priority == null ? null : priority.longValue();\n+  }\n+\n+  @Nullable\n+  private static Method findMethod(Class<?> declaringType, String name) {\n+    try {\n+      return declaringType.getMethod(name);",
+      "id": "PRRT_kwDODJKVX866a6ai",
+      "opened": "2026-11-21T18:51:01Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqMessageAttributes.java",
+      "replies": [],
+      "reviewed": "f491169fc70ab4b60f6c54fd39d04c8daf49d897",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4654382323"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps it would be better to add a case for normal too and change default to `attributes.put(ROCKETMQ_MESSAGE_TYPE, message.getMessageType().name().toLowerCase(Locale.ROOT));`?",
+      "created": "2026-11-23T14:54:40Z",
+      "hunk": "@@ -42,19 +51,29 @@ public void onStart(\n         .getDeliveryTimestamp()\n         .ifPresent(s -> attributes.put(ROCKETMQ_MESSAGE_DELIVERY_TIMESTAMP, s));\n     attributes.put(ROCKETMQ_MESSAGE_KEYS, new ArrayList<>(message.getKeys()));\n-    switch (message.getMessageType()) {\n-      case FIFO:\n+    switch (message.getMessageType().name()) {\n+      case \"FIFO\":\n         attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.FIFO);\n         break;\n-      case DELAY:\n+      case \"DELAY\":\n         attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.DELAY);\n         break;\n-      case TRANSACTION:\n+      case \"TRANSACTION\":\n         attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.TRANSACTION);\n         break;\n+      case \"LITE\":\n+        attributes.put(ROCKETMQ_MESSAGE_TYPE, \"lite\");\n+        break;\n+      case \"PRIORITY\":\n+        attributes.put(ROCKETMQ_MESSAGE_TYPE, \"priority\");\n+        break;\n       default:\n         attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.NORMAL);",
+      "id": "PRRT_kwDODJKVX8665xmH",
+      "opened": "2026-11-23T14:54:40Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqProducerAttributeExtractor.java",
+      "replies": [],
+      "reviewed": "466607cfd7153a129ccb57c67d22d4cbd944b0b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4667480683"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "none of the other messaging instrumentations have this in the readme",
+      "created": "2026-11-24T07:21:04Z",
+      "hunk": "@@ -0,0 +1,6 @@\n+# Settings for the Apache RocketMQ gRPC client instrumentation\n+\n+| System property | Type | Default | Description |\n+| --- | --- | --- | --- |\n+| `otel.instrumentation.rocketmq-client.experimental-span-attributes` | Boolean | `false` | Capture `rocketmq.message.lite_topic` and `rocketmq.message.priority` on messaging spans and receive span links when the client provides those values. |\n+| `otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled` | Boolean | `false` | Enable receive spans for push consumers. |",
+      "id": "PRRT_kwDODJKVX867PHwo",
+      "opened": "2026-11-24T07:21:04Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/README.md",
+      "replies": [],
+      "reviewed": "0cb38b65f701ae282751515978fc03cd1d4fb646",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4676718070"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "are there any experimental attributes that are tested in this suite?",
+      "created": "2026-11-24T07:23:56Z",
+      "hunk": "@@ -40,22 +40,50 @@ testing.suites {\n     dependencies {\n       implementation(project(\":instrumentation-api\"))\n       implementation(project(\":instrumentation-api-incubator\"))\n-      implementation(\"org.apache.rocketmq:rocketmq-client-java:5.0.0\")\n+      implementation(\"org.apache.rocketmq:rocketmq-client-java:5.2.2\")\n+    }\n+  }\n+\n+  register<JvmTestSuite>(\"rocketmq52Test\") {\n+    dependencies {\n+      val rocketmqVersion = baseVersion(\"5.2.2\").orLatest()\n+      implementation(\"org.apache.rocketmq:rocketmq-client-java:$rocketmqVersion\")\n+      implementation(\"org.apache.rocketmq:rocketmq-tools:5.5.1\")\n+      implementation(\"org.testcontainers:testcontainers\")\n+    }\n+  }\n+\n+  val disableWhenUnsafeDenied = Action<Test> {\n+    if (otelProps.denyUnsafe) {\n+      enabled = false\n     }\n   }\n \n   executions(\"test\") {\n-    configureEach {\n-      if (otelProps.denyUnsafe) {\n-        enabled = false\n+    configureEach(disableWhenUnsafeDenied)\n+\n+    configureDefault {\n+      filter {\n+        excludeTestsMatching(\"RocketMqClientSuppressReceiveSpanTest\")\n       }\n+      telemetryConfig(\n+        \"otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled\",\n+        \"true\",\n+      )\n     }\n \n-    configureDefault {\n+    register(\"Experimental\") {",
+      "id": "PRRT_kwDODJKVX867PM6S",
+      "opened": "2026-11-24T07:23:56Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "0cb38b65f701ae282751515978fc03cd1d4fb646",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4676751290"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] Every case in this switch writes the enum name in lowercase: the semconv values are `normal`/`fifo`/`delay`/`transaction`, and the new cases use `lite` and `priority`. The `default` branch already uses that same rule, so one line produces the same values for every type, including ones added later. The `RocketmqMessageTypeIncubatingValues` import would then be unused, so remove it too.\n\n```suggestion\n    attributes.put(ROCKETMQ_MESSAGE_TYPE, message.getMessageType().name().toLowerCase(Locale.ROOT));\n```",
+      "created": "2026-11-25T15:31:58Z",
+      "hunk": "@@ -42,18 +52,32 @@ public void onStart(\n         .getDeliveryTimestamp()\n         .ifPresent(s -> attributes.put(ROCKETMQ_MESSAGE_DELIVERY_TIMESTAMP, s));\n     attributes.put(ROCKETMQ_MESSAGE_KEYS, new ArrayList<>(message.getKeys()));\n-    switch (message.getMessageType()) {\n-      case FIFO:\n+    String messageType = message.getMessageType().name();\n+    switch (messageType) {\n+      case \"NORMAL\":\n+        attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.NORMAL);\n+        break;\n+      case \"FIFO\":\n         attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.FIFO);\n         break;\n-      case DELAY:\n+      case \"DELAY\":\n         attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.DELAY);\n         break;\n-      case TRANSACTION:\n+      case \"TRANSACTION\":\n         attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.TRANSACTION);\n         break;\n+      case \"LITE\":\n+        attributes.put(ROCKETMQ_MESSAGE_TYPE, \"lite\");\n+        break;\n+      case \"PRIORITY\":\n+        attributes.put(ROCKETMQ_MESSAGE_TYPE, \"priority\");\n+        break;\n       default:\n-        attributes.put(ROCKETMQ_MESSAGE_TYPE, RocketmqMessageTypeIncubatingValues.NORMAL);\n+        attributes.put(ROCKETMQ_MESSAGE_TYPE, messageType.toLowerCase(Locale.ROOT));\n+    }",
+      "id": "PRRT_kwDODJKVX867-h-c",
+      "opened": "2026-11-25T15:31:58Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqProducerAttributeExtractor.java",
+      "replies": [
+        {
+          "at": "2026-11-26T12:46:43Z",
+          "body": "The emitted values are equivalent, but the switch intentionally reuses constants for known types to avoid per‑message lowercase conversion and allocation on the send path, including when experimental attributes are disabled. This follows the earlier review feedback: [[https://github.com/open](https://link.wtturl.cn/?target=https%3A%2F%2Fgithub.com%2Fopen&scene=im&aid=582478&lang=zh)](https://link.wtturl.cn/?target=https%3A%2F%2Fgithub.com%2Fopen&scene=im&aid=582478&lang=zh)‑telemetry/opentelemetry‑java‑instrumentation/pull/21276#discussion_r4654382321. The default branch preserves lowercase names for unknown types. I suggest keeping the current implementation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4708543759"
+        },
+        {
+          "at": "2026-11-26T22:02:23Z",
+          "body": "I pushed a commit to get both. It builds the lowercase names once from `MessageType.values()` into an `EnumMap` when the class loads, so a send is just a map lookup with no allocation. It also picks up whatever types the runtime client has, including `LITE` and `PRIORITY` on 5.2+, without naming them, so it still compiles against 5.0.0. The output is the same as the switch.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4713702380"
+        }
+      ],
+      "reviewed": "0d2cfb8571008ae12f2bb22de3c0f70a20f44c9a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21276#discussion_r4697202688"
+    }
+  ]
+}

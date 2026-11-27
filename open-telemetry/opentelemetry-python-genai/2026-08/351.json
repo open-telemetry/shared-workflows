@@ -1,0 +1,25 @@
+{
+  "head": "e2bf04946dca779ab872a27081f64def07d29ea6",
+  "merge": "7733486ed7ebe6053415f9f4dd6adb92ae9011fb",
+  "merged": "2026-08-06T02:18:21Z",
+  "missing_roots": 0,
+  "number": 351,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`get_pypi_status()` only treats HTTP 404 as a non-fatal case; any other HTTP/network/JSON error will raise and can fail the release workflow step that runs this script. The generator should be resilient (log + return a sentinel) instead of aborting the workflow on transient PyPI issues (timeouts, 429/5xx, bad JSON, DNS).\n\nThis issue also appears on line 128 of the same file.",
+      "created": "2026-08-03T21:08:32Z",
+      "hunk": "@@ -3,21 +3,80 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n+import json\n import logging\n import os\n+import re\n+import urllib.error\n+import urllib.request\n \n logging.basicConfig(level=logging.INFO)\n logger = logging.getLogger(\"instrumentation_readme_generator\")\n \n _prefix = \"opentelemetry-instrumentation-\"\n \n-header = \"\"\"\n-| Instrumentation | Supported Packages | Metrics support | Semconv status |\n-| --------------- | ------------------ | --------------- | -------------- |\"\"\"\n+\n+def get_release_workflow_packages(root_path: str) -> set[str]:\n+    packages = set()\n+\n+    # 1. Parse .github/workflows/release-package.yml options\n+    workflow_path = os.path.join(\n+        root_path,\n+        \".github\",\n+        \"workflows\",\n+        \"release-package.yml\",\n+    )\n+    if os.path.exists(workflow_path):\n+        with open(workflow_path, \"r\", encoding=\"utf-8\") as f:\n+            for line in f:\n+                line = line.strip()\n+                if line.startswith(\"- opentelemetry-\"):\n+                    pkg_name = line.lstrip(\"- \").strip(\"'\\\"\")\n+                    packages.add(pkg_name)\n+\n+    # 2. Parse eachdist.ini release_packages\n+    ini_path = os.path.join(root_path, \"eachdist.ini\")\n+    if os.path.exists(ini_path):\n+        with open(ini_path, \"r\", encoding=\"utf-8\") as f:\n+            in_release_packages = False\n+            for line in f:\n+                line = line.strip()\n+                if line.startswith(\"[\") and line.endswith(\"]\"):\n+                    in_release_packages = line == \"[release_packages]\"\n+                    continue\n+                if in_release_packages and line.startswith(\"opentelemetry-\"):\n+                    packages.add(line)\n+\n+    return packages\n+\n+\n+def get_pypi_status(package_name: str) -> str:\n+    url = f\"https://pypi.org/pypi/{package_name}/json\"\n+    req = urllib.request.Request(\n+        url, headers={\"User-Agent\": \"opentelemetry-readme-generator\"}\n+    )\n+    try:\n+        with urllib.request.urlopen(req, timeout=5) as response:\n+            data = json.loads(response.read().decode())\n+            version = data.get(\"info\", {}).get(\"version\")\n+            if version:\n+                return f\"[{version}](https://pypi.org/project/{package_name}/)\"\n+            return \"skeleton\"\n+    except urllib.error.HTTPError as e:\n+        if e.code == 404:\n+            return \"skeleton\"\n+        raise",
+      "id": "PRRT_kwDOSbspP86WH3ul",
+      "opened": "2026-08-03T21:08:32Z",
+      "path": "scripts/generate_instrumentation_readme.py",
+      "replies": [],
+      "reviewed": "a698b0e93edbd572754520995eedc21af89a8756",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/351#discussion_r3707690004"
+    }
+  ]
+}

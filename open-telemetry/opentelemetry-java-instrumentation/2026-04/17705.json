@@ -1,0 +1,31 @@
+{
+  "head": "d5d566a710ddd9bfde46a6a0a93c8537ba3b485b",
+  "merge": "1df48b69dae211228f35f63f90663e915870c642",
+  "merged": "2026-04-08T10:02:43Z",
+  "missing_roots": 0,
+  "number": 17705,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@copilot revert changes to this file",
+      "created": "2026-04-08T07:06:32Z",
+      "hunk": "@@ -10,9 +10,12 @@\n \n public class GatewaySingletons {\n \n+  private static final HttpServerRouteGetter<ServerWebExchange> httpRouteGetter =",
+      "id": "PRRT_kwDODJKVX855e7VC",
+      "opened": "2026-04-08T07:06:31Z",
+      "path": "instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/gateway/v2_0/GatewaySingletons.java",
+      "replies": [
+        {
+          "at": "2026-04-08T07:11:21Z",
+          "body": "Reverted in d5d566a7.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17705#discussion_r3049721253"
+        }
+      ],
+      "reviewed": "b01d2715e5c94c76a2fb76c062dd1bbbbeee938f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17705#discussion_r3049702028"
+    }
+  ]
+}

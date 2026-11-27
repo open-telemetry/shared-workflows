@@ -1,0 +1,67 @@
+{
+  "head": "d5d5f018531f72e3b11f69a61304174b6941a215",
+  "merge": "3f1be96e333c5a9b777b0bea8f565192c481117e",
+  "merged": "2026-09-23T16:30:07Z",
+  "missing_roots": 0,
+  "number": 775,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This conversion passes `NodeWithScore.score` through without filtering non-finite floats, unlike the LangChain conversion. If a retriever returns `NaN` or ±`Inf`, `gen_ai_json_dumps` emits non-standard `NaN`/`Infinity` tokens, so `gen_ai.retrieval.documents` is not valid JSON for consumers of the shared model; normalize such scores to `None` and add a regression test.",
+      "created": "2026-09-23T04:06:31Z",
+      "hunk": "@@ -327,25 +328,18 @@ def _retrieval_top_k(retriever: BaseRetriever) -> int | None:\n \n def _retrieval_documents(\n     result: object,\n-) -> list[dict[str, Any]] | None:\n+) -> list[RetrievalDocument] | None:\n     \"\"\"Convert retrieved LlamaIndex nodes to semconv document objects.\"\"\"\n     if not isinstance(result, Sequence):\n         return None\n     candidates = cast(Sequence[object], result)\n-    documents: list[dict[str, Any]] = []\n+    documents: list[RetrievalDocument] = []\n     for candidate in candidates:\n         if not isinstance(candidate, NodeWithScore):\n             continue\n-        try:\n-            document: dict[str, Any] = {\n-                \"id\": candidate.node_id,\n-                \"content\": candidate.node.get_content(),\n-            }\n-            if candidate.score is not None:\n-                document[\"score\"] = candidate.score\n-            documents.append(document)\n-        except BaseException:\n-            continue\n+        documents.append(\n+            RetrievalDocument(id=candidate.node_id, score=candidate.score)\n+        )",
+      "id": "PRRT_kwDOSbspP86lAtK6",
+      "opened": "2026-09-23T04:06:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [
+        {
+          "at": "2026-09-23T04:39:24Z",
+          "body": "NaN and infinite scores now become null. Added sync and async tests to check the emitted JSON.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/775#discussion_r4079080854"
+        }
+      ],
+      "reviewed": "065eace8b3b5eea5217b170e61316a65cc45a716",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/775#discussion_r4078932194"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This conversion used to guard `node_id` and `score` access with `except BaseException`, so a malformed/custom `NodeWithScore` could not make telemetry break the retrieval call. These direct property accesses now run from `prepare_to_exit_span` without a guard; if either accessor raises, span finalization raises into LlamaIndex after the underlying retrieval has succeeded. Keep the extraction guarded and skip only the malformed document to preserve the instrumentation's transparent return/error behavior.",
+      "created": "2026-09-23T04:06:31Z",
+      "hunk": "@@ -327,25 +328,18 @@ def _retrieval_top_k(retriever: BaseRetriever) -> int | None:\n \n def _retrieval_documents(\n     result: object,\n-) -> list[dict[str, Any]] | None:\n+) -> list[RetrievalDocument] | None:\n     \"\"\"Convert retrieved LlamaIndex nodes to semconv document objects.\"\"\"\n     if not isinstance(result, Sequence):\n         return None\n     candidates = cast(Sequence[object], result)\n-    documents: list[dict[str, Any]] = []\n+    documents: list[RetrievalDocument] = []\n     for candidate in candidates:\n         if not isinstance(candidate, NodeWithScore):\n             continue\n-        try:\n-            document: dict[str, Any] = {\n-                \"id\": candidate.node_id,\n-                \"content\": candidate.node.get_content(),\n-            }\n-            if candidate.score is not None:\n-                document[\"score\"] = candidate.score\n-            documents.append(document)\n-        except BaseException:\n-            continue\n+        documents.append(\n+            RetrievalDocument(id=candidate.node_id, score=candidate.score)\n+        )",
+      "id": "PRRT_kwDOSbspP86lAtKr",
+      "opened": "2026-09-23T04:06:31Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-llama-index/src/opentelemetry/instrumentation/genai/llama_index/_handler.py",
+      "replies": [
+        {
+          "at": "2026-09-23T04:39:08Z",
+          "body": "Restored the per-document guard. A bad accessor now skips that document without preventing the span from finishing.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/775#discussion_r4079079765"
+        }
+      ],
+      "reviewed": "065eace8b3b5eea5217b170e61316a65cc45a716",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/775#discussion_r4078932171"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Unfortunate we end up with empty docs here, but that's what semconv does right now. Created https://github.com/open-telemetry/semantic-conventions-genai/issues/537 to track, let's follow up once it's resolved in some way.",
+      "created": "2026-09-23T14:11:32Z",
+      "hunk": "@@ -485,7 +486,8 @@ def _set_retrieval_invocation_documents(\n     if passages is None:\n         return\n \n-    invocation.documents = [{\"content\": str(psg)} for psg in passages]\n+    # Retrieve returns passage text, without document IDs or scores.\n+    invocation.documents = [RetrievalDocument() for _ in passages]",
+      "id": "PRRT_kwDOSbspP86lL9pY",
+      "opened": "2026-09-23T14:12:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "b04b16a9095822f11cd92d487d4ac396e0d31580",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/775#discussion_r4083385387"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "282dee3c520cab508f0bcc8033b5e1cafa1e69afca926b091162b1318f2064aa",
+  "input_digest": "81586e4e56a114783c7d27ae9eda32d7249f771fcaee763ee2fbfaced7f77e54",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX86A9XSZ",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d4ad5554b921f1d8bf5bc6f3ba0ab8d1fbd14d7e/instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractSystemMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c350b63e1d83fef8774494ff12524bd06e5bbe25/instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractSystemMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e738c43bd4d1245b86788378320f0db41938f016"
+      ],
+      "id": "PRRT_kwDODJKVX86A9Zb4",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d4ad5554b921f1d8bf5bc6f3ba0ab8d1fbd14d7e/instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractSystemMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c350b63e1d83fef8774494ff12524bd06e5bbe25/instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractSystemMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e738c43bd4d1245b86788378320f0db41938f016"
+      ],
+      "id": "PRRT_kwDODJKVX86A9Zbt",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d4ad5554b921f1d8bf5bc6f3ba0ab8d1fbd14d7e/instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractProcessMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c350b63e1d83fef8774494ff12524bd06e5bbe25/instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractProcessMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e738c43bd4d1245b86788378320f0db41938f016"
+      ],
+      "id": "PRRT_kwDODJKVX86A9Zb_",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e738c43bd4d1245b86788378320f0db41938f016/instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractSystemMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c350b63e1d83fef8774494ff12524bd06e5bbe25/instrumentation/oshi/testing/src/main/java/io/opentelemetry/instrumentation/oshi/AbstractSystemMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b871c01038d5cbae10789c75e9e224ec2b7d43ac"
+      ],
+      "id": "PRRT_kwDODJKVX86A9csw",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

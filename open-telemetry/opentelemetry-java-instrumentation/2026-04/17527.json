@@ -1,0 +1,25 @@
+{
+  "head": "38ae4c814d12936dd47205fbd379ea5079100561",
+  "merge": "9cda91febb87bc99a88258cb04b88e30d37b84d3",
+  "merged": "2026-04-05T01:33:29Z",
+  "missing_roots": 0,
+  "number": 17527,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n        .satisfiesExactly(\n```",
+      "created": "2026-04-05T00:04:44Z",
+      "hunk": "@@ -152,13 +160,17 @@ void testNoOverrideTraceId() {\n             });\n     List<ListAppender.LoggedEvent> events = ListAppender.get().getEvents();\n     ThreadContext.clearAll();\n-    assertThat(events).hasSize(1);\n-    assertThat(events.get(0).getMessage()).isEqualTo(\"log span parent\");\n-    assertThat(events.get(0).getContextData().get(getLoggingKey(\"trace_id\")))\n-        .isEqualTo(\"test_traceId\");\n-    assertThat(events.get(0).getContextData().get(getLoggingKey(\"span_id\")))\n-        .isEqualTo(\"test_spanId\");\n-    assertThat(events.get(0).getContextData().get(getLoggingKey(\"trace_flags\")))\n-        .isEqualTo(\"test_traceFlag\");\n+    assertThat(events)\n+        .singleElement()\n+        .satisfies(",
+      "id": "PRRT_kwDODJKVX85436pY",
+      "opened": "2026-04-05T00:04:43Z",
+      "path": "instrumentation/log4j/log4j-context-data/log4j-context-data-common/testing/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/Log4j2Test.java",
+      "replies": [],
+      "reviewed": "458a8756d26deca9b0556d97e644e0c36a90a065",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17527#discussion_r3036203439"
+    }
+  ]
+}

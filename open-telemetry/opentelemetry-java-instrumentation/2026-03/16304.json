@@ -1,0 +1,31 @@
+{
+  "head": "a4b0d0eb92e7bb8620a00679d5200f231db5e31f",
+  "merge": "92e3e4f7e94be3ff9317160e6c86178fd19ed127",
+  "merged": "2026-03-02T15:13:25Z",
+  "missing_roots": 0,
+  "number": 16304,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "the classes used for transition could just be internal classes",
+      "created": "2026-03-02T15:01:48Z",
+      "hunk": "@@ -151,6 +152,7 @@ public GrpcTelemetryBuilder setCapturedServerRequestMetadata(\n   }\n \n   /** Returns a new {@link GrpcTelemetry} with the settings of this {@link GrpcTelemetryBuilder}. */\n+  @SuppressWarnings(\"deprecation\") // RpcMetricsContextCustomizers is deprecated for removal in 3.0",
+      "id": "PRRT_kwDODJKVX85xkk81",
+      "opened": "2026-03-02T15:01:48Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-03-02T15:13:19Z",
+          "body": "I kind of like to make them public to support anyone outside of this repo going through the transition, although maybe that's not too realistic since they'd have to stick to our timeline as we'll be removing them in 3.0",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16304#discussion_r2872999173"
+        }
+      ],
+      "reviewed": "a4b0d0eb92e7bb8620a00679d5200f231db5e31f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16304#discussion_r2872932972"
+    }
+  ]
+}

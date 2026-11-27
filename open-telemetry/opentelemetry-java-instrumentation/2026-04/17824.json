@@ -1,0 +1,31 @@
+{
+  "head": "30e1781b2e54645d537c7a01c0df3429bc437829",
+  "merge": "f7c56841fb6a9af501050f5bd367f5b3eea3d1b2",
+  "merged": "2026-04-14T12:27:03Z",
+  "missing_roots": 0,
+  "number": 17824,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is it worth tracking `hookInserted` as optimization like the transformers above?",
+      "created": "2026-04-13T21:02:03Z",
+      "hunk": "@@ -245,4 +250,38 @@ public void visitMethodInsn(\n       return hookInserted ? cw.toByteArray() : null;\n     }\n   }\n+\n+  private static class AgentBuilderDefaultClassFileTransformer implements ClassFileTransformer {",
+      "id": "PRRT_kwDODJKVX856pn6W",
+      "opened": "2026-04-13T21:02:03Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/AgentStarterImpl.java",
+      "replies": [
+        {
+          "at": "2026-04-14T06:22:08Z",
+          "body": "Imo not really. We expect it to always transform the class.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17824#discussion_r3077479557"
+        }
+      ],
+      "reviewed": "80f4149c9823f64a73f1cc0f3ddd3ec00e955c9d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17824#discussion_r3075802904"
+    }
+  ]
+}

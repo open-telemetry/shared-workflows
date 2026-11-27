@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "676dfecefe5c287c8f2863a324945e9b7c0c08d4dbaf4d070eac35aedf06086c",
+  "input_digest": "d460c5b1cdd1d6d98b6e61cc5d84580908178d2b1b577477b4f479254e09f7e1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4505092b1bf59deb63239b2f3b1e3c1b475442a/instrumentation/hbase-client-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseClient20Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4505092b1bf59deb63239b2f3b1e3c1b475442a/instrumentation/hbase-client-2.0/javaagent/src/shadedClientTest/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseShadedClient20Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e571ab0bb4a436577e554159865ff3e5388bf82d/instrumentation/hbase-client-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseClient20Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e571ab0bb4a436577e554159865ff3e5388bf82d/instrumentation/hbase-client-2.0/javaagent/src/shadedClientTest/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseShadedClient20Test.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Jj0mx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e4505092b1bf59deb63239b2f3b1e3c1b475442a/instrumentation/hbase-client-2.0/javaagent/src/shadedClientTest/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseShadedClient20Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e571ab0bb4a436577e554159865ff3e5388bf82d/instrumentation/hbase-client-2.0/javaagent/src/shadedClientTest/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseShadedClient20Test.java"
+      ],
+      "id": "PRRT_kwDODJKVX86Jj0nb",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "d0c762e6acf67bb376c74054b6ea96f2c19e2d1a",
+  "merge": "c1ffbe3143f11bbe12d6abbb340cfc19f2736322",
+  "merged": "2026-02-12T08:26:34Z",
+  "missing_roots": 0,
+  "number": 16151,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "renaming to `databaseName` instead of `namespace` throughout this PR because in these cases it's not the otel `db.namespace` concept, but really \"database name\"",
+      "created": "2026-02-12T02:31:35Z",
+      "hunk": "@@ -57,7 +57,7 @@ class ClickHouseClientV1Test {\n   private static final GenericContainer<?> clickhouseServer =\n       new GenericContainer<>(\"clickhouse/clickhouse-server:24.4.2\").withExposedPorts(8123);\n \n-  private static final String dbName = \"default\";\n+  private static final String databaseName = \"default\";",
+      "id": "PRRT_kwDODJKVX85uIOXC",
+      "opened": "2026-02-12T02:31:35Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Test.java",
+      "replies": [],
+      "reviewed": "d0c762e6acf67bb376c74054b6ea96f2c19e2d1a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16151#discussion_r2796480644"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I guess it is needed because of https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f27845aa4d905ebf40ffc8caf3936abfd5c57623/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java#L1023\nwondering whether we should be preserving the case for the database name",
+      "created": "2026-02-12T08:26:19Z",
+      "hunk": "@@ -59,14 +59,14 @@ protected Connection wrap(Connection connection) throws SQLException {\n     return connection;\n   }\n \n-  private static final String dbName = \"jdbcUnitTest\";\n-  private static final String dbNameLower = dbName.toLowerCase(Locale.ROOT);\n+  private static final String databaseName = \"jdbcUnitTest\";\n+  private static final String databaseNameLower = databaseName.toLowerCase(Locale.ROOT);",
+      "id": "PRRT_kwDODJKVX85uK88U",
+      "opened": "2026-02-12T08:26:19Z",
+      "path": "instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractPreparedStatementParametersTest.java",
+      "replies": [],
+      "reviewed": "d0c762e6acf67bb376c74054b6ea96f2c19e2d1a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16151#discussion_r2797418022"
+    }
+  ]
+}

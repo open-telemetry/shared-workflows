@@ -1,0 +1,73 @@
+{
+  "head": "1f34f879cfdccb8545eeb830128c2fe6dcbd6468",
+  "merge": "7e73a2b95174a13104cf1807772d4d0246863207",
+  "merged": "2026-11-06T14:11:15Z",
+  "missing_roots": 0,
+  "number": 21219,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Deferred response content still loses the send-time caller context: Jetty's default `AsyncContentListener.onContentSource()` binds demand callbacks to the original listener, so they bypass this proxy after its scope closes. This affects separately registered synchronous and asynchronous content listeners, plus aggregate listeners, and can mis-parent spans started by later `onContent()` calls. Propagate the caller context through `Content.Source.demand(...)` callbacks while preserving listener overrides and demand semantics, and add a delayed-body regression test.",
+      "created": "2026-11-06T02:07:33Z",
+      "hunk": "@@ -58,11 +55,12 @@ public static Response.CompleteListener wrapTheListener(\n       return listener;\n     }\n \n-    return (Response.CompleteListener)\n+    return (T)\n         Proxy.newProxyInstance(\n             listenerClass.getClassLoader(),\n             interfaces.toArray(new Class<?>[0]),\n             (proxy, method, args) -> {\n+              Context context = contextSupplier.get();\n               try (Scope ignored = context.makeCurrent()) {\n                 return method.invoke(listener, args);",
+      "id": "PRRT_kwDODJKVX860Wdut",
+      "opened": "2026-11-06T02:07:33Z",
+      "path": "instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/internal/JettyClientWrapUtil.java",
+      "replies": [
+        {
+          "at": "2026-11-06T02:37:15Z",
+          "body": "Deferred demand propagation is intentionally separate in #20934, whose fix is verified at 70ec213607f42bc9d6bbeeba8b1c810edf2811cd. This PR restores context for direct library listener notifications; it does not fix later demand callbacks.\n\nI'm accepting that existing limitation here to keep the two PRs independent, rather than duplicating the deferred-content change.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21219#discussion_r4488441578"
+        }
+      ],
+      "reviewed": "30ff7aed22228f27bba8bbb52c89f86259a30139",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21219#discussion_r4488277258"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a behavior-preserving clarity refactor of the Jetty 12 library response-listener wrapping. Do not create another PR.\n\nMove the wrapping implementation from internal/JettyClientWrapUtil.java into a private wrapResponseListener(...) method on TracingHttpRequest.java, under instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/. The request is this utility's only caller. Remove the now-unused utility and Supplier<Context> plumbing. Rename the request's parentContext field to callerContext and update its uses consistently.\n\nThe private wrapper's invocation handler must look up the request's captured callerContext when invoking each callback, not when constructing the wrapper. Keep the existing fallback to Context.current() if the field is not yet set. Add one concise comment explaining the timing: listeners can be registered before send() captures the caller context. Registration overrides should read like super.onResponseHeaders(wrapResponseListener(listener)). Keep caller-context capture at the beginning of send(), before starting instrumentation or calling Jetty, so synchronous failure callbacks still receive the send-time context.\n\nPreserve null handling, the JettyClientTracingListener exclusion, supported listener interfaces including Response.Listener, exception unwrapping, and all existing registration APIs and compatibility behavior. Keep the proxy's interface preservation and generic typing behavior unchanged. Do not include deferred response-content demand propagation; that remains intentionally separate in #20934. This is a refactor, not a change to callback parenting or Jetty behavior.\n\nRun the narrowest applicable spotlessApply task directly before relevant focused validation, without running spotlessCheck first. Verify separately registered listeners still use the send-time context rather than the registration-time context, including synchronous failure callbacks and aggregate listeners. Reuse existing coverage where it already establishes these properties.",
+      "created": "2026-11-06T03:01:27Z",
+      "hunk": "@@ -58,11 +55,12 @@ public static Response.CompleteListener wrapTheListener(\n       return listener;\n     }\n \n-    return (Response.CompleteListener)\n+    return (T)\n         Proxy.newProxyInstance(\n             listenerClass.getClassLoader(),\n             interfaces.toArray(new Class<?>[0]),\n             (proxy, method, args) -> {\n+              Context context = contextSupplier.get();\n               try (Scope ignored = context.makeCurrent()) {\n                 return method.invoke(listener, args);",
+      "id": "PRRT_kwDODJKVX860XJxp",
+      "opened": "2026-11-06T03:01:27Z",
+      "path": "instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/internal/JettyClientWrapUtil.java",
+      "replies": [
+        {
+          "at": "2026-11-06T03:07:58Z",
+          "body": "Done in 5fe148a5. The wrapping now lives in a private `TracingHttpRequest.wrapResponseListener(...)`, `JettyClientWrapUtil` and the `Supplier<Context>` plumbing are removed, and `parentContext` is renamed to `callerContext`. The proxy reads `callerContext` when each callback runs and falls back to `Context.current()` if it isn't set. The capture still happens first in `send()`. The existing `responseLifecycleContexts` tests cover inline failure, and `aggregateResponseListenerContext` covers aggregate listeners. Those tests register listeners outside the parent span and send inside it, and they pass with both default and latest deps.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21219#discussion_r4488608483"
+        }
+      ],
+      "reviewed": "30ff7aed22228f27bba8bbb52c89f86259a30139",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21219#discussion_r4488572296"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a naming-only correction in instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/TracingHttpRequest.java. Rename the callerContext field back to parentContext and update every reference to that field.\n\nUse parentContext to match the terminology in Jetty 9.2 TracingHttpClient and JettyClientWrapUtil.wrapResponseListeners, Java HTTP Client OpenTelemetryHttpClient.traceAsync, and other HTTP client instrumentation. This supersedes the callerContext rename requested in the previous completed refactor.\n\nKeep the private wrapResponseListener helper on TracingHttpRequest, keep the Supplier and utility class removed, and preserve all current runtime behavior. In particular, capture the context at the beginning of send() and read it inside the proxy invocation handler with the same Context.current() fallback and scope/exception handling. Do not include deferred-demand propagation or unrelated test-coverage additions.\n\nRun the narrowest applicable spotlessApply task directly before relevant focused validation, without running spotlessCheck first. Keep the change limited to the field naming correction.",
+      "created": "2026-11-06T03:21:40Z",
+      "hunk": "@@ -21,8 +24,21 @@\n \n class TracingHttpRequest extends HttpRequest {\n \n+  private static final Class<?>[] LISTENER_INTERFACES = {\n+    Response.CompleteListener.class,\n+    Response.FailureListener.class,\n+    Response.SuccessListener.class,\n+    Response.AsyncContentListener.class,\n+    Response.ContentSourceListener.class,\n+    Response.ContentListener.class,\n+    Response.HeadersListener.class,\n+    Response.HeaderListener.class,\n+    Response.BeginListener.class,\n+    Response.Listener.class\n+  };\n+\n   private final Instrumenter<Request, Response> instrumenter;\n-  @Nullable private Context parentContext;\n+  @Nullable private Context callerContext;",
+      "id": "PRRT_kwDODJKVX860XbDU",
+      "opened": "2026-11-06T03:21:40Z",
+      "path": "instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/TracingHttpRequest.java",
+      "replies": [
+        {
+          "at": "2026-11-06T03:29:12Z",
+          "body": "Renamed the field and all references back to `parentContext`, leaving behavior unchanged. Commit: `1f34f879`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21219#discussion_r4488727698"
+        }
+      ],
+      "reviewed": "5fe148a5dc2874e1d203fee0c02f2403016957b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21219#discussion_r4488690319"
+    }
+  ]
+}

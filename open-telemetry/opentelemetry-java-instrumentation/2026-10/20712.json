@@ -1,0 +1,151 @@
+{
+  "head": "3f8c0b4f3def3de36cfd341c4c23a3841df00804",
+  "merge": "c524624af81debbecd288e3dcd72b1e7dbab96f7",
+  "merged": "2026-10-20T06:28:48Z",
+  "missing_roots": 0,
+  "number": 20712,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Reduce this PR's added testing to one focused real-Camel-route regression. Preserve the production error-classification fix and all pre-existing tests. This is a user-directed reduction of coverage, not a request to expand it.\n\nThe user's goal is: \"All I really want is basic integration test coverage for that shows these error types now being captured where they weren't before\". This PR concerns Camel messaging telemetry, not database spans.\n\nExtend the existing JmsCamelTest.failedCamelProcessCountsDeliveredMessage coverage with one fault-only case that marks the Camel exchange as faulted without throwing an exception. Preserve its existing exception-based case. Exercise the real Camel route with the installed agent and assert error.type=\"_OTHER\" on the process span and its duration metric. Reuse the existing JmsCamelTest route/broker fixture rather than introducing a new test harness.\n\nRemove the additions to CamelProcessMetricsTest for classifiesMessagingExchange and classifiesSuppressedRouteWithoutChangingOwner, including their new outcome matrices and helpers/imports that become unused. Those additions invoke instrumentation internals through reflection. Do not remove pre-existing CamelProcessMetricsTest coverage or pre-existing helpers that it still uses. There is no need to reproduce send/process, suppression, handled-exception, or combined-fault matrices for this small shared-getter change.\n\nKeep the production change in CamelMessagingAttributesGetter unchanged. Keep this existing PR draft against main. Follow repository instructions, format changed files, and run the narrow relevant existing integration tests. Do not add unrelated cleanup, configuration, production changes, new PR work, or review requests.",
+      "created": "2026-10-19T04:11:56Z",
+      "hunk": "@@ -49,6 +60,182 @@ void setUp() throws Exception {\n     }\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"exchangeOutcomes\")\n+  void classifiesMessagingExchange(String direction, String outcome, String errorType)",
+      "id": "PRRT_kwDODJKVX86tyHMC",
+      "opened": "2026-10-19T04:11:56Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelProcessMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T04:20:53Z",
+          "body": "Reduced the added coverage to one real JMS/Camel fault-only route regression, preserved the exception case and production getter, and verified `JmsCamelTest` passes. Commit: `f5c186aa`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4310296617"
+        }
+      ],
+      "reviewed": "a5c464e0d512514c11a059b2f69e2bb7c929eb1a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4310258133"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly by adding the missing span-status assertion to JmsCamelTest.faultedCamelProcessCountsDeliveredMessage in instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/JmsCamelTest.java.\n\nThe fault-only route already calls exchange.getOut().setFault(true), exercising request.getExchange().isFailed() without throwing an exception. The test currently asserts error.type=\"_OTHER\" on the process faultQueue span and messaging metrics, but does not assert that the span status is ERROR. Extend that same process-span assertion to verify StatusData.error() using the repository's OpenTelemetry span assertion API, with the necessary imports. Preserve the existing error.type and metric assertions.\n\nKeep the production change and all other existing tests unchanged. This is a small addition to the existing real-Camel integration test, not a request for more scenarios, a new harness, or broader coverage. Follow repository instructions, format the changed file with the narrowest spotlessApply task, and run the relevant existing JmsCamelTest integration test. Preserve this PR's current draft/ready state and base branch. Do not create a separate or follow-up PR, request a review, or add unrelated changes.",
+      "created": "2026-10-19T20:33:43Z",
+      "hunk": "@@ -111,6 +120,20 @@ void failedCamelProcessCountsDeliveredMessage() throws Exception {\n         testing, \"jms\", \"errorQueue\", IllegalStateException.class.getName());\n   }\n \n+  @Test\n+  void faultedCamelProcessCountsDeliveredMessage() throws Exception {\n+    ProducerTemplate template = camelContext.createProducerTemplate();\n+    template.sendBody(\"direct:faultInput\", \"test message\");\n+\n+    assertThat(faultProcessed.await(1, MINUTES)).isTrue();\n+    testing.waitForTraces(2);\n+    assertThat(testing.spans())\n+        .filteredOn(span -> span.getName().equals(\"process faultQueue\"))\n+        .singleElement()",
+      "id": "PRRT_kwDODJKVX86uF_-7",
+      "opened": "2026-10-19T20:33:43Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/JmsCamelTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T20:42:37Z",
+          "body": "Added the `StatusData.error()` assertion to the existing fault process-span check; the `_OTHER` attribute and duration metric assertions remain. Spotless and the focused `JmsCamelTest` passed. Commit: `2ca39a84`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4318654513"
+        }
+      ],
+      "reviewed": "f5c186aa7587468e55edd87d87520516516e01db",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4318571443"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new JMS test faults only an unsuppressed process operation; its send succeeds. This getter also supplies send telemetry and the separate `CamelProcessMetrics.end()` path used when a route's span is suppressed, but neither path has fault coverage. Add focused regressions for a send that completes with a fault and no exception, and for a span-suppressed faulted route. Assert `_OTHER` on the send span and relevant metrics, and verify that the suppressed route leaves the owning span unchanged.",
+      "created": "2026-10-19T21:06:02Z",
+      "hunk": "@@ -70,4 +70,14 @@ public Long getBatchMessageCount(CamelRequest request, @Nullable Void unused) {\n   public String getDestinationPartitionId(CamelRequest request) {\n     return request.getMessagingDestinationPartitionId();\n   }\n+\n+  @Nullable\n+  @Override\n+  public String getErrorType(\n+      CamelRequest request, @Nullable Void unused, @Nullable Throwable error) {\n+    if (error != null) {\n+      return error.getClass().getName();\n+    }\n+    return request.getExchange().isFailed() ? \"_OTHER\" : null;",
+      "id": "PRRT_kwDODJKVX86uGsEO",
+      "opened": "2026-10-19T21:06:03Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelMessagingAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-19T23:31:07Z",
+          "body": "The JMS request/reply fault test now covers `_OTHER` on both send/process spans and their metrics. I also added fault variants to the existing fallback-metrics test, covering process duration and consumed-message metrics. The broader owning-span assertion is intentionally deferred.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4319930662"
+        }
+      ],
+      "reviewed": "2ca39a84958cd99365ae8f790645198ce1eed824",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4318867052"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `waitForTraces(2)` waits for exported roots, not all child spans (`TelemetryDataUtil.isCompleted`). Both roots can be exported before `process faultQueue` ends, and `faultProcessed` is released inside the processor before route completion. The immediate snapshot can therefore miss the process span and fail intermittently. Use retrying `waitAndAssertSortedTraces` assertions that include the process span.",
+      "created": "2026-10-19T21:06:03Z",
+      "hunk": "@@ -111,6 +122,24 @@ void failedCamelProcessCountsDeliveredMessage() throws Exception {\n         testing, \"jms\", \"errorQueue\", IllegalStateException.class.getName());\n   }\n \n+  @Test\n+  void faultedCamelProcessCountsDeliveredMessage() throws Exception {\n+    ProducerTemplate template = camelContext.createProducerTemplate();\n+    template.sendBody(\"direct:faultInput\", \"test message\");\n+\n+    assertThat(faultProcessed.await(1, MINUTES)).isTrue();\n+    testing.waitForTraces(2);\n+    assertThat(testing.spans())\n+        .filteredOn(span -> span.getName().equals(\"process faultQueue\"))\n+        .singleElement()\n+        .satisfies(\n+            span -> {\n+              assertThat(span).hasStatus(StatusData.error());\n+              assertThat(span.getAttributes().get(ERROR_TYPE)).isEqualTo(\"_OTHER\");\n+            });",
+      "id": "PRRT_kwDODJKVX86uGsFB",
+      "opened": "2026-10-19T21:06:03Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/JmsCamelTest.java",
+      "replies": [],
+      "reviewed": "2ca39a84958cd99365ae8f790645198ce1eed824",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4318867142"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly with one focused real-JMS request/reply fault integration regression and fix the asynchronous trace assertion. Keep the production error-classification change unchanged.\n\nExtend the existing embedded ActiveMQ/Camel fixture in instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/JmsCamelTest.java. Add or adapt the fault-only scenario to use JMS request/reply with transferFault=true on both endpoints. Have the consumer return a normal reply body and mark the outgoing message as a fault without throwing. Drive it through ProducerTemplate.request(...) so the returned exchange can be checked for a fault with no exception. Camel 2.20.1 supports this through JmsBinding and ReplyManagerSupport.\n\nAssert ERROR status and error.type=\"_OTHER\" on both the Camel messaging send span and the process span, and assert \"_OTHER\" on the relevant Camel send and process metrics. Reuse the existing fixture and metric assertions, extending them narrowly if necessary. Preserve existing successful-operation and exception-based coverage. The goal is basic installed-agent integration coverage demonstrating error types on real operations, not a branch matrix or a new harness.\n\nFix the trace assertion race identified in review 5577769334. waitForTraces(2) only waits for exported roots, and the current faultProcessed latch fires before route completion. Use retrying waitAndAssertSortedTraces or waitAndAssertTraces assertions that include all expected spans for the real scenario, rather than immediately taking a testing.spans() snapshot. Keep exact telemetry assertions and existing error status/attribute checks.\n\nKeep this update scoped to integration coverage and the assertion race. Do not reintroduce the reflection-based CamelProcessMetricsTest fault/suppression matrices that were previously removed, and do not add a separate suppressed-route helper test in this update. Suppressed-route fault coverage is deferred; do not claim this JMS test exercises the metrics-only fallback.\n\nFollow repository instructions, apply the narrowest relevant spotlessApply task, and run the focused existing JmsCamelTest integration test in the applicable existing variants. Preserve the original PR's draft state and main base branch. Update this PR directly, not a new or follow-up PR. Do not add production changes, unrelated cleanup, review requests, replies, or thread resolutions.",
+      "created": "2026-10-19T21:37:02Z",
+      "hunk": "@@ -111,6 +122,24 @@ void failedCamelProcessCountsDeliveredMessage() throws Exception {\n         testing, \"jms\", \"errorQueue\", IllegalStateException.class.getName());\n   }\n \n+  @Test\n+  void faultedCamelProcessCountsDeliveredMessage() throws Exception {\n+    ProducerTemplate template = camelContext.createProducerTemplate();\n+    template.sendBody(\"direct:faultInput\", \"test message\");\n+\n+    assertThat(faultProcessed.await(1, MINUTES)).isTrue();\n+    testing.waitForTraces(2);",
+      "id": "PRRT_kwDODJKVX86uHTRM",
+      "opened": "2026-10-19T21:37:02Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/JmsCamelTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T21:56:28Z",
+          "body": "Added the request/reply fault regression, exact trace assertions for all four traces, and the send/process `_OTHER` metric checks; the standard and experimental `JmsCamelTest` variants pass. Commit: `dc61a2dc`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4319281183"
+        }
+      ],
+      "reviewed": "2ca39a84958cd99365ae8f790645198ce1eed824",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4319127252"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly with the focused fallback-metrics test extension described below. Keep the production change and existing JMS integration coverage unchanged.\n\nIn instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelProcessMetricsTest.java, extend recordsOnlyAbsentMetric and its signalsAlreadyPresent method source to retain both existing successful cases and add faulted-exchange variants of those same two cases. Mark the outgoing Camel message as a fault with exchange.getOut().setFault(true), without setting or throwing an exception. Reuse the existing request/context setup and CamelProcessMetrics.start/end calls; do not introduce another test fixture or new reflection infrastructure.\n\nFor each case, assert that the emitted metric point has error.type=\"_OTHER\" for a faulted exchange and omits error.type for a successful exchange. Preserve the existing checks that only the expected missing metric is recorded. Cover both messaging.process.duration and messaging.client.consumed.messages through the two existing signal scenarios. This must exercise the separate CamelProcessMetrics.end() fallback path, not just call CamelMessagingAttributesGetter directly.\n\nConsider the metric-testing guidance proposed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20738: do not repeat metric attribute values already checked on a corresponding span. These helper-driven cases are metric-only and have no corresponding Camel span, so the explicit \"_OTHER\" value assertion is intentional and necessary. Keep short expected values inline. Do not expand this into unrelated metric assertion cleanup or change #20738.\n\nThe broader owning-span/suppressed-route integration assertion from discussion_r4318867052 is explicitly out of scope. Do not add a new broker scenario, a separate suppression test, or an outcome matrix beyond the existing two successful cases and their two fault variants. The current JmsCamelTest already covers real send/process fault telemetry and should remain unchanged.\n\nFollow repository instructions, run the narrowest relevant spotlessApply task directly before validating behavior, and run the focused CamelProcessMetricsTest through the applicable existing test tasks. Preserve this PR's current draft/ready state and base branch. Update this PR directly rather than creating a separate or follow-up PR. Do not request reviews, post replies, resolve threads, or make unrelated production, configuration, or documentation changes.",
+      "created": "2026-10-19T23:17:33Z",
+      "hunk": "@@ -70,4 +70,14 @@ public Long getBatchMessageCount(CamelRequest request, @Nullable Void unused) {\n   public String getDestinationPartitionId(CamelRequest request) {\n     return request.getMessagingDestinationPartitionId();\n   }\n+\n+  @Nullable\n+  @Override\n+  public String getErrorType(\n+      CamelRequest request, @Nullable Void unused, @Nullable Throwable error) {\n+    if (error != null) {\n+      return error.getClass().getName();\n+    }\n+    return request.getExchange().isFailed() ? \"_OTHER\" : null;",
+      "id": "PRRT_kwDODJKVX86uI-fk",
+      "opened": "2026-10-19T23:17:33Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelMessagingAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-19T23:26:43Z",
+          "body": "Added faulted-exchange variants for both existing signal cases and asserted `_OTHER` on fallback metrics while successful cases omit `error.type`. Focused `CamelProcessMetricsTest` and Spotless pass. Commit: `89752651`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4319903838"
+        }
+      ],
+      "reviewed": "dc61a2dc93b094e147291789064d4709a69ebacb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4319848315"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly with a small metric-assertion cleanup in instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelProcessMetricsTest.java.\n\nIn recordsOnlyAbsentMetric, move the newly added metric-point error.type assertion into the existing testing.waitAndAssertMetrics(INSTRUMENTATION_NAME, expectedMetric, ...) callback. That helper already filters by instrumentation scope and metric name. Use singleElement() there to retain the existing one-metric check, then assert a single point and ERROR_TYPE equal to faulted ? \"_OTHER\" : null. Keep that short expected value inline.\n\nRemove the now-redundant separate assertThat(testing.metrics()).filteredOn(...).singleElement().satisfies(...) chain for error.type. Preserve the existing scope-filtered extracting(MetricData::getName).containsExactly(expectedMetric) assertion: it separately verifies that Camel emits only the missing metric and does not emit the suppressed metric. Do not simply delete that filter or weaken the suppressed-metric check. Preserve the two successful and two faulted cases, explicitSuppressionDoesNotRecordFallbackMetrics, all production code, and the JMS integration coverage unchanged.\n\nKeep this scoped to the requested assertion cleanup. Follow repository instructions, run the narrowest relevant spotlessApply task directly before validating behavior, and run the focused CamelProcessMetricsTest in applicable existing test variants. Preserve this PR's current draft/ready state and base branch. Update this PR directly rather than creating a separate or follow-up PR. Do not request reviews, post replies, resolve threads, or make unrelated changes.",
+      "created": "2026-10-20T00:07:53Z",
+      "hunk": "@@ -165,6 +170,18 @@ void recordsOnlyAbsentMetric(String operation, String signal, String expectedMet\n             metric -> INSTRUMENTATION_NAME.equals(metric.getInstrumentationScopeInfo().getName()))\n         .extracting(MetricData::getName)\n         .containsExactly(expectedMetric);\n+    assertThat(testing.metrics())",
+      "id": "PRRT_kwDODJKVX86uJpQL",
+      "opened": "2026-10-20T00:07:53Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelProcessMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-20T00:16:14Z",
+          "body": "Moved the `error.type` point assertion into the filtered `waitAndAssertMetrics` callback and preserved the scope-filtered metric-name check. Focused `CamelProcessMetricsTest` passed in both variants. Commit: `3f8c0b4f`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4320189150"
+        }
+      ],
+      "reviewed": "897526519e2bf145315a5d069a0ae3bc336c2029",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20712#discussion_r4320138328"
+    }
+  ]
+}

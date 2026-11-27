@@ -1,0 +1,70 @@
+{
+  "head": "1f15c727f951e2b734dc9a8dee3253861e7e5978",
+  "merge": "c4e27eb95151f0128576b8467c3f689e85151463",
+  "merged": "2026-05-16T16:14:57Z",
+  "missing_roots": 0,
+  "number": 142,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the jsonc example comment, consider minor grammar/style tweaks for clarity: use “e.g., a PDF …” (comma after “e.g.”) and “referenced by a URI” (add article).\n",
+      "created": "2026-05-11T18:11:24Z",
+      "hunk": "@@ -268,6 +268,13 @@ See the [normative JSON schema](/docs/gen-ai/gen-ai-input-messages.json) for mor\n         \"modality\": \"audio\",\n         \"mime_type\": \"audio/wav\",\n         \"content\": \"aGVsbG8gd29ybGQgaW1hZ2luZSB0aGlzIGlzIGFuIGltYWdlCg==\"\n+      },\n+      // A document (e.g. a PDF for KYC extraction) referenced by URI",
+      "id": "PRRT_kwDOSUeMrM6BLaq7",
+      "opened": "2026-05-11T18:11:25Z",
+      "path": "docs/gen-ai/non-normative/examples-llm-calls.md",
+      "replies": [],
+      "reviewed": "ca373bbc51206635668cccbf31d8717ac028cba6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/142#discussion_r3221122350"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "thanks! I ran the [reference scenario SKILL](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/.github/skills/evaluate-reference/SKILL.md), can you review its findings?\n\n## Credible reference coverage\n\n- Span shape is correct: `chat gpt-4o-mini` wraps the `client.chat.completions.create(...)` call; request attributes set inline before the call, response attributes set from the returned object inside the same `with` block. Public entry point used.\n- `gen_ai.response.model`, `gen_ai.response.id`, `gen_ai.response.finish_reasons`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` are all direct off the OpenAI response.\n- The `TextPart` half of `gen_ai.input.messages` is direct: it mirrors the `{\"type\": \"text\", \"text\": instruction}` content block.\n\n## Too app-specific or cross-call — the central capture gap\n\nThe new scenario calls OpenAI with a `file` content block:\n\n```python\n{\"type\": \"file\", \"file\": {\"file_id\": \"file-mock-kyc\"}}\n```\n\nbut emits a `UriPart` with a fabricated URI in `gen_ai.input.messages`:\n\n```python\n{\"type\": \"uri\", \"modality\": \"document\",\n \"mime_type\": \"application/pdf\",\n \"uri\": \"https://example.com/sample-kyc.pdf\"}\n```\n\nThe OpenAI Chat Completions `file` content block exposes only `file_id` (opaque Files-API handle) or inline `file_data` (base64). Neither yields a URI at the SDK boundary. Native instrumentation watching `chat.completions.create` cannot honestly produce `uri=\"https://example.com/sample-kyc.pdf\"` from `file_id=\"file-mock-kyc\"` without a separate Files-API lookup (cross-call) plus app-specific knowledge that uploaded files originated from a public URL. The PR body even labels the S3/MinIO URI as an \"offload-on-capture step\", i.e. application-side, not library-side. This is a fabricated value, not a derivable one.\n\nSimilarly, `mime_type: \"application/pdf\"` is not on the SDK call boundary either — only `file_id` is. With an inline `file_data` block the mime type would be parseable from the data-URI prefix; with `file_id` it is not.\n\nTwo honest representations would be:\n\n1. **Inline shape** — call the SDK with `{\"type\": \"file\", \"file\": {\"file_data\": \"data:application/pdf;base64,...\", \"filename\": \"...\"}}` and emit a `BlobPart` with `modality: \"document\"`, `mime_type` parsed from the data-URI prefix, and `content` from the base64 payload. Every emitted field then has a direct source on the call boundary.\n2. **File-id shape (current scenario)** — keep the `file_id` SDK call but emit something honest: either drop the modality demonstration (file_id alone is not enough to claim document modality without a Files-API roundtrip) or emit a `UriPart` whose `uri` is the OpenAI file-id URN (e.g. `openai://files/file-mock-kyc`) and *omit* `mime_type`. The current emission is the worst of both — it claims more than the call boundary exposes.\n\nOption 1 is the cleaner fix.\n\n## Missing supporting library implementations\n\nThe PR body itself names two libraries with first-class document blocks. Neither received reference coverage, and both would demonstrate the new enum value far more credibly than OpenAI:\n\n- **Anthropic** (`reference/scenarios/anthropic/scenario.py`). `anthropic.messages.create` accepts a `document` content block (`{\"type\": \"document\", \"source\": {...}}`) natively. The SDK call boundary directly exposes the document part, its source type (`base64` / `url` / `file`), mime type, and data. A `BlobPart` or `UriPart` with `modality: \"document\"` is directly observable — no fabrication needed. This is the canonical demonstration for this PR and is missing.\n- **AWS Bedrock** (`reference/scenarios/aws-bedrock/scenario.py`). The Converse API accepts a `DocumentBlock` (`{\"document\": {\"format\": \"pdf\", \"name\": ..., \"source\": {\"bytes\": ...}}}`). `format` maps directly to mime type and `source.bytes` is the blob content. A `BlobPart` with `modality: \"document\"` is directly observable.\n\nGoogle GenAI / Vertex AI also support PDF parts (`inline_data` with `mime_type: \"application/pdf\"`); worth considering as a third demonstration but not strictly required for this PR.\n\n## Evaluation recommendation\n\n1. **fix implementation** — the openai scenario should not fabricate a URI and mime type that the `chat.completions.create` boundary does not own. Either switch the SDK call to inline `file_data` (data-URI) and emit a `BlobPart` with all three fields directly derived from the SDK arguments, or scope the emission down to what `file_id` actually exposes.\n2. **add reference for supporting library** — add an Anthropic scenario emitting `modality: \"document\"` from a `document` content block; this is the most credible demonstration of the new enum value and is explicitly cited as prior art in the PR description.\n3. **add reference for supporting library** — add a Bedrock Converse scenario emitting `modality: \"document\"` from a `DocumentBlock`.\n\nWithout (1), the openai scenario shows the convention can be written down but not that native OpenAI instrumentation can actually populate it from a single chat-completions call. Without (2) or (3), the PR ships a new enum value whose only reference demonstration relies on fabricated app-side values.\n",
+      "created": "2026-05-12T03:15:28Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6BSAhP",
+      "opened": "2026-05-12T03:15:28Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "cbac855c320ec036baa0007ca86d975ead529741",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/142#discussion_r3223469681"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR description says the OpenAI scenario uses a document URI part / file_id-based attachment shape, but this implementation emits a BlobPart (inline base64) and uses a `file_data` data-URI in the SDK call. Please align the PR description with the actual scenario (or update the scenario to match the described UriPart/FilePart approach) so readers aren't misled.",
+      "created": "2026-05-12T03:35:46Z",
+      "hunk": "@@ -264,6 +264,90 @@ def get_weather(location: str) -> str:\n             print(f\"    -> {choice.message.content[:60]}\")\n \n \n+def run_chat_with_document_input_reference(client):\n+    \"\"\"Scenario: chat with an inline PDF document attachment (document modality).\n+\n+    Exercises the `document` value of the `Modality` enum on a `BlobPart`\n+    in `gen_ai.input.messages`. Every emitted field on the BlobPart is\n+    derivable directly from the OpenAI SDK call boundary:",
+      "id": "PRRT_kwDOSUeMrM6BSLdb",
+      "opened": "2026-05-12T03:35:47Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "66f53f61a0f075409f7355e1f4c635d74cfa1e24",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/142#discussion_r3223529051"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The docstring says the Anthropic `document` block exposes a filename on the SDK call boundary, but the example payload and code here don't include any filename/name field. Either add the filename field if supported, or remove the filename claim from the docstring to keep the scenario documentation accurate.\n",
+      "created": "2026-05-12T03:35:47Z",
+      "hunk": "@@ -112,12 +112,108 @@ def run_chat():\n         print(f\"    -> {resp.content[0].text[:60]}\")\n \n \n+def run_chat_with_document_input():\n+    \"\"\"Scenario: chat with a base64 document block (document modality).\n+\n+    Exercises the `document` value of the `Modality` enum on a `BlobPart`\n+    in `gen_ai.input.messages`. Anthropic's Messages API has a first-class\n+    `document` content block that exposes the mime type, source bytes, and\n+    filename directly on the SDK call boundary -- so every emitted BlobPart\n+    field traces back to the SDK arg without any Files-API roundtrip:",
+      "id": "PRRT_kwDOSUeMrM6BSLdt",
+      "opened": "2026-05-12T03:35:47Z",
+      "path": "reference/scenarios/anthropic/scenario.py",
+      "replies": [],
+      "reviewed": "66f53f61a0f075409f7355e1f4c635d74cfa1e24",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/142#discussion_r3223529072"
+    }
+  ]
+}

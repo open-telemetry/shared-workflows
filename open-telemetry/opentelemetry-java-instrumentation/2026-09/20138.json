@@ -1,0 +1,202 @@
+{
+  "head": "cee1d62054f5d90200a08d2d57da1e4caa98c6ec",
+  "merge": "4921d166db23d72afbff660b2d58a7f29c72bbff",
+  "merged": "2026-09-29T01:34:32Z",
+  "missing_roots": 0,
+  "number": 20138,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This compatibility branch is not exercised by any configured test suite. The regular tests use Spring Rabbit 2.1.7 and `version20Test` uses 2.0.1, both of which take the `consumeFromQueue(String)` path; 1.0.0.RELEASE is only the compile-time library. Please add a version-specific integration test against a release without that method that starts a simple listener and verifies Spring, rather than the RabbitMQ wrapper, owns the process span/metrics. Otherwise the newly added legacy behavior can regress while all current tests still pass.",
+      "created": "2026-09-13T19:14:09Z",
+      "hunk": "@@ -0,0 +1,57 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rabbit.v1_0;\n+\n+import static io.opentelemetry.javaagent.bootstrap.rabbitmq.RabbitMqConsumerProcessTracing.startSpringProcessTelemetry;\n+import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.not;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.bootstrap.rabbitmq.RabbitMqConsumerProcessTracing.Registration;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.springframework.amqp.rabbit.listener.BlockingQueueConsumer;\n+\n+class LegacyBlockingQueueConsumerInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.springframework.amqp.rabbit.listener.BlockingQueueConsumer\")\n+        .and(not(declaresMethod(named(\"consumeFromQueue\").and(takesArguments(String.class)))));",
+      "id": "PRRT_kwDODJKVX86h7P58",
+      "opened": "2026-09-13T19:14:09Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/LegacyBlockingQueueConsumerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-14T18:01:16Z",
+          "body": "Addressed in 67462083d1717c2cae5eb0aeea15bc5ed6117ea9.\n\nAnalysis: Spring Rabbit 1.1.0 does not define BlockingQueueConsumer.consumeFromQueue(String), and its RabbitMQ client is new enough to activate the RabbitMQ wrapper instrumentation. A dedicated suite now starts a SimpleMessageListenerContainer and verifies that Spring emits the consumer process span and metrics while RabbitMQ emits the producer span and no process-duration metric.\n\nUpsides: The test executes the legacy start() advice with both competing instrumentations active and will catch telemetry ownership regressions.\n\nDownsides: The added Testcontainers suite starts another RabbitMQ container during the module check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4008060444"
+        }
+      ],
+      "reviewed": "a1f029b81a271a689a0cce9b8dd387dc27b51453",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4000588423"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This replacement leaves `.github/agents/knowledge/javaagent-thread-local-state.md` instructing contributors to import and use the now-deleted `ScopedThreadValue`. Please update that guidance to describe `ScopedThreadSuppression` and its ownership semantics, or retain the former type if restoration remains the recommended pattern; otherwise future instrumentation changes will be directed to a nonexistent API.",
+      "created": "2026-09-17T04:19:41Z",
+      "hunk": "@@ -0,0 +1,37 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.internal;\n+\n+/**\n+ * Thread-local suppression with acquisition ownership.\n+ *\n+ * <p>A caller that successfully acquires suppression must release it. A caller whose acquisition\n+ * fails does not own the suppression and must not release it.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class ScopedThreadSuppression {",
+      "id": "PRRT_kwDODJKVX86jNFrd",
+      "opened": "2026-09-17T04:19:42Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/ScopedThreadSuppression.java",
+      "replies": [],
+      "reviewed": "59d9bbbaf07e327ba18fd44bc40e5690c46a3dcb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4033057387"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This introduces a separate Pulsar consumed-message accounting change—failed receives now transfer metric ownership to Spring Pulsar—along with extensive Pulsar state and suppression refactoring, but the title and description only describe RabbitMQ. Please split this behavior into a focused PR or update the PR metadata so the additional telemetry change and review scope are explicit.",
+      "created": "2026-09-17T04:19:42Z",
+      "hunk": "@@ -219,10 +225,10 @@ public static Context startAndEndConsumerReceive(\n             timer.startTime(),\n             timer.now());\n     Context processParentContext = emitStableMessagingSemconv() ? parent : receiveContext;\n-    VirtualFieldStore.markReceiveTelemetryRecorded(message);\n     // injected context is used in MessageListenerInstrumentation and also in the spring-pulsar\n     // instrumentation\n-    VirtualFieldStore.inject(message, processParentContext);\n+    VirtualFieldStore.setReceiveState(\n+        message, processParentContext, emitStableMessagingSemconv() && throwable == null);",
+      "id": "PRRT_kwDODJKVX86jNFr_",
+      "opened": "2026-09-17T04:19:42Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/PulsarSingletons.java",
+      "replies": [],
+      "reviewed": "59d9bbbaf07e327ba18fd44bc40e5690c46a3dcb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4033057433"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I wish we could delete https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/ignore/AdditionalLibraryIgnoredTypesConfigurer.java",
+      "created": "2026-09-24T09:18:05Z",
+      "hunk": "@@ -0,0 +1,19 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rabbitmq.v2_7;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.ignore.IgnoredTypesBuilder;\n+import io.opentelemetry.javaagent.extension.ignore.IgnoredTypesConfigurer;\n+\n+@AutoService(IgnoredTypesConfigurer.class)\n+public class RabbitMqIgnoredTypesConfigurer implements IgnoredTypesConfigurer {\n+  @Override\n+  public void configure(IgnoredTypesBuilder builder) {\n+    // Consumer virtual-field carriers; anonymous class names vary across Spring versions.\n+    builder.allowClass(\"org.springframework.amqp.rabbit.core.RabbitTemplate$\");",
+      "id": "PRRT_kwDODJKVX86lhBTV",
+      "opened": "2026-09-24T09:18:04Z",
+      "path": "instrumentation/rabbitmq-2.7/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqIgnoredTypesConfigurer.java",
+      "replies": [],
+      "reviewed": "d6855e53b32f8234571f5a5c19d31212aa56d097",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4091931184"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could you add a comment why this is necessary",
+      "created": "2026-09-24T09:34:52Z",
+      "hunk": "@@ -50,14 +50,60 @@ public static class AdviceScope {\n       private final Scope scope;\n       private final SpringRabbitRequest request;\n \n-      public AdviceScope(Context context, SpringRabbitRequest request) {\n+      @Nullable\n+      public static AdviceScope start(\n+          AbstractMessageListenerContainer container, Channel channel, Object data) {\n+        if (!SpringRabbitListenerUtil.canTraceListenerProcessing(container)) {\n+          return null;\n+        }\n+\n+        SpringRabbitRequest request;\n+        if (data instanceof Message) {\n+          request = new SpringRabbitRequest(channel, (Message) data);\n+        } else if (data instanceof List\n+            && !((List<?>) data).isEmpty()\n+            && ((List<?>) data).get(0) instanceof Message) {\n+          List<Message> messages = new ArrayList<>();\n+          for (Object message : (List<?>) data) {\n+            if (!(message instanceof Message)) {\n+              return null;\n+            }\n+            messages.add((Message) message);\n+          }\n+          request = new SpringRabbitRequest(channel, messages);\n+        } else {\n+          return null;\n+        }\n+\n+        Context parentContext = Context.current();\n+        if (!instrumenter().shouldStart(parentContext, request)) {\n+          return null;\n+        }\n+        Context context;\n+        try (Scope ignored = Context.root().makeCurrent()) {",
+      "id": "PRRT_kwDODJKVX86lhZFT",
+      "opened": "2026-09-24T09:34:51Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-25T15:47:19Z",
+          "body": "8e22dd28690be6aa4e9b6336af9635da8e03a9ea",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4106200093"
+        }
+      ],
+      "reviewed": "d6855e53b32f8234571f5a5c19d31212aa56d097",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4092078094"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "what if you rewrote it as\n```java\nAdviceScope adviceScope = new AdviceScope(context, request);\nrequest.installProcessingContext(context);\nreturn adviceScope;\n```\nthen the exception handling shouldn't be necessary?",
+      "created": "2026-09-24T09:41:16Z",
+      "hunk": "@@ -50,14 +50,60 @@ public static class AdviceScope {\n       private final Scope scope;\n       private final SpringRabbitRequest request;\n \n-      public AdviceScope(Context context, SpringRabbitRequest request) {\n+      @Nullable\n+      public static AdviceScope start(\n+          AbstractMessageListenerContainer container, Channel channel, Object data) {\n+        if (!SpringRabbitListenerUtil.canTraceListenerProcessing(container)) {\n+          return null;\n+        }\n+\n+        SpringRabbitRequest request;\n+        if (data instanceof Message) {\n+          request = new SpringRabbitRequest(channel, (Message) data);\n+        } else if (data instanceof List\n+            && !((List<?>) data).isEmpty()\n+            && ((List<?>) data).get(0) instanceof Message) {\n+          List<Message> messages = new ArrayList<>();\n+          for (Object message : (List<?>) data) {\n+            if (!(message instanceof Message)) {\n+              return null;\n+            }\n+            messages.add((Message) message);\n+          }\n+          request = new SpringRabbitRequest(channel, messages);\n+        } else {\n+          return null;\n+        }\n+\n+        Context parentContext = Context.current();\n+        if (!instrumenter().shouldStart(parentContext, request)) {\n+          return null;\n+        }\n+        Context context;\n+        try (Scope ignored = Context.root().makeCurrent()) {\n+          context = instrumenter().start(parentContext, request);\n+        }\n+        request.installProcessingContext(context);\n+        try {\n+          return new AdviceScope(context, request);\n+        } catch (RuntimeException | Error e) {\n+          request.restoreProcessingContext(context);\n+          throw e;\n+        }",
+      "id": "PRRT_kwDODJKVX86lhiHv",
+      "opened": "2026-09-24T09:41:16Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-25T21:51:15Z",
+          "body": "- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138/commits/22b13331a6b963c2cca532017058598575281b57\r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20264\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4108931105"
+        }
+      ],
+      "reviewed": "d6855e53b32f8234571f5a5c19d31212aa56d097",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4092134097"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think we can omit the try-finally here. ",
+      "created": "2026-09-24T09:47:52Z",
+      "hunk": "@@ -50,14 +50,60 @@ public static class AdviceScope {\n       private final Scope scope;\n       private final SpringRabbitRequest request;\n \n-      public AdviceScope(Context context, SpringRabbitRequest request) {\n+      @Nullable\n+      public static AdviceScope start(\n+          AbstractMessageListenerContainer container, Channel channel, Object data) {\n+        if (!SpringRabbitListenerUtil.canTraceListenerProcessing(container)) {\n+          return null;\n+        }\n+\n+        SpringRabbitRequest request;\n+        if (data instanceof Message) {\n+          request = new SpringRabbitRequest(channel, (Message) data);\n+        } else if (data instanceof List\n+            && !((List<?>) data).isEmpty()\n+            && ((List<?>) data).get(0) instanceof Message) {\n+          List<Message> messages = new ArrayList<>();\n+          for (Object message : (List<?>) data) {\n+            if (!(message instanceof Message)) {\n+              return null;\n+            }\n+            messages.add((Message) message);\n+          }\n+          request = new SpringRabbitRequest(channel, messages);\n+        } else {\n+          return null;\n+        }\n+\n+        Context parentContext = Context.current();\n+        if (!instrumenter().shouldStart(parentContext, request)) {\n+          return null;\n+        }\n+        Context context;\n+        try (Scope ignored = Context.root().makeCurrent()) {\n+          context = instrumenter().start(parentContext, request);\n+        }\n+        request.installProcessingContext(context);\n+        try {\n+          return new AdviceScope(context, request);\n+        } catch (RuntimeException | Error e) {\n+          request.restoreProcessingContext(context);\n+          throw e;\n+        }\n+      }\n+\n+      private AdviceScope(Context context, SpringRabbitRequest request) {\n         this.context = context;\n-        this.scope = context.makeCurrent();\n         this.request = request;\n+        this.scope = context.makeCurrent();\n       }\n \n       public void end(@Nullable Throwable throwable) {\n-        scope.close();\n+        try {\n+          scope.close();\n+        } finally {",
+      "id": "PRRT_kwDODJKVX86lhqzP",
+      "opened": "2026-09-24T09:47:52Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/AbstractMessageListenerContainerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-25T22:57:49Z",
+          "body": "74c5ecceace96e4b183ed265cbdb07fff3b0c2bc",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4109256721"
+        }
+      ],
+      "reviewed": "d6855e53b32f8234571f5a5c19d31212aa56d097",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4092188384"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I'm not sure this error handling here helps. If the above gets an oom then the restore could also get one, doesn't look important enough to try this hard.",
+      "created": "2026-09-24T09:53:38Z",
+      "hunk": "@@ -39,4 +55,51 @@ boolean isBatch() {\n   int getBatchMessageCount() {\n     return batchMessageCount;\n   }\n+\n+  void installProcessingContext(Context context) {\n+    ProcessingContextInstallation installation = null;\n+    try {\n+      for (Message message : messages) {\n+        installation =\n+            new ProcessingContextInstallation(\n+                message, PROCESSING_CONTEXT.get(message), installation);\n+        PROCESSING_CONTEXT.set(message, context);\n+      }\n+      processingContextInstallation = installation;\n+    } catch (RuntimeException | Error e) {",
+      "id": "PRRT_kwDODJKVX86lhzYm",
+      "opened": "2026-09-24T09:53:38Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitRequest.java",
+      "replies": [
+        {
+          "at": "2026-09-25T23:04:17Z",
+          "body": "6377642245fa1dc8baeb5bcc61496a868b385e3f",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4109278520"
+        }
+      ],
+      "reviewed": "d6855e53b32f8234571f5a5c19d31212aa56d097",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4092242074"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I remember that other instrumentations didn't guard agains duplicate links. Maybe we should push it to `SpanLinksBuilder`?",
+      "created": "2026-09-24T09:59:18Z",
+      "hunk": "@@ -42,24 +51,61 @@ public class SpringRabbitSingletons {\n                 INSTRUMENTATION_NAME,\n                 MessagingSpanNameExtractor.create(getter, operationType, PROCESS_OPERATION_NAME))\n             .addAttributesExtractor(\n-                MessagingAttributesExtractor.builder(getter, operationType, PROCESS_OPERATION_NAME)\n-                    .setHeaders(ExperimentalConfig.get().getMessagingHeaders())\n-                    .build())\n+                new SpringRabbitExtraAttributesExtractor(\n+                    MessagingAttributesExtractor.builder(\n+                            getter, operationType, PROCESS_OPERATION_NAME)\n+                        .setHeaders(ExperimentalConfig.get().getMessagingHeaders())\n+                        .build()))\n             .addAttributesExtractor(NetworkAttributesExtractor.create(netAttributesGetter))\n-            .addAttributesExtractor(new SpringRabbitExtraAttributesExtractor())\n             .addOperationMetrics(MessagingProcessMetrics.get())\n             .addOperationMetrics(MessagingConsumerMetrics.getConsumedMessages());\n     if (emitStableMessagingSemconv()) {\n       builder.addAttributesExtractor(ServerAttributesExtractor.create(netAttributesGetter));\n     }\n     setMessagingProcessExceptionEventExtractor(builder);\n \n-    instrumenter =\n-        MessagingProcessInstrumenterFactory.create(\n-            builder,\n-            openTelemetry.getPropagators().getTextMapPropagator(),\n-            new MessageHeaderGetter(),\n-            false);\n+    MessageHeaderGetter headerGetter = new MessageHeaderGetter();\n+    if (emitStableMessagingSemconv()) {\n+      builder.addSpanLinksExtractor(\n+          (links, parentContext, request) -> {\n+            Set<SpanContext> linked = new HashSet<>();\n+            for (Message message : request.getMessages()) {\n+              SpanContext creationContext =\n+                  Span.fromContext(\n+                          openTelemetry\n+                              .getPropagators()\n+                              .getTextMapPropagator()\n+                              .extract(Context.root(), message, headerGetter))\n+                      .getSpanContext();\n+              if (linked.add(creationContext)) {",
+      "id": "PRRT_kwDODJKVX86lh7Yt",
+      "opened": "2026-09-24T09:59:18Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rabbit/v1_0/SpringRabbitSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-26T02:04:31Z",
+          "body": "hm, I don't think this deduplication is correct, removed in 5e31d95f17a1e476799d32ea68f6cd5afbffa75f",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4109824038"
+        }
+      ],
+      "reviewed": "d6855e53b32f8234571f5a5c19d31212aa56d097",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4092292177"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "since latest dep tests are going to be run with it anyway could use different version when running latest dep tests if it make sense",
+      "created": "2026-09-24T10:03:28Z",
+      "hunk": "@@ -32,6 +30,31 @@ dependencies {\n \n testing {\n   suites {\n+    register<JvmTestSuite>(\"unitTests\") {\n+      dependencies {\n+        implementation(project())\n+        implementation(project(\":javaagent-extension-api\"))\n+        implementation(\"org.springframework.amqp:spring-rabbit:2.1.7.RELEASE\")\n+      }\n+    }\n+\n+    register<JvmTestSuite>(\"version11Test\") {\n+      dependencies {\n+        implementation(\"io.opentelemetry:opentelemetry-sdk-testing\")\n+        implementation(\"org.testcontainers:testcontainers\")\n+        implementation(\"org.springframework.amqp:spring-rabbit:1.1.0.RELEASE\")",
+      "id": "PRRT_kwDODJKVX86liAif",
+      "opened": "2026-09-24T10:03:28Z",
+      "path": "instrumentation/spring/spring-rabbit-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-25T16:49:27Z",
+          "body": "567ced7f2ba005f62c75c17a06313863fd7ab2c8",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4106707993"
+        }
+      ],
+      "reviewed": "d6855e53b32f8234571f5a5c19d31212aa56d097",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20138#discussion_r4092325273"
+    }
+  ]
+}

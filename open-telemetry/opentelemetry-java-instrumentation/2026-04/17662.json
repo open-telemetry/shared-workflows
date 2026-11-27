@@ -1,0 +1,55 @@
+{
+  "head": "b6ed0232bf16e3597d18ef5d9e90f1acae654e63",
+  "merge": "ebb0b9eca85fc0f0b0dbae278c803b08f5d97316",
+  "merged": "2026-04-07T22:02:56Z",
+  "missing_roots": 0,
+  "number": 17662,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Catch parameter is unused here; repository style guide prefers naming intentionally-unused catch parameters `ignored` (not `e`). Renaming this to `ignored` would match the convention and the PR’s stated goal.\n```suggestion\n    } catch (UnsupportedEncodingException ignored) {\n```",
+      "created": "2026-04-07T16:03:10Z",
+      "hunk": "@@ -59,7 +59,7 @@ public static String processQuery(String query, TextMapPropagator propagator, bo\n           stringBuilder.append(\", \");\n         }\n       }\n-    } catch (UnsupportedEncodingException exception) {\n+    } catch (UnsupportedEncodingException e) {",
+      "id": "PRRT_kwDODJKVX855VRzI",
+      "opened": "2026-04-07T16:03:12Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/SqlCommenterUtil.java",
+      "replies": [],
+      "reviewed": "5ebe11e12dd48a2607aadc71e109e3c15ca44d26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17662#discussion_r3046298074"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This catch parameter is intentionally unused; the codebase convention prefers `ignored` for unused catch variables. Consider renaming `e` to `ignored` for consistency with the style guide and the PR description.",
+      "created": "2026-04-07T16:03:11Z",
+      "hunk": "@@ -48,7 +48,7 @@ private static String extractClientId(Producer<?, ?> producer) {\n       Map<MetricName, ? extends Metric> metrics = producer.metrics();\n       Iterator<MetricName> metricIterator = metrics.keySet().iterator();\n       return metricIterator.hasNext() ? metricIterator.next().tags().get(\"client-id\") : null;\n-    } catch (RuntimeException exception) {\n+    } catch (RuntimeException e) {",
+      "id": "PRRT_kwDODJKVX855VR0M",
+      "opened": "2026-04-07T16:03:12Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaProducerRequest.java",
+      "replies": [],
+      "reviewed": "5ebe11e12dd48a2607aadc71e109e3c15ca44d26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17662#discussion_r3046298171"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The caught exception isn’t referenced in this block, so per the repo’s catch-variable naming convention it should be named `ignored` rather than `e`. This keeps the intent clear and aligns with the PR’s stated renaming rules.",
+      "created": "2026-04-07T16:03:11Z",
+      "hunk": "@@ -103,7 +103,7 @@ private static String extractClientId(Consumer<?, ?> consumer) {\n       Map<MetricName, ? extends Metric> metrics = consumer.metrics();\n       Iterator<MetricName> metricIterator = metrics.keySet().iterator();\n       return metricIterator.hasNext() ? metricIterator.next().tags().get(\"client-id\") : null;\n-    } catch (RuntimeException exception) {\n+    } catch (RuntimeException e) {",
+      "id": "PRRT_kwDODJKVX855VRz0",
+      "opened": "2026-04-07T16:03:12Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-common-0.11/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/KafkaUtil.java",
+      "replies": [],
+      "reviewed": "5ebe11e12dd48a2607aadc71e109e3c15ca44d26",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17662#discussion_r3046298137"
+    }
+  ]
+}

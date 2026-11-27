@@ -1,0 +1,40 @@
+{
+  "head": "d3b0da9503a4be6f01798400ef8b3f886296cb55",
+  "merge": "b8df6ee84c5dca75e58c7975eb9725788c436a2d",
+  "merged": "2026-10-05T07:13:17Z",
+  "missing_roots": 0,
+  "number": 20370,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- Remove the deprecated Elasticsearch REST library instrumentation. Use the Elasticsearch\n  Java API Client's native OpenTelemetry support, or the Java agent for direct RestClient usage.\n  Java agent instrumentation is unaffected.\n```",
+      "created": "2026-10-03T23:29:28Z",
+      "hunk": "@@ -2,6 +2,12 @@\n \n ## Unreleased\n \n+### ⚠️ Breaking changes to non-stable APIs\n+\n+- Remove the deprecated `opentelemetry-elasticsearch-rest-7.0` and\n+  `opentelemetry-elasticsearch-rest-common-5.0` library artifacts. Use the Java agent to\n+  instrument Elasticsearch clients.",
+      "id": "PRRT_kwDODJKVX86otAyc",
+      "opened": "2026-10-03T23:29:28Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "e9ef6b6ec950785baf0c2277795d8fb87b14ebd7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20370#discussion_r4175393494"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  are in use. It does not emit any telemetry on its own.\n  Versions 7.17.20 and later on the 7.x line, and versions 8.10 and later, have native OpenTelemetry\n  support.\n```",
+      "created": "2026-10-03T23:31:07Z",
+      "hunk": "@@ -5,6 +5,4 @@ description: >\n   `db.operation.parameter.index` attributes, or the deprecated `db.elasticsearch.path_parts.id`\n   and `db.elasticsearch.path_parts.index` attributes when the old database semantic conventions\n   are in use. It does not emit any telemetry on its own.",
+      "id": "PRRT_kwDODJKVX86otBf4",
+      "opened": "2026-10-03T23:31:07Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-api-client-7.16/metadata.yaml",
+      "replies": [],
+      "reviewed": "b48c119a85fa6a8a4d6abdacd1c67555502bebf2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20370#discussion_r4175397934"
+    }
+  ]
+}

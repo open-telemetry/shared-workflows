@@ -1,0 +1,127 @@
+{
+  "head": "4e086cc98ec986a32be1271d9b4068cb535b22dc",
+  "merge": "d6d3acab5575f20b63cdb0cfc9aca13cb6aa10b0",
+  "merged": "2026-09-01T21:35:26Z",
+  "missing_roots": 0,
+  "number": 488,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Tool definitions are captured even when capture_content is False. Since util-genai can still emit gen_ai.tool.definitions even when message content capture is disabled, this can unintentionally record tool schemas/params despite OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT and no completion hook.",
+      "created": "2026-08-27T15:59:41Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+from typing import Any, TypeGuard\n+from urllib.parse import urlparse\n+\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+from opentelemetry.util.genai.types import (\n+    Blob,\n+    FunctionToolDefinition,\n+    GenericToolDefinition,\n+    InputMessage,\n+    MessagePart,\n+    OutputMessage,\n+    Text,\n+    ToolCallRequest,\n+    ToolCallResponse,\n+    ToolDefinition,\n+)\n+\n+\n+def _is_dict(val: object) -> TypeGuard[dict[str, Any]]:\n+    return isinstance(val, dict)\n+\n+\n+def _is_list(val: object) -> TypeGuard[list[Any]]:\n+    return isinstance(val, list)\n+\n+\n+_FINISH_REASON_MAP: dict[str, str] = {\n+    \"end_turn\": \"stop\",\n+    \"stop_sequence\": \"stop\",\n+    \"tool_use\": \"tool_calls\",\n+    \"max_tokens\": \"length\",\n+    \"content_filtered\": \"content_filter\",\n+    \"guardrail_intervened\": \"content_filter\",\n+}\n+\n+\n+def map_finish_reason(stop_reason: str | None) -> str | None:\n+    \"\"\"Map Bedrock stopReason to GenAI semantic convention finish_reason.\"\"\"\n+    if stop_reason is None:\n+        return None\n+    return _FINISH_REASON_MAP.get(stop_reason, stop_reason.lower())\n+\n+\n+def extract_server_address_and_port(\n+    endpoint_url: str | None,\n+) -> tuple[str | None, int | None]:\n+    \"\"\"Parse server address and port from a client endpoint URL.\"\"\"\n+    if not endpoint_url:\n+        return None, None\n+    parsed = urlparse(endpoint_url)\n+    server_address = parsed.hostname\n+    server_port = parsed.port\n+    if server_port is None and parsed.scheme in (\"http\", \"https\"):\n+        server_port = 443 if parsed.scheme == \"https\" else 80\n+    return server_address, server_port\n+\n+\n+def extract_content_block(block: dict[str, Any]) -> MessagePart | None:\n+    \"\"\"Map a single Bedrock content block to an OpenTelemetry MessagePart.\"\"\"\n+    if \"text\" in block:\n+        return Text(content=block[\"text\"])\n+\n+    image = block.get(\"image\")\n+    if _is_dict(image):\n+        fmt = image.get(\"format\", \"jpeg\")\n+        source = image.get(\"source\")\n+        content_bytes = source.get(\"bytes\", b\"\") if _is_dict(source) else b\"\"\n+        return Blob(\n+            content=content_bytes,\n+            mime_type=f\"image/{fmt}\",\n+            modality=\"image\",\n+        )\n+\n+    tool_use = block.get(\"toolUse\")\n+    if _is_dict(tool_use):\n+        return ToolCallRequest(\n+            id=tool_use.get(\"toolUseId\"),\n+            name=tool_use.get(\"name\", \"\"),\n+            arguments=tool_use.get(\"input\"),\n+        )\n+\n+    tool_result = block.get(\"toolResult\")\n+    if _is_dict(tool_result):\n+        return ToolCallResponse(\n+            id=tool_result.get(\"toolUseId\"),\n+            response=tool_result.get(\"content\"),\n+        )\n+\n+    return None\n+\n+\n+def extract_converse_request(\n+    kwargs: dict[str, Any],\n+    invocation: InferenceInvocation,\n+    *,\n+    capture_content: bool = True,\n+) -> None:\n+    \"\"\"Populate request attributes from converse kwargs onto the invocation.\"\"\"\n+    inf_config = kwargs.get(\"inferenceConfig\")\n+    if _is_dict(inf_config):\n+        invocation.temperature = inf_config.get(\"temperature\")\n+        invocation.top_p = inf_config.get(\"topP\")\n+        invocation.max_tokens = inf_config.get(\"maxTokens\")\n+        invocation.stop_sequences = inf_config.get(\"stopSequences\")\n+        invocation.top_k = inf_config.get(\"topK\") or inf_config.get(\"top_k\")\n+        invocation.seed = inf_config.get(\"seed\")\n+\n+    add_fields = kwargs.get(\"additionalModelRequestFields\")\n+    if _is_dict(add_fields):\n+        add_inf = add_fields.get(\"inferenceConfig\")\n+        top_k = (\n+            add_fields.get(\"topK\")\n+            or add_fields.get(\"top_k\")\n+            or (\n+                (add_inf.get(\"topK\") or add_inf.get(\"top_k\"))\n+                if _is_dict(add_inf)\n+                else None\n+            )\n+        )\n+        if top_k is not None:\n+            invocation.top_k = top_k\n+        if \"seed\" in add_fields:\n+            invocation.seed = add_fields[\"seed\"]\n+\n+    # system instruction\n+    raw_system = kwargs.get(\"system\")\n+    if capture_content and _is_list(raw_system):\n+        system_parts: list[MessagePart] = []\n+        for item in raw_system:\n+            if _is_dict(item) and \"text\" in item:\n+                system_parts.append(Text(content=item[\"text\"]))\n+        invocation.system_instruction = system_parts\n+\n+    # input messages\n+    raw_messages = kwargs.get(\"messages\")\n+    if capture_content and _is_list(raw_messages):\n+        input_messages: list[InputMessage] = []\n+        for msg in raw_messages:\n+            if not _is_dict(msg):\n+                continue\n+            role = msg.get(\"role\", \"user\")\n+            parts: list[MessagePart] = []\n+            content = msg.get(\"content\")\n+            if _is_list(content):\n+                for block in content:\n+                    if _is_dict(block):\n+                        part = extract_content_block(block)\n+                        if part is not None:\n+                            parts.append(part)\n+            input_messages.append(InputMessage(role=role, parts=parts))\n+        invocation.input_messages = input_messages\n+\n+    # tool definitions\n+    tool_config = kwargs.get(\"toolConfig\")\n+    if _is_dict(tool_config):",
+      "id": "PRRT_kwDOSbspP86c4rKa",
+      "opened": "2026-08-27T15:59:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [],
+      "reviewed": "e292ca3b1b3e06b145aaf8da48d97bda4282f231",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/488#discussion_r3873482088"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The try/except TypeError fallback and direct write to invocation._request_stream are unnecessary with the current util-genai SyncStreamWrapper signature and can mask real bugs. SyncStreamWrapper already accepts an invocation and sets _request_stream itself.",
+      "created": "2026-08-27T15:59:42Z",
+      "hunk": "@@ -0,0 +1,164 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import json\n+from typing import Any\n+\n+from botocore.eventstream import EventStream\n+\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+from opentelemetry.util.genai.stream import SyncStreamWrapper\n+from opentelemetry.util.genai.types import (\n+    MessagePart,\n+    OutputMessage,\n+    Text,\n+    ToolCallRequest,\n+)\n+\n+from .extractors import map_finish_reason\n+\n+\n+class BedrockConverseStreamWrapper(SyncStreamWrapper[dict[str, Any]]):\n+    \"\"\"Wrapper for Bedrock converse_stream EventStream.\"\"\"\n+\n+    def __init__(\n+        self,\n+        stream: EventStream,\n+        invocation: InferenceInvocation,\n+        model_id: str | None = None,\n+        *,\n+        capture_content: bool = True,\n+    ) -> None:\n+        try:\n+            super().__init__(stream, invocation=invocation)\n+        except TypeError:\n+            super().__init__(stream)\n+            if hasattr(invocation, \"_request_stream\"):\n+                invocation._request_stream = True\n+        self._self_invocation = invocation",
+      "id": "PRRT_kwDOSbspP86c4rMP",
+      "opened": "2026-08-27T15:59:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/stream.py",
+      "replies": [],
+      "reviewed": "e292ca3b1b3e06b145aaf8da48d97bda4282f231",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/488#discussion_r3873482260"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This envlist entry expands the Bedrock latest test factor to Python 3.11–3.13, while other instrumentations in this repo consistently run latest only on the min/max versions (py3{10,14}). This likely increases CI runtime for one package without a clear repo-wide policy change.",
+      "created": "2026-08-27T15:59:43Z",
+      "hunk": "@@ -41,6 +41,7 @@ envlist =\n     ; instrumentation-genai-bedrock\n     py3{10,11,12,13,14}-test-instrumentation-genai-bedrock-latest",
+      "id": "PRRT_kwDOSbspP86c4rNN",
+      "opened": "2026-08-27T15:59:44Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "e292ca3b1b3e06b145aaf8da48d97bda4282f231",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/488#discussion_r3873482367"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This cassette file is not referenced by any test or conformance scenario in this package, so it adds repository weight without exercising behavior. Either add a test that uses it (to cover tool-call parsing error handling) or remove the cassette.",
+      "created": "2026-08-27T15:59:44Z",
+      "hunk": "@@ -0,0 +1,487 @@\n+interactions:\n+- request:\n+    body: |-\n+      {\n+        \"messages\": [",
+      "id": "PRRT_kwDOSbspP86c4rON",
+      "opened": "2026-08-27T15:59:44Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/tests/cassettes/test_converse_stream_tool_call_parsing_errors.yaml",
+      "replies": [],
+      "reviewed": "e292ca3b1b3e06b145aaf8da48d97bda4282f231",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/488#discussion_r3873482459"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`reasoningContent` and the other non-text blocks are dropped, should we follow up on the other parts in a separate PR?",
+      "created": "2026-08-28T05:52:06Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+from typing import Any, TypeGuard\n+from urllib.parse import urlparse\n+\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+from opentelemetry.util.genai.types import (\n+    Blob,\n+    FunctionToolDefinition,\n+    GenericToolDefinition,\n+    InputMessage,\n+    MessagePart,\n+    OutputMessage,\n+    Text,\n+    ToolCallRequest,\n+    ToolCallResponse,\n+    ToolDefinition,\n+)\n+\n+\n+def _is_dict(val: object) -> TypeGuard[dict[str, Any]]:\n+    return isinstance(val, dict)\n+\n+\n+def _is_list(val: object) -> TypeGuard[list[Any]]:\n+    return isinstance(val, list)\n+\n+\n+_FINISH_REASON_MAP: dict[str, str] = {\n+    \"end_turn\": \"stop\",\n+    \"stop_sequence\": \"stop\",\n+    \"tool_use\": \"tool_calls\",\n+    \"max_tokens\": \"length\",\n+    \"content_filtered\": \"content_filter\",\n+    \"guardrail_intervened\": \"content_filter\",\n+}\n+\n+\n+def map_finish_reason(stop_reason: str | None) -> str | None:\n+    \"\"\"Map Bedrock stopReason to GenAI semantic convention finish_reason.\"\"\"\n+    if stop_reason is None:\n+        return None\n+    return _FINISH_REASON_MAP.get(stop_reason, stop_reason.lower())\n+\n+\n+def extract_server_address_and_port(\n+    endpoint_url: str | None,\n+) -> tuple[str | None, int | None]:\n+    \"\"\"Parse server address and port from a client endpoint URL.\"\"\"\n+    if not endpoint_url:\n+        return None, None\n+    parsed = urlparse(endpoint_url)\n+    server_address = parsed.hostname\n+    server_port = parsed.port\n+    if server_port is None and parsed.scheme in (\"http\", \"https\"):\n+        server_port = 443 if parsed.scheme == \"https\" else 80\n+    return server_address, server_port\n+\n+\n+def extract_content_block(block: dict[str, Any]) -> MessagePart | None:\n+    \"\"\"Map a single Bedrock content block to an OpenTelemetry MessagePart.\"\"\"\n+    if \"text\" in block:\n+        return Text(content=block[\"text\"])\n+\n+    image = block.get(\"image\")\n+    if _is_dict(image):\n+        fmt = image.get(\"format\", \"jpeg\")\n+        source = image.get(\"source\")\n+        content_bytes = source.get(\"bytes\", b\"\") if _is_dict(source) else b\"\"\n+        return Blob(\n+            content=content_bytes,\n+            mime_type=f\"image/{fmt}\",\n+            modality=\"image\",\n+        )\n+\n+    tool_use = block.get(\"toolUse\")\n+    if _is_dict(tool_use):\n+        return ToolCallRequest(\n+            id=tool_use.get(\"toolUseId\"),\n+            name=tool_use.get(\"name\", \"\"),\n+            arguments=tool_use.get(\"input\"),\n+        )\n+\n+    tool_result = block.get(\"toolResult\")\n+    if _is_dict(tool_result):\n+        return ToolCallResponse(\n+            id=tool_result.get(\"toolUseId\"),\n+            response=tool_result.get(\"content\"),\n+        )\n+\n+    return None",
+      "id": "PRRT_kwDOSbspP86dEn5g",
+      "opened": "2026-08-28T05:53:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-08-31T16:34:40Z",
+          "body": "I added it in here.. WDYT of the various supported block types here (https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_ReasoningContentBlock.html) -- i left out audio / video blocks, but added parsing for document / image types.. not sure what the best approach is",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/488#discussion_r3896399508"
+        },
+        {
+          "at": "2026-08-31T21:58:11Z",
+          "body": "we can add them as `GenericPart` and create semconv issue to add others. \r\n\r\nBTW, would you mind updating Blob (deprecated now) -> BlobPart and such? ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/488#discussion_r3898745749"
+        },
+        {
+          "at": "2026-09-01T13:56:04Z",
+          "body": "Opened https://github.com/open-telemetry/semantic-conventions-genai/issues/488 and used GenericPart for them. Switched to `XPart` types too..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/488#discussion_r3904833556"
+        },
+        {
+          "at": "2026-09-01T19:28:59Z",
+          "body": "On second thought I wonder if it's worth adding these as GenericParts with just the `type` set, is that useful at all ? I don't think we will ever add raw audio / video to the telemetry, it's way too big.\r\n\r\nEven a single image can be too big.. Google's telemetry API has a cap at 64KB for an attribute value for example.. Maybe we should be checking the size of `BlobPart`s (like mages) and leaving them out if they exceed 50KB or something like that..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/488#discussion_r3907646459"
+        }
+      ],
+      "reviewed": "b078727ba99480f56d47c59a309046c46ee47dac",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/488#discussion_r3878235706"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`gen_ai.response.id` is available as `ResponseMetadata.RequestId`; the conformance scenarios declare it missing instead.\r\n\r\n`response_model_name` should be dropped - Bedrock doesn't return a response model. If weaver complains in conformance, please add that one as  expected violation - it's useful input for semconv to document the case where a provider has no response model.",
+      "created": "2026-08-28T05:52:06Z",
+      "hunk": "@@ -0,0 +1,236 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+from typing import Any, TypeGuard\n+from urllib.parse import urlparse\n+\n+from opentelemetry.util.genai.invocation import InferenceInvocation\n+from opentelemetry.util.genai.types import (\n+    Blob,\n+    FunctionToolDefinition,\n+    GenericToolDefinition,\n+    InputMessage,\n+    MessagePart,\n+    OutputMessage,\n+    Text,\n+    ToolCallRequest,\n+    ToolCallResponse,\n+    ToolDefinition,\n+)\n+\n+\n+def _is_dict(val: object) -> TypeGuard[dict[str, Any]]:\n+    return isinstance(val, dict)\n+\n+\n+def _is_list(val: object) -> TypeGuard[list[Any]]:\n+    return isinstance(val, list)\n+\n+\n+_FINISH_REASON_MAP: dict[str, str] = {\n+    \"end_turn\": \"stop\",\n+    \"stop_sequence\": \"stop\",\n+    \"tool_use\": \"tool_calls\",\n+    \"max_tokens\": \"length\",\n+    \"content_filtered\": \"content_filter\",\n+    \"guardrail_intervened\": \"content_filter\",\n+}\n+\n+\n+def map_finish_reason(stop_reason: str | None) -> str | None:\n+    \"\"\"Map Bedrock stopReason to GenAI semantic convention finish_reason.\"\"\"\n+    if stop_reason is None:\n+        return None\n+    return _FINISH_REASON_MAP.get(stop_reason, stop_reason.lower())\n+\n+\n+def extract_server_address_and_port(\n+    endpoint_url: str | None,\n+) -> tuple[str | None, int | None]:\n+    \"\"\"Parse server address and port from a client endpoint URL.\"\"\"\n+    if not endpoint_url:\n+        return None, None\n+    parsed = urlparse(endpoint_url)\n+    server_address = parsed.hostname\n+    server_port = parsed.port\n+    if server_port is None and parsed.scheme in (\"http\", \"https\"):\n+        server_port = 443 if parsed.scheme == \"https\" else 80\n+    return server_address, server_port\n+\n+\n+def extract_content_block(block: dict[str, Any]) -> MessagePart | None:\n+    \"\"\"Map a single Bedrock content block to an OpenTelemetry MessagePart.\"\"\"\n+    if \"text\" in block:\n+        return Text(content=block[\"text\"])\n+\n+    image = block.get(\"image\")\n+    if _is_dict(image):\n+        fmt = image.get(\"format\", \"jpeg\")\n+        source = image.get(\"source\")\n+        content_bytes = source.get(\"bytes\", b\"\") if _is_dict(source) else b\"\"\n+        return Blob(\n+            content=content_bytes,\n+            mime_type=f\"image/{fmt}\",\n+            modality=\"image\",\n+        )\n+\n+    tool_use = block.get(\"toolUse\")\n+    if _is_dict(tool_use):\n+        return ToolCallRequest(\n+            id=tool_use.get(\"toolUseId\"),\n+            name=tool_use.get(\"name\", \"\"),\n+            arguments=tool_use.get(\"input\"),\n+        )\n+\n+    tool_result = block.get(\"toolResult\")\n+    if _is_dict(tool_result):\n+        return ToolCallResponse(\n+            id=tool_result.get(\"toolUseId\"),\n+            response=tool_result.get(\"content\"),\n+        )\n+\n+    return None\n+\n+\n+def extract_converse_request(\n+    kwargs: dict[str, Any],\n+    invocation: InferenceInvocation,\n+    *,\n+    capture_content: bool = True,\n+) -> None:\n+    \"\"\"Populate request attributes from converse kwargs onto the invocation.\"\"\"\n+    inf_config = kwargs.get(\"inferenceConfig\")\n+    if _is_dict(inf_config):\n+        invocation.temperature = inf_config.get(\"temperature\")\n+        invocation.top_p = inf_config.get(\"topP\")\n+        invocation.max_tokens = inf_config.get(\"maxTokens\")\n+        invocation.stop_sequences = inf_config.get(\"stopSequences\")\n+        invocation.top_k = inf_config.get(\"topK\") or inf_config.get(\"top_k\")\n+        invocation.seed = inf_config.get(\"seed\")\n+\n+    add_fields = kwargs.get(\"additionalModelRequestFields\")\n+    if _is_dict(add_fields):\n+        add_inf = add_fields.get(\"inferenceConfig\")\n+        top_k = (\n+            add_fields.get(\"topK\")\n+            or add_fields.get(\"top_k\")\n+            or (\n+                (add_inf.get(\"topK\") or add_inf.get(\"top_k\"))\n+                if _is_dict(add_inf)\n+                else None\n+            )\n+        )\n+        if top_k is not None:\n+            invocation.top_k = top_k\n+        if \"seed\" in add_fields:\n+            invocation.seed = add_fields[\"seed\"]\n+\n+    # system instruction\n+    raw_system = kwargs.get(\"system\")\n+    if capture_content and _is_list(raw_system):\n+        system_parts: list[MessagePart] = []\n+        for item in raw_system:\n+            if _is_dict(item) and \"text\" in item:\n+                system_parts.append(Text(content=item[\"text\"]))\n+        invocation.system_instruction = system_parts\n+\n+    # input messages\n+    raw_messages = kwargs.get(\"messages\")\n+    if capture_content and _is_list(raw_messages):\n+        input_messages: list[InputMessage] = []\n+        for msg in raw_messages:\n+            if not _is_dict(msg):\n+                continue\n+            role = msg.get(\"role\", \"user\")\n+            parts: list[MessagePart] = []\n+            content = msg.get(\"content\")\n+            if _is_list(content):\n+                for block in content:\n+                    if _is_dict(block):\n+                        part = extract_content_block(block)\n+                        if part is not None:\n+                            parts.append(part)\n+            input_messages.append(InputMessage(role=role, parts=parts))\n+        invocation.input_messages = input_messages\n+\n+    # tool definitions\n+    tool_config = kwargs.get(\"toolConfig\")\n+    if _is_dict(tool_config):\n+        tools = tool_config.get(\"tools\")\n+        if _is_list(tools):\n+            tool_defs: list[ToolDefinition] = []\n+            for tool in tools:\n+                if not _is_dict(tool):\n+                    continue\n+                tool_spec = tool.get(\"toolSpec\")\n+                if _is_dict(tool_spec):\n+                    name = tool_spec.get(\"name\", \"\")\n+                    description = tool_spec.get(\"description\")\n+                    raw_schema = tool_spec.get(\"inputSchema\", {})\n+                    params = (\n+                        raw_schema.get(\"json\", raw_schema)\n+                        if _is_dict(raw_schema)\n+                        else raw_schema\n+                    )\n+                    tool_defs.append(\n+                        FunctionToolDefinition(\n+                            name=name,\n+                            description=description,\n+                            parameters=params,\n+                        )\n+                    )\n+                elif \"name\" in tool and \"type\" in tool:\n+                    tool_defs.append(\n+                        GenericToolDefinition(\n+                            name=tool[\"name\"],\n+                            type=tool[\"type\"],\n+                        )\n+                    )\n+            invocation.tool_definitions = tool_defs\n+\n+\n+def extract_converse_response(\n+    response: dict[str, Any],\n+    invocation: InferenceInvocation,\n+    model_id: str | None = None,\n+    *,\n+    capture_content: bool = True,\n+) -> None:\n+    invocation.response_model_name = model_id",
+      "id": "PRRT_kwDOSbspP86dEn5k",
+      "opened": "2026-08-28T05:53:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-08-31T16:20:24Z",
+          "body": "removed `response_model_name`.\n\nI don't think `requestId` should be used for that. When you send an HTTP request to any AWS service, AWS's API gateway assigns a unique request tracking ID and returns it in the HTTP response header x-amzn-RequestId -- where as i think response id is like a model completion / continuation id (something generated by the model)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/488#discussion_r3896300005"
+        }
+      ],
+      "reviewed": "b078727ba99480f56d47c59a309046c46ee47dac",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/488#discussion_r3878235710"
+    }
+  ]
+}

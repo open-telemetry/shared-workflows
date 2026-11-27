@@ -1,0 +1,122 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "5515f2f2d7aa4af044d6ceadc05180a017a921467be33a5f1e29652a8a0340f4",
+  "input_digest": "1a17580c4bd36512dff1fb0998cb03ba55b5562ccd6d8ab78da28a06e358daac",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/95c754aa55088ab99968b1f7ca7ddd556355e2bd/tools/runner/src/opentelemetry/conformance/_checks.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/runner/src/opentelemetry/conformance/_checks.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/runner/src/opentelemetry/conformance/_scope_policy.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/runner/src/opentelemetry/conformance/policies/instrumentation_scope_validation.rego.template",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/runner/src/opentelemetry/conformance/policies/instrumentation_scope_validation.rego.template"
+      ],
+      "id": "PRRT_kwDOTuzK5c6fp5Ei",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e8dfa722c5dbabf91ac47054b9566bc7646a90f4/tools/runner/src/opentelemetry/conformance/policies/instrumentation_scope_validation.rego.template",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/runner/src/opentelemetry/conformance/policies/instrumentation_scope_validation.rego.template"
+      ],
+      "id": "PRRT_kwDOTuzK5c6fuDQn",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e8dfa722c5dbabf91ac47054b9566bc7646a90f4/tools/runner/src/opentelemetry/conformance/_session.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/runner/src/opentelemetry/conformance/_session.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6fuDQv",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e8dfa722c5dbabf91ac47054b9566bc7646a90f4/tools/runner/src/opentelemetry/conformance/_spec.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e8dfa722c5dbabf91ac47054b9566bc7646a90f4/tools/runner/src/opentelemetry/conformance/_scope_policy.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/runner/src/opentelemetry/conformance/_spec.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6fuDQz",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/8d09f70cf782aeb014e20119edd0450136b7a727/tools/js/scenario-sdk/index.js",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/js/scenario-sdk/index.js"
+      ],
+      "id": "PRRT_kwDOTuzK5c6fxtV1",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/8d09f70cf782aeb014e20119edd0450136b7a727/tools/http/runner/tests/test_instrumentation_scope_policy.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/8d09f70cf782aeb014e20119edd0450136b7a727/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/http/runner/tests/test_instrumentation_scope_policy.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/.github/workflows/runner.yml"
+      ],
+      "id": "PRRT_kwDOTuzK5c6fxtVl",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/40edc280594b78b06731d354bc0127ee898d143f/scenarios/database/java/mariadb/jdbc/opentelemetry-javaagent/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/scenarios/database/java/mariadb/jdbc/opentelemetry-javaagent/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/40edc280594b78b06731d354bc0127ee898d143f/scenarios/database/java/mariadb/jdbc/opentelemetry-library/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/scenarios/database/java/mariadb/jdbc/opentelemetry-library/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/40edc280594b78b06731d354bc0127ee898d143f/scenarios/database/java/postgresql/jdbc/opentelemetry-javaagent/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/scenarios/database/java/postgresql/jdbc/opentelemetry-javaagent/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/40edc280594b78b06731d354bc0127ee898d143f/scenarios/database/java/postgresql/jdbc/opentelemetry-library/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/scenarios/database/java/postgresql/jdbc/opentelemetry-library/data.json"
+      ],
+      "id": "PRRT_kwDOTuzK5c6gXEWj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b2ba2cd983c46076373a170d08f84188f36de276/tools/runner/src/opentelemetry/conformance/policies/instrumentation_scope_validation.rego.template",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/runner/src/opentelemetry/conformance/policies/instrumentation_scope_validation.rego.template",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/http/runner/tests/test_instrumentation_scope_policy.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/98571515705c67712c42fe601d6bb38c8b6fd6be"
+      ],
+      "id": "PRRT_kwDOTuzK5c6nRPAj",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/b2ba2cd983c46076373a170d08f84188f36de276/tools/runner/src/opentelemetry/conformance/policies/instrumentation_scope_validation.rego.template",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/1860208da093aed477c27fe14f9f35fcb4852c4b/tools/runner/src/opentelemetry/conformance/policies/instrumentation_scope_validation.rego.template"
+      ],
+      "id": "PRRT_kwDOTuzK5c6nRPBH",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

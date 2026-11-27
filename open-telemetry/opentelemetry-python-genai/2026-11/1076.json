@@ -1,0 +1,52 @@
+{
+  "head": "37bee52089ef67efd49e62b7c481a521fb9018b3",
+  "merge": "e130ee877d0be1e27359a4902783d8b6311d184a",
+  "merged": "2026-11-20T22:28:17Z",
+  "missing_roots": 0,
+  "number": 1076,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The regression test asserts Mistral's stop sequences only for synchronous, non-streaming success with content capture enabled; async, streaming, capture-disabled, provider-error, and early-close paths do not assert this attribute. Add public-client cases asserting the exact stop-sequence tuple on finalized spans, and verify message content is absent when capture is disabled, as required by the [instrumentation test rules](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/AGENTS.md#tests). This would catch those paths dropping the attribute even while the new test passes.",
+      "created": "2026-11-11T11:22:58Z",
+      "hunk": "@@ -537,6 +537,7 @@ def extract_invoke_model_request(\n     stop_seqs = _first_not_none(\n         body.get(\"stop_sequences\"),\n         body.get(\"stopSequences\"),\n+        body.get(\"stop\"),",
+      "id": "PRRT_kwDOSbspP862JUM0",
+      "opened": "2026-11-11T11:22:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-11-19T10:25:33Z",
+          "body": "This is fixing a specific case",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1076#discussion_r4627346837"
+        }
+      ],
+      "reviewed": "6ef6779f20a54c9def5badfece1c179c64d4cc5d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1076#discussion_r4537264177"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: OpenAI models on Bedrock (gpt-oss) also use `stop` in InvokeModel, and the OpenAI schema allows a plain string - that gets dropped here.\n\n```suggestion\n    if isinstance(stop_seqs, str):\n        stop_seqs = [stop_seqs]\n    if _is_list(stop_seqs):\n```\n",
+      "created": "2026-11-20T04:21:40Z",
+      "hunk": "@@ -539,6 +539,7 @@ def extract_invoke_model_request(\n     stop_seqs = _first_not_none(\n         body.get(\"stop_sequences\"),\n         body.get(\"stopSequences\"),\n+        body.get(\"stop\"),\n         text_gen_config.get(\"stopSequences\") if text_gen_config else None,\n     )\n     if _is_list(stop_seqs):",
+      "id": "PRRT_kwDOSbspP8651cPB",
+      "opened": "2026-11-20T04:24:11Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+      "replies": [
+        {
+          "at": "2026-11-20T09:13:39Z",
+          "body": "Added with a test",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1076#discussion_r4640577211"
+        }
+      ],
+      "reviewed": "3c50ebd0b60166c3c486ffc25229872d5e01d06f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1076#discussion_r4638436210"
+    }
+  ]
+}

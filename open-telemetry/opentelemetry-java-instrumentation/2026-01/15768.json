@@ -1,0 +1,25 @@
+{
+  "head": "c354bcf15b2888d9a158fe484f6484a7385790f7",
+  "merge": "2c37fe3c6d3f00ce3ed4d7ccf96d67a2fc78df18",
+  "merged": "2026-01-06T12:26:22Z",
+  "missing_roots": 0,
+  "number": 15768,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think this version only applies to the spring gradle plugin, really the image uses `2.6.15`",
+      "created": "2026-01-06T12:26:10Z",
+      "hunk": "@@ -6,7 +6,7 @@ plugins {\n   id(\"otel.java-conventions\")\n \n   id(\"com.google.cloud.tools.jib\")\n-  id(\"org.springframework.boot\") version \"3.5.9\"\n+  id(\"org.springframework.boot\") version \"4.0.1\"",
+      "id": "PRRT_kwDODJKVX85oLtnC",
+      "opened": "2026-01-06T12:26:09Z",
+      "path": "smoke-tests/images/spring-boot/build.gradle.kts",
+      "replies": [],
+      "reviewed": "c354bcf15b2888d9a158fe484f6484a7385790f7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15768#discussion_r2664763364"
+    }
+  ]
+}

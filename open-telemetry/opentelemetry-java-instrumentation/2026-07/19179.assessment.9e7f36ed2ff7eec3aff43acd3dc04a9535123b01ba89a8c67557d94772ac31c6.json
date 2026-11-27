@@ -1,0 +1,49 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1d40259168b67c3fc7b3fec413336f8b6c8d4efee96a001a825e2d1e7599f6d5",
+  "input_digest": "9e7f36ed2ff7eec3aff43acd3dc04a9535123b01ba89a8c67557d94772ac31c6",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3ff9c9b5981db3943fbaff4145e6404b510956fa/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b9e77c48bf44728080fadb2233440a677e76c67/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b9e77c48bf44728080fadb2233440a677e76c67/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/config/internal/CommonConfigTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/278c17bf0fdcf8d3bb2c79114d3c8ee054403efe"
+      ],
+      "id": "PRRT_kwDODJKVX86P758l",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3ff9c9b5981db3943fbaff4145e6404b510956fa/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3ff9c9b5981db3943fbaff4145e6404b510956fa/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b9e77c48bf44728080fadb2233440a677e76c67/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/config/internal/DbConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b9e77c48bf44728080fadb2233440a677e76c67/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/14e7be5bdf59e62bfb950f1f8ec230e1bc35da82"
+      ],
+      "id": "PRRT_kwDODJKVX86P759E",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3ff9c9b5981db3943fbaff4145e6404b510956fa/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b9e77c48bf44728080fadb2233440a677e76c67/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeys.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0b9e77c48bf44728080fadb2233440a677e76c67/instrumentation/log4j/log4j-context-data/log4j-context-data-2.17/library-autoconfigure/src/test/java/io/opentelemetry/instrumentation/log4j/contextdata/v2_17/internal/ContextDataKeysTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6cc7cf09a73ddf2f2237c94b16f5447bb9e6db74"
+      ],
+      "id": "PRRT_kwDODJKVX86P759s",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

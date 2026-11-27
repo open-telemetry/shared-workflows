@@ -1,0 +1,55 @@
+{
+  "head": "e35bab89c22120a0dc022eecda982ad8f76970a1",
+  "merge": "02088b92614a6bb6fc58a3cb73154a75d2dbe550",
+  "merged": "2026-09-08T03:40:22Z",
+  "missing_roots": 0,
+  "number": 644,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example now requires boto3>=1.43.89, but the Bedrock instrumentation package itself still advertises support for `boto3 >= 1.40.46, < 2` (declared in its `pyproject.toml`/`package.py` and asserted in tests). Please either update the package’s declared minimum (and related references) or keep the example requirement aligned with the package’s supported minimum.",
+      "created": "2026-09-07T04:33:01Z",
+      "hunk": "@@ -1,4 +1,4 @@\n-boto3>=1.40.46\n+boto3>=1.43.89",
+      "id": "PRRT_kwDOSbspP86fyR_Z",
+      "opened": "2026-09-07T04:33:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/examples/manual/requirements.txt",
+      "replies": [],
+      "reviewed": "e35bab89c22120a0dc022eecda982ad8f76970a1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/644#discussion_r3946567380"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This bumps the example’s boto3 lower bound to 1.43.89, but the actual package dependency still declares `boto3 >= 1.40.46, < 2` (e.g., bedrock `pyproject.toml` optional-deps, `package.py`, and `tests/test_instrumentor.py`). Either raise the package’s declared minimum to match (and update the related README/lockfile/test expectations), or keep this example aligned with the package’s supported range.",
+      "created": "2026-09-07T04:33:01Z",
+      "hunk": "@@ -1,4 +1,4 @@\n-boto3>=1.40.46\n+boto3>=1.43.89",
+      "id": "PRRT_kwDOSbspP86fyR_j",
+      "opened": "2026-09-07T04:33:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/examples/zero-code/requirements.txt",
+      "replies": [],
+      "reviewed": "e35bab89c22120a0dc022eecda982ad8f76970a1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/644#discussion_r3946567395"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR title indicates the boto3 dependency minimum is being raised, but this change only updates the docs build requirements; the Bedrock package’s declared supported range remains `boto3 >= 1.40.46, < 2` (and is referenced in tests and the root README table). Please either update the package’s dependency metadata/tests/docs to consistently reflect the new minimum, or adjust the PR scope/title to clarify this is docs-only.",
+      "created": "2026-09-07T04:33:02Z",
+      "hunk": "@@ -9,7 +9,7 @@ wrapt>=2.2.2,<3.0.0\n # Required by instrumentation packages\n agno>=2.9.0\n anthropic>=1.0.0\n-boto3>=1.40.46\n+boto3>=1.43.89",
+      "id": "PRRT_kwDOSbspP86fyR_p",
+      "opened": "2026-09-07T04:33:02Z",
+      "path": "docs-requirements.txt",
+      "replies": [],
+      "reviewed": "e35bab89c22120a0dc022eecda982ad8f76970a1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/644#discussion_r3946567408"
+    }
+  ]
+}

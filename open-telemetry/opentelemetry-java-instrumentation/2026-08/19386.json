@@ -1,0 +1,31 @@
+{
+  "head": "c773c003cf89365d1d1d6607d0631aa66c14147c",
+  "merge": "cef5c6d3c39f7d217c78f639817e763969345284",
+  "merged": "2026-08-04T10:19:25Z",
+  "missing_roots": 0,
+  "number": 19386,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@zeitlinger @laurit thoughts on dropping Zipkin before 3.0?",
+      "created": "2026-08-04T02:41:24Z",
+      "hunk": "@@ -2,6 +2,6 @@\n \n The OpenTelemetry Exporter Starter for Java is a starter package that includes packages required to enable tracing using OpenTelemetry. It also provides the dependency and corresponding auto-configuration.\n \n-OpenTelemetry Zipkin Exporter Starter is a starter package that includes the opentelemetry-api, opentelemetry-sdk, opentelemetry-extension-annotations, opentelemetry-logging-exporter, opentelemetry-spring-boot-autoconfigurations and spring framework starters required to setup distributed tracing. It also provides the [opentelemetry-exporters-zipkin](https://github.com/open-telemetry/opentelemetry-java/tree/main/exporters/zipkin) artifact and corresponding exporter auto-configuration.\n+OpenTelemetry Zipkin Exporter Starter is a starter package that includes the opentelemetry-api, opentelemetry-sdk, opentelemetry-extension-annotations, opentelemetry-logging-exporter, opentelemetry-spring-boot-autoconfigurations and spring framework starters required to setup distributed tracing. It also provides the [opentelemetry-exporter-zipkin](https://github.com/open-telemetry/opentelemetry-java/tree/v1.64.0/exporters/zipkin) artifact and corresponding exporter auto-configuration.",
+      "id": "PRRT_kwDODJKVX86WLdhk",
+      "opened": "2026-08-04T02:41:24Z",
+      "path": "instrumentation/spring/starters/zipkin-spring-boot-starter/README.md",
+      "replies": [
+        {
+          "at": "2026-08-04T10:19:14Z",
+          "body": "I think that is a good idea. Since it got removed from the sdk it might be more convenient to drop it from all subsequent releases. If we are going to do 2.x releases the same way as we did for 1.x where we updated the sdk too we'd need to somehow add the zipkin exporter from the last sdk that had it.\r\nNoticed that https://opentelemetry.io/blog/2025/deprecating-zipkin-exporters/#timeline-and-migration-path says\r\n> Existing stable Zipkin exporters will continue to receive security patches and critical bug fixes until at least December 2026\r\n\r\ncould sdk remove it because it wasn't stable?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19386#discussion_r3711419654"
+        }
+      ],
+      "reviewed": "c773c003cf89365d1d1d6607d0631aa66c14147c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19386#discussion_r3709063268"
+    }
+  ]
+}

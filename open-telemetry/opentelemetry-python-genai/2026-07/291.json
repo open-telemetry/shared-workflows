@@ -1,0 +1,25 @@
+{
+  "head": "68bde5865d87776baa6c241091341444e09a8594",
+  "merge": "e424bc4d60c23a58f496bb44c71b8497ee38ae4a",
+  "merged": "2026-07-20T18:44:51Z",
+  "missing_roots": 0,
+  "number": 291,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The docs requirements specify only a lower bound (`>=2.12.1`), which can allow future major releases (e.g., 3.x) into the docs environment and potentially break builds unexpectedly. Consider adding an upper bound consistent with the rest of the repo’s constraints (e.g., `google-genai>=2.12.1,<3` or `~=2.12.1`) to keep docs builds reproducible and aligned with supported versions.",
+      "created": "2026-07-20T07:37:37Z",
+      "hunk": "@@ -9,7 +9,7 @@ wrapt>=2.2.2,<3.0.0\n # Required by instrumentation packages\n anthropic>=0.116.0\n claude-agent-sdk>=0.2.120\n-google-genai>=2.11.0\n+google-genai>=2.12.1",
+      "id": "PRRT_kwDOSbspP86SK_FK",
+      "opened": "2026-07-20T07:37:37Z",
+      "path": "docs-requirements.txt",
+      "replies": [],
+      "reviewed": "68bde5865d87776baa6c241091341444e09a8594",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/291#discussion_r3612660769"
+    }
+  ]
+}

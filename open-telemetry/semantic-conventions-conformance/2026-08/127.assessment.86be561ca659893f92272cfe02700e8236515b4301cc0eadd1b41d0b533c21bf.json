@@ -1,0 +1,55 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "d9a6f00a7dcc46c48d812662dc471512c3613736a9e1a6fd5274ffc403f76fa2",
+  "input_digest": "86be561ca659893f92272cfe02700e8236515b4301cc0eadd1b41d0b533c21bf",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e1897fc1e4f413b7e789a19384d3203bf696212/scenarios/gen-ai/python/cohere/scenarios/structured_output.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/8920d6c3e75ad44ee72f60dbf2a36ad1df323d42/scenarios/gen-ai/python/cohere/scenarios/structured_output.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dVbaM",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e1897fc1e4f413b7e789a19384d3203bf696212/tools/gen-ai/mock-server/src/genai_mock_server/cohere.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e1897fc1e4f413b7e789a19384d3203bf696212/scenarios/gen-ai/python/cohere/scenarios/streaming.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/3e1897fc1e4f413b7e789a19384d3203bf696212/tools/gen-ai/mock-server/tests/test_mock_server.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/8920d6c3e75ad44ee72f60dbf2a36ad1df323d42/tools/gen-ai/mock-server/tests/test_mock_server.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dVbao",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/38220bfc05e3f1a0181a65ce0c6566bafb74af8e/scenarios/gen-ai/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/8920d6c3e75ad44ee72f60dbf2a36ad1df323d42/scenarios/gen-ai/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dVyoG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/7e38bbf55bd8db5dcc85eb4b324e823aa68517e2/scenarios/gen-ai/python/cohere/scenarios/tool_calling.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/8920d6c3e75ad44ee72f60dbf2a36ad1df323d42/scenarios/gen-ai/python/cohere/scenarios/tool_calling.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6dWF33",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "c35a4653064fdc67329e646aa537ef58f26d8d3d",
+  "merge": "f5186c15d67f6fa0e59dc56adbf49f89df52a7c2",
+  "merged": "2026-11-10T20:44:34Z",
+  "missing_roots": 0,
+  "number": 486,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The supplied 1.0.163 release notes add `server.address` and `server.port` to OpenAI Chat spans, which these scenarios exercise through `provider().chat(...)`, but `vercel-ai/native/data.json` still omits those attributes and reports missing `server.address`. This leaves the committed coverage describing the old instrumentation and will fail CI's coverage-freshness check. Run `otel-conformance scenarios/gen-ai/js/vercel-ai/native --report-only` with the updated dependencies and commit the regenerated `data.json`.",
+      "created": "2026-11-10T06:33:32Z",
+      "hunk": "@@ -6,7 +6,7 @@\n   \"dependencies\": {\n     \"@otel-conformance/vercel-ai-scenarios\": \"*\",\n     \"@otel-conformance/scenario-sdk\": \"file:../../../../../tools/js/scenario-sdk\",\n-    \"@ai-sdk/otel\": \"1.0.156\",\n-    \"ai\": \"7.0.156\"\n+    \"@ai-sdk/otel\": \"1.0.164\",\n+    \"ai\": \"7.0.164\"",
+      "id": "PRRT_kwDOTuzK5c61lTZJ",
+      "opened": "2026-11-10T06:33:33Z",
+      "path": "scenarios/gen-ai/js/vercel-ai/native/package.json",
+      "replies": [],
+      "reviewed": "24650d0ff50e09a0c8714522b14cf2f61a797a92",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/486#discussion_r4521826195"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The browser-runner snapshots in `scenarios/http/js/package-lock.json:2394–2405` and `scenarios/browser/js/package-lock.json:858–869` still pin exporter/instrumentation 0.300.0, SDK trace 3.0.0, and Playwright 1.64.1. Scenario setup installs from those workspace locks rather than the helper's standalone lock, leaving the scenario dependency graphs stale and causing CI's lock-freshness check to fail when the regenerated locks are applied. Run `otel-conformance-js relock` and commit both refreshed workspace locks.",
+      "created": "2026-11-10T06:33:32Z",
+      "hunk": "@@ -22,10 +22,10 @@\n   },\n   \"dependencies\": {\n     \"@opentelemetry/api\": \"1.10.0\",\n-    \"@opentelemetry/exporter-trace-otlp-proto\": \"0.300.0\",\n-    \"@opentelemetry/instrumentation\": \"0.300.0\",\n-    \"@opentelemetry/sdk-trace\": \"3.0.0\",\n+    \"@opentelemetry/exporter-trace-otlp-proto\": \"0.301.0\",\n+    \"@opentelemetry/instrumentation\": \"0.301.0\",\n+    \"@opentelemetry/sdk-trace\": \"3.1.0\",\n     \"esbuild\": \"0.28.2\",\n-    \"playwright-core\": \"1.64.1\"\n+    \"playwright-core\": \"1.65.0\"",
+      "id": "PRRT_kwDOTuzK5c61lTZn",
+      "opened": "2026-11-10T06:33:33Z",
+      "path": "tools/js/browser-runner/package.json",
+      "replies": [],
+      "reviewed": "24650d0ff50e09a0c8714522b14cf2f61a797a92",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/486#discussion_r4521826245"
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "head": "85f3fa0c2ecf667dc9ffc1fce9e599eb80886713",
+  "merge": "7c0a9c7f4e34f1069b5fd87c6c39b0279cd393c7",
+  "merged": "2026-08-20T04:00:45Z",
+  "missing_roots": 0,
+  "number": 411,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "I guess people are probably just not using PyPy with these libs, so this seems OK.\n\nFrom what we've seen in python repos though, things do subtly break in PyPy if we care about it.",
+      "created": "2026-08-19T13:43:21Z",
+      "hunk": "@@ -9,85 +9,66 @@ envlist =\n     ; for specifying supported Python versions per package.\n \n     ; instrumentation-genai-openai\n-    ; oldest deps run only on the minimum supported Python: the lowest declared dependency versions\n-    ; predate newer interpreters and ship no wheels for them. latest covers the full interpreter range.\n-    py3{10,11,12,13,14}-test-instrumentation-genai-openai-latest\n+    py3{10,14}-test-instrumentation-genai-openai-latest\n     py310-test-instrumentation-genai-openai-oldest\n-    pypy3-test-instrumentation-genai-openai-latest\n     py314-test-instrumentation-genai-openai-conformance\n-    lint-instrumentation-genai-openai\n \n     ; instrumentation-genai-openai-agents\n-    py3{10,11,12,13,14}-test-instrumentation-genai-openai_agents-latest\n+    py3{10,14}-test-instrumentation-genai-openai_agents-latest\n     py310-test-instrumentation-genai-openai_agents-oldest\n     py314-test-instrumentation-genai-openai_agents-conformance\n-    lint-instrumentation-genai-openai_agents\n \n     ; instrumentation-google-genai\n-    py3{10,11,12,13,14}-test-instrumentation-google-genai-latest\n+    py3{10,14}-test-instrumentation-google-genai-latest\n     py310-test-instrumentation-google-genai-oldest\n-    py3{12,13}-test-instrumentation-google-genai-conformance\n-    # Disabling pypy3 as shapely does not have wheels and fails to compile\n-    lint-instrumentation-google-genai\n+    py314-test-instrumentation-google-genai-conformance\n \n     ; instrumentation-genai-agno\n-    py3{10,11,12,13,14}-test-instrumentation-genai-agno-latest\n+    py3{10,14}-test-instrumentation-genai-agno-latest\n     py310-test-instrumentation-genai-agno-oldest\n     py314-test-instrumentation-genai-agno-conformance\n-    lint-instrumentation-genai-agno\n \n     ; instrumentation-genai-smolagents\n-    py3{10,11,12,13,14}-test-instrumentation-genai-smolagents-latest\n+    py3{10,14}-test-instrumentation-genai-smolagents-latest\n     py310-test-instrumentation-genai-smolagents-oldest\n     py314-test-instrumentation-genai-smolagents-conformance\n-    lint-instrumentation-genai-smolagents\n \n     ; instrumentation-genai-anthropic\n-    py3{10,11,12,13,14}-test-instrumentation-genai-anthropic-latest\n+    py3{10,14}-test-instrumentation-genai-anthropic-latest\n     py310-test-instrumentation-genai-anthropic-oldest\n-    # No pypy3: jiter (an anthropic dependency) ships no PyPy wheels, so it would need a Rust source build\n     py314-test-instrumentation-genai-anthropic-conformance\n-    lint-instrumentation-genai-anthropic\n \n     ; instrumentation-genai-claude-agent-sdk\n-    py3{10,11,12,13}-test-instrumentation-genai-claude-agent-sdk-latest\n+    py3{10,14}-test-instrumentation-genai-claude-agent-sdk-latest\n     py310-test-instrumentation-genai-claude-agent-sdk-oldest\n-    # No pypy3: jiter (an anthropic dependency) ships no PyPy wheels, so it would need a Rust source build",
+      "id": "PRRT_kwDOSbspP86afC8p",
+      "opened": "2026-08-19T13:45:54Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-08-19T14:13:06Z",
+          "body": "we only tested it with openai and util, so I imagine we already failed at supporting it. Let's bring it back across the board if anyone asks for it? ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/411#discussion_r3813754939"
+        },
+        {
+          "at": "2026-08-19T15:51:34Z",
+          "body": "Maybe we should call it out in the changelog? (I know it's not really a change but some users might be surprised)",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/411#discussion_r3814555758"
+        }
+      ],
+      "reviewed": "cf572dbe42e963d52c5ca5eb48ef94e08de463d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/411#discussion_r3813505813"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Is ruff lint still being run somehow?",
+      "created": "2026-08-19T13:45:51Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86afGRU",
+      "opened": "2026-08-19T13:45:54Z",
+      "path": ".github/workflows/lint.yml",
+      "replies": [
+        {
+          "at": "2026-08-19T13:46:20Z",
+          "body": "> Lint matrix: Removed per-package lint jobs; precommit in misc.yml already covers the entire workspace.\r\n\r\n👍 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/411#discussion_r3813530849"
+        }
+      ],
+      "reviewed": "cf572dbe42e963d52c5ca5eb48ef94e08de463d5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/411#discussion_r3813525924"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The langchain instrumentation previously only ran on py312/py313, but this change expands it to py310 and py314. Given the prior restriction, this risks running a package (or its dependencies) on unsupported interpreters, which can create CI instability. If langchain (or a pinned dependency set) requires >=3.12, keep this envlist aligned (e.g., `py3{12,14}-...-latest` and `py312-...-oldest`) while still dropping 3.11/3.13.",
+      "created": "2026-08-19T13:56:14Z",
+      "hunk": "@@ -9,85 +9,66 @@ envlist =\n     ; for specifying supported Python versions per package.\n \n     ; instrumentation-genai-openai\n-    ; oldest deps run only on the minimum supported Python: the lowest declared dependency versions\n-    ; predate newer interpreters and ship no wheels for them. latest covers the full interpreter range.\n-    py3{10,11,12,13,14}-test-instrumentation-genai-openai-latest\n+    py3{10,14}-test-instrumentation-genai-openai-latest\n     py310-test-instrumentation-genai-openai-oldest\n-    pypy3-test-instrumentation-genai-openai-latest\n     py314-test-instrumentation-genai-openai-conformance\n-    lint-instrumentation-genai-openai\n \n     ; instrumentation-genai-openai-agents\n-    py3{10,11,12,13,14}-test-instrumentation-genai-openai_agents-latest\n+    py3{10,14}-test-instrumentation-genai-openai_agents-latest\n     py310-test-instrumentation-genai-openai_agents-oldest\n     py314-test-instrumentation-genai-openai_agents-conformance\n-    lint-instrumentation-genai-openai_agents\n \n     ; instrumentation-google-genai\n-    py3{10,11,12,13,14}-test-instrumentation-google-genai-latest\n+    py3{10,14}-test-instrumentation-google-genai-latest\n     py310-test-instrumentation-google-genai-oldest\n-    py3{12,13}-test-instrumentation-google-genai-conformance\n-    # Disabling pypy3 as shapely does not have wheels and fails to compile\n-    lint-instrumentation-google-genai\n+    py314-test-instrumentation-google-genai-conformance\n \n     ; instrumentation-genai-agno\n-    py3{10,11,12,13,14}-test-instrumentation-genai-agno-latest\n+    py3{10,14}-test-instrumentation-genai-agno-latest\n     py310-test-instrumentation-genai-agno-oldest\n     py314-test-instrumentation-genai-agno-conformance\n-    lint-instrumentation-genai-agno\n \n     ; instrumentation-genai-smolagents\n-    py3{10,11,12,13,14}-test-instrumentation-genai-smolagents-latest\n+    py3{10,14}-test-instrumentation-genai-smolagents-latest\n     py310-test-instrumentation-genai-smolagents-oldest\n     py314-test-instrumentation-genai-smolagents-conformance\n-    lint-instrumentation-genai-smolagents\n \n     ; instrumentation-genai-anthropic\n-    py3{10,11,12,13,14}-test-instrumentation-genai-anthropic-latest\n+    py3{10,14}-test-instrumentation-genai-anthropic-latest\n     py310-test-instrumentation-genai-anthropic-oldest\n-    # No pypy3: jiter (an anthropic dependency) ships no PyPy wheels, so it would need a Rust source build\n     py314-test-instrumentation-genai-anthropic-conformance\n-    lint-instrumentation-genai-anthropic\n \n     ; instrumentation-genai-claude-agent-sdk\n-    py3{10,11,12,13}-test-instrumentation-genai-claude-agent-sdk-latest\n+    py3{10,14}-test-instrumentation-genai-claude-agent-sdk-latest\n     py310-test-instrumentation-genai-claude-agent-sdk-oldest\n-    # No pypy3: jiter (an anthropic dependency) ships no PyPy wheels, so it would need a Rust source build\n-    lint-instrumentation-genai-claude-agent-sdk\n+\n     ; instrumentation-genai-crewai\n-    py3{10,11,12,13,14}-test-instrumentation-genai-crewai-latest\n+    py3{10,14}-test-instrumentation-genai-crewai-latest\n     py310-test-instrumentation-genai-crewai-oldest\n-    lint-instrumentation-genai-crewai\n \n     ; instrumentation-genai-langchain\n-    py3{12,13}-test-instrumentation-genai-langchain-latest\n-    py312-test-instrumentation-genai-langchain-oldest\n+    py3{10,14}-test-instrumentation-genai-langchain-latest\n+    py310-test-instrumentation-genai-langchain-oldest",
+      "id": "PRRT_kwDOSbspP86afU40",
+      "opened": "2026-08-19T13:56:14Z",
+      "path": "tox.ini",
+      "replies": [],
+      "reviewed": "5027a1fb6471feace258b8f1385b289d492757b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/411#discussion_r3813613669"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This line reads as a hyphen-minus rather than punctuation, which makes the instruction easier to misread. Consider using an em dash (`—`) or a comma (e.g., 'Requirements install here, **not** ...') for clarity and consistency with the surrounding style.",
+      "created": "2026-08-19T13:56:14Z",
+      "hunk": "@@ -92,15 +92,15 @@ Copy the shape from an existing package — paths in `tox.ini` are repo-root-rel\n - **uv workspace**: auto-included via the `instrumentation/*` glob in root\n   `pyproject.toml [tool.uv.workspace] members` — no edit needed.\n - **`tox.ini`**:\n-  - `envlist`: add `py3{…}-test-instrumentation-genai-<lib>-{oldest,latest}`, the\n-    `py3{…}-…-<lib>-conformance` entry, and `lint-instrumentation-genai-<lib>`.\n+  - `envlist`: add `py3{10,14}-test-instrumentation-genai-<lib>-latest`,\n+    `py310-test-instrumentation-genai-<lib>-oldest`, and the\n+    `py314-test-instrumentation-genai-<lib>-conformance` entry.\n   - `[testenv] deps`: add the factor-conditional test-requirements lines\n     (`<lib>-{oldest,latest,conformance}: -r …/tests/requirements.<factor>.txt` plus\n-    `{[testenv]test_deps}` / `{[testenv]pytest_deps}`). Requirements install here — **not**\n+    `{[testenv]test_deps}` / `{[testenv]pytest_deps}`). Requirements install here - **not**",
+      "id": "PRRT_kwDOSbspP86afU5P",
+      "opened": "2026-08-19T13:56:14Z",
+      "path": "AGENTS.md",
+      "replies": [
+        {
+          "at": "2026-08-19T14:14:14Z",
+          "body": "😡😡😡😡😡😡😡😡😡😡😡😡😡 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/411#discussion_r3813764694"
+        }
+      ],
+      "reviewed": "5027a1fb6471feace258b8f1385b289d492757b6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/411#discussion_r3813613720"
+    }
+  ]
+}

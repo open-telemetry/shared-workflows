@@ -1,0 +1,31 @@
+{
+  "head": "5e1e4b3c4b56454fca8aee34b073481d7b90a12e",
+  "merge": "42fc8fa0f7b0e9313381b6c794e59e6a39802f38",
+  "merged": "2026-09-29T02:09:23Z",
+  "missing_roots": 0,
+  "number": 809,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This path is ambiguous and, read from the repository root, does not exist: the editable installs live in each consuming package's own requirements file (and there can be multiple occurrences). Identify the dependent-package files explicitly so maintainers remove all stale local installs rather than looking for a root-level file.\n\nThis issue also appears on line 94 of the same file.",
+      "created": "2026-09-28T22:46:59Z",
+      "hunk": "@@ -68,6 +68,10 @@ For releasing every package that has towncrier changelog fragments:\n    - Publishes each ready package to PyPI.\n    - Creates a GitHub release tag (`<pkg>==<version>`) on `main` for each.\n    - Opens a PR bumping released packages to the next minor `.dev` version.\n+4. Review and merge the post-release version-bump PR. If a workspace package\n+   (e.g. `opentelemetry-util-genai`) was released at a new floor required by\n+   other packages, remove its `-e` editable install from\n+   `tests/requirements.oldest.txt` in that PR so `deps-check` passes.",
+      "id": "PRRT_kwDOSbspP86m429w",
+      "opened": "2026-09-28T22:46:59Z",
+      "path": "RELEASING.md",
+      "replies": [
+        {
+          "at": "2026-09-28T23:00:52Z",
+          "body": "Consistent with the rest of this doc (version.py, .changelog/).",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/809#discussion_r4127838301"
+        }
+      ],
+      "reviewed": "6e877d4833955292bf05a3cf0c8863f21b6f60cf",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/809#discussion_r4127752202"
+    }
+  ]
+}

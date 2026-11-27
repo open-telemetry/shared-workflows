@@ -1,0 +1,38 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a47ec0a6adfd2bcea3f746f02a0e266870a1aa8fda0e35750f3ff1644c3506f1",
+  "input_digest": "dadef5fd3f16a5a83613b602cf1328682c8ec21ea034ded3666120db8926b380",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDOSUeMrM6Wgynb",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/2b2a84bbca51831b3d5d12d6e1d8ca89d63f1b86/.github/workflows/auto-update-generated-files.yml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/4a39b6ef1363fab57bc40e18c82abb32cc89ebcd/.github/workflows/auto-update-generated-files.yml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/8e8aa68a148f24b83b528909a43e1bb18529044b"
+      ],
+      "id": "PRRT_kwDOSUeMrM6Whq0w",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/2b2a84bbca51831b3d5d12d6e1d8ca89d63f1b86/.github/scripts/update-upstream-links.sh",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/4a39b6ef1363fab57bc40e18c82abb32cc89ebcd/.github/scripts/update-upstream-links.sh",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/a12c59e1630867c880f5e14ad77c15a314efabe1"
+      ],
+      "id": "PRRT_kwDOSUeMrM6Whq1F",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

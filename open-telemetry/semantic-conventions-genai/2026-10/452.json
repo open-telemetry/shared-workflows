@@ -1,0 +1,157 @@
+{
+  "head": "49192ba4e1982dbdcbae610c4b7d19fc8c430527",
+  "merge": "f49da22056925ae9ba78ec5dd7fe1fa559adce05",
+  "merged": "2026-10-17T19:13:36Z",
+  "missing_roots": 0,
+  "number": 452,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new sentence is clear, but the surrounding wording implies the classification step is meaningful here while the preceding line states *all* JSON-RPC error codes are errors. Consider rephrasing the earlier added wording (and the corresponding doc text) to focus on presence/absence of a JSON-RPC error response rather than “classifies as an error” (e.g., “When a JSON-RPC error response is available…”). This avoids an internally redundant condition in sections where classification is unconditional.",
+      "created": "2026-08-16T04:45:07Z",
+      "hunk": "@@ -58,6 +63,7 @@ attribute_groups:\n           returned in the error response.\n \n           All JSON-RPC error codes SHOULD be considered errors.\n+          `error.type` also records errors without a JSON-RPC error response.",
+      "id": "PRRT_kwDOSUeMrM6ZksA0",
+      "opened": "2026-08-16T04:45:08Z",
+      "path": "model/mcp/common.yaml",
+      "replies": [
+        {
+          "at": "2026-08-16T04:56:25Z",
+          "body": "Addressed in 810792e. The wording now starts from an error response containing a code that indicates an operation failure, while preserving the server-side distinction for codes that do not indicate failure.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3790977734"
+        }
+      ],
+      "reviewed": "79d86a99367ca9f6896cfcc36510e8ab1b67744d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3790960465"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`error.type` is typically a string-valued attribute in common telemetry conventions, while `rpc.response.status_code` here describes a numeric JSON-RPC error code. Saying they “have the same value” is ambiguous/possibly incorrect across types. Please clarify whether `error.type` should record the numeric code as a string (e.g., \\\"-32601\\\"), or define a stable string mapping (e.g., \\\"jsonrpc.-32601\\\" / \\\"Method not found\\\") so producers/consumers can rely on a consistent representation.",
+      "created": "2026-08-16T04:45:07Z",
+      "hunk": "@@ -41,6 +41,11 @@ attribute_groups:\n           [CallToolResult](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/9c8a44e47e16b789a1f9d47c89ea23ed13a37cf9/schema/2025-06-18/schema.ts#L715)\n           is returned with `isError` set to `true`, this attribute SHOULD be set to\n           `tool_error`.\n+\n+          When a JSON-RPC error code classifies as an error, `error.type` and\n+          `rpc.response.status_code` have the same value. Unlike\n+          `rpc.response.status_code`, `error.type` also records errors for which\n+          no JSON-RPC error response is available.",
+      "id": "PRRT_kwDOSUeMrM6ZksAq",
+      "opened": "2026-08-16T04:45:08Z",
+      "path": "model/mcp/common.yaml",
+      "replies": [
+        {
+          "at": "2026-08-16T04:56:17Z",
+          "body": "Addressed in 810792e. The shared guidance now states that both attributes use the string representation of the JSON-RPC error code when it indicates an operation failure.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3790977506"
+        }
+      ],
+      "reviewed": "79d86a99367ca9f6896cfcc36510e8ab1b67744d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3790960454"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same issue as in the YAML source: “same value” is ambiguous if `rpc.response.status_code` is numeric and `error.type` is a string. Align the documentation with the intended invariant (stringified numeric code vs mapped string) so instrumentation authors don’t produce inconsistent `error.type` values across languages/SDKs.",
+      "created": "2026-08-16T04:45:08Z",
+      "hunk": "@@ -191,6 +191,11 @@ string representation of the error. When\n is returned with `isError` set to `true`, this attribute SHOULD be set to\n `tool_error`.\n \n+When a JSON-RPC error code classifies as an error, `error.type` and\n+`rpc.response.status_code` have the same value. Unlike",
+      "id": "PRRT_kwDOSUeMrM6ZksA5",
+      "opened": "2026-08-16T04:45:08Z",
+      "path": "docs/gen-ai/mcp.md",
+      "replies": [
+        {
+          "at": "2026-08-16T04:56:33Z",
+          "body": "Addressed in 810792e. The generated documentation now explicitly says that both attributes use the string representation of the JSON-RPC error code.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3790977921"
+        }
+      ],
+      "reviewed": "79d86a99367ca9f6896cfcc36510e8ab1b67744d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3790960472"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This paragraph (and the follow-up sentence about no JSON-RPC error response) is repeated in multiple sections of this document (e.g., around lines ~194, ~426, ~651, ~824). If this page is generated/assembled, consider centralizing this explanation once (a shared include/partial, or a single canonical section referenced by anchors) to reduce the chance of future divergence when the wording needs updates.",
+      "created": "2026-08-16T04:45:08Z",
+      "hunk": "@@ -191,6 +191,11 @@ string representation of the error. When\n is returned with `isError` set to `true`, this attribute SHOULD be set to\n `tool_error`.\n \n+When a JSON-RPC error code classifies as an error, `error.type` and",
+      "id": "PRRT_kwDOSUeMrM6ZksA8",
+      "opened": "2026-08-16T04:45:08Z",
+      "path": "docs/gen-ai/mcp.md",
+      "replies": [
+        {
+          "at": "2026-08-16T04:56:43Z",
+          "body": "The rendered instances are generated from the single shared source at `model/mcp/common.yaml`, which is included in each applicable span/metric table. Keeping the clarification there prevents source divergence; restructuring the rendering template would be unrelated to this focused clarification.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3790978128"
+        }
+      ],
+      "reviewed": "79d86a99367ca9f6896cfcc36510e8ab1b67744d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3790960476"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please add a changelog",
+      "created": "2026-08-16T22:30:45Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6Zp_yI",
+      "opened": "2026-08-16T22:30:55Z",
+      "path": "docs/gen-ai/mcp.md",
+      "replies": [
+        {
+          "at": "2026-08-17T06:04:05Z",
+          "body": "Addressed in 89133ca. Added a clarification changelog fragment.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3794125004"
+        }
+      ],
+      "reviewed": "40553379eb729bdebf475003e35b8987bba0ecbd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3792973595"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The `+` prefix drops the link back to this pull request from the released changelog, because towncrier builds that link from the file name. `changelog.d/README.md` reserves `+` for a fragment written before a pull request number exists. Rename this to `452.clarification.md`.",
+      "created": "2026-08-20T21:25:30Z",
+      "hunk": "@@ -0,0 +1 @@\n+Clarify how MCP records JSON-RPC error codes with `error.type` and `rpc.response.status_code`.",
+      "id": "PRRT_kwDOSUeMrM6a9t07",
+      "opened": "2026-08-20T21:30:19Z",
+      "path": "changelog.d/452.clarification.md",
+      "replies": [
+        {
+          "at": "2026-08-21T06:06:58Z",
+          "body": "Addressed in bcdfa33. Renamed the fragment to 452.clarification.md.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3827687683"
+        }
+      ],
+      "reviewed": "89133ca5cae3d0ecd803d35926f5f60f7e1cc58d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3825472801"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The first paragraph of this note already states both facts: `error.type` takes the string representation of a qualifying JSON-RPC error code, and it is set for failures with no error response. Restating them here under a different condition, \"indicates an operation failure\" rather than \"classifies as an error\", leaves the reader to work out whether the two conditions mean the same thing. Only the comparison with `rpc.response.status_code` is new, and that is what #313 asks for.\n\n```suggestion\n          `rpc.response.status_code` carries the same string representation of\n          the JSON-RPC error code. Unlike `rpc.response.status_code`,\n          `error.type` is also set when no JSON-RPC error response is available.\n```",
+      "created": "2026-08-20T21:25:30Z",
+      "hunk": "@@ -41,6 +41,12 @@ attribute_groups:\n           [CallToolResult](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/9c8a44e47e16b789a1f9d47c89ea23ed13a37cf9/schema/2025-06-18/schema.ts#L715)\n           is returned with `isError` set to `true`, this attribute SHOULD be set to\n           `tool_error`.\n+\n+          When an error response contains a JSON-RPC error code that indicates\n+          an operation failure, `error.type` and `rpc.response.status_code` both\n+          use its string representation. Unlike\n+          `rpc.response.status_code`, `error.type` also records errors for which\n+          no JSON-RPC error response is available.",
+      "id": "PRRT_kwDOSUeMrM6a9t1D",
+      "opened": "2026-08-20T21:30:19Z",
+      "path": "model/mcp/common.yaml",
+      "replies": [
+        {
+          "at": "2026-08-21T06:07:00Z",
+          "body": "Addressed in bcdfa33. Applied the suggested comparison and removed the redundant restatements.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3827687844"
+        }
+      ],
+      "reviewed": "89133ca5cae3d0ecd803d35926f5f60f7e1cc58d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/452#discussion_r3825472813"
+    }
+  ]
+}

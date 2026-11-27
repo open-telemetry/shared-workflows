@@ -1,0 +1,97 @@
+{
+  "head": "8a1dc207bd706398ddb2945cd7d45466d1e34ff8",
+  "merge": "b6968e5901ca41b1de4bc387b479fb67e0e27e09",
+  "merged": "2026-06-12T16:15:27Z",
+  "missing_roots": 0,
+  "number": 18968,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The module is tested against Spring Boot 2.5.x (see build.gradle.kts), and the `org.springframework.boot.autoconfigure.kafka.DefaultKafkaProducerFactoryCustomizer` package applies to Boot 2.x as well. Labeling this section as “Spring Boot 3.x” is misleading for Boot 2.x users even though the snippet still works.",
+      "created": "2026-06-11T21:09:00Z",
+      "hunk": "@@ -32,28 +32,61 @@ implementation(\"io.opentelemetry.instrumentation:opentelemetry-spring-kafka-2.7:\n The instrumentation library provides interceptors that can be added to Spring Kafka message\n listener containers and producers to provide spans and context propagation.\n \n+For Spring Boot 3.x, instrument producers with:\n+",
+      "id": "PRRT_kwDODJKVX86I8wAJ",
+      "opened": "2026-06-11T21:09:00Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/library/README.md",
+      "replies": [
+        {
+          "at": "2026-06-11T21:27:41Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18968/commits/698d4237366e538dd41be2481001065f672b5506",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18968#discussion_r3399284700"
+        }
+      ],
+      "reviewed": "f82f29d8ba07c573a94550230ae0ca69b49d1429",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18968#discussion_r3399192807"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The header comment mentions \"approved exception\", but the script doesn’t currently recognize any \"approved exception\" annotation (the allow-list below doesn’t include it). This is misleading for future maintainers; either remove the wording or add an explicit allow-list entry for the intended annotation.",
+      "created": "2026-06-12T04:00:21Z",
+      "hunk": "@@ -1,6 +1,7 @@\n #!/bin/bash -e\n \n-# all missing version coverage should be documented in supported-libraries.md\n+# all missing version coverage should be documented in supported-libraries.md or annotated\n+# with an approved exception",
+      "id": "PRRT_kwDODJKVX86JAgvD",
+      "opened": "2026-06-12T04:00:21Z",
+      "path": ".github/scripts/check-latest-dep-test-overrides.sh",
+      "replies": [],
+      "reviewed": "998d72ba81d64e0f71430ae73c7b88931b3c0710",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18968#discussion_r3400573705"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "removing this is fine because httpclient 5 uses a different artifact",
+      "created": "2026-06-12T10:34:11Z",
+      "hunk": "@@ -8,8 +8,6 @@ dependencies {\n   library(\"org.apache.httpcomponents:httpclient:4.3\")\n \n   testImplementation(project(\":instrumentation:apache-httpclient:apache-httpclient-4.3:testing\"))\n-\n-  latestDepTestLibrary(\"org.apache.httpcomponents:httpclient:4.+\") // see apache-httpclient-5.0 module",
+      "id": "PRRT_kwDODJKVX86JGJpn",
+      "opened": "2026-06-12T10:34:11Z",
+      "path": "instrumentation/apache-httpclient/apache-httpclient-4.3/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "50ab217969bee4db882e00ff32f2f73471c958ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18968#discussion_r3402634312"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "this isn't true any more, I'll try deleting it",
+      "created": "2026-06-12T10:46:33Z",
+      "hunk": "@@ -21,8 +21,8 @@ dependencies {\n   testImplementation(\"com.h2database:h2:1.4.197\")\n   testImplementation(\"io.r2dbc:r2dbc-h2:1.0.0.RELEASE\")\n \n-  // latest version of spring data is not yet compatible with spring 7 yet\n-  latestDepTestLibrary(\"org.springframework:spring-test:6.+\") // documented limitation\n+  // latest Spring Data is not yet compatible with Spring Framework 7.",
+      "id": "PRRT_kwDODJKVX86JGYgs",
+      "opened": "2026-06-12T10:46:33Z",
+      "path": "instrumentation/spring/spring-data/spring-data-3.0/testing/build.gradle.kts",
+      "replies": [],
+      "reviewed": "50ab217969bee4db882e00ff32f2f73471c958ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18968#discussion_r3402721110"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "maybe would be better to go with `testImplementation` since we don't rely on automatically setting the latest dep version here",
+      "created": "2026-06-12T10:54:41Z",
+      "hunk": "@@ -21,11 +21,11 @@ dependencies {\n   testLibrary(\"org.springframework.kafka:spring-kafka:2.7.1\")\n \n   testLibrary(\"org.springframework.boot:spring-boot-starter-test:2.5.3\")\n-  testLibrary(\"org.springframework.boot:spring-boot-starter:2.5.3\")\n-\n-  // tests don't work with spring boot 4 yet\n-  latestDepTestLibrary(\"org.springframework.boot:spring-boot-starter-test:3.+\") // documented limitation\n-  latestDepTestLibrary(\"org.springframework.boot:spring-boot-starter:3.+\") // documented limitation\n+  if (otelProps.testLatestDeps) {\n+    testLibrary(\"org.springframework.boot:spring-boot-starter-kafka:latest.release\")",
+      "id": "PRRT_kwDODJKVX86JGiFw",
+      "opened": "2026-06-12T10:54:41Z",
+      "path": "instrumentation/spring/spring-kafka-2.7/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-06-12T14:37:25Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18968/commits/8a1dc207bd706398ddb2945cd7d45466d1e34ff8",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18968#discussion_r3404128462"
+        }
+      ],
+      "reviewed": "50ab217969bee4db882e00ff32f2f73471c958ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18968#discussion_r3402775799"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "8278e88a91a7df3a5d6b0246419d64586a488545",
+  "merge": "68bb26c665d23e9c1f2439386ee56fcfb0de9885",
+  "merged": "2026-03-16T18:09:05Z",
+  "missing_roots": 0,
+  "number": 16597,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "👀 ",
+      "created": "2026-03-16T17:52:52Z",
+      "hunk": "@@ -448,10 +448,10 @@ void testOnlyAddsAttributeNameOnceWhenRequestReused() {\n     sqsClient.createQueue(\"testSdkSqs2\");\n     SendMessageRequest send =\n         new SendMessageRequest(\n-            \"http://localhost:$sqsPort/000000000000/testSdkSqs2\", \"{\\\"type\\\": \\\"hello\\\"}\");\n+            \"http://localhost:\" + sqsPort + \"/000000000000/testSdkSqs2\", \"{\\\"type\\\": \\\"hello\\\"}\");",
+      "id": "PRRT_kwDODJKVX850prrl",
+      "opened": "2026-03-16T17:52:52Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java",
+      "replies": [
+        {
+          "at": "2026-03-16T17:55:41Z",
+          "body": "leftover from groovy conversion",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16597#discussion_r2942006857"
+        }
+      ],
+      "reviewed": "8278e88a91a7df3a5d6b0246419d64586a488545",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16597#discussion_r2941991911"
+    }
+  ]
+}

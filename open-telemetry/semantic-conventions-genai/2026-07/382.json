@@ -1,0 +1,31 @@
+{
+  "head": "6585550e3a1c845cd4962e254ef5abd0c5a25386",
+  "merge": "44864bd730b13d48d431861d87100fdbc1bf3187",
+  "merged": "2026-07-15T18:47:19Z",
+  "missing_roots": 0,
+  "number": 382,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`pull_request` is currently unscoped, so this workflow will run for PRs targeting any branch. If the intent is to match the documented/shared-workflow example (and the push trigger) and only run on PRs into `main`, add a branch filter under `pull_request`.",
+      "created": "2026-07-15T18:08:50Z",
+      "hunk": "@@ -0,0 +1,18 @@\n+name: Zizmor\n+\n+on:\n+  push:\n+    branches: [main]\n+  pull_request:\n+  schedule:",
+      "id": "PRRT_kwDOSUeMrM6RMvTi",
+      "opened": "2026-07-15T18:08:50Z",
+      "path": ".github/workflows/zizmor.yml",
+      "replies": [
+        {
+          "at": "2026-07-15T18:09:13Z",
+          "body": "This is intentional: the organization-wide zizmor rollout policy requires zizmor to run on pull requests targeting every branch. The push trigger remains limited to main.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/382#discussion_r3589697916"
+        }
+      ],
+      "reviewed": "dac6817fad1b3b0cdac1c37279d573514b22f876",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/382#discussion_r3589695404"
+    }
+  ]
+}

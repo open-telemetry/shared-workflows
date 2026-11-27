@@ -1,0 +1,130 @@
+{
+  "head": "3e33c7967cf03d79d4ac71e49b5b4921b8071faf",
+  "merge": "fd064106289c7fcf16b25dea2f889be1fd9150bf",
+  "merged": "2026-08-12T01:59:23Z",
+  "missing_roots": 0,
+  "number": 30,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "oops, embedding is not inference",
+      "created": "2026-08-11T02:53:58Z",
+      "hunk": "@@ -107,105 +107,49 @@ deny contains _span_finding(\n \n # ─── Per-operation expected attributes (violation) ──────────────────────────\n \n-# `_expected_for_op(op, kind)` returns the expected-attribute manifest for a\n-# span given its `gen_ai.operation.name` and span kind. Most operations ignore\n-# kind (second arg is a wildcard); invoke_agent dispatches on it because\n-# semconv splits it into separate internal and client spans. Undefined (→ no\n-# violations) for an unmapped op or an unexpected agent span kind.\n-_expected_for_op(\"chat\", _) := _inference_expected\n-\n-_expected_for_op(\"generate_content\", _) := _inference_expected\n-\n-_expected_for_op(\"text_completion\", _) := _inference_expected\n-\n-_expected_for_op(\"embeddings\", _) := _embeddings_expected\n-\n-_expected_for_op(\"execute_tool\", _) := _execute_tool_expected\n-\n-_expected_for_op(\"invoke_agent\", kind) := _invoke_agent_expected[kind]\n-\n-_expected_for_op(\"create_agent\", _) := _create_agent_expected\n-\n-_expected_for_op(\"retrieval\", _) := _retrieval_expected\n-\n-_expected_for_op(\"invoke_workflow\", _) := _invoke_workflow_expected\n-\n-# Inference (chat / generate_content / text_completion).\n-# Required: gen_ai.operation.name, gen_ai.provider.name.\n-# Always-emit Recommended: response model/id, finish reasons, token usage,\n-# server.address. Sampling parameters (frequency_penalty, max_tokens, …),\n-# cache counters, and `gen_ai.response.time_to_first_chunk` (streaming-only)\n-# are conditional and not flagged here.\n-_inference_expected := {\n-\t\"gen_ai.operation.name\",\n-\t\"gen_ai.provider.name\",\n-\t\"gen_ai.response.model\",\n-\t\"gen_ai.response.id\",\n-\t\"gen_ai.response.finish_reasons\",\n-\t\"gen_ai.usage.input_tokens\",\n-\t\"gen_ai.usage.output_tokens\",\n-\t\"server.address\"\n+_matching_span_type(op, _, \"gen_ai.inference.client\") if {\n+\top in {\"chat\", \"generate_content\", \"text_completion\", \"embeddings\"}",
+      "id": "PRRT_kwDOTuzK5c6YGXkG",
+      "opened": "2026-08-11T02:53:57Z",
+      "path": "tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+      "replies": [],
+      "reviewed": "095ef2f57745df276bf0acc43af12b56956bef7b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/30#discussion_r3754924059"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "todo: need to mark them `recommended: when available` (recommended with a note is not part of expectation) ",
+      "created": "2026-08-11T02:55:36Z",
+      "hunk": "@@ -107,105 +107,49 @@ deny contains _span_finding(\n \n # ─── Per-operation expected attributes (violation) ──────────────────────────\n \n-# `_expected_for_op(op, kind)` returns the expected-attribute manifest for a\n-# span given its `gen_ai.operation.name` and span kind. Most operations ignore\n-# kind (second arg is a wildcard); invoke_agent dispatches on it because\n-# semconv splits it into separate internal and client spans. Undefined (→ no\n-# violations) for an unmapped op or an unexpected agent span kind.\n-_expected_for_op(\"chat\", _) := _inference_expected\n-\n-_expected_for_op(\"generate_content\", _) := _inference_expected\n-\n-_expected_for_op(\"text_completion\", _) := _inference_expected\n-\n-_expected_for_op(\"embeddings\", _) := _embeddings_expected\n-\n-_expected_for_op(\"execute_tool\", _) := _execute_tool_expected\n-\n-_expected_for_op(\"invoke_agent\", kind) := _invoke_agent_expected[kind]\n-\n-_expected_for_op(\"create_agent\", _) := _create_agent_expected\n-\n-_expected_for_op(\"retrieval\", _) := _retrieval_expected\n-\n-_expected_for_op(\"invoke_workflow\", _) := _invoke_workflow_expected\n-\n-# Inference (chat / generate_content / text_completion).\n-# Required: gen_ai.operation.name, gen_ai.provider.name.\n-# Always-emit Recommended: response model/id, finish reasons, token usage,\n-# server.address. Sampling parameters (frequency_penalty, max_tokens, …),\n-# cache counters, and `gen_ai.response.time_to_first_chunk` (streaming-only)\n-# are conditional and not flagged here.\n-_inference_expected := {\n-\t\"gen_ai.operation.name\",\n-\t\"gen_ai.provider.name\",\n-\t\"gen_ai.response.model\",\n-\t\"gen_ai.response.id\",\n-\t\"gen_ai.response.finish_reasons\",\n-\t\"gen_ai.usage.input_tokens\",\n-\t\"gen_ai.usage.output_tokens\",\n-\t\"server.address\"\n+_matching_span_type(op, _, \"gen_ai.inference.client\") if {\n+\top in {\"chat\", \"generate_content\", \"text_completion\", \"embeddings\"}\n }\n \n-# Embeddings.\n-# Required: gen_ai.operation.name, gen_ai.provider.name.\n-# Always-emit Recommended: dimension.count, response.model, input tokens,\n-# server.address. (`gen_ai.request.encoding_formats` is conditional.)\n-_embeddings_expected := {\n-\t\"gen_ai.operation.name\",\n-\t\"gen_ai.provider.name\",\n-\t\"gen_ai.embeddings.dimension.count\",\n-\t\"gen_ai.response.model\",\n-\t\"gen_ai.usage.input_tokens\",\n-\t\"server.address\"\n+_matching_span_type(op, kind, span_type) if {\n+\tnot op in {\"chat\", \"generate_content\", \"text_completion\", \"embeddings\"}\n+\tdata[\"coverage-model\"].spans[span_type]\n+\tstartswith(span_type, sprintf(\"gen_ai.%v\", [op]))\n+\tendswith(span_type, sprintf(\".%v\", [kind]))\n }\n \n-# Tool execution.\n-# Required: gen_ai.operation.name, gen_ai.tool.name.\n-# Recommended-when-available: gen_ai.tool.call.id, gen_ai.tool.type. (Tool\n-# description is genuinely optional per provider — not flagged.)\n-_execute_tool_expected := {\n-\t\"gen_ai.operation.name\",\n-\t\"gen_ai.tool.name\",\n-\t\"gen_ai.tool.call.id\",\n-\t\"gen_ai.tool.type\",\n+# attributes marked as recommended without a note,\n+# but they are not always available.",
+      "id": "PRRT_kwDOTuzK5c6YGYlQ",
+      "opened": "2026-08-11T02:55:36Z",
+      "path": "tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+      "replies": [],
+      "reviewed": "095ef2f57745df276bf0acc43af12b56956bef7b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/30#discussion_r3754930018"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "There’s trailing whitespace on this blank line, which can fail linting/pre-commit hooks and adds noise in diffs. Remove the whitespace (keep a normal blank line).\n\nThis issue also appears on line 115 of the same file.",
+      "created": "2026-08-11T03:03:24Z",
+      "hunk": "@@ -89,9 +100,28 @@ def _read_sample(\n     if span:\n         attributes = carried_attributes(span)\n         names = set(attributes)\n-        for span_type in classify(\n-            str(span.get(\"name\", \"\")), str(span.get(\"kind\", \"\")), attributes\n-        ):\n+        \n+        span_types = None\n+        if scenario_spec and scenario_spec.spans:",
+      "id": "PRRT_kwDOTuzK5c6YGdSr",
+      "opened": "2026-08-11T03:03:25Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_report.py",
+      "replies": [],
+      "reviewed": "095ef2f57745df276bf0acc43af12b56956bef7b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/30#discussion_r3754957359"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`SpanExpectation` now supports mapping-only expectations (no `expect` block / `count=None`), so the docstring statement that “Every span in the report must be selected by some expectation” is no longer generally true. Please update the docstring to reflect the new semantics (exactness only when assertions are present).",
+      "created": "2026-08-11T03:03:25Z",
+      "hunk": "@@ -96,8 +101,8 @@ class SpanExpectation:\n     \"\"\"",
+      "id": "PRRT_kwDOTuzK5c6YGdS0",
+      "opened": "2026-08-11T03:03:25Z",
+      "path": "tools/runner/src/opentelemetry/conformance/_spec.py",
+      "replies": [],
+      "reviewed": "095ef2f57745df276bf0acc43af12b56956bef7b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/30#discussion_r3754957373"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`input.sample.span.kind` can be reported as `client`, `CLIENT`, or `SPAN_KIND_CLIENT` depending on exporter. Using the raw kind in the span-type suffix match can prevent `_expected_for_op` from finding the registry span type, silently skipping expected-attribute checks for valid spans.\n\nThis issue also appears on line 184 of the same file.",
+      "created": "2026-08-11T03:03:25Z",
+      "hunk": "@@ -107,105 +107,49 @@ deny contains _span_finding(\n \n # ─── Per-operation expected attributes (violation) ──────────────────────────\n \n-# `_expected_for_op(op, kind)` returns the expected-attribute manifest for a\n-# span given its `gen_ai.operation.name` and span kind. Most operations ignore\n-# kind (second arg is a wildcard); invoke_agent dispatches on it because\n-# semconv splits it into separate internal and client spans. Undefined (→ no\n-# violations) for an unmapped op or an unexpected agent span kind.\n-_expected_for_op(\"chat\", _) := _inference_expected\n-\n-_expected_for_op(\"generate_content\", _) := _inference_expected\n-\n-_expected_for_op(\"text_completion\", _) := _inference_expected\n-\n-_expected_for_op(\"embeddings\", _) := _embeddings_expected\n-\n-_expected_for_op(\"execute_tool\", _) := _execute_tool_expected\n-\n-_expected_for_op(\"invoke_agent\", kind) := _invoke_agent_expected[kind]\n-\n-_expected_for_op(\"create_agent\", _) := _create_agent_expected\n-\n-_expected_for_op(\"retrieval\", _) := _retrieval_expected\n-\n-_expected_for_op(\"invoke_workflow\", _) := _invoke_workflow_expected\n-\n-# Inference (chat / generate_content / text_completion).\n-# Required: gen_ai.operation.name, gen_ai.provider.name.\n-# Always-emit Recommended: response model/id, finish reasons, token usage,\n-# server.address. Sampling parameters (frequency_penalty, max_tokens, …),\n-# cache counters, and `gen_ai.response.time_to_first_chunk` (streaming-only)\n-# are conditional and not flagged here.\n-_inference_expected := {\n-\t\"gen_ai.operation.name\",\n-\t\"gen_ai.provider.name\",\n-\t\"gen_ai.response.model\",\n-\t\"gen_ai.response.id\",\n-\t\"gen_ai.response.finish_reasons\",\n-\t\"gen_ai.usage.input_tokens\",\n-\t\"gen_ai.usage.output_tokens\",\n-\t\"server.address\"\n+_matching_span_type(op, _, \"gen_ai.inference.client\") if {\n+\top in {\"chat\", \"generate_content\", \"text_completion\", \"embeddings\"}\n }\n \n-# Embeddings.\n-# Required: gen_ai.operation.name, gen_ai.provider.name.\n-# Always-emit Recommended: dimension.count, response.model, input tokens,\n-# server.address. (`gen_ai.request.encoding_formats` is conditional.)\n-_embeddings_expected := {\n-\t\"gen_ai.operation.name\",\n-\t\"gen_ai.provider.name\",\n-\t\"gen_ai.embeddings.dimension.count\",\n-\t\"gen_ai.response.model\",\n-\t\"gen_ai.usage.input_tokens\",\n-\t\"server.address\"\n+_matching_span_type(op, kind, span_type) if {\n+\tnot op in {\"chat\", \"generate_content\", \"text_completion\", \"embeddings\"}\n+\tdata[\"coverage-model\"].spans[span_type]\n+\tstartswith(span_type, sprintf(\"gen_ai.%v\", [op]))\n+\tendswith(span_type, sprintf(\".%v\", [kind]))\n }",
+      "id": "PRRT_kwDOTuzK5c6YGdTD",
+      "opened": "2026-08-11T03:03:25Z",
+      "path": "tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+      "replies": [],
+      "reviewed": "095ef2f57745df276bf0acc43af12b56956bef7b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/30#discussion_r3754957394"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`.id` is the member's semconv identifier, not the value instrumentation puts on the span, and the new rego compares this set against the value read off a real span. It lines up today only because `gen_ai.operation.name` defines `id == value`; this same template resolves the HTTP model, where `http.request.method` is `id: connect` / `value: \"CONNECT\"`.\n\n```suggestion\n             value: [.type.members[]?.value]\n```",
+      "created": "2026-08-11T14:45:04Z",
+      "hunk": "@@ -14,12 +14,20 @@ templates:\n     application_mode: single\n     filter: |\n       # A conditional level is written {conditionally_required: \"when ...\"}.\n-      def level: if type == \"object\" then keys[0] else . end;\n+      def level: if type == \"object\" then (keys[0] + \"_conditional\") else . end;\n \n       def attributes:\n         [.attributes[]? | {key: .key, value: (.requirement_level | level)}]\n         | from_entries;\n \n+      def enums:\n+        [\n+          .registry.attributes[]? | select(.type | type == \"object\" and .members) | {\n+             key: .key,\n+             value: [.type.members[]?.id]",
+      "id": "PRRT_kwDOTuzK5c6YRCSM",
+      "opened": "2026-08-11T14:59:54Z",
+      "path": "tools/runner/src/opentelemetry/conformance/weaver-templates/coverage-model/weaver.yaml",
+      "replies": [],
+      "reviewed": "6e483e35df6640bf98070201eb008a4e4deffbcc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/30#discussion_r3758976708"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The comment just above still tells the reader to keep `_known_operation_names` in sync with `model/gen-ai/registry.yaml` by hand — that is the maintenance this rule removes. Drop the sentence.",
+      "created": "2026-08-11T14:45:04Z",
+      "hunk": "@@ -278,18 +232,8 @@ deny contains _span_finding(\n # we raise unknown values on `gen_ai.operation.name` to a violation. Keep\n # `_known_operation_names` in sync with model/gen-ai/registry.yaml.\n \n-_known_operation_names := {\n-\t\"chat\",\n-\t\"generate_content\",\n-\t\"text_completion\",\n-\t\"embeddings\",\n-\t\"retrieval\",\n-\t\"fetch_response\",\n-\t\"create_agent\",\n-\t\"invoke_agent\",\n-\t\"execute_tool\",\n-\t\"invoke_workflow\",\n-\t\"plan\",\n+_known_operation_names[op] if {",
+      "id": "PRRT_kwDOTuzK5c6YRCSZ",
+      "opened": "2026-08-11T14:59:54Z",
+      "path": "tools/gen-ai/runner/src/genai_conformance/policies/genai_span_validation.rego",
+      "replies": [],
+      "reviewed": "6e483e35df6640bf98070201eb008a4e4deffbcc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/30#discussion_r3758976733"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`staged` is wiped just above, so `resolve`'s `if output.is_file()` early return never hits and every session re-runs `weaver registry generate` over the whole registry — the same model `Domain._coverage` has already resolved for this run. Plumb that resolved path through and copy it instead.",
+      "created": "2026-08-11T14:45:04Z",
+      "hunk": "@@ -40,6 +45,9 @@ def _advice_data(registry: Path) -> str:\n     if staged.exists():\n         shutil.rmtree(staged)\n     staged.mkdir(parents=True)\n+\n+    resolve_coverage_model(registry, staged / \"coverage-model.json\")",
+      "id": "PRRT_kwDOTuzK5c6YRCSh",
+      "opened": "2026-08-11T14:59:54Z",
+      "path": "tools/gen-ai/runner/src/genai_conformance/__init__.py",
+      "replies": [],
+      "reviewed": "6e483e35df6640bf98070201eb008a4e4deffbcc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/30#discussion_r3758976742"
+    }
+  ]
+}

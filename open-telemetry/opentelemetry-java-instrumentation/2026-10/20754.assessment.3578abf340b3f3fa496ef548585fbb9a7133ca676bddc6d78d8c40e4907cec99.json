@@ -1,0 +1,56 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "32b70e916eb291ac0820c93d80580f8c1bc1ba90f12a410c54fbc2d18470d301",
+  "input_digest": "3578abf340b3f3fa496ef548585fbb9a7133ca676bddc6d78d8c40e4907cec99",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/806632803382c39960d5c4ec5af250d1b4c74c9d/instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/instrumentationannotations/AnnotationInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efa3d1031747d75207183f5db816d5c5a4999ba1/instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/instrumentationannotations/AnnotationInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/806632803382c39960d5c4ec5af250d1b4c74c9d/instrumentation/kotlinx-coroutines/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efa3d1031747d75207183f5db816d5c5a4999ba1/instrumentation/kotlinx-coroutines/README.md"
+      ],
+      "id": "PRRT_kwDODJKVX86uMj21",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b91c2c5a8f3dfa80505942e9cbb7b3acbc315993/instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/instrumentationannotations/AnnotationInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efa3d1031747d75207183f5db816d5c5a4999ba1/instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/kotlinxcoroutines/v1_0/instrumentationannotations/AnnotationInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efa3d1031747d75207183f5db816d5c5a4999ba1/instrumentation/kotlinx-coroutines/README.md"
+      ],
+      "id": "PRRT_kwDODJKVX86uMtuK",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86uM7Bg",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86uMtuK",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7937a495b3cdfec11280d0311760226bcd47efe2/instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/efa3d1031747d75207183f5db816d5c5a4999ba1/instrumentation/kotlinx-coroutines/kotlinx-coroutines-1.0/metadata.yaml"
+      ],
+      "id": "PRRT_kwDODJKVX86uO8LG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86uPEKT",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

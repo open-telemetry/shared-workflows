@@ -1,0 +1,25 @@
+{
+  "head": "ed6264b9f4a1b6f625c5d9d0f9135517b345e800",
+  "merge": "83956f195d07cabcb8e3ff6153eccc2cdbeaf9d9",
+  "merged": "2026-05-18T02:11:28Z",
+  "missing_roots": 0,
+  "number": 18727,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "with `http` url armeria will send `OPTIONS` request even when we use `preferHttp1(true)`",
+      "created": "2026-05-14T13:16:30Z",
+      "hunk": "@@ -84,10 +84,20 @@ void testIndexPage() {\n \n   @Test\n   void testStartAction() {\n-    AggregatedHttpResponse response = client.get(\"/index.start\").aggregate().join();\n-    Document doc = Jsoup.parse(response.contentUtf8());\n-\n-    assertThat(response.status().code()).isEqualTo(200);\n+    AggregatedHttpResponse response =\n+        client.get(h1Address.resolve(\"index.start\").toString()).aggregate().join();\n+    assertThat(response.status().code()).isEqualTo(302);\n+\n+    // handle redirect manually because armeria 1.39.0 sends an extra OPTIONS request for http2\n+    // upgrade\n+    AggregatedHttpResponse response2 =\n+        client\n+            .get(response.headers().get(\"location\").replace(\"http://\", \"h1c://\"))",
+      "id": "PRRT_kwDODJKVX86CEivA",
+      "opened": "2026-05-14T13:16:30Z",
+      "path": "instrumentation/tapestry-5.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/tapestry/v5_4/TapestryTest.java",
+      "replies": [],
+      "reviewed": "ed6264b9f4a1b6f625c5d9d0f9135517b345e800",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18727#discussion_r3241577734"
+    }
+  ]
+}

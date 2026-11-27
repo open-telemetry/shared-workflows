@@ -1,0 +1,199 @@
+{
+  "head": "81a3003f1d2f2c268295333464d666dbdf992b5a",
+  "merge": "5481fad4b28ad41d9381958a0052d1dbaa572349",
+  "merged": "2026-09-26T17:09:11Z",
+  "missing_roots": 0,
+  "number": 20252,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The narrowed scope still misses Java that lives in dedicated test projects whose production source set is `src/main`, such as `instrumentation-annotations-support-testing/.../AbstractWithSpanTest.java` and the `javaagent-integration-tests` modules. Changes there will no longer receive any of these test-review rules even though the file says it applies to shared testing modules. Include the repository's `*-testing` and `*-tests` project paths in the matcher.",
+      "created": "2026-09-25T16:25:46Z",
+      "hunk": "@@ -1,12 +1,30 @@\n ---\n-applyTo: \"**/*.java\"\n+applyTo: \"**/src/test*/**/*.java,**/src/*Test*/**/*.java,**/src/unitTests/**/*.java,**/testing/**/*.java,testing-common/**/*.java,smoke-tests*/**/*.java\"",
+      "id": "PRRT_kwDODJKVX86mE1H-",
+      "opened": "2026-09-25T16:25:47Z",
+      "path": ".github/instructions/java-tests.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-25T17:31:41Z",
+          "body": "Addressed in fe8d5000c2abc12d493b8d456ab0cdd691ea6647, 125b8a969a809ea6d64a59f6fb5c1120b50d9174.\n\nFixed in the verified source changes fe8d5000c2abc12d493b8d456ab0cdd691ea6647, 125b8a969a809ea6d64a59f6fb5c1120b50d9174.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4107029086"
+        }
+      ],
+      "reviewed": "2471a73b3db1c47ba9f2f002b6eaca1e75dace72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4106518486"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The second comma-separated glob matches only the repository-root `settings.gradle.kts`. Nested builds such as `gradle-plugins/settings.gradle.kts` and `instrumentation/quarkus-resteasy-reactive-1.11/quarkus-common-plugin/settings.gradle.kts` therefore do not receive these module-registration rules. Make the settings pattern recursive as well.",
+      "created": "2026-09-25T16:25:46Z",
+      "hunk": "@@ -0,0 +1,39 @@\n+---\n+applyTo: \"**/build.gradle.kts,settings.gradle.kts\"",
+      "id": "PRRT_kwDODJKVX86mE1HV",
+      "opened": "2026-09-25T16:25:47Z",
+      "path": ".github/instructions/instrumentation-gradle.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-25T17:31:38Z",
+          "body": "Addressed in fe8d5000c2abc12d493b8d456ab0cdd691ea6647, 125b8a969a809ea6d64a59f6fb5c1120b50d9174.\n\nFixed in the verified source changes fe8d5000c2abc12d493b8d456ab0cdd691ea6647, 125b8a969a809ea6d64a59f6fb5c1120b50d9174.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4107028807"
+        }
+      ],
+      "reviewed": "2471a73b3db1c47ba9f2f002b6eaca1e75dace72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4106518426"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] This scope excludes existing executable extension advice outside the core directories, including `examples/distro/instrumentation/.../DemoServlet3Instrumentation.java`, `examples/extension/.../DemoServlet3Instrumentation.java`, and `smoke-tests/extensions/extension/.../SmokeInlinedInstrumentation.java`. Since the old trigger-based guidance was made optional, changes to those advice classes will no longer receive the suppression, matching, and class-loading checks this file is intended to make native. Add the extension/example source paths to `applyTo`.",
+      "created": "2026-09-25T16:25:47Z",
+      "hunk": "@@ -0,0 +1,72 @@\n+---\n+applyTo: \"instrumentation/**/javaagent/**/*.java,instrumentation/**/bootstrap/**/*.java,javaagent/**/*.java,javaagent-bootstrap/**/*.java,javaagent-tooling/**/*.java\"",
+      "id": "PRRT_kwDODJKVX86mE1IP",
+      "opened": "2026-09-25T16:25:47Z",
+      "path": ".github/instructions/javaagent.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-25T17:31:43Z",
+          "body": "Addressed in fe8d5000c2abc12d493b8d456ab0cdd691ea6647, 125b8a969a809ea6d64a59f6fb5c1120b50d9174.\n\nFixed in the verified source changes fe8d5000c2abc12d493b8d456ab0cdd691ea6647, 125b8a969a809ea6d64a59f6fb5c1120b50d9174.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4107029379"
+        }
+      ],
+      "reviewed": "2471a73b3db1c47ba9f2f002b6eaca1e75dace72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4106518517"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] The deleted checklist treated new or renamed Java packages as a review trigger, but no native instruction now contains the package rules that remain only in optional `module-naming.md`. A new module can therefore use dotted version segments, the wrong javaagent/library prefix, or a misplaced `common` segment without Copilot applying the established check. Keep the concise package contract in this path-scoped instruction.",
+      "created": "2026-09-25T17:36:08Z",
+      "hunk": "@@ -0,0 +1,55 @@\n+---\n+applyTo: \"instrumentation/**/*,instrumentation-api/**/*,instrumentation-api-incubator/**/*\"\n+---\n+\n+# Instrumentation contracts\n+\n+Apply a check only if the changed code affects that contract. Inspect unchanged neighboring\n+files when necessary, but comment on a changed line and only for a supported issue.\n+\n+## Configuration",
+      "id": "PRRT_kwDODJKVX86mGKk-",
+      "opened": "2026-09-25T17:36:09Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-25T17:52:29Z",
+          "body": "Addressed in 15531b5faf0aa333ad2d1dc7c431f0fd649cdc9c.\n\nFixed in the verified source changes 15531b5faf0aa333ad2d1dc7c431f0fd649cdc9c.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4107187017"
+        }
+      ],
+      "reviewed": "125b8a969a809ea6d64a59f6fb5c1120b50d9174",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4107061776"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This scope excludes configuration implementations outside the instrumentation trees. For example, `declarative-config-bridge/.../DeclarativeConfigBridge.java` owns flat/YAML bridging and `javaagent-tooling/.../RegexUrlTemplateCustomizerInitializer.java` reads `java.common.http.client.url_template_rules`, but changes to either file will not load the mapping, scope, default, or metadata checks below. Because the knowledge articles are now optional, move the general configuration rules to repository-wide instructions or add all configuration implementation paths to a dedicated native instruction.",
+      "created": "2026-09-25T17:36:09Z",
+      "hunk": "@@ -0,0 +1,55 @@\n+---\n+applyTo: \"instrumentation/**/*,instrumentation-api/**/*,instrumentation-api-incubator/**/*\"",
+      "id": "PRRT_kwDODJKVX86mGKl5",
+      "opened": "2026-09-25T17:36:09Z",
+      "path": ".github/instructions/instrumentation.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-25T17:52:36Z",
+          "body": "Addressed in 15531b5faf0aa333ad2d1dc7c431f0fd649cdc9c.\n\nFixed in the verified source changes 15531b5faf0aa333ad2d1dc7c431f0fd649cdc9c.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4107187888"
+        }
+      ],
+      "reviewed": "125b8a969a809ea6d64a59f6fb5c1120b50d9174",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4107061877"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] The self-contained rule now says when a class-loader matcher is justified but drops the review requirement for verified landmark-version comments. Since `javaagent-module-patterns.md` is optional, reviewers will no longer catch missing or incorrectly labeled floor/ceiling comments on `hasClassesNamed(...)`; keep that decision and its key role distinctions in the native instruction.",
+      "created": "2026-09-25T17:36:09Z",
+      "hunk": "@@ -0,0 +1,74 @@\n+---\n+applyTo: \"instrumentation/**/javaagent/**/*.java,instrumentation/**/bootstrap/**/*.java,javaagent/**/*.java,javaagent-bootstrap/**/*.java,javaagent-tooling/**/*.java,examples/**/instrumentation/**/*.java,smoke-tests/extensions/extension/**/*.java\"\n+---\n+\n+# Javaagent instrumentation\n+\n+Apply these checks to executable advice and the helpers it calls. Inspect registration and\n+library lifecycle before deciding whether an exception applies.\n+\n+## Advice and matching\n+\n+- A new `InstrumentationModule` needs SPI registration and a compatible `TypeInstrumentation`;\n+  in a project with multiple independently selected modules, each needs a distinct name and\n+  the correct Muzzle selection. `CallDepth` suppresses recursively instrumented calls only\n+  when entry increments and exit decrements on every applicable path.\n+- Executable `@Advice.OnMethodEnter` and `@Advice.OnMethodExit` methods with fallible bodies\n+  need `suppress = Throwable.class`; inspect helper calls too. Exclude test code, intentional\n+  internal infrastructure, provably throw-free methods such as a literal return, and dummy\n+  helper-injection advice registered with a `none()` matcher. Do not demand suppression for\n+  code that never runs. Javaagent helpers must not let instrumentation failures break an\n+  application; log suppressed unexpected failures where they occur unless they are expected\n+  optional probes.\n+- Exit advice owning a `Scope` or temporary state must run on exceptional method exits and\n+  release it, preferably before fallible completion work. Return-only advice that processes\n+  `@Advice.Return` without cleanup should omit `onThrowable = Throwable.class`; on an\n+  exceptional exit the return value is null or zero.\n+- Keep advice as static nested classes with static methods. In `transform()`, reference\n+  nested advice by `getClass().getName() + \"$AdviceName\"`; resolving\n+  `InnerAdvice.class` or a library class literal from the agent loader can cause premature\n+  class loading. Do not name an exit advice method `onEnter` or vice versa. Method\n+  signature matchers may use accessible `java.base` types available at the minimum\n+  supported Java version; keep `named(...)` for instrumented-library types.\n+  With dynamic advice typing, match only signatures that guarantee assignability.\n+- Do not require `isDeclaredBy` on a Byte Buddy method matcher by default. Use it only\n+  when a type matcher covers several types but advice targets a member declared by one\n+  specific type; a name and signature that already identify the method need no extra\n+  restriction.\n+- Use `Java8BytecodeBridge` only for supported API calls directly in annotated advice;\n+  helper methods use the normal API even when nested inside the advice class. Add a\n+  `classLoaderMatcher()` only for a real version boundary Muzzle cannot distinguish.",
+      "id": "PRRT_kwDODJKVX86mGKld",
+      "opened": "2026-09-25T17:36:09Z",
+      "path": ".github/instructions/javaagent.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-25T17:52:31Z",
+          "body": "Addressed in 15531b5faf0aa333ad2d1dc7c431f0fd649cdc9c.\n\nFixed in the verified source changes 15531b5faf0aa333ad2d1dc7c431f0fd649cdc9c.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4107187340"
+        }
+      ],
+      "reviewed": "125b8a969a809ea6d64a59f6fb5c1120b50d9174",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4107061836"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The matcher still excludes Kotlin, so changes in Kotlin-based instrumentations such as Ktor and kotlinx-coroutines no longer load the behavior-coverage or shared-test rules now that the knowledge articles are optional. Include `**/*.kt` and update the heading/scope text accordingly.",
+      "created": "2026-09-25T19:03:59Z",
+      "hunk": "@@ -1,12 +1,32 @@\n ---\n-applyTo: \"**/*.java\"\n+applyTo: \"**/*.java,**/*.scala\"",
+      "id": "PRRT_kwDODJKVX86mH3UH",
+      "opened": "2026-09-25T19:03:59Z",
+      "path": ".github/instructions/java-tests.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-25T20:09:31Z",
+          "body": "No code change.\n\nAlready addressed: this instruction applies to **/*.kt and its heading and scope text explicitly include Kotlin.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4108233195"
+        }
+      ],
+      "reviewed": "47e66798062e3360d5ddc683593dd468ebfa32d4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4107760549"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Making the knowledge articles optional removes several existing reliability checks that still have no native counterpart. For example, `testing-general-patterns.md` still requires complete traces to use `waitAndAssertTraces(...)`, metric assertions to use `waitAndAssertMetrics(...)` instead of fixed sleeps, and deterministic traces to preserve span order. These were applied when that article was mandatory, but this file does not summarize them, so future reviews will silently skip them. Move these review decisions and their exceptions into the native instructions, or retain mandatory loading for the article.",
+      "created": "2026-09-25T20:14:17Z",
+      "hunk": "@@ -1,12 +1,32 @@\n ---\n-applyTo: \"**/*.java\"\n+applyTo: \"**/*.java,**/*.kt,**/*.scala\"\n ---\n \n-# Java Test Rules (first-pass review)\n-\n-This file is loaded for all Java changes, but the rules below apply only when\n-reviewing test code (e.g. `src/test/**`, `src/*Test/**`, and `testing/`\n-modules). Skip them on production sources.\n+# Java, Kotlin, and Scala tests\n+\n+This file is loaded for all Java, Kotlin, and Scala changes. Apply the behavior-coverage\n+checks when the corresponding production behavior changes. Apply the\n+remaining sections only to test code and shared testing modules. Comment\n+only on a changed line for a substantive coverage gap or an explicit\n+convention not caught by CI.",
+      "id": "PRRT_kwDODJKVX86mJGN4",
+      "opened": "2026-09-25T20:14:17Z",
+      "path": ".github/instructions/java-tests.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-25T20:25:15Z",
+          "body": "Addressed in 52f37fe083ebb8877a71bb17ebb366b498308a0f.\n\nFixed in the verified source changes 52f37fe083ebb8877a71bb17ebb366b498308a0f.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4108345021"
+        }
+      ],
+      "reviewed": "60144a462f303646e7167b368aa0dbe22f1f4114",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4108267307"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This rule now applies to Kotlin and Scala files as well, but those languages have no Java-style package-private default: the existing Kotlin and Scala test classes and methods are public by default. Without a language qualifier, Copilot will request invalid or repository-inconsistent visibility changes for those tests. Limit this convention to Java.",
+      "created": "2026-09-25T21:25:12Z",
+      "hunk": "@@ -1,15 +1,36 @@\n ---\n-applyTo: \"**/*.java\"\n+applyTo: \"**/*.java,**/*.kt,**/*.scala\"\n ---\n \n-# Java Test Rules (first-pass review)\n-\n-This file is loaded for all Java changes, but the rules below apply only when\n-reviewing test code (e.g. `src/test/**`, `src/*Test/**`, and `testing/`\n-modules). Skip them on production sources.\n+# Java, Kotlin, and Scala tests\n+\n+This file is loaded for all Java, Kotlin, and Scala changes. Apply the behavior-coverage\n+checks when the corresponding production behavior changes. Apply the\n+remaining sections only to test code and shared testing modules. Comment\n+only on a changed line for a substantive coverage gap or an explicit\n+convention not caught by CI.\n+\n+## Behavior coverage\n+\n+- For a javaagent change supporting multiple runtime library versions,\n+  look for tests with the installed agent against the required versions.\n+  Direct helper tests and `javaagent-unit-tests` do not exercise class\n+  transformation or the actual library; do not count them as integration\n+  coverage.\n+- For a module whose default enablement changes, the same representative\n+  operation must emit instrumentation telemetry in an enabled JVM and no\n+  instrumentation telemetry in a disabled JVM. A `DefaultEnablementTest`\n+  can run in both modes through `testDisabled`. In the negative mode,\n+  wait for operation completion and assert exactly a manually created\n+  parent span; an immediate `spans().isEmpty()` can pass before export.\n+- For starter tests, check `smoke-tests-otel-starter/` for real Spring\n+  starter coverage; `smoke-tests/images/spring-boot` tests the javaagent\n+  instead. Declarative mode uses separate `testDeclarativeConfig` source\n+  sets, not a flag toggled inside the normal tests.\n \n ## [Testing] General Patterns\n \n+- Keep JUnit test classes and test methods package-private unless broader visibility is required.",
+      "id": "PRRT_kwDODJKVX86mKVmY",
+      "opened": "2026-09-25T21:25:12Z",
+      "path": ".github/instructions/java-tests.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-25T23:31:54Z",
+          "body": "No code change.\n\nAlready addressed: the rule now begins with \"In Java\" and does not apply this visibility convention to Kotlin or Scala.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4109365370"
+        }
+      ],
+      "reviewed": "2a0b7cbc93b59df8643d30992ebb59178e13bcab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20252#discussion_r4108778783"
+    }
+  ]
+}

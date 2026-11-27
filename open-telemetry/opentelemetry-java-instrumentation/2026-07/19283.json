@@ -1,0 +1,472 @@
+{
+  "head": "d371ab2b8b263aa6bf06578ed46c6816d69845e6",
+  "merge": "4b1df29f40a19392b6b3cf1c12223352d20d1203",
+  "merged": "2026-07-22T21:14:56Z",
+  "missing_roots": 0,
+  "number": 19283,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `Set test tasks` still exports `test-tasks`, but this shell expansion reads `test_tasks`. The latter is unset, so Gradle runs without the partition's selected test tasks and the job can succeed without executing them. Rename the exported environment key to `test_tasks`.",
+      "created": "2026-07-21T02:52:48Z",
+      "hunk": "@@ -356,15 +374,16 @@ jobs:\n       - name: Test\n         env:\n           DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}\n+          STEPS_SETUP_TEST_JAVA_OUTPUTS_PATH: ${{ steps.setup-test-java.outputs.path }}\n         # spotless is checked separately since it's a common source of failure\n         run: >\n           ./gradlew\n-          ${{ env.test-tasks }}\n+          ${test_tasks}",
+      "id": "PRRT_kwDODJKVX86ScepX",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/build-common.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:06:46Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619150421"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619094999"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Disabling checkout credential persistence removes the authentication used by the later `git push`. The final step exposes an app token with only `pull-requests: write`, so it cannot replace the checkout token for pushing. Authenticate Git in the push step with a token that has `contents: write` (or grant that permission to the app token and run `gh auth setup-git` there).",
+      "created": "2026-07-21T02:52:49Z",
+      "hunk": "@@ -16,6 +16,8 @@ jobs:\n     runs-on: ubuntu-latest\n     steps:\n       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          persist-credentials: false",
+      "id": "PRRT_kwDODJKVX86Scep0",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/update-latest-dep-versions.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:06:49Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619150541"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619095036"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This checkout is the worktree later pushed at line 289. With credentials no longer persisted, `git push` has no Git credential configured; the step's app token is also limited to pull-request access. Authenticate Git in the push step using a token with `contents: write`.",
+      "created": "2026-07-21T02:52:49Z",
+      "hunk": "@@ -213,6 +219,7 @@ jobs:\n       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n         with:\n           ref: main\n+          persist-credentials: false",
+      "id": "PRRT_kwDODJKVX86Scep9",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/release.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:06:51Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619150658"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619095047"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `Set test tasks` still exports `test-tasks`, but this shell expansion reads `test_tasks`. The latter is unset, so the latest-deps run invokes Gradle without any selected test tasks. Rename the exported environment key to `test_tasks`.",
+      "created": "2026-07-21T02:52:49Z",
+      "hunk": "@@ -78,7 +80,7 @@ jobs:\n           DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}\n         run: >\n           ./gradlew\n-          ${{ env.test-tasks }}\n+          ${test_tasks}",
+      "id": "PRRT_kwDODJKVX86Scepn",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/reusable-test-latest-deps.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:06:48Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619150486"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619095020"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This CloudFoundry checkout is later pushed, but disabling persisted credentials leaves `git push` unauthenticated. The app token used by that step requests only pull-request permission. Configure Git in the push step with a token that has `contents: write` (or add that app permission and run `gh auth setup-git`).",
+      "created": "2026-07-21T02:52:49Z",
+      "hunk": "@@ -27,6 +29,7 @@ jobs:\n       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n         with:\n           ref: 'cloudfoundry'\n+          persist-credentials: false",
+      "id": "PRRT_kwDODJKVX86SceqD",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/release-update-cloudfoundry-index.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:06:53Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619150741"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619095055"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The nested `gh-pages` checkout is pushed at line 67. With credential persistence disabled and no later Git authentication, that push will fail. Authenticate Git in the commit step with `${{ github.token }}` before pushing.",
+      "created": "2026-07-21T02:52:50Z",
+      "hunk": "@@ -15,11 +15,14 @@ jobs:\n     runs-on: ubuntu-latest\n     steps:\n       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          persist-credentials: false\n \n       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n         with:\n           ref: gh-pages\n           path: gh-pages\n+          persist-credentials: false",
+      "id": "PRRT_kwDODJKVX86SceqN",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/overhead-benchmark-daily.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:06:54Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619150792"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619095068"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The backport branch is still pushed through `origin`, but this removes checkout's only Git credential. `GH_TOKEN` in the push step is an app token requesting only pull-request permission, so it cannot authenticate a contents write. Configure Git with a contents-write token before `git push`.",
+      "created": "2026-07-21T02:52:50Z",
+      "hunk": "@@ -25,6 +25,7 @@ jobs:\n         with:\n           # history is needed to run git cherry-pick below\n           fetch-depth: 0\n+          persist-credentials: false",
+      "id": "PRRT_kwDODJKVX86SceqU",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/backport.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:06:56Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619150898"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619095076"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This checkout is later used to push the patch-release branch, but disabling credential persistence leaves that push unauthenticated. The app token in the final step only requests pull-request permission. Authenticate Git there with a token that has `contents: write`.",
+      "created": "2026-07-21T02:52:50Z",
+      "hunk": "@@ -12,6 +12,8 @@ jobs:\n     runs-on: ubuntu-latest\n     steps:\n       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          persist-credentials: false",
+      "id": "PRRT_kwDODJKVX86SceqY",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/prepare-patch-release.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:06:58Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619150990"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619095085"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This authenticates Git only while the workflow `GITHUB_TOKEN` is in scope, so the first push succeeds. The later PR step replaces `GH_TOKEN` with an app token that requests only pull-request permission; the credential helper then uses that token for the second push, which cannot write contents. Grant the app token `contents: write` and run `gh auth setup-git` in the PR step, or authenticate that push separately with `github.token`.",
+      "created": "2026-07-21T02:52:50Z",
+      "hunk": "@@ -35,9 +37,13 @@ jobs:\n           # history is needed to allow fast-forward push below in case\n           # re-running this workflow after merging additional PRs to main\n           fetch-depth: 0\n+          persist-credentials: false\n \n       - name: Create release branch\n+        env:\n+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n         run: |\n+          gh auth setup-git",
+      "id": "PRRT_kwDODJKVX86Sceqf",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/prepare-release-branch.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:06:59Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619151077"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619095097"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The main-branch preparation job later pushes this worktree, but persisted checkout credentials are now disabled and no replacement Git authentication is configured. Its app token only requests pull-request permission. Authenticate the push with a contents-write token.",
+      "created": "2026-07-21T02:52:51Z",
+      "hunk": "@@ -97,6 +103,8 @@ jobs:\n       - prereqs\n     steps:\n       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          persist-credentials: false",
+      "id": "PRRT_kwDODJKVX86Sceqm",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/prepare-release-branch.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:07:01Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619151150"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619095106"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The checkout no longer configures Git credentials, so this push will fail even though the job token has `contents: write`. Configure the Git credential helper in this step using `github.token` before pushing.",
+      "created": "2026-07-21T02:52:51Z",
+      "hunk": "@@ -158,7 +161,9 @@ jobs:\n \n       - name: Push branch\n         if: steps.changes.outputs.committed == 'true'\n-        run: git push -f origin \"${{ steps.branch.outputs.name }}\"\n+        run: git push -f origin \"${STEPS_BRANCH_OUTPUTS_NAME}\"\n+        env:\n+          STEPS_BRANCH_OUTPUTS_NAME: ${{ steps.branch.outputs.name }}",
+      "id": "PRRT_kwDODJKVX86Sceqo",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/flaky-test-remediation.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:07:03Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619151207"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619095109"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The progress-branch checkout is pushed at line 209, but disabling persisted credentials leaves that nested repository without authentication. Configure Git in the `Record attempt` step with the job's contents-write token before pushing.",
+      "created": "2026-07-21T02:52:51Z",
+      "hunk": "@@ -183,6 +188,7 @@ jobs:\n         with:\n           ref: otelbot/flaky-test-remediation-progress\n           path: progress\n+          persist-credentials: false",
+      "id": "PRRT_kwDODJKVX86Sceqq",
+      "opened": "2026-07-21T02:52:51Z",
+      "path": ".github/workflows/flaky-test-remediation.yml",
+      "replies": [
+        {
+          "at": "2026-07-21T03:07:04Z",
+          "body": "Fixed in bae769d6209e86a1ccefaeb34892499cbb354404. Push steps now configure Git authentication with an appropriate contents-write token, and the partition variables now consistently use test_tasks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619151303"
+        }
+      ],
+      "reviewed": "669a336054a48fb3471b5ae4b6324980853a3aad",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3619095113"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`pushWindowsImages` runs on `windows-latest` and will use PowerShell by default, where `${NEEDS_PREPARE_OUTPUTS_TAG}` is not expanded (PowerShell expects `$env:NEEDS_PREPARE_OUTPUTS_TAG`). Use GitHub expression interpolation for the argument (e.g., `${{ env.NEEDS_PREPARE_OUTPUTS_TAG }}` or `${{ needs.prepare.outputs.tag }}`), or explicitly set `shell: bash` for the Windows step.",
+      "created": "2026-07-22T15:28:42Z",
+      "hunk": "@@ -80,11 +82,15 @@ jobs:\n \n       - name: Build Linux docker images\n         if: matrix.os != 'windows-latest'\n-        run: ./gradlew :smoke-tests:images:servlet:pushLinuxImages -PextraTag=${{ needs.prepare.outputs.tag }} -PsmokeTestServer=${{ matrix.smoke-test-server }}\n+        run: ./gradlew :smoke-tests:images:servlet:pushLinuxImages -PextraTag=${NEEDS_PREPARE_OUTPUTS_TAG} -PsmokeTestServer=${{ matrix.smoke-test-server }}\n+        env:\n+          NEEDS_PREPARE_OUTPUTS_TAG: ${{ needs.prepare.outputs.tag }}",
+      "id": "PRRT_kwDODJKVX86S-Maj",
+      "opened": "2026-07-22T15:28:43Z",
+      "path": ".github/workflows/publish-smoke-test-servlet-images.yml",
+      "replies": [
+        {
+          "at": "2026-07-22T15:33:45Z",
+          "body": "Fixed in f7abbf43894d1646239a3ae7d500ef9d02899eb4 by explicitly using Bash for this cross-platform step.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3631581901"
+        }
+      ],
+      "reviewed": "6daca790acad33ff7a1167bde14c29dd9c8a6323",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3631544991"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`pushWindowsImages` runs on `windows-latest` and will use PowerShell by default, where `${NEEDS_PREPARE_OUTPUTS_TAG}` is not expanded (PowerShell expects `$env:NEEDS_PREPARE_OUTPUTS_TAG`). Use GitHub expression interpolation for the argument (e.g., `${{ env.NEEDS_PREPARE_OUTPUTS_TAG }}` or `${{ needs.prepare.outputs.tag }}`), or explicitly set `shell: bash` for the Windows step.",
+      "created": "2026-07-22T15:28:43Z",
+      "hunk": "@@ -80,11 +82,15 @@ jobs:\n \n       - name: Build Linux docker images\n         if: matrix.os != 'windows-latest'\n-        run: ./gradlew :smoke-tests:images:servlet:pushLinuxImages -PextraTag=${{ needs.prepare.outputs.tag }} -PsmokeTestServer=${{ matrix.smoke-test-server }}\n+        run: ./gradlew :smoke-tests:images:servlet:pushLinuxImages -PextraTag=${NEEDS_PREPARE_OUTPUTS_TAG} -PsmokeTestServer=${{ matrix.smoke-test-server }}\n+        env:\n+          NEEDS_PREPARE_OUTPUTS_TAG: ${{ needs.prepare.outputs.tag }}\n \n       - name: Build Windows docker images\n         if: matrix.os == 'windows-latest'\n-        run: ./gradlew :smoke-tests:images:servlet:pushWindowsImages -PextraTag=${{ needs.prepare.outputs.tag }} -PsmokeTestServer=${{ matrix.smoke-test-server }}\n+        run: ./gradlew :smoke-tests:images:servlet:pushWindowsImages -PextraTag=${NEEDS_PREPARE_OUTPUTS_TAG} -PsmokeTestServer=${{ matrix.smoke-test-server }}\n+        env:\n+          NEEDS_PREPARE_OUTPUTS_TAG: ${{ needs.prepare.outputs.tag }}",
+      "id": "PRRT_kwDODJKVX86S-Ma1",
+      "opened": "2026-07-22T15:28:43Z",
+      "path": ".github/workflows/publish-smoke-test-servlet-images.yml",
+      "replies": [
+        {
+          "at": "2026-07-22T15:33:47Z",
+          "body": "Fixed in f7abbf43894d1646239a3ae7d500ef9d02899eb4 by explicitly using Bash for this cross-platform step.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3631582194"
+        }
+      ],
+      "reviewed": "6daca790acad33ff7a1167bde14c29dd9c8a6323",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3631545023"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This step runs in the `publishWindows` job (Windows runner) and `${TAG}` will not expand under the default PowerShell shell. Prefer passing the value via GitHub expression (`${{ env.TAG }}`) or switch the step shell to `bash`, or use PowerShell syntax (`$env:TAG`) consistently for Windows.",
+      "created": "2026-07-22T15:28:43Z",
+      "hunk": "@@ -80,7 +84,7 @@ jobs:\n         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0\n \n       - name: Build Docker image\n-        run: ./gradlew :smoke-tests:images:fake-backend:dockerPush -PextraTag=${{ env.TAG }}\n+        run: ./gradlew :smoke-tests:images:fake-backend:dockerPush -PextraTag=${TAG}",
+      "id": "PRRT_kwDODJKVX86S-MbB",
+      "opened": "2026-07-22T15:28:43Z",
+      "path": ".github/workflows/publish-smoke-test-fake-backend-images.yml",
+      "replies": [
+        {
+          "at": "2026-07-22T15:33:49Z",
+          "body": "Fixed in f7abbf43894d1646239a3ae7d500ef9d02899eb4 by explicitly using Bash for the Windows step.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3631582473"
+        }
+      ],
+      "reviewed": "6daca790acad33ff7a1167bde14c29dd9c8a6323",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3631545046"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This switches from a SHA-pinned action reference to a mutable tag (`v3.2.0`). If this repository’s policy is to pin all third-party actions to an immutable commit (as is done elsewhere in these workflows), this should remain SHA-pinned (optionally with a `# v3.2.0` comment). If you’re relying on a separate lock/verification mechanism, it would be good to keep the runtime `uses:` pinned as well to ensure the lock can’t be bypassed.",
+      "created": "2026-07-22T15:28:43Z",
+      "hunk": "@@ -123,7 +123,7 @@ jobs:\n       contents: read\n       actions: write # to trigger next iteration\n     steps:\n-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0\n+      - uses: actions/create-github-app-token@v3.2.0",
+      "id": "PRRT_kwDODJKVX86S-MbU",
+      "opened": "2026-07-22T15:28:43Z",
+      "path": ".github/workflows/module-cleanup.md",
+      "replies": [
+        {
+          "at": "2026-07-22T15:33:51Z",
+          "body": "Fixed in f7abbf43894d1646239a3ae7d500ef9d02899eb4. The source is restored to the immutable action SHA and `gh aw compile --no-check-update --schedule-seed open-telemetry/opentelemetry-java-instrumentation` regenerated the lockfile.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3631582709"
+        }
+      ],
+      "reviewed": "6daca790acad33ff7a1167bde14c29dd9c8a6323",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3631545076"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This job only reads versions and never pushes; the push at line 115 runs in a different job, so checkout credentials cannot carry over to it. Persisting the token here unnecessarily leaves a write-capable credential available to subsequent steps. Keep credentials disabled in this job.",
+      "created": "2026-07-22T16:05:42Z",
+      "hunk": "@@ -18,6 +18,9 @@ jobs:\n       already-opened: ${{ steps.check-versions.outputs.already-opened }}\n     steps:\n       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          # zizmor: ignore[artipacked] Credentials are required by the branch push below.\n+          persist-credentials: true",
+      "id": "PRRT_kwDODJKVX86S-8x3",
+      "opened": "2026-07-22T16:05:42Z",
+      "path": ".github/workflows/auto-update-otel-sdk.yml",
+      "replies": [
+        {
+          "at": "2026-07-22T16:32:41Z",
+          "body": "Fixed in 3c7e703925a661b93cfab8effe4eda1c7744491a by disabling credential persistence in this read-only job.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3632007274"
+        }
+      ],
+      "reviewed": "6e5f802d70ce48b8c97456c7446c6dc88436ee05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3631822826"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The later `git push` runs in this job, but this checkout removes Git authentication. Credentials persisted by `check-versions` are isolated to that other runner, and the app token later supplied through `GH_TOKEN` only authorizes `gh`; it does not configure Git. Persist this job's contents-write token (or explicitly authenticate Git before pushing).",
+      "created": "2026-07-22T16:05:42Z",
+      "hunk": "@@ -56,6 +59,8 @@ jobs:\n       - check-versions\n     steps:\n       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          persist-credentials: false",
+      "id": "PRRT_kwDODJKVX86S-8ym",
+      "opened": "2026-07-22T16:05:42Z",
+      "path": ".github/workflows/auto-update-otel-sdk.yml",
+      "replies": [
+        {
+          "at": "2026-07-22T16:32:42Z",
+          "body": "Fixed in 3c7e703925a661b93cfab8effe4eda1c7744491a by explicitly persisting the job token on the checkout in the job that owns this push.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3632007420"
+        }
+      ],
+      "reviewed": "6e5f802d70ce48b8c97456c7446c6dc88436ee05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3631822884"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This `release` job never performs a Git push; the post-release push is in a separate job and cannot use this runner's credential. The following checkout also removes authentication before the build. Persisting credentials here is therefore unnecessary and the suppression leaves the `artipacked` risk unresolved for this checkout.",
+      "created": "2026-07-22T16:05:42Z",
+      "hunk": "@@ -69,6 +71,8 @@ jobs:\n       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n         with:\n           ref: main\n+          # zizmor: ignore[artipacked] Credentials are required by the branch push below.\n+          persist-credentials: true",
+      "id": "PRRT_kwDODJKVX86S-8zA",
+      "opened": "2026-07-22T16:05:42Z",
+      "path": ".github/workflows/release.yml",
+      "replies": [
+        {
+          "at": "2026-07-22T16:32:44Z",
+          "body": "Fixed in 3c7e703925a661b93cfab8effe4eda1c7744491a by disabling credential persistence in the read-only release job and retaining it only on the post-release main checkout that is pushed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3632007587"
+        }
+      ],
+      "reviewed": "6e5f802d70ce48b8c97456c7446c6dc88436ee05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3631822917"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is this correct?",
+      "created": "2026-07-22T20:13:27Z",
+      "hunk": "@@ -22,9 +22,11 @@ jobs:\n       fail-fast: false\n     steps:\n       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n+        with:\n+          persist-credentials: false\n       - id: read-java\n         run: echo \"version=$(cat .java-version)\" >> \"$GITHUB_OUTPUT\"\n-      - uses: graalvm/setup-graalvm@186d0493a2df5eb62df5ecc498883d18fd58c303 # v1.6.2.1\n+      - uses: graalvm/setup-graalvm@186d0493a2df5eb62df5ecc498883d18fd58c303 # v1.6.2",
+      "id": "PRRT_kwDODJKVX86TDZG0",
+      "opened": "2026-07-22T20:14:37Z",
+      "path": ".github/workflows/reusable-native-tests.yml",
+      "replies": [
+        {
+          "at": "2026-07-22T20:29:05Z",
+          "body": "No change needed. The action remains pinned to immutable commit 186d0493a2df5eb62df5ecc498883d18fd58c303, which is the official v1.6.2 tag. The prior v1.6.2.1 comment was incorrect; that release does not exist.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3633580522"
+        }
+      ],
+      "reviewed": "111599c96472d1fc762a8e6f3b74572c334677c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3633482055"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "why did we lose pinning?",
+      "created": "2026-07-22T20:14:11Z",
+      "hunk": "@@ -123,7 +123,7 @@ jobs:\n       contents: read\n       actions: write # to trigger next iteration\n     steps:\n-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0\n+      - uses: actions/create-github-app-token@v3.2.0",
+      "id": "PRRT_kwDODJKVX86TDZ-L",
+      "opened": "2026-07-22T20:14:37Z",
+      "path": ".github/workflows/module-cleanup.md",
+      "replies": [
+        {
+          "at": "2026-07-22T20:29:07Z",
+          "body": "Runtime pinning is retained. module-cleanup.md is gh-aw compiler input and uses the release tag so the compiler can retain version metadata; the generated executable module-cleanup.lock.yml resolves it to immutable SHA bcd2ba49218906704ab6c1aa796996da409d3eb1 with the v3.2.0 comment.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3633580701"
+        }
+      ],
+      "reviewed": "111599c96472d1fc762a8e6f3b74572c334677c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3633486959"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "add comment like in other scheduled jobs to make readable",
+      "created": "2026-07-22T20:14:33Z",
+      "hunk": "@@ -31,7 +31,7 @@ description: |\n on:\n   workflow_dispatch:\n   schedule:\n-    - cron: \"every 1h\"\n+    - cron: \"26 */1 * * *\"",
+      "id": "PRRT_kwDODJKVX86TDaVV",
+      "opened": "2026-07-22T20:14:37Z",
+      "path": ".github/workflows/module-cleanup.md",
+      "replies": [
+        {
+          "at": "2026-07-22T20:29:08Z",
+          "body": "Fixed in d371ab2b8b263aa6bf06578ed46c6816d69845e6 by adding `# hourly at minute 26` above the fixed cron schedule and regenerating the gh-aw lockfile.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3633580896"
+        }
+      ],
+      "reviewed": "111599c96472d1fc762a8e6f3b74572c334677c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19283#discussion_r3633489063"
+    }
+  ]
+}

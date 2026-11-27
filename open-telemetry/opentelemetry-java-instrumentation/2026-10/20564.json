@@ -1,0 +1,67 @@
+{
+  "head": "d8703bc68daebbd08346dff68490af0698102dbb",
+  "merge": "8e8d2fa7c5874b54971714da8294fbe5275dc092",
+  "merged": "2026-10-14T07:43:24Z",
+  "missing_roots": 0,
+  "number": 20564,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This setup-only trace-ID variant still inherits `collectMetadata=true` from `withType<Test>()`. Removing its label and collection-script entry does not exclude it when the task is run in a metadata-enabled task graph; its spans would be merged into `when: default`. Explicitly disable metadata collection for this regression task while keeping it in `check`.",
+      "created": "2026-10-13T02:16:29Z",
+      "hunk": "@@ -35,22 +35,31 @@ dependencies {\n \n tasks {\n   withType<Test>().configureEach {\n-    jvmArgs(\"-Dotel.instrumentation.servlet.experimental.request-parameters.included=test-parameter\")\n     // required on jdk17\n     jvmArgs(\"--add-opens=java.base/java.util=ALL-UNNAMED\")\n     jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n+  val testRequestParameterCapture = register<Test>(\"testRequestParameterCapture\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    jvmArgs(\"-Dotel.instrumentation.servlet.experimental.request-parameters.included=test-parameter\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"otel.instrumentation.servlet.experimental.request-parameters.included=test-parameter\",\n+    )\n+  }\n+\n   val testExperimental = register<Test>(\"testExperimental\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n \n     jvmArgs(\"-Dotel.instrumentation.servlet.experimental.trace-id-request-attribute.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86rrz1A",
+      "opened": "2026-10-13T02:16:29Z",
+      "path": "instrumentation/tomcat/tomcat-7.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "569c330651c4a398f5fe3b0ff218a028179147d9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20564#discussion_r4254055743"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The stated Servlet/Tomcat cleanup is incomplete for the adjacent Tomcat 10 collection entries. `tomcat-10.0/javaagent/build.gradle.kts:30-32` still enables request-parameter capture for every test task, while lines 314-315 still collect the baseline and setup-only trace-ID variant. As a result, Tomcat 10 continues classifying captured request-parameter telemetry as default (and under the trace-ID label). Apply the same dedicated capture variant/default-off expectation there and stop collecting its trace-ID-only task.",
+      "created": "2026-10-13T21:24:30Z",
+      "hunk": "@@ -309,7 +310,7 @@ readonly INSTRUMENTATIONS=(\n   \"thrift-0.13:javaagent:test\"\n   \"thrift-0.13:javaagent:testPreviewSemconv\"\n   \"tomcat:tomcat-7.0:javaagent:test\"\n-  \"tomcat:tomcat-7.0:javaagent:testExperimental\"\n+  \"tomcat:tomcat-7.0:javaagent:testRequestParameterCapture\"",
+      "id": "PRRT_kwDODJKVX86sETWU",
+      "opened": "2026-10-13T21:24:30Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [
+        {
+          "at": "2026-10-14T01:37:19Z",
+          "body": "Addressed in bae326392c0156a39ce54f96503ebf4f0d37e2d2.\n\nRemoved Tomcat 10's shared request-parameter flag, added testRequestParameterCapture with the existing test-* selection and matching metadataConfig, and wired it into check and instrumentations.sh. TomcatHandlerTest now exercises capture both enabled and disabled using the existing shared HTTP test expectation. The username-only variant no longer enables or labels parameter capture. The trace-ID variant retains behavioral coverage but has no metadataConfig, overrides collection to false, and is excluded from the collection script. Generated telemetry contained request-parameter attributes only under the dedicated capture label, never under default or the username label.\n\n<!-- copilot-loop:5b8e005f1cd72d17d4ba512806e3a1f37f2361aa9a0cbd7de2685a6b24e2caea:4264181151:27d76e8a8ea6472f8686846ff598b2da -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20564#discussion_r4265878357"
+        }
+      ],
+      "reviewed": "3fa15b0fb693877091bbf93e89d2346f8b1fc67e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20564#discussion_r4264181151"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `testExperimental` is still wired into `check` while inheriting `collectMetadata=true` from `withType<Test>().configureEach`. Because the trace-ID request attribute is only used by the fixture and does not change emitted telemetry, a metadata-enabled `check` will collect this full suite without a label and merge it into `when: default`. Explicitly disable collection for this excluded variant rather than only removing `metadataConfig`.",
+      "created": "2026-10-14T03:50:30Z",
+      "hunk": "@@ -51,12 +60,10 @@ tasks {\n     classpath = sourceSets.test.get().runtimeClasspath\n \n     jvmArgs(\"-Dotel.instrumentation.servlet.experimental.trace-id-request-attribute.enabled=true\")\n-    systemProperty(\"metadataConfig\", \"otel.instrumentation.servlet.experimental.trace-id-request-attribute.enabled=true\")\n   }\n \n   check {\n-    dependsOn(testExperimental)\n-    dependsOn(testUserNameCapture)\n+    dependsOn(testExperimental, testRequestParameterCapture, testUserNameCapture)",
+      "id": "PRRT_kwDODJKVX86sJ8MN",
+      "opened": "2026-10-14T03:50:31Z",
+      "path": "instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-14T05:02:16Z",
+          "body": "Addressed in d7e0e5d791957963dd776cafc78129dd79c7447e.\n\nRemoving metadataConfig did not exclude testExperimental: AgentTestRunner still collected its telemetry when collectMetadata was true, and MetaDataCollector labeled unlabeled output default. Commit 1 overrides the inherited setting with systemProperty(\"collectMetadata\", false) in both affected variants. Both complete module checks passed with collection enabled; forced reruns of both trace-ID suites passed without creating or modifying any telemetry files.\n\n<!-- copilot-loop:d9a4e9bddf4b110a976014403660fb1a1b4a9f3287b6ee39b81cd6ba31d84ccb:4266575050:6fd77a8a3ff04bc385c431cbdb80b6b1 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20564#discussion_r4266966598"
+        }
+      ],
+      "reviewed": "a9f8862f7dbb1a2723b49446046aef62cfd2bf9d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20564#discussion_r4266575050"
+    }
+  ]
+}

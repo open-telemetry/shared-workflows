@@ -1,0 +1,31 @@
+{
+  "head": "f26d0ed82677d6531429c86968f1453a9707e830",
+  "merge": "68715fb7a2f51ba5ede6ea15d4cd7422c21b5bab",
+  "merged": "2026-08-25T05:42:03Z",
+  "missing_roots": 0,
+  "number": 19789,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The runtime plugin version is still `1.1.9` in `settings.gradle.kts:10`, so this change leaves the metadata/compile-time API on 1.1.10 while all applications of `org.graalvm.buildtools.native` still resolve 1.1.9. Please update the plugin-management declaration to 1.1.10 as part of this dependency bump so the versions remain synchronized.",
+      "created": "2026-08-25T00:55:45Z",
+      "hunk": "@@ -10,7 +10,7 @@\n import org.graalvm.buildtools.gradle.dsl.GraalVMReachabilityMetadataRepositoryExtension\n \n // Keep this in sync with the org.graalvm.buildtools.native plugin version in settings.gradle.kts.\n-val graalvmReachabilityMetadataVersion = \"1.1.9\"\n+val graalvmReachabilityMetadataVersion = \"1.1.10\"",
+      "id": "PRRT_kwDODJKVX86b5tqp",
+      "opened": "2026-08-25T00:55:45Z",
+      "path": "conventions/src/main/kotlin/otel.spring-native-test-conventions.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-25T03:38:43Z",
+          "body": "Updated `settings.gradle.kts` to use `1.1.10`. I also corrected the Renovate grouping to match the plugin marker coordinate (`org.graalvm.buildtools.native:**`), so future plugin and Maven artifact updates land in the same PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19789#discussion_r3849372338"
+        }
+      ],
+      "reviewed": "985b89eaf2211270ae2b0b10bdde3fd13d76c001",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19789#discussion_r3848691395"
+    }
+  ]
+}

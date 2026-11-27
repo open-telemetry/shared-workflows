@@ -1,0 +1,88 @@
+{
+  "head": "f7276cbc413b2a1d1a5813deb321a598eb94e895",
+  "merge": "1b1b83ebd8ff62c3b09ca3416ea69d583283a426",
+  "merged": "2026-10-22T09:51:51Z",
+  "missing_roots": 0,
+  "number": 20813,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Preview RPC conventions define `rpc.method` from the [RPC interface perspective](https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/docs/rpc/rpc-spans.md#rpc-server-span), but `RemoteServerInstrumentation` supplies the implementation class here. The existing fixture therefore reports `rmi.app.Server/hello` on the server and `rmi.app.Greeter/hello` on the client for the same RPC, splitting method identities across the two sides. Resolve the corresponding remote-interface method for preview telemetry, retaining enough signature information to distinguish overloads. Update the preview and dual-emission server attribute and span-name expectations while preserving legacy behavior.",
+      "created": "2026-10-21T19:04:11Z",
+      "hunk": "@@ -25,4 +25,9 @@ public String getService(ClassAndMethod classAndMethod) {\n   public String getMethod(ClassAndMethod classAndMethod) {\n     return classAndMethod.methodName();\n   }\n+\n+  @Override\n+  public String getRpcMethod(ClassAndMethod classAndMethod) {\n+    return classAndMethod.declaringClass().getName() + \"/\" + classAndMethod.methodName();",
+      "id": "PRRT_kwDODJKVX86u6T_g",
+      "opened": "2026-10-21T19:04:11Z",
+      "path": "instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-22T01:16:37Z",
+          "body": "Fixed. Server preview telemetry now resolves the remote-interface method using the receiver class and full method signature, so this call reports `rmi.app.Greeter/hello` on both sides. Legacy attributes and server span names are unchanged.\n\nUpdated the preview and dual-emission assertions and added coverage for overloads, inherited methods, covariant returns, and ambiguous interface declarations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20813#discussion_r4343617038"
+        }
+      ],
+      "reviewed": "f549581a8c7f1493256e549b928998788ffdbd92",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20813#discussion_r4340810096"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the server-side RPC method-name resolver in this PR and fix its overly strict ambiguity check. Update this PR directly; do not create a separate follow-up PR as a workaround.\n\nIn instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerRequest.java, the telemetry needs a unique emitted interface/method name, not a unique java.lang.reflect.Method. Replace the cached implementation-Method-to-interface-Method result with the resolved RPC name string, and update RmiServerAttributesGetter accordingly. Keep resolution cached per runtime server class and implementation method. Matching declarations that produce the same fully qualified interface/method name must agree rather than count as ambiguous; only distinct candidate names should cause the existing null/missing-method fallback. Preserve inherited remote interfaces, overloaded methods, and covariant implementation returns. Do not calculate RMI hashes, reproduce hash-table overwrite order, choose an arbitrary declaration, or move instrumentation to a new JDK dispatch hook. Keep the resolver and any necessary comments focused on the logical-name agreement rule rather than dispatch implementation details.\n\nAdd regression coverage for a remote Parent interface declaring Object value() throws RemoteException and a remote Child interface extending Parent and overriding it with String value() throws RemoteException, implemented by the exported server. Verify the compiler-generated Child bridge and declared method do not erase the unambiguous Child/value RPC identity. Preserve coverage for truly different remote-interface names sharing the same implementation, including existing covariant and duplicate-signature cases, which must still fall back rather than guess an identity.\n\nPreserve default legacy telemetry exactly. In preview mode, verify the resolved interface/method is used consistently for rpc.method and server span naming; verify dual-emission mode as well. Keep the change limited to this resolver simplification, its callers, and directly related regression tests. Use the repository's narrow RMI formatting and test tasks.",
+      "created": "2026-10-22T00:10:45Z",
+      "hunk": "@@ -0,0 +1,81 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rmi.server;\n+\n+import java.lang.reflect.Method;\n+import java.lang.reflect.Modifier;\n+import java.rmi.Remote;\n+import java.util.Arrays;\n+import java.util.HashMap;\n+import java.util.HashSet;\n+import java.util.Map;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+final class RmiServerRequest {\n+\n+  private static final ClassValue<Map<Method, Method>> remoteMethods =\n+      new ClassValue<Map<Method, Method>>() {\n+        @Override\n+        protected Map<Method, Method> computeValue(Class<?> type) {\n+          Set<Method> declarations = new HashSet<>();\n+          // Match UnicastServerRef's export traversal, including interfaces inherited by a class\n+          // and declarations inherited by a remote interface.\n+          for (Class<?> current = type; current != null; current = current.getSuperclass()) {\n+            for (Class<?> iface : current.getInterfaces()) {\n+              if (Remote.class.isAssignableFrom(iface)) {\n+                for (Method method : iface.getMethods()) {\n+                  if (!Modifier.isStatic(method.getModifiers())) {\n+                    declarations.add(method);\n+                  }\n+                }\n+              }\n+            }\n+          }\n+          Map<Method, Method> result = new HashMap<>();\n+          for (Method implementation : type.getMethods()) {\n+            Method match = null;\n+            for (Method declaration : declarations) {\n+              if (declaration.getName().equals(implementation.getName())\n+                  && Arrays.equals(\n+                      declaration.getParameterTypes(), implementation.getParameterTypes())\n+                  && declaration.getReturnType().isAssignableFrom(implementation.getReturnType())) {\n+                if (match != null) {",
+      "id": "PRRT_kwDODJKVX86vABA-",
+      "opened": "2026-10-22T00:10:45Z",
+      "path": "instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerRequest.java",
+      "replies": [
+        {
+          "at": "2026-10-22T00:23:13Z",
+          "body": "Addressed in da970453. The cache now stores RPC name strings and accepts matching declarations whose emitted names agree. Added exported ParentValue/ChildValue regression calls through both the declared method and generated bridge; existing distinct-name ambiguity cases remain intact. Default, preview, and dual-emission RMI tests pass on JDK 8 and 25, along with formatting and Checkstyle.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20813#discussion_r4343336271"
+        }
+      ],
+      "reviewed": "fe984ef2c3d128a2fe4fbcf2215356d30328ae7d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20813#discussion_r4343269368"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Refactor and document RmiServerRequest.java for readability without changing its current algorithm or behavior. Update this PR directly; do not create a separate follow-up PR as a workaround. The previous logical-name agreement fix and covariant-bridge regression coverage are accepted and must remain intact.\n\nLimit the code change to instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerRequest.java. Keep the existing request fields, constructor, accessors, and ClassValue<Map<Method, String>> cache. Extract two private static helpers: findRemoteMethods(Class<?> serverClass) to discover non-static remote-interface methods, and nullable resolveRpcMethodName(Method implementation, Set<Method> remoteMethods) to resolve one implementation method's logical RPC name. Leave computeValue() as a short overview that discovers remote methods, iterates the server's public methods, resolves each name, and stores non-null results. Prefer the descriptive local names serverClass, remoteMethods, names, name, and candidate. In discovery, an early continue for interfaces not assignable to Remote can reduce nesting. Preserve traversal of server superclasses and the inherited declarations returned by each remote interface's getMethods().\n\nPreserve the matching predicate exactly in meaning: equal method names, equal parameter-type arrays, and a declaration return type assignable from the implementation return type. Retain same-name agreement across all matching reflected interface methods. In resolveRpcMethodName(), return null directly when a later candidate has a different logical name, rather than resetting a variable and breaking. Return the agreed name, or null when there is no match. Do not filter covariant overrides or compiler-generated bridges, add RMI hash logic, change the instrumentation point, or introduce extra abstractions or additional helpers.\n\nAdd concise class documentation explaining that advice observes the implementation method but the logical RPC name comes from a remote-interface declaration. Make the ordinary single-match case and the less common multiple-match cases clear: different declaring interfaces can expose the same method signature, while a covariant override can generate a bridge on the same interface, yielding distinct reflection Method objects with the same interface/method RPC name. Accept multiple matches when their names agree; leave the name unavailable when they disagree rather than choosing an interface. Avoid implying that multiple matches are the usual case or always mean different interfaces. A short comment explaining that getMethods() includes inherited interface declarations and a short bridge/name-agreement comment at the comparison are sufficient where helpful. Do not discuss hashes or export overwrite order, narrate the refactor, or repeat the whole contract in several comments.\n\nKeep default legacy, preview, and dual-emission telemetry unchanged, including the existing bridge and truly ambiguous-interface cases. Apply the narrow RMI formatter and run the existing default, testPreviewSemconv, and testBothSemconv RMI test tasks. Do not modify tests or other production files unless a directly caused issue makes it necessary.",
+      "created": "2026-10-22T00:35:28Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rmi.server;\n+\n+import java.lang.reflect.Method;\n+import java.lang.reflect.Modifier;\n+import java.rmi.Remote;\n+import java.util.Arrays;\n+import java.util.HashMap;\n+import java.util.HashSet;\n+import java.util.Map;\n+import java.util.Set;\n+import javax.annotation.Nullable;\n+\n+final class RmiServerRequest {",
+      "id": "PRRT_kwDODJKVX86vAUgF",
+      "opened": "2026-10-22T00:35:27Z",
+      "path": "instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerRequest.java",
+      "replies": [
+        {
+          "at": "2026-10-22T00:43:13Z",
+          "body": "Addressed in f7276cbc. Only RmiServerRequest.java changed: extracted the two private helpers, shortened computeValue(), and documented interface-based naming and bridge/name agreement without changing the predicate or algorithm. Narrow RMI formatting, Checkstyle, and all 33 existing default/preview/dual-emission tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20813#discussion_r4343438549"
+        }
+      ],
+      "reviewed": "da970453030fc9c0fe1df3ea2be243bdb82c837e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20813#discussion_r4343400366"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Usually we avoid `@Advice.Origin Method` since it looks up the method on each invocation. Perhaps here it is fine here since the remote invocation itself is already costly.",
+      "created": "2026-10-22T09:47:08Z",
+      "hunk": "@@ -72,30 +71,29 @@ public static AdviceScope start(\n         if (parentContext == null) {\n           return new AdviceScope(callDepth, null, null, null);\n         }\n-        ClassAndMethod classAndMethod = ClassAndMethod.create(declaringClass, methodName);\n-        if (!instrumenter().shouldStart(parentContext, classAndMethod)) {\n+        RmiServerRequest request = new RmiServerRequest(serverClass, method);\n+        if (!instrumenter().shouldStart(parentContext, request)) {\n           return new AdviceScope(callDepth, null, null, null);\n         }\n-        Context context = instrumenter().start(parentContext, classAndMethod);\n-        return new AdviceScope(callDepth, classAndMethod, context, context.makeCurrent());\n+        Context context = instrumenter().start(parentContext, request);\n+        return new AdviceScope(callDepth, request, context, context.makeCurrent());\n       }\n \n       public void end(@Nullable Throwable throwable) {\n         if (callDepth.decrementAndGet() > 0) {\n           return;\n         }\n-        if (scope == null || context == null || classAndMethod == null) {\n+        if (scope == null || context == null || request == null) {\n           return;\n         }\n         scope.close();\n-        instrumenter().end(context, classAndMethod, null, throwable);\n+        instrumenter().end(context, request, null, throwable);\n       }\n     }\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static AdviceScope onEnter(\n-        @Advice.Origin(\"#t\") Class<?> declaringClass, @Advice.Origin(\"#m\") String methodName) {\n-      return AdviceScope.start(CallDepth.forClass(Remote.class), declaringClass, methodName);\n+    public static AdviceScope onEnter(@Advice.This Remote server, @Advice.Origin Method method) {",
+      "id": "PRRT_kwDODJKVX86vIckn",
+      "opened": "2026-10-22T09:47:07Z",
+      "path": "instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RemoteServerInstrumentation.java",
+      "replies": [],
+      "reviewed": "f7276cbc413b2a1d1a5813deb321a598eb94e895",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20813#discussion_r4346849814"
+    }
+  ]
+}

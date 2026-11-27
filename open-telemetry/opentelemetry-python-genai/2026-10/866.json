@@ -1,0 +1,77 @@
+{
+  "head": "2a449ce41117661469651036137ee7abd6516c58",
+  "merge": "ab95823f4cef0669e9152824b14b91a5dc115322",
+  "merged": "2026-10-16T15:53:42Z",
+  "missing_roots": 0,
+  "number": 866,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "i wonder if this method can be in utils instead, and all instrumentations can be updated to use it ? I think we have the same issue in all instrumentations ?",
+      "created": "2026-10-09T15:02:21Z",
+      "hunk": "@@ -50,10 +50,24 @@\n \n _logger = logging.getLogger(__name__)\n \n+\n BEDROCK_RUNTIME = \"bedrock-runtime\"\n BEDROCK_AGENT_RUNTIME = \"bedrock-agent-runtime\"\n \n \n+def _extract_request(",
+      "id": "PRRT_kwDOSbspP86q1Rwo",
+      "opened": "2026-10-09T15:02:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/patch.py",
+      "replies": [
+        {
+          "at": "2026-10-09T15:44:07Z",
+          "body": "Yes, I think the same shape is elsewhere. In the OpenAI instrumentation, for example, `create_chat_invocation` runs before the `try` in `patch.py`, and malformed message input can raise there when content capture is enabled. I kept this one Bedrock-only on purpose: a shared helper would be new util-genai API, so I'd rather agree on the approach first. Would you prefer an issue for a util-level helper, with this PR staying as the Bedrock fix, or should I fold it in here? Either way, I'm happy to take the follow-up for the other instrumentations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/866#discussion_r4231907628"
+        },
+        {
+          "at": "2026-10-09T17:33:28Z",
+          "body": "lets try putting it in utils and updating all instrumentations to use it..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/866#discussion_r4232835895"
+        },
+        {
+          "at": "2026-10-10T03:27:18Z",
+          "body": "Moved it to util-genai as `suppress_extraction_errors()`, and bedrock, openai, anthropic, portkey, google-genai and smolagents use it now. The description lists the remaining gaps.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/866#discussion_r4236213177"
+        }
+      ],
+      "reviewed": "bdc6ef3fcd4a2661f23186eb1d54ac46b7bb7e39",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/866#discussion_r4231524253"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "We should not guard against arbitrary objects whose __str__ raises where the SDK expects a string. This is outside the expected input contract, and the same kind of failure could occur anywhere, including in the exception handler or exporting pipeline",
+      "created": "2026-10-11T04:23:38Z",
+      "hunk": "@@ -397,15 +406,15 @@ def _start_invoke_agent(\n         server_address=server_address,\n         server_port=server_port,\n     )\n-    raw_agent_id = api_params.get(\"agentId\")\n-    if raw_agent_id:\n-        invocation.agent_id = str(raw_agent_id)\n-\n-    extract_invoke_agent_request(\n-        api_params,\n-        invocation,\n-        capture_content=invocation.should_capture_content,\n-    )\n+    with suppress_extraction_errors():\n+        raw_agent_id = api_params.get(\"agentId\")\n+        if raw_agent_id:\n+            invocation.agent_id = str(raw_agent_id)",
+      "id": "PRRT_kwDOSbspP86rKR2e",
+      "opened": "2026-10-11T04:23:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/patch.py",
+      "replies": [],
+      "reviewed": "8be9860db68c8904d7842f9a5e9afd578a30eaa5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/866#discussion_r4240244185"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "These still raise: `float(10**400)` and `int(float(\"inf\"))` throw `OverflowError`, and `float(obj)` runs arbitrary `__float__`. Could we check types up front instead of catching, so the code can't throw (same idea as `_coerce_float` in google-genai `interactions.py`)?\n\n```suggestion\ndef _as_float(value: Any) -> float | None:\n    if isinstance(value, float):\n        return value\n    if (\n        isinstance(value, int)\n        and not isinstance(value, bool)\n        and abs(value) <= sys.float_info.max\n    ):\n        return float(value)\n    return None\n\n\ndef _as_int(value: Any) -> int | None:\n    if isinstance(value, int) and not isinstance(value, bool):\n        return value\n    return None\n```\n\n(needs `import sys`; a test case with `temperature=10**400` would cover it.)",
+      "created": "2026-10-15T22:28:09Z",
+      "hunk": "@@ -239,25 +239,39 @@ def _prepare_output_messages(\n     return output_messages\n \n \n+def _safe_float(value: Any) -> float | None:\n+    try:\n+        return float(value)\n+    except (TypeError, ValueError):\n+        return None\n+\n+\n+def _safe_int(value: Any) -> int | None:\n+    try:\n+        return int(value)\n+    except (TypeError, ValueError):\n+        return None",
+      "id": "PRRT_kwDOSbspP86s_XEw",
+      "opened": "2026-10-16T00:20:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/src/opentelemetry/instrumentation/genai/portkey/utils.py",
+      "replies": [
+        {
+          "at": "2026-10-16T04:57:18Z",
+          "body": "Applied your suggestion in 9e48fd96 and added the `10**400` and `inf` cases; numeric strings are now dropped by the type check.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/866#discussion_r4291064830"
+        }
+      ],
+      "reviewed": "e9b51b3922cfa16afe798211a939f82237a6ec33",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/866#discussion_r4288912855"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "head": "0b7928085f9ef353196c5dcddafdfbfd26bfea5b",
+  "merge": "523c42815293f6e696d8e49d9d8e555438ec617e",
+  "merged": "2026-09-01T15:51:07Z",
+  "missing_roots": 0,
+  "number": 19879,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@trask should this be required to implement? ",
+      "created": "2026-08-29T11:19:56Z",
+      "hunk": "@@ -23,6 +23,10 @@ public interface GenAiAttributesGetter<REQUEST, RESPONSE> {\n   @Nullable\n   String getRequestModel(REQUEST request);\n \n+  default boolean isRequestStreaming(REQUEST request) {",
+      "id": "PRRT_kwDODJKVX86dZhXJ",
+      "opened": "2026-08-29T11:19:56Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/genai/GenAiAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-08-29T16:15:26Z",
+          "body": "yeah, makes sense\r\n\r\n@walleseve probably we should take care of AWS Bedrock streaming cases at the same time, since otherwise this will start emitting streaming `false` incorrectly for them",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19879#discussion_r3887055842"
+        },
+        {
+          "at": "2026-08-31T17:11:24Z",
+          "body": "Good call. I made `isRequestStreaming(...)` required and implemented it explicitly for OpenAI chat, OpenAI embeddings (`false`), and AWS Bedrock. Bedrock now detects `ConverseStreamRequest` and `InvokeModelWithResponseStreamRequest`; its library and javaagent suites assert `true` for streaming paths, while non-streaming requests continue to omit the attribute. Since this changes the incubating getter contract, I also documented it as a non-stable API break.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19879#discussion_r3896676423"
+        }
+      ],
+      "reviewed": "e9561a0172b686017da90ff4f30fdbf9d0735e13",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19879#discussion_r3886464169"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "feels like a bit of an overkill, instead could have tested that extractor emits the streaming arg in onStart phase similarly to what `HttpClientAttributesExtractorTest` and `MessagingAttributesExtractorTest` do",
+      "created": "2026-08-29T11:24:39Z",
+      "hunk": "@@ -93,6 +104,56 @@ private OpenAIClientAsync clientAsyncNoCaptureContent() {\n     return OpenAITelemetry.builder(testing.getOpenTelemetry()).build().wrap(getRawClientAsync());\n   }\n \n+  @Test\n+  void streamAttributeAvailableToSampler() {",
+      "id": "PRRT_kwDODJKVX86dZjT2",
+      "opened": "2026-08-29T11:24:39Z",
+      "path": "instrumentation/openai/openai-java-1.1/library/src/test/java/io/opentelemetry/instrumentation/openai/v1_1/ChatTest.java",
+      "replies": [
+        {
+          "at": "2026-08-31T17:11:38Z",
+          "body": "Agreed. I removed the custom sampler integration test and added `GenAiAttributesExtractorTest`, which calls `onStart(...)` directly and verifies that streaming emits `gen_ai.request.stream=true` while non-streaming omits the attribute.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19879#discussion_r3896678660"
+        }
+      ],
+      "reviewed": "e9561a0172b686017da90ff4f30fdbf9d0735e13",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19879#discussion_r3886476403"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could have convenience methods `create` and `createStreaming` and perhaps skip the builder altogether",
+      "created": "2026-08-29T11:26:27Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.openai.v1_1;\n+\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import com.openai.models.chat.completions.ChatCompletionCreateParams;\n+\n+final class ChatCompletionRequest {\n+\n+  private final ChatCompletionCreateParams request;\n+  private final boolean streaming;\n+\n+  static Builder builder(ChatCompletionCreateParams request) {",
+      "id": "PRRT_kwDODJKVX86dZj3T",
+      "opened": "2026-08-29T11:26:27Z",
+      "path": "instrumentation/openai/openai-java-1.1/library/src/main/java/io/opentelemetry/instrumentation/openai/v1_1/ChatCompletionRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-31T17:11:53Z",
+          "body": "Agreed. I removed the builder and replaced it with `ChatCompletionRequest.create(...)` and `createStreaming(...)`, then updated the synchronous and asynchronous call sites and tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19879#discussion_r3896681092"
+        }
+      ],
+      "reviewed": "e9561a0172b686017da90ff4f30fdbf9d0735e13",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19879#discussion_r3886479765"
+    }
+  ]
+}

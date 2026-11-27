@@ -1,0 +1,155 @@
+{
+  "head": "340d878855d3e78c6f972f13e0c3b0289b2c4e59",
+  "merge": "1d95ddeaa66af70e2ca88b19453ccb8aadaebe5b",
+  "merged": "2026-10-23T19:10:24Z",
+  "missing_roots": 0,
+  "number": 20570,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This rename is part of the explicitly documented breaking telemetry change, but the PR does not add an entry under `CHANGELOG.md`'s Unreleased section. `CONTRIBUTING.md:15-25` requires a changelog entry for breaking changes; please add the metric/attribute migration mapping there so released users can update dashboards and alerts.",
+      "created": "2026-10-13T12:33:53Z",
+      "hunk": "@@ -1,204 +1,230 @@\n ---\n rules:\n-  # Broker metrics\n+  # Using JMX domain as prefix for all metrics helps to provide a consistent naming\n+  # scheme and also helps prevent name collisions.\n \n-  - bean: kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec\n-    mapping:\n-      Count:\n-        metric: kafka.message.count\n-        type: counter\n-        desc: The number of messages received by the broker\n-        unit: \"{messages}\"\n+  # Broker metrics\n \n-  - bean: kafka.server:type=BrokerTopicMetrics,name=TotalFetchRequestsPerSec\n+  - bean: kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec,topic=*\n     metricAttribute:\n-      type: const(fetch)\n+      kafka.topic: param(topic)\n     mapping:\n       Count:\n-        metric: kafka.request.count\n+        metric: kafka.server.message.count",
+      "id": "PRRT_kwDODJKVX86r2_qb",
+      "opened": "2026-10-13T12:33:53Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/kafka-broker_unstable.yaml",
+      "replies": [
+        {
+          "at": "2026-10-13T13:14:43Z",
+          "body": "should be fixed with f343dca ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4259081227"
+        }
+      ],
+      "reviewed": "62d0daef37d88210833dc6b7c090e16fe4c70902",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4258660839"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The comment names a `fetchrequest` request type, but the rule emits `fetchconsumer`; it also has a subject-verb error. Correcting it prevents the rationale from documenting a nonexistent attribute value.",
+      "created": "2026-10-13T12:33:53Z",
+      "hunk": "@@ -1,204 +1,230 @@\n ---\n rules:\n-  # Broker metrics\n+  # Using JMX domain as prefix for all metrics helps to provide a consistent naming\n+  # scheme and also helps prevent name collisions.\n \n-  - bean: kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec\n-    mapping:\n-      Count:\n-        metric: kafka.message.count\n-        type: counter\n-        desc: The number of messages received by the broker\n-        unit: \"{messages}\"\n+  # Broker metrics\n \n-  - bean: kafka.server:type=BrokerTopicMetrics,name=TotalFetchRequestsPerSec\n+  - bean: kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec,topic=*\n     metricAttribute:\n-      type: const(fetch)\n+      kafka.topic: param(topic)\n     mapping:\n       Count:\n-        metric: kafka.request.count\n+        metric: kafka.server.message.count\n         type: counter\n-        desc: The number of requests received by the broker\n-        unit: \"{requests}\"\n+        desc: The number of messages received by the broker\n+        unit: \"{message}\"\n \n-  - bean: kafka.server:type=BrokerTopicMetrics,name=TotalProduceRequestsPerSec\n+  - bean: kafka.server:type=BrokerTopicMetrics,name=TotalFetchRequestsPerSec,topic=*\n     metricAttribute:\n-      type: const(produce)\n+      kafka.request.type: const(fetch)\n+      kafka.topic: param(topic)\n     mapping:\n       Count:\n-        metric: kafka.request.count\n+        metric: kafka.server.request.count\n         type: counter\n-        desc: The number of requests received by the broker\n-        unit: \"{requests}\"\n+        desc: &desc The number of requests received by the broker\n+        unit: \"{request}\"\n \n-  - bean: kafka.server:type=BrokerTopicMetrics,name=FailedFetchRequestsPerSec\n+  - bean: kafka.server:type=BrokerTopicMetrics,name=TotalProduceRequestsPerSec,topic=*\n     metricAttribute:\n-      type: const(fetch)\n+      kafka.request.type: const(produce)\n+      kafka.topic: param(topic)\n     mapping:\n       Count:\n-        metric: kafka.request.failed\n+        metric: kafka.server.request.count\n         type: counter\n-        desc: The number of requests to the broker resulting in a failure\n-        unit: \"{requests}\"\n+        desc: *desc\n+        unit: \"{request}\"\n \n-  - bean: kafka.server:type=BrokerTopicMetrics,name=FailedProduceRequestsPerSec\n+  - bean: kafka.server:type=BrokerTopicMetrics,name=FailedFetchRequestsPerSec,topic=*\n     metricAttribute:\n-      type: const(produce)\n+      kafka.request.type: const(fetch)\n+      kafka.topic: param(topic)\n     mapping:\n       Count:\n-        metric: kafka.request.failed\n+        metric: kafka.server.request.failed\n         type: counter\n-        desc: The number of requests to the broker resulting in a failure\n-        unit: \"{requests}\"\n+        desc: &desc The number of requests to the broker resulting in a failure\n+        unit: \"{request}\"\n \n-  - beans:\n-      - kafka.network:type=RequestMetrics,name=TotalTimeMs,request=Produce\n-      - kafka.network:type=RequestMetrics,name=TotalTimeMs,request=FetchConsumer\n-      - kafka.network:type=RequestMetrics,name=TotalTimeMs,request=FetchFollower\n+  - bean: kafka.server:type=BrokerTopicMetrics,name=FailedProduceRequestsPerSec,topic=*\n     metricAttribute:\n-      type: param(request)\n-    unit: ms\n+      kafka.request.type: const(produce)\n+      kafka.topic: param(topic)\n     mapping:\n       Count:\n-        metric: kafka.request.time.total\n+        metric: kafka.server.request.failed\n         type: counter\n-        desc: The total time the broker has taken to service requests\n-      50thPercentile:\n-        metric: kafka.request.time.50p\n-        type: gauge\n-        desc: The 50th percentile time the broker has taken to service requests\n-      99thPercentile:\n-        metric: kafka.request.time.99p\n-        type: gauge\n-        desc: The 99th percentile time the broker has taken to service requests\n+        desc: *desc\n+        unit: \"{request}\"\n \n-  - bean: kafka.network:type=RequestChannel,name=RequestQueueSize\n-    mapping:\n-      Value:\n-        metric: kafka.request.queue\n-        type: updowncounter\n-        desc: Size of the request queue\n-        unit: \"{requests}\"\n-\n-  - bean: kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec\n+  - bean: kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec,topic=*\n     metricAttribute:\n-      direction: const(in)\n+      network.io.direction: const(receive)\n+      kafka.topic: param(topic)\n     mapping:\n       Count:\n-        metric: kafka.network.io\n+        metric: kafka.server.network.io\n         type: counter\n-        desc: The bytes received or sent by the broker\n+        desc: &desc The bytes received or sent by the broker\n         unit: By\n \n-  - bean: kafka.server:type=BrokerTopicMetrics,name=BytesOutPerSec\n+  - bean: kafka.server:type=BrokerTopicMetrics,name=BytesOutPerSec,topic=*\n     metricAttribute:\n-      direction: const(out)\n+      network.io.direction: const(transmit)\n+      kafka.topic: param(topic)\n     mapping:\n       Count:\n-        metric: kafka.network.io\n+        metric: kafka.server.network.io\n         type: counter\n-        desc: The bytes received or sent by the broker\n+        desc: *desc\n         unit: By\n \n   - beans:\n       - kafka.server:type=DelayedOperationPurgatory,name=PurgatorySize,delayedOperation=Produce\n       - kafka.server:type=DelayedOperationPurgatory,name=PurgatorySize,delayedOperation=Fetch\n     metricAttribute:\n-      type: param(delayedOperation)\n+      kafka.request.type: lowercase(param(delayedOperation))\n     mapping:\n       Value:\n-        metric: kafka.purgatory.size\n+        metric: kafka.server.purgatory.size\n         type: updowncounter\n         desc: The number of requests waiting in purgatory\n-        unit: \"{requests}\"\n+        unit: \"{request}\"\n+\n+  # Network metrics\n+\n+  - beans:\n+      - kafka.network:type=RequestMetrics,name=TotalTimeMs,request=Produce\n+      - kafka.network:type=RequestMetrics,name=TotalTimeMs,request=FetchConsumer\n+      - kafka.network:type=RequestMetrics,name=TotalTimeMs,request=FetchFollower\n+    metricAttribute:\n+      kafka.request.type: lowercase(param(request))\n+    mapping:\n+      # This is not redundant with kafka.server.request.count because a single network request can trigger\n+      # multiple increments to 'kafka.server.request.count', also it provide an additional breakdown of\n+      # fetch requests with 'fetchrequest' and 'fetchfollower' request types.",
+      "id": "PRRT_kwDODJKVX86r2_rQ",
+      "opened": "2026-10-13T12:33:53Z",
+      "path": "instrumentation/jmx-metrics/library/src/main/resources/jmx/rules/kafka-broker_unstable.yaml",
+      "replies": [
+        {
+          "at": "2026-10-13T13:14:36Z",
+          "body": "should be fixed with f343dca ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4259080000"
+        }
+      ],
+      "reviewed": "62d0daef37d88210833dc6b7c090e16fe4c70902",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4258660909"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This entry describes metrics sourced from `kafka-broker_unstable.yaml` and explicitly calls them experimental, but it is currently under the stable `Breaking changes` section. Move the entry below `### ⚠️ Breaking changes to non-stable APIs` so the release notes classify the compatibility impact correctly.",
+      "created": "2026-10-14T07:16:20Z",
+      "hunk": "@@ -257,6 +257,30 @@\n   `otel.instrumentation.elasticsearch.query-sanitization.enabled` or\n   `otel.instrumentation.opensearch.query-sanitization.enabled`, which override\n   `otel.instrumentation.common.db.query-sanitization.enabled`.\n+- The experimental Kafka broker JMX metrics now start with the JMX domain of their MBean, use",
+      "id": "PRRT_kwDODJKVX86sM-Jk",
+      "opened": "2026-10-14T07:16:21Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-14T07:55:51Z",
+          "body": "fixed in 4e169bf6b017c6cee7b1a945bf88d8b02775c77f",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4268177838"
+        }
+      ],
+      "reviewed": "342818a5738d9574619d0d8758e622bc7ed06255",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4267835365"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Imo this is in the wrong section. `Breaking changes to non-stable APIs` is for api changes not metric renames.",
+      "created": "2026-10-15T12:14:59Z",
+      "hunk": "@@ -341,6 +341,30 @@\n   extractors from `opentelemetry-instrumentation-api-incubator`.\n   `MessagingAttributesGetter` no longer requires or exposes `getMessageBodySize()` or\n   `getMessageEnvelopeSize()`.\n+- The experimental Kafka broker JMX metrics now start with the JMX domain of their MBean, use",
+      "id": "PRRT_kwDODJKVX86sw2oY",
+      "opened": "2026-10-15T12:14:59Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-21T07:48:09Z",
+          "body": "Fixed with 4fc1e63, I've moved it to \"breaking changes\" as it matches what was done previously (hadoop, activemq, ...) ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4334285219"
+        }
+      ],
+      "reviewed": "4e169bf6b017c6cee7b1a945bf88d8b02775c77f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4282816129"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Nonblocking: “Update dashboards and alerts that use the old names” restates the consequence of the rename list. `CONTRIBUTING.md:15–18` asks changelog entries to omit obvious migration instructions. Remove that sentence and retain the mappings.",
+      "created": "2026-10-21T18:13:38Z",
+      "hunk": "@@ -292,6 +292,30 @@\n   `otel.instrumentation.elasticsearch.query-sanitization.enabled` or\n   `otel.instrumentation.opensearch.query-sanitization.enabled`, which override\n   `otel.instrumentation.common.db.query-sanitization.enabled`.\n+- The experimental Kafka broker JMX metrics now start with the JMX domain of their MBean, use\n+  singular count units (for example `{message}` instead of `{messages}`), and report durations in\n+  seconds. Update dashboards and alerts that use the old names:",
+      "id": "PRRT_kwDODJKVX86u5KXe",
+      "opened": "2026-10-21T18:13:39Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "e4e46a6523fea69b04cee7a8b1a8fe31a2576149",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4340319623"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "A few suggestions:\n\n| Name in PR | Proposed rename |\n|---|---|\n| `kafka.server.message.count` | `kafka.server.messages` |\n| `kafka.server.request.count` | `kafka.server.requests` |\n| `kafka.server.request.failed` | `kafka.server.failed_requests` |\n| `kafka.server.isr.operation.count` | `kafka.server.isr.operations` |\n| `kafka.network.request.count` | `kafka.network.requests` |\n| `kafka.controller.leader_election.count` | `kafka.controller.leader_elections` |\n| `kafka.controller.leader_election.unclean.count` | `kafka.controller.unclean_leader_elections` |\n| `kafka.log.flush.count` | `kafka.log.flushes` |\n| `kafka.topic` attribute | `kafka.topic.name` attribute |\n| `kafka.isr.operation` attribute | `kafka.server.isr.operation` attribute |",
+      "created": "2026-10-22T01:05:42Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86vArRR",
+      "opened": "2026-10-22T01:05:42Z",
+      "path": "instrumentation/jmx-metrics/model/kafka-broker.yaml",
+      "replies": [
+        {
+          "at": "2026-10-22T15:33:34Z",
+          "body": "Thanks for the suggestions!\r\n\r\nDoes those suggestions relate to an existing semconv recommendation regarding metric names ? For example, I don't recall seeing the pattern of \"using plural noun\" elsewhere, at least in the jmx metrics. I now we have something explicit about this in the choice of nouns as unit.\r\n\r\nI think doing this would introduce something that is inconsistent with the current [tomcat](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/jmx-metrics/library/tomcat.md) or [activemq](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/jmx-metrics/library/activemq.md) metrics for example.\r\n\r\nI have to admit that we have a lot of `.count` suffixes, this comes from the exposed MBeans (which is relying on yammer metrics for kafka), and doing so allows to easily extend if needed.\r\n\r\nFor example, with `kafka.log:type=LogFlushStats,name=LogFlushRateAndTimeMs` MBean:\r\n- we capture `Count` attribute as `kafka.log.flush.count` to get the number of flushes\r\n- the `Mean`, `50th` or `99th` attributes is also exposed and provides respectively the average, so we could potentially use `kafka.log.flush.duration.{average,p50,p99}`\r\n- if we use `kafka.log.flushes` for the flush count, then we could not use `kafka.log.flushes.duration.*` without having the count metric be a prefix of the duration metrics.\r\n\r\nThe otel weaver have [a rule](https://github.com/open-telemetry/weaver/blob/main/test_data/attribute_name_collisions.rego) about avoiding namespace collisions, but there is nothing about metric names. I don't recall exactly the context in which I added this recommendation as part of the [JMX metrics recommendations](https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/main/instrumentation/jmx-metrics#jmx-metrics-definitions-recommendations), so it is definitely possible that I inferred this recommendation from what we have with metric attributes (but at least it would be consistent).\r\n\r\nFor suggested attributes renames:\r\n\r\n- `kafka.topic` --> `kafka.topic.name` : this is fine, I'll change it.\r\n- `kafka.isr.operation` --> `kafka.server.isr.operation` seems a bit redundant as isr is only used in the `kafka.server` namespace, I'll leave it as-is for now.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4350319274"
+        },
+        {
+          "at": "2026-10-22T15:36:43Z",
+          "body": "found the following semconv issues/PRs that relate to avoiding prefixes conflicts for metric names here: \r\n- https://github.com/open-telemetry/semantic-conventions/issues/2419\r\n- https://github.com/open-telemetry/semantic-conventions/pull/2492",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4350353041"
+        },
+        {
+          "at": "2026-10-22T15:52:09Z",
+          "body": "for pluralization, check out https://github.com/open-telemetry/semantic-conventions/blob/main/docs/general/naming.md#pluralization\r\n\r\nthere's nothing conflicting about:\r\n\r\n```\r\nkafka.log.flushes\r\nkafka.log.flush.duration.p50\r\nkafka.log.flush.duration.p99\r\n```\r\n\r\n`kafka.topic.name` follows object/property naming guidance in https://github.com/open-telemetry/semantic-conventions/blob/main/docs/general/naming.md#general-naming-considerations\r\n\r\nfor adding `server` to `kafka.isr.operation`, see https://github.com/open-telemetry/semantic-conventions/blob/main/docs/general/naming.md#signal-specific-attributes",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4350514464"
+        }
+      ],
+      "reviewed": "e4e46a6523fea69b04cee7a8b1a8fe31a2576149",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4343553130"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Include zero-valued per-topic failure series**\n\nWhen `kafkaBrokerZookeeper()` runs against Kafka 2.8.1, creating a per-topic `BrokerTopicMetrics` instance registers both failure-rate MBeans even when their `Count` is zero, and the JMX callback records those zero observations. Consequently `kafka.server.failed_requests` contains fetch/produce points for every created topic, not only produce/`my-compacted-topic`; because `hasDataPointsWithAttributes` rejects every point not covered by a supplied group, this assertion (and the analogous new per-topic assertions above) cannot pass. Include the zero-valued topic/type combinations or use matchers that accept all emitted topics.\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-10-23T19:06:52Z",
+      "hunk": "@@ -65,197 +80,252 @@ private void doTest(String image, String zookeeperImage) {\n     verifyMetrics(createMetricsVerifier(zookeeperImage != null));\n   }\n \n+  private static List<String> reportedMetrics(boolean useZookeeper) {\n+    List<String> metrics =\n+        new ArrayList<>(\n+            asList(\n+                \"kafka.server.messages\",\n+                \"kafka.server.requests\",\n+                \"kafka.server.failed_requests\",\n+                \"kafka.server.network.io\",\n+                \"kafka.server.purgatory.size\",\n+                \"kafka.network.requests\",\n+                \"kafka.network.request.duration.p50\",\n+                \"kafka.network.request.duration.p99\",\n+                \"kafka.network.request.queue\",\n+                \"kafka.server.partition.count\",\n+                \"kafka.controller.partition.offline\",\n+                \"kafka.server.partition.under_replicated\",\n+                \"kafka.server.isr.operations\",\n+                \"kafka.server.lag.max\",\n+                \"kafka.controller.active.count\",\n+                \"kafka.log.flushes\",\n+                \"kafka.log.flush.duration.p50\",\n+                \"kafka.log.flush.duration.p99\"));\n+    if (useZookeeper) {\n+      metrics.addAll(zookeeperOnlyMetrics());\n+    }\n+    return metrics;\n+  }\n+\n+  private static List<String> optionalMetrics(boolean useZookeeper) {\n+    return useZookeeper ? emptyList() : zookeeperOnlyMetrics();\n+  }\n+\n+  // those metrics are only reported when using zookeeper\n+  private static List<String> zookeeperOnlyMetrics() {\n+    return asList(\"kafka.controller.leader_elections\", \"kafka.controller.unclean_leader_elections\");\n+  }\n+\n   private static MetricsVerifier createMetricsVerifier(boolean useZookeeper) {\n \n-    AttributeMatcherGroup fetchType = attributeGroup(attribute(\"type\", \"fetch\"));\n-    AttributeMatcherGroup produceType = attributeGroup(attribute(\"type\", \"produce\"));\n+    // topic used to send and consume the sample message\n+    AttributeMatcher sampleTopic = attribute(\"kafka.topic.name\", \"my-topic\");\n+    // internal topic written by the broker when the sample consumer joins a consumer group\n+    AttributeMatcher offsetsTopic = attribute(\"kafka.topic.name\", \"__consumer_offsets\");\n+    // compacted topic used to trigger a failed produce request\n+    AttributeMatcher compactedTopic = attribute(\"kafka.topic.name\", \"my-compacted-topic\");\n \n-    AttributeMatcherGroup requestTypeProduce = attributeGroup(attribute(\"type\", \"Produce\"));\n+    AttributeMatcherGroup requestTypeProduce =\n+        attributeGroup(attribute(\"kafka.request.type\", \"produce\"));\n     AttributeMatcherGroup requestTypeFetchConsumer =\n-        attributeGroup(attribute(\"type\", \"FetchConsumer\"));\n+        attributeGroup(attribute(\"kafka.request.type\", \"fetchconsumer\"));\n     AttributeMatcherGroup requestTypeFetchFollower =\n-        attributeGroup(attribute(\"type\", \"FetchFollower\"));\n+        attributeGroup(attribute(\"kafka.request.type\", \"fetchfollower\"));\n \n     MetricsVerifier verifier =\n         MetricsVerifier.create()\n             .add(\n-                \"kafka.message.count\",\n+                \"kafka.server.messages\",\n                 metric ->\n                     metric\n                         .isCounter()\n-                        .hasUnit(\"{messages}\")\n+                        .hasUnit(\"{message}\")\n                         .hasDescription(\"The number of messages received by the broker\")\n-                        .hasDataPointsWithoutAttributes())\n+                        .hasDataPointsWithAttributes(\n+                            attributeGroup(sampleTopic), attributeGroup(offsetsTopic)))\n             .add(\n-                \"kafka.request.count\",\n+                \"kafka.server.requests\",\n                 metric ->\n                     metric\n                         .isCounter()\n-                        .hasUnit(\"{requests}\")\n+                        .hasUnit(\"{request}\")\n                         .hasDescription(\"The number of requests received by the broker\")\n-                        .hasDataPointsWithAttributes(fetchType, produceType))\n+                        .hasDataPointsWithAttributes(\n+                            attributeGroup(attribute(\"kafka.request.type\", \"fetch\"), sampleTopic),\n+                            attributeGroup(attribute(\"kafka.request.type\", \"produce\"), sampleTopic),\n+                            attributeGroup(\n+                                attribute(\"kafka.request.type\", \"produce\"), offsetsTopic),\n+                            attributeGroup(\n+                                attribute(\"kafka.request.type\", \"produce\"), compactedTopic)))\n             .add(\n-                \"kafka.request.failed\",\n+                \"kafka.server.failed_requests\",\n                 metric ->\n                     metric\n                         .isCounter()\n-                        .hasUnit(\"{requests}\")\n+                        .hasUnit(\"{request}\")\n                         .hasDescription(\n                             \"The number of requests to the broker resulting in a failure\")\n-                        .hasDataPointsWithAttributes(fetchType, produceType))\n+                        // only failed produce requests can be triggered, failed fetch requests are\n+                        // only reported for unexpected errors\n+                        .hasDataPointsWithAttributes(\n+                            attributeGroup(\n+                                attribute(\"kafka.request.type\", \"produce\"), compactedTopic)))",
+      "id": "PRRT_kwDODJKVX86vvTmE",
+      "opened": "2026-10-23T19:06:51Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/containers/KafkaBrokerTest.java",
+      "replies": [],
+      "reviewed": "340d878855d3e78c6f972f13e0c3b0289b2c4e59",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20570#discussion_r4363278847"
+    }
+  ]
+}

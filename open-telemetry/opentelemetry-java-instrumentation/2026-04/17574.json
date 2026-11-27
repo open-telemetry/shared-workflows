@@ -1,0 +1,25 @@
+{
+  "head": "3418fbfea6d80906537099426124315df4eb4d0c",
+  "merge": "96c4ec5e5b0bff7c568f531d0c75d1ca8c5d054d",
+  "merged": "2026-04-05T22:34:59Z",
+  "missing_roots": 0,
+  "number": 17574,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // added in 1.27\n    return hasClassesNamed(\"application.io.opentelemetry.api.logs.LoggerBuilder\");\n```",
+      "created": "2026-04-05T21:57:24Z",
+      "hunk": "@@ -29,7 +29,9 @@ public List<TypeInstrumentation> typeInstrumentations() {\n \n   @Override\n   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n-    return hasClassesNamed(\"application.io.opentelemetry.api.logs.LoggerBuilder\");\n+    return hasClassesNamed(\n+        // added in 1.27\n+        \"application.io.opentelemetry.api.logs.LoggerBuilder\");",
+      "id": "PRRT_kwDODJKVX8547okP",
+      "opened": "2026-04-05T21:57:24Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.27/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_27/OpenTelemetryApiInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "00d54d2b508507d58ed0f331e391f3265a0417e3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17574#discussion_r3037406161"
+    }
+  ]
+}

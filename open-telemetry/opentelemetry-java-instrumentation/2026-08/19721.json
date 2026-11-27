@@ -1,0 +1,127 @@
+{
+  "head": "042d4c12674b10d97b2fb4eac7e32b9fe9a0aafc",
+  "merge": "e659b381a0cc636fe815367b7b90801b49af9964",
+  "merged": "2026-08-31T14:57:37Z",
+  "missing_roots": 0,
+  "number": 19721,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This description is unconditional, but suppression is installed by the Apache DBCP javaagent advice. If that instrumentation is disabled while Commons Pool instrumentation is enabled, DBCP's `GenericObjectPool` is still reported. Please qualify the behavior so users do not expect exclusion regardless of configuration.",
+      "created": "2026-08-20T06:56:10Z",
+      "hunk": "@@ -1,7 +1,8 @@\n display_name: Apache Commons Pool\n description: >\n   This instrumentation enables object pool metrics for Apache Commons Pool\n-  GenericObjectPool and GenericKeyedObjectPool instances.\n+  GenericObjectPool and GenericKeyedObjectPool instances. Pools managed by Apache DBCP are excluded\n+  because the Apache DBCP instrumentation exports dedicated database connection pool metrics.",
+      "id": "PRRT_kwDODJKVX86at0Gl",
+      "opened": "2026-08-20T06:56:10Z",
+      "path": "instrumentation/apache-commons-pool-2.0/metadata.yaml",
+      "replies": [
+        {
+          "at": "2026-08-20T07:17:54Z",
+          "body": "Updated the metadata to clarify that Apache DBCP-managed pools are excluded only when the Apache DBCP instrumentation is enabled.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19721#discussion_r3819412139"
+        }
+      ],
+      "reviewed": "fd00e1f1fa28d3058d2a58a20e09d0a4cbd3b253",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19721#discussion_r3819289471"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Suppression is scoped to `BasicDataSource.createConnectionPool`, so only that connection pool is excluded. DBCP's per-connection prepared-statement pools are created later, in `PoolableConnectionFactory.makeObject`, and are still reported.\n\n```suggestion\n  enabled, the connection pool that Apache DBCP creates for a BasicDataSource is excluded because\n  that instrumentation exports dedicated database connection pool metrics.\n```",
+      "created": "2026-08-20T14:42:46Z",
+      "hunk": "@@ -1,7 +1,9 @@\n display_name: Apache Commons Pool\n description: >\n   This instrumentation enables object pool metrics for Apache Commons Pool\n-  GenericObjectPool and GenericKeyedObjectPool instances.\n+  GenericObjectPool and GenericKeyedObjectPool instances. When the Apache DBCP instrumentation is\n+  enabled, Apache DBCP-managed pools are excluded because that instrumentation exports dedicated\n+  database connection pool metrics.",
+      "id": "PRRT_kwDODJKVX86a2Tlz",
+      "opened": "2026-08-20T14:45:10Z",
+      "path": "instrumentation/apache-commons-pool-2.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "1c2ab0e76fdb858c0231912e9152cfecf069b757",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19721#discussion_r3822578823"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This enables the disabled-by-default Commons Pool instrumentation for every test task, so no task covers DBCP in its default configuration anymore, and `collectMetadata` records these runs as `default` even though a non-default flag is set.\n\nOther cross-instrumentation tests keep this in a dedicated filtered task with a matching `metadataConfig`, and exclude that test from the default and semconv tasks (see `testWithRabbitInstrumentation` in `spring-integration-4.1` and `testConnectionSpan` in `reactor-netty-0.9`).",
+      "created": "2026-08-21T19:57:24Z",
+      "hunk": "@@ -17,14 +17,17 @@ dependencies {\n   implementation(project(\":instrumentation:apache-dbcp-2.0:library\"))\n   implementation(project(\":instrumentation:jdbc:javaagent-common\"))\n \n+  bootstrap(project(\":instrumentation:apache-commons-pool-2.0:bootstrap\"))\n   bootstrap(project(\":instrumentation:jdbc:bootstrap\"))\n \n   testImplementation(project(\":instrumentation:apache-dbcp-2.0:testing\"))\n+  testInstrumentation(project(\":instrumentation:apache-commons-pool-2.0:javaagent\"))\n }\n \n tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+    jvmArgs(\"-Dotel.instrumentation.apache-commons-pool.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86bRqDA",
+      "opened": "2026-08-21T20:00:28Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "1c2ab0e76fdb858c0231912e9152cfecf069b757",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19721#discussion_r3833269875"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "since the test passes even without the commons pool instrumentation could leave it unexcluded",
+      "created": "2026-08-26T13:11:09Z",
+      "hunk": "@@ -17,25 +17,54 @@ dependencies {\n   implementation(project(\":instrumentation:apache-dbcp-2.0:library\"))\n   implementation(project(\":instrumentation:jdbc:javaagent-common\"))\n \n+  bootstrap(project(\":instrumentation:apache-commons-pool-2.0:bootstrap\"))\n   bootstrap(project(\":instrumentation:jdbc:bootstrap\"))\n \n   testImplementation(project(\":instrumentation:apache-dbcp-2.0:testing\"))\n+  testInstrumentation(project(\":instrumentation:apache-commons-pool-2.0:javaagent\"))\n }\n \n tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n+  val testWithCommonsPoolInstrumentation =\n+    register<Test>(\"testWithCommonsPoolInstrumentation\") {\n+      testClassesDirs = sourceSets.test.get().output.classesDirs\n+      classpath = sourceSets.test.get().runtimeClasspath\n+      filter {\n+        includeTestsMatching(\n+          \"ApacheDbcpInstrumentationTest.shouldNotReportCommonsPoolMetricsForInternalPool\",\n+        )\n+      }\n+\n+      jvmArgs(\"-Dotel.instrumentation.apache-commons-pool.enabled=true\")\n+      systemProperty(\"metadataConfig\", \"otel.instrumentation.apache-commons-pool.enabled=true\")\n+    }\n+\n+  test {\n+    filter {\n+      excludeTestsMatching(\n+        \"ApacheDbcpInstrumentationTest.shouldNotReportCommonsPoolMetricsForInternalPool\",\n+      )\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86ceE0X",
+      "opened": "2026-08-26T13:11:09Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "dbc9ddcf927820564a617d84ed2bae3d0ce71b61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19721#discussion_r3863045930"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could just call it `shouldNotReportCommonsPoolMetrics`",
+      "created": "2026-08-26T13:12:02Z",
+      "hunk": "@@ -82,6 +86,22 @@ void shouldUseFixedDataSourceNameWhenServerAddressAndNamespaceAreMissing() throw\n     assertDataSourceName(dataSource, \"apache-dbcp2\");\n   }\n \n+  @Test\n+  void shouldNotReportCommonsPoolMetricsForInternalPool() throws Exception {",
+      "id": "PRRT_kwDODJKVX86ceGKh",
+      "opened": "2026-08-26T13:12:02Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/apachedbcp/v2_0/ApacheDbcpInstrumentationTest.java",
+      "replies": [],
+      "reviewed": "dbc9ddcf927820564a617d84ed2bae3d0ce71b61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19721#discussion_r3863054105"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@jaydeluca should metadata be captured for this? I guess it won't be used for metadata when it isn't included in `.github/scripts/instrumentations.sh` anyway?",
+      "created": "2026-08-26T13:16:51Z",
+      "hunk": "@@ -17,25 +17,54 @@ dependencies {\n   implementation(project(\":instrumentation:apache-dbcp-2.0:library\"))\n   implementation(project(\":instrumentation:jdbc:javaagent-common\"))\n \n+  bootstrap(project(\":instrumentation:apache-commons-pool-2.0:bootstrap\"))\n   bootstrap(project(\":instrumentation:jdbc:bootstrap\"))\n \n   testImplementation(project(\":instrumentation:apache-dbcp-2.0:testing\"))\n+  testInstrumentation(project(\":instrumentation:apache-commons-pool-2.0:javaagent\"))\n }\n \n tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n   }\n \n+  val testWithCommonsPoolInstrumentation =\n+    register<Test>(\"testWithCommonsPoolInstrumentation\") {\n+      testClassesDirs = sourceSets.test.get().output.classesDirs\n+      classpath = sourceSets.test.get().runtimeClasspath\n+      filter {\n+        includeTestsMatching(\n+          \"ApacheDbcpInstrumentationTest.shouldNotReportCommonsPoolMetricsForInternalPool\",\n+        )\n+      }\n+\n+      jvmArgs(\"-Dotel.instrumentation.apache-commons-pool.enabled=true\")\n+      systemProperty(\"metadataConfig\", \"otel.instrumentation.apache-commons-pool.enabled=true\")",
+      "id": "PRRT_kwDODJKVX86ceMwM",
+      "opened": "2026-08-26T13:16:51Z",
+      "path": "instrumentation/apache-dbcp-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-08-26T13:41:49Z",
+          "body": "it probably shouldnt be captured because i dont think this would add anything useful, but you are correct that unless it's added to the instrumentations.sh list, this won't be captured",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19721#discussion_r3863315397"
+        }
+      ],
+      "reviewed": "dbc9ddcf927820564a617d84ed2bae3d0ce71b61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19721#discussion_r3863093962"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps should use `object pool` instead of `connection pool`? Feels like the description could be improved.",
+      "created": "2026-08-26T13:22:26Z",
+      "hunk": "@@ -1,7 +1,9 @@\n display_name: Apache Commons Pool\n description: >\n   This instrumentation enables object pool metrics for Apache Commons Pool\n-  GenericObjectPool and GenericKeyedObjectPool instances.\n+  GenericObjectPool and GenericKeyedObjectPool instances. When the Apache DBCP instrumentation is\n+  enabled, the connection pool that Apache DBCP creates for a BasicDataSource is excluded because",
+      "id": "PRRT_kwDODJKVX86ceUfH",
+      "opened": "2026-08-26T13:22:26Z",
+      "path": "instrumentation/apache-commons-pool-2.0/metadata.yaml",
+      "replies": [],
+      "reviewed": "dbc9ddcf927820564a617d84ed2bae3d0ce71b61",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19721#discussion_r3863140854"
+    }
+  ]
+}

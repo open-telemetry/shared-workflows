@@ -1,0 +1,70 @@
+{
+  "head": "ecf45588ef4863757323421d623aa7c589ad053f",
+  "merge": "d4d5a88a4b7d2e0c5ff61c97c1e3284f91b1a315",
+  "merged": "2026-07-07T14:32:47Z",
+  "missing_roots": 0,
+  "number": 199,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "PR title/description says versions are being pinned, but this change only adds a lower bound (\">=\") and still allows newer versions. Either pin exact/compatible versions in this file (and the others in the PR) or adjust the PR metadata to reflect that this is a minimum-version security bump rather than pinning.",
+      "created": "2026-07-07T06:04:53Z",
+      "hunk": "@@ -2,6 +2,6 @@\n opentelemetry-api\n opentelemetry-semantic-conventions\n opentelemetry-sdk\n-opentelemetry-instrumentation\n+opentelemetry-instrumentation>=0.41b0",
+      "id": "PRRT_kwDOSbspP86OzlaS",
+      "opened": "2026-07-07T06:04:54Z",
+      "path": "rtd-requirements.txt",
+      "replies": [],
+      "reviewed": "ecf45588ef4863757323421d623aa7c589ad053f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/199#discussion_r3533990974"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example requirements file switches from a compatible range (\"~=\") to an unbounded lower bound. Without an upper bound, a future python-dotenv 2.x release could break the examples. Consider keeping the security floor while constraining to 1.x.",
+      "created": "2026-07-07T06:04:53Z",
+      "hunk": "@@ -1,5 +1,5 @@\n openai-agents~=0.17.3\n-python-dotenv~=1.0\n+python-dotenv>=1.2.2",
+      "id": "PRRT_kwDOSbspP86OzlbI",
+      "opened": "2026-07-07T06:04:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/zero-code/requirements.txt",
+      "replies": [],
+      "reviewed": "ecf45588ef4863757323421d623aa7c589ad053f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/199#discussion_r3533991035"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The header says these are \"pinned requirements\" for unit tests, but this entry uses a floating lower bound (\">=\"). To keep CI deterministic and match the file's stated intent, pin this dependency to an exact version.",
+      "created": "2026-07-07T06:04:54Z",
+      "hunk": "@@ -15,7 +15,7 @@\n # Single pinned requirements for langchain unit tests.\n # TODO: split into oldest/latest once the version matrix is defined.\n \n-langchain-openai\n+langchain-openai>=1.1.14",
+      "id": "PRRT_kwDOSbspP86Ozlb-",
+      "opened": "2026-07-07T06:04:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/requirements.txt",
+      "replies": [],
+      "reviewed": "ecf45588ef4863757323421d623aa7c589ad053f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/199#discussion_r3533991099"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This example requirements file switches from a compatible range (\"~=\") to an unbounded lower bound. Without an upper bound, a future python-dotenv 2.x release could break the examples. Consider keeping the security floor while constraining to 1.x.",
+      "created": "2026-07-07T06:04:54Z",
+      "hunk": "@@ -1,5 +1,5 @@\n openai-agents~=0.17.3\n-python-dotenv~=1.0\n+python-dotenv>=1.2.2",
+      "id": "PRRT_kwDOSbspP86Ozlbq",
+      "opened": "2026-07-07T06:04:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/examples/manual/requirements.txt",
+      "replies": [],
+      "reviewed": "ecf45588ef4863757323421d623aa7c589ad053f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/199#discussion_r3533991074"
+    }
+  ]
+}

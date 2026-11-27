@@ -1,0 +1,81 @@
+{
+  "head": "46fb64f6f6b0efc5dc48d95abe344e0047aa64bf",
+  "merge": "1fb89e696a1a9541cf7c44bebec4e27b6c47a17e",
+  "merged": "2026-03-03T13:05:46Z",
+  "missing_roots": 0,
+  "number": 16212,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "On the other hand \"mean\" sounds similar to \"min\", so maybe \"average\" is not so bad...",
+      "created": "2026-02-18T08:09:28Z",
+      "hunk": "@@ -480,3 +480,30 @@ This version of JMX Metric Insight has a number of limitations.\n - MBean attributes with the same name but belonging to different MBeans described by a single metric rule must have the same type (long or double).\n - All MBeans which are described by the specified ObjectNames in a single rule must be registered with the same MBeanServer instance.\n - While MBeanServers and MBeans can be created dynamically by the application, it is assumed that they will live indefinitely. Their disappearance may not be recognized properly, and may lead to some memory leaks.\n+\n+## JMX metrics definitions recommendations\n+\n+The goals of pre-defined metrics-definitions are:\n+\n+- to provide a set of commonly used metrics for some known target systems, hence allowing users to capture essential metrics without configuration.\n+- to provide a set of consistent and well-known metrics for some known target systems.\n+- to serve as examples for users to extend those metric definitions.\n+\n+The pre-defined metrics definitions are not meant to be exhaustive and thus should focus on a limited set of essential metrics for each target system.\n+\n+To contribute to pre-defined metrics definitions or extend them through custom configuration, we recommend following the following guidelines:\n+\n+- align and reuse [semantic conventions metrics recommendations and definitions](https://opentelemetry.io/docs/specs/semconv/general/metrics/) when possible.\n+- namespace metric names and metric attributes with the target system as prefix.\n+- metrics measuring time should prefer to use `duration` over `time`, also the metric value should use seconds as unit, using unit conversion if needed.\n+- metric name should not be the prefix of another metric, for example `request.duration` and `request.duration.last` should be avoided.\n+- when a metric is exposed in JMX as \"current value\", only capture the \"current value\" and ignore any pre-aggregation (for example mean, min, max, ...) as it is better handled by the backend, for example\n+  - `threadpool.thread.count`\n+- when a metric is not exposed as \"current value\" and only exposed in JMX as aggregate values, capture those aggregate values with `.{aggregation}` suffix, examples:\n+  - `request.duration.mean` (prefer \"mean\" over \"average\" for consistency)",
+      "id": "PRRT_kwDODJKVX85vOu1s",
+      "opened": "2026-02-18T13:54:12Z",
+      "path": "instrumentation/jmx-metrics/README.md",
+      "replies": [
+        {
+          "at": "2026-02-18T14:15:14Z",
+          "body": "We already have most of jmx metrics use `mean` so it's simpler to leave it as-is rather than changing it. We know that there is a small inconsistency in activemq, we can change that later if needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16212#discussion_r2822583596"
+        },
+        {
+          "at": "2026-02-19T17:36:28Z",
+          "body": "I asked copilot to research the semconv repo:\r\n\r\n> review usage of \"average\" vs \"mean\" in metric names\r\n>\r\n> and any discussions that happened about those choices on the related PRs where they were added\r\n\r\nand it gave me:\r\n\r\n## PR Discussions\r\n\r\n### [PR #991](https://github.com/open-telemetry/semantic-conventions/pull/991) (Node.js metrics)\r\n\r\nNo discussion about \"mean\" vs \"average\" naming. The discussion focused on whether the namespace should be `nodejs` vs `js` vs `jsruntime`, and why `gauge` was used instead of `histogram`. The use of `.mean` was accepted without comment — it directly matches the Node.js API surface (`histogram.mean`).\r\n\r\n### [PR #2283](https://github.com/open-telemetry/semantic-conventions/pull/2283) (K8s HPA CPU metrics)\r\n\r\nNo discussion about \"average\" naming. The review focused on entity associations, attribute requirements, and conflicts. The use of `average_value` and `average_utilization` was accepted without comment — it directly mirrors the Kubernetes API field names.\r\n\r\n-------\r\n\r\nmy opinion:\r\n\r\nIf we want to pick one, I'd suggest \"average\". I think it's more common, and the k8s naming tends to be pretty well thought out from what I've seen.\r\n\r\nIt's also reasonable to vary the choice based on the term used by the underlying jmx metric (similar to what node.js did).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16212#discussion_r2829211890"
+        },
+        {
+          "at": "2026-02-23T09:01:04Z",
+          "body": "The question here is only about the naming of the aggregated metric and choosing between\r\n- consistency: suggest to always use \"mean\" or \"average\", then it could provide some uniformity for the consumers of the metric, for example if tomcat exposes an average response time and another application server does the same then it would be nice of both were following a common .mean or .average naming convention.\r\n- stay close the the implementation: suggest to use either \"mean\" or \"average\" and picking what is closest to the underlying implementation (in the case of JMX, it would fit the MBean attribute name and/or description), the nice think about this is that it could be less challenging for consumers to understand the link to implementation.\r\n\r\nWhile I tend to prefer consistency, I think it could be fine to preserve the naming of the underlying implementation. Choosing this option also have the benefit to work with existing choices we've made so far:\r\n- for `activemq`: `message.enqueue.average_duration` metric from `AverageEnqueueTime` MBean attribute (*)\r\n- for `camel`: `exchange.processing.duration.mean` metric from `MeanProcessingTime` MBean attribute\r\n\r\nUnless there is strong arguments for not doing this, I will update this PR to reflect that when we must choose between \"mean\" or \"average\" then we choose what is closest to the underlying implementation (in case of JMX, the MBean attribute name). As summarized above and in the semconv slack discussion this is what has been picked for node in the past: https://cloud-native.slack.com/archives/C041APFBYQP/p1771601931619829\r\n\r\n(*): we could still want to rename it to `message.enqueue.duration.average` though, but this is not the aspect we are discussing here.\r\n\r\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16212#discussion_r2839719106"
+        },
+        {
+          "at": "2026-02-27T10:16:58Z",
+          "body": "@SylvainJuge sounds reasonable. I think this PR would be ready for merging after these changes are made.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16212#discussion_r2863587383"
+        },
+        {
+          "at": "2026-03-02T10:28:33Z",
+          "body": "I've settled to recommend using whatever is closer to the underlying implementation, the lack of \"consistency\" is unlikely to be an issue as those pre-aggregated metrics are also very unlikely to be shared across different products.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16212#discussion_r2871631150"
+        }
+      ],
+      "reviewed": "b22abf397780e2b6e320b0fbbfda4f3ad2f4f4f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16212#discussion_r2820902518"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "I'd say \"by a backend\" rather than \"by the backend\", but I may be wrong :-)",
+      "created": "2026-02-18T08:11:59Z",
+      "hunk": "@@ -480,3 +480,30 @@ This version of JMX Metric Insight has a number of limitations.\n - MBean attributes with the same name but belonging to different MBeans described by a single metric rule must have the same type (long or double).\n - All MBeans which are described by the specified ObjectNames in a single rule must be registered with the same MBeanServer instance.\n - While MBeanServers and MBeans can be created dynamically by the application, it is assumed that they will live indefinitely. Their disappearance may not be recognized properly, and may lead to some memory leaks.\n+\n+## JMX metrics definitions recommendations\n+\n+The goals of pre-defined metrics-definitions are:\n+\n+- to provide a set of commonly used metrics for some known target systems, hence allowing users to capture essential metrics without configuration.\n+- to provide a set of consistent and well-known metrics for some known target systems.\n+- to serve as examples for users to extend those metric definitions.\n+\n+The pre-defined metrics definitions are not meant to be exhaustive and thus should focus on a limited set of essential metrics for each target system.\n+\n+To contribute to pre-defined metrics definitions or extend them through custom configuration, we recommend following the following guidelines:\n+\n+- align and reuse [semantic conventions metrics recommendations and definitions](https://opentelemetry.io/docs/specs/semconv/general/metrics/) when possible.\n+- namespace metric names and metric attributes with the target system as prefix.\n+- metrics measuring time should prefer to use `duration` over `time`, also the metric value should use seconds as unit, using unit conversion if needed.\n+- metric name should not be the prefix of another metric, for example `request.duration` and `request.duration.last` should be avoided.\n+- when a metric is exposed in JMX as \"current value\", only capture the \"current value\" and ignore any pre-aggregation (for example mean, min, max, ...) as it is better handled by the backend, for example",
+      "id": "PRRT_kwDODJKVX85vOwg6",
+      "opened": "2026-02-18T13:54:12Z",
+      "path": "instrumentation/jmx-metrics/README.md",
+      "replies": [],
+      "reviewed": "b22abf397780e2b6e320b0fbbfda4f3ad2f4f4f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16212#discussion_r2820911426"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "robsunday"
+      },
+      "body": "If it matters - in my PR I used naming: `threadpool.thread.limit.upper` and `threadpool.thread.limit.lower`",
+      "created": "2026-02-18T13:53:51Z",
+      "hunk": "@@ -480,3 +480,35 @@ This version of JMX Metric Insight has a number of limitations.\n - MBean attributes with the same name but belonging to different MBeans described by a single metric rule must have the same type (long or double).\n - All MBeans which are described by the specified ObjectNames in a single rule must be registered with the same MBeanServer instance.\n - While MBeanServers and MBeans can be created dynamically by the application, it is assumed that they will live indefinitely. Their disappearance may not be recognized properly, and may lead to some memory leaks.\n+\n+## JMX metrics definitions recommendations\n+\n+The goals of pre-defined metrics-definitions are:\n+\n+- to provide a set of commonly used metrics for some known target systems, hence allowing users to capture essential metrics without configuration.\n+- to provide a set of consistent and well-known metrics for some known target systems.\n+- to serve as examples for users to extend those metric definitions.\n+\n+The pre-defined metrics definitions are not meant to be exhaustive and thus should focus on a limited set of essential metrics for each target system.\n+\n+To contribute to pre-defined metrics definitions or extend them through custom configuration, we recommend following the following guidelines:\n+\n+- align and reuse [semantic conventions metrics recommendations and definitions](https://opentelemetry.io/docs/specs/semconv/general/metrics/) when possible.\n+- namespace metric names and metric attributes with the target system as prefix.\n+- metrics measuring time should prefer to use `duration` over `time`, also the metric value should use seconds as unit, using unit conversion if needed.\n+- metric name should not be the prefix of another metric, for example `request.duration` and `request.duration.last` should be avoided.\n+- when a metric is exposed in JMX as \"current value\", only capture the \"current value\" and ignore any pre-aggregation (for example mean, min, max, ...) as it is better handled by the backend, for example\n+  - `threadpool.thread.count`\n+- when a metric is not exposed as \"current value\" and only exposed in JMX as aggregate values, capture those aggregate values with `.{aggregation}` suffix, examples:\n+  - `request.duration.mean` (prefer \"mean\" over \"average\" for consistency)\n+  - `request.duration.min`\n+  - `request.duration.max`\n+  - `request.duration.sum` (for the cumulative value, prefer \"sum\" over \"total\" for consistency)\n+  - `request.duration.last` (for the last request duration)\n+  - For those pre-aggregated metrics:\n+    - if pre-aggregation is `sum`, the metric type should be `counter` as metric can be aggregated\n+    - otherwise, the metric type should be `gauge` as the metric can't be aggregated automatically:\n+      - without knowledge of the metric pre-aggregation (encoded in name), for example: min and max.\n+      - it will likely produce meaningless results: mean of mean, or mean across multiple instances.\n+- when a metric represents an upper limit of a resource, use the `.limit` suffix, for example:\n+  - `threadpool.thread.limit` to represent the upper limit of `threadpool.thread.count`",
+      "id": "PRRT_kwDODJKVX85vTSg0",
+      "opened": "2026-02-18T13:54:12Z",
+      "path": "instrumentation/jmx-metrics/README.md",
+      "replies": [],
+      "reviewed": "bc4227054206c3179652eb1577566e53b4aaeee5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16212#discussion_r2822475566"
+    }
+  ]
+}

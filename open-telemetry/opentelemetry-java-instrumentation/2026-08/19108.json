@@ -1,0 +1,136 @@
+{
+  "head": "b2d0a90d1c33bcba8bc836c628c196a8476388f9",
+  "merge": "7681e5f9ca43e8d3517be547c785b27d8a3bdcfa",
+  "merged": "2026-08-04T02:28:38Z",
+  "missing_roots": 0,
+  "number": 19108,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think that we usually just omit name components that are not present instead of using placeholders like `unknown`.\nNoticed that spec https://opentelemetry.io/docs/specs/semconv/registry/attributes/db/#db-client-connection-pool-name provides some guidance on how to create a name when it is not available. Idk whether this is a viable strategy since these properties might not be available either.",
+      "created": "2026-07-01T13:23:44Z",
+      "hunk": "@@ -40,10 +46,12 @@ public static class AddDataSourceAdvice {\n \n     @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n     public static void onExit(\n-        @Advice.Argument(0) Object dataSource, @Advice.Return ObjectName objectName) {\n+        @Advice.Argument(0) Object dataSource,\n+        @Advice.Argument(1) @Nullable String name,\n+        @Advice.Return ObjectName objectName) {\n       DruidDataSourceMBean druidDataSource = (DruidDataSourceMBean) dataSource;\n       String dataSourceName =\n-          objectName.getKeyProperty(\"type\") + \"-\" + objectName.getKeyProperty(\"id\");\n+          objectName.getKeyProperty(\"type\") + \"-\" + (name == null ? \"unknown\" : name);",
+      "id": "PRRT_kwDODJKVX86NmQ8P",
+      "opened": "2026-07-01T13:23:43Z",
+      "path": "instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidDataSourceInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-07-02T03:25:47Z",
+          "body": "In typical business scenarios, when configuring a data source using DruidDataSource, the setName or setObjectName methods of DruidDataSource are not called by default. Similarly, in Spring projects, the name property is generally not configured via application.yml. The current implementation will definitely result in a high cardinality issue, and we can simply omit these fields as you mentioned, since neither the type nor the passed name attribute in objectName may be obtainable.\r\n\r\nI’m wondering if we should skip the unavailable attribute as long as either one of the two can be retrieved. If neither attribute can be obtained, we need a fallback strategy with a default value such as unknown, default, or something component-related like druid. \r\n\r\n@laurit @trask Could you two please review this and share any better suggestions?",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108#discussion_r3510264721"
+        }
+      ],
+      "reviewed": "df56163dfc5a3082bce2ba0c5223070dedfdff6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108#discussion_r3506256730"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "So the idea here is that when there are multiple data sources with the same name we'll append a suffix. Since we are not doing this for other connection pool instrumentations it is questionable whether we should be doing this here. If we decide to do this then we should apply the same strategy across the connection pool instrumentations.\ncc @trask any suggestions on how to handle this?",
+      "created": "2026-07-01T13:46:39Z",
+      "hunk": "@@ -12,54 +12,90 @@\n import io.opentelemetry.api.metrics.ObservableLongMeasurement;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbConnectionPoolMetrics;\n import java.util.Map;\n+import java.util.Set;\n import java.util.concurrent.ConcurrentHashMap;\n \n final class ConnectionPoolMetrics {\n \n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.alibaba-druid-1.0\";\n \n-  private static final Map<DruidDataSourceMBean, BatchCallback> dataSourceMetrics =\n+  private static final Map<DruidDataSourceMBean, DataSourceMetricsRegistration> dataSourceMetrics =\n       new ConcurrentHashMap<>();\n+  private static final Set<String> activeDataSourceNames = ConcurrentHashMap.newKeySet();\n \n   static void registerMetrics(\n       OpenTelemetry openTelemetry, DruidDataSourceMBean dataSource, String dataSourceName) {\n     dataSourceMetrics.computeIfAbsent(\n         dataSource,\n-        ds -> {\n-          DbConnectionPoolMetrics metrics =\n-              DbConnectionPoolMetrics.create(openTelemetry, INSTRUMENTATION_NAME, dataSourceName);\n-\n-          ObservableLongMeasurement connections = metrics.connections();\n-          ObservableLongMeasurement minIdleConnections = metrics.minIdleConnections();\n-          ObservableLongMeasurement maxIdleConnections = metrics.maxIdleConnections();\n-          ObservableLongMeasurement maxConnections = metrics.maxConnections();\n-          ObservableLongMeasurement pendingRequestsForConnection =\n-              metrics.pendingRequestsForConnection();\n-\n-          Attributes attributes = metrics.getAttributes();\n-          Attributes usedConnectionsAttributes = metrics.getUsedConnectionsAttributes();\n-          Attributes idleConnectionsAttributes = metrics.getIdleConnectionsAttributes();\n-\n-          return metrics.batchCallback(\n-              () -> {\n-                connections.record(ds.getActiveCount(), usedConnectionsAttributes);\n-                connections.record(ds.getPoolingCount(), idleConnectionsAttributes);\n-                pendingRequestsForConnection.record(ds.getWaitThreadCount(), attributes);\n-                minIdleConnections.record(ds.getMinIdle(), attributes);\n-                maxIdleConnections.record(ds.getMaxIdle(), attributes);\n-                maxConnections.record(ds.getMaxActive(), attributes);\n-              },\n-              connections,\n-              pendingRequestsForConnection,\n-              minIdleConnections,\n-              maxIdleConnections,\n-              maxConnections);\n+        unused -> {\n+          String rewrittenDataSourceName = reserveDataSourceName(dataSourceName);\n+          return new DataSourceMetricsRegistration(\n+              createCallback(openTelemetry, dataSource, rewrittenDataSourceName),\n+              rewrittenDataSourceName);\n         });\n   }\n \n+  private static String reserveDataSourceName(String dataSourceName) {",
+      "id": "PRRT_kwDODJKVX86Nmvkn",
+      "opened": "2026-07-01T13:46:39Z",
+      "path": "instrumentation/alibaba-druid-1.0/library/src/main/java/io/opentelemetry/instrumentation/alibabadruid/v1_0/ConnectionPoolMetrics.java",
+      "replies": [],
+      "reviewed": "df56163dfc5a3082bce2ba0c5223070dedfdff6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108#discussion_r3506430807"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Pending the discussion in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160#discussion_r3564889077, I think we should avoid process-local `-N` suffixes here. If no stable name exists, use a stable fallback and let duplicates merge so metric identities remain consistent across restarts.",
+      "created": "2026-07-13T21:23:06Z",
+      "hunk": "@@ -12,54 +12,90 @@\n import io.opentelemetry.api.metrics.ObservableLongMeasurement;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbConnectionPoolMetrics;\n import java.util.Map;\n+import java.util.Set;\n import java.util.concurrent.ConcurrentHashMap;\n \n final class ConnectionPoolMetrics {\n \n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.alibaba-druid-1.0\";\n \n-  private static final Map<DruidDataSourceMBean, BatchCallback> dataSourceMetrics =\n+  private static final Map<DruidDataSourceMBean, DataSourceMetricsRegistration> dataSourceMetrics =\n       new ConcurrentHashMap<>();\n+  private static final Set<String> activeDataSourceNames = ConcurrentHashMap.newKeySet();\n \n   static void registerMetrics(\n       OpenTelemetry openTelemetry, DruidDataSourceMBean dataSource, String dataSourceName) {\n     dataSourceMetrics.computeIfAbsent(\n         dataSource,\n-        ds -> {\n-          DbConnectionPoolMetrics metrics =\n-              DbConnectionPoolMetrics.create(openTelemetry, INSTRUMENTATION_NAME, dataSourceName);\n-\n-          ObservableLongMeasurement connections = metrics.connections();\n-          ObservableLongMeasurement minIdleConnections = metrics.minIdleConnections();\n-          ObservableLongMeasurement maxIdleConnections = metrics.maxIdleConnections();\n-          ObservableLongMeasurement maxConnections = metrics.maxConnections();\n-          ObservableLongMeasurement pendingRequestsForConnection =\n-              metrics.pendingRequestsForConnection();\n-\n-          Attributes attributes = metrics.getAttributes();\n-          Attributes usedConnectionsAttributes = metrics.getUsedConnectionsAttributes();\n-          Attributes idleConnectionsAttributes = metrics.getIdleConnectionsAttributes();\n-\n-          return metrics.batchCallback(\n-              () -> {\n-                connections.record(ds.getActiveCount(), usedConnectionsAttributes);\n-                connections.record(ds.getPoolingCount(), idleConnectionsAttributes);\n-                pendingRequestsForConnection.record(ds.getWaitThreadCount(), attributes);\n-                minIdleConnections.record(ds.getMinIdle(), attributes);\n-                maxIdleConnections.record(ds.getMaxIdle(), attributes);\n-                maxConnections.record(ds.getMaxActive(), attributes);\n-              },\n-              connections,\n-              pendingRequestsForConnection,\n-              minIdleConnections,\n-              maxIdleConnections,\n-              maxConnections);\n+        unused -> {\n+          String rewrittenDataSourceName = reserveDataSourceName(dataSourceName);\n+          return new DataSourceMetricsRegistration(\n+              createCallback(openTelemetry, dataSource, rewrittenDataSourceName),\n+              rewrittenDataSourceName);\n         });\n   }\n \n+  private static String reserveDataSourceName(String dataSourceName) {\n+    if (activeDataSourceNames.add(dataSourceName)) {\n+      return dataSourceName;\n+    }\n+    for (int count = 2; ; count++) {\n+      String candidate = dataSourceName + \"-\" + count;",
+      "id": "PRRT_kwDODJKVX86QixiF",
+      "opened": "2026-07-13T21:23:06Z",
+      "path": "instrumentation/alibaba-druid-1.0/library/src/main/java/io/opentelemetry/instrumentation/alibabadruid/v1_0/ConnectionPoolMetrics.java",
+      "replies": [],
+      "reviewed": "df56163dfc5a3082bce2ba0c5223070dedfdff6d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108#discussion_r3574238318"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] This fallback is unreachable for a `DbInfo` returned by `JdbcConnectionUrlParser.parse(...)`. The only two places that set the legacy `dbName` override (`MssqlUrlParser` and `JtdsUrlParser`, for named instances) also set `namespace` on the same path, so `getDbNamespace()` is always populated whenever `getDbName()` is. Your #19160 and #19173 versions of this method already just read `getDbNamespace()`.\n\n```suggestion\n    String dbNamespace = dbInfo.getDbNamespace();\n```",
+      "created": "2026-08-02T04:57:05Z",
+      "hunk": "@@ -5,13 +5,49 @@\n \n package io.opentelemetry.javaagent.instrumentation.alibabadruid.v1_0;\n \n+import com.alibaba.druid.pool.DruidAbstractDataSource;\n+import com.alibaba.druid.pool.DruidDataSourceMBean;\n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.alibabadruid.v1_0.DruidTelemetry;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import java.util.Properties;\n \n public class DruidSingletons {\n \n   private static final DruidTelemetry telemetry = DruidTelemetry.create(GlobalOpenTelemetry.get());\n \n+  public static String getDataSourceName(DruidDataSourceMBean dataSource) {\n+    Properties connectProperties = null;\n+    if (dataSource instanceof DruidAbstractDataSource) {\n+      connectProperties = ((DruidAbstractDataSource) dataSource).getConnectProperties();\n+    }\n+\n+    DbInfo dbInfo = JdbcConnectionUrlParser.parse(dataSource.getUrl(), connectProperties);\n+    String serverAddress = dbInfo.getServerAddress();\n+    Integer serverPort = dbInfo.getServerPort();\n+    String dbNamespace = dbInfo.getDbNamespace();\n+    if (dbNamespace == null) {\n+      dbNamespace = dbInfo.getDbName();\n+    }",
+      "id": "PRRT_kwDODJKVX86VuB0-",
+      "opened": "2026-08-02T04:58:19Z",
+      "path": "instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+      "replies": [],
+      "reviewed": "33be9c369a5860e9bb00ab13be14ced00d9b4b7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108#discussion_r3697890743"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[General] Once this branch picks up #19366, `getServerAddress()` returns IPv6 addresses without brackets, so `jdbc:postgresql://[2001:db8::1]:5432/orders` derives the name `2001:db8::1:5432/orders`, which is an ambiguous host/port representation. `UrlParsingUtils.buildShortUrl` brackets IPv6 hosts for the same reason. This matches the handling requested in the sibling pool instrumentation PRs.\n\nCould you also add a name-derivation test with an IPv6 URL, e.g. `jdbc:postgresql://[2001:db8::1]:5432/orders` -> `[2001:db8::1]:5432/orders`?\n\n```suggestion\n    if (serverAddress != null) {\n      if (serverAddress.indexOf(':') >= 0 && !serverAddress.startsWith(\"[\")) {\n        poolName.append('[').append(serverAddress).append(']');\n      } else {\n        poolName.append(serverAddress);\n      }\n      if (serverPort != null) {\n        poolName.append(':').append(serverPort);\n      }\n    }\n```",
+      "created": "2026-08-02T04:57:05Z",
+      "hunk": "@@ -5,13 +5,49 @@\n \n package io.opentelemetry.javaagent.instrumentation.alibabadruid.v1_0;\n \n+import com.alibaba.druid.pool.DruidAbstractDataSource;\n+import com.alibaba.druid.pool.DruidDataSourceMBean;\n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.alibabadruid.v1_0.DruidTelemetry;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import java.util.Properties;\n \n public class DruidSingletons {\n \n   private static final DruidTelemetry telemetry = DruidTelemetry.create(GlobalOpenTelemetry.get());\n \n+  public static String getDataSourceName(DruidDataSourceMBean dataSource) {\n+    Properties connectProperties = null;\n+    if (dataSource instanceof DruidAbstractDataSource) {\n+      connectProperties = ((DruidAbstractDataSource) dataSource).getConnectProperties();\n+    }\n+\n+    DbInfo dbInfo = JdbcConnectionUrlParser.parse(dataSource.getUrl(), connectProperties);\n+    String serverAddress = dbInfo.getServerAddress();\n+    Integer serverPort = dbInfo.getServerPort();\n+    String dbNamespace = dbInfo.getDbNamespace();\n+    if (dbNamespace == null) {\n+      dbNamespace = dbInfo.getDbName();\n+    }\n+\n+    StringBuilder poolName = new StringBuilder();\n+    if (serverAddress != null) {\n+      poolName.append(serverAddress);\n+      if (serverPort != null) {\n+        poolName.append(':').append(serverPort);\n+      }\n+    }",
+      "id": "PRRT_kwDODJKVX86VuB1H",
+      "opened": "2026-08-02T04:58:19Z",
+      "path": "instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+      "replies": [],
+      "reviewed": "33be9c369a5860e9bb00ab13be14ced00d9b4b7f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108#discussion_r3697890750"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`compileOnly` makes `JdbcConnectionUrlParser` available only while compiling, while `testInstrumentation` masks the missing runtime dependency in tests. A custom agent distribution that includes Druid but not JDBC will therefore hit `NoClassDefFoundError` in `getDataSourceName`; the advice suppresses it and emits no pool metrics. Declare the JDBC javaagent as an actual module dependency, as other cross-instrumentation dependencies do (for example, `instrumentation/servlet/servlet-3.0/javaagent/build.gradle.kts:19`).",
+      "created": "2026-08-02T11:18:06Z",
+      "hunk": "@@ -15,8 +15,16 @@ dependencies {\n   library(\"com.alibaba:druid:1.0.0\")\n \n   implementation(project(\":instrumentation:alibaba-druid-1.0:library\"))\n+  bootstrap(project(\":instrumentation:jdbc:bootstrap\"))\n+  compileOnly(\n+    project(\n+      path = \":instrumentation:jdbc:library\",\n+      configuration = \"shadow\",\n+    ),\n+  )\n \n   testImplementation(project(\":instrumentation:alibaba-druid-1.0:testing\"))\n+  testInstrumentation(project(\":instrumentation:jdbc:javaagent\"))",
+      "id": "PRRT_kwDODJKVX86VwcUQ",
+      "opened": "2026-08-02T11:18:06Z",
+      "path": "instrumentation/alibaba-druid-1.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "e81857ed0f5f7d62143d1c13406ddb4da1fbc1d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108#discussion_r3698823212"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This same block now exists in four PRs (#19108, #19159, #19160, #19173) and the copies have already drifted apart. Since they're landing together it would be good if they were literally identical, which makes the later cleanup trivial.\r\n\r\nSince #19366 landed, `ParseContext.host()` strips the brackets off literal IPv6 addresses, so `DbInfo.getServerAddress()` always holds the bare address - the extra `startsWith(\"[\")` check can never fire. Dropping it also matches apache-dbcp2 (#19160) and tomcat-jdbc (#19173), which don't have it.\r\n\r\n```suggestion\r\n      if (serverAddress.indexOf(':') >= 0) {\r\n```\r\n\r\nI opened #19370 to fold the four copies into one shared helper after these land.",
+      "created": "2026-08-02T19:08:01Z",
+      "hunk": "@@ -5,13 +5,50 @@\n \n package io.opentelemetry.javaagent.instrumentation.alibabadruid.v1_0;\n \n+import com.alibaba.druid.pool.DruidAbstractDataSource;\n+import com.alibaba.druid.pool.DruidDataSourceMBean;\n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.alibabadruid.v1_0.DruidTelemetry;\n+import io.opentelemetry.instrumentation.jdbc.internal.JdbcConnectionUrlParser;\n+import io.opentelemetry.javaagent.bootstrap.jdbc.DbInfo;\n+import java.util.Properties;\n \n public class DruidSingletons {\n \n   private static final DruidTelemetry telemetry = DruidTelemetry.create(GlobalOpenTelemetry.get());\n \n+  public static String getDataSourceName(DruidDataSourceMBean dataSource) {\n+    Properties connectProperties = null;\n+    if (dataSource instanceof DruidAbstractDataSource) {\n+      connectProperties = ((DruidAbstractDataSource) dataSource).getConnectProperties();\n+    }\n+\n+    DbInfo dbInfo = JdbcConnectionUrlParser.parse(dataSource.getUrl(), connectProperties);\n+    String serverAddress = dbInfo.getServerAddress();\n+    Integer serverPort = dbInfo.getServerPort();\n+    String dbNamespace = dbInfo.getDbNamespace();\n+\n+    StringBuilder poolName = new StringBuilder();\n+    if (serverAddress != null) {\n+      if (serverAddress.indexOf(':') >= 0 && !serverAddress.startsWith(\"[\")) {",
+      "id": "PRRT_kwDODJKVX86Vzw8e",
+      "opened": "2026-08-02T19:30:45Z",
+      "path": "instrumentation/alibaba-druid-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/alibabadruid/v1_0/DruidSingletons.java",
+      "replies": [],
+      "reviewed": "e81857ed0f5f7d62143d1c13406ddb4da1fbc1d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108#discussion_r3700064023"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I don't think we want the `-N` suffix, similar to discussions on the other PRs.",
+      "created": "2026-08-02T19:47:03Z",
+      "hunk": "@@ -12,54 +12,90 @@\n import io.opentelemetry.api.metrics.ObservableLongMeasurement;\n import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbConnectionPoolMetrics;\n import java.util.Map;\n+import java.util.Set;\n import java.util.concurrent.ConcurrentHashMap;\n \n final class ConnectionPoolMetrics {\n \n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.alibaba-druid-1.0\";\n \n-  private static final Map<DruidDataSourceMBean, BatchCallback> dataSourceMetrics =\n+  private static final Map<DruidDataSourceMBean, DataSourceMetricsRegistration> dataSourceMetrics =\n       new ConcurrentHashMap<>();\n+  private static final Set<String> activeDataSourceNames = ConcurrentHashMap.newKeySet();\n \n   static void registerMetrics(\n       OpenTelemetry openTelemetry, DruidDataSourceMBean dataSource, String dataSourceName) {\n     dataSourceMetrics.computeIfAbsent(\n         dataSource,\n-        ds -> {\n-          DbConnectionPoolMetrics metrics =\n-              DbConnectionPoolMetrics.create(openTelemetry, INSTRUMENTATION_NAME, dataSourceName);\n-\n-          ObservableLongMeasurement connections = metrics.connections();\n-          ObservableLongMeasurement minIdleConnections = metrics.minIdleConnections();\n-          ObservableLongMeasurement maxIdleConnections = metrics.maxIdleConnections();\n-          ObservableLongMeasurement maxConnections = metrics.maxConnections();\n-          ObservableLongMeasurement pendingRequestsForConnection =\n-              metrics.pendingRequestsForConnection();\n-\n-          Attributes attributes = metrics.getAttributes();\n-          Attributes usedConnectionsAttributes = metrics.getUsedConnectionsAttributes();\n-          Attributes idleConnectionsAttributes = metrics.getIdleConnectionsAttributes();\n-\n-          return metrics.batchCallback(\n-              () -> {\n-                connections.record(ds.getActiveCount(), usedConnectionsAttributes);\n-                connections.record(ds.getPoolingCount(), idleConnectionsAttributes);\n-                pendingRequestsForConnection.record(ds.getWaitThreadCount(), attributes);\n-                minIdleConnections.record(ds.getMinIdle(), attributes);\n-                maxIdleConnections.record(ds.getMaxIdle(), attributes);\n-                maxConnections.record(ds.getMaxActive(), attributes);\n-              },\n-              connections,\n-              pendingRequestsForConnection,\n-              minIdleConnections,\n-              maxIdleConnections,\n-              maxConnections);\n+        unused -> {\n+          String rewrittenDataSourceName = reserveDataSourceName(dataSourceName);\n+          return new DataSourceMetricsRegistration(\n+              createCallback(openTelemetry, dataSource, rewrittenDataSourceName),\n+              rewrittenDataSourceName);\n         });\n   }\n \n+  private static String reserveDataSourceName(String dataSourceName) {\n+    if (activeDataSourceNames.add(dataSourceName)) {\n+      return dataSourceName;\n+    }\n+    for (int count = 2; ; count++) {\n+      String candidate = dataSourceName + \"-\" + count;",
+      "id": "PRRT_kwDODJKVX86Vz94Y",
+      "opened": "2026-08-02T19:49:33Z",
+      "path": "instrumentation/alibaba-druid-1.0/library/src/main/java/io/opentelemetry/instrumentation/alibabadruid/v1_0/ConnectionPoolMetrics.java",
+      "replies": [],
+      "reviewed": "01eb1cfdfb0b71854d5811faddd9b4004b9c0d1a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108#discussion_r3700138206"
+    }
+  ]
+}

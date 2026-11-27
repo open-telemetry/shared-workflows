@@ -1,0 +1,52 @@
+{
+  "head": "34f1009d91013c92e10206702a3ade61faf77fbf",
+  "merge": "5ad4021a3ba8c9a3ef64a90b39018966e1f6ab99",
+  "merged": "2026-09-29T03:15:24Z",
+  "missing_roots": 0,
+  "number": 20137,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This `throwable == null` branch is not exercised by the added failure tests: an exceptionally completed receive supplies `null` for `message`/`messages`, so both overloads return before `setReceiveState`. Reverting this condition to the old behavior would therefore leave all new tests passing. Please add a focused test that reaches this assignment with a non-null message and a failure and verifies both that the state reports `false` and that Spring Pulsar performs the fallback consumed-message accounting.",
+      "created": "2026-09-13T19:14:50Z",
+      "hunk": "@@ -219,10 +223,10 @@ public static Context startAndEndConsumerReceive(\n             timer.startTime(),\n             timer.now());\n     Context processParentContext = emitStableMessagingSemconv() ? parent : receiveContext;\n-    VirtualFieldStore.markReceiveTelemetryRecorded(message);\n     // injected context is used in MessageListenerInstrumentation and also in the spring-pulsar\n     // instrumentation\n-    VirtualFieldStore.inject(message, processParentContext);\n+    VirtualFieldStore.setReceiveState(\n+        message, processParentContext, emitStableMessagingSemconv() && throwable == null);",
+      "id": "PRRT_kwDODJKVX86h7QJg",
+      "opened": "2026-09-13T19:14:50Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/telemetry/PulsarSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-14T17:52:26Z",
+          "body": "Addressed in 05c7f4f0e8940fdd72d7b84de401ce54a5370cf9.\n\nAnalysis: The existing failure tests complete receive futures exceptionally, so Pulsar supplies a null message and returns before `setReceiveState`. The new unit test calls `startAndEndConsumerReceive` with a non-null message and a throwable, checks the stored accounting flag, then runs the Spring process instrumenter selected from that flag and checks the consumed-message metric.\n\nUpsides: The test fails if the throwable guard is removed and verifies that Spring records the message when Pulsar did not.\n\nDownsides: The Pulsar unit-test module now depends on the Spring Pulsar javaagent and javaagent-extension-api test artifacts.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20137#discussion_r4007984930"
+        }
+      ],
+      "reviewed": "ac0653a74f918dc8a54cc0813c8f5951fc63e77b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20137#discussion_r4000589856"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The nested-listener regression is only covered by calling `ScopedThreadSuppression` directly in `PulsarSingletonsTest`; that unit test does not install the agent, transform `triggerListener`/`receiveMessageFromConsumer`, or verify the later receive emits no Receive span. Add an integration test using the actual Pulsar listener path where an outer listener invokes a nested listener and then receives another delivery, asserting the expected Process parents and absence of the unintended Receive span.",
+      "created": "2026-09-28T16:03:48Z",
+      "hunk": "@@ -42,13 +42,15 @@ public void transform(TypeTransformer transformer) {\n   public static class TriggerListenerAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static void onEnter() {\n-      MessageListenerContext.startProcessing();\n+    public static boolean onEnter() {\n+      return listenerProcessingScope().tryAcquire();",
+      "id": "PRRT_kwDODJKVX86mwraP",
+      "opened": "2026-09-28T16:03:49Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/ConsumerBaseInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-28T18:42:03Z",
+          "body": "Addressed in e18ccbcef539dc8db27d54318d69ae208e585f42, 9de832edea0d5e56951c704004222cae2cc41214.\n\nFixed in the verified source changes e18ccbcef539dc8db27d54318d69ae208e585f42, 9de832edea0d5e56951c704004222cae2cc41214.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20137#discussion_r4125790754"
+        }
+      ],
+      "reviewed": "2e1b7764e533e62cde04ded62c5e0ca2eb71fb96",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20137#discussion_r4124358443"
+    }
+  ]
+}

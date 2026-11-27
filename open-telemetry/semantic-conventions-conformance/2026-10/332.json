@@ -1,0 +1,46 @@
+{
+  "head": "67c1075a23e614dea66cb04aafba74fd25e2f970",
+  "merge": "caccfda68f73bde88400113dff1ea65b4ead92f8",
+  "merged": "2026-10-19T18:19:57Z",
+  "missing_roots": 0,
+  "number": 332,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "These changes come from the latest weaver upgrade, where requirement level for an entity's identity attributes were removed.\n\nWe might want to clean up these null values.\nEither hardcode `required` value for identity attributes or change `identity` to be an array of attributes.",
+      "created": "2026-10-19T17:55:05Z",
+      "hunk": "@@ -26,8 +26,8 @@\n             \"process.runtime.description\": \"recommended\"\n           },\n           \"identity\": {\n-            \"process.runtime.name\": \"recommended\",\n-            \"process.runtime.version\": \"recommended\"\n+            \"process.runtime.name\": null,",
+      "id": "PRRT_kwDOTuzK5c6uCb9l",
+      "opened": "2026-10-19T17:58:59Z",
+      "path": "docs/data/conformance.json",
+      "replies": [
+        {
+          "at": "2026-10-19T18:01:07Z",
+          "body": "Follow-up: https://github.com/open-telemetry/semantic-conventions-conformance/issues/335",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/332#discussion_r4317108265"
+        }
+      ],
+      "reviewed": "67c1075a23e614dea66cb04aafba74fd25e2f970",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/332#discussion_r4317052574"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Comes form #164 where the classes are named by their position in the list of SQL contracts.",
+      "created": "2026-10-19T17:58:34Z",
+      "hunk": "@@ -716,10 +716,10 @@\n       \"path\": \"scenarios/database/java/mariadb/jdbc/opentelemetry-javaagent\",\n       \"runner\": \"database-conformance\",\n       \"scenario_classes\": [\n-        \"batch\",\n-        \"prepared_statement\",\n-        \"statement\",\n-        \"stored_procedure\"\n+        \"0000\",",
+      "id": "PRRT_kwDOTuzK5c6uCg4K",
+      "opened": "2026-10-19T17:58:59Z",
+      "path": "docs/data/conformance.json",
+      "replies": [],
+      "reviewed": "67c1075a23e614dea66cb04aafba74fd25e2f970",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/332#discussion_r4317084978"
+    }
+  ]
+}

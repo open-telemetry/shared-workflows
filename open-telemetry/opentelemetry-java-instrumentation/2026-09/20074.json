@@ -1,0 +1,193 @@
+{
+  "head": "d87a9e864cd5d82363e99435679eb1d616963da4",
+  "merge": "68c540df79d13766bdbb80926dca908b0010ca20",
+  "merged": "2026-09-18T22:40:18Z",
+  "missing_roots": 0,
+  "number": 20074,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Clear the attached target when recomputation fails. This method also runs after `setHost`/`setPort`; if a reconfiguration changes a previously valid target to an unrepresentable value, this guard retains the old `VirtualField` entry and later spans report stale server data. `VirtualField.set(..., null)` clears the entry, so store `target` unconditionally.",
+      "created": "2026-09-11T00:50:33Z",
+      "hunk": "@@ -43,5 +55,31 @@ static Instrumenter<JedisRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  public static void captureConnectionTarget(Connection connection) {\n+    RedisServerTarget target = Context.current().get(CURRENT_CONFIGURED_TARGET);\n+    if (target == null) {\n+      target = RedisServerTarget.ofHostAndPort(connection.getHost(), connection.getPort());\n+    }\n+    if (target != null) {\n+      CONNECTION_TARGET.set(connection, target);\n+    }",
+      "id": "PRRT_kwDODJKVX86hTROX",
+      "opened": "2026-09-11T00:50:33Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisSingletons.java",
+      "replies": [],
+      "reviewed": "23beac3ab1b95cca7e0b259eadb662122bf81073",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r3984918374"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The PR promises configured targets for metrics too, but the new sharded coverage asserts only span names and attributes. The existing direct-client metric assertion checks attribute keys rather than values, so it would not catch a regression where `db.client.operation.duration` still reports the selected shard instead of the configured shard list. Please add a stable-semconv metric assertion for the sharded command that verifies the `server.address` value and omitted `server.port`.",
+      "created": "2026-09-11T02:33:45Z",
+      "hunk": "@@ -40,12 +43,22 @@ public String getDbOperationName(JedisRequest request) {\n   }\n \n   @Override\n+  @Nullable\n   public String getServerAddress(JedisRequest request) {\n-    return request.getConnection().getHost();\n+    if (!emitStableDatabaseSemconv()) {\n+      return request.getConnection().getHost();\n+    }\n+    RedisServerTarget target = JedisSingletons.connectionTarget(request.getConnection());\n+    return target != null ? target.getAddress() : null;",
+      "id": "PRRT_kwDODJKVX86hUhED",
+      "opened": "2026-09-11T02:33:45Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisDbAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-09-12T01:21:16Z",
+          "body": "Addressed in b9dbe55b118e20212677a5acdf3bd3665f32f052.\n\nAnalysis: The existing sharded test verifies configured targets only on spans. A stable metric regression could still report the selected shard because the shared metric helper checks keys but not values. The new exact metric point assertions require both operations to report the configured shard list and exclude server.port.\n\nUpsides: The test now protects configured-target values for SET and GET metrics and verifies the stable attribute set.\n\nDownsides: The test adds one metric collection assertion to the stable-semconv run.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r3994568595"
+        }
+      ],
+      "reviewed": "4583974b0e384eef61040f0e853905ee093aeb77",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r3985437038"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "do we need to track previous?",
+      "created": "2026-09-14T02:32:54Z",
+      "hunk": "@@ -43,5 +54,64 @@ static Instrumenter<JedisRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  public static void captureConnectionTarget(Connection connection) {\n+    RedisServerTarget target = configuredTarget.get();\n+    if (target == null) {\n+      target = RedisServerTarget.ofHostAndPort(connection.getHost(), connection.getPort());\n+    }\n+    CONNECTION_TARGET.set(connection, target);\n+  }\n+\n+  @Nullable\n+  public static ConfiguredTargetScope openConfiguredTargetScope(\n+      @Nullable RedisServerTarget target) {\n+    if (target == null) {\n+      return null;\n+    }\n+    RedisServerTarget previous = configuredTarget.get();\n+    configuredTarget.set(target);\n+    return new ConfiguredTargetScope(previous);\n+  }\n+\n+  @Nullable\n+  static RedisServerTarget connectionTarget(Connection connection) {\n+    RedisServerTarget target = configuredTarget.get();\n+    if (target != null) {\n+      return target;\n+    }\n+    return CONNECTION_TARGET.get(connection);\n+  }\n+\n+  @Nullable\n+  public static RedisServerTarget createServerTarget(@Nullable List<JedisShardInfo> shards) {\n+    if (shards == null) {\n+      return null;\n+    }\n+    List<String> endpoints = new ArrayList<>(shards.size());\n+    for (JedisShardInfo shard : shards) {\n+      endpoints.add(\n+          shard == null ? null : RedisServerTarget.endpoint(shard.getHost(), shard.getPort()));\n+    }\n+    return RedisServerTarget.ofEndpoints(endpoints);\n+  }\n+\n+  public static class ConfiguredTargetScope implements AutoCloseable {\n+\n+    @Nullable private final RedisServerTarget previous;",
+      "id": "PRRT_kwDODJKVX86h-VrC",
+      "opened": "2026-09-14T02:32:54Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:34:36Z",
+          "body": "Removed previous-value restoration and converted this to a one-shot set/remove lifecycle in [`2fac850`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2fac850cbb0b17c0a0d3b815678a6df21c9b2e69), with normal and exceptional cleanup coverage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4010202055"
+        }
+      ],
+      "reviewed": "b9dbe55b118e20212677a5acdf3bd3665f32f052",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4001814039"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "List.class?",
+      "created": "2026-09-14T02:34:46Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v1_4;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import io.opentelemetry.javaagent.instrumentation.jedis.v1_4.JedisSingletons.ConfiguredTargetScope;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.jedis.JedisShardInfo;\n+\n+class ShardedJedisInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"redis.clients.util.Sharded\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"initialize\").and(takesArgument(0, named(\"java.util.List\"))),",
+      "id": "PRRT_kwDODJKVX86h-WlY",
+      "opened": "2026-09-14T02:34:46Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/ShardedJedisInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-14T22:34:36Z",
+          "body": "Switched this matcher to `List.class` in [`2fac850`](https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2fac850cbb0b17c0a0d3b815678a6df21c9b2e69).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4010202054"
+        }
+      ],
+      "reviewed": "b9dbe55b118e20212677a5acdf3bd3665f32f052",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4001819747"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`RedisServerTarget.ofEndpoints()` intentionally renders at most the first five endpoints and truncates at 255 characters, so valid sharded configurations beyond those limits do not report “every configured shard” as the PR description states. Please reconcile the promised behavior with this bounded representation and add boundary coverage for whichever contract is intended.",
+      "created": "2026-09-16T01:31:51Z",
+      "hunk": "@@ -43,5 +56,39 @@ static Instrumenter<JedisRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  public static ScopedThreadValue<RedisServerTarget> currentConfiguredTarget() {\n+    return currentConfiguredTarget;\n+  }\n+\n+  public static void captureConnectionTarget(Connection connection) {\n+    RedisServerTarget target = currentConfiguredTarget.get();\n+    if (target == null) {\n+      target = RedisServerTarget.ofHostAndPort(connection.getHost(), connection.getPort());\n+    }\n+    CONNECTION_TARGET.set(connection, target);\n+  }\n+\n+  @Nullable\n+  static RedisServerTarget connectionTarget(Connection connection) {\n+    RedisServerTarget target = currentConfiguredTarget.get();\n+    if (target != null) {\n+      return target;\n+    }\n+    return CONNECTION_TARGET.get(connection);\n+  }\n+\n+  @Nullable\n+  public static RedisServerTarget createServerTarget(@Nullable List<JedisShardInfo> shards) {\n+    if (shards == null) {\n+      return null;\n+    }\n+    List<String> endpoints = new ArrayList<>(shards.size());\n+    for (JedisShardInfo shard : shards) {\n+      endpoints.add(\n+          shard == null ? null : RedisServerTarget.endpoint(shard.getHost(), shard.getPort()));\n+    }\n+    return RedisServerTarget.ofEndpoints(endpoints);",
+      "id": "PRRT_kwDODJKVX86iwX-Q",
+      "opened": "2026-09-16T01:31:52Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-17T08:04:15Z",
+          "body": "Addressed in 36e7776daa9279bbb748536b88fc0490477f0358.\n\nThe intended contract is the shared bounded Redis target representation. Added Jedis-specific coverage for the five-endpoint and 255-character boundaries.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4034523484"
+        }
+      ],
+      "reviewed": "0a0318668e2ce2323728c479521ec34e64dd2b57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4021711530"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This ambient scope covers all of `Sharded.initialize()`, including the overridable `JedisShardInfo.createResource()` callback that the new reentrancy test relies on. An unrelated Jedis created or used by that callback is therefore assigned/reported with the outer shard list; additionally, if `createServerTarget()` throws in a nested call, suppressed enter advice yields a null `@Advice.Enter` and exit clears the still-active outer target. Attach the configured target to each actual initialized shard resource instead of treating every same-thread connection as a shard; if a scope remains, carry an explicit successfully-installed state so exit cannot clear an outer scope after enter failure.",
+      "created": "2026-09-16T01:31:52Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v1_4;\n+\n+import static io.opentelemetry.javaagent.instrumentation.jedis.v1_4.JedisSingletons.currentConfiguredTarget;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.RedisServerTarget;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import redis.clients.jedis.JedisShardInfo;\n+\n+class ShardedJedisInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"redis.clients.util.Sharded\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"initialize\").and(takesArgument(0, List.class)),\n+        getClass().getName() + \"$InitializeAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class InitializeAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    @Nullable\n+    public static RedisServerTarget onEnter(\n+        @Advice.Argument(0) @Nullable List<JedisShardInfo> shards) {\n+      RedisServerTarget target = JedisSingletons.createServerTarget(shards);\n+      return currentConfiguredTarget().set(target);",
+      "id": "PRRT_kwDODJKVX86iwX-e",
+      "opened": "2026-09-16T01:31:52Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/ShardedJedisInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-17T08:04:16Z",
+          "body": "Addressed in 36e7776daa9279bbb748536b88fc0490477f0358.\n\nRemoved the ambient scope and now attach the configured target only to the initialized Sharded instance's actual resources. Added reentrant callback coverage.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4034523692"
+        }
+      ],
+      "reviewed": "0a0318668e2ce2323728c479521ec34e64dd2b57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4021711555"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] Direct tests of javaagent helpers should be registered as a `JvmTestSuite` named `unitTests` in the existing javaagent project, rather than creating another `javaagent-unit-tests` subproject. Follow the established pattern in `instrumentation/jms/jms-common-1.1/javaagent/build.gradle.kts:12-24`; this also avoids the extra settings entry and separate production-project dependency.",
+      "created": "2026-09-16T01:31:52Z",
+      "hunk": "@@ -0,0 +1,9 @@\n+plugins {\n+  id(\"otel.java-conventions\")\n+}",
+      "id": "PRRT_kwDODJKVX86iwX-k",
+      "opened": "2026-09-16T01:31:52Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent-unit-tests/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-17T08:04:17Z",
+          "body": "Addressed in 36e7776daa9279bbb748536b88fc0490477f0358.\n\nMoved the helper tests into a unitTests JvmTestSuite in the existing javaagent project and removed the extra subproject and settings entry.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4034523876"
+        }
+      ],
+      "reviewed": "0a0318668e2ce2323728c479521ec34e64dd2b57",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4021711570"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "This method encodes three separate facts about how Jedis 1.x changed shape, maybe we could add a comment explaining some of the logic\n\n```suggestion\n  // Jedis 1.4.x returns the ShardInfo from getAllShards() and exposes the created resource through\n  // ShardInfo.getResource(); 1.5.0 removed getResource() and changed getAllShards() to return the\n  // Jedis resource directly. getAllShards() itself still erases to ()Ljava/util/Collection; in both,\n  // so only getResource() has to be reflective.\n  private static Jedis getJedis(Object shard) {\n```",
+      "created": "2026-09-18T19:09:29Z",
+      "hunk": "@@ -43,5 +61,70 @@ static Instrumenter<JedisRequest, Void> instrumenter() {\n     return instrumenter;\n   }\n \n+  public static void captureConnectionTarget(Connection connection) {\n+    CONNECTION_TARGET.set(\n+        connection, RedisServerTarget.ofHostAndPort(connection.getHost(), connection.getPort()));\n+  }\n+\n+  public static void captureShardedConnectionTargets(\n+      Sharded<?, ?> sharded, @Nullable List<JedisShardInfo> shards) {\n+    RedisServerTarget target = createServerTarget(shards);\n+    if (target == null) {\n+      return;\n+    }\n+\n+    for (Object shard : sharded.getAllShards()) {\n+      Jedis jedis = getJedis(shard);\n+      if (jedis != null) {\n+        CONNECTION_TARGET.set(jedis.getClient(), target);\n+      }\n+    }\n+  }\n+\n+  @Nullable\n+  static RedisServerTarget connectionTarget(Connection connection) {\n+    return CONNECTION_TARGET.get(connection);\n+  }\n+\n+  @Nullable\n+  public static RedisServerTarget createServerTarget(@Nullable List<JedisShardInfo> shards) {\n+    if (shards == null) {\n+      return null;\n+    }\n+    List<String> endpoints = new ArrayList<>(shards.size());\n+    for (JedisShardInfo shard : shards) {\n+      endpoints.add(\n+          shard == null ? null : RedisServerTarget.endpoint(shard.getHost(), shard.getPort()));\n+    }\n+    return RedisServerTarget.ofEndpoints(endpoints);\n+  }\n+\n+  @Nullable\n+  private static Jedis getJedis(Object shard) {",
+      "id": "PRRT_kwDODJKVX86j3Q96",
+      "opened": "2026-09-18T19:12:27Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/JedisSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-18T20:33:40Z",
+          "body": "158d4bf4be1a5245e060c2f9e0cb55c541cec3ca",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4050488064"
+        }
+      ],
+      "reviewed": "36e7776daa9279bbb748536b88fc0490477f0358",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4049887830"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "jaydeluca"
+      },
+      "body": "this cast isn't needed because it's not part of a ternary expression\n\n```suggestion\n                            equalTo(SERVER_PORT, outerShard.getPort()))),\n```",
+      "created": "2026-09-18T19:12:03Z",
+      "hunk": "@@ -0,0 +1,293 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.jedis.v1_4;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableDatabaseSemconv;\n+import static io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil.maybeStable;\n+import static io.opentelemetry.instrumentation.testing.junit.service.SemconvServiceStabilityUtil.maybeStablePeerService;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_NAME;\n+import static io.opentelemetry.semconv.DbAttributes.DB_SYSTEM_NAME;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;\n+import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_OPERATION;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_STATEMENT;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_SYSTEM;\n+import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DbSystemNameIncubatingValues.REDIS;\n+import static java.util.Arrays.asList;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.util.List;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.testcontainers.containers.GenericContainer;\n+import redis.clients.jedis.Jedis;\n+import redis.clients.jedis.JedisShardInfo;\n+import redis.clients.jedis.ShardedJedis;\n+\n+@SuppressWarnings(\"deprecation\") // using deprecated semconv\n+class ShardedJedisClientTest {\n+\n+  @RegisterExtension\n+  private static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension\n+  private static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  private static final GenericContainer<?> firstServer =\n+      new GenericContainer<>(\"redis:6.2.3-alpine\").withExposedPorts(6379);\n+\n+  private static final GenericContainer<?> secondServer =\n+      new GenericContainer<>(\"redis:6.2.3-alpine\").withExposedPorts(6379);\n+\n+  private static ShardedJedis sharded;\n+  private static String configuredTarget;\n+  private static String shardHost;\n+  private static int shardPort;\n+\n+  @BeforeAll\n+  static void setup() {\n+    firstServer.start();\n+    cleanup.deferAfterAll(firstServer::stop);\n+    secondServer.start();\n+    cleanup.deferAfterAll(secondServer::stop);\n+\n+    JedisShardInfo firstShard =\n+        new JedisShardInfo(firstServer.getHost(), firstServer.getMappedPort(6379));\n+    JedisShardInfo secondShard =\n+        new JedisShardInfo(secondServer.getHost(), secondServer.getMappedPort(6379));\n+    configuredTarget =\n+        firstShard.getHost()\n+            + \":\"\n+            + firstShard.getPort()\n+            + \",\"\n+            + secondShard.getHost()\n+            + \":\"\n+            + secondShard.getPort();\n+\n+    List<JedisShardInfo> shards = asList(firstShard, secondShard);\n+    sharded = new ShardedJedis(shards);\n+    cleanup.deferAfterAll(sharded::disconnect);\n+\n+    Jedis shard = sharded.getShard(\"foo\");\n+    shardHost = shard.getClient().getHost();\n+    shardPort = shard.getClient().getPort();\n+  }\n+\n+  @Test\n+  void commandIsReportedAgainstEveryConfiguredShard() {\n+    sharded.set(\"foo\", \"bar\");\n+\n+    assertThat(sharded.get(\"foo\")).isEqualTo(\"bar\");\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(emitStableDatabaseSemconv() ? \"SET \" + configuredTarget : \"SET\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(maybeStable(DB_STATEMENT), \"SET foo ?\"),\n+                            equalTo(maybeStable(DB_OPERATION), \"SET\"),\n+                            equalTo(\n+                                maybeStablePeerService(),\n+                                emitStableDatabaseSemconv() ? null : \"test-peer-service\"),\n+                            equalTo(\n+                                SERVER_ADDRESS,\n+                                emitStableDatabaseSemconv() ? configuredTarget : shardHost),\n+                            equalTo(\n+                                SERVER_PORT,\n+                                emitStableDatabaseSemconv() ? null : (long) shardPort))),\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(emitStableDatabaseSemconv() ? \"GET \" + configuredTarget : \"GET\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(maybeStable(DB_STATEMENT), \"GET foo\"),\n+                            equalTo(maybeStable(DB_OPERATION), \"GET\"),\n+                            equalTo(\n+                                maybeStablePeerService(),\n+                                emitStableDatabaseSemconv() ? null : \"test-peer-service\"),\n+                            equalTo(\n+                                SERVER_ADDRESS,\n+                                emitStableDatabaseSemconv() ? configuredTarget : shardHost),\n+                            equalTo(\n+                                SERVER_PORT,\n+                                emitStableDatabaseSemconv() ? null : (long) shardPort))));\n+\n+    if (emitStableDatabaseSemconv()) {\n+      testing.waitAndAssertMetrics(\n+          \"io.opentelemetry.jedis-1.4\",\n+          metric ->\n+              metric\n+                  .hasName(\"db.client.operation.duration\")\n+                  .hasHistogramSatisfying(\n+                      histogram ->\n+                          histogram.hasPointsSatisfying(\n+                              point ->\n+                                  point.hasAttributesSatisfyingExactly(\n+                                      equalTo(DB_SYSTEM_NAME, REDIS),\n+                                      equalTo(DB_OPERATION_NAME, \"SET\"),\n+                                      equalTo(SERVER_ADDRESS, configuredTarget)),\n+                              point ->\n+                                  point.hasAttributesSatisfyingExactly(\n+                                      equalTo(DB_SYSTEM_NAME, REDIS),\n+                                      equalTo(DB_OPERATION_NAME, \"GET\"),\n+                                      equalTo(SERVER_ADDRESS, configuredTarget)))));\n+    }\n+  }\n+\n+  @Test\n+  void commandFromAllShardsUsesConfiguredTarget() throws ReflectiveOperationException {\n+    Object returnedShard = sharded.getAllShards().iterator().next();\n+    Jedis shard;\n+    if (returnedShard instanceof Jedis) {\n+      shard = (Jedis) returnedShard;\n+    } else {\n+      assertThat(returnedShard).isInstanceOf(JedisShardInfo.class);\n+      shard = (Jedis) returnedShard.getClass().getMethod(\"getResource\").invoke(returnedShard);\n+    }\n+    String selectedHost = shard.getClient().getHost();\n+    int selectedPort = shard.getClient().getPort();\n+\n+    shard.set(\"all-shards\", \"bar\");\n+\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(emitStableDatabaseSemconv() ? \"SET \" + configuredTarget : \"SET\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(maybeStable(DB_STATEMENT), \"SET all-shards ?\"),\n+                            equalTo(maybeStable(DB_OPERATION), \"SET\"),\n+                            equalTo(\n+                                maybeStablePeerService(),\n+                                emitStableDatabaseSemconv() ? null : \"test-peer-service\"),\n+                            equalTo(\n+                                SERVER_ADDRESS,\n+                                emitStableDatabaseSemconv() ? configuredTarget : selectedHost),\n+                            equalTo(\n+                                SERVER_PORT,\n+                                emitStableDatabaseSemconv() ? null : (long) selectedPort))));\n+  }\n+\n+  @Test\n+  void callbackConnectionIsNotAssignedOuterTarget() {\n+    CapturingJedisShardInfo nestedShard =\n+        new CapturingJedisShardInfo(firstServer.getHost(), firstServer.getMappedPort(6379));\n+    ReentrantJedisShardInfo outerShard =\n+        new ReentrantJedisShardInfo(\n+            firstServer.getHost(), firstServer.getMappedPort(6379), nestedShard);\n+    CapturingJedisShardInfo secondOuterShard =\n+        new CapturingJedisShardInfo(secondServer.getHost(), secondServer.getMappedPort(6379));\n+    new ShardedJedis(asList(outerShard, secondOuterShard));\n+\n+    cleanup.deferCleanup(outerShard.createdResource().getClient()::disconnect);\n+    cleanup.deferCleanup(secondOuterShard.createdResource().getClient()::disconnect);\n+    cleanup.deferCleanup(nestedShard.createdResource().getClient()::disconnect);\n+    cleanup.deferCleanup(outerShard.callbackJedis()::disconnect);\n+\n+    outerShard.callbackJedis().set(\"callback\", \"bar\");\n+    outerShard.createdResource().set(\"outer\", \"bar\");\n+\n+    String outerTarget =\n+        outerShard.getHost()\n+            + \":\"\n+            + outerShard.getPort()\n+            + \",\"\n+            + secondOuterShard.getHost()\n+            + \":\"\n+            + secondOuterShard.getPort();\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(\n+                            emitStableDatabaseSemconv()\n+                                ? \"SET \" + outerShard.getHost() + \":\" + outerShard.getPort()\n+                                : \"SET\")\n+                        .hasKind(SpanKind.CLIENT)\n+                        .hasAttributesSatisfyingExactly(\n+                            equalTo(maybeStable(DB_SYSTEM), REDIS),\n+                            equalTo(maybeStable(DB_STATEMENT), \"SET callback ?\"),\n+                            equalTo(maybeStable(DB_OPERATION), \"SET\"),\n+                            equalTo(maybeStablePeerService(), \"test-peer-service\"),\n+                            equalTo(SERVER_ADDRESS, outerShard.getHost()),\n+                            equalTo(SERVER_PORT, (long) outerShard.getPort()))),",
+      "id": "PRRT_kwDODJKVX86j3Ubf",
+      "opened": "2026-09-18T19:12:27Z",
+      "path": "instrumentation/jedis/jedis-1.4/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v1_4/ShardedJedisClientTest.java",
+      "replies": [
+        {
+          "at": "2026-09-18T20:34:12Z",
+          "body": "d87a9e864cd5d82363e99435679eb1d616963da4",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4050491897"
+        }
+      ],
+      "reviewed": "36e7776daa9279bbb748536b88fc0490477f0358",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20074#discussion_r4049909278"
+    }
+  ]
+}

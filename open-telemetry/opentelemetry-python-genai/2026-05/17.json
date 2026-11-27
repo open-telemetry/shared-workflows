@@ -1,0 +1,109 @@
+{
+  "head": "614db83b8dac02a2b251506f40bef49b93eb7a80",
+  "merge": "50b9b33f9956c284d9d265f66d121f142e31a935",
+  "merged": "2026-05-18T22:24:11Z",
+  "missing_roots": 0,
+  "number": 17,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The bare `raise` on line 179 is outside any `except` block. While it happens to work because CPython preserves the exception in `sys.exc_info()` during `__exit__` for the with-statement machinery, this relies on subtle implementation behavior and is non-idiomatic. Because `__exit__` is annotated `-> None` (and effectively returns `None`/falsy), the `with` statement will already re-raise the original exception automatically once `__exit__` returns. The explicit `raise` here is therefore redundant and can simply be removed — making the behavior more obvious and avoiding any chance of a \"No active exception to re-raise\" error in environments/tools that don't preserve exception state the same way.\n",
+      "created": "2026-05-14T20:21:24Z",
+      "hunk": "@@ -165,13 +165,17 @@ def fail(self, error: Error | BaseException) -> None:\n             error = Error(type=type(error), message=str(error))\n         self._finish(error)\n \n-    @contextmanager\n-    def _managed(self) -> Generator[Self, None, None]:\n-        \"\"\"Context manager that calls stop() on success or fail() on exception.\"\"\"\n-        try:\n-            yield self\n-        except Exception as exc:\n-            self.fail(exc)\n+    def __enter__(self):\n+        return self\n+\n+    def __exit__(\n+        self,\n+        type_: type[BaseException] | None,\n+        value: BaseException | None,\n+        traceback: TracebackType | None,\n+    ) -> None:\n+        if value:\n+            self.fail(value)\n             raise",
+      "id": "PRRT_kwDOSbspP86CLgLC",
+      "opened": "2026-05-14T20:21:25Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-05-15T14:46:19Z",
+          "body": "Done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/17#discussion_r3248977932"
+        }
+      ],
+      "reviewed": "e065b787ca278043f54a595170ea497a42be2927",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/17#discussion_r3244054297"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`gen_ai.tool.call.arguments` and `gen_ai.tool.call.result` are Opt-In attributes per the GenAI semantic conventions (they may contain sensitive data) and should be gated on the content-capturing mode (similar to how `InferenceInvocation` gates messages via `get_content_attributes` / `is_experimental_mode()` / `ContentCapturingMode`). Setting them unconditionally — both at span start (`_get_base_attributes`) and at finish (`_apply_finish`) — bypasses the content-capture controls established elsewhere in this codebase and can leak sensitive payloads to spans even when the user has disabled content capture. Consider gating these two attributes behind the same content-capture check used for other content fields.",
+      "created": "2026-05-14T20:21:25Z",
+      "hunk": "@@ -73,6 +74,8 @@ def _get_base_attributes(self) -> dict[str, Any]:\n             (GenAI.GEN_AI_TOOL_CALL_ID, self.tool_call_id),\n             (GenAI.GEN_AI_TOOL_TYPE, self.tool_type),\n             (GenAI.GEN_AI_TOOL_DESCRIPTION, self.tool_description),\n+            (GenAI.GEN_AI_TOOL_CALL_ARGUMENTS, self.arguments),\n+            (GenAI.GEN_AI_TOOL_CALL_RESULT, self.tool_result),",
+      "id": "PRRT_kwDOSbspP86CLgLe",
+      "opened": "2026-05-14T20:21:25Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_tool_invocation.py",
+      "replies": [],
+      "reviewed": "e065b787ca278043f54a595170ea497a42be2927",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/17#discussion_r3244054340"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "question(non-blocking): Should we update the agents.md with this new invocation style?",
+      "created": "2026-05-17T14:06:47Z",
+      "hunk": "@@ -59,7 +58,7 @@ def __init__(\n         server_port: int | None = None,\n         agent_name: str | None = None,\n     ) -> None:\n-        \"\"\"Use handler.start_invoke_local_agent() or handler.start_invoke_remote_agent() instead of calling this directly.\"\"\"\n+        \"\"\"Use handler.invoke_local_agent() or handler.invoke_remote_agent() instead of calling this directly.\"\"\"",
+      "id": "PRRT_kwDOSbspP86CpdKI",
+      "opened": "2026-05-17T14:25:13Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [
+        {
+          "at": "2026-05-18T17:15:57Z",
+          "body": "Ack, yes, done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/17#discussion_r3260731367"
+        }
+      ],
+      "reviewed": "5162cec5511e0eee99dc26169b9c1ce0f58a1ca8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/17#discussion_r3254759615"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "eternalcuriouslearner"
+      },
+      "body": "suggestion(non-blocking): Can we use `contextlib.AbstractContextManager` here and modify this as:\n\n```\n from contextlib import AbstractContextManager                                                                                                                                                           \n                                                                                                                                                                                                          \n  class GenAIInvocation(ABC, AbstractContextManager[\"GenAIInvocation\"]):                                                                                                                                  \n      ...                                                                                                                                                                                                 \n      def __exit__(                                                                                                                                                                                       \n          self,                                                                                                                                                                                         \n          exc_type: type[BaseException] | None,\n          exc_value: BaseException | None,\n          traceback: TracebackType | None,                                                                                                                                                                \n      ) -> bool | None:\n          if exc_value is not None and isinstance(exc_value, Exception):                                                                                                                                  \n              self.fail(exc_value)                                                                                                                                                                      \n          else:                                                                                                                                                                                           \n              self.stop()\n          return None  # don't suppress     \n```\n\nLet me know If you feel this as overkill. I am fine with your current approach btw.",
+      "created": "2026-05-17T14:21:50Z",
+      "hunk": "@@ -165,15 +165,19 @@ def fail(self, error: Error | BaseException) -> None:\n             error = Error(type=type(error), message=str(error))\n         self._finish(error)\n \n-    @contextmanager\n-    def _managed(self) -> Generator[Self, None, None]:\n-        \"\"\"Context manager that calls stop() on success or fail() on exception.\"\"\"\n-        try:\n-            yield self\n-        except Exception as exc:\n-            self.fail(exc)\n-            raise\n-        self.stop()\n+    def __enter__(self):",
+      "id": "PRRT_kwDOSbspP86Cph0E",
+      "opened": "2026-05-17T14:25:13Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-05-18T17:16:10Z",
+          "body": "SG, changed it to be like that..",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/17#discussion_r3260732536"
+        }
+      ],
+      "reviewed": "5162cec5511e0eee99dc26169b9c1ce0f58a1ca8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/17#discussion_r3254784782"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lzchen"
+      },
+      "body": "Nit: typing `GenAiInvocation` or `Self`?",
+      "created": "2026-05-18T18:58:46Z",
+      "hunk": "@@ -165,15 +167,19 @@ def fail(self, error: Error | BaseException) -> None:\n             error = Error(type=type(error), message=str(error))\n         self._finish(error)\n \n-    @contextmanager\n-    def _managed(self) -> Generator[Self, None, None]:\n-        \"\"\"Context manager that calls stop() on success or fail() on exception.\"\"\"\n-        try:\n-            yield self\n-        except Exception as exc:\n-            self.fail(exc)\n-            raise\n-        self.stop()\n+    def __enter__(self):",
+      "id": "PRRT_kwDOSbspP86C7_wU",
+      "opened": "2026-05-18T18:58:46Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-05-18T19:38:51Z",
+          "body": "Yeah good idea. done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/17#discussion_r3261595261"
+        }
+      ],
+      "reviewed": "f4f31bc4ada778840e41097c76bd10d132f687ae",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/17#discussion_r3261325795"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "2e3c07bdc64436817762e6018a5e4dd48d2ef53d",
+  "merge": "4266c7bb99c782dffe457328e92c0c8fc8d5cbfa",
+  "merged": "2026-09-27T22:54:11Z",
+  "missing_roots": 0,
+  "number": 20282,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This runtime dispatcher is new shared behavior, but the migrated call sites only exercise schema URLs for spans and metrics. Add focused unit tests covering the three assertion methods (including nullable version/schema expectations), the `LogRecordData` branch, and unsupported input so future changes cannot silently break those paths.",
+      "created": "2026-09-26T17:34:45Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.testing.util;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.sdk.common.InstrumentationScopeInfo;\n+import io.opentelemetry.sdk.logs.data.LogRecordData;\n+import io.opentelemetry.sdk.metrics.data.MetricData;\n+import io.opentelemetry.sdk.trace.data.SpanData;\n+import javax.annotation.Nullable;\n+import org.assertj.core.api.ThrowingConsumer;\n+\n+/**\n+ * Assertions on the {@link InstrumentationScopeInfo} of a {@link SpanData}, {@link MetricData} or\n+ * {@link LogRecordData}, intended to be passed to {@code satisfies(...)}:\n+ *\n+ * <pre>{@code\n+ * span.hasName(\"GET\").satisfies(hasScopeSchemaUrl(SchemaUrls.V1_37_0));\n+ * }</pre>\n+ */\n+public final class InstrumentationScopeAssertions {\n+\n+  /** Asserts that the instrumentation scope has the given name. */\n+  public static <T> ThrowingConsumer<T> hasScopeName(String name) {\n+    return data ->\n+        assertThat(scopeOf(data).getName()).as(\"instrumentation scope name\").isEqualTo(name);\n+  }\n+\n+  /** Asserts that the instrumentation scope has the given version, or no version if null. */\n+  public static <T> ThrowingConsumer<T> hasScopeVersion(@Nullable String version) {\n+    return data ->\n+        assertThat(scopeOf(data).getVersion())\n+            .as(\"instrumentation scope version\")\n+            .isEqualTo(version);\n+  }\n+\n+  /** Asserts that the instrumentation scope has the given schema URL, or no schema URL if null. */\n+  public static <T> ThrowingConsumer<T> hasScopeSchemaUrl(@Nullable String schemaUrl) {\n+    return data ->\n+        assertThat(scopeOf(data).getSchemaUrl())\n+            .as(\"instrumentation scope schema url\")\n+            .isEqualTo(schemaUrl);\n+  }\n+\n+  private static InstrumentationScopeInfo scopeOf(Object data) {\n+    if (data instanceof SpanData) {\n+      return ((SpanData) data).getInstrumentationScopeInfo();\n+    }\n+    if (data instanceof MetricData) {",
+      "id": "PRRT_kwDODJKVX86mSmm4",
+      "opened": "2026-09-26T17:34:46Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/util/InstrumentationScopeAssertions.java",
+      "replies": [],
+      "reviewed": "58623fa8c3ed165da7e65ab5d00a3c3666818e43",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20282#discussion_r4112168970"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Remove this AssertJ `.as(...)` description. Test assertions in this repository avoid custom descriptions when the direct equality failure already reports the expected and actual values.\n\nThis issue also appears in the following locations of the same file:\n- line 35\n- line 43",
+      "created": "2026-09-26T17:34:46Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.testing.util;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.sdk.common.InstrumentationScopeInfo;\n+import io.opentelemetry.sdk.logs.data.LogRecordData;\n+import io.opentelemetry.sdk.metrics.data.MetricData;\n+import io.opentelemetry.sdk.trace.data.SpanData;\n+import javax.annotation.Nullable;\n+import org.assertj.core.api.ThrowingConsumer;\n+\n+/**\n+ * Assertions on the {@link InstrumentationScopeInfo} of a {@link SpanData}, {@link MetricData} or\n+ * {@link LogRecordData}, intended to be passed to {@code satisfies(...)}:\n+ *\n+ * <pre>{@code\n+ * span.hasName(\"GET\").satisfies(hasScopeSchemaUrl(SchemaUrls.V1_37_0));\n+ * }</pre>\n+ */\n+public final class InstrumentationScopeAssertions {\n+\n+  /** Asserts that the instrumentation scope has the given name. */\n+  public static <T> ThrowingConsumer<T> hasScopeName(String name) {\n+    return data ->\n+        assertThat(scopeOf(data).getName()).as(\"instrumentation scope name\").isEqualTo(name);",
+      "id": "PRRT_kwDODJKVX86mSmnE",
+      "opened": "2026-09-26T17:34:46Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/testing/util/InstrumentationScopeAssertions.java",
+      "replies": [],
+      "reviewed": "58623fa8c3ed165da7e65ab5d00a3c3666818e43",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20282#discussion_r4112168986"
+    }
+  ]
+}

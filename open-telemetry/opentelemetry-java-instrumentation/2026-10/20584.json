@@ -1,0 +1,115 @@
+{
+  "head": "1c31c84ce7fb3c9afcc01e002a596c41dd97466e",
+  "merge": "20054c2ca27ef811905884f42797dd4d38e52839",
+  "merged": "2026-10-14T07:41:26Z",
+  "missing_roots": 0,
+  "number": 20584,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The scope rename is not fully reflected in the scope-based documentation filter: `instrumentation-docs/.../TelemetryParser.java:74` still accepts `io.opentelemetry.mongo-3.7` for this module, and `TelemetryParserTest` still requires that legacy value to be valid. This leaves the compatibility path in place and can classify stale legacy-scope telemetry as current; remove the allow-list entry and update its test.",
+      "created": "2026-10-13T19:53:09Z",
+      "hunk": "@@ -12,16 +12,13 @@\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n import io.opentelemetry.instrumentation.mongo.v3_1.internal.MongoInstrumenterFactory;\n import io.opentelemetry.instrumentation.mongo.v3_1.internal.TracingCommandListener;\n-import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;\n \n public class Mongo37Singletons {\n \n   private static final Instrumenter<CommandStartedEvent, Void> instrumenter =\n       MongoInstrumenterFactory.createInstrumenter(\n           GlobalOpenTelemetry.get(),\n-          AgentCommonConfig.get().isV3Preview()\n-              ? \"io.opentelemetry.mongo-3.1\"\n-              : \"io.opentelemetry.mongo-3.7\",\n+          \"io.opentelemetry.mongo-3.1\",",
+      "id": "PRRT_kwDODJKVX86sCPkt",
+      "opened": "2026-10-13T19:53:10Z",
+      "path": "instrumentation/mongo/mongo-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_1/Mongo37Singletons.java",
+      "replies": [
+        {
+          "at": "2026-10-14T01:29:37Z",
+          "body": "Addressed in a54fe0656aa1006b9d9dea00af05bd8b5dffc885.\n\nMongo37Singletons and its version37Test now use io.opentelemetry.mongo-3.1. Removed the obsolete mongo-3.7 alias from TelemetryParser and updated the existing parameterized test to reject it while retaining acceptance of mongo-3.1. The shared filter applies consistently to spans, metrics and events.\n\n<!-- copilot-loop:00bd8816d6fd3e211704375e95b4d994925854120a3131f9eac50f0e4eec15de:4263317362:207ae142c41641f7a4e6bd4403818b15 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20584#discussion_r4265838312"
+        }
+      ],
+      "reviewed": "12750bbd88aa65e0520cdc8c3efaa9c576200efc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20584#discussion_r4263317362"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The scope-based documentation filter still treats `io.opentelemetry.ratpack-1.7` as valid telemetry for the `ratpack-1.4` agent module (`instrumentation-docs/.../TelemetryParser.java:73`), and its test locks in that legacy alias. Since this change makes the agent emit `ratpack-1.4` unconditionally, remove that allow-list entry and update the parser test so stale legacy-scope data is no longer accepted.",
+      "created": "2026-10-13T19:53:09Z",
+      "hunk": "@@ -25,10 +25,7 @@ public class RatpackSingletons {\n     httpClient =\n         new OpenTelemetryHttpClient(\n             RatpackClientInstrumenterBuilderFactory.create(\n-                    AgentCommonConfig.get().isV3Preview()\n-                        ? \"io.opentelemetry.ratpack-1.4\"\n-                        : \"io.opentelemetry.ratpack-1.7\",\n-                    GlobalOpenTelemetry.get())\n+                    \"io.opentelemetry.ratpack-1.4\", GlobalOpenTelemetry.get())",
+      "id": "PRRT_kwDODJKVX86sCPle",
+      "opened": "2026-10-13T19:53:10Z",
+      "path": "instrumentation/ratpack/ratpack-1.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/ratpack/v1_4/httpclient/RatpackSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-14T01:30:21Z",
+          "body": "Addressed in a54fe0656aa1006b9d9dea00af05bd8b5dffc885.\n\nThe ratpack-1.4 Java agent HTTP client and its version17Test now use io.opentelemetry.ratpack-1.4. Removed the obsolete ratpack-1.7 alias from TelemetryParser and updated its existing parameterized test. Library instrumentation using its own ratpack-1.7 module scope remains accepted by the unchanged exact-scope equality check.\n\n<!-- copilot-loop:00bd8816d6fd3e211704375e95b4d994925854120a3131f9eac50f0e4eec15de:4263317436:b0eb4a40ee2f43dfa8bbce2c5d238e45 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20584#discussion_r4265842258"
+        }
+      ],
+      "reviewed": "12750bbd88aa65e0520cdc8c3efaa9c576200efc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20584#discussion_r4263317436"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] `JaxrsCodeAttributesGetter` is a stateless attributes getter, so retaining it as a singleton field conflicts with the repository convention and unnecessarily extends its lifetime. Keep it local to instrumenter registration, as the previous static initializer did.",
+      "created": "2026-10-13T19:53:09Z",
+      "hunk": "@@ -7,37 +7,25 @@\n \n import io.opentelemetry.api.GlobalOpenTelemetry;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n-import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n-import io.opentelemetry.instrumentation.api.internal.EmbeddedInstrumentationProperties;\n import io.opentelemetry.instrumentation.api.semconv.code.CodeAttributesExtractor;\n import io.opentelemetry.instrumentation.api.semconv.code.CodeSpanNameExtractor;\n-import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;\n import io.opentelemetry.javaagent.bootstrap.internal.ExperimentalConfig;\n \n class JaxrsSingletons {\n \n-  private static final String VERSION_LOOKUP_NAME = \"io.opentelemetry.jaxrs-1.0-annotations\";\n-  private static final String INSTRUMENTATION_NAME =\n-      AgentCommonConfig.get().isV3Preview() ? VERSION_LOOKUP_NAME : \"io.opentelemetry.jaxrs-1.0\";\n-\n-  private static final Instrumenter<HandlerData, Void> instrumenter;\n-\n-  static {\n-    JaxrsCodeAttributesGetter codeAttributesGetter = new JaxrsCodeAttributesGetter();\n-\n-    InstrumenterBuilder<HandlerData, Void> builder =\n-        Instrumenter.<HandlerData, Void>builder(\n-                GlobalOpenTelemetry.get(),\n-                INSTRUMENTATION_NAME,\n-                CodeSpanNameExtractor.create(codeAttributesGetter))\n-            .addAttributesExtractor(CodeAttributesExtractor.create(codeAttributesGetter))\n-            .setEnabled(ExperimentalConfig.get().controllerTelemetryEnabled());\n-    String version = EmbeddedInstrumentationProperties.findVersion(VERSION_LOOKUP_NAME);\n-    if (version != null) {\n-      builder.setInstrumentationVersion(version);\n-    }\n-    instrumenter = builder.buildInstrumenter();\n-  }\n+  private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.jaxrs-1.0-annotations\";\n+\n+  private static final JaxrsCodeAttributesGetter codeAttributesGetter =\n+      new JaxrsCodeAttributesGetter();\n+\n+  private static final Instrumenter<HandlerData, Void> instrumenter =\n+      Instrumenter.<HandlerData, Void>builder(\n+              GlobalOpenTelemetry.get(),\n+              INSTRUMENTATION_NAME,\n+              CodeSpanNameExtractor.create(codeAttributesGetter))\n+          .addAttributesExtractor(CodeAttributesExtractor.create(codeAttributesGetter))\n+          .setEnabled(ExperimentalConfig.get().controllerTelemetryEnabled())\n+          .buildInstrumenter();",
+      "id": "PRRT_kwDODJKVX86sCPmG",
+      "opened": "2026-10-13T19:53:10Z",
+      "path": "instrumentation/jaxrs/jaxrs-1.0-annotations/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/jaxrs/v1_0/JaxrsSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-14T01:31:12Z",
+          "body": "Addressed in 18293d3406e91e233072aabff07c25e22bc3a7fb.\n\nThe applicable Java style instructions prefer stateless attributes getters constructed at registration. Restored a static initializer with one local JaxrsCodeAttributesGetter shared by both extractors, removing the redundant field while preserving the finalized scope, controller enablement and instrumenter behavior. The complete JAX-RS module test suite passed.\n\n<!-- copilot-loop:00bd8816d6fd3e211704375e95b4d994925854120a3131f9eac50f0e4eec15de:4263317492:a054fd9cb31c4d1980cb3cf830fc88c3 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20584#discussion_r4265846501"
+        }
+      ],
+      "reviewed": "12750bbd88aa65e0520cdc8c3efaa9c576200efc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20584#discussion_r4263317492"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please simplify `poolNameOverridesAdditionalAttributes` to pass `OpenTelemetry.noop()` to `DbConnectionPoolMetrics.create`. This test only checks attribute precedence, so it does not need a real SDK. Remove the `SdkMeterProvider` creation, its cleanup registration, and the `OpenTelemetrySdk` construction from this test, and add the `io.opentelemetry.api.OpenTelemetry` import. Leave the schema and export tests unchanged because they still need a real meter provider.",
+      "created": "2026-10-13T20:53:04Z",
+      "hunk": "@@ -26,14 +26,15 @@ class DbConnectionPoolMetricsTest {\n   @RegisterExtension final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n \n   @Test\n-  @SuppressWarnings(\"deprecation\")\n   void poolNameOverridesAdditionalAttributes() {\n     SdkMeterProvider meterProvider = SdkMeterProvider.builder().build();\n     cleanup.deferCleanup(meterProvider);\n+    OpenTelemetrySdk openTelemetry =\n+        OpenTelemetrySdk.builder().setMeterProvider(meterProvider).build();",
+      "id": "PRRT_kwDODJKVX86sDoQt",
+      "opened": "2026-10-13T20:53:04Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbConnectionPoolMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-13T20:59:02Z",
+          "body": "Updated in `b59e6dd2`: the precedence test now uses `OpenTelemetry.noop()`; the SDK meter-provider setup remains in the schema and export tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20584#discussion_r4263953083"
+        }
+      ],
+      "reviewed": "65ab84ae7efca1d58110393100b0abd5842fee16",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20584#discussion_r4263897956"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please remove the `assertServiceScope()` teardown hooks from both `CxfJaxWs2Test` and `MetroJaxWs2Test`, but keep their scope-name coverage. In `AbstractJaxWs2Test`, add `.satisfies(hasScopeName(expectedScopeName()))` to the existing `HelloService/...` span assertions inside `waitAndAssertTraces(...)` for both successful and failing requests, using the shared `InstrumentationScopeAssertions.hasScopeName` helper. Have the concrete subclasses supply the expected scope through a protected `expectedScopeName()` hook: `io.opentelemetry.jaxws-2.0-cxf-3.0` for CXF and `io.opentelemetry.jaxws-2.0-metro-2.2` for Metro. Also update the existing Axis2 subclass for the shared hook, using its current scope `io.opentelemetry.jaxws-2.0-axis2-1.6`. Remove the unused teardown imports. This keeps the scope checks beside the existing trace assertions instead of separately filtering exported spans after every test.",
+      "created": "2026-10-13T20:57:08Z",
+      "hunk": "@@ -5,6 +5,19 @@\n \n package io.opentelemetry.javaagent.instrumentation.jaxws.v2_0.cxf.v3_0;\n \n+import static org.assertj.core.api.Assertions.assertThat;\n+\n import io.opentelemetry.javaagent.instrumentation.jaxws.v2_0.AbstractJaxWs2Test;\n+import org.junit.jupiter.api.AfterEach;\n+\n+class CxfJaxWs2Test extends AbstractJaxWs2Test {\n \n-class CxfJaxWs2Test extends AbstractJaxWs2Test {}\n+  @AfterEach\n+  void assertServiceScope() {",
+      "id": "PRRT_kwDODJKVX86sDuHF",
+      "opened": "2026-10-13T20:57:08Z",
+      "path": "instrumentation/jaxws/jaxws-2.0-cxf-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jaxws/v2_0/cxf/v3_0/CxfJaxWs2Test.java",
+      "replies": [
+        {
+          "at": "2026-10-13T21:06:55Z",
+          "body": "Updated in `ddb839ed`: scope checks now run within both shared success and failure trace assertions, with scope names supplied by the Axis2, CXF, and Metro subclasses.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20584#discussion_r4264022761"
+        }
+      ],
+      "reviewed": "65ab84ae7efca1d58110393100b0abd5842fee16",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20584#discussion_r4263936061"
+    }
+  ]
+}

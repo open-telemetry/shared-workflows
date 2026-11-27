@@ -1,0 +1,88 @@
+{
+  "head": "c0fe32d297126586a2b565de8441b9dd1c1d0e61",
+  "merge": "b31e8f912c74021d5255db51ee562dc48533506a",
+  "merged": "2026-06-09T09:45:19Z",
+  "missing_roots": 0,
+  "number": 18889,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The wrapped comment introduces an orphaned `// the` line, which hurts readability and looks accidental. Consider re-wrapping to avoid single-word lines.",
+      "created": "2026-06-03T22:11:23Z",
+      "hunk": "@@ -30,32 +32,37 @@ public class SpymemcachedSingletons {\n         ServerAttributesExtractor.create(serverAttributesGetter);\n \n     instrumenter =\n-        Instrumenter.builder(\n-                GlobalOpenTelemetry.get(),\n-                INSTRUMENTATION_NAME,\n-                DbClientSpanNameExtractor.create(dbAttributesGetter))\n-            .addAttributesExtractor(DbClientAttributesExtractor.create(dbAttributesGetter))\n-            .addAttributesExtractor(\n-                new AttributesExtractor<SpymemcachedRequest, Object>() {\n-                  @Override\n-                  public void onStart(\n-                      AttributesBuilder attributes, Context context, SpymemcachedRequest request) {}\n+        setDbClientExceptionEventExtractor(\n+                Instrumenter.<SpymemcachedRequest, Object>builder(\n+                        GlobalOpenTelemetry.get(),\n+                        INSTRUMENTATION_NAME,\n+                        DbClientSpanNameExtractor.create(dbAttributesGetter))\n+                    .addAttributesExtractor(DbClientAttributesExtractor.create(dbAttributesGetter))\n+                    .addAttributesExtractor(\n+                        new AttributesExtractor<SpymemcachedRequest, Object>() {\n+                          @Override\n+                          public void onStart(\n+                              AttributesBuilder attributes,\n+                              Context context,\n+                              SpymemcachedRequest request) {}\n \n-                  @Override\n-                  public void onEnd(\n-                      AttributesBuilder attributes,\n-                      Context context,\n-                      SpymemcachedRequest request,\n-                      @Nullable Object object,\n-                      @Nullable Throwable error) {\n-                    // For spymemcached, we can only extract server attributes at the end of the\n-                    // request because they are not available at the start.\n-                    serverAttributesExtractor.onStart(attributes, context, request);\n-                  }\n-                })\n-            .addContextCustomizer(\n-                (context, request, attributes) -> SpymemcachedRequestHolder.init(context, request))\n-            .addOperationMetrics(DbClientMetrics.get())\n+                          @Override\n+                          public void onEnd(\n+                              AttributesBuilder attributes,\n+                              Context context,\n+                              SpymemcachedRequest request,\n+                              @Nullable Object object,\n+                              @Nullable Throwable error) {\n+                            // For spymemcached, we can only extract server attributes at the end of\n+                            // the\n+                            // request because they are not available at the start.",
+      "id": "PRRT_kwDODJKVX86G6DDS",
+      "opened": "2026-06-03T22:11:23Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedSingletons.java",
+      "replies": [
+        {
+          "at": "2026-06-03T23:39:39Z",
+          "body": "Good catch — re-wrapped the comment so there are no orphaned single-word lines.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18889#discussion_r3352543508"
+        }
+      ],
+      "reviewed": "82852bced221df3b3787d2681fb53c35acf55b6f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18889#discussion_r3352231172"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "New behavior (overriding exception-log event name/severity for DB client instrumenters) isn’t covered by tests. Since this is user-visible under `otel.semconv.exception.signal.preview=logs`, it would be good to add a unit test that builds an Instrumenter with `setDbClientExceptionEventExtractor(...)`, ends it with an exception, and (when `emitExceptionAsLogs()` is true) asserts the exported log has eventName `db.client.operation.exception` and severity `WARN` (similar to `instrumentation-api/.../InstrumenterTest`).",
+      "created": "2026-06-03T23:46:56Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.db.internal;\n+\n+import com.google.errorprone.annotations.CanIgnoreReturnValue;\n+import io.opentelemetry.api.logs.Severity;\n+import io.opentelemetry.instrumentation.api.instrumenter.InstrumenterBuilder;\n+import io.opentelemetry.instrumentation.api.internal.Experimental;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class DbExceptionEventExtractors {\n+\n+  /**\n+   * Configures the database client exception event name and severity. Only takes effect when\n+   * emitting exceptions as logs is enabled via the {@code otel.semconv.exception.signal.preview}\n+   * flag.\n+   */\n+  @CanIgnoreReturnValue\n+  public static <REQUEST, RESPONSE>\n+      InstrumenterBuilder<REQUEST, RESPONSE> setDbClientExceptionEventExtractor(\n+          InstrumenterBuilder<REQUEST, RESPONSE> builder) {\n+    Experimental.setExceptionEventExtractor(\n+        builder,\n+        (logRecordBuilder, context, request) -> {\n+          logRecordBuilder.setEventName(\"db.client.operation.exception\");\n+          logRecordBuilder.setSeverity(Severity.WARN);\n+        });",
+      "id": "PRRT_kwDODJKVX86G6_mL",
+      "opened": "2026-06-03T23:46:56Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbExceptionEventExtractors.java",
+      "replies": [
+        {
+          "at": "2026-06-04T23:05:06Z",
+          "body": "Added `DbExceptionEventExtractorsTest` in `instrumentation-api-incubator` (runs under the `testExceptionSignalLogs` task with `otel.semconv.exception.signal.preview=logs`). It builds an instrumenter with `setDbClientExceptionEventExtractor(...)`, ends it with an exception, and asserts the exported `LogRecordData` has event name `db.client.operation.exception`, `Severity.WARN`, and the exception attributes when `emitExceptionAsLogs()` is true (and no log when false). Also added an integration check (`AbstractJdbcInstrumentationTest.testFailedStatement`) with a per-module `testExceptionSignalLogs` Gradle task on the JDBC library + javaagent.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18889#discussion_r3359388892"
+        }
+      ],
+      "reviewed": "fcbda86a66da79015b103c295486f6693b07ae75",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18889#discussion_r3352569262"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n                    // For spymemcached, we can only extract server attributes at the end of the\n                    // request because they are not available at the start.\n```",
+      "created": "2026-06-05T18:04:07Z",
+      "hunk": "@@ -48,15 +51,17 @@ public void onEnd(\n                       SpymemcachedRequest request,\n                       @Nullable Object object,\n                       @Nullable Throwable error) {\n-                    // For spymemcached, we can only extract server attributes at the end of the\n-                    // request because they are not available at the start.\n+                    // For spymemcached, we can only extract server attributes at the\n+                    // end of the request because they are not available at the start.",
+      "id": "PRRT_kwDODJKVX86HcSkq",
+      "opened": "2026-06-05T18:04:07Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedSingletons.java",
+      "replies": [],
+      "reviewed": "af3af483ad77a17c9e28acfd2f533da058c78233",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18889#discussion_r3364496455"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `testFailedStatement` creates a new JDBC `Connection` but never registers it with `AutoCleanupExtension`, so the connection may remain open after the test and leak resources (this class uses `cleanup.deferCleanup(connection)` in other tests).",
+      "created": "2026-06-06T22:13:07Z",
+      "hunk": "@@ -418,6 +424,51 @@ isCallStatement && emitStableDatabaseSemconv()\n         testing(), \"io.opentelemetry.jdbc\", DB_SYSTEM_NAME, DB_NAMESPACE, DB_QUERY_SUMMARY);\n   }\n \n+  @Test\n+  void testFailedStatement() throws SQLException {\n+    Connection connection = wrap(new org.h2.Driver().connect(JDBC_URLS.get(\"h2\"), null));\n+    Statement statement = connection.createStatement();\n+    cleanup.deferCleanup(statement);",
+      "id": "PRRT_kwDODJKVX86Hm9QX",
+      "opened": "2026-06-06T22:13:08Z",
+      "path": "instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-06-06T23:07:30Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f16611e2294ec7c12f13a0f0a974175db2d31cfd.\n\nRegistered the test connection with AutoCleanupExtension next to its creation so it is closed after the test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18889#discussion_r3368419348"
+        }
+      ],
+      "reviewed": "9d22c5dc1a3aa5ccef7786e8e28984926f7f1f43",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18889#discussion_r3368350273"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "46d63cd8bd8fcda3117ebf8e8f77e927b0bc274f",
+  "merge": "15d92a799693572980cf7ecec1a4fa9e617d9176",
+  "merged": "2026-08-11T03:21:42Z",
+  "missing_roots": 0,
+  "number": 366,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "can we do even better and specify the type of elements?",
+      "created": "2026-08-07T22:37:24Z",
+      "hunk": "@@ -81,7 +82,7 @@ def find_tool_call_id(messages: Any, tool_name: str) -> str | None:\n \n     responded: set[str] = set()\n     pending: list[str] = []\n-    for msg in messages:\n+    for msg in cast(list[Any], messages):",
+      "id": "PRRT_kwDOSbspP86XaLwO",
+      "opened": "2026-08-07T22:37:40Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-qwen-agent/src/opentelemetry/instrumentation/genai/qwen_agent/utils.py",
+      "replies": [
+        {
+          "at": "2026-08-08T06:45:25Z",
+          "body": "Done in 1131e05 — the casts are gone entirely.\r\n\r\nInstead of `cast(list[Any], ...)` I annotated the signatures with\r\nqwen-agent's own `Message` / `ContentItem`, imported under\r\n`TYPE_CHECKING` since qwen-agent is an optional dependency. Pyright\r\nnarrows the `isinstance` checks on its own from there, so all five\r\nlist casts dropped out.\r\n\r\nThe only cast left is the `dict[str, Any]` one in `_field_value`,\r\nwhere the lookup genuinely is a heterogeneous mapping.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/366#discussion_r3740196085"
+        }
+      ],
+      "reviewed": "d04147b86210b89b19e2603fc10da13693100b80",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/366#discussion_r3739178577"
+    }
+  ]
+}

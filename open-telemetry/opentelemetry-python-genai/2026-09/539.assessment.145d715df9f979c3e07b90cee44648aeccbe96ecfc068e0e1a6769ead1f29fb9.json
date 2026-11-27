@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "68293c15e2d79f38eb17e6501292c561c4e84f127f4d6da2b0e2768f07f5c1b9",
+  "input_digest": "145d715df9f979c3e07b90cee44648aeccbe96ecfc068e0e1a6769ead1f29fb9",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/da515756ccc0a5bc2c95b8510bf63db81dae789b/tox.ini",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/da515756ccc0a5bc2c95b8510bf63db81dae789b/instrumentation/opentelemetry-instrumentation-genai-openai/tests/requirements.v2.txt",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/6b262dd85eb7c6322fd4413e3fd696016d24470d/tox.ini",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/6b262dd85eb7c6322fd4413e3fd696016d24470d/instrumentation/opentelemetry-instrumentation-genai-openai/tests/requirements.v2.txt"
+      ],
+      "id": "PRRT_kwDOSbspP86enaxF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/da515756ccc0a5bc2c95b8510bf63db81dae789b/instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_raw_response_httpx_interop.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/da515756ccc0a5bc2c95b8510bf63db81dae789b/instrumentation/opentelemetry-instrumentation-genai-openai/tests/requirements.v2.txt",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/6b262dd85eb7c6322fd4413e3fd696016d24470d/instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_raw_response_httpx_interop.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/6b262dd85eb7c6322fd4413e3fd696016d24470d/instrumentation/opentelemetry-instrumentation-genai-openai/tests/requirements.v2.txt"
+      ],
+      "id": "PRRT_kwDOSbspP86enaxx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

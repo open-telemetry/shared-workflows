@@ -1,0 +1,91 @@
+{
+  "head": "0c187b8a568df3a180f28bf100eb920699f1689d",
+  "merge": "8fd0a356aa065b3ffc983df502beed6c251cba3d",
+  "merged": "2026-07-09T02:39:57Z",
+  "missing_roots": 0,
+  "number": 226,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Grammar in changelog: \"ContextManager's\" is incorrect plural/possessive; this should read \"context managers\".",
+      "created": "2026-07-09T02:17:57Z",
+      "hunk": "@@ -15,6 +15,57 @@ See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTR\n \n <!-- changelog start -->\n \n+## Version 1.0b0 (2026-07-09)\n+\n+### Added\n+\n+- Add `tool_result` as a parameter to `ToolInvocation`, add `tool_result` and\n+  `arguments` as span attributes to the `execute_tool` span if `ContentCapture`\n+  flag is set.\n+  ([#17](https://github.com/open-telemetry/opentelemetry-python-genai/pull/17))\n+- Add `RetrievalInvocation` type with `start_retrieval` / `retrieval` span\n+  lifecycle, supporting `gen_ai.operation.name=retrieval` spans per the GenAI\n+  semantic conventions.\n+  ([#36](https://github.com/open-telemetry/opentelemetry-python-genai/pull/36))\n+- Add shared sync and async stream wrapper base classes for GenAI\n+  instrumentations.\n+  ([#4500](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4500))\n+\n+### Changed\n+\n+- Bumped the version to `1.0b0` to align with the OpenTelemetry GenAI packages.\n+  ([#60](https://github.com/open-telemetry/opentelemetry-python-genai/pull/60))\n+- Use `AttributeValue` instead of `Any` for span and metric attribute types in\n+  `GenAIInvocation` and its subclasses.\n+  ([#153](https://github.com/open-telemetry/opentelemetry-python-genai/pull/153))\n+- Apply attribute for sampling on instantiation of all invocation types.\n+  ([#4553](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4553))\n+- Change `InferenceInvocation` init params to only accept base params\n+- Minor code cleanup and changes in preparation of moving google's GenAI\n+  instrumentation library to use this util library\n+  ([#4556](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4556))\n+- Pass in `attributes` on invocation `_start` so samplers have access to\n+  attributes.\n+  ([#4538](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4538))\n+\n+### Deprecated\n+\n+- deprecate all `start_` factories, update all `invocation` factories to return\n+  objects that can be used as ContextManager's\n+  ([#17](https://github.com/open-telemetry/opentelemetry-python-genai/pull/17))",
+      "id": "PRRT_kwDOSbspP86Pbi18",
+      "opened": "2026-07-09T02:17:58Z",
+      "path": "util/opentelemetry-util-genai/CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-07-09T02:19:10Z",
+          "body": "where have you been when we merged it?",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/226#discussion_r3548451918"
+        }
+      ],
+      "reviewed": "14994e9eefeb2c88a1cf5988c12663aab29de45a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/226#discussion_r3548444621"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This PR directly edits CHANGELOG.md and deletes towncrier fragments, but .github/workflows/changelog.yml will fail any PR that modifies **/CHANGELOG.md and also requires newly added <PR_NUMBER>.<type> fragments unless the \"Skip Changelog\" label is applied. As-is, the changelog CI job will block this release PR; either add the \"Skip Changelog\" label for this PR (recommended for release prep), or adjust the workflow to exempt release-labeled PRs.",
+      "created": "2026-07-09T02:17:57Z",
+      "hunk": "@@ -15,6 +15,57 @@ See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTR\n \n <!-- changelog start -->\n \n+## Version 1.0b0 (2026-07-09)\n+\n+### Added\n+\n+- Add `tool_result` as a parameter to `ToolInvocation`, add `tool_result` and\n+  `arguments` as span attributes to the `execute_tool` span if `ContentCapture`\n+  flag is set.\n+  ([#17](https://github.com/open-telemetry/opentelemetry-python-genai/pull/17))\n+- Add `RetrievalInvocation` type with `start_retrieval` / `retrieval` span",
+      "id": "PRRT_kwDOSbspP86Pbi1S",
+      "opened": "2026-07-09T02:17:58Z",
+      "path": "util/opentelemetry-util-genai/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "14994e9eefeb2c88a1cf5988c12663aab29de45a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/226#discussion_r3548444555"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Typo in changelog entry: \"constraing\" should be \"constraint\".",
+      "created": "2026-07-09T02:17:57Z",
+      "hunk": "@@ -15,6 +15,70 @@ See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTR\n \n <!-- changelog start -->\n \n+## Version 1.0b0 (2026-07-09)\n+\n+### Added\n+\n+- Added missing `gen_ai.response.id` attribute to span and event.\n+  ([#119](https://github.com/open-telemetry/opentelemetry-python-genai/pull/119))\n+- Add instrumentation for InteractionsResource.create and\n+  AsyncInteractionsResource.create.\n+  ([#165](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165))\n+- Add telemetry support for the Google GenAI SDK embedding API (embed_content\n+  and embed_content_async).\n+  ([#176](https://github.com/open-telemetry/opentelemetry-python-genai/pull/176))\n+- Record response model (`gen_ai.response.model`) attribute on inference span.\n+  ([#205](https://github.com/open-telemetry/opentelemetry-python-genai/pull/205))\n+- Add `gen_ai.usage.cache_read.input_tokens` attribute to capture cached tokens\n+  on spans/events when the experimental sem conv flag is set.\n+  ([#4313](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4313))\n+- Add `gen_ai.usage.reasoning.output_tokens` attribute to capture thinking\n+  tokens on spans/events when the experimental sem conv flag is set. Add\n+  thinking tokens to output tokens.\n+  ([#4313](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4313))\n+\n+### Changed\n+\n+- Refactor code to make use of the shared GenAi Utils package\n+  `opentelemetry-util-genai`. This shared package is used by multiple GenAI\n+  instrumentations, and ensures sem convs are followed and up to date. This\n+  does result in some span attributes on the `execute_tool` span being removed\n+  (`code.function.parameters.someparam.type`,\n+  `code.function.parameters.someparam.value` etc.), and other sem conv\n+  compliant attributes being added to the span (specifically:\n+  `gen_ai.tool.call.arguments`, `gen_ai.tool.call.result`), it also correctly\n+  changes the `SpanKind` from `INTERNAL` to `CLIENT`. The `generate_content`\n+  span also is switched to `SpanKind` `CLIENT`, and the `gen_ai.provider.name`\n+  attribute which was missing has been added, it's value is `vertex_ai`. The\n+  `InstrumentationScope` of the log and trace will also change, as the\n+  `TelemetryHandler` class in the utils package is now used to write the logs\n+  and traces.\n+  ([#10](https://github.com/open-telemetry/opentelemetry-python-genai/pull/10))\n+- Relax version constraing of `google-genai` to allow v2 of that library to be\n+  used with the instrumentation library.",
+      "id": "PRRT_kwDOSbspP86Pbi1f",
+      "opened": "2026-07-09T02:17:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "14994e9eefeb2c88a1cf5988c12663aab29de45a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/226#discussion_r3548444577"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Grammar fix in changelog: \"it's value\" should be the possessive \"its value\".",
+      "created": "2026-07-09T02:17:57Z",
+      "hunk": "@@ -15,6 +15,70 @@ See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTR\n \n <!-- changelog start -->\n \n+## Version 1.0b0 (2026-07-09)\n+\n+### Added\n+\n+- Added missing `gen_ai.response.id` attribute to span and event.\n+  ([#119](https://github.com/open-telemetry/opentelemetry-python-genai/pull/119))\n+- Add instrumentation for InteractionsResource.create and\n+  AsyncInteractionsResource.create.\n+  ([#165](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165))\n+- Add telemetry support for the Google GenAI SDK embedding API (embed_content\n+  and embed_content_async).\n+  ([#176](https://github.com/open-telemetry/opentelemetry-python-genai/pull/176))\n+- Record response model (`gen_ai.response.model`) attribute on inference span.\n+  ([#205](https://github.com/open-telemetry/opentelemetry-python-genai/pull/205))\n+- Add `gen_ai.usage.cache_read.input_tokens` attribute to capture cached tokens\n+  on spans/events when the experimental sem conv flag is set.\n+  ([#4313](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4313))\n+- Add `gen_ai.usage.reasoning.output_tokens` attribute to capture thinking\n+  tokens on spans/events when the experimental sem conv flag is set. Add\n+  thinking tokens to output tokens.\n+  ([#4313](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4313))\n+\n+### Changed\n+\n+- Refactor code to make use of the shared GenAi Utils package\n+  `opentelemetry-util-genai`. This shared package is used by multiple GenAI\n+  instrumentations, and ensures sem convs are followed and up to date. This\n+  does result in some span attributes on the `execute_tool` span being removed\n+  (`code.function.parameters.someparam.type`,\n+  `code.function.parameters.someparam.value` etc.), and other sem conv\n+  compliant attributes being added to the span (specifically:\n+  `gen_ai.tool.call.arguments`, `gen_ai.tool.call.result`), it also correctly\n+  changes the `SpanKind` from `INTERNAL` to `CLIENT`. The `generate_content`\n+  span also is switched to `SpanKind` `CLIENT`, and the `gen_ai.provider.name`\n+  attribute which was missing has been added, it's value is `vertex_ai`. The\n+  `InstrumentationScope` of the log and trace will also change, as the",
+      "id": "PRRT_kwDOSbspP86Pbi1w",
+      "opened": "2026-07-09T02:17:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "14994e9eefeb2c88a1cf5988c12663aab29de45a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/226#discussion_r3548444595"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Changelog casing: \"genAI langchain llm\" should use consistent capitalization (\"GenAI LangChain LLM\").",
+      "created": "2026-07-09T02:17:58Z",
+      "hunk": "@@ -14,3 +14,39 @@ See https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/CONTR\n -->\n \n <!-- changelog start -->\n+\n+## Version 1.0b0 (2026-07-09)\n+\n+### Added\n+\n+- Add LangChain workflow and agent span support\n+  ([#25](https://github.com/open-telemetry/opentelemetry-python-genai/pull/25))\n+- Added tool spans and captured tool definitions on inference spans.\n+  ([#37](https://github.com/open-telemetry/opentelemetry-python-genai/pull/37))\n+- Added log and metrics provider to langchain genai utils handler\n+  ([#4214](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4214))\n+- Added span support for genAI langchain llm invocation.\n+  ([#3665](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/3665))",
+      "id": "PRRT_kwDOSbspP86Pbi2O",
+      "opened": "2026-07-09T02:17:58Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/CHANGELOG.md",
+      "replies": [],
+      "reviewed": "14994e9eefeb2c88a1cf5988c12663aab29de45a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/226#discussion_r3548444647"
+    }
+  ]
+}

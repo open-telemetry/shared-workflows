@@ -1,0 +1,25 @@
+{
+  "head": "3174180aa16f2ce07f790925a1319bc445a3ffbd",
+  "merge": "18b217a53a7cf67a32f2084e81555ba19e513010",
+  "merged": "2026-04-30T19:32:46Z",
+  "missing_roots": 0,
+  "number": 18434,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "using the free/cheap model for categorization, similar to change log workflow",
+      "created": "2026-04-30T05:48:34Z",
+      "hunk": "@@ -0,0 +1,885 @@\n+#!/usr/bin/env python3\n+\"\"\"Generate a PR review dashboard with LLM-suggested next steps.\n+\n+For each open non-draft PR we:\n+  1. Deterministically fetch a compact \"PR context\" via `gh` (PR metadata,\n+     last comments, last reviews, last commits, checks summary).\n+  2. Pre-compute signals (last-activity actor, role, age in days, etc.).\n+  3. Send the assembled context to `copilot -p` (no tool access) and ask\n+     for a JSON verdict with the next step.\n+\n+Output: pull-request-dashboard.md (one section per PR, grouped by category).\n+\n+Usage:\n+  python .github/scripts/pull-request-dashboard.py [--output FILE]\n+                                                   [--jobs N]\n+                                                   [--model NAME]\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import argparse\n+import json\n+import re\n+import subprocess\n+import sys\n+import time\n+from concurrent.futures import ThreadPoolExecutor, as_completed\n+from datetime import datetime, timezone\n+from pathlib import Path\n+from typing import Any\n+\n+DEFAULT_OUTPUT = \"pull-request-dashboard.md\"\n+DEFAULT_JOBS = 4\n+DEFAULT_MODEL = \"gpt-5.4-mini\"",
+      "id": "PRRT_kwDODJKVX85-pJN5",
+      "opened": "2026-04-30T05:48:34Z",
+      "path": ".github/scripts/pull-request-dashboard.py",
+      "replies": [],
+      "reviewed": "3fcb70ade8e17dd0894ee113e00ef5c888ebe66a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18434#discussion_r3165878004"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "c0c6fc7c31b173fa95d7e83f6ab955d9e0a7d50e",
+  "merge": "5ead3fa7bed47130f8762cc41c39033a3c48fd72",
+  "merged": "2026-04-02T17:28:34Z",
+  "missing_roots": 0,
+  "number": 17116,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "how do you know that user is using declarative configuration not the system properties?",
+      "created": "2026-03-27T07:38:40Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.db.internal;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.api.incubator.config.DeclarativeConfigProperties;\n+import io.opentelemetry.instrumentation.api.incubator.config.internal.DeclarativeConfigUtil;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at\n+ * any time.\n+ */\n+public final class DbQuerySanitizationConfig {\n+  private static final Logger logger = Logger.getLogger(DbQuerySanitizationConfig.class.getName());\n+\n+  public static boolean getCommonQuerySanitizationEnabled(OpenTelemetry openTelemetry) {\n+    return getCommonQuerySanitizationEnabled(openTelemetry, true);\n+  }\n+\n+  public static boolean getCommonQuerySanitizationEnabled(\n+      OpenTelemetry openTelemetry, boolean defaultValue) {\n+    Boolean querySanitizationEnabled =\n+        getBooleanWithDeprecatedAlias(\n+            DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\")\n+                .get(\"database\"));\n+    return querySanitizationEnabled != null ? querySanitizationEnabled : defaultValue;\n+  }\n+\n+  public static boolean getQuerySanitizationEnabled(\n+      OpenTelemetry openTelemetry, String instrumentationName) {\n+    Boolean querySanitizationEnabled =\n+        getBooleanWithDeprecatedAlias(\n+            DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, instrumentationName));\n+    if (querySanitizationEnabled != null) {\n+      return querySanitizationEnabled;\n+    }\n+    return getCommonQuerySanitizationEnabled(openTelemetry);\n+  }\n+\n+  @Nullable\n+  private static Boolean getBooleanWithDeprecatedAlias(DeclarativeConfigProperties config) {\n+    Boolean value = config.get(\"query_sanitization\").getBoolean(\"enabled\");\n+    Boolean deprecatedValue = config.get(\"statement_sanitizer\").getBoolean(\"enabled\");\n+    if (deprecatedValue != null) {\n+      logger.warning(\n+          \"statement_sanitizer is deprecated in declarative configuration\"",
+      "id": "PRRT_kwDODJKVX853N50G",
+      "opened": "2026-03-27T07:38:40Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbQuerySanitizationConfig.java",
+      "replies": [],
+      "reviewed": "c4a09b25ec9643b1f5cae9eff0cc06eb82a29d98",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17116#discussion_r2999465993"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should the system properties also be renamed?",
+      "created": "2026-04-02T06:40:57Z",
+      "hunk": "@@ -64,10 +64,10 @@ public final class ConfigPropertiesBackedDeclarativeConfigProperties\n         \"java.common.http.server.emit_experimental_telemetry/development\",\n         \"otel.instrumentation.http.server.emit-experimental-telemetry\");\n     SPECIAL_MAPPINGS.put(\n-        \"java.common.database.statement_sanitizer.enabled\",\n+        \"java.common.db.query_sanitization.enabled\",\n         \"otel.instrumentation.common.db-statement-sanitizer.enabled\");",
+      "id": "PRRT_kwDODJKVX854a1fP",
+      "opened": "2026-04-02T06:40:56Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [
+        {
+          "at": "2026-04-02T17:28:27Z",
+          "body": "yeah, I'll send follow-up",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17116#discussion_r3029358963"
+        }
+      ],
+      "reviewed": "c0c6fc7c31b173fa95d7e83f6ab955d9e0a7d50e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17116#discussion_r3026203657"
+    }
+  ]
+}

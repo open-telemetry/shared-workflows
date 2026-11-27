@@ -1,0 +1,40 @@
+{
+  "head": "b8229abd2e8100020ab366166424ae54d7bc8373",
+  "merge": "beb14d6f621db10867db1a1ece87ca99c937dad0",
+  "merged": "2026-08-13T20:59:10Z",
+  "missing_roots": 0,
+  "number": 19561,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The rename is incomplete: `instrumentation/tomcat/tomcat-dbcp-8.0/metadata.yaml:19` still declares `general.semconv_stability.opt_in` (and lacks the scalar declarative type), so metadata can still produce the schema-invalid name this PR is intended to remove. This compatibility alias also lets `DeclarativeConfigValidationTest` accept that stale entry; update the remaining metadata and make validation reject deprecated declarative names while retaining the runtime alias if compatibility is required.",
+      "created": "2026-08-13T12:33:42Z",
+      "hunk": "@@ -50,8 +50,12 @@ final class ConfigPropertiesBackedDeclarativeConfigProperties\n         \"general.http.server.response_captured_headers\",\n         \"otel.instrumentation.http.server.capture-response-headers\");\n     SPECIAL_MAPPINGS.put(\n-        \"general.sanitization.url.sensitive_query_parameters/development\",\n+        \"general.sanitization.url.sensitive_query_parameters\",\n         \"otel.instrumentation.sanitization.url.experimental.sensitive-query-parameters\");\n+    // general.stability_opt_in_list is the name in the declarative configuration schema; the\n+    // general.semconv_stability.opt_in spelling is only reachable through this bridge and is kept\n+    // for backwards compatibility (see SemconvSelectionResolver, which reads both)\n+    SPECIAL_MAPPINGS.put(\"general.stability_opt_in_list\", \"otel.semconv-stability.opt-in\");",
+      "id": "PRRT_kwDODJKVX86Y7kGb",
+      "opened": "2026-08-13T12:33:43Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [],
+      "reviewed": "c0ed47c731af3a28cbeabe2f73afc5c00e96697d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19561#discussion_r3775346304"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This introduces `declarative_type: string`, but `.github/agents/knowledge/metadata-yaml-format.md:20-21` still says this field currently supports only `structured_list`. Update the format guide to document scalar type overrides (including why this list-valued flat property is a string in declarative config), otherwise the repository's source-of-truth guidance contradicts the new metadata.",
+      "created": "2026-08-13T12:33:43Z",
+      "hunk": "@@ -9,12 +9,13 @@ semantic_conventions:\n   - DATABASE_POOL_METRICS\n configurations:\n   - name: otel.semconv-stability.opt-in\n-    declarative_name: general.semconv_stability.opt_in\n+    declarative_name: general.stability_opt_in_list\n     description: >\n       Opt-in to emit stable semantic conventions instead of the old\n       experimental semantic conventions. Accepts a comma-separated list of semantic convention\n       groups (e.g., `database`, `http`, `messaging`). Use `<group>/dup` to emit both old and new\n       conventions simultaneously. Stable semantic conventions will become the default in version\n       3.0 of the agent.\n     type: list\n+    declarative_type: string",
+      "id": "PRRT_kwDODJKVX86Y7kG6",
+      "opened": "2026-08-13T12:33:43Z",
+      "path": "instrumentation/tomcat/tomcat-jdbc-8.5/metadata.yaml",
+      "replies": [],
+      "reviewed": "c0ed47c731af3a28cbeabe2f73afc5c00e96697d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19561#discussion_r3775346350"
+    }
+  ]
+}

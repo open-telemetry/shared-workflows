@@ -1,0 +1,25 @@
+{
+  "head": "58f62f7f6d609d891100b74e94a2f8f51b2143e4",
+  "merge": "c81669caaaa43011bea4b9f42142fb57bdf20f26",
+  "merged": "2026-03-25T11:53:10Z",
+  "missing_roots": 0,
+  "number": 17034,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-03-25T11:41:01Z",
+      "hunk": "@@ -12,5 +12,6 @@ dependencies {\n tasks {\n   test {\n     jvmArgs(\"-Dotel.instrumentation.runtime-telemetry.package-emitter.enabled=true\")\n+    usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)",
+      "id": "PRRT_kwDODJKVX852sToi",
+      "opened": "2026-03-25T11:41:01Z",
+      "path": "instrumentation/runtime-telemetry/runtime-telemetry-java8/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "fc8281b5d3d7419336babebce6af51ac50c44b9e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17034#discussion_r2987635644"
+    }
+  ]
+}

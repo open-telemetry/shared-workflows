@@ -1,0 +1,136 @@
+{
+  "head": "f14d69634699395b227ab09c2cdab9de83c93e9d",
+  "merge": "6353032e54087c47b97be6766e1d58fc2f3bd364",
+  "merged": "2026-08-31T23:45:58Z",
+  "missing_roots": 0,
+  "number": 510,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`on_tool_end` currently overwrites an id captured at `on_tool_start` whenever a truthy `output.tool_call_id` is present. If the end id disagrees with the start id, this will silently replace the original and can break correlation with earlier events. Consider only setting the end id when `tool_invocation.tool_call_id` is not already set, or only overwriting when the values match (and otherwise keep the start id / optionally log a debug warning).",
+      "created": "2026-08-31T08:09:07Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86dpp_-",
+      "opened": "2026-08-31T08:09:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/callback_handler.py",
+      "replies": [
+        {
+          "at": "2026-08-31T08:40:33Z",
+          "body": "fixed this, now it won't be overwritten if `tool_invocation.tool_call_id` already has value",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892918852"
+        }
+      ],
+      "reviewed": "fc6894a99ff8a5bfb88860f69ca956a537109cd3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892733655"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These new tests accept the `monkeypatch` fixture but never use it. If your test suite enforces unused-argument checks, this can fail linting. Either remove the parameter, or rename it to `_monkeypatch` to make the intentional non-use explicit.",
+      "created": "2026-08-31T08:09:07Z",
+      "hunk": "@@ -519,6 +519,119 @@ def test_on_tool_error_records_error_type(monkeypatch):\n     assert attrs[error_attributes.ERROR_TYPE] == \"ValueError\"\n \n \n+def test_on_tool_error_records_tool_call_id_from_start(monkeypatch):",
+      "id": "PRRT_kwDOSbspP86dpqAZ",
+      "opened": "2026-08-31T08:09:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_tools.py",
+      "replies": [
+        {
+          "at": "2026-08-31T08:41:27Z",
+          "body": "fixed, remove the parameter",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892923939"
+        }
+      ],
+      "reviewed": "fc6894a99ff8a5bfb88860f69ca956a537109cd3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892733702"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These new tests accept the `monkeypatch` fixture but never use it. If your test suite enforces unused-argument checks, this can fail linting. Either remove the parameter, or rename it to `_monkeypatch` to make the intentional non-use explicit.",
+      "created": "2026-08-31T08:09:08Z",
+      "hunk": "@@ -519,6 +519,119 @@ def test_on_tool_error_records_error_type(monkeypatch):\n     assert attrs[error_attributes.ERROR_TYPE] == \"ValueError\"\n \n \n+def test_on_tool_error_records_tool_call_id_from_start(monkeypatch):\n+    \"\"\"A failing tool still records ``gen_ai.tool.call.id`` when the id is\n+    delivered by LangChain in the ``on_tool_start`` kwargs.\"\"\"\n+    tracer_provider, span_exporter, logger_provider, meter_provider = (\n+        _make_providers()\n+    )\n+    handler = _make_callback_handler(\n+        tracer_provider, logger_provider, meter_provider\n+    )\n+\n+    run_id = uuid4()\n+    handler.on_tool_start(\n+        serialized={\"name\": \"failing_tool\"},\n+        input_str=\"bad input\",\n+        run_id=run_id,\n+        tool_call_id=\"call_abc\",\n+    )\n+    handler.on_tool_error(error=RuntimeError(\"boom\"), run_id=run_id)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    attrs = span.attributes\n+    assert attrs[gen_ai_attributes.GEN_AI_TOOL_CALL_ID] == \"call_abc\"\n+    assert attrs[error_attributes.ERROR_TYPE] == \"RuntimeError\"\n+    assert span.status.status_code.name == \"ERROR\"\n+\n+\n+def test_on_tool_start_tool_call_id_is_kept_when_end_matches(monkeypatch):\n+    \"\"\"When ``on_tool_start`` records the id and ``on_tool_end`` returns the\n+    same id, the value is present and unchanged on the finished span.\"\"\"\n+    tracer_provider, span_exporter, logger_provider, meter_provider = (\n+        _make_providers()\n+    )\n+    handler = _make_callback_handler(\n+        tracer_provider, logger_provider, meter_provider\n+    )\n+\n+    run_id = uuid4()\n+    handler.on_tool_start(\n+        serialized={\"name\": \"mytool\"},\n+        input_str=\"\",\n+        run_id=run_id,\n+        tool_call_id=\"call_xyz\",\n+    )\n+    output = MagicMock()\n+    output.content = \"ok\"\n+    output.tool_call_id = \"call_xyz\"\n+    handler.on_tool_end(output=output, run_id=run_id)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    attrs = spans[0].attributes\n+    assert attrs[gen_ai_attributes.GEN_AI_TOOL_CALL_ID] == \"call_xyz\"\n+\n+\n+def test_on_tool_end_still_records_tool_call_id_when_start_omitted_it(\n+    monkeypatch,",
+      "id": "PRRT_kwDOSbspP86dpqA9",
+      "opened": "2026-08-31T08:09:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_tools.py",
+      "replies": [
+        {
+          "at": "2026-08-31T08:41:21Z",
+          "body": "fixed, remove the parameter",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892923357"
+        }
+      ],
+      "reviewed": "fc6894a99ff8a5bfb88860f69ca956a537109cd3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892733760"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These new tests accept the `monkeypatch` fixture but never use it. If your test suite enforces unused-argument checks, this can fail linting. Either remove the parameter, or rename it to `_monkeypatch` to make the intentional non-use explicit.",
+      "created": "2026-08-31T08:09:08Z",
+      "hunk": "@@ -519,6 +519,119 @@ def test_on_tool_error_records_error_type(monkeypatch):\n     assert attrs[error_attributes.ERROR_TYPE] == \"ValueError\"\n \n \n+def test_on_tool_error_records_tool_call_id_from_start(monkeypatch):\n+    \"\"\"A failing tool still records ``gen_ai.tool.call.id`` when the id is\n+    delivered by LangChain in the ``on_tool_start`` kwargs.\"\"\"\n+    tracer_provider, span_exporter, logger_provider, meter_provider = (\n+        _make_providers()\n+    )\n+    handler = _make_callback_handler(\n+        tracer_provider, logger_provider, meter_provider\n+    )\n+\n+    run_id = uuid4()\n+    handler.on_tool_start(\n+        serialized={\"name\": \"failing_tool\"},\n+        input_str=\"bad input\",\n+        run_id=run_id,\n+        tool_call_id=\"call_abc\",\n+    )\n+    handler.on_tool_error(error=RuntimeError(\"boom\"), run_id=run_id)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    attrs = span.attributes\n+    assert attrs[gen_ai_attributes.GEN_AI_TOOL_CALL_ID] == \"call_abc\"\n+    assert attrs[error_attributes.ERROR_TYPE] == \"RuntimeError\"\n+    assert span.status.status_code.name == \"ERROR\"\n+\n+\n+def test_on_tool_start_tool_call_id_is_kept_when_end_matches(monkeypatch):",
+      "id": "PRRT_kwDOSbspP86dpqAt",
+      "opened": "2026-08-31T08:09:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_tools.py",
+      "replies": [
+        {
+          "at": "2026-08-31T08:40:53Z",
+          "body": "fixed, remove the parameter",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892920688"
+        }
+      ],
+      "reviewed": "fc6894a99ff8a5bfb88860f69ca956a537109cd3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892733733"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These new tests accept the `monkeypatch` fixture but never use it. If your test suite enforces unused-argument checks, this can fail linting. Either remove the parameter, or rename it to `_monkeypatch` to make the intentional non-use explicit.",
+      "created": "2026-08-31T08:09:08Z",
+      "hunk": "@@ -519,6 +519,119 @@ def test_on_tool_error_records_error_type(monkeypatch):\n     assert attrs[error_attributes.ERROR_TYPE] == \"ValueError\"\n \n \n+def test_on_tool_error_records_tool_call_id_from_start(monkeypatch):\n+    \"\"\"A failing tool still records ``gen_ai.tool.call.id`` when the id is\n+    delivered by LangChain in the ``on_tool_start`` kwargs.\"\"\"\n+    tracer_provider, span_exporter, logger_provider, meter_provider = (\n+        _make_providers()\n+    )\n+    handler = _make_callback_handler(\n+        tracer_provider, logger_provider, meter_provider\n+    )\n+\n+    run_id = uuid4()\n+    handler.on_tool_start(\n+        serialized={\"name\": \"failing_tool\"},\n+        input_str=\"bad input\",\n+        run_id=run_id,\n+        tool_call_id=\"call_abc\",\n+    )\n+    handler.on_tool_error(error=RuntimeError(\"boom\"), run_id=run_id)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    attrs = span.attributes\n+    assert attrs[gen_ai_attributes.GEN_AI_TOOL_CALL_ID] == \"call_abc\"\n+    assert attrs[error_attributes.ERROR_TYPE] == \"RuntimeError\"\n+    assert span.status.status_code.name == \"ERROR\"\n+\n+\n+def test_on_tool_start_tool_call_id_is_kept_when_end_matches(monkeypatch):\n+    \"\"\"When ``on_tool_start`` records the id and ``on_tool_end`` returns the\n+    same id, the value is present and unchanged on the finished span.\"\"\"\n+    tracer_provider, span_exporter, logger_provider, meter_provider = (\n+        _make_providers()\n+    )\n+    handler = _make_callback_handler(\n+        tracer_provider, logger_provider, meter_provider\n+    )\n+\n+    run_id = uuid4()\n+    handler.on_tool_start(\n+        serialized={\"name\": \"mytool\"},\n+        input_str=\"\",\n+        run_id=run_id,\n+        tool_call_id=\"call_xyz\",\n+    )\n+    output = MagicMock()\n+    output.content = \"ok\"\n+    output.tool_call_id = \"call_xyz\"\n+    handler.on_tool_end(output=output, run_id=run_id)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    attrs = spans[0].attributes\n+    assert attrs[gen_ai_attributes.GEN_AI_TOOL_CALL_ID] == \"call_xyz\"\n+\n+\n+def test_on_tool_end_still_records_tool_call_id_when_start_omitted_it(\n+    monkeypatch,\n+):\n+    \"\"\"If ``on_tool_start`` receives no ``tool_call_id`` kwarg, the id from the\n+    ``ToolMessage`` returned by ``on_tool_end`` is still recorded.\"\"\"\n+    tracer_provider, span_exporter, logger_provider, meter_provider = (\n+        _make_providers()\n+    )\n+    handler = _make_callback_handler(\n+        tracer_provider, logger_provider, meter_provider\n+    )\n+\n+    run_id = uuid4()\n+    handler.on_tool_start(\n+        serialized={\"name\": \"mytool\"},\n+        input_str=\"\",\n+        run_id=run_id,\n+    )\n+    output = MagicMock()\n+    output.content = \"ok\"\n+    output.tool_call_id = \"from_end\"\n+    handler.on_tool_end(output=output, run_id=run_id)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    attrs = spans[0].attributes\n+    assert attrs[gen_ai_attributes.GEN_AI_TOOL_CALL_ID] == \"from_end\"\n+\n+\n+def test_tool_call_id_absent_when_neither_start_nor_end_provides_it(\n+    monkeypatch,",
+      "id": "PRRT_kwDOSbspP86dpqBb",
+      "opened": "2026-08-31T08:09:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_tools.py",
+      "replies": [
+        {
+          "at": "2026-08-31T08:41:01Z",
+          "body": "fixed, remove the parameter",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892921517"
+        }
+      ],
+      "reviewed": "fc6894a99ff8a5bfb88860f69ca956a537109cd3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892733801"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Asserting on `status_code.name` is brittle (string-based) and can break if enum naming changes. Prefer comparing the enum value directly (e.g., `span.status.status_code == StatusCode.ERROR`) to keep the test robust.",
+      "created": "2026-08-31T08:09:09Z",
+      "hunk": "@@ -519,6 +519,119 @@ def test_on_tool_error_records_error_type(monkeypatch):\n     assert attrs[error_attributes.ERROR_TYPE] == \"ValueError\"\n \n \n+def test_on_tool_error_records_tool_call_id_from_start(monkeypatch):\n+    \"\"\"A failing tool still records ``gen_ai.tool.call.id`` when the id is\n+    delivered by LangChain in the ``on_tool_start`` kwargs.\"\"\"\n+    tracer_provider, span_exporter, logger_provider, meter_provider = (\n+        _make_providers()\n+    )\n+    handler = _make_callback_handler(\n+        tracer_provider, logger_provider, meter_provider\n+    )\n+\n+    run_id = uuid4()\n+    handler.on_tool_start(\n+        serialized={\"name\": \"failing_tool\"},\n+        input_str=\"bad input\",\n+        run_id=run_id,\n+        tool_call_id=\"call_abc\",\n+    )\n+    handler.on_tool_error(error=RuntimeError(\"boom\"), run_id=run_id)\n+\n+    spans = span_exporter.get_finished_spans()\n+    assert len(spans) == 1\n+    span = spans[0]\n+    attrs = span.attributes\n+    assert attrs[gen_ai_attributes.GEN_AI_TOOL_CALL_ID] == \"call_abc\"\n+    assert attrs[error_attributes.ERROR_TYPE] == \"RuntimeError\"\n+    assert span.status.status_code.name == \"ERROR\"",
+      "id": "PRRT_kwDOSbspP86dpqB0",
+      "opened": "2026-08-31T08:09:09Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_tools.py",
+      "replies": [
+        {
+          "at": "2026-08-31T08:41:15Z",
+          "body": "fixed, imported enum",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892922823"
+        }
+      ],
+      "reviewed": "fc6894a99ff8a5bfb88860f69ca956a537109cd3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/510#discussion_r3892733838"
+    }
+  ]
+}

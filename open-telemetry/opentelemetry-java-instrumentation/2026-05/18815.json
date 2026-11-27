@@ -1,0 +1,61 @@
+{
+  "head": "914a59c84e064f8bfa395ed30f3b1ed508d657ae",
+  "merge": "33ecaed570de9bbb566c9bc84a48a5fc10f12c1f",
+  "merged": "2026-05-20T17:57:42Z",
+  "missing_roots": 0,
+  "number": 18815,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Catching OutOfMemoryError here can leave `garbage` with a very large backing buffer (StringBuilder retains capacity after `setLength(0)`), increasing memory pressure for the rest of the test run and potentially causing repeated OOMEs/timeouts. Consider shrinking the buffer when OOME occurs (e.g., call `trimToSize()` after clearing) or switching this temporary garbage generation to a local, throwaway allocation so memory can be reclaimed promptly.\n",
+      "created": "2026-05-20T15:48:50Z",
+      "hunk": "@@ -30,12 +30,16 @@ public static void awaitGc(WeakReference<?> ref, Duration timeout)\n         throw new InterruptedException();\n       }\n       // generate garbage to give gc some work\n-      for (int i = 0; i < 26; i++) {\n-        if (garbage.length() == 0) {\n-          garbage.append(\"ab\");\n-        } else {\n-          garbage.append(garbage);\n+      try {\n+        for (int i = 0; i < 26; i++) {\n+          if (garbage.length() == 0) {\n+            garbage.append(\"ab\");\n+          } else {\n+            garbage.append(garbage);\n+          }\n         }\n+      } catch (OutOfMemoryError e) {\n+        // ignore, we just want to trigger GC",
+      "id": "PRRT_kwDODJKVX86Dih1S",
+      "opened": "2026-05-20T15:48:50Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/test/utils/GcUtils.java",
+      "replies": [],
+      "reviewed": "a4e6942c2ff258bb06927d2379560e736a4d400c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18815#discussion_r3275291017"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The caught OutOfMemoryError is intentionally unused; per the repo catch-variable naming convention, please rename the catch parameter to `ignored` to make the intent explicit.",
+      "created": "2026-05-20T15:48:50Z",
+      "hunk": "@@ -30,12 +30,16 @@ public static void awaitGc(WeakReference<?> ref, Duration timeout)\n         throw new InterruptedException();\n       }\n       // generate garbage to give gc some work\n-      for (int i = 0; i < 26; i++) {\n-        if (garbage.length() == 0) {\n-          garbage.append(\"ab\");\n-        } else {\n-          garbage.append(garbage);\n+      try {\n+        for (int i = 0; i < 26; i++) {\n+          if (garbage.length() == 0) {\n+            garbage.append(\"ab\");\n+          } else {\n+            garbage.append(garbage);\n+          }\n         }\n+      } catch (OutOfMemoryError e) {\n+        // ignore, we just want to trigger GC\n       }",
+      "id": "PRRT_kwDODJKVX86Dih2o",
+      "opened": "2026-05-20T15:48:50Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/test/utils/GcUtils.java",
+      "replies": [],
+      "reviewed": "a4e6942c2ff258bb06927d2379560e736a4d400c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18815#discussion_r3275291088"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "can we be smarter and not hit OOM? only because if we hit OOM it could cause other unrelated problems in the test harness",
+      "created": "2026-05-20T17:28:35Z",
+      "hunk": "@@ -30,14 +30,19 @@ public static void awaitGc(WeakReference<?> ref, Duration timeout)\n         throw new InterruptedException();\n       }\n       // generate garbage to give gc some work\n-      for (int i = 0; i < 26; i++) {\n-        if (garbage.length() == 0) {\n-          garbage.append(\"ab\");\n-        } else {\n-          garbage.append(garbage);\n+      try {\n+        for (int i = 0; i < 26; i++) {\n+          if (garbage.length() == 0) {\n+            garbage.append(\"ab\");\n+          } else {\n+            garbage.append(garbage);\n+          }\n         }\n+      } catch (OutOfMemoryError ignored) {",
+      "id": "PRRT_kwDODJKVX86DkJ_i",
+      "opened": "2026-05-20T17:28:35Z",
+      "path": "testing-common/src/main/java/io/opentelemetry/instrumentation/test/utils/GcUtils.java",
+      "replies": [
+        {
+          "at": "2026-05-20T17:57:36Z",
+          "body": "It is the first test that triggers oom and only on jdk8. Could modify the test a bit to allocate less.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18815#discussion_r3276044411"
+        }
+      ],
+      "reviewed": "914a59c84e064f8bfa395ed30f3b1ed508d657ae",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18815#discussion_r3275867746"
+    }
+  ]
+}

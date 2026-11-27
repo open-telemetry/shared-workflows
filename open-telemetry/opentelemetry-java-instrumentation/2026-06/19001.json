@@ -1,0 +1,52 @@
+{
+  "head": "b1a1d63f937ef67980318888ebbbffd61e3a1b17",
+  "merge": "3d1a5e6b0be1013720a3f723647c9d7ae90e3013",
+  "merged": "2026-06-15T17:17:46Z",
+  "missing_roots": 0,
+  "number": 19001,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The script now calls `gh issue list/create/comment` when it decides to skip reruns. This script is also used by `.github/workflows/rerun-flaky-pr-jobs.yml`, which does not grant `issues: write`; in that workflow these new code paths will fail with a permissions error and cause the rerun workflow itself to fail.\n\nConsider gating issue creation behind an explicit env var (set only by the daily workflow), or otherwise ensuring all workflows that use this script have the required `issues` permissions.",
+      "created": "2026-06-15T16:13:07Z",
+      "hunk": "@@ -28,6 +28,7 @@ def main() -> None:\n     rerun_attempts = run[\"run_attempt\"] - 1\n     if rerun_attempts >= max_rerun_attempts:\n         print(f\"Skipped {label}: already rerun {rerun_attempts} times.\")\n+        open_issue_if_missing(owner, repo, run)\n         return",
+      "id": "PRRT_kwDODJKVX86Joy2p",
+      "opened": "2026-06-15T16:13:07Z",
+      "path": ".github/scripts/rerun-failed-workflow-jobs.py",
+      "replies": [
+        {
+          "at": "2026-06-15T16:23:42Z",
+          "body": "Thanks, good catch. Addressed in b1a1d63f93 by gating workflow-failure issue creation behind `CREATE_WORKFLOW_FAILURE_ISSUE=true` and setting that env var only in `rerun-failed-daily-jobs.yml`. `rerun-flaky-pr-jobs.yml` does not opt in, so this path will not call `gh issue ...` there.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19001#discussion_r3414982449"
+        }
+      ],
+      "reviewed": "a15e68c6767d9d7a70c12e493024e6aa1f93705d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19001#discussion_r3414922104"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Same as above: this new issue-opening path will run for any workflow that uses this script (including `rerun-flaky-pr-jobs.yml`). Without `issues` permission, the `gh issue ...` calls will fail and make the rerun workflow fail, even though skipping reruns is an expected outcome.\n\nIf you gate issue creation behind an env var, apply it here as well.",
+      "created": "2026-06-15T16:13:07Z",
+      "hunk": "@@ -54,6 +55,7 @@ def main() -> None:\n             f\"Skipped {label}: {len(failed_real_jobs)} failed jobs\"\n             f\" exceeded limit {max_failed_jobs}.\"\n         )\n+        open_issue_or_add_comment(owner, repo, run)\n         return",
+      "id": "PRRT_kwDODJKVX86Joy3W",
+      "opened": "2026-06-15T16:13:07Z",
+      "path": ".github/scripts/rerun-failed-workflow-jobs.py",
+      "replies": [
+        {
+          "at": "2026-06-15T16:23:44Z",
+          "body": "Addressed in b1a1d63f93 as well. The too-many-failed-jobs path now only opens/comments on workflow-failure issues when `CREATE_WORKFLOW_FAILURE_ISSUE=true`, which is enabled only by the daily rerun workflow.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19001#discussion_r3414982637"
+        }
+      ],
+      "reviewed": "a15e68c6767d9d7a70c12e493024e6aa1f93705d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19001#discussion_r3414922159"
+    }
+  ]
+}

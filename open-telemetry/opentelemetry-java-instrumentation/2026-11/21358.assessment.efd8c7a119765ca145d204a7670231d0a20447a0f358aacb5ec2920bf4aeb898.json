@@ -1,0 +1,120 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a7983d69cc1a5d229ac838bbf819eda7bee7252cfd5ea55d02d09029a9eb5298",
+  "input_digest": "efd8c7a119765ca145d204a7670231d0a20447a0f358aacb5ec2920bf4aeb898",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8a00aafdb1a1c5fa9972a5eda66bc1866a8cdc3/smoke-tests/images/java-runtime-images.properties",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8a00aafdb1a1c5fa9972a5eda66bc1866a8cdc3/.github/workflows/reusable-pr-smoke-test-images.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8a00aafdb1a1c5fa9972a5eda66bc1866a8cdc3/.github/workflows/reusable-publish-smoke-test-images.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f8a00aafdb1a1c5fa9972a5eda66bc1866a8cdc3/smoke-tests/images/quarkus/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/.github/workflows/reusable-pr-smoke-test-images.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/.github/workflows/reusable-publish-smoke-test-images.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/smoke-tests/images/quarkus/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX865o-Qv",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/452c425fc7659f909dd28eb80951af89915d980f/.github/renovate.json5",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/.github/renovate.json5",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/452c425fc7659f909dd28eb80951af89915d980f...6a620cf8ed47bff0d69436c056bc3cfaa1cab394",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d777b28220f23f06fcf011d5c395dda8b0b0e629",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/025bea2ab2215d7b18784f01f6d83870467daa2e"
+      ],
+      "id": "PRRT_kwDODJKVX865paFl",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/452c425fc7659f909dd28eb80951af89915d980f/.github/renovate.json5",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/452c425fc7659f909dd28eb80951af89915d980f/smoke-tests/images/java-runtime-images.properties",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/.github/renovate.json5",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/.github/workflows/reusable-pr-smoke-test-images.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/.github/workflows/reusable-publish-smoke-test-images.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6a620cf8ed47bff0d69436c056bc3cfaa1cab394",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/025bea2ab2215d7b18784f01f6d83870467daa2e"
+      ],
+      "id": "PRRT_kwDODJKVX865pmV4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/025bea2ab2215d7b18784f01f6d83870467daa2e/smoke-tests/images/java-runtime-images.properties",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/025bea2ab2215d7b18784f01f6d83870467daa2e/gradle.properties",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/025bea2ab2215d7b18784f01f6d83870467daa2e/smoke-tests/images/grpc/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/smoke-tests/images/java-runtime-images.properties",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/gradle.properties",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/smoke-tests/images/grpc/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/3d09853953b93e48352e8fd380edea20929abf19"
+      ],
+      "id": "PRRT_kwDODJKVX865qTWy",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/025bea2ab2215d7b18784f01f6d83870467daa2e/smoke-tests/images/grpc/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/025bea2ab2215d7b18784f01f6d83870467daa2e/smoke-tests/images/play/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/025bea2ab2215d7b18784f01f6d83870467daa2e/smoke-tests/images/quarkus/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/025bea2ab2215d7b18784f01f6d83870467daa2e/smoke-tests/images/security-manager/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/smoke-tests/images/grpc/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/smoke-tests/images/play/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/smoke-tests/images/quarkus/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/smoke-tests/images/security-manager/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/81e7f4793a3bcd5800cb0b4e011e84bbfccb19e8"
+      ],
+      "id": "PRRT_kwDODJKVX865qbyB",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX865rKp8",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX865qbyB",
+      "status": "duplicate"
+    },
+    {
+      "id": "PRRT_kwDODJKVX865rVA9",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX865qbyB",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81e7f4793a3bcd5800cb0b4e011e84bbfccb19e8/.github/renovate.json5",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/.github/renovate.json5",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81e7f4793a3bcd5800cb0b4e011e84bbfccb19e8/.github/workflows/reusable-pr-smoke-test-images.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/.github/workflows/reusable-pr-smoke-test-images.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81e7f4793a3bcd5800cb0b4e011e84bbfccb19e8/.github/workflows/reusable-publish-smoke-test-images.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/.github/workflows/reusable-publish-smoke-test-images.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81e7f4793a3bcd5800cb0b4e011e84bbfccb19e8/gradle.properties",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d777b28220f23f06fcf011d5c395dda8b0b0e629/gradle.properties",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d777b28220f23f06fcf011d5c395dda8b0b0e629",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6a620cf8ed47bff0d69436c056bc3cfaa1cab394"
+      ],
+      "id": "PRRT_kwDODJKVX865sO8y",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

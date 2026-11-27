@@ -1,0 +1,117 @@
+{
+  "head": "690248e9fc2411594b3b1f0c20e5674c78592fd5",
+  "merge": "061a28ac89d2cfffad6495ee58fdc7fcb3e9a717",
+  "merged": "2026-09-10T03:32:14Z",
+  "missing_roots": 0,
+  "number": 613,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "this changelog seems to be wrong, it should mention specific attributes but mentions something unknown",
+      "created": "2026-09-04T04:11:04Z",
+      "hunk": "@@ -0,0 +1 @@\n+Record modality token usage breakdown (`input_tokens_by_modality` and `output_tokens_by_modality`).",
+      "id": "PRRT_kwDOSbspP86fKVS9",
+      "opened": "2026-09-04T04:11:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/.changelog/613.added",
+      "replies": [],
+      "reviewed": "f93795c3929f5b3223ec76d5f02ec86ca524612d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/613#discussion_r3930798080"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Google's `Usage` also provides `cached_tokens_by_modality`, but this implementation maps only input/output breakdowns. Consequently the new text/image/audio cache-read attributes remain absent even when Google supplies them, despite the PR's stated goal of recording available modality usage; map that list to the three `*_cache_read_input_tokens` fields as well.\n\nThis issue also appears on line 158 of the same file.",
+      "created": "2026-09-04T04:17:55Z",
+      "hunk": "@@ -147,9 +147,37 @@ def _apply_interaction_response_attributes(\n \n     invocation.input_tokens = usage.total_input_tokens\n     invocation.output_tokens = usage.total_output_tokens\n+    invocation.cache_read_input_tokens = usage.total_cached_tokens\n+\n     if isinstance(invocation, InferenceInvocation):\n         invocation.thinking_tokens = usage.total_thought_tokens\n-    invocation.cache_read_input_tokens = usage.total_cached_tokens\n+        input_by_modality = _get_field(usage, \"input_tokens_by_modality\") or []\n+        for entry in input_by_modality:",
+      "id": "PRRT_kwDOSbspP86fKaE8",
+      "opened": "2026-09-04T04:17:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/interactions.py",
+      "replies": [],
+      "reviewed": "f93795c3929f5b3223ec76d5f02ec86ca524612d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/613#discussion_r3930826992"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "OpenAI exposes this field as `cache_write_tokens`, so reading `cache_write_input_tokens` drops real cache-write usage. Also, `or cache_creation` replaces a valid zero with the legacy value; fall back only when the new field is `None`.\n\nThis issue also appears on line 588 of the same file.",
+      "created": "2026-09-04T04:17:55Z",
+      "hunk": "@@ -562,20 +565,35 @@ def extract_usage_tokens(usage: ResponseUsage | None) -> UsageTokens:\n         return UsageTokens()\n \n     details = usage.input_tokens_details\n+    cache_creation = (\n+        details.cache_creation_input_tokens\n+        if details is not None\n+        and hasattr(details, \"cache_creation_input_tokens\")\n+        else None\n+    )\n+    cache_write = (\n+        getattr(details, \"cache_write_input_tokens\", None)\n+        if details is not None\n+        else None\n+    ) or cache_creation",
+      "id": "PRRT_kwDOSbspP86fKaEb",
+      "opened": "2026-09-04T04:17:55Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "f93795c3929f5b3223ec76d5f02ec86ca524612d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/613#discussion_r3930826947"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These public invocation fields add emitted span attributes, but the util package's README response-attribute list still documents only total input/output usage and does not mention the renamed cache-write attribute or modality breakdowns. Update that published API documentation so consumers can discover the new fields and deprecation.\n\nThis issue also appears on line 362 of the same file.",
+      "created": "2026-09-04T04:17:55Z",
+      "hunk": "@@ -93,8 +113,17 @@ def __init__(\n         self.max_tokens: int | None = None\n         self.stop_sequences: list[str] | None = None\n         self.seed: int | None = None\n-        self.cache_creation_input_tokens: int | None = None\n+        self.cache_write_input_tokens: int | None = None\n         self.cache_read_input_tokens: int | None = None\n+        self.text_input_tokens: int | None = None\n+        self.image_input_tokens: int | None = None\n+        self.audio_input_tokens: int | None = None",
+      "id": "PRRT_kwDOSbspP86fKaFQ",
+      "opened": "2026-09-04T04:17:55Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "f93795c3929f5b3223ec76d5f02ec86ca524612d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/613#discussion_r3930827016"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/469  -- are we not supposed to put these on agent invocation spans ?",
+      "created": "2026-09-04T19:10:09Z",
+      "hunk": "@@ -91,7 +97,7 @@ def __init__(\n \n         self.input_tokens: int | None = None\n         self.output_tokens: int | None = None\n-        self.cache_creation_input_tokens: int | None = None\n+        self._cache_write_input_tokens: int | None = None",
+      "id": "PRRT_kwDOSbspP86faiKd",
+      "opened": "2026-09-04T19:10:09Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_agent_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-04T21:51:50Z",
+          "body": "In semantic conventions, agent spans only specify aggregate `input_tokens` and `output_tokens` (modality breakdowns and cache tokens are currently only specified on inference spans).\r\n\r\nI think we should not add them to agents - these are breakdown things that don't make sense if aggregated across models",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/613#discussion_r3938108800"
+        },
+        {
+          "at": "2026-09-04T22:17:50Z",
+          "body": "Removed cache tokens from `AgentInvocation._get_usage_attributes()` so they are not emitted on agent spans per semconv PR #469.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/613#discussion_r3938230223"
+        }
+      ],
+      "reviewed": "5a833f54669befd5f54f09cfb610771c7288addd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/613#discussion_r3937172852"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "how should we treat `0` on these token counts.. I think some APIs will default this to `0` if none were used, do we want that to show up on the span/event ?",
+      "created": "2026-09-04T19:11:32Z",
+      "hunk": "@@ -93,8 +113,17 @@ def __init__(\n         self.max_tokens: int | None = None\n         self.stop_sequences: list[str] | None = None\n         self.seed: int | None = None\n-        self.cache_creation_input_tokens: int | None = None\n+        self.cache_write_input_tokens: int | None = None",
+      "id": "PRRT_kwDOSbspP86fajxe",
+      "opened": "2026-09-04T19:11:32Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-09-04T21:51:53Z",
+          "body": "Updated to omit `0` values for cache, reasoning, and modality token breakdowns so they are only recorded when > 0, and opened open-telemetry/semantic-conventions-genai#502 to document this guidance.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/613#discussion_r3938109006"
+        }
+      ],
+      "reviewed": "5a833f54669befd5f54f09cfb610771c7288addd",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/613#discussion_r3937182776"
+    }
+  ]
+}

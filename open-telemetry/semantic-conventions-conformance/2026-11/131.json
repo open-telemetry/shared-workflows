@@ -1,0 +1,25 @@
+{
+  "head": "2efef04cad92769d90d1d86e509cbbe4c59ff4b9",
+  "merge": "a8e3cf41548ea41e5eb4c693a3c4b3f67ab88bd5",
+  "merged": "2026-11-03T20:32:31Z",
+  "missing_roots": 0,
+  "number": 131,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "👀 ",
+      "created": "2026-10-31T23:56:49Z",
+      "hunk": "@@ -0,0 +1,22 @@\n+# MySQL JDBC scenarios\n+\n+The database runner selects MySQL with `runner_config.backend: mysql` and starts\n+a pinned official MySQL container. It applies the\n+[scenario schema](../../../../tools/database/runner/src/database_conformance/mysql.sql)\n+before measured processes start. The schema creates the workload's empty table\n+and stored procedure without seeding rows. MySQL has a 120-second startup\n+timeout; `OTEL_CONFORMANCE_DATABASE_STARTUP_TIMEOUT` overrides it.\n+\n+Both JDBC instrumentation modes use Connector/J with `openTelemetry=DISABLED`",
+      "id": "PRRT_kwDOTuzK5c6yVtHH",
+      "opened": "2026-10-31T23:56:49Z",
+      "path": "scenarios/database/java/mysql/README.md",
+      "replies": [],
+      "reviewed": "7404bca22319bc2cc44ea5428c9f4c56917b4584",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/131#discussion_r4433753288"
+    }
+  ]
+}

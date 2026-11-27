@@ -1,0 +1,21 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a1110d74928076f463193a1dd2fb327a6e10fb5f50c65e2b18a71e4e2a4feaf8",
+  "input_digest": "93bfa3c1fb6d710854c0c1f79717bceb7320b11f4933429c833af456d4f62bd6",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/067903ab8a5d34897f7639c0944991a206a6c14f/instrumentation/pulsar/pulsar-2.8/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/PulsarClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/178530b706bb25ac988b07cd89b4a8bfab68284d/instrumentation/pulsar/pulsar-2.8/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/PulsarClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8c172d2f69e4ab63fd5774b968cb18d7193c0bf7"
+      ],
+      "id": "PRRT_kwDODJKVX86A9XZr",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

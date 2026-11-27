@@ -1,0 +1,25 @@
+{
+  "head": "ea1c1b56b566d323000610c4fb784db0f0423510",
+  "merge": "1f573b66bd8a7484e0076a01967de31c8f97202e",
+  "merged": "2026-05-04T12:51:55Z",
+  "missing_roots": 0,
+  "number": 18550,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Actually I think the problem was that localstack, that we use for testing, wasn't able to handle the json protocol. It is possible that this isn't an issue any more.",
+      "created": "2026-05-04T07:50:26Z",
+      "hunk": "@@ -66,7 +66,7 @@ dependencies {\n   // needed by S3\n   testImplementation(\"javax.xml.bind:jaxb-api:2.3.1\")\n \n-  // last version that does not use json protocol\n+  // 1.12.584 switches SQS to JSON protocol; these tests cover the query protocol path.",
+      "id": "PRRT_kwDODJKVX85_RuSu",
+      "opened": "2026-05-04T07:50:26Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "ea1c1b56b566d323000610c4fb784db0f0423510",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18550#discussion_r3180071039"
+    }
+  ]
+}

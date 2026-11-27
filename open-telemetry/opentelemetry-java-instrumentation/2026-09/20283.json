@@ -1,0 +1,31 @@
+{
+  "head": "a0ea400c66b2ce77757d59be30f2ba1a534f4e63",
+  "merge": "84909c4c4c8d7bbbf38ca47364d0d619edac020f",
+  "merged": "2026-09-27T07:15:50Z",
+  "missing_roots": 0,
+  "number": 20283,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Require the equivalent variant to be wired as well. As written, `wired` only qualifies `testExperimental`, so when only test sources change this guidance can accept an existing flag-on task that is not included in `check`/CI. That also loses the PR's stated exception specifically for existing wired variants.",
+      "created": "2026-09-26T17:54:45Z",
+      "hunk": "@@ -27,6 +27,11 @@ convention not caught by CI.\n   starter coverage; `smoke-tests/images/spring-boot` tests the javaagent\n   instead. Declarative mode uses separate `testDeclarativeConfig` source\n   sets, not a flag toggled inside the normal tests.\n+- When changed tests exercise behavior behind an experimental feature or\n+  telemetry flag, including experimental metrics, check assertions in both\n+  default-off and flag-on JVMs. A separate wired `testExperimental` task or\n+  an existing equivalent variant can run the flag-on assertions; do not",
+      "id": "PRRT_kwDODJKVX86mSvf_",
+      "opened": "2026-09-26T17:54:45Z",
+      "path": ".github/instructions/java-tests.instructions.md",
+      "replies": [
+        {
+          "at": "2026-09-26T18:17:48Z",
+          "body": "Addressed in a0ea400c66b2ce77757d59be30f2ba1a534f4e63.\n\nFixed in the verified source changes a0ea400c66b2ce77757d59be30f2ba1a534f4e63.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20283#discussion_r4112290778"
+        }
+      ],
+      "reviewed": "03918cbe98b2d831566a1d28d6cdae80c29542a0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20283#discussion_r4112224263"
+    }
+  ]
+}

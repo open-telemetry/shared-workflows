@@ -1,0 +1,49 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "de16b9dbd39e91283663e5fb06049ac4e25c491345bd56b29ada086d3a704445",
+  "input_digest": "5ca652302bcd100d5884fb39b62a5267f9e4979295b1530cc66a4314ae0dbe71",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3d63d40640dbaaa32fee9670afe82d33d7f050a9/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHost.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/185456df48354460c2c5a727c6534347a835228e/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHost.java"
+      ],
+      "id": "PRRT_kwDODJKVX86dTdxw",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f61058c5f218a6961e2f57ef928d958d247ff773/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHost.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/185456df48354460c2c5a727c6534347a835228e/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHost.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/185456df48354460c2c5a727c6534347a835228e/instrumentation/opensearch/opensearch-java-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHostTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ddpwP",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bcdbb03b60010db27e89d972affa7ccaedfd84e3/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHost.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/185456df48354460c2c5a727c6534347a835228e/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHost.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/185456df48354460c2c5a727c6534347a835228e/instrumentation/opensearch/opensearch-java-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchConfiguredHostTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ddxaX",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86golxK",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

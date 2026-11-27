@@ -1,0 +1,54 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "76eefca1d25820a33f9a737c5361465835cbd6a64c2d9657033a44b00d899d1f",
+  "input_digest": "7e294546848444f766cd2487b8d916a761d3927cdfae0e697f26cca5ef9b7f38",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0c45aec3e149b72acc0923a3143c63442634b6e2/smoke-tests/src/main/java/io/opentelemetry/smoketest/windows/WindowsTestContainerManager.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69b292965d307328cd5228ede1d67a0ddccbb9dd/smoke-tests/src/main/java/io/opentelemetry/smoketest/windows/WindowsTestContainerManager.java"
+      ],
+      "id": "PRRT_kwDODJKVX86fnn-K",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0c45aec3e149b72acc0923a3143c63442634b6e2/smoke-tests/src/test/resources/spring-boot-aot/start.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69b292965d307328cd5228ede1d67a0ddccbb9dd/smoke-tests/src/test/resources/spring-boot-aot/start.sh"
+      ],
+      "id": "PRRT_kwDODJKVX86fnn-T",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/63f27b70ea94359499ace402ca1f19b39f9b09eb/smoke-tests/src/test/resources/spring-boot-aot/start.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69b292965d307328cd5228ede1d67a0ddccbb9dd/smoke-tests/src/test/resources/spring-boot-aot/start.sh",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6eb8fb346ecda0fcc35f7a81d357aec62f20a69f"
+      ],
+      "id": "PRRT_kwDODJKVX86gWIQ_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53a553cac717ec75a39031a06e25b14bdfb73578/smoke-tests/src/test/java/io/opentelemetry/smoketest/AbstractSpringBootSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/69b292965d307328cd5228ede1d67a0ddccbb9dd/smoke-tests/src/test/java/io/opentelemetry/smoketest/AbstractSpringBootSmokeTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86gvSOI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

@@ -1,0 +1,277 @@
+{
+  "head": "cd5a89cc913e2ef9b2301b8b0a47b92573b80b0c",
+  "merge": "2076001bf16e3d2ced5ad47d5da553acfa618d76",
+  "merged": "2026-09-04T01:41:51Z",
+  "missing_roots": 0,
+  "number": 19503,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Project Java style excludes test code from the `final`-class rule. Keep this test utility non-final.",
+      "created": "2026-08-11T04:11:25Z",
+      "hunk": "@@ -0,0 +1,294 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.camel.v2_20;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_PARTITION_ID;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_TYPE;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_SYSTEM;\n+import static java.util.Arrays.asList;\n+import static java.util.stream.Collectors.toSet;\n+\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.metrics.data.MetricData;\n+import java.util.HashSet;\n+import java.util.Set;\n+\n+public final class CamelMessagingMetricsAssertions {",
+      "id": "PRRT_kwDODJKVX86YHBc_",
+      "opened": "2026-08-11T04:11:26Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelMessagingMetricsAssertions.java",
+      "replies": [
+        {
+          "at": "2026-08-11T04:54:16Z",
+          "body": "Fixed in 8ca15c2f53a by removing final from the test utility.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3755318286"
+        }
+      ],
+      "reviewed": "d3381227cf5b59ddef9dcca63e4962aaa185748d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3755174564"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This disposable thread cannot verify the async-scope guarantee introduced by this PR: any leaked `Context` disappears when the thread exits. Reuse the same executor thread for a follow-up task and assert that `Context.current()` has been restored after `sendBody`, so a regression in `endSend` is observable.",
+      "created": "2026-08-11T04:11:25Z",
+      "hunk": "@@ -0,0 +1,83 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.camel.v2_20;\n+\n+import static io.opentelemetry.javaagent.instrumentation.camel.v2_20.CamelMessagingMetricsAssertions.assertSendAndProcessMetrics;\n+import static java.util.concurrent.TimeUnit.MINUTES;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.time.Duration;\n+import java.util.concurrent.CountDownLatch;\n+import org.apache.camel.CamelContext;\n+import org.apache.camel.ProducerTemplate;\n+import org.apache.camel.builder.RouteBuilder;\n+import org.apache.camel.impl.DefaultCamelContext;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.testcontainers.kafka.KafkaContainer;\n+import org.testcontainers.utility.DockerImageName;\n+\n+class KafkaCamelTest {\n+\n+  private static final String TOPIC = \"camel-test\";\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  private static CamelContext camelContext;\n+  private static final CountDownLatch received = new CountDownLatch(1);\n+\n+  @BeforeAll\n+  static void setUp() throws Exception {\n+    KafkaContainer kafka =\n+        new KafkaContainer(DockerImageName.parse(\"apache/kafka:3.8.0\"))\n+            .withEnv(\"KAFKA_HEAP_OPTS\", \"-Xmx256m\")\n+            .withStartupTimeout(Duration.ofMinutes(1));\n+    kafka.start();\n+    cleanup.deferAfterAll(kafka::stop);\n+\n+    String brokers = kafka.getBootstrapServers().replace(\"PLAINTEXT://\", \"\");\n+    String kafkaEndpoint =\n+        \"kafka:\" + TOPIC + \"?brokers=\" + brokers + \"&groupId=camel-test&autoOffsetReset=earliest\";\n+\n+    camelContext = new DefaultCamelContext();\n+    camelContext.addRoutes(\n+        new RouteBuilder() {\n+          @Override\n+          public void configure() {\n+            from(\"direct:input\").toD(kafkaEndpoint);\n+            from(kafkaEndpoint)\n+                .to(\"direct:consume\")\n+                .process(\n+                    exchange -> {\n+                      throw new IllegalStateException(\"test\");\n+                    });\n+            from(\"direct:consume\").process(exchange -> received.countDown());\n+          }\n+        });\n+    camelContext.start();\n+    cleanup.deferAfterAll(camelContext::stop);\n+    testing.clearData();\n+  }\n+\n+  @Test\n+  void camelOwnsMetricsOverKafkaClients() throws Exception {\n+    ProducerTemplate template = camelContext.createProducerTemplate();\n+    Thread sender = new Thread(() -> template.sendBody(\"direct:input\", \"test message\"));\n+    sender.start();\n+    sender.join();",
+      "id": "PRRT_kwDODJKVX86YHBcn",
+      "opened": "2026-08-11T04:11:26Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/KafkaCamelTest.java",
+      "replies": [
+        {
+          "at": "2026-08-11T04:54:14Z",
+          "body": "Fixed in 8ca15c2f53a: the test now reuses a single-thread executor and verifies Context.current() is restored on a follow-up task.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3755318147"
+        }
+      ],
+      "reviewed": "d3381227cf5b59ddef9dcca63e4962aaa185748d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3755174530"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Style] Project Java style excludes `.internal` packages from the `final`-class rule, since these implementation types are not public API contracts.",
+      "created": "2026-08-11T04:11:26Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.messaging.internal;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+\n+/**\n+ * Internal markers used to coordinate messaging metric ownership across instrumentation layers.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class MessagingMetricsState {",
+      "id": "PRRT_kwDODJKVX86YHBdQ",
+      "opened": "2026-08-11T04:11:26Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingMetricsState.java",
+      "replies": [
+        {
+          "at": "2026-08-11T04:54:18Z",
+          "body": "Fixed in 8ca15c2f53a by removing final from the internal implementation class.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3755318400"
+        }
+      ],
+      "reviewed": "d3381227cf5b59ddef9dcca63e4962aaa185748d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3755174585"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This test performs asynchronous Kafka send/consume work but does not drain the two resulting traces before the extension clears captured telemetry. The metric wait is not sufficient because operation metrics are recorded before `span.end()`, so a delayed span export can leak into the next test. Add the deterministic trace wait used for asynchronous test cleanup.",
+      "created": "2026-08-21T20:59:42Z",
+      "hunk": "@@ -0,0 +1,86 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.camel.v2_20;\n+\n+import static io.opentelemetry.javaagent.instrumentation.camel.v2_20.CamelMessagingMetricsAssertions.assertSendAndProcessMetrics;\n+import static java.util.concurrent.TimeUnit.MINUTES;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import java.time.Duration;\n+import java.util.concurrent.CountDownLatch;\n+import java.util.concurrent.ExecutorService;\n+import java.util.concurrent.Executors;\n+import org.apache.camel.CamelContext;\n+import org.apache.camel.ProducerTemplate;\n+import org.apache.camel.builder.RouteBuilder;\n+import org.apache.camel.impl.DefaultCamelContext;\n+import org.junit.jupiter.api.BeforeAll;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.testcontainers.kafka.KafkaContainer;\n+import org.testcontainers.utility.DockerImageName;\n+\n+class KafkaCamelTest {\n+\n+  private static final String TOPIC = \"camel-test\";\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  @RegisterExtension static final AutoCleanupExtension cleanup = AutoCleanupExtension.create();\n+\n+  private static CamelContext camelContext;\n+  private static final CountDownLatch received = new CountDownLatch(1);\n+\n+  @BeforeAll\n+  static void setUp() throws Exception {\n+    KafkaContainer kafka =\n+        new KafkaContainer(DockerImageName.parse(\"apache/kafka:3.8.0\"))\n+            .withEnv(\"KAFKA_HEAP_OPTS\", \"-Xmx256m\")\n+            .withStartupTimeout(Duration.ofMinutes(1));\n+    kafka.start();\n+    cleanup.deferAfterAll(kafka::stop);\n+\n+    String brokers = kafka.getBootstrapServers().replace(\"PLAINTEXT://\", \"\");\n+    String kafkaEndpoint =\n+        \"kafka:\" + TOPIC + \"?brokers=\" + brokers + \"&groupId=camel-test&autoOffsetReset=earliest\";\n+\n+    camelContext = new DefaultCamelContext();\n+    camelContext.addRoutes(\n+        new RouteBuilder() {\n+          @Override\n+          public void configure() {\n+            from(\"direct:input\").toD(kafkaEndpoint);\n+            from(kafkaEndpoint)\n+                .to(\"direct:consume\")\n+                .process(\n+                    exchange -> {\n+                      throw new IllegalStateException(\"test\");\n+                    });\n+            from(\"direct:consume\").process(exchange -> received.countDown());\n+          }\n+        });\n+    camelContext.start();\n+    cleanup.deferAfterAll(camelContext::stop);\n+  }\n+\n+  @Test\n+  void camelOwnsMetricsOverKafkaClients() throws Exception {\n+    ProducerTemplate template = camelContext.createProducerTemplate();\n+    ExecutorService sender = Executors.newSingleThreadExecutor();\n+    cleanup.deferCleanup(sender::shutdownNow);\n+    sender.submit(() -> template.sendBody(\"direct:input\", \"test message\")).get();\n+    assertThat(sender.submit(Context::current).get()).isEqualTo(Context.root());\n+    assertThat(received.await(1, MINUTES)).isTrue();\n+\n+    assertSendAndProcessMetrics(\n+        testing, \"kafka\", TOPIC, IllegalStateException.class.getName(), \"0\");",
+      "id": "PRRT_kwDODJKVX86bSsgv",
+      "opened": "2026-08-21T20:59:42Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/KafkaCamelTest.java",
+      "replies": [
+        {
+          "at": "2026-08-21T21:09:05Z",
+          "body": "Addressed in 2efaa18ac1554d1273554812d79089f1655ca2de.\n\nAnalysis: The test sends a message via direct:input to Kafka, then a consumer route reads it and throws an exception. Operation metrics are recorded before span.end(), so waitAndAssertMetrics can return while the spans are still being exported. Without a matching waitForTraces call, the InstrumentationExtension lifecycle clear can run before the spans finish exporting, leaking them into the next test's captured telemetry. The fix mirrors the pattern in JmsCamelTest.failedCamelProcessCountsDeliveredMessage(), which waits for 2 traces under stable messaging semconv (producer trace and consumer trace are separate) or 1 trace under legacy semconv (consumer is a child of the producer trace).\n\nUpsides: Prevents span export from leaking across test boundaries when the JVM exports spans after the metric flush but before the next test's telemetry clear.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3833737097"
+        }
+      ],
+      "reviewed": "86709029f6a5a6c39d4ed3089f0e6a3e38d636ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3833675970"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `MulticastProcessor` cannot be covered by a scope tied only to this outer `process` invocation. In Camel 2.20.1, sequential multicast returns `false` after the first asynchronous recipient, then its callback continues the remaining recipients without re-entering `process`. This advice therefore marks the shared `SendScope` complete before later `ExchangeSendingEvent`s activate their contexts; `addActivated()` only appends those late scopes, so an asynchronously completed later recipient can leave its context current on the continuation thread. Track/close each multicast recipient on the thread that invokes it (or otherwise support activations after the outer scope has completed) rather than treating the outer method exit as the final activation boundary.",
+      "created": "2026-08-21T21:38:17Z",
+      "hunk": "@@ -0,0 +1,54 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.camel.v2_20;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;\n+import static net.bytebuddy.matcher.ElementMatchers.returns;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.camel.Exchange;\n+\n+class SendProcessorInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return namedOneOf(\n+        \"org.apache.camel.processor.SendProcessor\",\n+        \"org.apache.camel.processor.SendDynamicProcessor\",\n+        \"org.apache.camel.processor.Enricher\",\n+        \"org.apache.camel.processor.MulticastProcessor\");",
+      "id": "PRRT_kwDODJKVX86bTP1Y",
+      "opened": "2026-08-21T21:38:18Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SendProcessorInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-21T21:52:25Z",
+          "body": "Addressed in 703e83974305db69417c157f3bd4427c5003409b.\n\nAnalysis: In sequential async multicast, `MulticastProcessor.process()` returns\n`false` after the first recipient starts asynchronously. The advice calls\n`endSend(closeScopes=true)`, marking the `SendScope` complete and closing all\ncurrently tracked scopes on Thread A. When the async callback fires on Thread B,\nthe remaining recipients trigger `ExchangeSendingEvent`, which calls\n`activate()` and then `addActivated()`. At that point `complete` is already\n`true`, so `finish()` will never run for those scopes again. The old code added\nthem to the list anyway (dead code). If any of those recipients are also async,\ntheir `ExchangeSentEvent` may fire on Thread C; `closeScope()` checks\n`Thread.currentThread() == scopeOwner` and skips the close, leaving Thread B\nwith a stale context active.\n\nThe fix: when `addActivated()` detects `complete=true` it closes the scope on\nthe calling thread immediately, which is the same thread that just called\n`context.makeCurrent()`. The span itself has already been started in\n`onExchangeSending()` before `activate()` is called, and it is still ended\ncorrectly by the `deactivate()` call in `onExchangeSent()`, so telemetry is\npreserved.\n\nUpsides: Eliminates a potential context leak on continuation threads for\nsequential async multicast. Removes dead code (adding to a list whose\n`finish()` will never run). No behaviour change for the existing parallel\nmulticast test, where all `addActivated()` calls happen before `process()`\nreturns and therefore before `complete` is set.\n\nDownsides: Inner spans emitted during an asynchronously completed late\nmulticast recipient will not have that recipient's span as their thread-local\nparent. This affects only sequential async multicast with async sub-recipients,\nwhich the codebase has no existing test for.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3833960191"
+        }
+      ],
+      "reviewed": "516464f454df1842f8dd9ef2476fa0b483f63411",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3833892482"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] For a recipient activated after a sequential asynchronous multicast has completed, closing this scope immediately removes the Camel messaging context before the endpoint invokes JMS/Kafka. The lower client instrumenter then cannot see the Camel send span for semconv suppression, while the already-started Camel instrumenter still records its send metrics at `ExchangeSentEvent`; this double-counts the producer metrics that this PR is intended to coordinate. Preserve the Camel context around the recipient invocation and close it on that invocation thread instead of closing it during activation.",
+      "created": "2026-08-21T22:00:02Z",
+      "hunk": "@@ -78,27 +87,94 @@ static Context deactivate(Exchange exchange) {\n     return null;\n   }\n \n+  public static Object beginSend(Exchange exchange) {\n+    synchronized (exchange) {\n+      SendScope parent = exchange.getProperty(SEND_SCOPE_PROPERTY, SendScope.class);\n+      SendScope sendScope = new SendScope(parent);\n+      ContextWithScope contextWithScope =\n+          exchange.getProperty(ACTIVE_CONTEXT_PROPERTY, ContextWithScope.class);\n+      while (contextWithScope != null) {\n+        sendScope.capture(contextWithScope);\n+        contextWithScope = contextWithScope.getParent();\n+      }\n+      exchange.setProperty(SEND_SCOPE_PROPERTY, sendScope);\n+      return sendScope;\n+    }\n+  }\n+\n+  public static void endSend(Exchange exchange, Object state, boolean closeScopes) {\n+    synchronized (exchange) {\n+      SendScope sendScope = (SendScope) state;\n+      sendScope.finish(closeScopes);\n+\n+      SendScope current = exchange.getProperty(SEND_SCOPE_PROPERTY, SendScope.class);\n+      while (current != null && current.isComplete()) {\n+        current = current.parent;\n+      }\n+      exchange.setProperty(SEND_SCOPE_PROPERTY, current);\n+    }\n+  }\n+\n+  private static final class SendScope {\n+    @Nullable private final SendScope parent;\n+    private final List<ContextWithScope> scopes = new ArrayList<>();\n+    private boolean complete;\n+\n+    private SendScope(@Nullable SendScope parent) {\n+      this.parent = parent;\n+    }\n+\n+    private synchronized void capture(ContextWithScope contextWithScope) {\n+      scopes.add(contextWithScope);\n+    }\n+\n+    private synchronized void addActivated(ContextWithScope contextWithScope) {\n+      if (complete) {\n+        contextWithScope.closeScope();\n+      } else {\n+        scopes.add(0, contextWithScope);",
+      "id": "PRRT_kwDODJKVX86bThPN",
+      "opened": "2026-08-21T22:00:03Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/ActiveContextManager.java",
+      "replies": [
+        {
+          "at": "2026-08-21T22:05:10Z",
+          "body": "Addressed in a094f229506cd349fcde08642869b905b8a8c20d.\n\nAnalysis: The previous fix closed the scope in `addActivated()` as soon as it\ndetected `complete=true`, before the endpoint (JMS/Kafka) was invoked. That\nremoved the Camel send-span context from the thread too early, causing two\nproblems: (1) the lower-level client instrumenter could not see the Camel span\nfor semconv suppression, and (2) the Camel instrumenter still recorded send\nmetrics at `ExchangeSentEvent`, so producer metrics were counted twice.\n\nThe correct behaviour is to keep the scope open across the endpoint invocation.\nFor endpoints that go through `SendProcessor`, the inner\n`SendProcessorInstrumentation.endSend(closeScopes=true)` captures and closes\nthe scope on the invocation thread when the inner `process()` returns. For\nendpoints that do not pass through `SendProcessor`, `deactivate()` closes the\nscope via `ExchangeSentEvent` when that event fires on the same thread\n(synchronous recipients). For truly async recipients on a different thread the\nscope may still leak, but that is an inherent limitation of the thread-local\nscope model and is no worse than the baseline.\n\nThe one-line change removes the dead-list add (`scopes.add(0, ...)` when\n`complete=true`) without introducing the early close that broke semconv and\nmetrics.\n\nUpsides: Semconv suppression between the Camel instrumenter and the JMS/Kafka\nclient instrumenter is preserved for sequential async multicast recipients.\nProducer metrics are not double-counted. Dead code (adding to a complete list\nthat `finish()` will never process) is removed.\n\nDownsides: For sequential async multicast recipients that complete on a\ndifferent thread without an inner `SendProcessor`, the scope may still not be\nclosed on the invocation thread. This is an inherent limitation of the\nthread-local scope model and is unchanged from before this PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3834019199"
+        }
+      ],
+      "reviewed": "703e83974305db69417c157f3bd4427c5003409b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3833997049"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Filtering every assertion to the Camel scope makes the integration tests blind to duplicate metrics from JMS/Kafka. They would still pass if both layers emitted the same send/process point, even though cross-layer deduplication is a primary behavior of this change. Add an assertion over `testing.metrics()` across all instrumentation scopes that each expected operation/destination is counted exactly once (while allowing distinct receive/poll operations).",
+      "created": "2026-08-21T23:18:56Z",
+      "hunk": "@@ -0,0 +1,294 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.camel.v2_20;\n+\n+import static io.opentelemetry.instrumentation.api.internal.SemconvStability.emitStableMessagingSemconv;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.ErrorAttributes.ERROR_TYPE;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_DESTINATION_PARTITION_ID;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_NAME;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_OPERATION_TYPE;\n+import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.MESSAGING_SYSTEM;\n+import static java.util.Arrays.asList;\n+import static java.util.stream.Collectors.toSet;\n+\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.sdk.metrics.data.MetricData;\n+import java.util.HashSet;\n+import java.util.Set;\n+\n+public class CamelMessagingMetricsAssertions {\n+\n+  private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.camel-2.20\";\n+  private static final Set<String> DEPRECATED_METRICS =\n+      new HashSet<>(\n+          asList(\n+              \"messaging.publish.duration\",\n+              \"messaging.receive.duration\",\n+              \"messaging.receive.messages\"));\n+\n+  public static void assertSendAndProcessMetrics(\n+      InstrumentationExtension testing, String system, String destination) {\n+    assertSendAndProcessMetrics(testing, system, destination, null, null);\n+  }\n+\n+  public static void assertSendAndProcessMetrics(\n+      InstrumentationExtension testing,\n+      String system,\n+      String destination,\n+      String processErrorType) {\n+    assertSendAndProcessMetrics(testing, system, destination, processErrorType, null);\n+  }\n+\n+  public static void assertSendAndProcessMetrics(\n+      InstrumentationExtension testing,\n+      String system,\n+      String destination,\n+      String processErrorType,\n+      String processDestinationPartitionId) {\n+    if (!emitStableMessagingSemconv()) {\n+      assertNoCamelMessagingMetrics(testing);\n+      return;\n+    }\n+\n+    assertDuration(\n+        testing,\n+        \"messaging.client.operation.duration\",\n+        \"Duration of messaging operation initiated by a producer or consumer client.\",\n+        \"send\",\n+        \"send\",\n+        system,\n+        destination,\n+        null,\n+        null);\n+    assertCounter(\n+        testing,\n+        \"messaging.client.sent.messages\",\n+        \"Number of messages producer attempted to send to the broker.\",\n+        \"send\",\n+        system,\n+        destination,\n+        null,\n+        null);\n+    assertDuration(\n+        testing,\n+        \"messaging.process.duration\",\n+        \"Duration of processing operation.\",\n+        \"process\",\n+        null,\n+        system,\n+        destination,\n+        processErrorType,\n+        processDestinationPartitionId);\n+    assertCounter(\n+        testing,\n+        \"messaging.client.consumed.messages\",\n+        \"Number of messages that were delivered to the application.\",\n+        \"process\",\n+        system,\n+        destination,\n+        processErrorType,\n+        processDestinationPartitionId);\n+    assertNoDeprecatedMetrics(testing);\n+  }\n+\n+  public static void assertSendMetrics(\n+      InstrumentationExtension testing, String system, String destination, String errorType) {\n+    if (!emitStableMessagingSemconv()) {\n+      assertNoCamelMessagingMetrics(testing);\n+      return;\n+    }\n+\n+    assertDuration(\n+        testing,\n+        \"messaging.client.operation.duration\",\n+        \"Duration of messaging operation initiated by a producer or consumer client.\",\n+        \"send\",\n+        \"send\",\n+        system,\n+        destination,\n+        errorType,\n+        null);\n+    assertCounter(\n+        testing,\n+        \"messaging.client.sent.messages\",\n+        \"Number of messages producer attempted to send to the broker.\",\n+        \"send\",\n+        system,\n+        destination,\n+        errorType,\n+        null);\n+    assertNoDeprecatedMetrics(testing);\n+  }\n+\n+  public static void assertProcessMetrics(\n+      InstrumentationExtension testing, String system, String destination) {\n+    assertProcessMetrics(testing, system, destination, null);\n+  }\n+\n+  public static void assertProcessMetrics(\n+      InstrumentationExtension testing, String system, String destination, String errorType) {\n+    if (!emitStableMessagingSemconv()) {\n+      assertNoCamelMessagingMetrics(testing);\n+      return;\n+    }\n+\n+    assertDuration(\n+        testing,\n+        \"messaging.process.duration\",\n+        \"Duration of processing operation.\",\n+        \"process\",\n+        null,\n+        system,\n+        destination,\n+        errorType,\n+        null);\n+    assertCounter(\n+        testing,\n+        \"messaging.client.consumed.messages\",\n+        \"Number of messages that were delivered to the application.\",\n+        \"process\",\n+        system,\n+        destination,\n+        errorType,\n+        null);\n+    assertThat(camelMetrics(testing))\n+        .noneMatch(\n+            metric ->\n+                metric.getName().equals(\"messaging.client.operation.duration\")\n+                    || metric.getName().equals(\"messaging.client.sent.messages\"));\n+    assertNoDeprecatedMetrics(testing);\n+  }\n+\n+  public static void assertNoCamelMessagingMetrics(InstrumentationExtension testing) {\n+    assertThat(camelMetrics(testing))\n+        .noneMatch(metric -> metric.getName().startsWith(\"messaging.\"));\n+  }\n+\n+  private static void assertDuration(\n+      InstrumentationExtension testing,\n+      String metricName,\n+      String description,\n+      String operationName,\n+      String operationType,\n+      String system,\n+      String destination,\n+      String errorType,\n+      String destinationPartitionId) {\n+    testing.waitAndAssertMetrics(\n+        INSTRUMENTATION_NAME,\n+        metricName,\n+        metrics ->\n+            metrics.satisfiesExactly(\n+                metric -> {\n+                  assertThat(metric)\n+                      .hasUnit(\"s\")\n+                      .hasDescription(description)\n+                      .hasHistogramSatisfying(\n+                          histogram ->\n+                              histogram.hasPointsSatisfying(\n+                                  point -> {\n+                                    point.hasCount(1);\n+                                    if (operationType != null) {\n+                                      if (destinationPartitionId != null) {\n+                                        point.hasAttributesSatisfyingExactly(\n+                                            equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                                            equalTo(MESSAGING_SYSTEM, system),\n+                                            equalTo(MESSAGING_DESTINATION_NAME, destination),\n+                                            equalTo(\n+                                                MESSAGING_DESTINATION_PARTITION_ID,\n+                                                destinationPartitionId),\n+                                            equalTo(MESSAGING_OPERATION_TYPE, operationType),\n+                                            equalTo(ERROR_TYPE, errorType));\n+                                      } else {\n+                                        point.hasAttributesSatisfyingExactly(\n+                                            equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                                            equalTo(MESSAGING_SYSTEM, system),\n+                                            equalTo(MESSAGING_DESTINATION_NAME, destination),\n+                                            equalTo(MESSAGING_OPERATION_TYPE, operationType),\n+                                            equalTo(ERROR_TYPE, errorType));\n+                                      }\n+                                    } else {\n+                                      if (destinationPartitionId != null) {\n+                                        point.hasAttributesSatisfyingExactly(\n+                                            equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                                            equalTo(MESSAGING_SYSTEM, system),\n+                                            equalTo(MESSAGING_DESTINATION_NAME, destination),\n+                                            equalTo(\n+                                                MESSAGING_DESTINATION_PARTITION_ID,\n+                                                destinationPartitionId),\n+                                            equalTo(ERROR_TYPE, errorType));\n+                                      } else {\n+                                        point.hasAttributesSatisfyingExactly(\n+                                            equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                                            equalTo(MESSAGING_SYSTEM, system),\n+                                            equalTo(MESSAGING_DESTINATION_NAME, destination),\n+                                            equalTo(ERROR_TYPE, errorType));\n+                                      }\n+                                    }\n+                                  }));\n+                }));\n+  }\n+\n+  private static void assertCounter(\n+      InstrumentationExtension testing,\n+      String metricName,\n+      String description,\n+      String operationName,\n+      String system,\n+      String destination,\n+      String errorType,\n+      String destinationPartitionId) {\n+    testing.waitAndAssertMetrics(\n+        INSTRUMENTATION_NAME,\n+        metricName,\n+        metrics ->\n+            metrics.satisfiesExactly(\n+                metric -> {\n+                  assertThat(metric)\n+                      .hasUnit(\"{message}\")\n+                      .hasDescription(description)\n+                      .hasLongSumSatisfying(\n+                          sum ->\n+                              sum.hasPointsSatisfying(\n+                                  point -> {\n+                                    point.hasValue(1);\n+                                    if (destinationPartitionId != null) {\n+                                      point.hasAttributesSatisfyingExactly(\n+                                          equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                                          equalTo(MESSAGING_SYSTEM, system),\n+                                          equalTo(MESSAGING_DESTINATION_NAME, destination),\n+                                          equalTo(\n+                                              MESSAGING_DESTINATION_PARTITION_ID,\n+                                              destinationPartitionId),\n+                                          equalTo(ERROR_TYPE, errorType));\n+                                    } else {\n+                                      point.hasAttributesSatisfyingExactly(\n+                                          equalTo(MESSAGING_OPERATION_NAME, operationName),\n+                                          equalTo(MESSAGING_SYSTEM, system),\n+                                          equalTo(MESSAGING_DESTINATION_NAME, destination),\n+                                          equalTo(ERROR_TYPE, errorType));\n+                                    }\n+                                  }));\n+                }));\n+  }\n+\n+  private static void assertNoDeprecatedMetrics(InstrumentationExtension testing) {\n+    assertThat(camelMetrics(testing))\n+        .noneMatch(metric -> DEPRECATED_METRICS.contains(metric.getName()));\n+  }\n+\n+  private static Set<MetricData> camelMetrics(InstrumentationExtension testing) {\n+    return testing.metrics().stream()\n+        .filter(\n+            metric -> INSTRUMENTATION_NAME.equals(metric.getInstrumentationScopeInfo().getName()))\n+        .collect(toSet());",
+      "id": "PRRT_kwDODJKVX86bUZje",
+      "opened": "2026-08-21T23:18:56Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelMessagingMetricsAssertions.java",
+      "replies": [
+        {
+          "at": "2026-08-21T23:30:34Z",
+          "body": "Addressed in 9238af82ea8d2489440ff206191f9193c45d470c.\n\nAnalysis: The comment is correct. Every public assertion method filters metrics to the Camel scope before asserting, so the tests would pass even if the underlying JMS or Kafka client instrumentation emitted the same metrics. Cross-layer deduplication via MessagingMetricsState is a primary behavior this PR adds; without a cross-scope check, tests cannot catch a regression where deduplication stops working.\n\nThe new `assertNoDuplicateMessagingMetrics` helper collects all `MetricData` across every instrumentation scope for the named metrics, then asserts that none of them come from a scope other than `io.opentelemetry.camel-2.20`. It is called from `assertSendAndProcessMetrics` (all four metrics), `assertSendMetrics` (producer metrics), and `assertProcessMetrics` (consumer metrics). The check is already guarded by `emitStableMessagingSemconv()` via the early-return branches already present in those methods.\n\nUpsides: Tests now fail if any other instrumentation scope duplicates Camel's messaging metrics, providing meaningful coverage of cross-layer suppression for Kafka, JMS, and SQS scenarios.\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3834386216"
+        }
+      ],
+      "reviewed": "a094f229506cd349fcde08642869b905b8a8c20d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3834339099"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This disables Kafka record wrapping in every configuration, so legacy users lose the existing Kafka process span even though the PR promises unchanged spans without the messaging opt-in. `TracingIterator.wrap`/`TracingIterable.wrap` return the unwrapped delegate when this flag is false, and `RunAdvice` currently sets it to false unconditionally. Only disable wrapping when stable messaging semconv is enabled; otherwise preserve the previous value.",
+      "created": "2026-08-22T03:26:08Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.camel.v2_20;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+\n+import io.opentelemetry.javaagent.bootstrap.kafka.KafkaClientsConsumerProcessTracing;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class KafkaFetchRecordsInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.camel.component.kafka.KafkaConsumer$KafkaFetchRecords\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(named(\"run\"), getClass().getName() + \"$RunAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class RunAdvice {\n+\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static boolean onEnter() {\n+      return KafkaClientsConsumerProcessTracing.setWrappingEnabled(false);\n+    }",
+      "id": "PRRT_kwDODJKVX86bV9Tt",
+      "opened": "2026-08-22T03:26:09Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/KafkaFetchRecordsInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-08-22T03:36:03Z",
+          "body": "Addressed in 18f5f887f3cfbde794140737a31c3eebed6f4a8d.\n\nAnalysis: Kafka record wrapping must stay unchanged in legacy messaging mode. RunAdvice now disables wrapping only when emitStableMessagingSemconv() is true and uses nullable entry state so the legacy path does not alter the thread-local flag.\n\nUpsides: This preserves the existing Kafka process span for legacy users while stable messaging mode still avoids duplicate process telemetry.\n\nDownsides: The advice uses nullable boxed Boolean state instead of primitive state.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3834974284"
+        }
+      ],
+      "reviewed": "22827aa2a2b3d8c5f676ba72f7b6bd49d96d81f7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3834957314"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This unconditionally records a consumed-message point for Camel processing, even when the lower JMS receive operation already counted the same delivery. The JMS receive instrumenter registers `MessagingConsumerMetrics.getForOperationType()` (`JmsInstrumenterFactory.java:75-86`), and its tests explicitly require the receive operation to own the single delivery count (`AbstractJms1Test.java:426-428,466-473`); this PR’s JMS test also observes that receive operation. Because its context has ended before Camel starts, the new context marker cannot deduplicate it, so each JMS message produces both a `receive` and a `process` point. Propagate per-message ownership from the receive layer (or otherwise detect that receive telemetry was recorded) and skip Camel’s consumed counter in that case; the integration assertion should count all matching delivery points, not only `operation.name=process`.",
+      "created": "2026-09-01T23:46:17Z",
+      "hunk": "@@ -81,7 +85,12 @@ private static Instrumenter<CamelRequest, Void> createMessagingInstrumenter(\n               : new KeylessAttributesExtractor(attributesExtractor));\n     }\n \n+    if (operationType == SEND) {\n+      builder.addOperationMetrics(MessagingProducerMetrics.getForOperationType());\n+    }\n     if (operationType == PROCESS && emitStableMessagingSemconv()) {\n+      builder.addOperationMetrics(MessagingProcessMetrics.get());\n+      builder.addOperationMetrics(MessagingConsumerMetrics.getConsumedMessages());",
+      "id": "PRRT_kwDODJKVX86eUP0H",
+      "opened": "2026-09-01T23:46:18Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-02T00:19:14Z",
+          "body": "Addressed in f01e08ea567fe7763b61e21a500eef9ba0173a46.\n\nAnalysis: JMS receive instrumentation now stores delivery ownership in a bootstrap weak-key cache. Camel copies that marker from the raw JMS message to its message wrapper. Camel process metrics then mark the context as already owned and conditionally skip only the consumed-message counter, while preserving the process-duration metric. The integration assertion sums matching consumed-message points across all instrumentation scopes and operation names.\n\nUpsides: Each JMS delivery contributes one consumed-message point even when the receive context has ended before Camel processing starts. Camel still records the process duration. The integration tests now catch duplicate receive and process counts across instrumentation scopes.\n\nDownsides: JMS receive and Camel message creation each add a weak-cache lookup, and the Camel module now depends on the JMS bootstrap marker.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3909619441"
+        }
+      ],
+      "reviewed": "8e3e649369194fdfe1719fbb72f4c2e5e4490827",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3909460892"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] When Kafka receive telemetry is enabled, the lower Kafka poll instrumentation already records `messaging.client.consumed.messages` for every returned record (`KafkaInstrumenterFactory.java:195-197,278-286`). `KafkaFetchRecordsInstrumentation` disables only process wrapping, so this added Camel listener records the same delivery again after the poll context has ended. Propagate Kafka's per-record ownership into the Camel exchange (as done for JMS) and skip this counter when the poll already counted it; also cover `otel.instrumentation.messaging.experimental.receive-telemetry.enabled=true`, since the current duplicate assertion only looks for `operation.name=process`.",
+      "created": "2026-09-02T00:27:41Z",
+      "hunk": "@@ -81,7 +86,17 @@ private static Instrumenter<CamelRequest, Void> createMessagingInstrumenter(\n               : new KeylessAttributesExtractor(attributesExtractor));\n     }\n \n+    if (operationType == SEND) {\n+      builder.addOperationMetrics(MessagingProducerMetrics.getForOperationType());\n+    }\n     if (operationType == PROCESS && emitStableMessagingSemconv()) {\n+      builder.addOperationMetrics(MessagingProcessMetrics.get());\n+      builder.addContextCustomizer(\n+          (context, request, startAttributes) ->\n+              JmsReceiveTelemetry.wasRecorded(request.getExchange().getIn())\n+                  ? markConsumedMessages(context)\n+                  : context);\n+      builder.addOperationMetrics(CamelProcessMetrics.consumedMessages());",
+      "id": "PRRT_kwDODJKVX86eUvXJ",
+      "opened": "2026-09-02T00:27:41Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelSingletons.java",
+      "replies": [
+        {
+          "at": "2026-09-02T00:36:12Z",
+          "body": "Addressed in 7197fac0dbc83a472b7ec101206549910e870cd0.\n\nAnalysis: Kafka receive telemetry records the consumed-message metric before Camel creates its exchange. The receive context has ended by the time Camel starts its process operation, so context state cannot prevent the second count. A bootstrap weak-key cache now transfers metric ownership from each ConsumerRecord to its Camel message. Camel checks that marker before recording its process counter. The focused stable semantic conventions test enables receive telemetry and totals Kafka consumed-message points across instrumentation scopes.\n\nUpsides: Each Kafka delivery contributes one consumed-message count while Camel still records process duration. The weak keys do not retain ConsumerRecord or Camel message instances.\n\nDownsides: The ownership handoff adds one weak-cache entry for each Kafka record counted by receive telemetry and one Camel-specific Kafka endpoint advice.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3909697049"
+        }
+      ],
+      "reviewed": "f01e08ea567fe7763b61e21a500eef9ba0173a46",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3909658885"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "initially I though that maybe `EnumSet` instead of `Integer` could be simpler, but since everything has to be immutable it might be easier with `Integer` since the set could be accidentally mutated",
+      "created": "2026-09-03T11:39:59Z",
+      "hunk": "@@ -0,0 +1,126 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.api.incubator.semconv.messaging.internal;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingOperationType;\n+import java.util.EnumMap;\n+import java.util.Map;\n+import java.util.StringJoiner;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * An immutable set of claims on messaging telemetry, where a claim is one {@link\n+ * MessagingTelemetrySignal} of one {@link MessagingOperationType}.\n+ *\n+ * <p>A claim means \"this layer emits this signal for this operation\", so a layer nested inside it\n+ * has to leave that signal alone. Because operations and signals are tracked as separate claims, a\n+ * layer that owns the {@code send} duration still leaves the {@code receive} duration and the\n+ * process span to whoever owns those.\n+ *\n+ * <p>Claims are held as one bit per signal of each operation that has any, which is small enough to\n+ * keep in a {@link io.opentelemetry.context.Context}, in a weak map keyed by a message, or in a\n+ * thread local.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class MessagingTelemetryClaims {\n+\n+  private static final MessagingTelemetryClaims NONE =\n+      new MessagingTelemetryClaims(new EnumMap<>(MessagingOperationType.class));\n+\n+  private final EnumMap<MessagingOperationType, Integer> signalsByOperation;",
+      "id": "PRRT_kwDODJKVX86e5ZBN",
+      "opened": "2026-09-03T11:39:59Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/internal/MessagingTelemetrySignals.java",
+      "replies": [],
+      "reviewed": "76839e58c337bd9dc27f5ff8ece4072a81975f34",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3924118722"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "might be better to revert changes to this file",
+      "created": "2026-09-03T12:07:17Z",
+      "hunk": "@@ -4276,6 +4276,23 @@ definitions:\n         type: STRING\n       - name: server.port\n         type: LONG\n+    messaging.client.consumed.messages-c0fc17f6:",
+      "id": "PRRT_kwDODJKVX86e572n",
+      "opened": "2026-09-03T12:07:17Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-09-03T15:58:52Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19962",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3926295886"
+        }
+      ],
+      "reviewed": "76839e58c337bd9dc27f5ff8ece4072a81975f34",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3924330701"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether this could backfire with lots of messages, perhaps a virtual field based approach would be possible. The carrier could be some sort of accessor instead of Object so that caller who nose the type could choose where the state is.",
+      "created": "2026-09-03T12:13:16Z",
+      "hunk": "@@ -0,0 +1,89 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.bootstrap.messaging;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingOperationType;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.internal.MessagingTelemetryClaims;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.internal.MessagingTelemetrySignal;\n+import io.opentelemetry.instrumentation.api.internal.cache.Cache;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * The {@link MessagingTelemetryClaims} attached to a message, a record, or any other object that\n+ * carries one in-flight message.\n+ *\n+ * <p>Claims live here rather than in the {@link io.opentelemetry.context.Context} when the message\n+ * outlives the scope that emitted telemetry for it, or reaches the next instrumentation on a\n+ * different thread. A JMS message that already has a receive span, for instance, still has it when\n+ * a listener picks it up later.\n+ *\n+ * <p>The registry is keyed by object identity, so two instrumentations only meet here when they are\n+ * handling the same message, which is exactly when they have to agree on who emits what.\n+ *\n+ * <p>Claims are held weakly, so remembering them never keeps a message alive.\n+ */\n+public final class MessagingTelemetryCarrier {\n+\n+  private static final Cache<Object, MessagingTelemetryClaims> carrierClaims = Cache.weak();",
+      "id": "PRRT_kwDODJKVX86e6Dpu",
+      "opened": "2026-09-03T12:13:16Z",
+      "path": "javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/messaging/MessagingTelemetryCarrier.java",
+      "replies": [
+        {
+          "at": "2026-09-03T18:22:30Z",
+          "body": "yeah, I've noticed agents like to reach for weak caches because they don't know about our VirtualFields, sent\r\n\r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19967",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3927443573"
+        }
+      ],
+      "reviewed": "76839e58c337bd9dc27f5ff8ece4072a81975f34",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19503#discussion_r3924377944"
+    }
+  ]
+}

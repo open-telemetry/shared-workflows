@@ -1,0 +1,25 @@
+{
+  "head": "0622cbfd02f192993e1770ff002d71ce906015bd",
+  "merge": "de5676002306e47d09c13f07a33a7d4b3e1d10c9",
+  "merged": "2026-03-18T23:26:23Z",
+  "missing_roots": 0,
+  "number": 16704,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    @Advice.OnMethodExit\n```",
+      "created": "2026-03-18T21:24:18Z",
+      "hunk": "@@ -29,14 +29,14 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n-        named(\"getHostName\"), TestTypeInstrumentation.class.getName() + \"$GetHostNameAdvice\");\n+        named(\"getHostName\"), getClass().getName() + \"$GetHostNameAdvice\");\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class GetHostNameAdvice {\n \n     @AssignReturned.ToReturned\n-    @Advice.OnMethodExit\n+    @Advice.OnMethodExit(suppress = Throwable.class)",
+      "id": "PRRT_kwDODJKVX851Szuk",
+      "opened": "2026-03-18T21:24:17Z",
+      "path": "instrumentation/internal/internal-url-class-loader/javaagent-integration-tests/src/main/java/instrumentation/TestTypeInstrumentation.java",
+      "replies": [],
+      "reviewed": "727a11d3d42828c7ef80a10977f50a57677c4ac0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16704#discussion_r2956336450"
+    }
+  ]
+}

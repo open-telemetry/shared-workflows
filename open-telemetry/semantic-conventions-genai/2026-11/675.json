@@ -1,0 +1,31 @@
+{
+  "head": "ddf9ee92d9917e2d321524bbaf11efb213dc99b8",
+  "merge": "f4219d1274028aee5ad3680eb7bfb62c43269444",
+  "merged": "2026-11-02T19:53:42Z",
+  "missing_roots": 0,
+  "number": 675,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This upgrade leaves `model/a2a/spans.yaml:98` with an unresolved parent, so registry checks and generation fail for `a2a.grpc.server`. In v1.45.0, `rpc.grpc.call.server` becomes a refinement, but the pinned Weaver v0.28.0 only searches span definitions when resolving dependency parents. Migrate the A2A refinement to a supported base such as `rpc.call.server`, preserving the gRPC-specific attribute overrides, alongside this dependency update.",
+      "created": "2026-11-02T19:36:25Z",
+      "hunk": "@@ -8,5 +8,5 @@ schema_url: https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev\n stability: development\n dependencies:\n   # renovate: datasource=github-tags depName=open-telemetry/semantic-conventions versioning=semver-coerced\n-  - schema_url: https://opentelemetry.io/schemas/1.44.0\n-    registry_path: https://github.com/open-telemetry/semantic-conventions.git@v1.44.0[model]\n+  - schema_url: https://opentelemetry.io/schemas/1.45.0\n+    registry_path: https://github.com/open-telemetry/semantic-conventions.git@v1.45.0[model]",
+      "id": "PRRT_kwDOSUeMrM6y1NLj",
+      "opened": "2026-11-02T19:36:26Z",
+      "path": "model/manifest.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T19:46:42Z",
+          "body": "seems not needed",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/675#discussion_r4446966591"
+        }
+      ],
+      "reviewed": "95fa46340ddd834c3c41f64eaa9da2c64c44efed",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/675#discussion_r4446862827"
+    }
+  ]
+}

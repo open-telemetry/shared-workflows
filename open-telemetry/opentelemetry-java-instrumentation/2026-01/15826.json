@@ -1,0 +1,31 @@
+{
+  "head": "079341e7f356450f831cff5b29c0ee8ef96f5a23",
+  "merge": "7d62d59f8fba5811a30ed9ea1dfaa3fddc21fc27",
+  "merged": "2026-01-12T16:58:18Z",
+  "missing_roots": 0,
+  "number": 15826,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I think we might need to add javadoc to the experimental methods",
+      "created": "2026-01-12T12:04:44Z",
+      "hunk": "@@ -47,6 +52,13 @@ public static void setCaptureEnduserId(\n     }\n   }\n \n+  public static void setCapturedRequestParameters(",
+      "id": "PRRT_kwDODJKVX85o-Gbi",
+      "opened": "2026-01-12T12:04:44Z",
+      "path": "instrumentation/servlet/servlet-3.0/library/src/main/java/io/opentelemetry/instrumentation/servlet/v3_0/internal/Experimental.java",
+      "replies": [
+        {
+          "at": "2026-01-12T16:58:14Z",
+          "body": "I added this as TODO on #12846, will send follow-up",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15826#discussion_r2683117800"
+        }
+      ],
+      "reviewed": "079341e7f356450f831cff5b29c0ee8ef96f5a23",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15826#discussion_r2681998581"
+    }
+  ]
+}
